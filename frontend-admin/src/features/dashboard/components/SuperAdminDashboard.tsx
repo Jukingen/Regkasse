@@ -8,7 +8,9 @@ import { CustomerAnalyticsCards } from '@/features/dashboard/components/Customer
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
+import { PaymentVolumeAnalyticsWidget } from '@/features/dashboard/components/PaymentVolumeAnalyticsWidget';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
+import { TseAnalyticsWidget } from '@/features/dashboard/components/TseAnalyticsWidget';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { ExportQuickActionsCard } from '@/features/exports/components/ExportQuickActionsCard';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
@@ -33,6 +35,8 @@ export function SuperAdminDashboard() {
   const operationalHeader = (
     <>
       <CustomerAnalyticsCards />
+      <TseAnalyticsWidget />
+      <PaymentVolumeAnalyticsWidget />
       {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
       {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
       {tseHealthCardEnabled ? <TseHealthCard /> : null}

@@ -12,6 +12,19 @@
   "secretsHint": "ApiKey and ApiSecret are not shown or stored here. Set them via user secrets or environment variables.",
   "saveSuccess": "Fiskaly setting saved",
   "forbidden": "You do not have permission for this page.",
+  "indicator": {
+    "configure": "Configure",
+    "disabledTitle": "TSE disabled",
+    "disabledDescription": "Fiskaly is disabled. Fiscal payments are not possible.",
+    "notConfiguredTitle": "TSE not configured",
+    "notConfiguredDescription": "Fiskaly credentials are missing. Contact an administrator.",
+    "authFailedTitle": "TSE authentication failed",
+    "authFailedDescription": "Fiskaly could not be authenticated.",
+    "scuNotInitializedTitle": "TSE not initialized",
+    "scuNotInitializedDescription": "The SCU has not been initialized yet. Run Fiskaly setup.",
+    "activeTitle": "TSE active",
+    "activeDescription": "SCU: {{scu}} | Environment: {{env}}"
+  },
   "setup": {
     "openWizard": "Fiskaly setup",
     "pageTitle": "Fiskaly setup",

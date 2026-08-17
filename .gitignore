@@ -216,6 +216,10 @@ backend/**/coverage/
 backend/**/coverage.*.json
 backend/_cov_out/
 backend/_cov_out/**
+# Coverlet dumps (GUID folders); cobertura XML can exceed GitHub's 100MB limit
+backend/coverage-payment/**
+!backend/coverage-payment/payment.runsettings
+**/*.cobertura.xml
 
 # Local dotnet publish output (never commit — includes DLLs, appsettings copies, test extracts)
 backend/publish/

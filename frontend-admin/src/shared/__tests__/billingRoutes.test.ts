@@ -19,6 +19,7 @@ const BILLING_PAGE_MODULES = [
   'sales/new/page.tsx',
   'sales/[id]/page.tsx',
   'stats/page.tsx',
+  'subscription-invoices/page.tsx',
 ] as const;
 
 describe('billing App Router registration', () => {
@@ -32,7 +33,13 @@ describe('billing App Router registration', () => {
     const billingSidebarLeaves = ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS.filter(
       (key) => key.startsWith('/admin/billing') || key === '/billing/digital'
     );
-    expect(billingSidebarLeaves.sort()).toEqual(['/billing/digital']);
+    expect(billingSidebarLeaves.sort()).toEqual([
+      '/admin/billing/subscription-invoices',
+      '/billing/digital',
+    ]);
+    expect(getRequiredPermissionForPath('/admin/billing/subscription-invoices')).toEqual([
+      PERMISSIONS.SYSTEM_CRITICAL,
+    ]);
     expect(getRequiredPermissionForPath('/admin/billing')).toEqual([PERMISSIONS.SYSTEM_CRITICAL]);
     expect(getRequiredPermissionForPath('/billing/digital')).toEqual([
       PERMISSIONS.DIGITAL_MANAGE,

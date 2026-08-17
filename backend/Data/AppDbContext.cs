@@ -2956,6 +2956,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.PdfPath).HasMaxLength(500);
+                entity.Property(e => e.PaymentMethod).HasMaxLength(32);
+                entity.Property(e => e.PaymentReference).HasMaxLength(100);
+                entity.Property(e => e.VoidReason).HasMaxLength(500);
                 entity.Property(e => e.AmountNet).HasColumnType("numeric(18,2)");
                 entity.Property(e => e.VatRate).HasColumnType("numeric(5,2)");
                 entity.Property(e => e.AmountVat).HasColumnType("numeric(18,2)");

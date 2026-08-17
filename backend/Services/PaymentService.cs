@@ -1134,7 +1134,27 @@ namespace KasseAPI_Final.Services
                             payment.TseSignature = sigResult.CompactJws;
                             payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
                             payment.CertificateThumbprint = sigResult.CertificateThumbprint;
-                            _logger.LogInformation("TSE signature generated for payment {PaymentId}", payment.Id);
+                            _logger.LogInformation(
+                                "TSE signature generated for payment {PaymentId} provider={Provider}",
+                                payment.Id,
+                                sigResult.SigningProvider);
+                        }
+                        catch (TseUnavailableException ex)
+                        {
+                            _logger.LogError(
+                                ex,
+                                "TSE unavailable while signing payment (BelegNr={BelegNr}, paymentDraftId={PaymentId}).",
+                                preReceiptNumber,
+                                payment.Id);
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "TSE is not available",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "TSE_UNAVAILABLE"
+                            };
                         }
                         catch (Exception ex)
                         {
@@ -1506,7 +1526,13 @@ namespace KasseAPI_Final.Services
             string qrPayload;
             if (!string.IsNullOrEmpty(signatureValue))
             {
-                if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
+                if (LooksLikeFiskalyMachineCode(signatureValue))
+                {
+                    qrPayload = signatureValue.Trim();
+                    tseProvider = "Fiskaly";
+                    isDemoFiscal = false;
+                }
+                else if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
                 {
                     _logger.LogWarning(
                         "Unable to build RKSV §9 QR payload from compact JWS for payment {PaymentId}",
@@ -1521,6 +1547,14 @@ namespace KasseAPI_Final.Services
             }
 
             return Task.FromResult((qrPayload, isDemoFiscal, tseProvider));
+        }
+
+        private static bool LooksLikeFiskalyMachineCode(string signatureValue)
+        {
+            var trimmed = signatureValue.Trim();
+            if (!trimmed.StartsWith("_R1-AT", StringComparison.Ordinal))
+                return false;
+            return trimmed.Split('.').Length != 3;
         }
 
         /// <summary>

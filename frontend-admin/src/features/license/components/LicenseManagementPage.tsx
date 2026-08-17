@@ -146,6 +146,9 @@ export function LicenseManagementPage() {
                 <Button onClick={() => router.push('/admin/billing/sales')}>
                   {t('license.management.openSales')}
                 </Button>
+                <Button onClick={() => router.push('/admin/billing/subscription-invoices')}>
+                  {t('nav.subscriptionInvoices')}
+                </Button>
                 <Button
                   icon={<PlusOutlined />}
                   onClick={() => router.push('/admin/billing/sales/new')}

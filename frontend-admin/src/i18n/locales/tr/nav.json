@@ -168,6 +168,7 @@
   "billingSalesNew": "Yeni satış",
   "billingStats": "İstatistikler",
   "billingDigital": "Dijital hizmetler (gelir)",
+  "subscriptionInvoices": "Abonelik faturaları",
   "communication": {
     "title": "İletişim",
     "bulkEmail": "Toplu E-posta"
@@ -367,6 +368,7 @@
     "billingSalesNew": "Yeni satış",
     "billingStats": "İstatistik",
     "billingDigital": "Dijital ciro",
+    "subscriptionInvoices": "Abonelik faturaları",
     "tenants": "Kiracılar",
     "createTenant": "Sihirbaz, onboarding",
     "trials": "Deneme yonetimi",

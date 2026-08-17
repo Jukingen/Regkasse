@@ -463,5 +463,18 @@
     "closeNowConfirm": "RKSV-relevant operation. Run only when the register is ready.",
     "noPermission": "You do not have permission for daily closing.",
     "loadError": "Could not load daily closing status"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE usage",
+    "volumeTitle": "Payment volume (POS)",
+    "loadFailed": "Could not load analytics.",
+    "activeRegisters": "Active registers",
+    "signaturesToday": "Signatures today",
+    "failedSignatures": "Failed",
+    "signatures": "Signatures",
+    "revenueThisMonth": "Revenue this month",
+    "monthlyGrowth": "Month-over-month",
+    "averageTicket": "Avg. ticket",
+    "revenue": "Revenue"
   }
 }

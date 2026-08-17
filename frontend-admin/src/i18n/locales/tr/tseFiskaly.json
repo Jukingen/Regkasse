@@ -12,6 +12,19 @@
   "secretsHint": "ApiKey ve ApiSecret burada gösterilmez veya kaydedilmez. User secrets veya ortam değişkenleriyle ayarlayın.",
   "saveSuccess": "Fiskaly ayarı kaydedildi",
   "forbidden": "Bu sayfa için yetkiniz yok.",
+  "indicator": {
+    "configure": "Yapılandır",
+    "disabledTitle": "TSE devre dışı",
+    "disabledDescription": "Fiskaly kapalı. Mali ödemeler yapılamaz.",
+    "notConfiguredTitle": "TSE yapılandırılmadı",
+    "notConfiguredDescription": "Fiskaly kimlik bilgileri eksik. Lütfen yöneticinize başvurun.",
+    "authFailedTitle": "TSE kimlik doğrulaması başarısız",
+    "authFailedDescription": "Fiskaly kimliği doğrulanamadı.",
+    "scuNotInitializedTitle": "TSE başlatılmadı",
+    "scuNotInitializedDescription": "SCU henüz başlatılmadı. Lütfen Fiskaly kurulumunu tamamlayın.",
+    "activeTitle": "TSE aktif",
+    "activeDescription": "SCU: {{scu}} | Ortam: {{env}}"
+  },
   "setup": {
     "openWizard": "Fiskaly kurulumu",
     "pageTitle": "Fiskaly kurulumu",

@@ -704,7 +704,17 @@
     "activeTenants": "Aktif",
     "expiringSoon": "Yakında bitiyor",
     "mrr": "MRR",
-    "loadFailed": "İstatistikler yüklenemedi."
+    "loadFailed": "İstatistikler yüklenemedi.",
+    "churnRate": "Aylık churn",
+    "arpu": "ARPU",
+    "paidTenants": "Ücretli",
+    "trialTenants": "Deneme",
+    "ltv": "LTV",
+    "planDistribution": "Paket dağılımı",
+    "planTrial": "Deneme",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo kiracı",

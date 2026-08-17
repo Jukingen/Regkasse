@@ -704,7 +704,17 @@
     "activeTenants": "Aktiv",
     "expiringSoon": "Läuft bald ab",
     "mrr": "MRR",
-    "loadFailed": "Statistiken konnten nicht geladen werden."
+    "loadFailed": "Statistiken konnten nicht geladen werden.",
+    "churnRate": "Churn (Monat)",
+    "arpu": "ARPU",
+    "paidTenants": "Zahlend",
+    "trialTenants": "Testphase",
+    "ltv": "LTV",
+    "planDistribution": "Paketverteilung",
+    "planTrial": "Test",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo-Mandant",

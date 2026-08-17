@@ -463,5 +463,18 @@
     "closeNowConfirm": "RKSV-relevante Operation. Nur ausführen, wenn die Kasse fachlich bereit ist.",
     "noPermission": "Keine Berechtigung für den Tagesabschluss.",
     "loadError": "Tagesabschluss-Status konnte nicht geladen werden"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE Nutzung",
+    "volumeTitle": "Zahlungsvolumen (POS)",
+    "loadFailed": "Statistiken konnten nicht geladen werden.",
+    "activeRegisters": "Aktive Kassen",
+    "signaturesToday": "Signaturen heute",
+    "failedSignatures": "Fehlgeschlagen",
+    "signatures": "Signaturen",
+    "revenueThisMonth": "Umsatz dieser Monat",
+    "monthlyGrowth": "Monatsveränderung",
+    "averageTicket": "Ø Bonwert",
+    "revenue": "Umsatz"
   }
 }

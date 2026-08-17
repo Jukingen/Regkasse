@@ -65,6 +65,7 @@ import {
 } from '../utils/posRegisterGateCopy';
 import { checkTseStatus } from '../services/api/tseService';
 import { useTseHealth } from '../hooks/useTseHealth';
+import { TseStatusBanner } from './TseStatusBanner';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import StornoRefundSelection from './StornoRefundSelection';
 import {
@@ -1055,7 +1056,10 @@ export default function PaymentModal({
 
     if (needFiscalTseForPay && payGateTseBlocked) {
       logPay('Guard exit: TSE gate');
-      Alert.alert('Debug Error', 'Failed at: TSE nicht bereit');
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.errorTitle'),
+        resolveTseGateMessage()
+      );
       return;
     }
 
@@ -1424,6 +1428,21 @@ export default function PaymentModal({
     }
   };
 
+  const resolveTseGateMessage = () => {
+    const indicator = String(tseHealth.indicatorStatus);
+    const message = (tseHealth.message ?? tseHealth.lastErrorMessageSafe ?? '').toLowerCase();
+    if (message.includes('disabled') || message.includes('deaktiviert')) {
+      return t('checkout:posFlow.payment.tseGate.disabled');
+    }
+    if (
+      indicator === 'Inactive' &&
+      (message.includes('initial') || message.includes('no tse') || !tseHealth.scuId)
+    ) {
+      return t('checkout:posFlow.payment.tseGate.notInitialized');
+    }
+    return t('checkout:posFlow.payment.tseGate.unavailable');
+  };
+
   const handlePayment = async () => {
     if (timeSyncCritical) {
       return;
@@ -1438,6 +1457,30 @@ export default function PaymentModal({
     const licenseOk = await checkLicenseBeforePayment(tLicense);
     if (!licenseOk) {
       return;
+    }
+    if (needFiscalTseForPay && !tseServerOffline) {
+      try {
+        await tseHealth.refresh();
+        const status = await checkTseStatus();
+        const ok = Boolean(status.isConnected && status.canCreateInvoices);
+        setFiscalTseGateOk(ok);
+        registerPosTseStatusCheckOutcome(ok);
+        if (!ok) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.errorTitle'),
+            resolveTseGateMessage()
+          );
+          return;
+        }
+      } catch {
+        setFiscalTseGateOk(false);
+        registerPosTseStatusCheckOutcome(false);
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.errorTitle'),
+          t('checkout:posFlow.payment.tseGate.unavailable')
+        );
+        return;
+      }
     }
     if (timeSyncWarningBand) {
       await new Promise<void>((resolve) => {
@@ -2100,6 +2143,16 @@ export default function PaymentModal({
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
+              {needFiscalTseForPay ? (
+                <View style={styles.section} accessibilityRole="summary">
+                  <TseStatusBanner />
+                  {payGateTseBlocked ? (
+                    <Text style={styles.paymentMethodRequiredHint} accessibilityRole="alert">
+                      {resolveTseGateMessage()}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
               {/* DEV: TSE Simulation Toggle */}
               {__DEV__ && (
                 <View style={styles.section}>

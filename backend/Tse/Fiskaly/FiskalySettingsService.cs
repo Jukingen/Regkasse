@@ -70,6 +70,11 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
             status.LastCheck = DateTime.UtcNow;
             if (!auth.Success)
                 status.Error = "Authentication did not succeed.";
+
+            if (auth.Success)
+            {
+                await ProbeScuAsync(status, opts, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
@@ -79,6 +84,34 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
         }
 
         return status;
+    }
+
+    private async Task ProbeScuAsync(
+        FiskalyStatusDto status,
+        FiskalyOptions opts,
+        CancellationToken cancellationToken)
+    {
+        var scuId = opts.SignatureCreationUnitId?.Trim();
+        if (string.IsNullOrWhiteSpace(scuId))
+            return;
+
+        try
+        {
+            var scu = await _client.GetSignatureCreationUnitAsync(scuId, cancellationToken).ConfigureAwait(false);
+            status.ScuId = scu?.Id ?? scuId;
+            status.ScuState = scu?.State;
+            status.ScuInitialized = string.Equals(
+                scu?.State,
+                FiskalyResourceStates.Initialized,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            status.ScuId = scuId;
+            status.ScuInitialized = false;
+            status.Error ??= Sanitize(ex.Message);
+            _logger.LogWarning(ex, "Fiskaly SCU status probe failed.");
+        }
     }
 
     public async Task<FiskalySettingsDto> UpdateEnabledAsync(

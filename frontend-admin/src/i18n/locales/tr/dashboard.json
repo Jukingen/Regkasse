@@ -463,5 +463,18 @@
     "closeNowConfirm": "RKSV işlemi. Kasayı hazır olduğunda kapatın.",
     "noPermission": "Gün sonu için yetkiniz yok.",
     "loadError": "Gün sonu durumu yüklenemedi"
+  },
+  "platformAnalytics": {
+    "tseTitle": "TSE kullanımı",
+    "volumeTitle": "Ödeme hacmi (POS)",
+    "loadFailed": "İstatistikler yüklenemedi.",
+    "activeRegisters": "Aktif kasalar",
+    "signaturesToday": "Bugünkü imzalar",
+    "failedSignatures": "Başarısız",
+    "signatures": "İmzalar",
+    "revenueThisMonth": "Bu ay ciro",
+    "monthlyGrowth": "Aylık değişim",
+    "averageTicket": "Ort. fiş",
+    "revenue": "Ciro"
   }
 }

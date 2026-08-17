@@ -300,6 +300,13 @@ export async function exportTenantsCsv(query: AdminTenantListQuery = {}): Promis
   return data;
 }
 
+export type PlanDistributionDto = {
+  trial: number;
+  starter: number;
+  business: number;
+  plus: number;
+};
+
 export type CustomerAnalyticsDto = {
   totalTenants: number;
   activeTenants: number;
@@ -311,6 +318,10 @@ export type CustomerAnalyticsDto = {
   expiredTenants: number;
   mrr: number;
   newTenantsLast30Days: number;
+  churnRate: number;
+  arpu: number;
+  planDistribution: PlanDistributionDto;
+  customerLtv: number | null;
 };
 
 export async function getCustomerAnalytics(): Promise<CustomerAnalyticsDto> {

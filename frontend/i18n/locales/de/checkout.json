@@ -176,6 +176,11 @@
         "tseNotReady": "TSE nicht bereit — fiskalische Zahlung nicht möglich.",
         "voucherOffline": "Gutschein ist offline nicht möglich."
       },
+      "tseGate": {
+        "disabled": "TSE ist deaktiviert. Zahlungen sind nicht möglich.",
+        "notInitialized": "TSE ist nicht initialisiert. Bitte Administrator kontaktieren.",
+        "unavailable": "TSE ist nicht verfügbar. Zahlung kann nicht durchgeführt werden."
+      },
       "timeSync": {
         "banner": "SYSTEMZEIT FEHLERHAFT – Zahlungen blockiert! Bitte Admin kontaktieren",
         "contactAdmin": "Admin kontaktieren",

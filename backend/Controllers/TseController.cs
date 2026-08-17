@@ -4,6 +4,7 @@ using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,12 +19,14 @@ namespace KasseAPI_Final.Controllers;
 public sealed class TseController : BaseController
 {
     private readonly ITseHealthMonitor _health;
+    private readonly ITseService _tseService;
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
 
     public TseController(
         ITseHealthMonitor health,
+        ITseService tseService,
         AppDbContext db,
         IWebHostEnvironment environment,
         IOptionsMonitor<DevelopmentOptions> developmentOptions,
@@ -31,10 +34,24 @@ public sealed class TseController : BaseController
         : base(logger)
     {
         _health = health;
+        _tseService = tseService;
         _db = db;
         _environment = environment;
         _developmentOptions = developmentOptions;
     }
+
+    /// <summary>Device/Fiskaly readiness used by POS payment gate (<c>checkTseStatus</c>).</summary>
+    [HttpGet("status")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(TseStatus), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TseStatus>> GetStatus(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var status = await _tseService.GetTseStatusAsync().ConfigureAwait(false);
+        status.CanCreateInvoices = status.CanCreateInvoices || status.IsReady || status.IsOperational;
+        return Ok(status);
+    }
+
 
     /// <summary>Returns cached TSE health from background probing.</summary>
     [HttpGet("health")]

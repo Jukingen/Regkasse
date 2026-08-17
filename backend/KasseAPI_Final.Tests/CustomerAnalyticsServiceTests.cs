@@ -93,16 +93,7 @@ public class CustomerAnalyticsServiceTests
             });
         await db.SaveChangesAsync();
 
-        var cache = new Mock<ICacheService>();
-        cache.Setup(c => c.GetOrCreateAsync(
-                It.IsAny<string>(),
-                It.IsAny<Func<CancellationToken, Task<CustomerAnalyticsDto>>>(),
-                It.IsAny<TimeSpan?>(),
-                It.IsAny<CancellationToken>()))
-            .Returns<string, Func<CancellationToken, Task<CustomerAnalyticsDto>>, TimeSpan?, CancellationToken>(
-                (_, factory, _, ct) => factory(ct));
-
-        var sut = new CustomerAnalyticsService(db, cache.Object, NullLogger<CustomerAnalyticsService>.Instance);
+        var sut = new CustomerAnalyticsService(db, PassthroughCache(), NullLogger<CustomerAnalyticsService>.Instance);
         var dto = await sut.GetCustomerAnalyticsAsync();
 
         Assert.Equal(3, dto.TotalTenants);
@@ -115,6 +106,92 @@ public class CustomerAnalyticsServiceTests
         Assert.Equal(1, dto.ExpiredTenants);
         Assert.Equal(100m, dto.Mrr); // 1200 / 12
         Assert.Equal(2, dto.NewTenantsLast30Days);
+        Assert.Equal(100m, dto.Arpu);
+        Assert.Equal(0m, dto.ChurnRate);
+        Assert.Null(dto.CustomerLtv);
+        Assert.Equal(1, dto.PlanDistribution.Trial);
+        Assert.Equal(0, dto.PlanDistribution.Starter);
+        Assert.Equal(1, dto.PlanDistribution.Business);
+        Assert.Equal(0, dto.PlanDistribution.Plus);
+    }
+
+    [Fact]
+    public async Task GetCustomerAnalytics_computes_monthly_churn_arpu_and_ltv()
+    {
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(null);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(nameof(GetCustomerAnalytics_computes_monthly_churn_arpu_and_ltv))
+            .Options;
+        await using var db = new AppDbContext(options, tenantAccessor);
+
+        var keptId = Guid.NewGuid();
+        var lostId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = keptId,
+                Name = "Kept",
+                Slug = "kept",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = now.AddMonths(-6),
+            },
+            new Tenant
+            {
+                Id = lostId,
+                Name = "Lost",
+                Slug = "lost",
+                Status = TenantStatuses.Suspended,
+                IsActive = false,
+                CreatedAt = now.AddMonths(-6),
+            });
+
+        db.LicenseSales.AddRange(
+            new LicenseSale
+            {
+                Id = Guid.NewGuid(),
+                TenantId = keptId,
+                LicenseKey = "REGK-KEEP",
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                LicenseType = LicenseType.Starter,
+                ValidFromUtc = monthStart.AddMonths(-2),
+                ValidUntilUtc = monthStart.AddMonths(10),
+                PriceNet = 1200m,
+                VatAmount = 240m,
+                PriceGross = 1440m,
+                Status = LicenseSaleStatuses.Active,
+                SoldByUserId = Guid.NewGuid(),
+                InvoiceNumber = "INV-KEEP",
+            },
+            new LicenseSale
+            {
+                Id = Guid.NewGuid(),
+                TenantId = lostId,
+                LicenseKey = "REGK-LOST",
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                LicenseType = LicenseType.Starter,
+                ValidFromUtc = monthStart.AddMonths(-2),
+                ValidUntilUtc = now > monthStart ? now : monthStart.AddMinutes(1),
+                PriceNet = 1200m,
+                VatAmount = 240m,
+                PriceGross = 1440m,
+                Status = LicenseSaleStatuses.Active,
+                SoldByUserId = Guid.NewGuid(),
+                InvoiceNumber = "INV-LOST",
+            });
+        await db.SaveChangesAsync();
+
+        var sut = new CustomerAnalyticsService(db, PassthroughCache(), NullLogger<CustomerAnalyticsService>.Instance);
+        var dto = await sut.GetCustomerAnalyticsAsync();
+
+        Assert.Equal(1, dto.PaidTenants);
+        Assert.Equal(50m, dto.ChurnRate);
+        Assert.Equal(100m, dto.Arpu);
+        Assert.Equal(200m, dto.CustomerLtv);
+        Assert.Equal(1, dto.PlanDistribution.Starter);
     }
 
     [Theory]
@@ -125,5 +202,42 @@ public class CustomerAnalyticsServiceTests
         var now = DateTime.UtcNow;
         var monthly = CustomerAnalyticsService.ToMonthlyRecurring(net, plan, now, now.AddMonths(12));
         Assert.Equal(expected, monthly);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(10, 0, 0)]
+    [InlineData(10, 1, 10)]
+    [InlineData(4, 1, 25)]
+    public void CalculateChurnRate_percent_of_start_cohort(int start, int lost, decimal expected)
+    {
+        Assert.Equal(expected, CustomerAnalyticsService.CalculateChurnRate(start, lost));
+    }
+
+    [Fact]
+    public void CalculateArpu_divides_mrr_by_paid_tenants()
+    {
+        Assert.Equal(0m, CustomerAnalyticsService.CalculateArpu(100m, 0));
+        Assert.Equal(50m, CustomerAnalyticsService.CalculateArpu(100m, 2));
+    }
+
+    [Fact]
+    public void CalculateCustomerLtv_is_null_when_churn_is_zero()
+    {
+        Assert.Null(CustomerAnalyticsService.CalculateCustomerLtv(50m, 0m));
+        Assert.Equal(500m, CustomerAnalyticsService.CalculateCustomerLtv(50m, 10m));
+    }
+
+    private static ICacheService PassthroughCache()
+    {
+        var cache = new Mock<ICacheService>();
+        cache.Setup(c => c.GetOrCreateAsync(
+                It.IsAny<string>(),
+                It.IsAny<Func<CancellationToken, Task<CustomerAnalyticsDto>>>(),
+                It.IsAny<TimeSpan?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<string, Func<CancellationToken, Task<CustomerAnalyticsDto>>, TimeSpan?, CancellationToken>(
+                (_, factory, _, ct) => factory(ct));
+        return cache.Object;
     }
 }

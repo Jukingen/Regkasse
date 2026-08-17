@@ -704,7 +704,17 @@
     "activeTenants": "Active",
     "expiringSoon": "Expiring soon",
     "mrr": "MRR",
-    "loadFailed": "Could not load analytics."
+    "loadFailed": "Could not load analytics.",
+    "churnRate": "Monthly churn",
+    "arpu": "ARPU",
+    "paidTenants": "Paid",
+    "trialTenants": "Trial",
+    "ltv": "LTV",
+    "planDistribution": "Plan distribution",
+    "planTrial": "Trial",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo tenant",

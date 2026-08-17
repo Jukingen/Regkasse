@@ -17,6 +17,7 @@ import {
   RksvDeploymentEnvironmentBadge,
 } from '@/features/rksv/components/RksvDeploymentEnvironmentStatus';
 import { useRksvStatus } from '@/features/rksv/hooks/useRksvBackendEnvironment';
+import { TseStatusIndicator } from '@/features/rksv/components/TseStatusIndicator';
 import { useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { useI18n } from '@/i18n';
@@ -61,6 +62,10 @@ export default function RksvStatusPage() {
       />
 
       <RksvDeploymentEnvironmentAlert style={{ marginBottom: 16 }} />
+
+      <div style={{ marginBottom: 16 }}>
+        <TseStatusIndicator />
+      </div>
 
       <Alert
         type="warning"

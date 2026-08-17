@@ -17,6 +17,14 @@ public sealed class FiskalyStatusDto
 
     /// <summary><c>config</c>, <c>tenant_override</c>, or <c>global_override</c>.</summary>
     public string Source { get; set; } = "config";
+
+    public string? ScuId { get; set; }
+
+    public string? ScuState { get; set; }
+
+    public bool ScuInitialized { get; set; }
+
+    public bool CashRegisterInitialized { get; set; }
 }
 
 public sealed class FiskalySettingsDto

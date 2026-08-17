@@ -150,6 +150,90 @@ public sealed class FiskalyTseService : IFiskalyTseService
         }
     }
 
+    public async Task<FiskalyScuInfo?> GetScuAsync(
+        string? signatureCreationUnitId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+            return null;
+
+        var scuId = string.IsNullOrWhiteSpace(signatureCreationUnitId)
+            ? _options.CurrentValue.SignatureCreationUnitId
+            : signatureCreationUnitId;
+        if (string.IsNullOrWhiteSpace(scuId))
+            return null;
+
+        try
+        {
+            return await _client
+                .GetSignatureCreationUnitAsync(scuId.Trim(), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "fiskaly GetScuAsync failed for {ScuId}", scuId);
+            return null;
+        }
+    }
+
+    public async Task<FiskalyCashRegisterInfo?> GetCashRegisterAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            return null;
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+            return null;
+
+        try
+        {
+            return await _client.GetCashRegisterAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "fiskaly GetCashRegisterAsync failed for {CashRegisterId}", cashRegisterId);
+            return null;
+        }
+    }
+
+    public async Task<bool> IsReadyToSignAsync(Guid cashRegisterId, CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            return false;
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+            return false;
+
+        try
+        {
+            var scu = await GetScuAsync(null, cancellationToken).ConfigureAwait(false);
+            if (!IsInitialized(scu?.State))
+            {
+                _logger.LogWarning("Fiskaly SCU is not INITIALIZED. State: {State}", scu?.State ?? "missing");
+                return false;
+            }
+
+            var register = await GetCashRegisterAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+            if (!IsInitialized(register?.State))
+            {
+                _logger.LogWarning(
+                    "Fiskaly cash register {CashRegisterId} is not INITIALIZED. State: {State}",
+                    cashRegisterId,
+                    register?.State ?? "missing");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fiskaly readiness check failed for cash register {CashRegisterId}", cashRegisterId);
+            return false;
+        }
+    }
+
+    private static bool IsInitialized(string? state) =>
+        string.Equals(state, FiskalyResourceStates.Initialized, StringComparison.OrdinalIgnoreCase);
+
     public async Task<FiskalyResourceEnsureResult> EnsureResourcesForCashRegisterAsync(
         Guid tenantId,
         Guid cashRegisterId,

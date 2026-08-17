@@ -176,6 +176,11 @@
         "tseNotReady": "TSE not ready — fiscal payment not possible.",
         "voucherOffline": "Voucher is not available offline."
       },
+      "tseGate": {
+        "disabled": "TSE is disabled. Payments are not possible.",
+        "notInitialized": "TSE is not initialized. Please contact an administrator.",
+        "unavailable": "TSE is not available. The payment cannot be completed."
+      },
       "timeSync": {
         "banner": "SYSTEM TIME INVALID – payments blocked! Please contact admin",
         "contactAdmin": "Contact admin",

@@ -3,8 +3,9 @@ using KasseAPI_Final.Tse.Fiskaly;
 namespace KasseAPI_Final.Services.Tse;
 
 /// <summary>
-/// fiskaly SIGN AT operations used by TSE provisioning and diagnostics.
-/// TSS → SCU, client → cash register. RKSV compact JWS still goes through <c>SignaturePipeline</c>.
+/// fiskaly SIGN AT operations used by TSE provisioning, diagnostics, and POS receipt signing.
+/// TSS → SCU, client → cash register. Local compact JWS remains <c>SignaturePipeline</c>
+/// when Fiskaly is disabled (Development Soft TSE / software key provider).
 /// </summary>
 public interface IFiskalyTseService
 {
@@ -27,6 +28,19 @@ public interface IFiskalyTseService
         string txId,
         FiskalyTransactionData data,
         CancellationToken cancellationToken = default);
+
+    Task<FiskalyScuInfo?> GetScuAsync(
+        string? signatureCreationUnitId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<FiskalyCashRegisterInfo?> GetCashRegisterAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// True when Fiskaly is enabled, credentials exist, and both SCU and cash register are INITIALIZED.
+    /// </summary>
+    Task<bool> IsReadyToSignAsync(Guid cashRegisterId, CancellationToken cancellationToken = default);
 
     Task<FiskalyResourceEnsureResult> EnsureResourcesForCashRegisterAsync(
         Guid tenantId,

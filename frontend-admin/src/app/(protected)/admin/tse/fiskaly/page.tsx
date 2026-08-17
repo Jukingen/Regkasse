@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { getFiskalySettings } from '@/features/dashboard/api/fiskalyStatus';
 import { FiskalyEnabledSwitch } from '@/features/settings/components/FiskalyEnabledSwitch';
+import { TseStatusIndicator } from '@/features/rksv/components/TseStatusIndicator';
 import { useI18n } from '@/i18n/I18nProvider';
 import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -35,6 +36,9 @@ export default function FiskalySettingsPage() {
         breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseFiskaly.title') })}
       />
       <Typography.Paragraph type="secondary">{t('tseFiskaly.subtitle')}</Typography.Paragraph>
+      <div style={{ marginBottom: 16 }}>
+        <TseStatusIndicator />
+      </div>
       <Card loading={query.isLoading}>
         <Form layout="vertical">
           <FiskalyEnabledSwitch />

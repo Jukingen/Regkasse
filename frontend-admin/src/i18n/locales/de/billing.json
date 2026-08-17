@@ -321,7 +321,9 @@
       "SALE_CANCELLED": "Verkauf storniert",
       "LICENSE_ACTIVATED": "Lizenz aktiviert",
       "LICENSE_EXTENDED": "Lizenz verlängert",
-      "SALE_REFUNDED": "Erstattet"
+      "SALE_REFUNDED": "Erstattet",
+      "SUBSCRIPTION_INVOICE_PAID": "Abonnement-Rechnung bezahlt",
+      "SUBSCRIPTION_INVOICE_VOIDED": "Abonnement-Rechnung storniert"
     }
   },
   "expiring": {
@@ -350,5 +352,43 @@
       "nextBilling": "Nächste Abrechnung",
       "status": "Status"
     }
+  },
+  "subscriptionInvoices": {
+    "title": "Abonnement-Rechnungen",
+    "subtitle": "Monatliche SaaS-Rechnungen (kein fiskalischer Beleg). Prepaid-Lizenzen werden nicht doppelt berechnet.",
+    "generateMonthly": "Monatsrechnungen erzeugen",
+    "generateSuccess": "Erzeugt: {{created}}, übersprungen: {{skipped}}, fehlgeschlagen: {{failed}}",
+    "refresh": "Aktualisieren",
+    "allStatus": "Alle Status",
+    "statusIssued": "Ausgestellt",
+    "statusPaid": "Bezahlt",
+    "statusVoid": "Storniert",
+    "statusDraft": "Entwurf",
+    "tenant": "Mandant",
+    "allTenants": "Alle Mandanten",
+    "invoiceNumber": "Rechnung",
+    "period": "Zeitraum",
+    "amount": "Betrag",
+    "status": "Status",
+    "issuedAt": "Erstellt",
+    "actions": "Aktionen",
+    "view": "Anzeigen",
+    "downloadPdf": "PDF",
+    "markPaid": "Als bezahlt markieren",
+    "void": "Stornieren",
+    "noResults": "Keine Abonnement-Rechnungen",
+    "paidAt": "Bezahlt am",
+    "paymentMethod": "Zahlungsart",
+    "paymentMethodBank": "Überweisung",
+    "paymentMethodCard": "Karte",
+    "paymentMethodCash": "Bar",
+    "reference": "Referenz",
+    "voidReason": "Grund",
+    "voidReasonRequired": "Bitte einen Grund angeben.",
+    "markPaidSuccess": "Rechnung als bezahlt markiert.",
+    "voidSuccess": "Rechnung storniert.",
+    "voidConfirmTitle": "Rechnung stornieren?",
+    "detailTitle": "Rechnungsdetails",
+    "emailSentAt": "E-Mail gesendet"
   }
 }

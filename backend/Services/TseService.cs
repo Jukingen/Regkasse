@@ -73,6 +73,7 @@ namespace KasseAPI_Final.Services
                         IsConnected = true,
                         IsReady = true,
                         IsOperational = true,
+                        CanCreateInvoices = true,
                         Status = "DevelopmentBypass",
                         ErrorMessage = "",
                         LastConnectionTime = now,
@@ -83,17 +84,47 @@ namespace KasseAPI_Final.Services
                     .OrderBy(t => t.CreatedAt)
                     .FirstOrDefaultAsync();
 
+                var fiskalyStatus = await TryGetFiskalyAuthStatusAsync().ConfigureAwait(false);
+
                 if (tseDevice == null)
                 {
+                    if (fiskalyStatus.Connected)
+                    {
+                        return new TseStatus
+                        {
+                            IsConnected = true,
+                            IsReady = true,
+                            IsOperational = true,
+                            CanCreateInvoices = true,
+                            Status = "FiskalyAuthenticated",
+                            ErrorMessage = "",
+                            LastConnectionTime = DateTime.UtcNow
+                        };
+                    }
+
+                    if (CanUseSoftTseFallback() && _softTse is not null)
+                    {
+                        return new TseStatus
+                        {
+                            IsConnected = true,
+                            IsReady = true,
+                            IsOperational = true,
+                            CanCreateInvoices = true,
+                            Status = "SoftFallback",
+                            ErrorMessage = fiskalyStatus.ErrorMessage
+                                ?? "Fiskaly unavailable; Soft TSE fallback is active (Development only)."
+                        };
+                    }
+
                     return new TseStatus
                     {
                         IsConnected = false,
                         Status = "No TSE device found",
-                        ErrorMessage = "No TSE device configured in the system"
+                        ErrorMessage = fiskalyStatus.ErrorMessage
+                            ?? "No TSE device configured in the system"
                     };
                 }
 
-                var fiskalyStatus = await TryGetFiskalyAuthStatusAsync().ConfigureAwait(false);
                 if (!fiskalyStatus.Connected
                     && CanUseSoftTseFallback()
                     && _softTse is not null)
@@ -106,6 +137,7 @@ namespace KasseAPI_Final.Services
                         IsConnected = true,
                         IsReady = true,
                         IsOperational = true,
+                        CanCreateInvoices = true,
                         DeviceId = tseDevice.Id.ToString(),
                         SerialNumber = tseDevice.SerialNumber,
                         Status = "SoftFallback",
@@ -118,13 +150,16 @@ namespace KasseAPI_Final.Services
                 var connected = tseDevice.IsConnected || fiskalyStatus.Connected;
                 var error = fiskalyStatus.ErrorMessage
                     ?? (connected ? "" : "TSE device is not connected");
+                var operational = tseDevice.CanCreateInvoices || fiskalyStatus.Connected;
 
                 return new TseStatus
                 {
                     IsConnected = connected,
+                    IsReady = operational,
                     DeviceId = tseDevice.Id.ToString(),
                     SerialNumber = tseDevice.SerialNumber,
-                    IsOperational = tseDevice.CanCreateInvoices || fiskalyStatus.Connected,
+                    IsOperational = operational,
+                    CanCreateInvoices = operational,
                     Status = fiskalyStatus.Connected
                         ? "FiskalyAuthenticated"
                         : (tseDevice.IsConnected ? "Connected" : "Disconnected"),
@@ -152,8 +187,18 @@ namespace KasseAPI_Final.Services
 
             try
             {
+                var scu = await _fiskalyTse.GetScuAsync().ConfigureAwait(false);
+                if (scu is not null
+                    && string.Equals(scu.State, FiskalyResourceStates.Initialized, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (true, null);
+                }
+
                 var auth = await _fiskalyTse.AuthenticateAsync().ConfigureAwait(false);
-                return (auth.Success, null);
+                if (!auth.Success)
+                    return (false, "Fiskaly authentication failed.");
+
+                return (false, $"Fiskaly SCU is not INITIALIZED (state: {scu?.State ?? "missing"}).");
             }
             catch (Exception ex)
             {
@@ -200,7 +245,15 @@ namespace KasseAPI_Final.Services
             catch { return false; }
         }
 
-        public async Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null, IDbContextTransaction? dbTransaction = null)
+        public async Task<TseSignatureResult> CreateInvoiceSignatureAsync(
+            Guid cashRegisterId,
+            string invoiceNumber,
+            decimal totalAmount,
+            string registerNumber,
+            string? prevSignatureValue = null,
+            DateTime? timestamp = null,
+            string? taxDetailsJson = null,
+            IDbContextTransaction? dbTransaction = null)
         {
             if (cashRegisterId == Guid.Empty)
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
@@ -215,7 +268,35 @@ namespace KasseAPI_Final.Services
             string compactJws = string.Empty;
             string prevSig = string.Empty;
             string sigVorigerBeleg = string.Empty;
+            string? fiskalyQr = null;
+            var signingProvider = "local";
             var phase = "init";
+
+            phase = "resolve_signing_mode";
+            var tseMode = await ResolveSigningModeAsync(cashRegisterId).ConfigureAwait(false);
+            if (tseMode == TseSigningMode.Disabled)
+            {
+                throw new TseUnavailableException(
+                    "TSE is not available. Enable and initialize Fiskaly, or use Soft TSE in Development.");
+            }
+
+            var taxSets = BelegdatenPayloadBuilder.MapTaxSets(taxDetailsJson, totalAmount);
+            if (_keyProvider.GetTurnoverCounterAesKeyBytes() is null)
+            {
+                throw new InvalidOperationException("Turnover counter AES key is not configured.");
+            }
+
+            if (tseMode == TseSigningMode.Fiskaly)
+            {
+                phase = "fiskaly_sign_receipt";
+                fiskalyQr = await SignInvoiceWithFiskalyAsync(
+                    cashRegisterId,
+                    taxSets,
+                    receiptType: null,
+                    paymentType: null,
+                    correlationId).ConfigureAwait(false);
+                signingProvider = "fiskaly";
+            }
 
             var ownTransaction = dbTransaction == null;
             if (ownTransaction)
@@ -227,7 +308,6 @@ namespace KasseAPI_Final.Services
                 prevSig = prevSignatureValue ?? prevSigLocked;
 
                 phase = "build_beleg_payload";
-                var taxSets = BelegdatenPayloadBuilder.MapTaxSets(taxDetailsJson, totalAmount);
                 var newTurnoverCents = turnoverCents + taxSets.TotalGrossCents;
                 var aesKey = _keyProvider.GetTurnoverCounterAesKeyBytes()
                     ?? throw new InvalidOperationException("Turnover counter AES key is not configured.");
@@ -246,8 +326,34 @@ namespace KasseAPI_Final.Services
 
                 sigVorigerBeleg = payload.SigVorigerBeleg;
 
-                phase = "pipeline_sign_compact_jws";
-                compactJws = _pipeline.Sign(payload, correlationId);
+                phase = "sign";
+                switch (tseMode)
+                {
+                    case TseSigningMode.Fiskaly:
+                        compactJws = fiskalyQr
+                            ?? throw new TseUnavailableException("Fiskaly signing returned an empty QR payload.");
+                        break;
+
+                    case TseSigningMode.SoftTse:
+                        if (!CanUseSoftTseFallback())
+                        {
+                            throw new TseUnavailableException("Soft TSE is not allowed in Production.");
+                        }
+
+                        _logger.LogWarning(
+                            "Fiskaly disabled — signing invoice with Soft TSE in Development. correlationId={CorrelationId}",
+                            correlationId);
+                        var softResult = await _softTse!.SignAsync(payload, correlationId).ConfigureAwait(false);
+                        compactJws = softResult.CompactJws;
+                        signingProvider = "soft";
+                        break;
+
+                    default:
+                        phase = "pipeline_sign_compact_jws";
+                        compactJws = _pipeline.Sign(payload, correlationId);
+                        signingProvider = "local";
+                        break;
+                }
 
                 phase = "attach_TseSignatures_row";
                 var tseSignature = new TseSignature
@@ -293,8 +399,106 @@ namespace KasseAPI_Final.Services
                     await dbTransaction!.DisposeAsync();
             }
 
-            _logger.LogInformation("CreateInvoiceSignatureAsync completed, correlationId={CorrelationId}", correlationId);
-            return new TseSignatureResult(compactJws, sigVorigerBeleg, _keyProvider.GetCurrentCertificateThumbprint());
+            _logger.LogInformation(
+                "CreateInvoiceSignatureAsync completed, correlationId={CorrelationId}, provider={Provider}",
+                correlationId,
+                signingProvider);
+            return new TseSignatureResult(
+                compactJws,
+                sigVorigerBeleg,
+                _keyProvider.GetCurrentCertificateThumbprint(),
+                fiskalyQr,
+                signingProvider);
+        }
+
+        private async Task<TseSigningMode> ResolveSigningModeAsync(Guid cashRegisterId)
+        {
+            if (_fiskalyTse is not null
+                && _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) == true)
+            {
+                if (await _fiskalyTse.IsReadyToSignAsync(cashRegisterId).ConfigureAwait(false))
+                    return TseSigningMode.Fiskaly;
+
+                _logger.LogWarning(
+                    "Fiskaly is enabled but SCU or cash register is not INITIALIZED. cashRegisterId={CashRegisterId}",
+                    cashRegisterId);
+                return TseSigningMode.Disabled;
+            }
+
+            if (CanUseSoftTseFallback() && _softTse is not null)
+            {
+                _logger.LogWarning("Fiskaly disabled — using Soft TSE in Development.");
+                return TseSigningMode.SoftTse;
+            }
+
+            if (_keyProvider is SoftwareTseKeyProvider
+                && _hostEnvironment?.IsProduction() != true)
+            {
+                return TseSigningMode.LocalPipeline;
+            }
+
+            return TseSigningMode.Disabled;
+        }
+
+        private async Task<string> SignInvoiceWithFiskalyAsync(
+            Guid cashRegisterId,
+            RksvTaxSetAmounts taxSets,
+            string? receiptType,
+            string? paymentType,
+            string correlationId)
+        {
+            if (_fiskalyTse is null)
+                throw new TseUnavailableException("Fiskaly TSE service is not registered.");
+
+            var data = new FiskalyTransactionData
+            {
+                CashRegisterId = cashRegisterId.ToString("D"),
+                ReceiptType = string.IsNullOrWhiteSpace(receiptType)
+                    ? FiskalyReceiptSchemaMapper.ReceiptTypeNormal
+                    : receiptType.Trim().ToUpperInvariant(),
+                PaymentType = FiskalyReceiptSchemaMapper.MapPaymentType(paymentType),
+                AmountsPerVatRate = FiskalyReceiptSchemaMapper.FromTaxSets(taxSets),
+                TotalAmount = taxSets.TotalGross
+            };
+
+            FiskalySignedReceipt signed;
+            try
+            {
+                signed = await _fiskalyTse
+                    .SignTransactionAsync(
+                        _fiskalyOptions?.CurrentValue.SignatureCreationUnitId ?? string.Empty,
+                        Guid.NewGuid().ToString("D"),
+                        data)
+                    .ConfigureAwait(false);
+            }
+            catch (FiskalyApiException ex)
+            {
+                throw new TseUnavailableException("Fiskaly signing failed.", ex);
+            }
+
+            if (!signed.Signed || string.IsNullOrWhiteSpace(signed.QrCodeData))
+            {
+                throw new TseUnavailableException(
+                    "Fiskaly did not return a signed RKSV QR payload. SCU and cash register must be INITIALIZED.");
+            }
+
+            var qr = FiskalyQrCodeValidator.Validate(signed.QrCodeData);
+            if (!qr.IsValid)
+            {
+                _logger.LogWarning(
+                    "Fiskaly QR payload failed local validation. correlationId={CorrelationId} errors={Errors}",
+                    correlationId,
+                    string.Join("; ", qr.Errors));
+                throw new TseUnavailableException(
+                    "Fiskaly returned an invalid RKSV QR payload.");
+            }
+
+            _logger.LogInformation(
+                "Fiskaly receipt signed. correlationId={CorrelationId} receiptNumber={ReceiptNumber} signed={Signed}",
+                correlationId,
+                signed.ReceiptNumber,
+                signed.Signed);
+            return signed.QrCodeData;
         }
 
         /// <summary>Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current chain state.</summary>
@@ -649,6 +853,7 @@ namespace KasseAPI_Final.Services
                         IsConnected = true,
                         IsReady = true,
                         IsOperational = true,
+                        CanCreateInvoices = true,
                         Status = "DevelopmentBypass",
                         ErrorMessage = "",
                         LastConnectionTime = now,
@@ -691,6 +896,7 @@ namespace KasseAPI_Final.Services
                     DeviceId = tseDevice.Id.ToString(),
                     SerialNumber = tseDevice.SerialNumber,
                     IsOperational = tseDevice.CanCreateInvoices,
+                    CanCreateInvoices = tseDevice.CanCreateInvoices && tseDevice.IsActive,
                     Status = tseDevice.IsConnected ? "Connected" : "Disconnected",
                     LastConnectionTime = tseDevice.LastConnectionTime,
                     ErrorMessage = tseDevice.IsConnected ? "" : "TSE device is not connected"

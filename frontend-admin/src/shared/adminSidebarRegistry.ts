@@ -946,6 +946,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'FundOutlined',
     permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   },
+  subscriptionInvoices: {
+    id: 'subscriptionInvoices',
+    menuKey: '/admin/billing/subscription-invoices',
+    href: '/admin/billing/subscription-invoices',
+    labelKey: 'nav.subscriptionInvoices',
+    icon: 'FileDoneOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
   bulkEmail: {
     id: 'bulkEmail',
     menuKey: '/admin/communication/bulk-email',
@@ -1491,6 +1499,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'licenseManagement',
           'licenseTest',
           'superAdminLicenses',
+          'subscriptionInvoices',
           'billingDigital',
         ],
       },

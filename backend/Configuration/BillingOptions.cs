@@ -17,6 +17,15 @@ public sealed class BillingOptions
     /// <summary>When true, hosted service generates monthly SaaS invoices for active paid tenants.</summary>
     public bool AutoMonthlyInvoicingEnabled { get; set; } = true;
 
+    /// <summary>
+    /// When true, skip tenants whose active prepaid <c>license_sales</c> row covers the invoice period
+    /// (avoids double-billing 6/12-month license sales).
+    /// </summary>
+    public bool SkipPrepaidTenants { get; set; } = true;
+
+    /// <summary>When true, skip tenants with an open trial (<c>active</c> or <c>expired</c> grace).</summary>
+    public bool SkipTrialTenants { get; set; } = true;
+
     /// <summary>Day of month (1–28) to run monthly invoice generation (UTC).</summary>
     public int MonthlyInvoiceDayOfMonth { get; set; } = 1;
 

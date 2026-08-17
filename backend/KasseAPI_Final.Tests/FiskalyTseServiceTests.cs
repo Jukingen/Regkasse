@@ -66,6 +66,42 @@ public sealed class FiskalyTseServiceTests
         Assert.Equal("CREATED", result.ScuState);
     }
 
+    [Fact]
+    public async Task IsReadyToSignAsync_RequiresInitializedScuAndRegister()
+    {
+        var scuId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        var registerId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        var client = new Mock<IFiskalyClient>();
+        client.Setup(c => c.GetSignatureCreationUnitAsync(scuId.ToString("D"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyScuInfo(scuId.ToString("D"), FiskalyResourceStates.Initialized, "SN"));
+        client.Setup(c => c.GetCashRegisterAsync(registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyCashRegisterInfo(registerId.ToString("D"), FiskalyResourceStates.Initialized));
+
+        var options = EnabledOptions();
+        options.SignatureCreationUnitId = scuId.ToString("D");
+        var svc = CreateService(options, client.Object);
+
+        Assert.True(await svc.IsReadyToSignAsync(registerId));
+        Assert.False(await svc.IsReadyToSignAsync(Guid.Empty));
+    }
+
+    [Fact]
+    public async Task IsReadyToSignAsync_ScuCreated_ReturnsFalse()
+    {
+        var scuId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        var registerId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        var client = new Mock<IFiskalyClient>();
+        client.Setup(c => c.GetSignatureCreationUnitAsync(scuId.ToString("D"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyScuInfo(scuId.ToString("D"), FiskalyResourceStates.Created, null));
+
+        var options = EnabledOptions();
+        options.SignatureCreationUnitId = scuId.ToString("D");
+        var svc = CreateService(options, client.Object);
+
+        Assert.False(await svc.IsReadyToSignAsync(registerId));
+        client.Verify(c => c.GetCashRegisterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static FiskalyOptions EnabledOptions() => new()
     {
         Enabled = true,

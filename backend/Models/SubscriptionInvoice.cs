@@ -64,6 +64,27 @@ public class SubscriptionInvoice
     [Column("issued_at_utc")]
     public DateTime IssuedAtUtc { get; set; } = DateTime.UtcNow;
 
+    [Column("paid_at_utc")]
+    public DateTime? PaidAtUtc { get; set; }
+
+    [MaxLength(32)]
+    [Column("payment_method")]
+    public string? PaymentMethod { get; set; }
+
+    [MaxLength(100)]
+    [Column("payment_reference")]
+    public string? PaymentReference { get; set; }
+
+    [MaxLength(500)]
+    [Column("void_reason")]
+    public string? VoidReason { get; set; }
+
+    [Column("voided_at_utc")]
+    public DateTime? VoidedAtUtc { get; set; }
+
+    [Column("email_sent_at_utc")]
+    public DateTime? EmailSentAtUtc { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -74,4 +95,21 @@ public static class SubscriptionInvoiceStatuses
     public const string Issued = "issued";
     public const string Paid = "paid";
     public const string Void = "void";
+}
+
+public static class SubscriptionInvoicePaymentMethods
+{
+    public const string BankTransfer = "bank_transfer";
+    public const string Card = "card";
+    public const string Cash = "cash";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        BankTransfer,
+        Card,
+        Cash,
+    };
+
+    public static bool IsValid(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && All.Contains(value.Trim());
 }

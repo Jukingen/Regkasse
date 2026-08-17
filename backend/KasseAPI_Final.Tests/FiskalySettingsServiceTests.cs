@@ -126,6 +126,34 @@ public sealed class FiskalySettingsServiceTests
         client.Verify(c => c.AuthenticateAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task GetStatus_Authenticated_ProbesScu()
+    {
+        var scuId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        var client = new Mock<IFiskalyClient>();
+        client.Setup(c => c.AuthenticateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyAuthResult(true, DateTimeOffset.UtcNow.AddHours(1), 8));
+        client.Setup(c => c.GetSignatureCreationUnitAsync(scuId.ToString("D"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyScuInfo(scuId.ToString("D"), FiskalyResourceStates.Initialized, "SN"));
+
+        var opts = new FiskalyOptions
+        {
+            Enabled = true,
+            ApiKey = "k",
+            ApiSecret = "s",
+            SignatureCreationUnitId = scuId.ToString("D")
+        };
+        var (factory, cache) = CreateStore(opts);
+        var svc = CreateService(factory, cache, opts, client.Object);
+
+        var status = await svc.GetStatusAsync();
+
+        Assert.True(status.IsAuthenticated);
+        Assert.True(status.ScuInitialized);
+        Assert.Equal(scuId.ToString("D"), status.ScuId);
+        Assert.Equal(FiskalyResourceStates.Initialized, status.ScuState);
+    }
+
     private static (IDbContextFactory<AppDbContext> Factory, FiskalyEnabledOverrideCache Cache) CreateStore(
         FiskalyOptions _,
         ICurrentTenantAccessor? tenantAccessor = null)

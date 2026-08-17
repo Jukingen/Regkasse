@@ -126,6 +126,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/billing',
     '/admin/billing/sales',
     '/admin/billing/stats',
+    '/admin/billing/subscription-invoices',
     '/billing/digital',
     '/admin/communication',
     '/tenant/dashboard',

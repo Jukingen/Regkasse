@@ -176,6 +176,11 @@
         "tseNotReady": "TSE hazir degil — mali odeme mumkun degil.",
         "voucherOffline": "Kupon cevrimdisi kullanilamaz."
       },
+      "tseGate": {
+        "disabled": "TSE devre disi. Odeme yapilamaz.",
+        "notInitialized": "TSE baslatilmadi. Lutfen yoneticinize basvurun.",
+        "unavailable": "TSE kullanilamiyor. Odeme tamamlanamaz."
+      },
       "timeSync": {
         "banner": "SISTEM SAATI HATALI – odemeler engellendi! Lutfen yoneticiye basvurun",
         "contactAdmin": "Yoneticiye basvur",

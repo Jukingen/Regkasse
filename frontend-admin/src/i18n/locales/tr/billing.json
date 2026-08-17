@@ -321,7 +321,9 @@
       "SALE_CANCELLED": "Satış iptal edildi",
       "LICENSE_ACTIVATED": "Lisans etkinleştirildi",
       "LICENSE_EXTENDED": "Lisans uzatıldı",
-      "SALE_REFUNDED": "İade edildi"
+      "SALE_REFUNDED": "İade edildi",
+      "SUBSCRIPTION_INVOICE_PAID": "Abonelik faturası ödendi",
+      "SUBSCRIPTION_INVOICE_VOIDED": "Abonelik faturası iptal edildi"
     }
   },
   "expiring": {
@@ -350,5 +352,43 @@
       "nextBilling": "Sonraki fatura",
       "status": "Durum"
     }
+  },
+  "subscriptionInvoices": {
+    "title": "Abonelik faturaları",
+    "subtitle": "Aylık SaaS faturaları (mali fiş değildir). Ön ödemeli lisanslar iki kez faturalanmaz.",
+    "generateMonthly": "Aylık faturaları oluştur",
+    "generateSuccess": "Oluşturulan: {{created}}, atlanan: {{skipped}}, hata: {{failed}}",
+    "refresh": "Yenile",
+    "allStatus": "Tüm durumlar",
+    "statusIssued": "Kesildi",
+    "statusPaid": "Ödendi",
+    "statusVoid": "İptal",
+    "statusDraft": "Taslak",
+    "tenant": "Kiracı",
+    "allTenants": "Tüm kiracılar",
+    "invoiceNumber": "Fatura",
+    "period": "Dönem",
+    "amount": "Tutar",
+    "status": "Durum",
+    "issuedAt": "Oluşturuldu",
+    "actions": "İşlemler",
+    "view": "Görüntüle",
+    "downloadPdf": "PDF",
+    "markPaid": "Ödendi işaretle",
+    "void": "İptal et",
+    "noResults": "Abonelik faturası yok",
+    "paidAt": "Ödeme tarihi",
+    "paymentMethod": "Ödeme yöntemi",
+    "paymentMethodBank": "Havale",
+    "paymentMethodCard": "Kart",
+    "paymentMethodCash": "Nakit",
+    "reference": "Referans",
+    "voidReason": "Gerekçe",
+    "voidReasonRequired": "Lütfen bir gerekçe girin.",
+    "markPaidSuccess": "Fatura ödendi olarak işaretlendi.",
+    "voidSuccess": "Fatura iptal edildi.",
+    "voidConfirmTitle": "Fatura iptal edilsin mi?",
+    "detailTitle": "Fatura ayrıntıları",
+    "emailSentAt": "E-posta gönderildi"
   }
 }

@@ -321,7 +321,9 @@
       "SALE_CANCELLED": "Sale cancelled",
       "LICENSE_ACTIVATED": "License activated",
       "LICENSE_EXTENDED": "License extended",
-      "SALE_REFUNDED": "Refunded"
+      "SALE_REFUNDED": "Refunded",
+      "SUBSCRIPTION_INVOICE_PAID": "Subscription invoice paid",
+      "SUBSCRIPTION_INVOICE_VOIDED": "Subscription invoice voided"
     }
   },
   "expiring": {
@@ -350,5 +352,43 @@
       "nextBilling": "Next billing",
       "status": "Status"
     }
+  },
+  "subscriptionInvoices": {
+    "title": "Subscription invoices",
+    "subtitle": "Monthly SaaS invoices (not a fiscal receipt). Prepaid licenses are not billed twice.",
+    "generateMonthly": "Generate monthly invoices",
+    "generateSuccess": "Created: {{created}}, skipped: {{skipped}}, failed: {{failed}}",
+    "refresh": "Refresh",
+    "allStatus": "All statuses",
+    "statusIssued": "Issued",
+    "statusPaid": "Paid",
+    "statusVoid": "Void",
+    "statusDraft": "Draft",
+    "tenant": "Tenant",
+    "allTenants": "All tenants",
+    "invoiceNumber": "Invoice",
+    "period": "Period",
+    "amount": "Amount",
+    "status": "Status",
+    "issuedAt": "Created",
+    "actions": "Actions",
+    "view": "View",
+    "downloadPdf": "PDF",
+    "markPaid": "Mark as paid",
+    "void": "Void",
+    "noResults": "No subscription invoices",
+    "paidAt": "Paid at",
+    "paymentMethod": "Payment method",
+    "paymentMethodBank": "Bank transfer",
+    "paymentMethodCard": "Card",
+    "paymentMethodCash": "Cash",
+    "reference": "Reference",
+    "voidReason": "Reason",
+    "voidReasonRequired": "Please provide a reason.",
+    "markPaidSuccess": "Invoice marked as paid.",
+    "voidSuccess": "Invoice voided.",
+    "voidConfirmTitle": "Void this invoice?",
+    "detailTitle": "Invoice details",
+    "emailSentAt": "Email sent"
   }
 }

@@ -66,6 +66,18 @@ public static class CacheKeys
     public const string CustomerAnalytics = "admin_customer_analytics";
 
     /// <summary>
+    /// Super Admin TSE usage snapshot.
+    /// Format: <c>admin_tse_usage_analytics_{from}_{to}</c> — arg0/arg1 = yyyyMMdd UTC bounds.
+    /// </summary>
+    public const string TseUsageAnalytics = "admin_tse_usage_analytics_{0}_{1}";
+
+    /// <summary>
+    /// Super Admin POS payment-volume snapshot.
+    /// Format: <c>admin_payment_volume_analytics_{groupBy}_{from}_{to}</c>.
+    /// </summary>
+    public const string PaymentVolumeAnalytics = "admin_payment_volume_analytics_{0}_{1}_{2}";
+
+    /// <summary>
     /// Formats a template from this class (e.g. <see cref="LicenseStatus"/>) with the given arguments.
     /// </summary>
     public static string Format(string key, params object[] args) =>

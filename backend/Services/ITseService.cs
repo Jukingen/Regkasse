@@ -33,6 +33,7 @@ namespace KasseAPI_Final.Services
         public string DeviceId { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public bool IsOperational { get; set; }
+        public bool CanCreateInvoices { get; set; }
         public string Status { get; set; } = string.Empty; // Connected, Disconnected, Error, Maintenance
         public DateTime LastConnectionTime { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
@@ -51,5 +52,7 @@ namespace KasseAPI_Final.Services
     public record TseSignatureResult(
         string CompactJws,
         string PrevSignatureValueUsed,
-        string? CertificateThumbprint = null);
+        string? CertificateThumbprint = null,
+        string? FiskalyQrCodeData = null,
+        string SigningProvider = "local");
 }

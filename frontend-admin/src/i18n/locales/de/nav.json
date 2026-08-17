@@ -168,6 +168,7 @@
   "billingSalesNew": "Neuer Verkauf",
   "billingStats": "Statistiken",
   "billingDigital": "Digitale Dienste (Umsatz)",
+  "subscriptionInvoices": "Abonnement-Rechnungen",
   "communication": {
     "title": "Kommunikation",
     "bulkEmail": "Massensendung"
@@ -367,6 +368,7 @@
     "billingSalesNew": "Neuer Verkauf",
     "billingStats": "Statistik",
     "billingDigital": "Digital-Umsatz",
+    "subscriptionInvoices": "Abo-Rechnungen",
     "tenants": "Mandanten",
     "createTenant": "Wizard, Onboarding",
     "trials": "Trial-Verwaltung",

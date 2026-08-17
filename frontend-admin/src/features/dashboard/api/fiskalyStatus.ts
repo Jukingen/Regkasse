@@ -8,6 +8,10 @@ export type FiskalyStatusDto = {
   lastCheck?: string | null;
   error?: string | null;
   source?: string;
+  scuId?: string | null;
+  scuState?: string | null;
+  scuInitialized?: boolean;
+  cashRegisterInitialized?: boolean;
 };
 
 export type FiskalySettingsDto = {
