@@ -10,7 +10,7 @@
   },
   "unified": {
     "keyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
-    "formatHint": "Einheitliches Format: REGK-yyyyMMdd-slug-XXXXXXXX (Mandant: Ihr Slug, Server: system)."
+    "formatHint": "Einheitliches Format: REGK-yyyyMMdd-slug-XXXXXXXX (Mandant: Ihr Slug, Server: system). Eine Systemlizenz schaltet den Mandanten nicht frei."
   },
   "management": {
     "title": "Lizenzverwaltung",
@@ -40,7 +40,69 @@
     "detailsTitle": "Lizenzdetails",
     "detailsEmpty": "Keine Lizenzinformationen gefunden.",
     "searchPlaceholder": "Schlüssel, Kunde oder Mandant suchen",
-    "openSales": "Lizenzverkäufe"
+    "openSales": "Lizenzverkäufe",
+    "openAudit": "Audit-Log",
+    "renewNow": "Jetzt erneuern",
+    "bulkImportTitle": "CSV-Import (Lizenzschlüssel)",
+    "bulkImportHint": "Eine REGK-Schlüsselspalte pro Zeile. Header-Zeile wird ignoriert.",
+    "bulkImportButton": "Schlüssel aktivieren",
+    "bulkImportEmpty": "Keine gültigen REGK-Schlüssel gefunden.",
+    "bulkImportProgress": "{{current}} / {{total}}",
+    "exportCsv": "CSV exportieren",
+    "showKeys": "Anzeigen",
+    "hideKeys": "Ausblenden",
+    "showKeysTooltip": "Lizenzschlüssel anzeigen. Nur für Super Admin.",
+    "showKeysConfirmTitle": "Vollständige Lizenzschlüssel anzeigen?",
+    "showKeysConfirmContent": "Vollständige Schlüssel sind vertraulich. Nur für Support und Verwaltung verwenden.",
+    "copyKey": "Lizenzschlüssel kopieren",
+    "systemDoesNotUnlockTenant": "Eine Systemlizenz schaltet den Mandanten NICHT frei. Für Mandantenzugriff eine Mandantenlizenz verwenden.",
+    "layersTitle": "Lizenzstatus (System und Mandant)",
+    "systemLayer": "Systemlizenz",
+    "tenantLayer": "Mandantenlizenz",
+    "systemActiveTenantLocked": "System aktiv, Mandant gesperrt",
+    "activateUnlocksSystem": "System wird freigeschaltet",
+    "activateUnlocksTenant": "Mandant wird freigeschaltet",
+    "activateSystemConfirmTitle": "Nur System wird freigeschaltet",
+    "activateSystemConfirmContent": "Dieser Lizenzschlüssel schaltet nur das System frei. Mandant bleibt gesperrt.",
+    "slugMismatchWarning": "Der Slug im Schlüssel ({{slug}}) stimmt nicht mit dem aktuellen Mandanten ({{current}}) überein.",
+    "activateSlugMismatchTitle": "Mandant stimmt nicht überein",
+    "activateSlugMismatchContent": "Dieser Schlüssel ist für „{{slug}}“ ausgestellt, aktuell ist „{{current}}“ gewählt. Die Aktivierung wird abgelehnt, wenn der Mandant nicht passt."
+  },
+  "statusBadge": {
+    "labels": {
+      "active": "Aktiv",
+      "grace": "Grace",
+      "expiringSoon": "Läuft bald ab",
+      "expired": "Abgelaufen",
+      "locked": "Gesperrt"
+    },
+    "tooltips": {
+      "active": "Lizenz ist gültig und liegt außerhalb des 30-Tage-Warnfensters.",
+      "grace": "Gültigkeit abgelaufen. 7-Tage-Grace-Periode: Betrieb noch eingeschränkt möglich.",
+      "expiringSoon": "Lizenz läuft in den nächsten 30 Tagen ab. Bitte rechtzeitig verlängern.",
+      "expired": "Lizenz ist abgelaufen und die Grace-Periode ist vorbei.",
+      "locked": "Lizenz ist gesperrt (widerrufen, storniert oder archiviert)."
+    },
+    "countdown": "Läuft ab in: {{countdown}}"
+  },
+  "renewal": {
+    "renewNow": "Jetzt erneuern",
+    "requestButton": "Verlängerung anfragen",
+    "requestSuccess": "Verlängerungsanfrage wurde an den Super Admin gesendet.",
+    "requestError": "Verlängerungsanfrage konnte nicht gesendet werden.",
+    "requestTitle": "Lizenzverlängerung angefragt",
+    "requestMessage": "Bitte die Mandantenlizenz verlängern. Gültig bis: {{validUntil}}."
+  },
+  "certificate": {
+    "download": "Lizenzzertifikat (PDF)",
+    "downloadSuccess": "Zertifikat wurde heruntergeladen.",
+    "downloadError": "Zertifikat konnte nicht heruntergeladen werden."
+  },
+  "autoRenew": {
+    "title": "Optionale Auto-Verlängerung",
+    "subtitle": "Wiederkehrende SaaS-Rechnungen laufen über Abonnement-Rechnungen — kein automatisches Stripe-Kartenziehen an der Kasse.",
+    "openInvoices": "Abonnement-Rechnungen öffnen",
+    "requestAutoRenew": "Auto-Verlängerung anfragen"
   },
   "mandant": {
     "status": "Status",
@@ -207,7 +269,7 @@
       "active": "Aktiv",
       "graceWrite": "Grace-Phase: Schreiben erlaubt",
       "graceReadonly": "Grace-Phase: Nur Lesen",
-      "lockdown": "Lockdown",
+      "lockdown": "Mandant gesperrt",
       "expired": "Abgelaufen",
       "noLicense": "Keine Lizenz"
     },
@@ -224,7 +286,7 @@
         "active": "Mandantenlizenz ist aktiv. Schreiben, Benutzerverwaltung und Zugriff sind freigegeben.",
         "graceWrite": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Schreiben ist noch erlaubt, eine Verlängerung ist aber zeitnah erforderlich.",
         "graceReadonly": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Schreiboperationen sind gesperrt, Lesen und Benutzerverwaltung bleiben erlaubt.",
-        "lockdown": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Der Mandant befindet sich im Lockdown.",
+        "lockdown": "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren. Seit {{days}} Tagen abgelaufen.",
         "expired": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen.",
         "noLicense": "Für diesen Mandanten ist keine Lizenz hinterlegt."
       },
@@ -334,9 +396,9 @@
         "restrictions": "Während der Grace-Periode: POS nutzbar, Warnungen aktiv. Nach Ablauf: POS gesperrt (nur Super-Administrator kann entsperren)."
       },
       "lockdown": {
-        "title": "Mandantenlizenz abgelaufen – POS gesperrt",
-        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Die Grace-Periode ist beendet. POS ist gesperrt — nur Super-Administrator kann entsperren. Bitte Lizenz erneuern.",
-        "contactAdminDescription": "Der Mandant ist derzeit gesperrt (Grace-Periode abgelaufen). Nur Super-Administrator kann entsperren. Bitte wenden Sie sich an Ihren Administrator.",
+        "title": "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren",
+        "adminDescription": "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren. Die Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Die Grace-Periode ist beendet. POS ist gesperrt — nur Super-Administrator kann entsperren.",
+        "contactAdminDescription": "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren. Nur Super-Administrator kann entsperren. Bitte wenden Sie sich an Ihren Administrator.",
         "restrictions": "POS gesperrt. Nur Super-Administrator kann freischalten. Verlängerung erforderlich."
       },
       "noLicense": {
@@ -389,7 +451,7 @@
       "progressAria": "Grace-Periode: noch {{days}} Tag(e)"
     },
     "locked": {
-      "title": "Eingeschränkter Modus",
+      "title": "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren",
       "description": "Ihre Lizenz ist seit {{days}} Tag(en) abgelaufen.",
       "bulletReadOnly": "Sie können nur lesend auf Ihre Daten zugreifen",
       "bulletNoWrite": "Keine Änderungen oder Neuanlagen möglich",
@@ -534,7 +596,7 @@
     "supportContact": "Support kontaktieren: support@regkasse.at"
   },
   "lockdownToast": {
-    "title": "Lizenz abgelaufen",
+    "title": "Mandant gesperrt",
     "description": "Bitte verlängern Sie Ihre Lizenz, um diese Aktion durchzuführen.",
     "guardDescription": "Diese Aktion ist im gesperrten Zustand nicht verfügbar.",
     "guardDescriptionWithAction": "„{{action}}“ ist im gesperrten Zustand nicht verfügbar.",
@@ -674,6 +736,16 @@
     "featureNotIncluded": "Die aktuelle Serverlizenz enthält keine Lizenzverwaltung (admin_license_manage). Bitte zuerst eine passende Lizenz aktivieren.",
     "expiryInPast": "Das Ablaufdatum darf nicht in der Vergangenheit liegen.",
     "invalidMachineHash": "Bitte einen gültigen 64-stelligen SHA-256-Hex-Fingerprint eingeben.",
+    "kindLabel": "Für System (Deployment) oder Mandant?",
+    "kindSystem": "System (Deployment)",
+    "kindTenant": "Mandant",
+    "kindSystemHint": "Erzeugt REGK-{Datum}-system-{Zufall}. Schaltet nur das Deployment frei, nicht den Mandanten.",
+    "kindTenantHint": "Erzeugt REGK-{Datum}-{Mandanten-Slug}-{Zufall}. Schaltet den gewählten Mandanten frei.",
+    "tenantRequired": "Bitte einen Mandanten wählen.",
+    "tenantSelectLabel": "Mandant",
+    "tenantSelectPlaceholder": "Mandant wählen",
+    "tenantKindNeedsSuperAdmin": "Mandantenlizenzen kann nur Super Admin erzeugen (Lizenzverkauf).",
+    "systemDoesNotUnlockTenant": "Eine Systemlizenz schaltet den Mandanten NICHT frei. Für Mandantenzugriff eine Mandantenlizenz verwenden.",
     "modal": {
       "title": "Generierte Lizenz",
       "copyJwt": "Aktivierungs-JWT kopieren",
@@ -838,8 +910,9 @@
     "error": "Vorschau konnte nicht geladen werden",
     "horizons": {
       "d30": "30 Tage",
-      "d14": "14 Tage",
+      "d15": "15 Tage",
       "d7": "7 Tage",
+      "d3": "3 Tage",
       "d1": "1 Tag",
       "d0": "Abgelaufen"
     }
@@ -848,6 +921,14 @@
     "title": "Lizenz-Audit-Log",
     "subtitle": "Zusammengeführte Ereignisse aus Billing-Audit und Lizenz-Audit (nur Lesen).",
     "empty": "Keine Audit-Einträge gefunden",
+    "exportCsv": "CSV exportieren",
+    "filters": {
+      "action": "Aktion",
+      "actionAll": "Alle Aktionen",
+      "user": "Benutzer",
+      "userPlaceholder": "Name oder Benutzer-ID",
+      "dateRange": "Zeitraum"
+    },
     "columns": {
       "time": "Zeit",
       "tenant": "Mandant",
@@ -896,6 +977,7 @@
     "tabs": {
       "overview": "Übersicht",
       "trend": "Trend",
+      "distribution": "Verteilung",
       "export": "Export"
     },
     "kpi": {

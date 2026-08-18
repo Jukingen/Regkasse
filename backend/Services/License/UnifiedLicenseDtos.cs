@@ -86,7 +86,7 @@ public sealed class UnifiedLicenseLayerStatusDto
 {
     public DateTime? ValidUntil { get; init; }
 
-    /// <summary><c>active</c>, <c>grace</c>, or <c>expired</c>.</summary>
+    /// <summary><c>active</c>, <c>grace</c>, <c>expired</c>, or <c>locked</c> (tenant past grace).</summary>
     public string Status { get; init; } = "expired";
 
     public bool IsActive { get; init; }

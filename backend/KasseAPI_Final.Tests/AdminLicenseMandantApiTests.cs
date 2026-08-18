@@ -219,6 +219,100 @@ public sealed class AdminLicenseMandantApiTests
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
+    [Fact]
+    public async Task PreviewMandantLicense_SuperAdmin_UsesUnifiedServiceWithoutTenant()
+    {
+        const string key = "REGK-20990101-system-ABCDEF12";
+        var unified = new Mock<IUnifiedLicenseService>();
+        unified
+            .Setup(x => x.PreviewLicenseAsync(key, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LicensePreviewResult(
+                Valid: true,
+                LicenseKey: key,
+                ValidFromUtc: null,
+                ValidUntilUtc: new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc),
+                DurationDays: 100,
+                DurationDisplay: "100 days",
+                Status: "valid",
+                PlanName: LicenseKeyKinds.System,
+                ErrorCode: null,
+                ErrorMessage: null,
+                LicenseKind: LicenseKeyKinds.System));
+
+        await using var db = CreateDb();
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Roles.SuperAdmin,
+            unifiedLicenseService: unified.Object);
+
+        var result = await controller.PreviewMandantLicense(
+            new PreviewTenantLicenseRequest { LicenseKey = key },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var payload = Assert.IsType<LicensePreviewResult>(ok.Value);
+        Assert.True(payload.Valid);
+        Assert.Equal(LicenseKeyKinds.System, payload.LicenseKind);
+        unified.Verify(
+            x => x.PreviewLicenseAsync(key, null, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PreviewMandantLicense_Manager_PassesResolvedTenantToUnifiedService()
+    {
+        const string key = "REGK-20990101-cafe-A7F3K2D9";
+        var tenantId = Guid.NewGuid();
+        var unified = new Mock<IUnifiedLicenseService>();
+        unified
+            .Setup(x => x.PreviewLicenseAsync(key, tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LicensePreviewResult(
+                Valid: true,
+                LicenseKey: key,
+                ValidFromUtc: null,
+                ValidUntilUtc: DateTime.UtcNow.AddYears(1),
+                DurationDays: 365,
+                DurationDisplay: "1 year",
+                Status: "valid",
+                PlanName: LicenseKeyKinds.Tenant,
+                ErrorCode: null,
+                ErrorMessage: null,
+                LicenseKind: LicenseKeyKinds.Tenant,
+                TenantId: tenantId,
+                TenantName: "cafe"));
+
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Roles.Manager,
+            tenantResolver: TenantTestDoubles.SettingsResolverReturning(tenantId),
+            unifiedLicenseService: unified.Object);
+
+        var result = await controller.PreviewMandantLicense(
+            new PreviewTenantLicenseRequest { LicenseKey = key },
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        unified.Verify(
+            x => x.PreviewLicenseAsync(key, tenantId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static AdminLicenseController CreateController(
         AppDbContext db,
         ILicenseRenewalService renewalService,
@@ -233,7 +327,8 @@ public sealed class AdminLicenseMandantApiTests
         IAdminTenantLicenseService tenantLicenseService,
         string role = Roles.Manager,
         ISettingsTenantResolver? tenantResolver = null,
-        ICurrentTenantAccessor? tenantAccessor = null)
+        ICurrentTenantAccessor? tenantAccessor = null,
+        IUnifiedLicenseService? unifiedLicenseService = null)
     {
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
@@ -249,7 +344,7 @@ public sealed class AdminLicenseMandantApiTests
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILicenseExportService>(),
-            Mock.Of<IUnifiedLicenseService>(),
+            unifiedLicenseService ?? Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>

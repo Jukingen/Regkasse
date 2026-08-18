@@ -75,7 +75,9 @@ export function LicenseLockdownBanner({ status: statusProp }: LicenseLockdownBan
   const title =
     status.state === 'Archived'
       ? t('license.statusBanner.archived.title')
-      : t('license.statusBanner.locked.title');
+      : status.anyActive && !status.allActive
+        ? t('license.management.systemActiveTenantLocked')
+        : t('license.statusBanner.locked.title');
 
   return (
     <Alert

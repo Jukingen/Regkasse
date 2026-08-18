@@ -82,7 +82,7 @@ public sealed partial class AdminLicenseController
         return Ok(ExtendTenantLicenseResultDto.FromOverview(result!));
     }
 
-    /// <summary>Preview mandant license extension for the effective tenant (no mutation).</summary>
+    /// <summary>Preview a unified REGK key (issued_licenses and license_sales). Super Admin does not need ambient tenant.</summary>
     [HttpPost("mandant/preview")]
     [HasPermission(AppPermissions.LicenseManage)]
     [ProducesResponseType(typeof(LicensePreviewResult), StatusCodes.Status200OK)]
@@ -94,20 +94,20 @@ public sealed partial class AdminLicenseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var (tenantId, error) = await ResolveAccessibleMandantTenantIdAsync(null, cancellationToken)
-            .ConfigureAwait(false);
-        if (error != null)
-            return error;
-
         var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
-        var (result, previewError) = await _tenantLicenseService
-            .PreviewLicenseAsync(tenantId!.Value, request.LicenseKey, isSuperAdmin, cancellationToken)
-            .ConfigureAwait(false);
+        Guid? tenantId = null;
+        if (!isSuperAdmin)
+        {
+            var (resolvedTenantId, error) = await ResolveAccessibleMandantTenantIdAsync(null, cancellationToken)
+                .ConfigureAwait(false);
+            if (error != null)
+                return error;
+            tenantId = resolvedTenantId;
+        }
 
-        if (previewError == "Tenant not found.")
-            return NotFound(new { message = previewError });
-        if (previewError != null)
-            return BadRequest(new { message = previewError });
+        var result = await _unifiedLicenseService
+            .PreviewLicenseAsync(request.LicenseKey, tenantId, cancellationToken)
+            .ConfigureAwait(false);
 
         return Ok(result);
     }

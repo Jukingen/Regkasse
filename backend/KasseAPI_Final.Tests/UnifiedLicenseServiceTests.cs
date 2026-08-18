@@ -23,7 +23,7 @@ public sealed class UnifiedLicenseServiceTests
 
         Assert.False(result.IsValid);
         Assert.False(result.IsFormatValid);
-        Assert.Equal("invalid_format", result.ErrorCode);
+        Assert.Equal(LicenseKeyErrorCodes.InvalidFormat, result.ErrorCode);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class UnifiedLicenseServiceTests
         Assert.True(result.IsFormatValid);
         Assert.True(result.IsExpired);
         Assert.False(result.IsValid);
-        Assert.Equal("expired", result.ErrorCode);
+        Assert.Equal(LicenseKeyErrorCodes.Expired, result.ErrorCode);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class UnifiedLicenseServiceTests
         Assert.True(result.IsFormatValid);
         Assert.True(result.ExistsInDatabase);
         Assert.False(result.SlugMatches);
-        Assert.Equal("slug_mismatch", result.ErrorCode);
+        Assert.Equal(LicenseKeyErrorCodes.SlugMismatch, result.ErrorCode);
     }
 
     [Fact]
@@ -129,6 +129,80 @@ public sealed class UnifiedLicenseServiceTests
         Assert.Equal("Acme GmbH", info.CustomerName);
         Assert.Equal("issued_licenses", info.SourceTable);
         Assert.Equal(issued.Id, info.SourceId);
+    }
+
+    [Fact]
+    public async Task PreviewLicenseAsync_SystemKey_FindsIssuedRow()
+    {
+        const string key = "REGK-20990101-system-PREVSYS1";
+        var (sut, db) = CreateSut();
+        db.IssuedLicenses.Add(new IssuedLicense
+        {
+            LicenseKey = key,
+            CustomerName = "Preview Host",
+            ExpiryAtUtc = new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc),
+            SignedJwt = "jwt",
+            IssuedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var preview = await sut.PreviewLicenseAsync(key);
+
+        Assert.True(preview.Valid);
+        Assert.Equal("valid", preview.Status);
+        Assert.Equal(LicenseKeyKinds.System, preview.LicenseKind);
+        Assert.Equal(key, preview.LicenseKey);
+    }
+
+    [Fact]
+    public async Task PreviewLicenseAsync_SystemKey_IsCaseInsensitive()
+    {
+        const string stored = "REGK-20990101-system-CASEKEY1";
+        var (sut, db) = CreateSut();
+        db.IssuedLicenses.Add(new IssuedLicense
+        {
+            LicenseKey = stored,
+            CustomerName = "Case Host",
+            ExpiryAtUtc = new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc),
+            SignedJwt = "jwt",
+            IssuedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var preview = await sut.PreviewLicenseAsync(stored.ToUpperInvariant());
+
+        Assert.True(preview.Valid);
+        Assert.Equal(LicenseKeyKinds.System, preview.LicenseKind);
+    }
+
+    [Fact]
+    public async Task PreviewLicenseAsync_TenantKey_FindsLicenseSale()
+    {
+        const string key = "REGK-20990101-cafe-PREVTEN1";
+        var tenantId = Guid.NewGuid();
+        var (sut, db) = CreateSut();
+        db.Tenants.Add(NewTenant(tenantId, "cafe"));
+        db.LicenseSales.Add(NewSale(tenantId, key, new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc)));
+        await db.SaveChangesAsync();
+
+        var preview = await sut.PreviewLicenseAsync(key);
+
+        Assert.True(preview.Valid);
+        Assert.Equal("valid", preview.Status);
+        Assert.Equal(LicenseKeyKinds.Tenant, preview.LicenseKind);
+        Assert.Equal(tenantId, preview.TenantId);
+        Assert.Equal("cafe", preview.TenantName);
+    }
+
+    [Fact]
+    public async Task PreviewLicenseAsync_UnknownKey_ReturnsNotFound()
+    {
+        var (sut, _) = CreateSut();
+
+        var preview = await sut.PreviewLicenseAsync("REGK-20990101-system-MISSING1");
+
+        Assert.False(preview.Valid);
+        Assert.Equal(LicenseKeyErrorCodes.NotFound, preview.ErrorCode);
     }
 
     [Fact]
@@ -371,10 +445,158 @@ public sealed class UnifiedLicenseServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task PreviewInfoAndValidate_ReturnConsistentResultsForSameKey()
+    {
+        const string key = "REGK-20990101-system-SAMEKEY1";
+        var expiry = new DateTime(2099, 1, 1, 23, 59, 59, DateTimeKind.Utc);
+        var (sut, db) = CreateSut();
+        db.IssuedLicenses.Add(new IssuedLicense
+        {
+            LicenseKey = key,
+            CustomerName = "Same Key Host",
+            ExpiryAtUtc = expiry,
+            SignedJwt = "jwt",
+            IssuedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var preview = await sut.PreviewLicenseAsync(key);
+        var info = await sut.GetLicenseInfoAsync(key);
+        var validation = await sut.ValidateLicenseAsync(key);
+
+        Assert.True(preview.Valid);
+        Assert.True(info.IsValid);
+        Assert.True(validation.IsValid);
+        Assert.Equal(LicenseKeyKinds.System, preview.LicenseKind);
+        Assert.Equal(LicenseKeyKinds.System, info.LicenseKind);
+        Assert.Equal(LicenseKeyKinds.System, validation.LicenseKind);
+        Assert.Equal(info.CanonicalLicenseKey, validation.CanonicalLicenseKey);
+        Assert.Equal(info.Exists, validation.ExistsInDatabase);
+        Assert.Equal(info.IsExpired, validation.IsExpired);
+    }
+
+    [Fact]
+    public async Task ActivateLicenseAsync_AlreadyActivatedSameTenant_IsIdempotent()
+    {
+        const string key = "REGK-20990101-dev-ALREADY1";
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var billing = new Mock<ITenantLicenseService>(MockBehavior.Strict);
+        var (sut, db) = CreateSut(billing: billing.Object);
+        db.Tenants.Add(NewTenant(tenantId, "dev"));
+        var sale = NewSale(tenantId, key);
+        sale.ActivationDateUtc = DateTime.UtcNow.AddDays(-1);
+        db.LicenseSales.Add(sale);
+        await db.SaveChangesAsync();
+
+        var result = await sut.ActivateLicenseAsync(
+            key,
+            new UnifiedLicenseActivationContext(tenantId, userId));
+
+        Assert.True(result.Success);
+        Assert.Equal(LicenseKeyErrorCodes.AlreadyActivated, result.ErrorCode);
+        billing.Verify(
+            x => x.ActivateLicenseAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ActivateLicenseAsync_SerializesConcurrentActivations()
+    {
+        const string key = "REGK-20990101-dev-RACEKEY1";
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var inside = 0;
+        var overlap = 0;
+        var billing = new Mock<ITenantLicenseService>();
+        billing
+            .Setup(x => x.ActivateLicenseAsync(
+                tenantId,
+                It.IsAny<string>(),
+                userId,
+                It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                var now = Interlocked.Increment(ref inside);
+                if (now > 1)
+                    Interlocked.Increment(ref overlap);
+                await Task.Delay(80);
+                Interlocked.Decrement(ref inside);
+                return new ActivationResult
+                {
+                    Success = true,
+                    Message = "ok",
+                    ValidUntilUtc = DateTime.UtcNow.AddYears(1),
+                    LicensePlan = "12_months",
+                };
+            });
+
+        var (sut, db) = CreateSut(billing: billing.Object);
+        db.Tenants.Add(NewTenant(tenantId, "dev"));
+        db.LicenseSales.Add(NewSale(tenantId, key));
+        await db.SaveChangesAsync();
+
+        var context = new UnifiedLicenseActivationContext(tenantId, userId);
+        await Task.WhenAll(
+            sut.ActivateLicenseAsync(key, context),
+            sut.ActivateLicenseAsync(key, context));
+
+        Assert.Equal(0, overlap);
+        billing.Verify(
+            x => x.ActivateLicenseAsync(tenantId, It.IsAny<string>(), userId, It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ActivateLicenseAsync_InvalidatesTenantCache()
+    {
+        const string key = "REGK-20990101-dev-CACHE001";
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var billing = new Mock<ITenantLicenseService>();
+        billing
+            .Setup(x => x.ActivateLicenseAsync(
+                tenantId,
+                It.IsAny<string>(),
+                userId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ActivationResult
+            {
+                Success = true,
+                Message = "ok",
+                ValidUntilUtc = DateTime.UtcNow.AddYears(1),
+                LicensePlan = "12_months",
+            });
+        var cache = new Mock<ILicenseCacheService>();
+        cache.Setup(x => x.InvalidateAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        cache.Setup(x => x.InvalidateForTenantAsync(tenantId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var (sut, db) = CreateSut(billing: billing.Object, licenseCache: cache.Object);
+        db.Tenants.Add(NewTenant(tenantId, "dev"));
+        db.LicenseSales.Add(NewSale(tenantId, key));
+        await db.SaveChangesAsync();
+
+        var result = await sut.ActivateLicenseAsync(
+            key,
+            new UnifiedLicenseActivationContext(tenantId, userId));
+
+        Assert.True(result.Success);
+        cache.Verify(x => x.InvalidateAllAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        cache.Verify(x => x.InvalidateForTenantAsync(tenantId, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
     private static (UnifiedLicenseService Sut, AppDbContext Db) CreateSut(
         ICurrentTenantAccessor? tenantAccessor = null,
         ITenantLicenseService? billing = null,
-        ILicenseService? licenseService = null)
+        ILicenseService? licenseService = null,
+        ILicenseCacheService? licenseCache = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"UnifiedLicense_{Guid.NewGuid():N}")
@@ -388,7 +610,9 @@ public sealed class UnifiedLicenseServiceTests
             billing ?? Mock.Of<ITenantLicenseService>(),
             Mock.Of<ILicenseStatusCache>(),
             accessor,
-            NullLogger<UnifiedLicenseService>.Instance);
+            NullLogger<UnifiedLicenseService>.Instance,
+            LicenseKeyValidator.Instance,
+            licenseCache);
         return (sut, db);
     }
 

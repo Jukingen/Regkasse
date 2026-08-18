@@ -52,6 +52,9 @@ export type TenantLicensePreviewResult = {
   planName?: string | null;
   errorCode?: string | null;
   errorMessage?: string | null;
+  licenseKind?: string | null;
+  tenantId?: string | null;
+  tenantName?: string | null;
 };
 
 export type PreviewTenantLicenseRequest = {
@@ -87,7 +90,7 @@ export async function putTenantLicense(
   return data;
 }
 
-/** POST /api/admin/license/mandant/preview — validate key without applying (Manager). */
+/** POST /api/admin/license/mandant/preview — unified issued_licenses + license_sales lookup. */
 export async function previewTenantLicense(
   body: PreviewTenantLicenseRequest
 ): Promise<TenantLicensePreviewResult> {

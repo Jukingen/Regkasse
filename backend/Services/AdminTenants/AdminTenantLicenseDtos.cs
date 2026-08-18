@@ -71,7 +71,10 @@ public sealed record LicensePreviewResult(
     string? Status,
     string? PlanName,
     string? ErrorCode,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    string? LicenseKind = null,
+    Guid? TenantId = null,
+    string? TenantName = null);
 
 /// <summary>Result of <c>POST …/license/extend</c> and <c>POST /api/admin/license/mandant/extend</c>.</summary>
 public sealed record ExtendTenantLicenseResultDto(

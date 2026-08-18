@@ -507,7 +507,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     {
         if (!_rksvMonatsbelegPolicy.SessionGateApplies)
             return false;
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var (y, m) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
         return !await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
             .ConfigureAwait(false);
     }

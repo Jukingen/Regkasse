@@ -14,6 +14,11 @@ namespace KasseAPI_Final.Middleware
     /// <summary>
     /// Adds license visibility headers and enforces deployment + mandant license policy for authenticated traffic.
     /// Runs after <c>UseAuthentication</c> so JWT <c>app_context</c> is available.
+    /// <list type="bullet">
+    /// <item>Super Admin: an active <b>system</b> license is sufficient (either layer unlocks FA).</item>
+    /// <item>Mandanten-Admin (Manager), Cashier, and POS: an active <b>tenant</b> license is required.
+    /// A system/deployment key never unlocks the mandant.</item>
+    /// </list>
     /// Mandant lockdown blocks POS operations (<c>LICENSE_LOCKED</c>); FA renewal paths stay available.
     /// Grace period allows POS with <c>X-License-Grace</c> warning headers.
     /// </summary>
@@ -83,7 +88,7 @@ namespace KasseAPI_Final.Middleware
                     && IsPosOperation(context)
                     && !unified.IsTenantLicense)
                 {
-                    await WriteTenantLockedAsync(context, unified.MandantSnapshot).ConfigureAwait(false);
+                    await WriteTenantLockedAsync(context, unified.MandantSnapshot, unified).ConfigureAwait(false);
                     return;
                 }
             }
@@ -117,8 +122,10 @@ namespace KasseAPI_Final.Middleware
         }
 
         /// <summary>
-        /// Combined gate: Super Admin may operate when either layer is active;
-        /// mandant users need an active tenant license (system may be expired);
+        /// Combined gate:
+        /// Super Admin may operate when either layer is active (system license is enough);
+        /// Mandanten-Admin / Cashier / POS with a tenant context need an active tenant license
+        /// (a system key does not unlock the mandant);
         /// platform requests without tenant context need an active system license.
         /// POS lockdown for an expired mandant is handled separately.
         /// </summary>
@@ -164,15 +171,26 @@ namespace KasseAPI_Final.Middleware
             }
         }
 
-        private static async Task WriteTenantLockedAsync(HttpContext context, LicenseStatusInfo? licenseStatus)
+        private static async Task WriteTenantLockedAsync(
+            HttpContext context,
+            LicenseStatusInfo? licenseStatus,
+            UnifiedLicenseStatusDto? unified)
         {
             var language = context.Items.TryGetValue(LanguageMiddleware.LanguageItemKey, out var langObj)
                 && langObj is string lang
                 ? lang
                 : LanguageMiddleware.DefaultLanguage;
-            var message = licenseStatus is not null && !string.IsNullOrWhiteSpace(licenseStatus.StatusMessage)
-                ? licenseStatus.StatusMessage
-                : ApiMessageCatalog.Get(ApiMessageKeys.LicenseStatusLocked, language);
+
+            var systemActive = unified?.IsSystemLicense == true;
+            var tenantLocked = unified is null || !unified.IsTenantLicense;
+            var combinedKey = systemActive && tenantLocked
+                ? ApiMessageKeys.LicenseStatusSystemActiveTenantLocked
+                : ApiMessageKeys.LicenseStatusLocked;
+            var message = systemActive && tenantLocked
+                ? ApiMessageCatalog.Get(combinedKey, language)
+                : licenseStatus is not null && !string.IsNullOrWhiteSpace(licenseStatus.StatusMessage)
+                    ? licenseStatus.StatusMessage
+                    : ApiMessageCatalog.Get(ApiMessageKeys.LicenseStatusLocked, language);
 
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(
@@ -181,10 +199,13 @@ namespace KasseAPI_Final.Middleware
                     success = false,
                     code = LicenseLockedCode,
                     message,
-                    messageKey = licenseStatus is not null && !string.IsNullOrWhiteSpace(licenseStatus.StatusMessageKey)
-                        ? licenseStatus.StatusMessageKey
-                        : ApiMessageKeys.LicenseStatusLocked,
+                    messageKey = combinedKey,
                     status = StatusCodes.Status403Forbidden,
+                    systemLicense = unified?.SystemLicense,
+                    tenantLicense = unified?.TenantLicense,
+                    combinedStatus = systemActive && tenantLocked
+                        ? "system_active_tenant_locked"
+                        : "tenant_locked",
                     licenseStatus = new
                     {
                         expired = true,

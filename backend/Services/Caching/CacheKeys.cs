@@ -17,6 +17,18 @@ public static class CacheKeys
     /// </summary>
     public const string LicenseStatusPrefix = "license_status_";
 
+    /// <summary>Per-key lookup cache. Format: <c>license_key_{normalizedKey}</c>.</summary>
+    public const string LicenseKeyLookup = "license_key_{0}";
+
+    /// <summary>Tenant license overlay. Format: <c>license_tenant_{tenantId}</c>.</summary>
+    public const string LicenseTenant = "license_tenant_{0}";
+
+    /// <summary>Admin issued-license list cache (fixed string).</summary>
+    public const string LicenseAdminList = "license_admin_list";
+
+    /// <summary>Admin billing sales list cache (fixed string).</summary>
+    public const string LicenseBillingSales = "license_billing_sales";
+
     /// <summary>
     /// Active product list for a tenant (unfiltered).
     /// Format: <c>product_list_{tenantId}</c> — arg0 = tenant id.

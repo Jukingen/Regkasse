@@ -54,9 +54,9 @@ public sealed class LicenseOptions
 
     /// <summary>
     /// Calendar-day thresholds for mandant expiry emails and in-app reminders
-    /// (exact match on <c>daysRemaining</c>). Default: 30 / 14 / 7 / 1 days before expiry.
+    /// (exact match on <c>daysRemaining</c>). Default: 30 / 15 / 7 / 3 / 1 days before expiry.
     /// </summary>
-    public int[] ReminderDays { get; set; } = [30, 14, 7, 1];
+    public int[] ReminderDays { get; set; } = [30, 15, 7, 3, 1];
 
     /// <summary>
     /// When true, also send one overdue/expired email per license validity date

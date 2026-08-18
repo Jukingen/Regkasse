@@ -258,7 +258,9 @@ public sealed record LicenseActivationResult(
     /// <summary>Whole days remaining until <see cref="ValidUntil"/> (UTC); null when expiry unknown.</summary>
     int? DaysRemaining = null,
     /// <summary>Coarse lifecycle label for clients (e.g. <c>active</c>).</summary>
-    string? Status = null);
+    string? Status = null,
+    /// <summary>Stable machine code (e.g. <c>INVALID_LICENSE_FORMAT</c>, <c>LICENSE_ALREADY_ACTIVATED</c>).</summary>
+    string? ErrorCode = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
 public sealed record LicenseActivationClientInfo(

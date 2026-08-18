@@ -30,12 +30,19 @@ public sealed class PosTseStatusServiceTests
         AppDbContext db,
         TseHealthSnapshot snapshot,
         string environmentName = "Production",
-        bool simulateUnavailable = false)
+        bool simulateUnavailable = false,
+        string fiskalyEnvironment = FiskalyOptions.TestEnvironment)
     {
         var env = new Mock<IWebHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(environmentName);
         var dev = Options.Create(new DevelopmentOptions { SimulateTseUnavailable = simulateUnavailable });
-        return new PosTseStatusService(db, new FixedTseHealthMonitor(snapshot), env.Object, dev.ToMonitor());
+        var fiskaly = Options.Create(new FiskalyOptions { Environment = fiskalyEnvironment });
+        return new PosTseStatusService(
+            db,
+            new FixedTseHealthMonitor(snapshot),
+            env.Object,
+            dev.ToMonitor(),
+            fiskaly.ToMonitor());
     }
 
     [Fact]
@@ -96,6 +103,7 @@ public sealed class PosTseStatusServiceTests
         Assert.Equal(dto.ScuId, dto.TssId);
         Assert.False(dto.Cached);
         Assert.Equal("Online", dto.OperationalHealth);
+        Assert.Equal(FiskalyOptions.TestEnvironment, dto.Environment);
         Assert.NotNull(dto.CertificateValidUntil);
     }
 
@@ -231,6 +239,32 @@ public sealed class PosTseStatusServiceTests
 
         Assert.Equal(PosTseIndicatorStatuses.Inactive, dto.Status);
         Assert.Equal("Offline", dto.OperationalHealth);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_FiskalyLive_ExposesLiveEnvironment()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "live-tse",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(
+            db,
+            new TseHealthSnapshot { Status = TseOperationalHealth.Offline, LastCheckUtc = DateTime.UtcNow },
+            fiskalyEnvironment: FiskalyOptions.LiveEnvironment);
+
+        var dto = await svc.GetStatusAsync(tenantId, null);
+
+        Assert.Equal(FiskalyOptions.LiveEnvironment, dto.Environment);
     }
 }
 

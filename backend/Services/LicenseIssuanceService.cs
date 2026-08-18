@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -1183,6 +1184,11 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(
             expiresAt.UtcDateTime,
             LicenseKeyGenerator.SystemSlug);
+        if (!LicenseKeyValidator.Instance.IsValidFormat(licenseKey)
+            || !LicenseKeyValidator.Instance.IsSystemLicense(licenseKey))
+        {
+            throw new InvalidOperationException(LicenseKeyErrorCodes.SystemLicenseExpected);
+        }
         var jwt = LicenseIssuer.SignJwtForExistingLicenseKey(
             rsa,
             licenseKey,

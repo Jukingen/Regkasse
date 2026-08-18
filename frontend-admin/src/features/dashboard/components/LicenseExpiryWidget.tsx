@@ -160,7 +160,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
               icon={<SafetyCertificateOutlined />}
               onClick={() => setExtendOpen(true)}
             >
-              {t('license.mandant.extendButton')}
+              {t('license.renewal.renewNow')}
             </Button>
           ) : null}
         </Space>

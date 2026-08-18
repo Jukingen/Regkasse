@@ -21,10 +21,17 @@ export function getViennaYearMonth(now: Date = new Date()): { year: number; mont
   return { year, month };
 }
 
+/** Previous completed Vienna calendar month (RKSV Monatsbeleg create target). */
+export function getViennaPreviousYearMonth(now: Date = new Date()): { year: number; month: number } {
+  const { year, month } = getViennaYearMonth(now);
+  if (month <= 1) return { year: year - 1, month: 12 };
+  return { year, month: month - 1 };
+}
+
 /**
  * Resolve which Vienna calendar month the POS should create next.
  * Prefers the earliest overdue missing month, then any missing month / nextRequiredMonth,
- * otherwise the current Vienna month (same default as the session block modal).
+ * otherwise the previous completed Vienna month (RKSV session gate target).
  */
 export function resolvePosMonatsbelegTarget(status?: PosMonatsbelegTargetStatus | null): {
   year: number;
@@ -49,5 +56,5 @@ export function resolvePosMonatsbelegTarget(status?: PosMonatsbelegTargetStatus 
     }
   }
 
-  return getViennaYearMonth();
+  return getViennaPreviousYearMonth();
 }

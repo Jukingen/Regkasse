@@ -18,17 +18,20 @@ public sealed class PosTseStatusService : IPosTseStatusService
     private readonly ITseHealthMonitor _health;
     private readonly IWebHostEnvironment _environment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
+    private readonly IOptionsMonitor<FiskalyOptions> _fiskaly;
 
     public PosTseStatusService(
         AppDbContext db,
         ITseHealthMonitor health,
         IWebHostEnvironment environment,
-        IOptionsMonitor<DevelopmentOptions> developmentOptions)
+        IOptionsMonitor<DevelopmentOptions> developmentOptions,
+        IOptionsMonitor<FiskalyOptions> fiskaly)
     {
         _db = db;
         _health = health;
         _environment = environment;
         _developmentOptions = developmentOptions;
+        _fiskaly = fiskaly;
     }
 
     public async Task<PosTseStatusDto> GetStatusAsync(
@@ -48,6 +51,7 @@ public sealed class PosTseStatusService : IPosTseStatusService
                 Cached = false,
                 OperationalHealth = TseOperationalHealth.Offline.ToString(),
                 LastErrorMessageSafe = "Entwicklungssimulation: TSE als nicht verfügbar gemeldet.",
+                Environment = _fiskaly.CurrentValue.ResolveEnvironment(),
             };
         }
 
@@ -102,6 +106,7 @@ public sealed class PosTseStatusService : IPosTseStatusService
             NonFiscalPendingQueueCount = queueCount,
             EstimatedRecoveryTimeUtc = snap.EstimatedRecoveryTimeUtc,
             LastSuccessfulPingUtc = snap.LastSuccessfulPingUtc,
+            Environment = _fiskaly.CurrentValue.ResolveEnvironment(),
         };
     }
 

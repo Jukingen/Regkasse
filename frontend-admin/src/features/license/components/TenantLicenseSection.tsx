@@ -1,22 +1,27 @@
 'use client';
 
-import { Alert, Button, Card, Descriptions, Empty, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Empty, Space, Switch, Tooltip, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 
 import { LicenseExtendModal } from '@/features/license/components/LicenseExtendModal';
 import { LicenseHistory } from '@/features/license/components/LicenseHistory';
+import { LicenseKeyRevealText } from '@/features/license/components/LicenseKeyRevealText';
 import { UnifiedLicenseDetailDrawer } from '@/features/license/components/UnifiedLicenseDetailDrawer';
+import { UnifiedLicenseStatusBadge } from '@/features/license/components/UnifiedLicenseStatusBadge';
+import { LicenseExpiryCountdownText } from '@/features/license/components/LicenseExpiryCountdownText';
+import { downloadLicenseCertificatePdf } from '@/api/manual/adminLicense';
+import { createSupportTicket } from '@/features/support-tickets/api/supportTickets';
+import { useNotify } from '@/hooks/useNotify';
+import { useLicenseKeyReveal } from '@/features/license/hooks/useLicenseKeyReveal';
 import { useTenantLicenseDetail } from '@/features/license/hooks/useTenantLicenseDetail';
 import {
-  getLicenseStatusLabel,
   getLicenseStatusMessage,
   getLicenseStatusRemainingText,
-  getLicenseStatusTagColor,
   mapPublicStatusToTenantLicenseStatus,
   resolveTenantLicenseFromPublicStatus,
   resolveTenantLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
-import { maskTenantLicenseKey } from '@/features/license/utils/tenantLicenseExtend';
+import type { UnifiedLicenseRowStatus } from '@/features/license/utils/unifiedLicenseRows';
 import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
@@ -28,16 +33,31 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const EXPIRING_SOON_THRESHOLD_DAYS = 7;
 
+function toBadgeStatus(
+  kind: string | undefined,
+  daysRemaining: number
+): UnifiedLicenseRowStatus {
+  if (kind === 'grace_write' || kind === 'grace_readonly') return 'grace';
+  if (kind === 'lockdown') return 'locked';
+  if (kind === 'expired' || kind === 'no_license' || !kind) return 'expired';
+  if (kind === 'active' && daysRemaining > 0 && daysRemaining <= 30) return 'expiringSoon';
+  return 'active';
+}
+
 export function TenantLicenseSection() {
   const { t } = useI18n();
   const currentTenant = useCurrentTenant();
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant();
   const { hasPermission } = usePermissions();
+  const notify = useNotify();
   const [extendOpen, setExtendOpen] = useState(false);
   const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const tenantId = currentTenant.tenantId ?? '';
   const isSuperAdmin = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
+  const { showKeys, onShowKeysChange } = useLicenseKeyReveal(isSuperAdmin);
 
   const publicLicenseQuery = useTenantLicense(tenantId, {
     enabled: !isSuperAdmin && Boolean(tenantId),
@@ -129,6 +149,12 @@ export function TenantLicenseSection() {
         {t('license.page.tenantLicense')}
       </Typography.Title>
 
+      <Alert
+        type="info"
+        showIcon
+        title={t('license.management.systemDoesNotUnlockTenant')}
+      />
+
       {expiryBanner}
 
       <Card loading={licenseQuery.isLoading}>
@@ -138,18 +164,26 @@ export function TenantLicenseSection() {
         {status ? (
           <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
             <Descriptions.Item label={t('license.mandant.status')}>
-              <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
-                {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
-              </Tag>
+              <UnifiedLicenseStatusBadge
+                status={toBadgeStatus(resolvedStatus?.kind, resolvedStatus?.daysRemaining ?? 0)}
+                validUntilUtc={status.validUntilUtc}
+                showCountdown
+              />
             </Descriptions.Item>
             {isSuperAdmin ? (
               <Descriptions.Item label={t('license.mandant.licenseKey')}>
-                <Typography.Text
-                  code
-                  copyable={status.licenseKey ? { text: status.licenseKey } : undefined}
-                >
-                  {maskTenantLicenseKey(status.licenseKey)}
-                </Typography.Text>
+                <Space wrap>
+                  <LicenseKeyRevealText licenseKey={status.licenseKey} reveal={showKeys} />
+                  <Tooltip title={t('license.management.showKeysTooltip')}>
+                    <Switch
+                      size="small"
+                      checked={showKeys}
+                      checkedChildren={t('license.management.hideKeys')}
+                      unCheckedChildren={t('license.management.showKeys')}
+                      onChange={onShowKeysChange}
+                    />
+                  </Tooltip>
+                </Space>
               </Descriptions.Item>
             ) : null}
             <Descriptions.Item label={t('license.mandant.validUntil')}>
@@ -158,6 +192,13 @@ export function TenantLicenseSection() {
             {resolvedStatus ? (
               <Descriptions.Item label={t('tenants.detail.license.remaining')}>
                 {remainingText ?? '—'}
+                <div>
+                  <LicenseExpiryCountdownText
+                    expiresAt={status.validUntilUtc}
+                    labelKey="license.statusBadge.countdown"
+                    t={t}
+                  />
+                </div>
               </Descriptions.Item>
             ) : null}
           </Descriptions>
@@ -173,7 +214,50 @@ export function TenantLicenseSection() {
         <div style={{ marginTop: 16 }}>
           <Space wrap>
             <Button type="primary" onClick={() => setExtendOpen(true)}>
-              {t('license.mandant.extendButton')}
+              {t('license.renewal.renewNow')}
+            </Button>
+            {!isSuperAdmin ? (
+              <Button
+                loading={requesting}
+                onClick={() => {
+                  setRequesting(true);
+                  void createSupportTicket({
+                    category: 'License',
+                    priority: 'High',
+                    title: t('license.renewal.requestTitle'),
+                    message: t('license.renewal.requestMessage', {
+                      validUntil: formatLicenseValidUntil(status?.validUntilUtc),
+                    }),
+                  })
+                    .then(() => notify.success(t('license.renewal.requestSuccess')))
+                    .catch((err) =>
+                      notify.apiError(err, {
+                        logContext: 'TenantLicenseSection.requestRenewal',
+                        fallbackKey: 'license.renewal.requestError',
+                      })
+                    )
+                    .finally(() => setRequesting(false));
+                }}
+              >
+                {t('license.renewal.requestButton')}
+              </Button>
+            ) : null}
+            <Button
+              loading={downloading}
+              onClick={() => {
+                setDownloading(true);
+                void downloadLicenseCertificatePdf()
+                  .then(() => notify.success(t('license.certificate.downloadSuccess')))
+                  .catch((err) =>
+                    notify.apiError(err, {
+                      logContext: 'TenantLicenseSection.certificate',
+                      fallbackKey: 'license.certificate.downloadError',
+                    })
+                  )
+                  .finally(() => setDownloading(false));
+              }}
+            >
+              {t('license.certificate.download')}
             </Button>
             {status?.licenseKey ? (
               <Button onClick={() => setDetailKey(status.licenseKey ?? null)}>

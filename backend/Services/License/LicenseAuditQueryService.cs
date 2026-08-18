@@ -44,6 +44,30 @@ public sealed class LicenseAuditQueryService : ILicenseAuditQueryService
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize <= 0 ? 20 : query.PageSize, 1, MaxPageSize);
 
+        var ordered = await LoadOrderedAsync(query, cancellationToken).ConfigureAwait(false);
+        var totalCount = ordered.Count;
+        var items = ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(LicenseAuditLogMapper.ToDto)
+            .ToList();
+
+        return new LicenseAuditLogListResponse(items, page, pageSize, totalCount);
+    }
+
+    public async Task<byte[]> ExportCsvAsync(
+        LicenseAuditLogQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var ordered = await LoadOrderedAsync(query, cancellationToken).ConfigureAwait(false);
+        var dtos = ordered.Select(LicenseAuditLogMapper.ToDto).ToList();
+        return LicenseAuditCsvBuilder.Build(dtos);
+    }
+
+    private async Task<List<LicenseAuditLogMapper.Candidate>> LoadOrderedAsync(
+        LicenseAuditLogQuery query,
+        CancellationToken cancellationToken)
+    {
         var billing = await LoadBillingCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
         var audit = await LoadAuditCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
 
@@ -57,15 +81,17 @@ public sealed class LicenseAuditQueryService : ILicenseAuditQueryService
                 .ToList();
         }
 
-        var ordered = merged.OrderByDescending(r => r.CreatedAtUtc).ToList();
-        var totalCount = ordered.Count;
-        var items = ordered
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(LicenseAuditLogMapper.ToDto)
-            .ToList();
+        if (!string.IsNullOrWhiteSpace(query.UserSearch))
+        {
+            var needle = query.UserSearch.Trim();
+            merged = merged
+                .Where(r =>
+                    !string.IsNullOrWhiteSpace(r.PerformedBy)
+                    && r.PerformedBy.Contains(needle, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
 
-        return new LicenseAuditLogListResponse(items, page, pageSize, totalCount);
+        return merged.OrderByDescending(r => r.CreatedAtUtc).ToList();
     }
 
     private async Task<List<LicenseAuditLogMapper.Candidate>> LoadBillingCandidatesAsync(
@@ -148,10 +174,18 @@ public sealed class LicenseAuditQueryService : ILicenseAuditQueryService
                 || a.ActionType == AuditEventType.LicenseExtended
                 || a.ActionType == AuditEventType.LicenseUpdated
                 || a.ActionType == AuditEventType.LicenseRenewalPageViewed
+                || a.ActionType == AuditEventType.LicenseActivated
+                || a.ActionType == AuditEventType.LicenseRevoked
+                || a.ActionType == AuditEventType.LicenseActivationFailed
+                || a.ActionType == AuditEventType.LicensePreviewed
                 || a.Action == AuditLogActions.LICENSE_RENEWED
                 || a.Action == AuditLogActions.LICENSE_EXTENDED
                 || a.Action == AuditLogActions.LICENSE_UPDATED
-                || a.Action == AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED);
+                || a.Action == AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED
+                || a.Action == AuditLogActions.LICENSE_ACTIVATED
+                || a.Action == AuditLogActions.LICENSE_REVOKED
+                || a.Action == AuditLogActions.LICENSE_ACTIVATION_FAILED
+                || a.Action == AuditLogActions.LICENSE_PREVIEWED);
 
         if (query.TenantId.HasValue)
             q = q.Where(a => a.TenantId == query.TenantId.Value);

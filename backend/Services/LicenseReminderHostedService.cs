@@ -134,7 +134,7 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
 
         var anchorDays = options.ReminderDays is { Length: > 0 }
             ? options.ReminderDays
-            : new[] { 30, 14, 7, 1 };
+            : new[] { 30, 15, 7, 3, 1 };
 
         bool onAnchorCalendarDay = anchorDays.Contains(status.DaysRemaining);
         bool inAppWindow = status.DaysRemaining <= InAppExpiryDayThreshold || onAnchorCalendarDay;

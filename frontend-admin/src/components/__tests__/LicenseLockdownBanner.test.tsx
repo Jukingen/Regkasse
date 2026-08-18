@@ -40,7 +40,8 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string, params?: Record<string, string | number>) => {
       const de: Record<string, string> = {
-        'license.statusBanner.locked.title': 'Eingeschränkter Modus',
+      'license.statusBanner.locked.title': 'Mandant gesperrt — bitte Mandanten-Lizenz aktivieren',
+      'license.management.systemActiveTenantLocked': 'System aktiv, Mandant gesperrt',
         'license.statusBanner.archived.title': 'Eingeschränkter Modus — Archiviert',
         'license.statusBanner.locked.description':
           `Ihre Lizenz ist seit ${params?.days ?? ''} Tag(en) abgelaufen.`,
@@ -92,9 +93,16 @@ describe('LicenseLockdownBanner', () => {
   it('shows restricted-mode copy and renew CTA when locked', () => {
     render(<LicenseLockdownBanner status={lockedStatus()} />);
     expect(screen.getByRole('alert')).toBeTruthy();
-    expect(screen.getByText('Eingeschränkter Modus')).toBeTruthy();
+    expect(screen.getByText('Mandant gesperrt — bitte Mandanten-Lizenz aktivieren')).toBeTruthy();
     expect(screen.getByText(/12 Tag/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Lizenz jetzt verlängern/i })).toBeTruthy();
+  });
+
+  it('shows system-active tenant-locked copy when only the system layer is active', () => {
+    render(
+      <LicenseLockdownBanner status={lockedStatus({ anyActive: true, allActive: false })} />
+    );
+    expect(screen.getByText('System aktiv, Mandant gesperrt')).toBeTruthy();
   });
 
   it('opens renewal modal from primary CTA', async () => {

@@ -1,5 +1,5 @@
 /** Milestone offsets (days before expiry) for local license reminder notifications. */
-export const LICENSE_REMINDER_DAYS = [30, 14, 7, 1] as const;
+export const LICENSE_REMINDER_DAYS = [30, 15, 7, 3, 1] as const;
 
 export type LicenseReminderDay = (typeof LICENSE_REMINDER_DAYS)[number];
 

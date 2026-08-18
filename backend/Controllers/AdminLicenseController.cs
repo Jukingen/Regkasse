@@ -123,7 +123,11 @@ public sealed partial class AdminLicenseController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<LicenseStatusResponse>> GetStatus(CancellationToken cancellationToken)
     {
-        var status = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var unified = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var status = unified.DeploymentSnapshot
+            ?? await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var reminders = _licenseReminderNotificationStore.GetReminders();
         return Ok(status with { Reminders = reminders });
     }
@@ -184,7 +188,8 @@ public sealed partial class AdminLicenseController : ControllerBase
 
     /// <summary>
     /// Paged list of issued licenses (<c>issued_licenses</c>). JWT is never returned.
-    /// <c>licenseKey</c> is masked as REGK-****-****- plus the real final segment only.
+    /// Super Admin / <c>system.critical</c> receives the full <c>licenseKey</c> for support.
+    /// Other callers with <c>settings.manage</c> get REGK-****-****- plus the real final segment only.
     /// Optional <paramref name="machineFingerprint"/> filters rows that have a matching <c>activated_licenses</c> machine hash substring.
     /// </summary>
     [HttpGet("list")]
@@ -293,7 +298,9 @@ public sealed partial class AdminLicenseController : ControllerBase
             return new IssuedLicenseListItemDto
             {
                 Id = r.Id,
-                LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
+                LicenseKey = CanRevealIssuedLicenseKeys()
+                    ? r.LicenseKey.Trim().ToUpperInvariant()
+                    : MaskIssuedLicenseKey(r.LicenseKey),
                 CustomerName = r.CustomerName,
                 ExpiryAtUtc = r.ExpiryAtUtc,
                 RequireFingerprint = r.RequireFingerprint,
@@ -778,6 +785,17 @@ public sealed partial class AdminLicenseController : ControllerBase
         return false;
     }
 
+    /// <summary>
+    /// Full keys are for Super Admin support only. List responses still omit JWT.
+    /// </summary>
+    private bool CanRevealIssuedLicenseKeys()
+    {
+        if (User.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        return User.HasClaim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical);
+    }
+
     /// <summary>REGK-****-****- plus last segment only; non-standard shapes are fully redacted.</summary>
     private static string MaskIssuedLicenseKey(string licenseKey)
     {
@@ -923,7 +941,7 @@ public sealed class IssuedLicensesListResponse
     public IReadOnlyList<IssuedLicenseListItemDto> Items { get; set; } = Array.Empty<IssuedLicenseListItemDto>();
 }
 
-/// <summary>One masked row from <c>issued_licenses</c> (no JWT).</summary>
+/// <summary>One issued-license row from <c>issued_licenses</c> (no JWT). Full key for Super Admin; otherwise masked.</summary>
 public sealed class IssuedLicenseListItemDto
 {
     public Guid Id { get; set; }

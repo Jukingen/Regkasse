@@ -763,6 +763,7 @@ internal static class ApplicationHost
 
         // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
         builder.Services.AddScoped<ILicenseStatusCache, LicenseStatusCache>();
+        builder.Services.AddScoped<ILicenseCacheService, LicenseCacheService>();
         builder.Services.AddScoped<IBillingService, BillingService>();
         builder.Services.AddScoped<ITenantInvoiceService, TenantInvoiceService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
@@ -1818,22 +1819,18 @@ internal static class ApplicationHost
                 [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
             },
         }).AllowAnonymous();
-        app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>
+        app.MapGet("/api/health/license", async (
+            ILicenseService lic,
+            ILicenseReminderNotificationStore licenseReminders,
+            AppDbContext db,
+            CancellationToken cancellationToken) =>
         {
-            var status = lic.GetStatus();
-            var headerStatus = LicenseMiddleware.ResolveLicenseHeaderStatus(status, lic.IsLicenseSnapshotInitialized);
-            var reminders = licenseReminders.GetReminders();
-            return Results.Json(new
-            {
-                headerStatus,
-                isValid = status.IsValid,
-                isTrial = status.IsTrial,
-                isExpired = status.IsExpired,
-                daysRemaining = status.DaysRemaining,
-                expiryDate = status.ExpiryDate,
-                machineHash = status.MachineHash,
-                reminders,
-            });
+            var result = await LicenseHealthProbe
+                .CheckAsync(lic, licenseReminders, db, cancellationToken)
+                .ConfigureAwait(false);
+            return result.Status == LicenseHealthProbe.Unhealthy
+                ? Results.Json(result, statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Json(result);
         }).AllowAnonymous();
         app.MapGet("/health/auth-schema", async (AppDbContext db) =>
         {

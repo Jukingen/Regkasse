@@ -251,6 +251,64 @@ public class PosCashRegisterReadinessServiceTests
     }
 
     [Fact]
+    public async Task SoleClosed_MonatsbelegGatePreviousMonthPresent_OpensAndReady()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var startPol = RksvStartbelegTestDoubles.GateOnHasStartbeleg();
+        var monthPol = RksvMonatsbelegTestDoubles.GateOnHasPreviousMonthOnly();
+        var shift = new CashRegisterShiftService(
+            ctx,
+            mgr,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features, startPol, monthPol);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("ready", dto.NextAction);
+        Assert.True(dto.AutoOpened);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+    }
+
+    [Fact]
     public async Task SoleClosed_WithMaintenanceRow_StillAutoOpens_WhenSingleOperational()
     {
         await using var ctx = CreateContext();

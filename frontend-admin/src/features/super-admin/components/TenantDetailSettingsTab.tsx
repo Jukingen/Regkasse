@@ -1,4 +1,3 @@
-import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
@@ -9,6 +8,7 @@ import { type AdminTenantDetail, updateAdminTenant } from '@/features/super-admi
 import { TenantDetailDangerZone } from '@/features/super-admin/components/TenantDetailDangerZone';
 import { TenantOperationModeCard } from '@/features/super-admin/components/TenantOperationModeCard';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 

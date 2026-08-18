@@ -79,6 +79,17 @@ public static class PostgreSqlUtcDateTime
     }
 
     /// <summary>
+    /// Previous completed Vienna calendar month (RKSV Monatsbeleg session/payment gate).
+    /// Monatsbeleg is created after month end, never for the unfinished current month.
+    /// </summary>
+    public static (int Year, int Month) GetViennaPreviousYearMonth()
+    {
+        var (year, month) = GetViennaCurrentYearMonth();
+        var previous = new DateTime(year, month, 1).AddMonths(-1);
+        return (previous.Year, previous.Month);
+    }
+
+    /// <summary>
     /// Half-open UTC range for one Austria local calendar day: <c>[fromInclusiveUtc, toExclusiveUtc)</c>.
     /// </summary>
     /// <param name="austriaLocalMidnightUnspecified">Date component is used; time should be 00:00 (see <see cref="ViennaCalendarDateMidnightUnspecified"/>).</param>

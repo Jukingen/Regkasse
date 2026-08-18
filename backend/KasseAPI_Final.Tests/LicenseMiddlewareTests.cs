@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
@@ -89,7 +91,11 @@ public sealed class LicenseMiddlewareTests
             TenantLicense = new UnifiedLicenseLayerStatusDto
             {
                 IsActive = tenantActive,
-                Status = tenantActive && tenant.IsInGracePeriod ? "grace" : tenantActive ? "active" : "expired",
+                Status = tenantActive && tenant.IsInGracePeriod
+                    ? "grace"
+                    : tenantActive
+                        ? "active"
+                        : tenant.IsLocked ? "locked" : "expired",
                 ValidUntil = tenant.ValidUntil,
             },
             DeploymentSnapshot = deploymentSnapshot,
@@ -277,7 +283,7 @@ public sealed class LicenseMiddlewareTests
             RequiresRenewal = true,
             ValidUntil = Now.AddDays(-30),
             DaysOverdue = 30,
-            StatusMessage = "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.",
+            StatusMessage = "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
             StatusMessageKey = "license.status.locked",
         };
         var licenseService = CreateLicenseService(snapshot, tenantStatus);
@@ -296,7 +302,81 @@ public sealed class LicenseMiddlewareTests
         Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
         Assert.Contains(LicenseMiddleware.LicenseLockedCode, body, StringComparison.Ordinal);
         Assert.Contains("\"success\":false", body, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("POS ist gesperrt", body, StringComparison.Ordinal);
+        Assert.Contains("System aktiv, Mandant gesperrt", body, StringComparison.Ordinal);
+        Assert.Contains("system_active_tenant_locked", body, StringComparison.Ordinal);
+        Assert.Contains("systemLicense", body, StringComparison.Ordinal);
+        Assert.Contains("tenantLicense", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantLicenseLocked_SuperAdminPos_Allows()
+    {
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = false,
+            IsLocked = true,
+            RequiresRenewal = true,
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/pos/cart", HttpMethods.Post);
+        context.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.SuperAdmin)], "Test"));
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public void IsLicenseValidForRequest_SuperAdmin_SystemOnly_ReturnsTrue()
+    {
+        var context = CreateContext("/api/admin/products", HttpMethods.Get);
+        context.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.SuperAdmin)], "Test"));
+        var status = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = false,
+            IsActive = true,
+        };
+
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(context, status, TenantId));
+    }
+
+    [Fact]
+    public void IsLicenseValidForRequest_ManagerOrCashier_SystemOnly_RequiresTenantLicense()
+    {
+        var managerContext = CreateContext("/api/admin/products", HttpMethods.Get);
+        managerContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Manager)], "Test"));
+        var cashierContext = CreateContext("/api/pos/cart", HttpMethods.Post);
+        cashierContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Cashier)], "Test"));
+        var systemOnly = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = false,
+            IsActive = true,
+        };
+        var bothActive = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = true,
+            IsActive = true,
+        };
+
+        Assert.False(LicenseMiddleware.IsLicenseValidForRequest(managerContext, systemOnly, TenantId));
+        Assert.False(LicenseMiddleware.IsLicenseValidForRequest(cashierContext, systemOnly, TenantId));
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(managerContext, bothActive, TenantId));
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(cashierContext, bothActive, TenantId));
     }
 
     [Fact]

@@ -31,6 +31,7 @@ public static class LicenseServiceRegistration
     public static void AddLicenseServices(this IServiceCollection services, IWebHostEnvironment environment)
     {
         services.AddSingleton<LicenseService>();
+        services.AddSingleton<ILicenseKeyValidator, LicenseKeyValidator>();
         services.AddScoped<IUnifiedLicenseService, UnifiedLicenseService>();
 
         if (OpenApiExportMode.IsEnabled)

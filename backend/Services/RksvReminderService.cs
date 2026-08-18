@@ -57,10 +57,6 @@ public sealed class RksvReminderService : IRksvReminderService
             Status = hasStartbelegMarker ? SbPresent : SbMissing,
         };
 
-        var lastDayCurrent = DateTime.DaysInMonth(viennaYear, viennaMonth);
-        var endOfCurrentMonth = new DateTime(viennaYear, viennaMonth, lastDayCurrent);
-        var daysUntilMonthEnd = (endOfCurrentMonth - today).Days;
-
         var prevMonthAnchor = new DateTime(viennaYear, viennaMonth, 1).AddMonths(-1);
         var prevYear = prevMonthAnchor.Year;
         var prevMonth = prevMonthAnchor.Month;
@@ -72,20 +68,20 @@ public sealed class RksvReminderService : IRksvReminderService
             .HasMonatsbelegForRegisterMonthAsync(cashRegisterId, prevYear, prevMonth, cancellationToken)
             .ConfigureAwait(false);
 
-        var mbRequired = !hasCurrentMonth || !hasPreviousMonth;
-
-        var currentMonthGraceOverdue = !hasCurrentMonth && today.Day > 7;
+        // RKSV: Monatsbeleg is due for the previous completed month (within 7 days of month end).
+        var mbRequired = !hasPreviousMonth;
+        var currentMonthGraceOverdue = false;
         var lastMonthMissing = !hasPreviousMonth;
 
         string mbStatus;
-        if (!hasPreviousMonth || currentMonthGraceOverdue || (!hasCurrentMonth && daysUntilMonthEnd <= 1))
+        if (!hasPreviousMonth && today.Day > 7)
             mbStatus = MbOverdue;
-        else if (hasCurrentMonth && hasPreviousMonth)
-            mbStatus = MbOk;
-        else
+        else if (!hasPreviousMonth)
             mbStatus = MbUpcoming;
+        else
+            mbStatus = MbOk;
 
-        int? mbDays = mbRequired ? daysUntilMonthEnd : null;
+        int? mbDays = mbRequired ? Math.Max(0, 7 - today.Day) : null;
 
         var warningMessageDe = BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue);
 

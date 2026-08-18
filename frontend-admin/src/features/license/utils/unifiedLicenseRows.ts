@@ -1,10 +1,18 @@
 import type { IssuedLicenseListItemDto } from '@/api/manual/adminLicense';
 import type { LicenseSaleResponse } from '@/api/generated/model';
-import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
+import {
+  TENANT_EXPIRING_SOON_DAYS,
+  TENANT_GRACE_PERIOD_DAYS,
+} from '@/features/license/constants/licenseGracePeriod';
 
 export type UnifiedLicenseKind = 'system' | 'tenant';
 
-export type UnifiedLicenseRowStatus = 'active' | 'grace' | 'expired';
+export type UnifiedLicenseRowStatus =
+  | 'active'
+  | 'expiringSoon'
+  | 'grace'
+  | 'expired'
+  | 'locked';
 
 export type UnifiedLicenseRow = {
   id: string;
@@ -15,6 +23,7 @@ export type UnifiedLicenseRow = {
   status: UnifiedLicenseRowStatus;
   slug: string | null;
   tenantSlug?: string | null;
+  tenantId?: string | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,6 +36,28 @@ export function parseUnifiedLicenseSlug(licenseKey: string): string | null {
   }
   const slug = parts.slice(2, -1).join('-').toLowerCase();
   return slug.length > 0 ? slug : null;
+}
+
+export type LicenseUnlockTarget = 'system' | 'tenant' | 'unknown';
+
+/** Detects whether a REGK key unlocks the deployment (system) or the mandant. */
+export function resolveLicenseUnlockTarget(licenseKey: string): LicenseUnlockTarget {
+  const slug = parseUnifiedLicenseSlug(licenseKey);
+  if (slug === 'system') return 'system';
+  if (slug) return 'tenant';
+  return 'unknown';
+}
+
+/** True when the key slug is a mandant slug that does not match the current/selected tenant. */
+export function isLicenseSlugMismatch(
+  licenseKey: string,
+  currentTenantSlug: string | null | undefined
+): boolean {
+  const slug = parseUnifiedLicenseSlug(licenseKey);
+  if (!slug || slug === 'system') return false;
+  const current = currentTenantSlug?.trim().toLowerCase();
+  if (!current) return false;
+  return slug !== current;
 }
 
 export function resolveUnifiedLicenseKind(
@@ -48,7 +79,7 @@ export function resolveUnifiedLicenseRowStatus(args: {
 }): UnifiedLicenseRowStatus {
   const sale = args.saleStatus?.trim().toLowerCase();
   if (args.isRevoked || args.isCancelled || sale === 'cancelled' || sale === 'revoked') {
-    return 'expired';
+    return 'locked';
   }
 
   if (!args.validUntilUtc) {
@@ -62,6 +93,10 @@ export function resolveUnifiedLicenseRowStatus(args: {
 
   const now = args.nowMs ?? Date.now();
   if (until >= now) {
+    const daysRemaining = Math.ceil((until - now) / DAY_MS);
+    if (daysRemaining <= TENANT_EXPIRING_SOON_DAYS) {
+      return 'expiringSoon';
+    }
     return 'active';
   }
 
@@ -88,6 +123,7 @@ export function mapIssuedLicenseToUnifiedRow(item: IssuedLicenseListItemDto): Un
     }),
     slug,
     tenantSlug: slug === 'system' ? null : slug,
+    tenantId: null,
   };
 }
 
@@ -108,6 +144,7 @@ export function mapLicenseSaleToUnifiedRow(sale: LicenseSaleResponse): UnifiedLi
     }),
     slug: slug ?? null,
     tenantSlug: slug ?? null,
+    tenantId: sale.tenantId?.trim() || null,
   };
 }
 

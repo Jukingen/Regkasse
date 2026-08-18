@@ -110,6 +110,18 @@ public static partial class LicenseAuditLogMapper
         if (actionType == AuditEventType.LicenseRenewalPageViewed
             || string.Equals(action, AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED, StringComparison.OrdinalIgnoreCase))
             return "LICENSE_RENEWAL_PAGE_VIEWED";
+        if (actionType == AuditEventType.LicenseActivated
+            || string.Equals(action, AuditLogActions.LICENSE_ACTIVATED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_ACTIVATED";
+        if (actionType == AuditEventType.LicenseRevoked
+            || string.Equals(action, AuditLogActions.LICENSE_REVOKED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_REVOKED";
+        if (actionType == AuditEventType.LicenseActivationFailed
+            || string.Equals(action, AuditLogActions.LICENSE_ACTIVATION_FAILED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_ACTIVATION_FAILED";
+        if (actionType == AuditEventType.LicensePreviewed
+            || string.Equals(action, AuditLogActions.LICENSE_PREVIEWED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_PREVIEWED";
         if (!string.IsNullOrWhiteSpace(action))
             return action.Trim().ToUpperInvariant();
         return "LICENSE_UPDATED";

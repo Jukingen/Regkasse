@@ -523,6 +523,47 @@ public class CashRegisterShiftServiceTests
     }
 
     [Fact]
+    public async Task Open_MonatsbelegGateOn_WithPreviousMonthOnly_Opens()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var svc = new CashRegisterShiftService(
+            ctx,
+            mgr.Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnHasPreviousMonthOnly());
+
+        var r = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.SuccessOpened, r.Kind);
+    }
+
+    [Fact]
     public async Task ForceClose_WithSystemActor_UsesPreviousOwnerAsTransactionUserId()
     {
         await using var ctx = CreateContext();

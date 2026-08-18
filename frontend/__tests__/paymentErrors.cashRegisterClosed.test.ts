@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   getPaymentErrorDisplayMessage,
+  getPaymentErrorMessage,
   getPaymentResponseFailureMessage,
   normalizePaymentError,
   PaymentAppError,
@@ -36,5 +37,53 @@ describe('paymentErrors cash register closed', () => {
       diagnosticCode: POS_CASH_REGISTER_CODES.CLOSED,
     });
     expect(msg).toMatch(/nicht geöffnet/i);
+  });
+});
+
+describe('paymentErrors Fiskaly / license / Monatsbeleg', () => {
+  it('maps TSE_UNAVAILABLE to German cashier copy', () => {
+    const err = normalizePaymentError({
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          message: 'TSE is not available',
+          details: { diagnosticCode: 'TSE_UNAVAILABLE' },
+        },
+      },
+    });
+    expect(err.code).toBe('TSE_UNAVAILABLE');
+    expect(getPaymentErrorDisplayMessage(err)).toBe(getPaymentErrorMessage('TSE_UNAVAILABLE'));
+    expect(
+      getPaymentResponseFailureMessage({
+        fiscalStatus: 'FAILED',
+        message: 'Failed to generate TSE signature',
+        diagnosticCode: 'TSE_UNAVAILABLE',
+      })
+    ).toBe(getPaymentErrorMessage('TSE_UNAVAILABLE'));
+  });
+
+  it('maps LICENSE_LOCKED to German cashier copy', () => {
+    const err = normalizePaymentError({
+      response: {
+        status: 403,
+        data: { code: 'LICENSE_LOCKED', message: 'Mandant license lockdown' },
+      },
+    });
+    expect(err.code).toBe('LICENSE_LOCKED');
+    expect(getPaymentErrorDisplayMessage(err)).toBe(getPaymentErrorMessage('LICENSE_LOCKED'));
+  });
+
+  it('maps CASH_REGISTER_MONATSBELEG_REQUIRED to short German copy', () => {
+    const err = normalizePaymentError({
+      response: {
+        status: 400,
+        data: {
+          details: { diagnosticCode: POS_CASH_REGISTER_CODES.MONATSBELEG_REQUIRED },
+        },
+      },
+    });
+    expect(err.code).toBe('MONATSBELEG_REQUIRED');
+    expect(getPaymentErrorDisplayMessage(err)).toBe(getPaymentErrorMessage('MONATSBELEG_REQUIRED'));
   });
 });

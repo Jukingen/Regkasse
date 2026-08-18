@@ -4,3 +4,15 @@ export function maskTenantLicenseKey(key: string | null | undefined): string {
   if (trimmed.length <= 12) return trimmed;
   return `${trimmed.slice(0, 8)}…${trimmed.slice(-4)}`;
 }
+
+/** Shows the full key when `reveal` is true; otherwise the masked display form. */
+export function displayLicenseKey(
+  key: string | null | undefined,
+  reveal: boolean
+): string {
+  if (reveal) {
+    const trimmed = key?.trim();
+    return trimmed ? trimmed : '—';
+  }
+  return maskTenantLicenseKey(key);
+}

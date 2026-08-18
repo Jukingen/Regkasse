@@ -26,6 +26,7 @@ public static class ApiMessageKeys
     public const string LicenseStatusExpiringSoon = "license.status.expiring_soon";
     public const string LicenseStatusGrace = "license.status.grace";
     public const string LicenseStatusLocked = "license.status.locked";
+    public const string LicenseStatusSystemActiveTenantLocked = "license.status.system_active_tenant_locked";
 
     // Password change / Identity validation
     public const string PasswordChangeValidationFailed = "password.change_validation_failed";

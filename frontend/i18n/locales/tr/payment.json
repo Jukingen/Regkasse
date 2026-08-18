@@ -68,7 +68,12 @@
     "generalError": "Bir hata oluştu",
     "demoRestricted": "Demo kullanıcılar gerçek ödeme oluşturamaz. Lütfen yetkili bir kullanıcı ile devam edin.",
     "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
-    "unknown": "Ödeme işlemi başarısız. Lütfen tekrar deneyin.",
+    "unknown": "Ödeme hatası. Lütfen tekrar deneyin.",
+    "retry": "Ödeme hatası. Lütfen tekrar deneyin.",
+    "tseUnavailable": "TSE kullanılamıyor. Ödeme mümkün değil.",
+    "licenseLockedTitle": "Lisans kilitli",
+    "licenseLocked": "Lisans kilitli. Lütfen yöneticinize başvurun.",
+    "monatsbelegRequired": "Monatsbeleg gerekli",
     "nonFiscalQueued": "Mali onay yok: ödeme yalnızca yerel kuyrukta. Bağlantı gelince senkronize edilir — o zamana kadar RKSV geçerli değil. Tekrar ödeme yapmadan önce Ayarlar > Çevrimdışı kuyruğu kontrol edin; aynı satış için ikinci ödeme mükerrer kayıt riski taşır."
   },
   "cancellation": {

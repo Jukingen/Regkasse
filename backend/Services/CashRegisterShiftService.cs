@@ -134,13 +134,13 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
 
             if (_rksvMonatsbelegPolicy.SessionGateApplies)
             {
-                var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+                var (y, m) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
                 if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
                         .ConfigureAwait(false))
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     _logger.LogWarning(
-                        "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for {Year}-{Month}",
+                        "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for previous month {Year}-{Month}",
                         registerId,
                         y,
                         m);

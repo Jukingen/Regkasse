@@ -768,6 +768,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'AlertOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
+  licenseAudit: {
+    id: 'licenseAudit',
+    menuKey: '/admin/license/audit',
+    href: '/admin/license/audit',
+    labelKey: 'nav.licenseAudit',
+    icon: 'HistoryOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
   /** Dev-only — hidden outside `NODE_ENV=development` via `developmentOnly` + `buildAdminSidebar`. */
   licenseTest: {
     id: 'licenseTest',
@@ -1505,6 +1513,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         catalogIds: [
           'licenseStatusDashboard',
           'licenseGracePeriod',
+          'licenseAudit',
           'licenseManagement',
           'licenseTest',
           'superAdminLicenses',

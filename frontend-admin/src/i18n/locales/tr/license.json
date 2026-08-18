@@ -10,7 +10,7 @@
   },
   "unified": {
     "keyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
-    "formatHint": "Birleşik format: REGK-yyyyMMdd-slug-XXXXXXXX (kiracı: slug, sunucu: system)."
+    "formatHint": "Birleşik format: REGK-yyyyMMdd-slug-XXXXXXXX (kiracı: slug, sunucu: system). Sistem lisansı kiracıyı açmaz."
   },
   "management": {
     "title": "Lisans yönetimi",
@@ -40,7 +40,69 @@
     "detailsTitle": "Lisans ayrıntıları",
     "detailsEmpty": "Lisans bilgisi bulunamadı.",
     "searchPlaceholder": "Anahtar, müşteri veya kiracı ara",
-    "openSales": "Lisans satışları"
+    "openSales": "Lisans satışları",
+    "openAudit": "Denetim günlüğü",
+    "renewNow": "Şimdi yenile",
+    "bulkImportTitle": "CSV içe aktarma (lisans anahtarları)",
+    "bulkImportHint": "Satır başına bir REGK anahtar sütunu. Başlık satırı yok sayılır.",
+    "bulkImportButton": "Anahtarları etkinleştir",
+    "bulkImportEmpty": "Geçerli REGK anahtarı bulunamadı.",
+    "bulkImportProgress": "{{current}} / {{total}}",
+    "exportCsv": "CSV dışa aktar",
+    "showKeys": "Göster",
+    "hideKeys": "Gizle",
+    "showKeysTooltip": "Lisans anahtarlarını göster. Yalnızca Super Admin.",
+    "showKeysConfirmTitle": "Tam lisans anahtarları gösterilsin mi?",
+    "showKeysConfirmContent": "Tam anahtarlar gizlidir. Yalnızca destek ve yönetim için kullanın.",
+    "copyKey": "Lisans anahtarını kopyala",
+    "systemDoesNotUnlockTenant": "Sistem lisansı kiracıyı AÇMAZ. Kiracı erişimi için kiracı lisansı kullanın.",
+    "layersTitle": "Lisans durumu (sistem ve kiracı)",
+    "systemLayer": "Sistem lisansı",
+    "tenantLayer": "Kiracı lisansı",
+    "systemActiveTenantLocked": "Sistem aktif, kiracı kilitli",
+    "activateUnlocksSystem": "Sistem serbest bırakılacak",
+    "activateUnlocksTenant": "Kiracı serbest bırakılacak",
+    "activateSystemConfirmTitle": "Yalnızca sistem serbest bırakılacak",
+    "activateSystemConfirmContent": "Bu lisans anahtarı yalnızca sistemi açar. Kiracı kilitli kalır.",
+    "slugMismatchWarning": "Anahtardaki slug ({{slug}}) geçerli kiracıyla ({{current}}) eşleşmiyor.",
+    "activateSlugMismatchTitle": "Kiracı eşleşmiyor",
+    "activateSlugMismatchContent": "Bu anahtar “{{slug}}” için düzenlendi, seçili olan “{{current}}”. Kiracı uyuşmazsa etkinleştirme reddedilir."
+  },
+  "statusBadge": {
+    "labels": {
+      "active": "Aktif",
+      "grace": "Grace",
+      "expiringSoon": "Yakında bitiyor",
+      "expired": "Süresi dolmuş",
+      "locked": "Kilitli"
+    },
+    "tooltips": {
+      "active": "Lisans geçerli ve 30 günlük uyarı penceresinin dışında.",
+      "grace": "Geçerlilik bitti. 7 günlük grace: sınırlı işletim hâlâ mümkün.",
+      "expiringSoon": "Lisans 30 gün içinde bitiyor. Lütfen zamanında yenileyin.",
+      "expired": "Lisans süresi doldu ve grace dönemi bitti.",
+      "locked": "Lisans kilitli (iptal, storno veya arşiv)."
+    },
+    "countdown": "Bitişe kalan: {{countdown}}"
+  },
+  "renewal": {
+    "renewNow": "Şimdi yenile",
+    "requestButton": "Yenileme talep et",
+    "requestSuccess": "Yenileme talebi Super Admin’e gönderildi.",
+    "requestError": "Yenileme talebi gönderilemedi.",
+    "requestTitle": "Lisans yenileme talebi",
+    "requestMessage": "Lütfen kiracı lisansını yenileyin. Geçerlilik: {{validUntil}}."
+  },
+  "certificate": {
+    "download": "Lisans belgesi (PDF)",
+    "downloadSuccess": "Belge indirildi.",
+    "downloadError": "Belge indirilemedi."
+  },
+  "autoRenew": {
+    "title": "İsteğe bağlı otomatik yenileme",
+    "subtitle": "Yinelenen SaaS faturalama abonelik faturaları üzerinden yürür — POS’ta otomatik Stripe kart çekimi yoktur.",
+    "openInvoices": "Abonelik faturalarını aç",
+    "requestAutoRenew": "Otomatik yenileme talep et"
   },
   "mandant": {
     "status": "Durum",
@@ -207,7 +269,7 @@
       "active": "Aktif",
       "graceWrite": "Grace fazı: yazma açık",
       "graceReadonly": "Grace fazı: salt okunur",
-      "lockdown": "Lockdown",
+      "lockdown": "Kiracı kilitli",
       "expired": "Süresi doldu",
       "noLicense": "Lisans yok"
     },
@@ -224,7 +286,7 @@
         "active": "Kiracı lisansı aktif. Yazma, kullanıcı yönetimi ve genel erişim açık.",
         "graceWrite": "Kiracı lisansının süresi {{days}} gün önce doldu. Yazma hâlâ açık, ancak yenileme artık gerekli.",
         "graceReadonly": "Kiracı lisansının süresi {{days}} gün önce doldu. Yazma işlemleri kapalı; okuma ve kullanıcı yönetimi açık kalır.",
-        "lockdown": "Kiracı lisansının süresi {{days}} gün önce doldu. Kiracı artık lockdown modunda.",
+        "lockdown": "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin. Süresi {{days}} gün önce doldu.",
         "expired": "Kiracı lisansının süresi {{days}} gün önce doldu.",
         "noLicense": "Bu kiracı için kayıtlı bir lisans yok."
       },
@@ -334,9 +396,9 @@
         "restrictions": "Grace döneminde: POS kullanılabilir, uyarılar aktif. Grace sonrası: POS kilitli (yalnızca Süper Yönetici açabilir)."
       },
       "lockdown": {
-        "title": "Kiracı lisansı sona erdi – POS kilitli",
-        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Grace dönemi bitti. POS kilitli — yalnızca Süper Yönetici kilidi açabilir. Lütfen lisansı yenileyin.",
-        "contactAdminDescription": "Bu kiracı şu anda kilitli (grace dönemi bitti). Yalnızca Süper Yönetici kilidi açabilir. Lütfen yöneticinizle iletişime geçin.",
+        "title": "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin",
+        "adminDescription": "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin. Lisans {{daysExpired}} gün önce sona erdi. Grace dönemi bitti. POS kilitli — yalnızca Süper Yönetici kilidi açabilir.",
+        "contactAdminDescription": "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin. Yalnızca Süper Yönetici kilidi açabilir. Lütfen yöneticinizle iletişime geçin.",
         "restrictions": "POS kilitli. Yalnızca Süper Yönetici açabilir. Yenileme gerekli."
       },
       "noLicense": {
@@ -389,7 +451,7 @@
       "progressAria": "Grace dönemi: {{days}} gün kaldı"
     },
     "locked": {
-      "title": "Kısıtlı mod",
+      "title": "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin",
       "description": "Lisansınızın süresi {{days}} gündür dolmuş durumda.",
       "bulletReadOnly": "Verilerinize yalnızca okuma erişiminiz vardır",
       "bulletNoWrite": "Değişiklik veya yeni kayıt mümkün değil",
@@ -534,7 +596,7 @@
     "supportContact": "Destek: support@regkasse.at"
   },
   "lockdownToast": {
-    "title": "Lisans süresi doldu",
+    "title": "Kiracı kilitli",
     "description": "Bu işlemi yapmak için lütfen lisansınızı yenileyin.",
     "guardDescription": "Lisans kilitliyken bu işlem kullanılamaz.",
     "guardDescriptionWithAction": "Lisans kilitliyken \"{{action}}\" kullanılamaz.",
@@ -674,6 +736,16 @@
     "featureNotIncluded": "Bu sunucunun lisansı lisans yönetimini (admin_license_manage) içermiyor. Önce uygun bir lisansı etkinleştirin.",
     "expiryInPast": "Son kullanma tarihi geçmişte olamaz.",
     "invalidMachineHash": "Geçerli 64 karakterlik SHA-256 hex parmak izi girin.",
+    "kindLabel": "Sistem (deployment) mı, kiracı mı?",
+    "kindSystem": "Sistem (deployment)",
+    "kindTenant": "Kiracı",
+    "kindSystemHint": "REGK-{tarih}-system-{rastgele} üretir. Yalnızca deployment’ı açar, kiracıyı açmaz.",
+    "kindTenantHint": "REGK-{tarih}-{kiracıSlug}-{rastgele} üretir. Seçilen kiracıyı açar.",
+    "tenantRequired": "Lütfen bir kiracı seçin.",
+    "tenantSelectLabel": "Kiracı",
+    "tenantSelectPlaceholder": "Kiracı seçin",
+    "tenantKindNeedsSuperAdmin": "Kiracı lisanslarını yalnızca Super Admin üretebilir (lisans satışı).",
+    "systemDoesNotUnlockTenant": "Sistem lisansı kiracıyı AÇMAZ. Kiracı erişimi için kiracı lisansı kullanın.",
     "modal": {
       "title": "Oluşturulan lisans",
       "copyJwt": "Aktivasyon JWT'sini kopyala",
@@ -838,8 +910,9 @@
     "error": "Önizleme yüklenemedi",
     "horizons": {
       "d30": "30 gün",
-      "d14": "14 gün",
+      "d15": "15 gün",
       "d7": "7 gün",
+      "d3": "3 gün",
       "d1": "1 gün",
       "d0": "Süresi dolmuş"
     }
@@ -848,6 +921,14 @@
     "title": "Lisans denetim günlüğü",
     "subtitle": "Faturalama ve lisans denetiminden birleştirilmiş olaylar (salt okunur).",
     "empty": "Denetim kaydı bulunamadı",
+    "exportCsv": "CSV dışa aktar",
+    "filters": {
+      "action": "İşlem",
+      "actionAll": "Tüm işlemler",
+      "user": "Kullanıcı",
+      "userPlaceholder": "Ad veya kullanıcı kimliği",
+      "dateRange": "Tarih aralığı"
+    },
     "columns": {
       "time": "Zaman",
       "tenant": "Kiracı",
@@ -896,6 +977,7 @@
     "tabs": {
       "overview": "Özet",
       "trend": "Trend",
+      "distribution": "Dağılım",
       "export": "Dışa aktar"
     },
     "kpi": {

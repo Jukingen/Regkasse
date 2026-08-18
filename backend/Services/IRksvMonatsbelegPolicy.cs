@@ -5,7 +5,10 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public interface IRksvMonatsbelegPolicy
 {
-    /// <summary>True when Monatsbeleg must exist for the Vienna calendar month before shift open and sales.</summary>
+    /// <summary>
+    /// True when Monatsbeleg must exist for the previous completed Vienna calendar month
+    /// before shift open and sales (RKSV: create within 7 days of month end).
+    /// </summary>
     bool SessionGateApplies { get; }
 
     Task<bool> HasMonatsbelegForRegisterMonthAsync(

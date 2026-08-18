@@ -11,7 +11,7 @@ There is no legacy plain `"OK"` dependency probe at `/api/health` anymore. Canon
 | `GET /api/health` | Dependency snapshot | DB + **cached** TSE + **cached** NTP + **cache/Redis** |
 | `GET /health/tse/mode` | TSE fiscal Production lock detail | Config only |
 | `GET /health/finanzonline/mode` | FON simulation vs real | Config only |
-| `GET /api/health/license` | License diagnostic (unchanged) | In-process license service |
+| `GET /api/health/license` | License diagnostic | DB `CanConnect` + `issued_licenses` / `license_sales` sample queries + in-process deployment snapshot. `status`: Healthy / Degraded / Unhealthy (503 when Unhealthy). |
 | `GET /health/migrations`, `GET /api/health/migrations` | EF pending/applied posture | DB `__EFMigrationsHistory` (≤3s) |
 
 Implementation: `Controllers/HealthController.cs` + `HealthChecks/*`.  

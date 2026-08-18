@@ -284,6 +284,11 @@ namespace KasseAPI_Final.Models
         /// <summary>FA renewal UI (page/modal) viewed — license renewal funnel analytics.</summary>
         public const string LICENSE_RENEWAL_PAGE_VIEWED = "LICENSE_RENEWAL_PAGE_VIEWED";
 
+        public const string LICENSE_ACTIVATED = "LICENSE_ACTIVATED";
+        public const string LICENSE_REVOKED = "LICENSE_REVOKED";
+        public const string LICENSE_ACTIVATION_FAILED = "LICENSE_ACTIVATION_FAILED";
+        public const string LICENSE_PREVIEWED = "LICENSE_PREVIEWED";
+
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
 

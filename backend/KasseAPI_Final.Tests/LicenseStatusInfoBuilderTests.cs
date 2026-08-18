@@ -75,7 +75,7 @@ public sealed class LicenseStatusInfoBuilderTests
         Assert.False(info.CanAccess);
         Assert.False(info.CanTransact);
         Assert.Equal(LicenseStatusMessageKeys.Locked, info.StatusMessageKey);
-        Assert.Contains("POS is locked", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Tenant locked", info.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(LicenseStatusRestrictionCodes.PosLocked, info.Restrictions);
         Assert.Contains(LicenseStatusRestrictionCodes.SuperAdminUnlockOnly, info.Restrictions);
     }

@@ -63,9 +63,8 @@ import {
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
-import { checkTseStatus } from '../services/api/tseService';
 import { useTseHealth } from '../hooks/useTseHealth';
-import { TseStatusBanner } from './TseStatusBanner';
+import { TseStatusIndicator } from './TseStatusIndicator';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import StornoRefundSelection from './StornoRefundSelection';
 import {
@@ -418,26 +417,16 @@ export default function PaymentModal({
       setTseCheckFailureStreak(streak);
       return;
     }
-    let cancelled = false;
-    setFiscalTseGateOk(null);
-    void checkTseStatus()
-      .then((s) => {
-        if (cancelled) return;
-        const ok = Boolean(s.isConnected && s.canCreateInvoices);
-        setFiscalTseGateOk(ok);
-        const streak = registerPosTseStatusCheckOutcome(ok);
-        setTseCheckFailureStreak(streak);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setFiscalTseGateOk(false);
-        const streak = registerPosTseStatusCheckOutcome(false);
-        setTseCheckFailureStreak(streak);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, isTseSimulationEnabled]);
+    if (tseHealth.loading && !tseHealth.lastCheck) {
+      setFiscalTseGateOk(null);
+      return;
+    }
+    const indicator = String(tseHealth.indicatorStatus);
+    const ok = indicator === 'Active' || indicator === 'Degraded';
+    setFiscalTseGateOk(ok);
+    const streak = registerPosTseStatusCheckOutcome(ok);
+    setTseCheckFailureStreak(streak);
+  }, [visible, isTseSimulationEnabled, tseHealth.indicatorStatus, tseHealth.loading, tseHealth.lastCheck]);
 
   const {
     methodsLoading,
@@ -1290,6 +1279,8 @@ export default function PaymentModal({
 
       logPay('Step 5: Calling processPayment → POST /api/pos/payment', {
         idempotencyKey: paymentRequest.idempotencyKey,
+        tseIndicator: tseHealth.indicatorStatus,
+        tseEnvironment: tseHealth.environment,
       });
 
       const response = await processPayment(paymentRequest);
@@ -1347,7 +1338,11 @@ export default function PaymentModal({
         return;
       }
 
-      debugPosPaymentTrace('payment_success', { paymentId: response.paymentId });
+      debugPosPaymentTrace('payment_success', {
+        paymentId: response.paymentId,
+        isDemoFiscal: response.tse?.isDemoFiscal ?? null,
+        hasQrPayload: Boolean(response.tse?.qrPayload),
+      });
       {
         const streak = registerPosTseStatusCheckOutcome(true);
         setTseCheckFailureStreak(streak);
@@ -1450,15 +1445,20 @@ export default function PaymentModal({
     }
     if (needFiscalTseForPay && !tseServerOffline) {
       try {
-        await tseHealth.refresh();
-        const status = await checkTseStatus();
-        const ok = Boolean(status.isConnected && status.canCreateInvoices);
+        const latest = await tseHealth.refresh();
+        const indicator = String(latest?.status ?? tseHealth.indicatorStatus);
+        const ok = indicator === 'Active' || indicator === 'Degraded';
         setFiscalTseGateOk(ok);
         registerPosTseStatusCheckOutcome(ok);
+        debugPosPaymentTrace('tse_status_before_payment', {
+          indicator,
+          environment: latest?.environment ?? tseHealth.environment,
+          scuId: latest?.scuId ?? tseHealth.scuId,
+        });
         if (!ok) {
           Alert.alert(
             t('checkout:posFlow.payment.alerts.errorTitle'),
-            resolveTseGateMessage()
+            t('checkout:posFlow.payment.tseGate.unavailable')
           );
           return;
         }
@@ -2135,7 +2135,7 @@ export default function PaymentModal({
               )}
               {needFiscalTseForPay ? (
                 <View style={styles.section} accessibilityRole="summary">
-                  <TseStatusBanner />
+                  <TseStatusIndicator />
                   {payGateTseBlocked ? (
                     <Text style={styles.paymentMethodRequiredHint} accessibilityRole="alert">
                       {resolveTseGateMessage()}

@@ -16,7 +16,7 @@ namespace KasseAPI_Final.Services.License;
 /// </summary>
 public sealed class LicenseReminderService : ILicenseReminderService
 {
-    private static readonly int[] DefaultReminderAnchors = [30, 14, 7, 1];
+    private static readonly int[] DefaultReminderAnchors = [30, 15, 7, 3, 1];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

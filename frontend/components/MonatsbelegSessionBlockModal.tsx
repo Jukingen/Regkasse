@@ -11,15 +11,20 @@ import {
 } from '../constants/SoftTheme';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { useMonatsbelegStatus } from '../hooks/useMonatsbelegStatus';
 import { usePosMonatsbelegCreate } from '../hooks/usePosMonatsbelegCreate';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
-import { getViennaYearMonth } from '../utils/resolvePosMonatsbelegTarget';
+import { resolvePosMonatsbelegTarget } from '../utils/resolvePosMonatsbelegTarget';
 
 export function MonatsbelegSessionBlockModal() {
   const { data, loading, error } = usePosRegisterReadiness();
+  const { data: monatsbelegStatus } = useMonatsbelegStatus();
   const { busy, requestCreate } = usePosMonatsbelegCreate();
-  const { year, month } = useMemo(() => getViennaYearMonth(), []);
+  const { year, month } = useMemo(
+    () => resolvePosMonatsbelegTarget(monatsbelegStatus),
+    [monatsbelegStatus]
+  );
   const isDecemberAnnual = month === 12;
 
   const visible =
@@ -47,7 +52,7 @@ export function MonatsbelegSessionBlockModal() {
         <Text style={styles.body}>
           {isDecemberAnnual
             ? 'Im Dezember entspricht der Monatsabschluss dem Jahresbeleg (RKSV). Ohne Jahresbeleg sind keine Verkäufe möglich.'
-            : 'Für den aktuellen Kalendermonat fehlt der fiskalische Monatsbeleg (RKSV). Ohne Monatsbeleg sind keine Verkäufe möglich.'}
+            : 'Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg (RKSV). Ohne Monatsbeleg sind keine Verkäufe möglich.'}
         </Text>
         <Pressable
           onPress={onCreate}

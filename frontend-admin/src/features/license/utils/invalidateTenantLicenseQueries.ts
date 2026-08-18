@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+import { getGetApiAdminBillingLicenseSalesQueryKey } from '@/api/generated/admin/admin';
 import { licenseQueryKeys, tenantLicenseUnifiedQueryKey } from '@/api/manual/adminLicense';
 import { licenseHistoryQueryKeys } from '@/features/license/api/licenseHistory';
 import { tenantLicenseQueryKeys } from '@/features/license/api/tenantLicense';
@@ -27,6 +28,12 @@ export async function invalidateTenantLicenseQueries(
     queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status, ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: ['license'], ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: ['/api/license/status'], ...INVALIDATE_ALL }),
+    queryClient.invalidateQueries({ queryKey: ['admin', 'license', 'list'], ...INVALIDATE_ALL }),
+    queryClient.invalidateQueries({ queryKey: ['admin', 'billing', 'sales'], ...INVALIDATE_ALL }),
+    queryClient.invalidateQueries({
+      queryKey: getGetApiAdminBillingLicenseSalesQueryKey(),
+      ...INVALIDATE_ALL,
+    }),
     queryClient.invalidateQueries({ queryKey: ['billing'], ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot, ...INVALIDATE_ALL }),
     queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'], ...INVALIDATE_ALL }),
@@ -43,6 +50,10 @@ export async function invalidateTenantLicenseQueries(
 
   if (tenantId) {
     tasks.push(
+      queryClient.invalidateQueries({
+        queryKey: ['tenant', 'license', tenantId],
+        ...INVALIDATE_ALL,
+      }),
       queryClient.invalidateQueries({
         queryKey: tenantLicenseQueryKeys.detail(tenantId),
         ...INVALIDATE_ALL,

@@ -267,7 +267,7 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return 'Für den aktuellen Kalendermonat fehlt der fiskalische Monatsbeleg (RKSV). Erstellen Sie den Monatsbeleg (Nullbeleg 0 €), danach sind Schicht und Verkäufe wieder möglich.';
+    return 'Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg (RKSV). Erstellen Sie den Monatsbeleg (Nullbeleg 0 €), danach sind Schicht und Verkäufe wieder möglich.';
   }
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CONFLICT) {
     return 'Diese Kasse ist bereits geöffnet und einer anderen Person zugewiesen (aktive Schicht). Beenden Sie die fremde Schicht nur mit Berechtigung, oder nutzen Sie eine andere Kasse / bitten Sie eine berechtigte Person.';
@@ -397,7 +397,7 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return '„Zahlen“ ist deaktiviert: Monatsbeleg fehlt — zuerst Monatsbeleg für den Monat erstellen.';
+    return '„Zahlen“ ist deaktiviert: Monatsbeleg fehlt — zuerst Monatsbeleg für den Vormonat erstellen.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
@@ -478,7 +478,7 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return 'Monatsbeleg muss für den laufenden Monat erstellt werden, bevor Sie verkaufen oder die Schicht normal nutzen können.';
+    return 'Monatsbeleg muss für den abgeschlossenen Vormonat erstellt werden, bevor Sie verkaufen oder die Schicht normal nutzen können.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
@@ -534,7 +534,7 @@ export function mapBackendCashRegisterCodeToGerman(code: string | undefined): st
     case POS_CASH_REGISTER_CODES.STARTBELEG_REQUIRED:
       return 'Startbeleg erforderlich: Bitte zuerst den fiskalischen Startbeleg für diese Kasse erstellen.';
     case POS_CASH_REGISTER_CODES.MONATSBELEG_REQUIRED:
-      return 'Monatsbeleg erforderlich: Bitte den fiskalischen Monatsbeleg für den aktuellen Monat erstellen.';
+      return 'Monatsbeleg erforderlich: Bitte den fiskalischen Monatsbeleg für den Vormonat erstellen.';
     case POS_CASH_REGISTER_CODES.DECOMMISSIONED:
     case POS_CASH_REGISTER_CODES.REGISTER_DECOMMISSIONED_RKSV:
     case POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV:

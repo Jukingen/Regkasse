@@ -68,7 +68,12 @@
     "generalError": "Ein Fehler ist aufgetreten",
     "demoRestricted": "Demo-Benutzer können keine echten Zahlungen erstellen. Bitte fahren Sie mit einem autorisierten Benutzer fort.",
     "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
-    "unknown": "Zahlungsvorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "unknown": "Fehler bei der Zahlung. Bitte erneut versuchen.",
+    "retry": "Fehler bei der Zahlung. Bitte erneut versuchen.",
+    "tseUnavailable": "TSE nicht verfügbar. Zahlung nicht möglich.",
+    "licenseLockedTitle": "Lizenz gesperrt",
+    "licenseLocked": "Lizenz gesperrt. Bitte Administrator kontaktieren.",
+    "monatsbelegRequired": "Monatsbeleg erforderlich",
     "nonFiscalQueued": "Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht fiskalisch verbucht. Vor einer erneuten Zahlung bitte Einstellungen → Offline-Warteschlange prüfen; eine zweite Zahlung kann sonst zu doppelten Buchungen führen."
   },
   "cancellation": {

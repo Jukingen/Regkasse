@@ -11,6 +11,7 @@
   "tse": {
     "indicator": {
       "active": "TSE aktif",
+      "activeTest": "TSE aktif (TEST)",
       "degraded": "TSE kısıtlı",
       "inactive": "TSE kapalı",
       "checking": "TSE …"
@@ -19,6 +20,7 @@
       "title": "TSE durumu",
       "hint": "Ayrıntıları göster",
       "status": "Durum",
+      "environment": "Ortam",
       "message": "Not",
       "lastCheck": "Son kontrol",
       "scuId": "SCU kimliği",

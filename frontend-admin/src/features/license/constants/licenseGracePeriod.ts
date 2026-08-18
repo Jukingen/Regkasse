@@ -1,6 +1,8 @@
 /** Mandant (tenant) license grace-period policy — keep in sync with backend `LicenseGracePeriodConfig`. */
 export const TENANT_GRACE_PERIOD_DAYS = 7;
 export const TENANT_WARNING_DAYS_BEFORE_EXPIRY = 14;
+/** Visual "expiring soon" window for status badges (calendar days remaining). */
+export const TENANT_EXPIRING_SOON_DAYS = 30;
 export const TENANT_BLOCK_AFTER_GRACE_DAYS = 0;
 /** Days overdue after which Locked becomes Archived (POS blocked, FA read-only). */
 export const TENANT_ARCHIVE_AFTER_DAYS = 30;

@@ -90,9 +90,9 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
                 cashRegisterId, prevViennaMonthAnchor.Year, prevViennaMonthAnchor.Month, cancellationToken)
             .ConfigureAwait(false);
 
-        var currentMonthInComplianceWindow = currentMonthAnchor >= firstRequiredMonthAnchor;
         var lastMonthInComplianceWindow = prevViennaMonthAnchor >= firstRequiredMonthAnchor;
-        var currentMonthOverdue = !hasCurrentMonthMb && viennaNowLocal.Day > 7 && currentMonthInComplianceWindow;
+        // Current unfinished month is not a Monatsbeleg period (create only after month end).
+        var currentMonthOverdue = false;
         var lastMonthMissing = !hasLastMonthMb && lastMonthInComplianceWindow;
         var warningMessage = BuildMonatsbelegWarningMessageDe(lastMonthMissing, currentMonthOverdue);
 

@@ -68,9 +68,9 @@ public static class ApiMessageCatalog
                 en: "This tenant has been deactivated.",
                 tr: "Bu kiracı devre dışı bırakıldı."),
             [ApiMessageKeys.TenantLicenseLockdown] = Msg(
-                de: "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt. POS ist gesperrt — nur Super-Administrator kann entsperren.",
-                en: "This tenant is locked due to an expired license. POS is locked — only Super Admin can unlock.",
-                tr: "Bu kiracı süresi dolmuş lisans nedeniyle kilitlendi. POS kilitli — yalnızca Süper Yönetici kilidi açabilir."),
+                de: "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
+                en: "Tenant locked — please activate a tenant license.",
+                tr: "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin."),
 
             [ApiMessageKeys.LicenseStatusActive] = Msg(
                 de: "Lizenz aktiv",
@@ -85,9 +85,13 @@ public static class ApiMessageCatalog
                 en: "Tenant license expired — grace period active. POS still usable, then lock.",
                 tr: "Kiracı lisansı sona erdi — grace dönemi aktif. POS hâlâ kullanılabilir, ardından kilit."),
             [ApiMessageKeys.LicenseStatusLocked] = Msg(
-                de: "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.",
-                en: "License expired! POS is locked. Only Super Admin can unlock.",
-                tr: "Lisans süresi doldu! POS kilitli. Yalnızca Süper Yönetici kilidi açabilir."),
+                de: "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
+                en: "Tenant locked — please activate a tenant license.",
+                tr: "Kiracı kilitli — lütfen kiracı lisansını etkinleştirin."),
+            [ApiMessageKeys.LicenseStatusSystemActiveTenantLocked] = Msg(
+                de: "System aktiv, Mandant gesperrt",
+                en: "System active, tenant locked",
+                tr: "Sistem aktif, kiracı kilitli"),
 
             [ApiMessageKeys.PasswordChangeValidationFailed] = Msg(
                 de: "Das neue Passwort erfüllt nicht alle Anforderungen.",
@@ -191,9 +195,9 @@ public static class ApiMessageCatalog
                 en: "Cash register is opened by another user.",
                 tr: "Kasa başka bir kullanıcı tarafından açıldı."),
             [ApiMessageKeys.MonthlyReceiptRequired] = Msg(
-                de: "Monatsbeleg muss für den aktuellen Monat erstellt werden.",
-                en: "Monthly receipt must be created for the current month.",
-                tr: "Cari ay için aylık makbuz oluşturulmalıdır."),
+                de: "Monatsbeleg muss für den abgeschlossenen Vormonat erstellt werden.",
+                en: "Monthly receipt must be created for the previous completed calendar month.",
+                tr: "Aylık makbuz, kapanmış önceki ay için oluşturulmalıdır."),
             [ApiMessageKeys.RegisterCannotOpenInState] = Msg(
                 de: "Kasse kann in diesem Zustand nicht geöffnet werden.",
                 en: "Cash register cannot be opened in this state.",

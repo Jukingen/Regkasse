@@ -173,13 +173,13 @@
         "selectMethod": "Lutfen bir odeme yontemi secin (adim 2).",
         "coverageMissing": "Yetersiz kapsam: kupon + nakit toplama ulasmiyor.",
         "voucherInvalid": "Gecersiz kupon — lutfen kontrol edin ve dogrulayin.",
-        "tseNotReady": "TSE hazir degil — mali odeme mumkun degil.",
+        "tseNotReady": "TSE kullanılamıyor. Ödeme mümkün değil.",
         "voucherOffline": "Kupon cevrimdisi kullanilamaz."
       },
       "tseGate": {
         "disabled": "TSE devre disi. Odeme yapilamaz.",
         "notInitialized": "TSE baslatilmadi. Lutfen yoneticinize basvurun.",
-        "unavailable": "TSE kullanilamiyor. Odeme tamamlanamaz."
+        "unavailable": "TSE kullanılamıyor. Ödeme mümkün değil."
       },
       "timeSync": {
         "banner": "SISTEM SAATI HATALI – odemeler engellendi! Lutfen yoneticiye basvurun",

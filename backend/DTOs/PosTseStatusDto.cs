@@ -42,4 +42,7 @@ public sealed class PosTseStatusDto
     public DateTime? EstimatedRecoveryTimeUtc { get; init; }
 
     public DateTime? LastSuccessfulPingUtc { get; init; }
+
+    /// <summary>Fiskaly SIGN AT environment: TEST or LIVE.</summary>
+    public string Environment { get; init; } = "TEST";
 }

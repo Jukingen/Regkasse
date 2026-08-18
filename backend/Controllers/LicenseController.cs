@@ -83,8 +83,14 @@ public partial class LicenseController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<LicenseFeaturesDto>> GetFeatures(CancellationToken cancellationToken)
     {
-        var lic = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        var licenseFeatures = lic.EnabledFeatures is { Count: > 0 } ? lic.EnabledFeatures : LicenseFeatureIds.All;
+        var lic = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var snapshot = lic.DeploymentSnapshot
+            ?? await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var licenseFeatures = snapshot.EnabledFeatures is { Count: > 0 }
+            ? snapshot.EnabledFeatures
+            : LicenseFeatureIds.All;
 
         if (_environment.IsDevelopment())
         {
@@ -190,7 +196,7 @@ public partial class LicenseController : ControllerBase
             {
                 IsValid = false,
                 IsFormatValid = false,
-                ErrorCode = "invalid_format",
+                ErrorCode = LicenseKeyErrorCodes.InvalidFormat,
                 Message = "licenseKey is required.",
             });
 

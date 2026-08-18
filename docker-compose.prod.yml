@@ -142,10 +142,20 @@ services:
       Security__Csrf__Enabled: ${CSRF_ENABLED:-true}
       Security__Csrf__BypassInDevelopment: 'false'
       # Vendor secrets (required for real signing — never commit)
+      Fiskaly__Enabled: 'true'
+      Fiskaly__Environment: LIVE
+      Fiskaly__ApiBaseUrl: ${FISKALY_API_BASE_URL:-https://rksv.fiskaly.com/api/v1}
+      Fiskaly__ApiKey: ${FISKALY_API_KEY:-}
+      Fiskaly__ApiSecret: ${FISKALY_API_SECRET:-}
+      Fiskaly__ScuId: ${FISKALY_SCU_ID:-}
+      Fiskaly__SigningCertificateDerBase64: ${FISKALY_SIGNING_CERT_DER_B64:-}
+      Fiskaly__TurnoverCounterAesKeyBase64: ${FISKALY_TURNOVER_AES_KEY_B64:-}
+      Tse__Providers__fiskaly__Enabled: 'true'
       Tse__Providers__fiskaly__ApiKey: ${FISKALY_API_KEY:-}
       Tse__Providers__fiskaly__ApiSecret: ${FISKALY_API_SECRET:-}
       Tse__Providers__fiskaly__ApiBaseUrl: ${FISKALY_API_BASE_URL:-https://rksv.fiskaly.com/api/v1}
       Tse__Providers__fiskaly__SignatureCreationUnitId: ${FISKALY_SCU_ID:-}
+      Tse__Providers__fiskaly__SigningCertificateDerBase64: ${FISKALY_SIGNING_CERT_DER_B64:-}
     healthcheck:
       test:
         [

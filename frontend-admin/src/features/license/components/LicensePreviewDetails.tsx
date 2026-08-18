@@ -97,6 +97,13 @@ export function LicensePreviewDetails({
                   </Typography.Text>
                 </Descriptions.Item>
               ) : null}
+              {preview.licenseKind ? (
+                <Descriptions.Item label={t('license.management.kind')}>
+                  {preview.licenseKind === 'system'
+                    ? t('license.management.kindSystem')
+                    : t('license.management.kindTenant')}
+                </Descriptions.Item>
+              ) : null}
               <Descriptions.Item label={t('license.extendModal.previewValidFrom')}>
                 {formatLicenseValidUntil(preview.validFromUtc)}
               </Descriptions.Item>

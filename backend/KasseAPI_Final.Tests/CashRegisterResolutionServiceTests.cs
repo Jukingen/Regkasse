@@ -476,6 +476,38 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
+    public async Task ValidatePaymentRegister_MonatsbelegGateOn_WithPreviousMonthOnly_Allows()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnHasPreviousMonthOnly());
+
+        var r = await sut.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+        Assert.True(r.Ok);
+    }
+
+    [Fact]
     public async Task ValidatePaymentRegister_SingleOperationalOpen_AllowsWithoutSettings_WhenSecondRowIsDisabled()
     {
         await using var ctx = CreateContext();

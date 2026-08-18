@@ -200,26 +200,10 @@ public sealed class AdminTenantLicensesController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
         var key = request.LicenseKey.Trim();
-        var validation = await _unifiedLicenseService
-            .ValidateLicenseAsync(key, cancellationToken)
+        var result = await _unifiedLicenseService
+            .PreviewLicenseAsync(key, tenantId, cancellationToken)
             .ConfigureAwait(false);
-        var info = await _unifiedLicenseService
-            .GetLicenseInfoAsync(key, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (info.Exists || !isSuperAdmin || !validation.IsFormatValid)
-            return Ok(TenantLicensePreviewHelper.FromUnified(validation, info));
-
-        var (result, error) = await _tenantLicenseService
-            .PreviewLicenseAsync(tenantId, key, isSuperAdmin, cancellationToken)
-            .ConfigureAwait(false);
-        if (error == "Tenant not found.")
-            return NotFound(new { message = error });
-        if (error != null)
-            return BadRequest(new { message = error });
-
         return Ok(result);
     }
 

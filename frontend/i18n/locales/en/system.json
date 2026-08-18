@@ -11,6 +11,7 @@
   "tse": {
     "indicator": {
       "active": "TSE active",
+      "activeTest": "TSE active (TEST)",
       "degraded": "TSE degraded",
       "inactive": "TSE inactive",
       "checking": "TSE …"
@@ -19,6 +20,7 @@
       "title": "TSE status",
       "hint": "Show details",
       "status": "Status",
+      "environment": "Environment",
       "message": "Note",
       "lastCheck": "Last check",
       "scuId": "SCU ID",

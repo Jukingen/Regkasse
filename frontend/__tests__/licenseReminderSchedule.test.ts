@@ -11,10 +11,11 @@ describe('planLicenseReminderFireTimes', () => {
 
   it('schedules only future milestones before expiry', () => {
     const plans = planLicenseReminderFireTimes(expiry, nowMs);
-    expect(plans.map((p) => p.days)).toEqual([14, 7, 1]);
-    expect(plans[0]?.fireAt.toISOString()).toBe('2026-07-27T12:00:00.000Z');
+    expect(plans.map((p) => p.days)).toEqual([15, 7, 3, 1]);
+    expect(plans[0]?.fireAt.toISOString()).toBe('2026-07-26T12:00:00.000Z');
     expect(plans[1]?.fireAt.toISOString()).toBe('2026-08-03T12:00:00.000Z');
-    expect(plans[2]?.fireAt.toISOString()).toBe('2026-08-09T12:00:00.000Z');
+    expect(plans[2]?.fireAt.toISOString()).toBe('2026-08-07T12:00:00.000Z');
+    expect(plans[3]?.fireAt.toISOString()).toBe('2026-08-09T12:00:00.000Z');
   });
 
   it('returns empty when expiry is in the past', () => {

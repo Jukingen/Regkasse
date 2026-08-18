@@ -411,7 +411,7 @@ public sealed class LicenseControllerActivateTests
         var payload = Assert.IsType<LicenseKeyValidationResult>(ok.Value);
         Assert.False(payload.IsValid);
         Assert.False(payload.IsFormatValid);
-        Assert.Equal("invalid_format", payload.ErrorCode);
+        Assert.Equal(LicenseKeyErrorCodes.InvalidFormat, payload.ErrorCode);
     }
 
     [Fact]

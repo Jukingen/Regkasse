@@ -183,6 +183,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.SETTINGS_VIEW,
   ],
   '/admin/license/grace-period': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/license/audit': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/test': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/debug': PERMISSIONS.SYSTEM_CRITICAL,
   /**

@@ -10,7 +10,7 @@
   },
   "unified": {
     "keyPlaceholder": "REGK-yyyyMMdd-slug-XXXXXXXX",
-    "formatHint": "Unified format: REGK-yyyyMMdd-slug-XXXXXXXX (tenant: your slug, server: system)."
+    "formatHint": "Unified format: REGK-yyyyMMdd-slug-XXXXXXXX (tenant: your slug, server: system). A system license does not unlock the tenant."
   },
   "management": {
     "title": "License management",
@@ -40,7 +40,69 @@
     "detailsTitle": "License details",
     "detailsEmpty": "No license information found.",
     "searchPlaceholder": "Search key, customer, or tenant",
-    "openSales": "License sales"
+    "openSales": "License sales",
+    "openAudit": "Audit log",
+    "renewNow": "Renew now",
+    "bulkImportTitle": "CSV import (license keys)",
+    "bulkImportHint": "One REGK key column per row. Header row is ignored.",
+    "bulkImportButton": "Activate keys",
+    "bulkImportEmpty": "No valid REGK keys found.",
+    "bulkImportProgress": "{{current}} / {{total}}",
+    "exportCsv": "Export CSV",
+    "showKeys": "Show",
+    "hideKeys": "Hide",
+    "showKeysTooltip": "Show license keys. Super Admin only.",
+    "showKeysConfirmTitle": "Show full license keys?",
+    "showKeysConfirmContent": "Full keys are confidential. Use them only for support and management.",
+    "copyKey": "Copy license key",
+    "systemDoesNotUnlockTenant": "A system license does NOT unlock the tenant. Use a tenant license for tenant access.",
+    "layersTitle": "License status (system and tenant)",
+    "systemLayer": "System license",
+    "tenantLayer": "Tenant license",
+    "systemActiveTenantLocked": "System active, tenant locked",
+    "activateUnlocksSystem": "System will be unlocked",
+    "activateUnlocksTenant": "Tenant will be unlocked",
+    "activateSystemConfirmTitle": "Only the system will be unlocked",
+    "activateSystemConfirmContent": "This license key unlocks only the system. The tenant stays locked.",
+    "slugMismatchWarning": "The slug in the key ({{slug}}) does not match the current tenant ({{current}}).",
+    "activateSlugMismatchTitle": "Tenant does not match",
+    "activateSlugMismatchContent": "This key was issued for “{{slug}}”, but “{{current}}” is selected. Activation is rejected if the tenant does not match."
+  },
+  "statusBadge": {
+    "labels": {
+      "active": "Active",
+      "grace": "Grace",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired",
+      "locked": "Locked"
+    },
+    "tooltips": {
+      "active": "License is valid and outside the 30-day warning window.",
+      "grace": "Validity has ended. 7-day grace period: limited operation is still possible.",
+      "expiringSoon": "License expires within 30 days. Please renew in time.",
+      "expired": "License has expired and the grace period has ended.",
+      "locked": "License is locked (revoked, cancelled, or archived)."
+    },
+    "countdown": "Expires in: {{countdown}}"
+  },
+  "renewal": {
+    "renewNow": "Renew now",
+    "requestButton": "Request renewal",
+    "requestSuccess": "Renewal request was sent to Super Admin.",
+    "requestError": "Could not send the renewal request.",
+    "requestTitle": "License renewal requested",
+    "requestMessage": "Please renew the tenant license. Valid until: {{validUntil}}."
+  },
+  "certificate": {
+    "download": "License certificate (PDF)",
+    "downloadSuccess": "Certificate downloaded.",
+    "downloadError": "Could not download the certificate."
+  },
+  "autoRenew": {
+    "title": "Optional auto-renewal",
+    "subtitle": "Recurring SaaS billing uses subscription invoices — not automatic Stripe card charges on the POS.",
+    "openInvoices": "Open subscription invoices",
+    "requestAutoRenew": "Request auto-renewal"
   },
   "mandant": {
     "status": "Status",
@@ -207,7 +269,7 @@
       "active": "Active",
       "graceWrite": "Grace phase: write allowed",
       "graceReadonly": "Grace phase: read-only",
-      "lockdown": "Lockdown",
+      "lockdown": "Tenant locked",
       "expired": "Expired",
       "noLicense": "No license"
     },
@@ -224,7 +286,7 @@
         "active": "The tenant license is active. Write access, user management, and general access are enabled.",
         "graceWrite": "The tenant license expired {{days}} day(s) ago. Writing is still allowed, but renewal is now due.",
         "graceReadonly": "The tenant license expired {{days}} day(s) ago. Write operations are blocked, while read access and user management remain available.",
-        "lockdown": "The tenant license expired {{days}} day(s) ago. The tenant is now in lockdown.",
+        "lockdown": "Tenant locked — please activate a tenant license. Expired {{days}} day(s) ago.",
         "expired": "The tenant license expired {{days}} day(s) ago.",
         "noLicense": "No license is stored for this tenant."
       },
@@ -334,9 +396,9 @@
         "restrictions": "During grace: POS usable with warnings. After grace: POS locked (only Super Admin can unlock)."
       },
       "lockdown": {
-        "title": "Tenant license expired – POS locked",
-        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. The grace period has ended. POS is locked — only Super Admin can unlock. Please renew the license.",
-        "contactAdminDescription": "This tenant is currently locked (grace period ended). Only Super Admin can unlock. Please contact your administrator.",
+        "title": "Tenant locked — please activate a tenant license",
+        "adminDescription": "Tenant locked — please activate a tenant license. The license expired {{daysExpired}} day(s) ago. The grace period has ended. POS is locked — only Super Admin can unlock.",
+        "contactAdminDescription": "Tenant locked — please activate a tenant license. Only Super Admin can unlock. Please contact your administrator.",
         "restrictions": "POS locked. Only Super Admin can unlock. Renewal required."
       },
       "noLicense": {
@@ -389,7 +451,7 @@
       "progressAria": "Grace period: {{days}} day(s) remaining"
     },
     "locked": {
-      "title": "Restricted mode",
+      "title": "Tenant locked — please activate a tenant license",
       "description": "Your license expired {{days}} day(s) ago.",
       "bulletReadOnly": "You can only access your data in read-only mode",
       "bulletNoWrite": "Changes or new records are not possible",
@@ -534,7 +596,7 @@
     "supportContact": "Contact support: support@regkasse.at"
   },
   "lockdownToast": {
-    "title": "License expired",
+    "title": "Tenant locked",
     "description": "Please renew your license to perform this action.",
     "guardDescription": "This action is not available while the license is locked.",
     "guardDescriptionWithAction": "\"{{action}}\" is not available while the license is locked.",
@@ -674,6 +736,16 @@
     "featureNotIncluded": "This server's license does not include license management (admin_license_manage). Activate an appropriate license first.",
     "expiryInPast": "The expiry date cannot be in the past.",
     "invalidMachineHash": "Enter a valid 64-character SHA-256 hex fingerprint.",
+    "kindLabel": "For System (deployment) or Tenant?",
+    "kindSystem": "System (deployment)",
+    "kindTenant": "Tenant",
+    "kindSystemHint": "Creates REGK-{date}-system-{random}. Unlocks the deployment only, not the tenant.",
+    "kindTenantHint": "Creates REGK-{date}-{tenantSlug}-{random}. Unlocks the selected tenant.",
+    "tenantRequired": "Please select a tenant.",
+    "tenantSelectLabel": "Tenant",
+    "tenantSelectPlaceholder": "Select a tenant",
+    "tenantKindNeedsSuperAdmin": "Only Super Admin can generate tenant licenses (license sales).",
+    "systemDoesNotUnlockTenant": "A system license does NOT unlock the tenant. Use a tenant license for tenant access.",
     "modal": {
       "title": "Generated license",
       "copyJwt": "Copy activation JWT",
@@ -838,8 +910,9 @@
     "error": "Could not load preview",
     "horizons": {
       "d30": "30 days",
-      "d14": "14 days",
+      "d15": "15 days",
       "d7": "7 days",
+      "d3": "3 days",
       "d1": "1 day",
       "d0": "Expired"
     }
@@ -848,6 +921,14 @@
     "title": "License audit log",
     "subtitle": "Merged events from billing audit and license audit (read-only).",
     "empty": "No audit entries found",
+    "exportCsv": "Export CSV",
+    "filters": {
+      "action": "Action",
+      "actionAll": "All actions",
+      "user": "User",
+      "userPlaceholder": "Name or user id",
+      "dateRange": "Date range"
+    },
     "columns": {
       "time": "Time",
       "tenant": "Tenant",
@@ -896,6 +977,7 @@
     "tabs": {
       "overview": "Overview",
       "trend": "Trend",
+      "distribution": "Distribution",
       "export": "Export"
     },
     "kpi": {

@@ -1,4 +1,4 @@
-import { AXIOS_INSTANCE } from '@/lib/axios';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { buildLicensesExportFileName } from '@/features/license/utils/licenseExportFileName';
 import { triggerBrowserDownload } from '@/lib/zip/packFilesIntoZipBlob';
@@ -49,7 +49,7 @@ export type LicensePublicStatusDto = {
 
 export type LicenseLayerPublicStatusDto = {
   validUntil?: string | null;
-  status?: 'active' | 'grace' | 'expired' | string;
+  status?: 'active' | 'grace' | 'expired' | 'locked' | string;
   isActive?: boolean;
 };
 
@@ -221,6 +221,7 @@ export type LicenseAuditLogQueryParams = {
   action?: string;
   fromUtc?: string;
   toUtc?: string;
+  userSearch?: string;
 };
 
 export const licenseQueryKeys = {
@@ -402,10 +403,52 @@ export async function getLicenseAuditLog(
         action: params?.action,
         fromUtc: params?.fromUtc,
         toUtc: params?.toUtc,
+        userSearch: params?.userSearch,
       },
     }
   );
   return data;
+}
+
+/** GET /api/admin/license/audit/export — CSV of filtered audit rows. */
+export async function downloadLicenseAuditLogCsv(
+  params?: Omit<LicenseAuditLogQueryParams, 'page' | 'pageSize'>
+): Promise<void> {
+  const blob = await customInstance<Blob>({
+    url: '/api/admin/license/audit/export',
+    method: 'GET',
+    responseType: 'blob',
+    params: {
+      tenantId: params?.tenantId,
+      action: params?.action,
+      fromUtc: params?.fromUtc,
+      toUtc: params?.toUtc,
+      userSearch: params?.userSearch,
+    },
+  });
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '');
+  const url = globalThis.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `license-audit_${stamp}.csv`;
+  anchor.click();
+  globalThis.URL.revokeObjectURL(url);
+}
+
+/** GET /api/admin/license/certificate — mandant license PDF certificate. */
+export async function downloadLicenseCertificatePdf(): Promise<void> {
+  const blob = await customInstance<Blob>({
+    url: '/api/admin/license/certificate',
+    method: 'GET',
+    responseType: 'blob',
+  });
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const url = globalThis.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `license-certificate_${stamp}.pdf`;
+  anchor.click();
+  globalThis.URL.revokeObjectURL(url);
 }
 
 export type LicenseRenewalFunnelDto = {

@@ -19,8 +19,9 @@ public sealed class LicenseReminderServiceTests
 {
     [Theory]
     [InlineData(30)]
-    [InlineData(14)]
+    [InlineData(15)]
     [InlineData(7)]
+    [InlineData(3)]
     [InlineData(1)]
     public async Task SendDueMandantExpiryRemindersAsync_SendsAtAnchorDays(int anchorDays)
     {
@@ -416,7 +417,7 @@ public sealed class LicenseReminderServiceTests
             billingAudit,
             Options.Create(new LicenseOptions
             {
-                ReminderDays = [30, 14, 7, 1],
+                ReminderDays = [30, 15, 7, 3, 1],
                 SendExpiredReminder = true,
                 SendGracePeriodReminders = true,
                 GraceReminderDays = [6, 4, 2],

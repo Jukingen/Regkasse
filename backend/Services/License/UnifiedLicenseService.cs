@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
@@ -16,12 +17,18 @@ namespace KasseAPI_Final.Services.License;
 /// </summary>
 public sealed class UnifiedLicenseService : IUnifiedLicenseService
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> ActivationLocks =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private readonly AppDbContext _db;
     private readonly ILicenseService _deployment;
     private readonly IBillingTenantLicenseService _billing;
     private readonly ILicenseStatusCache _licenseStatusCache;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<UnifiedLicenseService> _logger;
+    private readonly ILicenseKeyValidator _keyValidator;
+    private readonly ILicenseCacheService? _licenseCache;
+    private readonly IAuditLogService? _auditLog;
 
     public UnifiedLicenseService(
         AppDbContext db,
@@ -29,7 +36,10 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         IBillingTenantLicenseService billing,
         ILicenseStatusCache licenseStatusCache,
         ICurrentTenantAccessor tenantAccessor,
-        ILogger<UnifiedLicenseService> logger)
+        ILogger<UnifiedLicenseService> logger,
+        ILicenseKeyValidator? keyValidator = null,
+        ILicenseCacheService? licenseCache = null,
+        IAuditLogService? auditLog = null)
     {
         _db = db;
         _deployment = deployment;
@@ -37,6 +47,9 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         _licenseStatusCache = licenseStatusCache;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
+        _keyValidator = keyValidator ?? LicenseKeyValidator.Instance;
+        _licenseCache = licenseCache;
+        _auditLog = auditLog;
     }
 
     public async Task<UnifiedLicenseStatusDto> GetUnifiedStatusAsync(
@@ -133,6 +146,28 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         UnifiedLicenseActivationContext context,
         CancellationToken cancellationToken = default)
     {
+        var lockKey = _keyValidator.Normalize(licenseKey);
+        if (string.IsNullOrEmpty(lockKey))
+            lockKey = (licenseKey ?? string.Empty).Trim();
+
+        var gate = ActivationLocks.GetOrAdd(lockKey, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await ActivateLicenseInsideLockAsync(licenseKey ?? string.Empty, context, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<LicenseActivationResult> ActivateLicenseInsideLockAsync(
+        string licenseKey,
+        UnifiedLicenseActivationContext context,
+        CancellationToken cancellationToken)
+    {
         var resolved = await ResolveAsync(licenseKey, cancellationToken).ConfigureAwait(false);
         var requestedTenantId = context.TenantId is Guid ctxTenant && ctxTenant != Guid.Empty
             ? ctxTenant
@@ -140,7 +175,9 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
                 ? bodyTenant
                 : (Guid?)null;
 
-        var isMandantKey = LicenseKeyGenerator.IsMandantBillingKey(resolved.CanonicalKey)
+        var parsed = _keyValidator.Parse(resolved.CanonicalKey);
+        var isMandantKey = parsed.IsTenant
+            || LicenseKeyGenerator.IsMandantBillingKey(resolved.CanonicalKey)
             || LicenseKeyGenerator.IsMandantBillingKey(resolved.InputKey);
 
         Guid? activationTenantId = requestedTenantId;
@@ -156,20 +193,59 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
 
         if (!validation.IsFormatValid)
         {
-            return new LicenseActivationResult(false, validation.Message ?? LicenseKeyGenerator.InvalidFormatMessage);
+            var formatFail = new LicenseActivationResult(
+                false,
+                validation.Message ?? LicenseKeyGenerator.InvalidFormatMessage,
+                ErrorCode: LicenseKeyErrorCodes.InvalidFormat);
+            await TryAuditActivationAsync(
+                    context,
+                    resolved,
+                    activationTenantId,
+                    success: false,
+                    formatFail.Message,
+                    LicenseKeyErrorCodes.InvalidFormat,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return formatFail;
         }
 
         if (validation.IsExpired)
         {
-            return new LicenseActivationResult(
+            var expired = new LicenseActivationResult(
                 false,
-                validation.Message ?? "This license has expired.");
+                validation.Message ?? "This license has expired.",
+                ErrorCode: LicenseKeyErrorCodes.Expired);
+            await TryAuditActivationAsync(
+                    context,
+                    resolved,
+                    activationTenantId,
+                    success: false,
+                    expired.Message,
+                    LicenseKeyErrorCodes.Expired,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return expired;
         }
 
         if (isMandantKey)
         {
             if (activationTenantId is not Guid tenantId || tenantId == Guid.Empty)
-                return new LicenseActivationResult(false, "Tenant context required.");
+            {
+                var missingTenant = new LicenseActivationResult(
+                    false,
+                    "Tenant context required.",
+                    ErrorCode: LicenseKeyErrorCodes.TenantLicenseExpected);
+                await TryAuditActivationAsync(
+                        context,
+                        resolved,
+                        activationTenantId,
+                        success: false,
+                        missingTenant.Message,
+                        missingTenant.ErrorCode,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return missingTenant;
+            }
 
             if (context.ActorUserId is not Guid userId || userId == Guid.Empty)
             {
@@ -180,9 +256,47 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
 
             if (!validation.SlugMatches)
             {
-                return new LicenseActivationResult(
+                var mismatch = new LicenseActivationResult(
                     false,
-                    "Dieser Lizenzschlüssel ist für einen anderen Mandanten ausgestellt.");
+                    "Dieser Lizenzschlüssel ist für einen anderen Mandanten ausgestellt.",
+                    ErrorCode: LicenseKeyErrorCodes.SlugMismatch);
+                await TryAuditActivationAsync(
+                        context,
+                        resolved,
+                        tenantId,
+                        success: false,
+                        mismatch.Message,
+                        LicenseKeyErrorCodes.SlugMismatch,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return mismatch;
+            }
+
+            if (resolved.Sale is { ActivationDateUtc: not null } already
+                && already.TenantId == tenantId)
+            {
+                await InvalidateAfterLicenseChangeAsync(resolved.CanonicalKey, tenantId, cancellationToken)
+                    .ConfigureAwait(false);
+                var alreadyResult = new LicenseActivationResult(
+                    true,
+                    "License already activated.",
+                    already.ValidUntilUtc,
+                    already.LicensePlan,
+                    TenantId: tenantId,
+                    TenantSlug: ambientSlug ?? resolved.Slug,
+                    DaysRemaining: LicenseService.ComputeActivationDaysRemaining(already.ValidUntilUtc),
+                    Status: "active",
+                    ErrorCode: LicenseKeyErrorCodes.AlreadyActivated);
+                await TryAuditActivationAsync(
+                        context,
+                        resolved,
+                        tenantId,
+                        success: true,
+                        alreadyResult.Message,
+                        LicenseKeyErrorCodes.AlreadyActivated,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return alreadyResult;
             }
 
             var billing = await _billing
@@ -190,13 +304,24 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
                 .ConfigureAwait(false);
 
             if (!billing.Success)
-                return new LicenseActivationResult(false, billing.Message);
+            {
+                var fail = new LicenseActivationResult(false, billing.Message);
+                await TryAuditActivationAsync(
+                        context,
+                        resolved,
+                        tenantId,
+                        success: false,
+                        fail.Message,
+                        errorCode: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return fail;
+            }
 
-            await _licenseStatusCache
-                .InvalidateLicenseCacheAsync(tenantId, cancellationToken)
+            await InvalidateAfterLicenseChangeAsync(resolved.CanonicalKey, tenantId, cancellationToken)
                 .ConfigureAwait(false);
 
-            return new LicenseActivationResult(
+            var ok = new LicenseActivationResult(
                 true,
                 billing.Message,
                 billing.ValidUntilUtc,
@@ -205,6 +330,16 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
                 TenantSlug: ambientSlug ?? resolved.Slug,
                 DaysRemaining: LicenseService.ComputeActivationDaysRemaining(billing.ValidUntilUtc),
                 Status: "active");
+            await TryAuditActivationAsync(
+                    context,
+                    resolved,
+                    tenantId,
+                    success: true,
+                    ok.Message,
+                    errorCode: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return ok;
         }
 
         var request = context.DeploymentRequest ?? new ActivateLicenseRequest { LicenseKey = resolved.InputKey };
@@ -216,14 +351,40 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             .ConfigureAwait(false);
 
         if (deploymentResult is null)
-            return new LicenseActivationResult(false, "Activation failed due to an internal error.");
-
-        if (deploymentResult.Success && activationTenantId is Guid cacheTenantId && cacheTenantId != Guid.Empty)
         {
-            await _licenseStatusCache
-                .InvalidateLicenseCacheAsync(cacheTenantId, cancellationToken)
+            var internalFail = new LicenseActivationResult(false, "Activation failed due to an internal error.");
+            await TryAuditActivationAsync(
+                    context,
+                    resolved,
+                    activationTenantId,
+                    success: false,
+                    internalFail.Message,
+                    errorCode: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return internalFail;
+        }
+
+        if (deploymentResult.Success)
+        {
+            await InvalidateAfterLicenseChangeAsync(
+                    resolved.CanonicalKey,
+                    activationTenantId is Guid cacheTenantId && cacheTenantId != Guid.Empty
+                        ? cacheTenantId
+                        : null,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        await TryAuditActivationAsync(
+                context,
+                resolved,
+                activationTenantId,
+                deploymentResult.Success,
+                deploymentResult.Message,
+                deploymentResult.ErrorCode,
+                cancellationToken)
+            .ConfigureAwait(false);
 
         return deploymentResult;
     }
@@ -286,6 +447,8 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             deactivatedAny = true;
             kind = resolved.Sale is not null ? LicenseKeyKinds.Both : LicenseKeyKinds.System;
+            await InvalidateAfterLicenseChangeAsync(resolved.CanonicalKey, tenantId: null, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         if (resolved.Sale is not null)
@@ -334,8 +497,7 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             }
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await _licenseStatusCache
-                .InvalidateLicenseCacheAsync(resolved.Sale.TenantId, cancellationToken)
+            await InvalidateAfterLicenseChangeAsync(resolved.CanonicalKey, resolved.Sale.TenantId, cancellationToken)
                 .ConfigureAwait(false);
 
             deactivatedAny = true;
@@ -352,13 +514,15 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             };
         }
 
-        return new LicenseDeactivationResult
+        var result = new LicenseDeactivationResult
         {
             Success = true,
             Message = "License deactivated.",
             LicenseKind = kind,
             CanonicalLicenseKey = resolved.CanonicalKey,
         };
+        await TryAuditRevokedAsync(context, resolved, cancellationToken).ConfigureAwait(false);
+        return result;
     }
 
     public async Task<bool> IsLicenseValidAsync(
@@ -375,33 +539,27 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
     {
         var resolved = await ResolveAsync(licenseKey, cancellationToken).ConfigureAwait(false);
         var validation = ToValidation(resolved, expectedTenantId: null, ambientSlug: null);
-        var dbUntil = resolved.Issued?.ExpiryAtUtc ?? resolved.Sale?.ValidUntilUtc;
+        return ToLicenseInfo(resolved, validation);
+    }
 
-        return new LicenseInfo
+    public async Task<LicensePreviewResult> PreviewLicenseAsync(
+        string licenseKey,
+        Guid? expectedTenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolved = await ResolveAsync(licenseKey, cancellationToken).ConfigureAwait(false);
+
+        Guid? tenantForMatch = expectedTenantId is Guid tid && tid != Guid.Empty ? tid : null;
+        string? ambientSlug = null;
+        if (tenantForMatch is Guid matchId)
         {
-            LicenseKey = resolved.InputKey,
-            CanonicalLicenseKey = resolved.CanonicalKey,
-            LicenseKind = resolved.Kind ?? LicenseKeyKinds.Tenant,
-            Slug = resolved.Slug,
-            Exists = resolved.Issued is not null || resolved.Sale is not null,
-            IsValid = validation.IsValid,
-            IsExpired = validation.IsExpired,
-            IsRevoked = resolved.Issued?.IsRevoked == true
-                || string.Equals(resolved.Sale?.Status, LicenseSaleStatuses.Cancelled, StringComparison.Ordinal),
-            ValidUntilUtc = dbUntil ?? resolved.EncodedValidUntilUtc,
-            TenantId = resolved.Sale?.TenantId,
-            TenantSlug = resolved.Sale?.Tenant?.Slug ?? resolved.Slug,
-            CustomerName = resolved.Issued?.CustomerName,
-            SourceTable = resolved.Issued is not null
-                ? "issued_licenses"
-                : resolved.Sale is not null
-                    ? "license_sales"
-                    : null,
-            SourceId = resolved.Issued?.Id ?? resolved.Sale?.Id,
-            Status = resolved.Issued is not null
-                ? (resolved.Issued.IsRevoked ? "revoked" : "issued")
-                : resolved.Sale?.Status,
-        };
+            ambientSlug = await ResolveAmbientTenantSlugAsync(matchId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var validation = ToValidation(resolved, tenantForMatch, ambientSlug);
+        var info = ToLicenseInfo(resolved, validation);
+        return TenantLicensePreviewHelper.FromUnified(validation, info);
     }
 
     private UnifiedLicenseActivationContext BuildDefaultActivationContext()
@@ -427,38 +585,35 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         }
 
         var canonical = await ResolveCanonicalKeyAsync(input, cancellationToken).ConfigureAwait(false);
-        var unified = LicenseKeyGenerator.TryParseLicenseKey(canonical, out var slug, out var encodedUntil, out _)
-            || LicenseKeyGenerator.TryParseLicenseKey(input, out slug, out encodedUntil, out _);
-        var legacyDisplay = RegkTenantLicenseKeyFormat.IsValid(input) || RegkTenantLicenseKeyFormat.IsValid(canonical);
+        var parsed = _keyValidator.Parse(canonical);
+        if (!parsed.IsValid)
+            parsed = _keyValidator.Parse(input);
 
-        if (!unified && !legacyDisplay)
+        if (!parsed.IsValid)
         {
             return new ResolvedLicense
             {
                 InputKey = input,
                 CanonicalKey = canonical,
                 FormatOk = false,
-                Message = LicenseKeyGenerator.InvalidFormatMessage,
+                Message = parsed.Message ?? LicenseKeyGenerator.InvalidFormatMessage,
             };
         }
 
+        canonical = string.IsNullOrEmpty(parsed.Normalized) ? canonical : parsed.Normalized;
         var issued = await FindIssuedAsync(input, canonical, cancellationToken).ConfigureAwait(false);
         var sale = await FindSaleAsync(input, canonical, cancellationToken).ConfigureAwait(false);
 
         string kind;
         if (issued is not null && sale is not null)
             kind = LicenseKeyKinds.Both;
-        else if (issued is not null || LicenseKeyGenerator.IsSystemLicenseKey(canonical) || LicenseKeyGenerator.IsDeploymentLicenseKey(input))
+        else if (issued is not null || parsed.IsSystem || parsed.IsLegacyDisplay)
             kind = LicenseKeyKinds.System;
         else
             kind = LicenseKeyKinds.Tenant;
 
-        if (LicenseKeyGenerator.IsMandantBillingKey(canonical) || LicenseKeyGenerator.IsMandantBillingKey(input))
+        if (parsed.IsTenant)
             kind = sale is not null && issued is not null ? LicenseKeyKinds.Both : LicenseKeyKinds.Tenant;
-
-        DateTime? encodedUtc = unified
-            ? DateTime.SpecifyKind(encodedUntil.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
-            : null;
 
         return new ResolvedLicense
         {
@@ -466,8 +621,8 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
             CanonicalKey = canonical,
             FormatOk = true,
             Kind = kind,
-            Slug = unified ? slug : null,
-            EncodedValidUntilUtc = encodedUtc,
+            Slug = parsed.Slug,
+            EncodedValidUntilUtc = parsed.ValidUntilUtc,
             Issued = issued,
             Sale = sale,
         };
@@ -532,11 +687,13 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         }
 
         var active = mandant.CanAccess && !mandant.IsLocked;
-        var status = !active
-            ? "expired"
-            : mandant.IsInGracePeriod
-                ? "grace"
-                : "active";
+        var status = mandant.IsLocked
+            ? "locked"
+            : !active
+                ? "expired"
+                : mandant.IsInGracePeriod
+                    ? "grace"
+                    : "active";
         return new UnifiedLicenseLayerStatusDto
         {
             ValidUntil = mandant.ValidUntil,
@@ -557,7 +714,7 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
                 IsValid = false,
                 IsFormatValid = false,
                 CanonicalLicenseKey = resolved.CanonicalKey,
-                ErrorCode = "invalid_format",
+                ErrorCode = LicenseKeyErrorCodes.InvalidFormat,
                 Message = resolved.Message,
             };
         }
@@ -600,22 +757,22 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         string? message = null;
         if (isExpired)
         {
-            errorCode = "expired";
+            errorCode = LicenseKeyErrorCodes.Expired;
             message = "This license has expired.";
         }
         else if (!exists)
         {
-            errorCode = "not_found";
+            errorCode = LicenseKeyErrorCodes.NotFound;
             message = "License key not found.";
         }
         else if (revoked)
         {
-            errorCode = "revoked";
+            errorCode = LicenseKeyErrorCodes.Revoked;
             message = "This license is no longer valid.";
         }
         else if (!slugMatches)
         {
-            errorCode = "slug_mismatch";
+            errorCode = LicenseKeyErrorCodes.SlugMismatch;
             message = "License slug does not match the tenant.";
         }
 
@@ -642,12 +799,43 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         string.Equals(kind, LicenseKeyKinds.Tenant, StringComparison.Ordinal)
         || string.Equals(kind, LicenseKeyKinds.Both, StringComparison.Ordinal);
 
+    private static LicenseInfo ToLicenseInfo(ResolvedLicense resolved, LicenseKeyValidationResult validation)
+    {
+        var dbUntil = resolved.Issued?.ExpiryAtUtc ?? resolved.Sale?.ValidUntilUtc;
+        return new LicenseInfo
+        {
+            LicenseKey = resolved.InputKey,
+            CanonicalLicenseKey = resolved.CanonicalKey,
+            LicenseKind = resolved.Kind ?? LicenseKeyKinds.Tenant,
+            Slug = resolved.Slug,
+            Exists = resolved.Issued is not null || resolved.Sale is not null,
+            IsValid = validation.IsValid,
+            IsExpired = validation.IsExpired,
+            IsRevoked = resolved.Issued?.IsRevoked == true
+                || string.Equals(resolved.Sale?.Status, LicenseSaleStatuses.Cancelled, StringComparison.Ordinal),
+            ValidUntilUtc = dbUntil ?? resolved.EncodedValidUntilUtc,
+            TenantId = resolved.Sale?.TenantId,
+            TenantSlug = resolved.Sale?.Tenant?.Slug ?? resolved.Slug,
+            CustomerName = resolved.Issued?.CustomerName ?? resolved.Sale?.Tenant?.Name,
+            SourceTable = resolved.Issued is not null
+                ? "issued_licenses"
+                : resolved.Sale is not null
+                    ? "license_sales"
+                    : null,
+            SourceId = resolved.Issued?.Id ?? resolved.Sale?.Id,
+            Status = resolved.Issued is not null
+                ? (resolved.Issued.IsRevoked ? "revoked" : "issued")
+                : resolved.Sale?.Status,
+        };
+    }
+
     private async Task<string> ResolveCanonicalKeyAsync(string licenseKey, CancellationToken cancellationToken)
     {
         try
         {
+            var upper = licenseKey.Trim().ToUpperInvariant();
             var mapped = await _db.LicenseKeyMappings.AsNoTracking()
-                .Where(m => m.OldLicenseKey == licenseKey || m.NewLicenseKey == licenseKey)
+                .Where(m => m.OldLicenseKey.ToUpper() == upper || m.NewLicenseKey.ToUpper() == upper)
                 .Select(m => m.NewLicenseKey)
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -660,19 +848,136 @@ public sealed class UnifiedLicenseService : IUnifiedLicenseService
         }
     }
 
-    private Task<IssuedLicense?> FindIssuedAsync(string input, string canonical, CancellationToken cancellationToken) =>
-        _db.IssuedLicenses
+    private Task<IssuedLicense?> FindIssuedAsync(string input, string canonical, CancellationToken cancellationToken)
+    {
+        var inputUpper = input.Trim().ToUpperInvariant();
+        var canonicalUpper = canonical.Trim().ToUpperInvariant();
+        return _db.IssuedLicenses
             .FirstOrDefaultAsync(
-                il => il.LicenseKey == canonical || il.LicenseKey == input,
+                il => il.LicenseKey.ToUpper() == canonicalUpper || il.LicenseKey.ToUpper() == inputUpper,
                 cancellationToken);
+    }
 
-    private Task<LicenseSale?> FindSaleAsync(string input, string canonical, CancellationToken cancellationToken) =>
-        _db.LicenseSales
+    private Task<LicenseSale?> FindSaleAsync(string input, string canonical, CancellationToken cancellationToken)
+    {
+        var inputUpper = input.Trim().ToUpperInvariant();
+        var canonicalUpper = canonical.Trim().ToUpperInvariant();
+        return _db.LicenseSales
             .IgnoreQueryFilters()
             .Include(s => s.Tenant)
             .FirstOrDefaultAsync(
-                s => s.LicenseKey == canonical || s.LicenseKey == input,
+                s => s.LicenseKey.ToUpper() == canonicalUpper || s.LicenseKey.ToUpper() == inputUpper,
                 cancellationToken);
+    }
+
+    private async Task InvalidateAfterLicenseChangeAsync(
+        string licenseKey,
+        Guid? tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (_licenseCache is not null)
+        {
+            await _licenseCache.InvalidateAllAsync(licenseKey, cancellationToken).ConfigureAwait(false);
+            if (tenantId is Guid id && id != Guid.Empty)
+            {
+                await _licenseCache.InvalidateForTenantAsync(id, cancellationToken).ConfigureAwait(false);
+            }
+            else if (_keyValidator.IsSystemLicense(licenseKey))
+            {
+                await _licenseCache.InvalidateForSystemAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return;
+        }
+
+        if (tenantId is Guid fallbackId && fallbackId != Guid.Empty)
+        {
+            await _licenseStatusCache
+                .InvalidateLicenseCacheAsync(fallbackId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private async Task TryAuditActivationAsync(
+        UnifiedLicenseActivationContext context,
+        ResolvedLicense resolved,
+        Guid? tenantId,
+        bool success,
+        string? message,
+        string? errorCode,
+        CancellationToken cancellationToken)
+    {
+        if (_auditLog is null)
+            return;
+
+        try
+        {
+            var actionType = success ? AuditEventType.LicenseActivated : AuditEventType.LicenseActivationFailed;
+            var action = success ? AuditLogActions.LICENSE_ACTIVATED : AuditLogActions.LICENSE_ACTIVATION_FAILED;
+            var userId = context.ActorUserId?.ToString("D") ?? "anonymous";
+            await _auditLog.LogSystemOperationAsync(
+                    action,
+                    AuditLogEntityTypes.SYSTEM_CONFIG,
+                    userId,
+                    "System",
+                    description: message,
+                    status: success ? AuditLogStatus.Success : AuditLogStatus.Failed,
+                    requestData: new
+                    {
+                        licenseKeyMasked = LicenseAuditLogMapper.MaskLicenseKey(resolved.CanonicalKey),
+                        tenantId,
+                        userId,
+                        ipAddress = context.ClientInfo?.ClientIp,
+                        timestampUtc = DateTime.UtcNow,
+                        errorCode,
+                    },
+                    actionType: actionType,
+                    tenantId: tenantId)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License activation audit write failed.");
+        }
+
+        _ = cancellationToken;
+    }
+
+    private async Task TryAuditRevokedAsync(
+        UnifiedLicenseDeactivationContext? context,
+        ResolvedLicense resolved,
+        CancellationToken cancellationToken)
+    {
+        if (_auditLog is null)
+            return;
+
+        try
+        {
+            var userId = context?.ActorUserId?.ToString("D") ?? "anonymous";
+            await _auditLog.LogSystemOperationAsync(
+                    AuditLogActions.LICENSE_REVOKED,
+                    AuditLogEntityTypes.SYSTEM_CONFIG,
+                    userId,
+                    "System",
+                    description: "License deactivated.",
+                    requestData: new
+                    {
+                        licenseKeyMasked = LicenseAuditLogMapper.MaskLicenseKey(resolved.CanonicalKey),
+                        tenantId = resolved.Sale?.TenantId,
+                        userId,
+                        timestampUtc = DateTime.UtcNow,
+                    },
+                    actionType: AuditEventType.LicenseRevoked,
+                    tenantId: resolved.Sale?.TenantId)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License revoke audit write failed.");
+        }
+
+        _ = cancellationToken;
+    }
 
     private sealed class ResolvedLicense
     {

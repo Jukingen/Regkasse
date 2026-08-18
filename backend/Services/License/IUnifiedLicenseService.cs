@@ -1,4 +1,5 @@
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminTenants;
 
 namespace KasseAPI_Final.Services.License;
 
@@ -47,5 +48,15 @@ public interface IUnifiedLicenseService
 
     Task<LicenseInfo> GetLicenseInfoAsync(
         string licenseKey,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Read-only preview of a unified REGK key against both <c>issued_licenses</c> and
+    /// <c>license_sales</c>. Pass <paramref name="expectedTenantId"/> for Manager slug checks;
+    /// Super Admin should pass <c>null</c> so a key can be previewed without ambient tenant.
+    /// </summary>
+    Task<LicensePreviewResult> PreviewLicenseAsync(
+        string licenseKey,
+        Guid? expectedTenantId = null,
         CancellationToken cancellationToken = default);
 }

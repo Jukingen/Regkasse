@@ -35,8 +35,10 @@ export interface TseHealthContextValue {
   pendingOfflineQueueCount: number | null;
   estimatedRecoveryTimeUtc: string | null;
   lastErrorMessageSafe: string | null;
+  /** Fiskaly SIGN AT: TEST | LIVE */
+  environment: string | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<PosTseStatusApiResponse | null>;
 }
 
 const TseHealthContext = createContext<TseHealthContextValue | null>(null);
@@ -66,7 +68,7 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
     return id && id !== '00000000-0000-0000-0000-000000000000' ? id : null;
   }, [posReadiness.data?.effectiveRegisterId]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<PosTseStatusApiResponse | null> => {
     setLoading(true);
     try {
       const { body, latencyMs } = await fetchPosTseStatus(cashRegisterId);
@@ -82,9 +84,11 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
         Alert.alert('TSE', 'Ausstehende Offline-Zahlungen wurden signiert oder aktualisiert.');
       }
       prevQueueRef.current = q;
+      return body;
     } catch {
       setPayload(null);
       setLastLatencyMs(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -121,6 +125,7 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
       lastErrorMessageSafe: isDevSimulateTseUnavailable()
         ? 'Entwicklungssimulation: TSE wird als offline behandelt.'
         : (payload?.lastErrorMessageSafe ?? null),
+      environment: payload?.environment?.trim() || null,
       loading,
       refresh,
     };
@@ -145,8 +150,9 @@ export function useTseHealth(): TseHealthContextValue {
       pendingOfflineQueueCount: null,
       estimatedRecoveryTimeUtc: null,
       lastErrorMessageSafe: null,
+      environment: null,
       loading: false,
-      refresh: async () => {},
+      refresh: async () => null,
     };
   }
   return ctx;

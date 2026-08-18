@@ -35,6 +35,7 @@ export interface PosTseStatusApiResponse {
   nonFiscalPendingQueueCount?: number | null;
   estimatedRecoveryTimeUtc?: string | null;
   lastSuccessfulPingUtc?: string | null;
+  environment?: string | null;
 }
 
 function cashRegisterQuery(cashRegisterId?: string | null): string {

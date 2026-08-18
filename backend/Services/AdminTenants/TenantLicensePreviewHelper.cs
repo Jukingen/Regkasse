@@ -186,8 +186,8 @@ internal static class TenantLicensePreviewHelper
             ? "valid"
             : validation.ErrorCode switch
             {
-                "expired" => "expired",
-                "revoked" => "invalid",
+                LicenseKeyErrorCodes.Expired => "expired",
+                LicenseKeyErrorCodes.Revoked => "invalid",
                 _ => "invalid",
             };
 
@@ -203,6 +203,9 @@ internal static class TenantLicensePreviewHelper
             Status: status,
             PlanName: info.LicenseKind,
             ErrorCode: validation.ErrorCode,
-            ErrorMessage: validation.Message);
+            ErrorMessage: validation.Message,
+            LicenseKind: info.LicenseKind,
+            TenantId: info.TenantId,
+            TenantName: info.CustomerName);
     }
 }

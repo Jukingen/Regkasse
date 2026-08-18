@@ -10,6 +10,8 @@ namespace KasseAPI_Final.Middleware;
 
 /// <summary>
 /// FA (frontend-admin) mandant license lockdown / permission restriction.
+/// Super Admin bypasses this gate (system license is sufficient for FA).
+/// Mandanten-Admin (Manager) writes require an active tenant license — a system key does not unlock the mandant.
 /// When the tenant is <see cref="LicenseLifecycleState.Locked"/> or
 /// <see cref="LicenseLifecycleState.Archived"/>:
 /// <list type="bullet">

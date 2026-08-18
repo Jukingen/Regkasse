@@ -140,5 +140,17 @@ public enum AuditEventType
     /// <summary>Development-only Super Admin fiskaly SIGN AT test receipt signed (not a POS payment).</summary>
     FiskalyTestReceiptSigned = 68,
 
+    /// <summary>Unified REGK key activated (deployment or mandant).</summary>
+    LicenseActivated = 69,
+
+    /// <summary>Unified REGK key revoked / deactivated.</summary>
+    LicenseRevoked = 70,
+
+    /// <summary>Unified REGK activation rejected (format, not found, already used, slug mismatch).</summary>
+    LicenseActivationFailed = 71,
+
+    /// <summary>Reserved: Super Admin previewed a key (not written on every FA keystroke).</summary>
+    LicensePreviewed = 72,
+
     Other = 99
 }

@@ -122,6 +122,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/license/dashboard',
     '/admin/license',
     '/admin/license-management',
+    '/admin/license/audit',
     '/admin/licenses',
     '/admin/billing',
     '/admin/billing/sales',

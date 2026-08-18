@@ -19,6 +19,7 @@ export const EXPO_PUBLIC_ENV_KEYS = {
   adminBaseUrl: 'EXPO_PUBLIC_ADMIN_BASE_URL',
   licenseExtensionUrl: 'EXPO_PUBLIC_LICENSE_EXTENSION_URL',
   appSurface: 'EXPO_PUBLIC_APP_SURFACE',
+  environment: 'EXPO_PUBLIC_ENVIRONMENT',
   simulateNetworkDelayMs: 'EXPO_PUBLIC_SIMULATE_NETWORK_DELAY_MS',
 } as const;
 
@@ -34,6 +35,7 @@ export function getExpoPublicEnvSnapshot() {
     adminBaseUrl: trimExpoPublicEnv(process.env.EXPO_PUBLIC_ADMIN_BASE_URL),
     licenseExtensionUrl: trimExpoPublicEnv(process.env.EXPO_PUBLIC_LICENSE_EXTENSION_URL),
     appSurface: trimExpoPublicEnv(process.env.EXPO_PUBLIC_APP_SURFACE),
+    environment: trimExpoPublicEnv(process.env.EXPO_PUBLIC_ENVIRONMENT),
     simulateNetworkDelayMs: trimExpoPublicEnv(process.env.EXPO_PUBLIC_SIMULATE_NETWORK_DELAY_MS),
   };
 }

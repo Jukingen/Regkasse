@@ -4,6 +4,7 @@
   "licenses": "Licenses",
   "licenseStatusDashboard": "License dashboard",
   "licenseGracePeriod": "Grace period overview",
+  "licenseAudit": "License audit",
   "licenseTest": "🧪 License test",
   "licenseDebug": "License debug",
   "platformLicenses": "Tenant licenses",

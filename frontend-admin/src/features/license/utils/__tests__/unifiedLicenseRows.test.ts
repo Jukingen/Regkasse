@@ -7,6 +7,8 @@ import {
   mapLicenseSaleToUnifiedRow,
   mergeUnifiedLicenseRows,
   parseUnifiedLicenseSlug,
+  isLicenseSlugMismatch,
+  resolveLicenseUnlockTarget,
   resolveUnifiedLicenseRowStatus,
 } from '@/features/license/utils/unifiedLicenseRows';
 
@@ -47,10 +49,20 @@ describe('unifiedLicenseRows', () => {
     expect(parseUnifiedLicenseSlug('not-a-key')).toBeNull();
   });
 
+  it('detects unlock target and slug mismatch', () => {
+    expect(resolveLicenseUnlockTarget('REGK-20260819-system-ISNAQ8MG')).toBe('system');
+    expect(resolveLicenseUnlockTarget('REGK-20260819-dev-ABCD1234')).toBe('tenant');
+    expect(resolveLicenseUnlockTarget('legacy')).toBe('unknown');
+    expect(isLicenseSlugMismatch('REGK-20260819-system-ISNAQ8MG', 'dev')).toBe(false);
+    expect(isLicenseSlugMismatch('REGK-20260819-cafe-ABCD1234', 'dev')).toBe(true);
+    expect(isLicenseSlugMismatch('REGK-20260819-dev-ABCD1234', 'dev')).toBe(false);
+    expect(isLicenseSlugMismatch('REGK-20260819-cafe-ABCD1234', null)).toBe(false);
+  });
+
   it('maps issued licenses as system', () => {
     expect(mapIssuedLicenseToUnifiedRow(issued({ isRevoked: true }))).toMatchObject({
       kind: 'system',
-      status: 'expired',
+      status: 'locked',
       slug: 'system',
       displayName: 'Acme GmbH',
     });
@@ -81,6 +93,29 @@ describe('unifiedLicenseRows', () => {
         nowMs: now,
       })
     ).toBe('expired');
+  });
+
+  it('classifies expiring soon, locked (cancelled), and active', () => {
+    const now = Date.parse('2026-08-17T00:00:00Z');
+    expect(
+      resolveUnifiedLicenseRowStatus({
+        validUntilUtc: '2026-09-01T00:00:00Z',
+        nowMs: now,
+      })
+    ).toBe('expiringSoon');
+    expect(
+      resolveUnifiedLicenseRowStatus({
+        validUntilUtc: '2027-01-01T00:00:00Z',
+        nowMs: now,
+      })
+    ).toBe('active');
+    expect(
+      resolveUnifiedLicenseRowStatus({
+        validUntilUtc: '2027-01-01T00:00:00Z',
+        saleStatus: 'cancelled',
+        nowMs: now,
+      })
+    ).toBe('locked');
   });
 
   it('merges, dedupes by key, filters by kind, and searches', () => {

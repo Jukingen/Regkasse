@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Enums;
+using KasseAPI_Final.Services.License;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -119,6 +120,11 @@ public sealed class BillingService : IBillingService
             ValidatePricing(request.PriceNet, request.VatRate);
             var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
             var licenseKey = _licenseKeyGenerator.GenerateUnifiedLicenseKey(validUntil, tenant.Slug);
+            if (!LicenseKeyValidator.Instance.IsValidFormat(licenseKey)
+                || !LicenseKeyValidator.Instance.IsTenantLicense(licenseKey))
+            {
+                throw new InvalidOperationException(LicenseKeyErrorCodes.TenantLicenseExpected);
+            }
 
             var keyExists = await LicenseSalesScope(db)
                 .AnyAsync(l => l.LicenseKey == licenseKey, ct)
