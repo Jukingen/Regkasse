@@ -10,6 +10,7 @@ using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -37,6 +38,14 @@ namespace KasseAPI_Final.Data
             string.IsNullOrWhiteSpace(value)
                 ? Guid.Empty
                 : Guid.TryParse(value, out var parsed) ? parsed : Guid.Empty;
+
+        private static ValueComparer<T> JsonCollectionComparer<T>() where T : class =>
+            new(
+                (left, right) => JsonSerializer.Serialize(left) == JsonSerializer.Serialize(right),
+                value => value == null ? 0 : JsonSerializer.Serialize(value).GetHashCode(StringComparison.Ordinal),
+                value => value == null
+                    ? null!
+                    : JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value))!);
 
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly ILogger<AppDbContext> _logger;
@@ -2756,6 +2765,10 @@ namespace KasseAPI_Final.Data
                     .HasColumnName("remaining_trial_days_added");
                 entity.Property(e => e.TrialConvertedAtUtc)
                     .HasColumnName("trial_converted_at_utc");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<LicenseKeyMapping>(entity =>
@@ -3108,7 +3121,8 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, decimal>() : JsonSerializer.Deserialize<Dictionary<string, decimal>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, decimal>() : JsonSerializer.Deserialize<Dictionary<string, decimal>>(v)!,
+                        JsonCollectionComparer<Dictionary<string, decimal>>());
                 entity.Property(e => e.ReceiptTemplate).HasMaxLength(50);
                 entity.Property(e => e.InvoicePrefix).HasMaxLength(10);
                 entity.Property(e => e.ReceiptPrefix).HasMaxLength(10);
@@ -3122,12 +3136,14 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
+                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v),
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.SmsSettings)
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
+                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v),
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.SessionTimeoutMinutes).HasColumnName("session_timeout_minutes").IsRequired();
                 entity.Property(e => e.SessionWarningBeforeTimeoutMinutes).HasColumnName("session_warning_before_timeout_minutes").IsRequired();
                 entity.Property(e => e.KeepCartAfterTimeout).HasColumnName("keep_cart_after_timeout").IsRequired();
@@ -3248,7 +3264,8 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!,
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.WorkingHours)
                     .HasColumnName("working_hours")
                     .HasColumnType("jsonb")
@@ -3296,19 +3313,22 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!,
+                        JsonCollectionComparer<List<string>>());
                 entity.Property(e => e.DefaultCurrency).IsRequired().HasMaxLength(3);
                 entity.Property(e => e.SupportedCurrencies)
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!,
+                        JsonCollectionComparer<List<string>>());
                 entity.Property(e => e.DefaultTimeZone).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.SupportedTimeZones)
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v)!,
+                        JsonCollectionComparer<List<string>>());
                 entity.Property(e => e.DefaultDateFormat).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.DefaultTimeFormat).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.DefaultDecimalPlaces).IsRequired();
@@ -3317,17 +3337,20 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!,
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.TimeFormatOptions)
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!,
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.CurrencySymbols)
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!);
+                        v => string.IsNullOrEmpty(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v)!,
+                        JsonCollectionComparer<Dictionary<string, string>>());
 
                 entity.HasIndex(e => e.DefaultLanguage);
                 entity.HasIndex(e => e.DefaultCurrency);
@@ -3352,7 +3375,8 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
+                        v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v),
+                        JsonCollectionComparer<Dictionary<string, string>>());
                 entity.Property(e => e.IsDefault).IsRequired();
 
                 entity.HasIndex(e => e.Language);
@@ -3417,7 +3441,8 @@ namespace KasseAPI_Final.Data
                         v => JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v)
                             ? new List<DashboardWidget>()
-                            : JsonSerializer.Deserialize<List<DashboardWidget>>(v) ?? new List<DashboardWidget>());
+                            : JsonSerializer.Deserialize<List<DashboardWidget>>(v) ?? new List<DashboardWidget>(),
+                        JsonCollectionComparer<List<DashboardWidget>>());
                 entity.HasIndex(e => new { e.UserId, e.TenantId }).IsUnique();
                 entity.HasOne<ApplicationUser>()
                     .WithMany()
@@ -3645,7 +3670,8 @@ namespace KasseAPI_Final.Data
 
                 entity.Property(e => e.HealthStatus)
                     .HasColumnName("HealthStatus")
-                    .HasDefaultValue(TseHealthStatus.Healthy);
+                    .HasDefaultValue(TseHealthStatus.Healthy)
+                    .HasSentinel(default(TseHealthStatus));
 
                 entity.Property(e => e.HealthScore)
                     .HasColumnName("HealthScore")
@@ -4613,7 +4639,8 @@ namespace KasseAPI_Final.Data
                     .HasColumnType("jsonb")
                     .HasConversion(
                         v => JsonSerializer.Serialize(v),
-                        v => string.IsNullOrEmpty(v) ? Array.Empty<string>() : JsonSerializer.Deserialize<string[]>(v) ?? Array.Empty<string>())
+                        v => string.IsNullOrEmpty(v) ? Array.Empty<string>() : JsonSerializer.Deserialize<string[]>(v) ?? Array.Empty<string>(),
+                        JsonCollectionComparer<string[]>())
                     .IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
                 entity.HasData(new global::KasseAPI_Final.Models.DevelopmentModeSettings

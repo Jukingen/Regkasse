@@ -56,6 +56,20 @@ public static class Roles
         ComplianceOfficer
     };
 
+    /// <summary>True when <paramref name="role"/> is a seeded system role (matrix-backed; not a custom Identity role).</summary>
+    public static bool IsCanonical(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+            return false;
+        foreach (var canonical in Canonical)
+        {
+            if (string.Equals(canonical, role, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Names that must not be used for custom roles (merged/removed or reserved). Demo reserved: use IsDemo flag only.
     /// Used only for validation: rejecting custom-role creation with these names; not used for authorization.

@@ -40,6 +40,8 @@ import type { GetApiAdminFinanzonlineOutboxParams } from '@/api/generated/model/
 import { CardSkeleton, FormSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { DateColumn } from '@/components/DateColumn';
+import { FinanzOnlineOutboxWorkerSwitch } from '@/features/rksv-operations/components/FinanzOnlineOutboxWorkerSwitch';
+import { FinanzOnlineRuntimeSettingsPanel } from '@/features/rksv-operations/components/FinanzOnlineRuntimeSettingsPanel';
 import { useI18n } from '@/i18n/I18nProvider';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { EMPTY_DATE_DISPLAY, formatUtcDateTime } from '@/lib/dateUtils';
@@ -552,6 +554,18 @@ export default function FinanzOnlineOutboxPage() {
               </Descriptions.Item>
               <Descriptions.Item label={t('finanzOnlineOutbox.readiness.outboxWorker')}>
                 {fmtReadinessBool(readiness.outboxWorkerEnabled)}
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={t('finanzOnlineOutbox.workerSwitch.label')}
+                span={2}
+              >
+                <FinanzOnlineOutboxWorkerSwitch />
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={t('finanzOnlineOutbox.runtime.title')}
+                span={2}
+              >
+                <FinanzOnlineRuntimeSettingsPanel />
               </Descriptions.Item>
               <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioConfigured')}>
                 {readiness.configuredSimulationScenario?.trim() || emDash}

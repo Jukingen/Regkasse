@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
@@ -138,7 +139,7 @@ public class TokenClaimsServiceRoleClaimTests
     }
 
     [Fact]
-    public async Task BuildClaimsAsync_Manager_Still_Emits_Filtered_Permission_Catalog()
+    public async Task BuildClaimsAsync_Manager_Omits_Permission_Catalog()
     {
         var managerPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
         var resolver = new MockEffectivePermissionResolver(managerPerms);
@@ -163,13 +164,24 @@ public class TokenClaimsServiceRoleClaimTests
             .Select(c => c.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        Assert.True(permClaims.Count > 1);
-        Assert.DoesNotContain(AppPermissions.SystemCritical, permClaims);
-        Assert.Contains(AppPermissions.UserView, permClaims);
+        Assert.Empty(permClaims);
+        Assert.Contains(claims, c => c.Type == "role" && c.Value == Roles.Manager);
+        Assert.Contains(claims, c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == user.Id);
+        Assert.DoesNotContain(claims, c => c.Type == "roles");
+        Assert.DoesNotContain(claims, c => c.Type.Contains("schemas.xmlsoap.org", StringComparison.Ordinal));
+        Assert.Contains(claims, c => c.Type == ClientAppPolicy.AppContextClaimType && c.Value == ClientAppPolicy.Admin);
+        Assert.True(
+            PermissionClaimHelper.PrincipalHasAppPermission(
+                new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")),
+                AppPermissions.UserView));
+        Assert.False(
+            PermissionClaimHelper.PrincipalHasAppPermission(
+                new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")),
+                AppPermissions.PaymentTake));
     }
 
     [Fact]
-    public async Task BuildClaimsAsync_Admin_Cashier_StripsPosPermissionsFromJwt()
+    public async Task BuildClaimsAsync_Admin_Cashier_Omits_PosWrite_Permissions()
     {
         var cashierPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
         var resolver = new MockEffectivePermissionResolver(cashierPerms);
@@ -190,10 +202,11 @@ public class TokenClaimsServiceRoleClaimTests
             appContext: ClientAppPolicy.Admin);
 
         var permClaims = claims.Where(c => c.Type == PermissionCatalog.PermissionClaimType).Select(c => c.Value).ToList();
-        Assert.Contains(AppPermissions.ProductView, permClaims);
-        Assert.Contains(AppPermissions.ReportView, permClaims);
-        Assert.DoesNotContain(AppPermissions.TableView, permClaims);
-        Assert.DoesNotContain(AppPermissions.TseSign, permClaims);
+        Assert.Empty(permClaims);
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
+        Assert.True(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.ProductView));
+        Assert.False(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.TseSign));
+        Assert.False(PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.PaymentTake));
     }
 
     private sealed class MockEffectivePermissionResolver : IEffectivePermissionResolver

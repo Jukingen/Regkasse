@@ -17,10 +17,12 @@ public static class FinanzOnlineTransportStartupDiagnostics
         var logger = sp.GetRequiredService<ILoggerFactory>()
             .CreateLogger("FinanzOnline.TransportStartup");
 
-        var session = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
-        var reg = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
-        var tx = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
-        var outbox = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue;
+        var runtime = sp.GetService<FinanzOnlineRuntimeOptionsAccessor>();
+        var session = runtime?.Session ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
+        var reg = runtime?.Registrierkassen ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+        var tx = runtime?.TransmissionQuery ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
+        var outbox = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue
+            .WithEffectiveEnabled(sp.GetService<FinanzOnlineOutboxEnabledOverrideCache>());
         var cutover = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>().CurrentValue;
         var modeOpts = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineModeOptions>>().CurrentValue;
         var connectivity = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineConnectivityOptions>>().CurrentValue;

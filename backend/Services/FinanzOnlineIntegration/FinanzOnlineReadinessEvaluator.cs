@@ -229,13 +229,15 @@ public static class FinanzOnlineReadinessEvaluator
 
         if (!outbox.Enabled)
         {
+            var development = hostEnvironment?.IsDevelopment() == true;
             findings.Add(new FinanzOnlineReadinessFindingDto
             {
-                Severity = "Error",
+                Severity = development ? "Warning" : "Error",
                 Code = "FO_READINESS_OUTBOX_DISABLED",
                 Category = "Outbox",
-                Message =
-                    "FinanzOnlineOutbox:Enabled is false — the outbox background processor is not running and queued FinanzOnline messages will not advance. Action: set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline.",
+                Message = development
+                    ? "FinanzOnlineOutbox:Enabled is false — expected in Development (outbox worker is not running). Set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline."
+                    : "FinanzOnlineOutbox:Enabled is false — the outbox background processor is not running and queued FinanzOnline messages will not advance. Action: set FinanzOnlineOutbox:Enabled=true in production environments that rely on the SOAP pipeline.",
             });
         }
 
@@ -425,11 +427,14 @@ public static class FinanzOnlineReadinessEvaluator
     {
         using var scope = rootServices.CreateScope();
         var sp = scope.ServiceProvider;
+        var outbox = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue
+            .WithEffectiveEnabled(sp.GetService<FinanzOnlineOutboxEnabledOverrideCache>());
+        var runtime = sp.GetService<FinanzOnlineRuntimeOptionsAccessor>();
         return Evaluate(
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue,
-            sp.GetRequiredService<IOptionsMonitor<FinanzOnlineOutboxOptions>>().CurrentValue,
+            runtime?.Session ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue,
+            runtime?.Registrierkassen ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue,
+            runtime?.TransmissionQuery ?? sp.GetRequiredService<IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue,
+            outbox,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineConnectivityOptions>>().CurrentValue,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineDevTestOptions>>().CurrentValue,
             sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSimulationOptions>>().CurrentValue,

@@ -25,6 +25,40 @@ export type TenantListItemForSwitcher = {
   source: AdminTenantListItem;
 };
 
+/** Seeded local DX tenants shown in the development header switcher. */
+export const DEVELOPMENT_TENANTS = ['dev', 'development'] as const;
+
+/** Sentinel / leftover demo tenants that must stay hidden in the development switcher. */
+export const TEST_TENANTS = ['platform', 'test-bar', 'test-cafe'] as const;
+
+const TEST_TENANT_SLUGS = new Set<string>([...TEST_TENANTS, 'bar', 'cafe']);
+
+function normalizeSwitcherSlug(slug: string): string {
+  return slug.trim().toLowerCase().replace(/_/g, '-');
+}
+
+export function isTestTenantSlug(slug: string): boolean {
+  return TEST_TENANT_SLUGS.has(normalizeSwitcherSlug(slug));
+}
+
+/**
+ * Development switcher visibility: only active `dev` / `development` seeds.
+ * Production builds keep all non-test tenants (switcher itself is still local-only).
+ */
+export function isDevelopmentTenant(
+  slug: string,
+  nodeEnv: string | undefined = process.env.NODE_ENV
+): boolean {
+  const normalized = normalizeSwitcherSlug(slug);
+  if (isTestTenantSlug(normalized)) {
+    return false;
+  }
+  if (nodeEnv === 'development') {
+    return (DEVELOPMENT_TENANTS as readonly string[]).includes(normalized);
+  }
+  return true;
+}
+
 function mapTenantForSwitcher(row: AdminTenantListItem): TenantListItemForSwitcher {
   const license = resolveTenantLicenseLabel(
     row.licenseValidUntilUtc,
@@ -47,8 +81,8 @@ function mapTenantForSwitcher(row: AdminTenantListItem): TenantListItemForSwitch
 
 /**
  * Tenants for the dev header switcher.
- * Super Admin: all non-deleted tenants from the database.
- * Other users: tenants with an active membership (backend-filtered).
+ * Super Admin: seeded development tenants (`dev`); platform / Test Bar / Test Cafe are hidden.
+ * Other users: tenants with an active membership (backend-filtered), then the same DX filter.
  */
 export function useTenantListForSwitcher(options?: { includeDeleted?: boolean }) {
   const { user } = useAuth();
@@ -64,11 +98,11 @@ export function useTenantListForSwitcher(options?: { includeDeleted?: boolean })
   );
 
   const tenants = useMemo(() => {
-    // Default tenant is excluded as it's not used in development (backend also filters; safety net).
     return (query.data ?? [])
-      .filter((row) => row.slug !== 'platform')
+      .filter((row) => includeDeleted || row.isActive)
+      .filter((row) => isDevelopmentTenant(row.slug))
       .map(mapTenantForSwitcher);
-  }, [query.data]);
+  }, [includeDeleted, query.data]);
 
   return {
     tenants,

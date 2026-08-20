@@ -476,5 +476,11 @@
     "monthlyGrowth": "Aylık değişim",
     "averageTicket": "Ort. fiş",
     "revenue": "Ciro"
+  },
+  "handyLinks": {
+    "title": "Yararlı bağlantılar",
+    "subtitle": "Kasa yönetimi ve diğer araçlara kısayollar.",
+    "recentTitle": "Son kullanılanlar",
+    "recentEmpty": "Henüz açılmış bir sayfa yok."
   }
 }

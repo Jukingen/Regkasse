@@ -90,6 +90,24 @@ export function resolveTenantLabel(reg: EnhancedCashRegister): string {
   );
 }
 
+export function normalizeTenantId(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toLowerCase() : undefined;
+}
+
+/** True when a selected register belongs to a different mandant than the ambient JWT/header tenant. */
+export function isSonderbelegeRegisterTenantMismatch(
+  register: Pick<EnhancedCashRegister, 'tenantId'> | null | undefined,
+  ambientTenantId: string | null | undefined
+): boolean {
+  const registerTenantId = normalizeTenantId(register?.tenantId ? String(register.tenantId) : undefined);
+  const ambient = normalizeTenantId(ambientTenantId);
+  if (!registerTenantId || !ambient) {
+    return false;
+  }
+  return registerTenantId !== ambient;
+}
+
 export function resolveRegisterName(reg: EnhancedCashRegister): string {
   return reg.location?.trim() || formatRegisterDisplayLabel(reg.registerNumber);
 }

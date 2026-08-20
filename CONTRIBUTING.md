@@ -60,7 +60,8 @@ From the **repository root**:
 |---------|----------------|
 | `npm run dev` | **Default (RAM-safe):** backend + admin in parallel; cleans orphan Next/Expo workers first |
 | `npm run dev:all` | Full stack in parallel (backend, admin, POS, sites) — high RAM |
-| `npm run dev:cleanup` | Kill orphan Regkasse Next/Expo `node` workers (Windows RAM leak) |
+| `npm run dev:cleanup` | Kill leftover Regkasse Next/Expo `node` workers (Windows RAM leak) |
+| `npm run dev:cleanup:orphans` | Kill only `.next/dev/build` workers (safe while Admin/POS already run) |
 | `npm run dev:workspaces` | Native `npm run dev --workspaces` (sequential; blocks on first server) |
 | `npm run build` / `test` / `lint` | All workspaces via `npm run … --workspaces --if-present` |
 | `make <target>` / `just <recipe>` | Same orchestration — [`Makefile`](Makefile) / [`Justfile`](Justfile) (`dev`, `build`, `test`, `lint`, `clean`, `docker-up`, …) |
@@ -202,7 +203,7 @@ cd frontend && npm run lint && npm run typecheck
 Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`.
 
 - **`build` / `test` / `lint`:** `npm run <script> --workspaces --if-present`
-- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS+sites too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
+- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS+sites too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. Admin/Sites cap webpack workers (`experimental.cpus: 2`) so 24-thread hosts do not exhaust RAM. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
 - **`.npmrc`:** `legacy-peer-deps=true` for Expo / TypeScript peer ranges
 - Apps may still keep local `node_modules`; prefer `npm install` from the repo root after clone
 

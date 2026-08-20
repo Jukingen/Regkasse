@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace KasseAPI_Final.Services;
@@ -20,10 +22,12 @@ public interface IJwtAccessTokenIssuer
 public sealed class JwtAccessTokenIssuer : IJwtAccessTokenIssuer
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<JwtAccessTokenIssuer> _logger;
 
-    public JwtAccessTokenIssuer(IConfiguration configuration)
+    public JwtAccessTokenIssuer(IConfiguration configuration, ILogger<JwtAccessTokenIssuer>? logger = null)
     {
         _configuration = configuration;
+        _logger = logger ?? NullLogger<JwtAccessTokenIssuer>.Instance;
     }
 
     public string IssueToken(IReadOnlyList<Claim> claims, string jti, Guid sessionId, DateTime expiresAtUtc)
@@ -42,7 +46,9 @@ public sealed class JwtAccessTokenIssuer : IJwtAccessTokenIssuer
             expires: expiresAtUtc,
             signingCredentials: creds);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var encoded = new JwtSecurityTokenHandler().WriteToken(token);
+        JwtCookieBudget.LogIfExceeded(_logger, encoded, _configuration);
+        return encoded;
     }
 
     public Task<bool> ValidateTokenAsync(string token, CancellationToken cancellationToken = default)

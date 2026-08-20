@@ -5,6 +5,7 @@ import {
   compareSonderbelegeRegisters,
   formatSonderbelegeRegisterLabel,
   groupRegistersByTenant,
+  isSonderbelegeRegisterTenantMismatch,
   resolveSonderbelegeStatusKey,
 } from '@/features/rksv-operations/utils/sonderbelegeRegisterDisplay';
 
@@ -95,5 +96,13 @@ describe('sonderbelegeRegisterDisplay', () => {
     expect(groups[0]?.tenantName).toBe('Dev');
     expect(groups[0]?.registers.map((r) => r.registerNumber)).toEqual(['001', '002']);
     expect(groups[1]?.registers).toHaveLength(1);
+  });
+
+  it('detects register vs ambient tenant mismatch', () => {
+    const register = reg({ id: '1', tenantId: 'Tenant-A', registerNumber: '001' });
+    expect(isSonderbelegeRegisterTenantMismatch(register, 'tenant-a')).toBe(false);
+    expect(isSonderbelegeRegisterTenantMismatch(register, 'tenant-b')).toBe(true);
+    expect(isSonderbelegeRegisterTenantMismatch(register, undefined)).toBe(false);
+    expect(isSonderbelegeRegisterTenantMismatch(undefined, 'tenant-a')).toBe(false);
   });
 });

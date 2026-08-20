@@ -135,6 +135,22 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
+    public async Task PermissionPolicy_PaymentTake_Denies_Compact_Admin_Cashier_Jwt()
+    {
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim("userId", "user-id"));
+        identity.AddClaim(new Claim("role", Roles.Cashier));
+        identity.AddClaim(new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin));
+        var user = new ClaimsPrincipal(identity);
+
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.PaymentTake));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public async Task PermissionPolicy_AuditCleanup_Allows_SuperAdmin_Role()
     {
         var provider = BuildAuthorizationServices();

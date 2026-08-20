@@ -33,6 +33,7 @@ import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
   type TenantListItemForSwitcher,
   filterTenantSwitcherItems,
+  isDevelopmentTenant,
   tenantNeedsNoAdminWarning,
   useTenantListForSwitcher,
 } from '@/features/tenancy/hooks/useTenantListForSwitcher';
@@ -216,8 +217,8 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
   );
 
   /**
-   * Development DX: prefer `dev` mandant when Super Admin has no active context yet,
-   * or when JWT/bootstrap still points at unused legacy `default`.
+   * Development DX: prefer `dev` when Super Admin has no usable context yet,
+   * or when JWT/bootstrap still points at platform / Test Bar / Test Cafe.
    * Production/Staging: no auto-redirect — JWT tenant after login; switcher is hidden.
    */
   useEffect(() => {
@@ -235,8 +236,8 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const hasUsableContext =
       Boolean(apiTenant?.id || currentTenantId) &&
       currentSlug !== '' &&
-      currentSlug !== 'platform' &&
-      currentSlug !== 'admin';
+      currentSlug !== 'admin' &&
+      isDevelopmentTenant(currentSlug);
     if (hasUsableContext) {
       return;
     }

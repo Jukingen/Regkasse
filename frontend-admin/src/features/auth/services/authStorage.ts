@@ -21,6 +21,14 @@ const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
  * Do not rename without updating the Edge proxy.
  */
 export const ACCESS_TOKEN_COOKIE_NAME = 'rk_admin_access_token';
+/**
+ * Compact presence cookie for Edge `proxy.ts` when the JWT cookie exceeds ~4KB
+ * (Manager permission claims). Value is not a secret — AuthGate still validates via /me.
+ */
+export const EDGE_SESSION_COOKIE_NAME = 'rk_admin_edge_session';
+
+/** Keep JWT cookie under typical browser 4KB name+value limit; otherwise only the compact cookie is written. */
+export const MAX_ACCESS_TOKEN_COOKIE_CHARS = 3500;
 
 let accessTokenMemory: string | null = null;
 
@@ -39,8 +47,17 @@ function writeAccessTokenCookie(jwt: string): void {
   const secure =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
   const maxAgeSec = 60 * 60 * 24 * 7;
-  // encodeURIComponent keeps JWT safe in Cookie headers; Next.js cookie reader decodes.
-  document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encodeURIComponent(jwt)}; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
+  const encoded = encodeURIComponent(jwt);
+  const jwtCookieSize = ACCESS_TOKEN_COOKIE_NAME.length + 1 + encoded.length;
+  if (jwtCookieSize <= MAX_ACCESS_TOKEN_COOKIE_CHARS) {
+    // encodeURIComponent keeps JWT safe in Cookie headers; Next.js cookie reader decodes.
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encoded}; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
+  } else {
+    // Oversized JWT would be dropped or truncated by the browser and poison proxy.ts.
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+  }
+  // Short cookie survives the ~4KB-per-cookie browser limit if the JWT cookie is omitted.
+  document.cookie = `${EDGE_SESSION_COOKIE_NAME}=1; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
 }
 
 function clearAccessTokenCookie(): void {
@@ -50,6 +67,7 @@ function clearAccessTokenCookie(): void {
   const secure =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+  document.cookie = `${EDGE_SESSION_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
 }
 
 /** Reads `rk_admin_access_token` from `document.cookie` (decoded). */

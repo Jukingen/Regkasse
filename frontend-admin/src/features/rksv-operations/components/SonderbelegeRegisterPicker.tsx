@@ -10,6 +10,7 @@ import {
   compareSonderbelegeRegisters,
   formatSonderbelegeRegisterLabel,
   groupRegistersByTenant,
+  isSonderbelegeRegisterTenantMismatch,
   resolveRegisterName,
   resolveTenantLabel,
   sonderbelegeStatusVisual,
@@ -22,12 +23,14 @@ export type SonderbelegeRegisterPickerProps = {
   loading?: boolean;
   registerId?: string;
   onRegisterChange: (registerId: string | undefined) => void;
-  /** Super Admin: show tenant filter; Manager: omitted. */
+  /** Super Admin: show tenant switcher (rebind), not a cross-tenant list filter. */
   showTenantFilter?: boolean;
   tenants: Array<{ id: string; name: string; slug: string }>;
   tenantsLoading?: boolean;
-  tenantFilterId?: string;
-  onTenantFilterChange: (tenantId: string | undefined) => void;
+  /** Ambient JWT/header tenant — Select value and mismatch checks. */
+  ambientTenantId?: string;
+  onTenantSwitchRequest?: (tenantId: string) => void;
+  onRegisterTenantMismatch?: (register: EnhancedCashRegister) => void;
 };
 
 function statusLabelKey(key: string): string {
@@ -42,8 +45,9 @@ export function SonderbelegeRegisterPicker({
   showTenantFilter = false,
   tenants,
   tenantsLoading = false,
-  tenantFilterId,
-  onTenantFilterChange,
+  ambientTenantId,
+  onTenantSwitchRequest,
+  onRegisterTenantMismatch,
 }: SonderbelegeRegisterPickerProps) {
   const { t } = useI18n();
 
@@ -57,7 +61,7 @@ export function SonderbelegeRegisterPicker({
     [sortedRegisters]
   );
 
-  const showGroupedBrowser = showTenantFilter && tenantGroups.length > 1 && !tenantFilterId;
+  const showGroupedBrowser = showTenantFilter && tenantGroups.length > 1;
 
   const statusText = useCallback(
     (status: number | undefined) => {
@@ -72,6 +76,22 @@ export function SonderbelegeRegisterPicker({
     [t]
   );
 
+  const handleRegisterSelect = useCallback(
+    (nextId: string | undefined) => {
+      if (!nextId) {
+        onRegisterChange(undefined);
+        return;
+      }
+      const selected = registers.find((row) => String(row.id) === String(nextId));
+      if (selected && isSonderbelegeRegisterTenantMismatch(selected, ambientTenantId)) {
+        onRegisterTenantMismatch?.(selected);
+        return;
+      }
+      onRegisterChange(nextId);
+    },
+    [ambientTenantId, onRegisterChange, onRegisterTenantMismatch, registers]
+  );
+
   const tenantFilterOptions = useMemo(
     () =>
       tenants.map((row) => ({
@@ -82,8 +102,6 @@ export function SonderbelegeRegisterPicker({
   );
 
   const selectOptions = useMemo(() => {
-    const includeTenantInLabel = showTenantFilter && !tenantFilterId;
-
     if (showGroupedBrowser) {
       return tenantGroups.map((group) => ({
         label: t('rksvHub.sonderbelege.tenantGroupLabel', {
@@ -108,6 +126,7 @@ export function SonderbelegeRegisterPicker({
             statusEmoji: visual.emoji,
             statusColor: visual.color,
             statusLabel: statusText(status),
+            tenantLabel: resolveTenantLabel(reg),
           };
         }),
       }));
@@ -118,9 +137,7 @@ export function SonderbelegeRegisterPicker({
       const visual = sonderbelegeStatusVisual(status);
       return {
         value: String(reg.id),
-        label: formatSonderbelegeRegisterLabel(reg, {
-          includeTenant: includeTenantInLabel,
-        }),
+        label: formatSonderbelegeRegisterLabel(reg, { includeTenant: false }),
         searchText: [
           formatRegisterDisplayLabel(reg.registerNumber),
           resolveRegisterName(reg),
@@ -133,17 +150,10 @@ export function SonderbelegeRegisterPicker({
         statusEmoji: visual.emoji,
         statusColor: visual.color,
         statusLabel: statusText(status),
+        tenantLabel: resolveTenantLabel(reg),
       };
     });
-  }, [
-    showGroupedBrowser,
-    showTenantFilter,
-    sortedRegisters,
-    statusText,
-    t,
-    tenantFilterId,
-    tenantGroups,
-  ]);
+  }, [showGroupedBrowser, sortedRegisters, statusText, t, tenantGroups]);
 
   const tableColumns: ColumnsType<EnhancedCashRegister> = useMemo(
     () => [
@@ -168,7 +178,12 @@ export function SonderbelegeRegisterPicker({
         title: t('rksvHub.sonderbelege.registerName'),
         key: 'name',
         ellipsis: true,
-        render: (_, row) => resolveRegisterName(row),
+        render: (_, row) => (
+          <Space size={6} wrap>
+            <span>{resolveRegisterName(row)}</span>
+            <Tag>{resolveTenantLabel(row)}</Tag>
+          </Space>
+        ),
       },
       {
         title: t('rksvHub.sonderbelege.statusColumn'),
@@ -208,17 +223,17 @@ export function SonderbelegeRegisterPicker({
               selectedRowKeys: registerId ? [registerId] : [],
               onChange: (keys) => {
                 const next = keys[0];
-                onRegisterChange(next != null ? String(next) : undefined);
+                handleRegisterSelect(next != null ? String(next) : undefined);
               },
             }}
             onRow={(row) => ({
-              onClick: () => onRegisterChange(String(row.id)),
+              onClick: () => handleRegisterSelect(String(row.id)),
               style: { cursor: 'pointer' },
             })}
           />
         ),
       })),
-    [onRegisterChange, registerId, t, tableColumns, tenantGroups]
+    [handleRegisterSelect, registerId, t, tableColumns, tenantGroups]
   );
 
   const defaultCollapseKeys = useMemo(() => {
@@ -228,7 +243,6 @@ export function SonderbelegeRegisterPicker({
       );
       if (group) return [group.tenantId];
     }
-    // Expand tenants with few registers; collapse large groups by default beyond first.
     return tenantGroups
       .filter((g) => g.registers.length <= 5)
       .slice(0, 3)
@@ -241,16 +255,15 @@ export function SonderbelegeRegisterPicker({
         <div>
           <Typography.Text strong>{t('rksvHub.sonderbelege.filterByTenant')}</Typography.Text>
           <Select
-            allowClear
             showSearch
             optionFilterProp="label"
-            placeholder={t('rksvHub.sonderbelege.allTenants')}
+            placeholder={t('rksvHub.sonderbelege.filterByTenant')}
             style={{ width: '100%', marginTop: 8 }}
             loading={tenantsLoading}
-            value={tenantFilterId}
+            value={ambientTenantId}
             onChange={(value) => {
               const next = typeof value === 'string' && value.trim() ? value.trim() : undefined;
-              onTenantFilterChange(next);
+              if (next) onTenantSwitchRequest?.(next);
             }}
             options={tenantFilterOptions}
           />
@@ -266,7 +279,7 @@ export function SonderbelegeRegisterPicker({
           style={{ width: '100%', marginTop: 8 }}
           loading={loading}
           value={registerId}
-          onChange={(v) => onRegisterChange(v)}
+          onChange={(v) => handleRegisterSelect(v)}
           options={selectOptions}
           optionFilterProp="searchText"
           optionRender={(option) => {
@@ -275,10 +288,14 @@ export function SonderbelegeRegisterPicker({
               statusEmoji?: string;
               statusColor?: string;
               statusLabel?: string;
+              tenantLabel?: string;
             };
             return (
               <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                <span>{data.label}</span>
+                <Space size={6} wrap>
+                  <span>{data.label}</span>
+                  {data.tenantLabel ? <Tag>{data.tenantLabel}</Tag> : null}
+                </Space>
                 {data.statusLabel ? (
                   <Tag color={data.statusColor ?? 'default'} style={{ marginInlineEnd: 0 }}>
                     {data.statusEmoji} {data.statusLabel}
@@ -290,9 +307,16 @@ export function SonderbelegeRegisterPicker({
           labelRender={(props) => {
             const selected = sortedRegisters.find((r) => String(r.id) === String(props.value));
             if (!selected) return props.label;
-            return formatSonderbelegeRegisterLabel(selected, {
-              includeTenant: showTenantFilter,
-            });
+            return (
+              <Space size={6}>
+                <span>
+                  {formatSonderbelegeRegisterLabel(selected, {
+                    includeTenant: false,
+                  })}
+                </span>
+                <Tag>{resolveTenantLabel(selected)}</Tag>
+              </Space>
+            );
           }}
         />
       </div>
@@ -320,11 +344,11 @@ export function SonderbelegeRegisterPicker({
             selectedRowKeys: registerId ? [registerId] : [],
             onChange: (keys) => {
               const next = keys[0];
-              onRegisterChange(next != null ? String(next) : undefined);
+              handleRegisterSelect(next != null ? String(next) : undefined);
             },
           }}
           onRow={(row) => ({
-            onClick: () => onRegisterChange(String(row.id)),
+            onClick: () => handleRegisterSelect(String(row.id)),
             style: { cursor: 'pointer' },
           })}
         />

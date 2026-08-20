@@ -30,7 +30,7 @@ import {
 } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { CashRegister } from '@/api/generated/model';
 import styles from '@/app/(protected)/kassenverwaltung/kassenverwaltung.module.css';
@@ -173,6 +173,16 @@ export default function AdminCashRegistersPage() {
       })),
     [tenants, t]
   );
+
+  useEffect(() => {
+    if (selectedTenantId || tenants.length === 0) {
+      return;
+    }
+    const fromSession = user?.tenantId?.trim();
+    if (fromSession && tenants.some((row) => row.id === fromSession)) {
+      setSelectedTenantId(fromSession);
+    }
+  }, [selectedTenantId, tenants, user?.tenantId]);
 
   const selectedTenant = useMemo(
     () => tenants.find((row) => row.id === selectedTenantId) ?? null,
@@ -769,6 +779,11 @@ export default function AdminCashRegistersPage() {
             showIcon
             title={t('cashRegisters.errors.loadFailed')}
             style={{ marginBottom: 16 }}
+            action={
+              <Button size="small" onClick={() => void refetchRegisters()}>
+                {t('cashRegisters.actions.refresh')}
+              </Button>
+            }
           />
         ) : (
           <>

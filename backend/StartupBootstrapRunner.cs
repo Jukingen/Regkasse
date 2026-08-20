@@ -43,6 +43,7 @@ namespace KasseAPI_Final
             await VerifyCriticalAuthSchemaAsync(context);
 
             await VerifyCriticalCatalogSchemaAsync(context);
+            await VerifyCriticalTseSchemaAsync(context);
 
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -87,23 +88,50 @@ namespace KasseAPI_Final
             Console.WriteLine("Database seeding completed successfully");
         }
 
+        private static async Task<bool> TableExistsAsync(AppDbContext db, string tableName)
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "select to_regclass(@t) is not null";
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@t";
+            p.Value = tableName;
+            cmd.Parameters.Add(p);
+            var result = await cmd.ExecuteScalarAsync();
+            return result is bool b && b;
+        }
+
+        private static async Task<bool> ColumnExistsAsync(AppDbContext db, string table, string column)
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = @table
+                      AND column_name = @column
+                )
+                """;
+            var tableParam = cmd.CreateParameter();
+            tableParam.ParameterName = "@table";
+            tableParam.Value = table;
+            cmd.Parameters.Add(tableParam);
+            var columnParam = cmd.CreateParameter();
+            columnParam.ParameterName = "@column";
+            columnParam.Value = column;
+            cmd.Parameters.Add(columnParam);
+            var result = await cmd.ExecuteScalarAsync();
+            return result is bool b && b;
+        }
+
         private static async Task VerifyCriticalAuthSchemaAsync(AppDbContext context)
         {
-            static async Task<bool> TableExistsAsync(AppDbContext db, string tableName)
-            {
-                var conn = db.Database.GetDbConnection();
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync();
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = "select to_regclass(@t) is not null";
-                var p = cmd.CreateParameter();
-                p.ParameterName = "@t";
-                p.Value = tableName;
-                cmd.Parameters.Add(p);
-                var result = await cmd.ExecuteScalarAsync();
-                return result is bool b && b;
-            }
-
             var hasAuthSessions = await TableExistsAsync(context, "public.auth_sessions");
             var hasRefreshTokens = await TableExistsAsync(context, "public.refresh_tokens");
 
@@ -122,33 +150,6 @@ namespace KasseAPI_Final
         /// </summary>
         private static async Task VerifyCriticalCatalogSchemaAsync(AppDbContext context)
         {
-            static async Task<bool> ColumnExistsAsync(AppDbContext db, string table, string column)
-            {
-                var conn = db.Database.GetDbConnection();
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync();
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_schema = 'public'
-                          AND table_name = @table
-                          AND column_name = @column
-                    )
-                    """;
-                var tableParam = cmd.CreateParameter();
-                tableParam.ParameterName = "@table";
-                tableParam.Value = table;
-                cmd.Parameters.Add(tableParam);
-                var columnParam = cmd.CreateParameter();
-                columnParam.ParameterName = "@column";
-                columnParam.Value = column;
-                cmd.Parameters.Add(columnParam);
-                var result = await cmd.ExecuteScalarAsync();
-                return result is bool b && b;
-            }
-
             var hasCategoryFiscal = await ColumnExistsAsync(context, "categories", "fiscal_category");
             var hasCategoryKey = await ColumnExistsAsync(context, "categories", "category_key");
             var hasProductNameDe = await ColumnExistsAsync(context, "products", "name_de");
@@ -161,6 +162,22 @@ namespace KasseAPI_Final
             throw new InvalidOperationException(
                 "Critical catalog schema missing. " +
                 $"categories.fiscal_category={hasCategoryFiscal}, categories.category_key={hasCategoryKey}, products.name_de={hasProductNameDe}. " +
+                $"Connection={safeConn}. From the backend folder run: dotnet ef database update --project KasseAPI_Final.csproj");
+        }
+
+        /// <summary>
+        /// TSE health samples must include <c>response_time_ms</c> (SLA / trend jobs). Fail fast if the
+        /// ghost migration was skipped while later snapshot migrations were already applied.
+        /// </summary>
+        private static async Task VerifyCriticalTseSchemaAsync(AppDbContext context)
+        {
+            if (await ColumnExistsAsync(context, "tse_device_health_samples", "response_time_ms"))
+                return;
+
+            var conn = context.Database.GetDbConnection().ConnectionString ?? "(empty)";
+            var safeConn = System.Text.RegularExpressions.Regex.Replace(conn, @"Password=[^;]*", "Password=***");
+            throw new InvalidOperationException(
+                "Critical TSE schema missing: tse_device_health_samples.response_time_ms. " +
                 $"Connection={safeConn}. From the backend folder run: dotnet ef database update --project KasseAPI_Final.csproj");
         }
     }

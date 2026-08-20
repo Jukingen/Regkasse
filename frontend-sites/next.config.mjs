@@ -11,6 +11,18 @@ const monorepoRoot = path.resolve(__dirname, '..');
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: monorepoRoot,
+  experimental: {
+    // Cap webpack workers on high-core Windows hosts (same as frontend-admin).
+    cpus: 2,
+    webpackMemoryOptimizations: true,
+    webpackBuildWorker: true,
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.parallelism = 2;
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

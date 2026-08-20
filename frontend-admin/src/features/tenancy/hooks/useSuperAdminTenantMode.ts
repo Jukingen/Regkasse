@@ -18,6 +18,7 @@ export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
   '/admin/license-management',
   '/admin/system',
   '/admin/digital',
+  '/admin/cash-registers',
 ] as const;
 
 export function isPathAllowedWithoutTenant(pathname: string | null | undefined): boolean {

@@ -476,5 +476,11 @@
     "monthlyGrowth": "Month-over-month",
     "averageTicket": "Avg. ticket",
     "revenue": "Revenue"
+  },
+  "handyLinks": {
+    "title": "Useful links",
+    "subtitle": "Shortcuts to cash register management and other tools.",
+    "recentTitle": "Recently used",
+    "recentEmpty": "No recently opened pages yet."
   }
 }

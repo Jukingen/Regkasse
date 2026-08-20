@@ -8,6 +8,7 @@ import {
   Card,
   Col,
   DatePicker,
+  Empty,
   Input,
   Modal,
   Row,
@@ -29,6 +30,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReceiptListItemDto } from '@/api/generated/model';
 import { getApiReceiptsList } from '@/api/generated/receipts/receipts';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { dateColumnRender } from '@/components/DateColumn';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { rawRegisterStatus as rawCashRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
@@ -43,6 +46,7 @@ import { SonderbelegeRegisterPicker } from '@/features/rksv-operations/component
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
 import {
   formatSonderbelegeRegisterLabel,
+  isSonderbelegeRegisterTenantMismatch,
   sonderbelegeStatusVisual,
 } from '@/features/rksv-operations/utils/sonderbelegeRegisterDisplay';
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
@@ -57,11 +61,14 @@ import {
 } from '@/features/rksv/hooks/useMonatsbeleg';
 import type { ReceiptLateCreationFields } from '@/features/rksv/types/receiptLateCreation';
 import { receiptIsLateCreated } from '@/features/rksv/types/receiptLateCreation';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
+import { switchDevTenantContext } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { useNotify } from '@/hooks/useNotify';
+import { useTenant } from '@/hooks/useTenant';
 import { useI18n } from '@/i18n';
-import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime } from '@/i18n/formatting';
 import { customInstance } from '@/lib/axios';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -161,6 +168,11 @@ export default function RksvSonderbelegePage() {
   const { t } = useI18n();
 
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const { refreshToken } = useAuth();
+  const { setTenant } = useTenant();
+  const currentTenant = useCurrentTenant();
+  const ambientTenantId = currentTenant.tenantId?.trim() || undefined;
+  const canCreateRegister = useCanAccessPath('/kassenverwaltung');
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -178,20 +190,16 @@ export default function RksvSonderbelegePage() {
   const canTseSimulation = hasPermission(PERMISSIONS.RKSV_TSE_SIMULATION);
   const isDevelopment = process.env.NODE_ENV === 'development';
 
-  const tenantFilterFromUrl = searchParams.get('tenantId')?.trim() || undefined;
-  const [tenantFilterId, setTenantFilterId] = useState<string | undefined>(tenantFilterFromUrl);
-
   const { tenants, isLoading: tenantsLoading } = useTenantList({
     enabled: isSuperAdmin,
   });
 
-  // Canonical admin register source (IgnoreQueryFilters + explicit effective-tenant scoping):
-  // Super Admin: all mandants (optional tenantId filter); Manager: JWT tenant only.
+  // Ambient JWT/header tenant only — Super Admin must rebind before creating Sonderbelege.
   const { registers, isLoading: registersLoading } = useAdminCashRegisterList({
-    tenantId: isSuperAdmin ? tenantFilterId : undefined,
-    allowAllTenants: isSuperAdmin && !tenantFilterId,
-    allowTenantScopedDefault: !isSuperAdmin,
+    allowAllTenants: false,
+    allowTenantScopedDefault: true,
     excludeDecommissioned: false,
+    enabled: Boolean(ambientTenantId),
   });
 
   const { year: viennaYear, month: viennaMonth } = useMemo(() => getViennaCalendarYearMonth(), []);
@@ -240,9 +248,6 @@ export default function RksvSonderbelegePage() {
     const q = searchParams.get('registerId')?.trim();
     if (q) setRegisterId(q);
 
-    const tenantQ = searchParams.get('tenantId')?.trim();
-    setTenantFilterId(tenantQ || undefined);
-
     const yearRaw = searchParams.get('year')?.trim();
     const monthRaw = searchParams.get('month')?.trim();
     const year = yearRaw ? Number(yearRaw) : NaN;
@@ -278,6 +283,48 @@ export default function RksvSonderbelegePage() {
     [pathname, router, searchParams]
   );
 
+  const confirmAndSwitchTenant = useCallback(
+    (
+      target: { id: string; slug: string; name: string; licenseValidUntilUtc?: string | null },
+      keepRegisterId?: string
+    ) => {
+      modal.confirm({
+        title: t('rksvHub.sonderbelege.switchTenantConfirmTitle'),
+        content: t('rksvHub.sonderbelege.switchTenantConfirm', {
+          tenantName: target.name || target.slug,
+        }),
+        okText: t('common.buttons.confirm'),
+        cancelText: t('common.buttons.cancel'),
+        onOk: async () => {
+          const licenseValidUntilUtc = target.licenseValidUntilUtc ?? null;
+          const licenseValid = Boolean(
+            licenseValidUntilUtc && new Date(licenseValidUntilUtc).getTime() > Date.now()
+          );
+          setTenant({
+            id: target.id,
+            slug: target.slug,
+            name: target.name,
+            licenseValid,
+            licenseValidUntilUtc,
+          });
+          const tokenOk = await refreshToken(target.id);
+          if (!tokenOk) {
+            notify.errorKey('adminShell.tenant.devSwitcher.refreshFailed');
+            return;
+          }
+          const params = new URLSearchParams(searchParams.toString());
+          params.set('tenantId', target.id);
+          if (keepRegisterId) params.set('registerId', keepRegisterId);
+          else params.delete('registerId');
+          const qs = params.toString();
+          window.history.replaceState(null, '', qs ? `${pathname}?${qs}` : pathname);
+          await switchDevTenantContext({ slug: target.slug, id: target.id });
+        },
+      });
+    },
+    [modal, notify, pathname, refreshToken, searchParams, setTenant, t]
+  );
+
   const handleRegisterChange = useCallback(
     (nextId: string | undefined) => {
       setRegisterId(nextId);
@@ -286,23 +333,46 @@ export default function RksvSonderbelegePage() {
     [syncSonderbelegeQuery]
   );
 
-  const handleTenantFilterChange = useCallback(
-    (nextTenantId: string | undefined) => {
-      setTenantFilterId(nextTenantId);
-      const stillValid =
-        nextTenantId == null ||
-        !registerId ||
-        registers.some(
-          (r) => String(r.id) === String(registerId) && String(r.tenantId) === nextTenantId
-        );
-      if (!stillValid) {
-        setRegisterId(undefined);
-        syncSonderbelegeQuery({ tenantId: nextTenantId ?? null, registerId: null });
+  const handleTenantSwitchRequest = useCallback(
+    (nextTenantId: string) => {
+      if (!nextTenantId || nextTenantId.toLowerCase() === (ambientTenantId ?? '').toLowerCase()) {
         return;
       }
-      syncSonderbelegeQuery({ tenantId: nextTenantId ?? null });
+      const row = tenants.find((tenant) => tenant.id === nextTenantId);
+      if (!row) {
+        return;
+      }
+      confirmAndSwitchTenant({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        licenseValidUntilUtc: row.licenseValidUntilUtc,
+      });
     },
-    [registerId, registers, syncSonderbelegeQuery]
+    [ambientTenantId, confirmAndSwitchTenant, tenants]
+  );
+
+  const handleRegisterTenantMismatch = useCallback(
+    (register: (typeof registers)[number]) => {
+      if (!isSuperAdmin) {
+        return;
+      }
+      const row = tenants.find((tenant) => tenant.id === String(register.tenantId));
+      const slug = row?.slug || register.tenantSlug?.trim();
+      if (!slug) {
+        return;
+      }
+      confirmAndSwitchTenant(
+        {
+          id: String(register.tenantId),
+          slug,
+          name: row?.name || register.tenantName?.trim() || slug,
+          licenseValidUntilUtc: row?.licenseValidUntilUtc,
+        },
+        String(register.id)
+      );
+    },
+    [confirmAndSwitchTenant, isSuperAdmin, tenants]
   );
 
   // Auto-select once: if exactly one register is available (and none was preselected
@@ -370,6 +440,11 @@ export default function RksvSonderbelegePage() {
     () => registers.find((r) => String(r.id ?? '') === String(registerId ?? '')),
     [registers, registerId]
   );
+  const isTenantMismatch = isSonderbelegeRegisterTenantMismatch(selectedRegister, ambientTenantId);
+  const orphanRegisterSelection = Boolean(
+    !registersLoading && registerId?.trim() && !selectedRegister
+  );
+  const tenantBlocksCreate = isTenantMismatch || orphanRegisterSelection || !ambientTenantId;
   const selectedRegisterStatus = selectedRegister
     ? rawCashRegisterStatus(selectedRegister)
     : undefined;
@@ -525,6 +600,10 @@ export default function RksvSonderbelegePage() {
         notify.warning('rksvHub.sonderbelege.selectRegister');
         return;
       }
+      if (tenantBlocksCreate) {
+        notify.errorKey('rksvHub.sonderbelege.tenantMismatchTitle');
+        return;
+      }
       if (!canMonat) {
         notify.warning('rksvHub.sonderbelege.permissionDenied');
         return;
@@ -537,7 +616,7 @@ export default function RksvSonderbelegePage() {
       setSelectedMonatsbelegMonth(month);
       setMonatsbelegModalOpen(true);
     },
-    [registerId, canMonat, notify]
+    [registerId, tenantBlocksCreate, canMonat, notify]
   );
 
   const postJson = useCallback(async (path: string, body: object) => {
@@ -549,15 +628,25 @@ export default function RksvSonderbelegePage() {
     });
   }, []);
 
-  const onNullbeleg = useCallback(async () => {
+  const ensureRegisterForCreate = useCallback((): string | undefined => {
     if (!registerId) {
       notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
+      return undefined;
     }
+    if (tenantBlocksCreate) {
+      notify.errorKey('rksvHub.sonderbelege.tenantMismatchTitle');
+      return undefined;
+    }
+    return registerId;
+  }, [notify, registerId, tenantBlocksCreate]);
+
+  const onNullbeleg = useCallback(async () => {
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
     setBusy('null');
     try {
       await postJson('/api/rksv/special-receipts/nullbeleg', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         year: viennaYear,
         month: viennaMonth,
         reason: reasonShort.trim() || 'Nullbeleg für Prüfzwecke',
@@ -570,17 +659,15 @@ export default function RksvSonderbelegePage() {
     } finally {
       setBusy(null);
     }
-  }, [registerId, viennaYear, viennaMonth, reasonShort, postJson, invalidateLists, notify]);
+  }, [ensureRegisterForCreate, registerId, viennaYear, viennaMonth, reasonShort, postJson, invalidateLists, notify]);
 
   const onStartbeleg = useCallback(async () => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
     setBusy('start');
     try {
       await postJson('/api/rksv/special-receipts/startbeleg', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         reason: reasonShort.trim() || 'Admin Startbeleg',
       });
       notify.successKey('rksvHub.sonderbelege.startbelegSuccess');
@@ -590,21 +677,19 @@ export default function RksvSonderbelegePage() {
     } finally {
       setBusy(null);
     }
-  }, [registerId, reasonShort, postJson, invalidateLists, notify]);
+  }, [ensureRegisterForCreate, registerId, reasonShort, postJson, invalidateLists, notify]);
 
   const openMonatsbelegModal = useCallback(() => {
     openMissingMonatsbelegModal(monatYear, monatMonth);
   }, [monatYear, monatMonth, openMissingMonatsbelegModal]);
 
   const onJahresbeleg = useCallback(async () => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
     setBusy('jahr');
     try {
       await postJson('/api/rksv/special-receipts/jahresbeleg', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         year: jahrYear,
         reason: 'Admin Jahresbeleg',
         earlyReason: jbEarly.trim() || null,
@@ -616,13 +701,11 @@ export default function RksvSonderbelegePage() {
     } finally {
       setBusy(null);
     }
-  }, [registerId, jahrYear, jbEarly, postJson, invalidateLists, notify]);
+  }, [ensureRegisterForCreate, registerId, jahrYear, jbEarly, postJson, invalidateLists, notify]);
 
   const onSchlussbeleg = useCallback(async () => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
     if (!canCreateSchlussbelegNow) {
       notify.errorKey('rksvHub.sonderbelege.endbelegRequiresClosedSession');
       return;
@@ -630,7 +713,7 @@ export default function RksvSonderbelegePage() {
     setBusy('schluss');
     try {
       await postJson('/api/rksv/special-receipts/schlussbeleg', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         reason: reasonShort.trim() || 'Admin Schlussbeleg',
       });
       notify.successKey('rksvHub.sonderbelege.schlussbelegSuccess');
@@ -640,7 +723,7 @@ export default function RksvSonderbelegePage() {
     } finally {
       setBusy(null);
     }
-  }, [registerId, canCreateSchlussbelegNow, reasonShort, postJson, invalidateLists, notify]);
+  }, [ensureRegisterForCreate, registerId, canCreateSchlussbelegNow, reasonShort, postJson, invalidateLists, notify]);
 
   const confirmJahresbeleg = useCallback(() => {
     modal.confirm({
@@ -667,23 +750,18 @@ export default function RksvSonderbelegePage() {
   }, [canCreateSchlussbelegNow, schlussConfirmText, onSchlussbeleg, notify]);
 
   const openSchlussbelegDialog = useCallback(() => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    if (!ensureRegisterForCreate()) return;
     if (!canCreateSchlussbelegNow) {
       notify.errorKey('rksvHub.sonderbelege.endbelegRequiresClosedRegister');
       return;
     }
     setSchlussConfirmText('');
     setSchlussModalOpen(true);
-  }, [registerId, canCreateSchlussbelegNow, notify]);
+  }, [ensureRegisterForCreate, registerId, canCreateSchlussbelegNow, notify]);
 
   const onBulkCreateMissingMonatsbelege = useCallback(async () => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
 
     const prevMonth = viennaMonth === 1 ? 12 : viennaMonth - 1;
     const prevYear = viennaMonth === 1 ? viennaYear - 1 : viennaYear;
@@ -703,7 +781,7 @@ export default function RksvSonderbelegePage() {
     setBusy('demo-bulk');
     try {
       await postJson('/api/rksv/special-receipts/monatsbeleg?force=true', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         year: prevYear,
         month: prevMonth,
         reason: 'Demo Helper: Monatsbeleg Vormonat',
@@ -721,6 +799,7 @@ export default function RksvSonderbelegePage() {
       setBusy(null);
     }
   }, [
+    ensureRegisterForCreate,
     registerId,
     registerScopedReceipts,
     viennaYear,
@@ -731,15 +810,13 @@ export default function RksvSonderbelegePage() {
   ]);
 
   const onCreateDemoNullbelegForCurrentMonth = useCallback(async () => {
-    if (!registerId) {
-      notify.warning('rksvHub.sonderbelege.selectRegister');
-      return;
-    }
+    const cashRegisterId = ensureRegisterForCreate();
+    if (!cashRegisterId) return;
 
     setBusy('demo-null');
     try {
       await postJson('/api/rksv/special-receipts/nullbeleg', {
-        cashRegisterId: registerId,
+        cashRegisterId,
         year: viennaYear,
         month: viennaMonth,
         reason: 'Demo Helper: Test-Nullbeleg',
@@ -755,7 +832,7 @@ export default function RksvSonderbelegePage() {
     } finally {
       setBusy(null);
     }
-  }, [registerId, viennaYear, viennaMonth, postJson, invalidateLists, notify]);
+  }, [ensureRegisterForCreate, registerId, viennaYear, viennaMonth, postJson, invalidateLists, notify]);
 
   const onResetTseSimulation = useCallback(async () => {
     setBusy('demo-tse-reset');
@@ -878,7 +955,11 @@ export default function RksvSonderbelegePage() {
     []
   );
 
-  const actionDisabledBase = !registerId || busy !== null || selectedRegisterIsDecommissioned;
+  const actionDisabledBase =
+    !registerId ||
+    busy !== null ||
+    selectedRegisterIsDecommissioned ||
+    tenantBlocksCreate;
 
   const missingMonatsbelegColumns: ColumnsType<MissingMonatsbelegTableRow> = useMemo(
     () => [
@@ -960,9 +1041,59 @@ export default function RksvSonderbelegePage() {
             showTenantFilter={isSuperAdmin}
             tenants={tenants.map((row) => ({ id: row.id, name: row.name, slug: row.slug }))}
             tenantsLoading={tenantsLoading}
-            tenantFilterId={tenantFilterId}
-            onTenantFilterChange={handleTenantFilterChange}
+            ambientTenantId={ambientTenantId}
+            onTenantSwitchRequest={handleTenantSwitchRequest}
+            onRegisterTenantMismatch={handleRegisterTenantMismatch}
           />
+          {!registersLoading && registers.length === 0 ? (
+            <Empty
+              description={
+                <Space orientation="vertical" size={4}>
+                  <Typography.Text strong>
+                    {t('rksvHub.sonderbelege.emptyRegistersTitle')}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('rksvHub.sonderbelege.emptyRegistersDescription')}
+                  </Typography.Text>
+                </Space>
+              }
+            >
+              {canCreateRegister ? (
+                <Link href="/kassenverwaltung">
+                  <Button type="primary">{t('rksvHub.sonderbelege.createRegister')}</Button>
+                </Link>
+              ) : null}
+            </Empty>
+          ) : null}
+          {isTenantMismatch || orphanRegisterSelection ? (
+            <Alert
+              type="error"
+              showIcon
+              title={
+                isTenantMismatch
+                  ? t('rksvHub.sonderbelege.tenantMismatchTitle')
+                  : t('rksvHub.sonderbelege.orphanRegisterTitle')
+              }
+              description={
+                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                  <span>
+                    {isTenantMismatch
+                      ? t('rksvHub.sonderbelege.tenantMismatchDescription')
+                      : t('rksvHub.sonderbelege.orphanRegisterDescription')}
+                  </span>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setRegisterId(undefined);
+                      syncSonderbelegeQuery({ registerId: null });
+                    }}
+                  >
+                    {t('rksvHub.sonderbelege.clearRegisterSelection')}
+                  </Button>
+                </Space>
+              }
+            />
+          ) : null}
           <div>
             <Typography.Text type="secondary">
               Optionaler Grund / Notiz (für Sonderbelege)
@@ -974,7 +1105,7 @@ export default function RksvSonderbelegePage() {
               style={{ marginTop: 8 }}
             />
           </div>
-          {selectedRegister ? (
+          {selectedRegister && !isTenantMismatch ? (
             <Alert
               type={selectedRegisterIsDecommissioned ? 'warning' : 'info'}
               showIcon
@@ -998,7 +1129,7 @@ export default function RksvSonderbelegePage() {
                     })
               }
             />
-          ) : (
+          ) : isTenantMismatch || orphanRegisterSelection ? null : (
             <Alert type="info" showIcon title={t('rksvHub.sonderbelege.selectRegisterFirst')} />
           )}
         </Space>
@@ -1029,14 +1160,14 @@ export default function RksvSonderbelegePage() {
               <Button
                 onClick={() => void onBulkCreateMissingMonatsbelege()}
                 loading={busy === 'demo-bulk'}
-                disabled={!registerId || busy !== null}
+                disabled={!registerId || busy !== null || tenantBlocksCreate}
               >
                 Monatsbeleg für Vormonat erstellen
               </Button>
               <Button
                 onClick={() => void onCreateDemoNullbelegForCurrentMonth()}
                 loading={busy === 'demo-null'}
-                disabled={!registerId || busy !== null}
+                disabled={!registerId || busy !== null || tenantBlocksCreate}
               >
                 Test-Nullbeleg für aktuellen Monat erstellen
               </Button>
@@ -1450,7 +1581,7 @@ export default function RksvSonderbelegePage() {
         />
       </Card>
 
-      {registerId ? (
+      {registerId && !tenantBlocksCreate ? (
         <CreateMonatsbelegModal
           open={monatsbelegModalOpen}
           cashRegisterId={registerId}

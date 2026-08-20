@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ACCESS_TOKEN_COOKIE,
+  EDGE_SESSION_COOKIE,
   EXP_LEEWAY_SEC,
   isPublicPath,
   normalizePathname,
@@ -89,6 +90,70 @@ describe('proxy auth boundary', () => {
   it('allows unauthenticated access to /login', () => {
     const res = proxy(requestFor('/login'));
     expect(res.status).toBe(200);
+  });
+
+  it('redirects authenticated users from /login to /dashboard', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = makeJwt({ exp: now + 3600, sub: 'u1' });
+    const res = proxy(
+      requestFor('/login', {
+        cookie: `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}`,
+      })
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://admin.regkasse.local:3000/dashboard');
+  });
+
+  it('does not bounce RSC/prefetch of /login when a JWT cookie is present', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = makeJwt({ exp: now + 3600, sub: 'u1' });
+    const headers = new Headers();
+    headers.set('cookie', `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}`);
+    headers.set('rsc', '1');
+    headers.set('next-router-state-tree', '%5B%22%22%5D');
+    const res = proxy(
+      new NextRequest(new URL('/login', 'http://admin.regkasse.local:3000'), { headers })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('allows /dashboard when only the compact edge session cookie is present', () => {
+    const res = proxy(
+      requestFor('/dashboard', {
+        cookie: `${EDGE_SESSION_COOKIE}=1`,
+      })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('does not bounce /login when only the compact edge session cookie is present', () => {
+    const res = proxy(
+      requestFor('/login', {
+        cookie: `${EDGE_SESSION_COOKIE}=1`,
+      })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('allows /dashboard when JWT cookie is truncated but compact session cookie is present', () => {
+    const res = proxy(
+      requestFor('/dashboard', {
+        cookie: `${ACCESS_TOKEN_COOKIE}=not-a-jwt; ${EDGE_SESSION_COOKIE}=1`,
+      })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('still redirects to /login when JWT is expired even with compact session cookie', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = makeJwt({ exp: now - EXP_LEEWAY_SEC - 1, sub: 'u1' });
+    const res = proxy(
+      requestFor('/dashboard', {
+        cookie: `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}; ${EDGE_SESSION_COOKIE}=1`,
+      })
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain('/login');
   });
 
   it('forwards authenticated cookie JWT on protected routes', () => {

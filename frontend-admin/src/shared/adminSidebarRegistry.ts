@@ -916,7 +916,6 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.superAdminCashRegisters',
     icon: 'ShopOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
-    sidebarHidden: true,
   },
   billingOverview: {
     id: 'billingOverview',

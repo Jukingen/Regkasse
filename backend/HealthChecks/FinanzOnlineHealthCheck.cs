@@ -19,28 +19,32 @@ public sealed class FinanzOnlineHealthCheck : IHealthCheck
     private readonly IConfiguration _configuration;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
     private readonly IOptionsMonitor<FinanzOnlineSessionOptions> _sessionOptions;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public FinanzOnlineHealthCheck(
         IHostEnvironment environment,
         IConfiguration configuration,
         IOptionsMonitor<TseOptions> tseOptions,
-        IOptionsMonitor<FinanzOnlineSessionOptions> sessionOptions)
+        IOptionsMonitor<FinanzOnlineSessionOptions> sessionOptions,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _environment = environment;
         _configuration = configuration;
         _tseOptions = tseOptions;
         _sessionOptions = sessionOptions;
+        _runtime = runtime;
     }
 
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        var simulated = TseFiscalConfigLockEvaluator.IsFinanzOnlineSimulated(_configuration)
-                        || _sessionOptions.CurrentValue.UseSimulation;
         var lockApplies = TseFiscalConfigLockEvaluator.LockAppliesToHost(
             _environment,
             _tseOptions.CurrentValue);
+        var sessionSim = _runtime?.Session.UseSimulation ?? _sessionOptions.CurrentValue.UseSimulation;
+        var fileSim = TseFiscalConfigLockEvaluator.IsFinanzOnlineSimulated(_configuration);
+        var simulated = sessionSim || (lockApplies && fileSim);
 
         var data = new Dictionary<string, object>
         {

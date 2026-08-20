@@ -1,5 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -16,46 +17,66 @@ public sealed class FinanzOnlineRetryHostedService : BackgroundService
     private readonly IFinanzOnlineMetrics _metrics;
     private readonly IFinanzOnlineAlertSink _alertSink;
     private readonly ILogger<FinanzOnlineRetryHostedService> _logger;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
+    private string? _lastFingerprint;
 
     public FinanzOnlineRetryHostedService(
         IServiceProvider serviceProvider,
         IOptionsMonitor<FinanzOnlineRetryJobOptions> options,
         IFinanzOnlineMetrics metrics,
         IFinanzOnlineAlertSink alertSink,
-        ILogger<FinanzOnlineRetryHostedService> logger)
+        ILogger<FinanzOnlineRetryHostedService> logger,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _serviceProvider = serviceProvider;
         _options = options;
         _metrics = metrics;
         _alertSink = alertSink;
         _logger = logger;
+        _runtime = runtime;
     }
+
+    private FinanzOnlineRetryJobOptions EffectiveRetryOptions() =>
+        _runtime?.RetryJob ?? _options.CurrentValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var opts = _options.CurrentValue;
-        if (!opts.Enabled)
-        {
-            _logger.LogInformation("FinanzOnline retry job is disabled (FinanzOnlineRetryJob:Enabled=false).");
-            return;
-        }
-
-        _logger.LogInformation("FinanzOnline retry job started. Interval={Interval}, MaxRetryCount={MaxRetry}, BackoffBase={Base}s",
-            opts.Interval, opts.MaxRetryCount, opts.BaseDelaySeconds);
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
+            var opts = EffectiveRetryOptions();
+            var fingerprint = $"{opts.Enabled}:{opts.Interval.TotalSeconds}:{opts.MaxRetryCount}";
+            if (_lastFingerprint != fingerprint)
             {
-                await RunOneCycleAsync(stoppingToken).ConfigureAwait(false);
+                if (opts.Enabled)
+                {
+                    _logger.LogInformation(
+                        "FinanzOnline retry job started. Interval={Interval}, MaxRetryCount={MaxRetry}, BackoffBase={Base}s",
+                        opts.Interval,
+                        opts.MaxRetryCount,
+                        opts.BaseDelaySeconds);
+                }
+                else
+                {
+                    _logger.LogInformation("FinanzOnline retry job idle (effective Enabled=false).");
+                }
+
+                _lastFingerprint = fingerprint;
             }
-            catch (OperationCanceledException)
+
+            if (opts.Enabled)
             {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "FinanzOnline retry job cycle failed.");
+                try
+                {
+                    await RunOneCycleAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "FinanzOnline retry job cycle failed.");
+                }
             }
 
             try
@@ -74,7 +95,7 @@ public sealed class FinanzOnlineRetryHostedService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var paymentService = scope.ServiceProvider.GetRequiredService<IPaymentService>();
-        var opts = _options.CurrentValue;
+        var opts = EffectiveRetryOptions();
 
         var now = DateTime.UtcNow;
         int BackoffSeconds(int retryCount)

@@ -86,6 +86,7 @@ describe('sidebarRegistryCatalog', () => {
     expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.permission).toBe(
       PERMISSIONS.SYSTEM_CRITICAL
     );
+    expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.sidebarHidden).toBeFalsy();
   });
 
   it('splits platform admin IA into Verwaltung / Sicherheit / Deployment / Monitoring groups', () => {

@@ -4,7 +4,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Form, Input, Typography } from 'antd';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import React, { FC, useEffect, useState } from 'react';
 
 import { usePostApiAuthLogin } from '@/api/generated/auth/auth';
@@ -15,22 +15,15 @@ import {
   type TwoFactorChallengeState,
   type TwoFactorLoginSuccess,
 } from '@/features/auth/components/TwoFactorAuth';
-import { CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
 import { buildLoginFormRules } from '@/features/auth/constants/loginValidation';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { writeDevTenantSlug } from '@/features/auth/services/devTenant';
+import { navigateAfterAuth, resolvePostLoginPath } from '@/features/auth/utils/postLoginPath';
 import { useI18n } from '@/i18n';
-import { getDefaultLandingPathFromStorage } from '@/lib/personalization/PersonalizationProvider';
-import { userPreferencesQueryKey } from '@/lib/personalization/userPreferencesApi';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
-import {
-  AUTH_KEYS,
-  clearStaleAuthBeforeLogin,
-  fetchAuthUserWithRetry,
-  persistLoginTokensAndSettle,
-} from '../hooks/useAuth';
+import { clearStaleAuthBeforeLogin, persistLoginTokensAndSettle } from '../hooks/useAuth';
 
 const { Title, Text } = Typography;
 
@@ -58,7 +51,6 @@ type LoginApiResponse = {
 
 export const LoginForm: FC = () => {
   const { message } = App.useApp();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -102,38 +94,14 @@ export const LoginForm: FC = () => {
       }
     }
 
-    try {
-      // Wrap: React Query passes QueryFunctionContext as arg0 — must not bind retry params.
-      await queryClient.fetchQuery({
-        queryKey: AUTH_KEYS.user,
-        queryFn: () => fetchAuthUserWithRetry(),
-      });
-    } catch (bootstrapErr) {
-      technicalConsole.warn('[LoginForm] /me after login failed; aborting redirect', bootstrapErr);
-      message.error(t('common.auth.loginFailedGeneric'));
-      return;
-    }
-
     message.success(t('common.auth.loginSuccess'));
-
-    const cachedUser = queryClient.getQueryData<{ mustChangePasswordOnNextLogin?: boolean }>(
-      AUTH_KEYS.user
-    );
-    const mustChange =
-      cachedUser?.mustChangePasswordOnNextLogin === true ||
-      loginResponse?.user?.mustChangePasswordOnNextLogin === true;
-
-    await queryClient.invalidateQueries({ queryKey: userPreferencesQueryKey });
-    const landingPath = getDefaultLandingPathFromStorage();
+    const mustChange = loginResponse?.user?.mustChangePasswordOnNextLogin === true;
+    const target = resolvePostLoginPath(mustChange);
     if (process.env.NODE_ENV === 'development') {
-      technicalConsole.devLog(
-        '[LoginForm] user cache set; redirecting to',
-        mustChange ? CHANGE_PASSWORD_PATH : landingPath
-      );
+      technicalConsole.devLog('[LoginForm] redirecting after login to', target);
     }
-    queueMicrotask(() => {
-      router.push(mustChange ? CHANGE_PASSWORD_PATH : landingPath);
-    });
+    // Full navigation: /me runs on the destination. Soft replace + prefetch races proxy.ts.
+    navigateAfterAuth(target);
   };
 
   const { mutate: login, isPending } = usePostApiAuthLogin({

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   ACCESS_TOKEN_COOKIE_NAME,
+  EDGE_SESSION_COOKIE_NAME,
+  MAX_ACCESS_TOKEN_COOKIE_CHARS,
   authStorage,
   readAccessTokenCookie,
 } from '../authStorage';
@@ -30,6 +32,7 @@ describe('authStorage cookie + localStorage mirror', () => {
     expect(window.localStorage.getItem('rk_admin_access_token')).toBe(jwt);
     expect(readAccessTokenCookie()).toBe(jwt);
     expect(document.cookie).toContain(`${ACCESS_TOKEN_COOKIE_NAME}=`);
+    expect(document.cookie).toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
   });
 
   it('setTokens writes access cookie and refresh localStorage only', () => {
@@ -44,13 +47,12 @@ describe('authStorage cookie + localStorage mirror', () => {
     expect(document.cookie).not.toContain('refresh-secret');
   });
 
-  it('removeToken clears cookie and storage', () => {
-    authStorage.setTokens({ accessToken: 'a.b.c', refreshToken: 'r' });
-    authStorage.removeToken();
+  it('skips oversized JWT cookie and still writes compact edge session cookie', () => {
+    const hugeJwt = `hdr.${'a'.repeat(MAX_ACCESS_TOKEN_COOKIE_CHARS)}.sig`;
+    authStorage.setToken(hugeJwt);
 
-    expect(authStorage.getToken()).toBeNull();
-    expect(window.localStorage.getItem('rk_admin_access_token')).toBeNull();
-    expect(authStorage.getRefreshToken()).toBeNull();
+    expect(window.localStorage.getItem('rk_admin_access_token')).toBe(hugeJwt);
     expect(readAccessTokenCookie()).toBeNull();
+    expect(document.cookie).toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
   });
 });

@@ -13,6 +13,7 @@ describe('isPathAllowedWithoutTenant', () => {
     expect(isPathAllowedWithoutTenant('/admin/license-management')).toBe(true);
     expect(isPathAllowedWithoutTenant('/admin/system/time-sync')).toBe(true);
     expect(isPathAllowedWithoutTenant('/admin/digital')).toBe(true);
+    expect(isPathAllowedWithoutTenant('/admin/cash-registers')).toBe(true);
   });
 
   it('blocks mandant-scoped routes', () => {

@@ -13,6 +13,8 @@ export const rksvAdminQueryKeys = {
     list: (params: unknown) => ['admin', 'rksv', 'finanzonline-outbox', 'list', params] as const,
     detail: (id: string) => ['admin', 'rksv', 'finanzonline-outbox', 'detail', id] as const,
     readiness: () => ['admin', 'rksv', 'finanzonline-readiness'] as const,
+    workerSettings: () => ['admin', 'rksv', 'finanzonline-outbox', 'worker-settings'] as const,
+    runtimeSettings: () => ['admin', 'rksv', 'finanzonline-outbox', 'runtime-settings'] as const,
   },
   finanzOnlineOps: {
     base: ['admin', 'rksv', 'finanzonline-ops'] as const,

@@ -4,8 +4,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:clean": "node ./scripts/rm-next-cache.mjs && next dev --webpack",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev --webpack",
+    "dev:clean": "node ./scripts/rm-next-cache.mjs && cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev --webpack",
     "build": "next build --webpack",
     "analyze": "cross-env ANALYZE=true NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST next build --webpack",
     "start": "next start",

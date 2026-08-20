@@ -63,6 +63,7 @@ public sealed class FinanzOnlineAdminConnectivityService : IFinanzOnlineAdminCon
     private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionOptions;
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<FinanzOnlineAdminConnectivityService> _logger;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public FinanzOnlineAdminConnectivityService(
         IFinanzOnlineSessionClient sessionClient,
@@ -70,7 +71,8 @@ public sealed class FinanzOnlineAdminConnectivityService : IFinanzOnlineAdminCon
         IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
         IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionOptions,
         IMemoryCache memoryCache,
-        ILogger<FinanzOnlineAdminConnectivityService> logger)
+        ILogger<FinanzOnlineAdminConnectivityService> logger,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _sessionClient = sessionClient;
         _sessionOptions = sessionOptions;
@@ -78,14 +80,20 @@ public sealed class FinanzOnlineAdminConnectivityService : IFinanzOnlineAdminCon
         _transmissionOptions = transmissionOptions;
         _memoryCache = memoryCache;
         _logger = logger;
+        _runtime = runtime;
+    }
+
+    private (bool SessionSim, bool RegSim, bool TxSim, bool RealTest) EffectiveFlags()
+    {
+        var sess = _runtime?.Session ?? _sessionOptions.CurrentValue;
+        var reg = _runtime?.Registrierkassen ?? _registrierkassenOptions.CurrentValue;
+        var tx = _runtime?.TransmissionQuery ?? _transmissionOptions.CurrentValue;
+        return (sess.UseSimulation, reg.UseSimulation, tx.UseSimulation, reg.EnableRealTestSubmission);
     }
 
     public Task<FinanzOnlineAdministrativeStatusSnapshot> BuildStatusAsync(TseDevice device, CancellationToken cancellationToken)
     {
-        var sess = _sessionOptions.CurrentValue.UseSimulation;
-        var reg = _registrierkassenOptions.CurrentValue.UseSimulation;
-        var tx = _transmissionOptions.CurrentValue.UseSimulation;
-        var realTest = _registrierkassenOptions.CurrentValue.EnableRealTestSubmission;
+        var (sess, reg, tx, realTest) = EffectiveFlags();
         var anySim = sess || reg || tx;
         var diag = BuildTransportDiagnosticsLine(sess, reg, tx, realTest);
 
@@ -140,10 +148,7 @@ public sealed class FinanzOnlineAdminConnectivityService : IFinanzOnlineAdminCon
     public async Task<FinanzOnlineAdministrativeTestSnapshot> RunTestConnectionAsync(TseDevice device, CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
-        var sess = _sessionOptions.CurrentValue.UseSimulation;
-        var reg = _registrierkassenOptions.CurrentValue.UseSimulation;
-        var tx = _transmissionOptions.CurrentValue.UseSimulation;
-        var realTest = _registrierkassenOptions.CurrentValue.EnableRealTestSubmission;
+        var (sess, reg, tx, realTest) = EffectiveFlags();
         var anySim = sess || reg || tx;
         var diag = BuildTransportDiagnosticsLine(sess, reg, tx, realTest);
 

@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Time;
@@ -47,6 +49,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQueryOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> _simulationDeveloperOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenarioOptions;
+    private readonly IFinanzOnlineOutboxSettingsService _workerSettings;
+    private readonly IFinanzOnlineRuntimeSettingsService _runtimeSettings;
+    private readonly FinanzOnlineRuntimeOptionsAccessor _runtimeOptions;
 
     public FinanzOnlineOutboxAdminController(
         AppDbContext context,
@@ -56,7 +61,10 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
         IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQueryOptions,
         IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> simulationDeveloperOptions,
-        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions)
+        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions,
+        IFinanzOnlineOutboxSettingsService workerSettings,
+        IFinanzOnlineRuntimeSettingsService runtimeSettings,
+        FinanzOnlineRuntimeOptionsAccessor runtimeOptions)
     {
         _context = context;
         _logger = logger;
@@ -66,6 +74,110 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         _transmissionQueryOptions = transmissionQueryOptions;
         _simulationDeveloperOptions = simulationDeveloperOptions;
         _simulationScenarioOptions = simulationScenarioOptions;
+        _workerSettings = workerSettings;
+        _runtimeSettings = runtimeSettings;
+        _runtimeOptions = runtimeOptions;
+    }
+
+    /// <summary>
+    /// Effective outbox worker flag (config + Super Admin overlay). Process-wide, not tenant-scoped.
+    /// </summary>
+    [HttpGet("worker-settings")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    [ProducesResponseType(typeof(FinanzOnlineOutboxWorkerSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<FinanzOnlineOutboxWorkerSettingsDto> GetWorkerSettings() =>
+        Ok(_workerSettings.GetSettings(User.IsInRole(Roles.SuperAdmin)));
+
+    /// <summary>
+    /// Super Admin overlay for <c>FinanzOnlineOutbox</c> worker options (enabled, poll, retry, timeout).
+    /// Does not rewrite appsettings. Production disable requires <c>confirmProductionDisable</c>.
+    /// </summary>
+    [HttpPut("worker-settings")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(FinanzOnlineOutboxWorkerSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<FinanzOnlineOutboxWorkerSettingsDto>> UpdateWorkerSettings(
+        [FromBody] UpdateFinanzOnlineOutboxWorkerRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity?.Name ?? "unknown";
+        try
+        {
+            var updated = await _workerSettings
+                .UpdateAsync(request, actor, canManage: true, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message == FinanzOnlineOutboxSettingsService.ProductionDisableConfirmRequiredCode)
+        {
+            return BadRequest(new
+            {
+                message = "Production outbox disable requires confirmProductionDisable=true.",
+                code = FinanzOnlineOutboxSettingsService.ProductionDisableConfirmRequiredCode,
+            });
+        }
+        catch (FinanzOnlineOutboxWorkerValidationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message,
+                code = FinanzOnlineOutboxWorkerValidationException.ErrorCode,
+                field = ex.Field,
+                min = ex.Min,
+                max = ex.Max,
+            });
+        }
+    }
+
+    /// <summary>
+    /// Optional FinanzOnline runtime flags (simulation, real TEST SOAP, retry job). Super Admin overlay.
+    /// </summary>
+    [HttpGet("runtime-settings")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    [ProducesResponseType(typeof(FinanzOnlineRuntimeSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<FinanzOnlineRuntimeSettingsDto> GetRuntimeSettings() =>
+        Ok(_runtimeSettings.GetSettings(User.IsInRole(Roles.SuperAdmin)));
+
+    [HttpPut("runtime-settings")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(FinanzOnlineRuntimeSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<FinanzOnlineRuntimeSettingsDto>> UpdateRuntimeSettings(
+        [FromBody] UpdateFinanzOnlineRuntimeRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity?.Name ?? "unknown";
+        try
+        {
+            var updated = await _runtimeSettings
+                .UpdateAsync(request, actor, canManage: true, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message is FinanzOnlineRuntimeSettingsService.ProductionSimulationForbiddenCode
+                or FinanzOnlineRuntimeSettingsService.ProductionRealTestForbiddenCode)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.Message });
+        }
+        catch (FinanzOnlineOutboxWorkerValidationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message,
+                code = FinanzOnlineOutboxWorkerValidationException.ErrorCode,
+                field = ex.Field,
+                min = ex.Min,
+                max = ex.Max,
+            });
+        }
     }
 
     /// <summary>
@@ -184,9 +296,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     }
 
     private bool TransportSimulationActive() =>
-        _sessionOptions.CurrentValue.UseSimulation
-        || _registrierkassenOptions.CurrentValue.UseSimulation
-        || _transmissionQueryOptions.CurrentValue.UseSimulation;
+        _runtimeOptions.Session.UseSimulation
+        || _runtimeOptions.Registrierkassen.UseSimulation
+        || _runtimeOptions.TransmissionQuery.UseSimulation;
 
     private static bool IsKnownBucket(string bucket) =>
         KnownBuckets.Contains(bucket, StringComparer.OrdinalIgnoreCase);

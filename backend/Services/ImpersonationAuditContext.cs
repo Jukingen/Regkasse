@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Services;
@@ -38,9 +39,7 @@ public static class ImpersonationAuditContext
             return default;
         }
 
-        var actorId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? user.FindFirst("user_id")?.Value
-            ?? user.FindFirst("userId")?.Value;
+        var actorId = user.GetActorUserId();
         if (string.IsNullOrWhiteSpace(actorId))
         {
             return default;

@@ -32,7 +32,7 @@ REM C:\Scripts\*.bat shortcuts still redirect here
 
 | Script | Purpose |
 |--------|---------|
-| `start-all.bat` | Start everything (separate windows) |
+| `start-all.bat` | Start Redis + API + Admin + POS (separate windows) |
 | `start-backend.bat` | Start only backend |
 | `start-frontend.bat` | Start only POS |
 | `start-frontend-admin.bat` | Start only admin |

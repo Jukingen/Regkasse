@@ -9,7 +9,7 @@ Versions below match `package.json` / monorepo baselines (`AGENTS.md`). Installe
 
 | Component | Version / notes |
 | --------- | --------------- |
-| **Next.js** | `^16.2.10` (App Router; **webpack** via `next dev --webpack` / `next build --webpack` — Turbopack opted out for Windows monorepo RAM stability) |
+| **Next.js** | `^16.2.10` (App Router; **webpack** via `next dev --webpack` / `next build --webpack` — Turbopack opted out for Windows monorepo RAM stability; `experimental.cpus: 2` + `webpackMemoryOptimizations` cap local RAM) |
 | **React / React DOM** | `^19.2.7` — types via `@types/react` / `@types/react-dom` (React does not ship types) |
 | **Ant Design** | `^6.4.3` (+ `@ant-design/nextjs-registry`, icons, cssinjs) |
 | **TanStack Query** | `^5.101.3` (Orval-generated hooks). Align `staleTime` with backend `CacheSettings` TTLs (license ~5m, products ~15m, permissions ~30m) where the same entities are cached server-side — prevents FA showing stale data while Redis still holds a fresh snapshot (or vice versa). When backend cache is cleared (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), React Query caches in open browsers may need manual invalidation via `queryClient.invalidateQueries()` (or a hard refresh). Optional UX: a Super Admin “Clear Cache” control that calls the backend endpoint and then invalidates matching React Query keys. |

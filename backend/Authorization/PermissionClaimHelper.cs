@@ -25,7 +25,9 @@ public static class PermissionClaimHelper
 
         var roles = GetRolesFromPrincipal(user);
         var fromRoles = RolePermissionMatrix.GetPermissionsForRoles(roles);
-        return PermissionImplication.IsSatisfied(permission, fromRoles);
+        var appContext = user.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
+        var filtered = AdminAppPermissionProfile.Filter(appContext, roles, fromRoles);
+        return PermissionImplication.IsSatisfied(permission, filtered);
     }
 
     public static IReadOnlyList<string> GetRolesFromPrincipal(ClaimsPrincipal user)
@@ -34,7 +36,8 @@ public static class PermissionClaimHelper
         foreach (var claim in user.Claims)
         {
             if (string.Equals(claim.Type, RoleClaimType, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(claim.Type, LegacyRoleClaimType, StringComparison.OrdinalIgnoreCase))
+                string.Equals(claim.Type, LegacyRoleClaimType, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase))
             {
                 var v = claim.Value?.Trim();
                 if (!string.IsNullOrEmpty(v))

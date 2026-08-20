@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 
 namespace KasseAPI_Final.Services;
 
@@ -12,8 +13,7 @@ public sealed class ScopeCheckService : IScopeCheckService
     public const string TenantIdClaim = "tenant_id";
     public const string BranchIdClaim = "branch_id";
 
-    private static string? GetUserId(ClaimsPrincipal user) =>
-        user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("user_id")?.Value;
+    private static string? GetUserId(ClaimsPrincipal user) => user.GetActorUserId();
 
     private static string? GetRole(ClaimsPrincipal user) =>
         user.FindFirst("role")?.Value ?? user.FindFirst(ClaimTypes.Role)?.Value;

@@ -476,5 +476,11 @@
     "monthlyGrowth": "Monatsveränderung",
     "averageTicket": "Ø Bonwert",
     "revenue": "Umsatz"
+  },
+  "handyLinks": {
+    "title": "Nützliche Links",
+    "subtitle": "Kurzwege zu Kassenverwaltung und weiteren Werkzeugen.",
+    "recentTitle": "Zuletzt verwendet",
+    "recentEmpty": "Noch keine zuletzt geöffneten Seiten."
   }
 }

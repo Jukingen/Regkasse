@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import {
   type TenantListItemForSwitcher,
+  isDevelopmentTenant,
+  isTestTenantSlug,
   tenantNeedsNoAdminWarning,
   useTenantListForSwitcher,
 } from '@/features/tenancy/hooks/useTenantListForSwitcher';
@@ -51,6 +53,29 @@ describe('tenantNeedsNoAdminWarning', () => {
   });
 });
 
+describe('isDevelopmentTenant', () => {
+  it('hides platform, test-bar, and test-cafe in every environment', () => {
+    expect(isTestTenantSlug('platform')).toBe(true);
+    expect(isTestTenantSlug('test-bar')).toBe(true);
+    expect(isTestTenantSlug('test_cafe')).toBe(true);
+    expect(isDevelopmentTenant('platform', 'development')).toBe(false);
+    expect(isDevelopmentTenant('test-bar', 'test')).toBe(false);
+    expect(isDevelopmentTenant('test-cafe', 'production')).toBe(false);
+  });
+
+  it('in development only allows seeded dev tenants', () => {
+    expect(isDevelopmentTenant('dev', 'development')).toBe(true);
+    expect(isDevelopmentTenant('development', 'development')).toBe(true);
+    expect(isDevelopmentTenant('prod', 'development')).toBe(false);
+    expect(isDevelopmentTenant('adler', 'development')).toBe(false);
+  });
+
+  it('outside development keeps non-test tenants', () => {
+    expect(isDevelopmentTenant('adler', 'test')).toBe(true);
+    expect(isDevelopmentTenant('prod', 'production')).toBe(true);
+  });
+});
+
 describe('useTenantListForSwitcher', () => {
   beforeEach(() => {
     mockUseAuth.mockReset();
@@ -81,6 +106,23 @@ describe('useTenantListForSwitcher', () => {
           name: 'Platform',
           slug: 'platform',
         }),
+        source({
+          id: 'test-bar',
+          name: 'Test Bar',
+          slug: 'test-bar',
+        }),
+        source({
+          id: 'test-cafe',
+          name: 'Test Cafe',
+          slug: 'test-cafe',
+        }),
+        source({
+          id: 'inactive-dev',
+          name: 'Archived Dev',
+          slug: 'dev',
+          isActive: false,
+          status: 'archived',
+        }),
       ],
       isLoading: false,
       isFetching: false,
@@ -96,6 +138,8 @@ describe('useTenantListForSwitcher', () => {
     expect(result.current.tenants[0]?.licenseDaysLeft).toBe(12);
     expect(result.current.tenants[0]?.source.slug).toBe('adler');
     expect(result.current.tenants.every((row) => row.slug !== 'platform')).toBe(true);
+    expect(result.current.tenants.every((row) => row.slug !== 'test-bar')).toBe(true);
+    expect(result.current.tenants.every((row) => row.slug !== 'test-cafe')).toBe(true);
   });
 
   it('passes includeDeleted through to the tenants query', () => {
@@ -105,5 +149,35 @@ describe('useTenantListForSwitcher', () => {
       { includeDeleted: true },
       expect.objectContaining({ enabled: expect.any(Boolean) })
     );
+  });
+
+  it('keeps inactive development tenants when includeDeleted is true', () => {
+    mockUseAuth.mockReturnValue({ user: { id: 'u1' } });
+    mockUseGetApiAdminTenants.mockReturnValue({
+      data: [
+        source({
+          id: 'inactive-dev',
+          name: 'Archived Dev',
+          slug: 'dev',
+          isActive: false,
+          status: 'archived',
+        }),
+        source({
+          id: 'test-bar',
+          name: 'Test Bar',
+          slug: 'test-bar',
+          isActive: false,
+          status: 'archived',
+        }),
+      ],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useTenantListForSwitcher({ includeDeleted: true }));
+    expect(result.current.tenants.map((row) => row.slug)).toEqual(['dev']);
   });
 });

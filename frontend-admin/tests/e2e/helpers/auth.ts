@@ -26,6 +26,14 @@ export async function injectAdminSession(page: Page, token = makeE2eJwt()): Prom
       sameSite: 'Lax',
       httpOnly: false,
     },
+    {
+      name: 'rk_admin_edge_session',
+      value: '1',
+      domain: '127.0.0.1',
+      path: '/',
+      sameSite: 'Lax',
+      httpOnly: false,
+    },
   ]);
 
   await page.addInitScript(
@@ -79,6 +87,14 @@ export async function loginAsAdmin(
     {
       name: ACCESS_COOKIE,
       value: encodeURIComponent(token),
+      domain: '127.0.0.1',
+      path: '/',
+      sameSite: 'Lax',
+      httpOnly: false,
+    },
+    {
+      name: 'rk_admin_edge_session',
+      value: '1',
       domain: '127.0.0.1',
       path: '/',
       sameSite: 'Lax',

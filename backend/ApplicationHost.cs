@@ -348,6 +348,13 @@ internal static class ApplicationHost
         builder.Services.Configure<FinanzOnlineRegistrierkassenOptions>(builder.Configuration.GetSection(FinanzOnlineRegistrierkassenOptions.SectionName));
         builder.Services.Configure<FinanzOnlineTransmissionQueryOptions>(builder.Configuration.GetSection(FinanzOnlineTransmissionQueryOptions.SectionName));
         builder.Services.Configure<FinanzOnlineOutboxOptions>(builder.Configuration.GetSection(FinanzOnlineOutboxOptions.SectionName));
+        // Singleton: process-wide overlay + hosted-service consumers. Both caches open an
+        // IServiceScopeFactory scope before resolving the scoped IDbContextFactory.
+        builder.Services.AddSingleton<FinanzOnlineOutboxEnabledOverrideCache>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxSettingsService, FinanzOnlineOutboxSettingsService>();
+        builder.Services.AddSingleton<FinanzOnlineRuntimeOverrideCache>();
+        builder.Services.AddSingleton<FinanzOnlineRuntimeOptionsAccessor>();
+        builder.Services.AddScoped<IFinanzOnlineRuntimeSettingsService, FinanzOnlineRuntimeSettingsService>();
         builder.Services.Configure<FinanzOnlineCutoverGuardOptions>(builder.Configuration.GetSection(FinanzOnlineCutoverGuardOptions.SectionName));
         builder.Services.Configure<FinanzOnlineModeOptions>(builder.Configuration.GetSection(FinanzOnlineModeOptions.SectionName));
         builder.Services.Configure<FinanzOnlineDevTestOptions>(builder.Configuration.GetSection(FinanzOnlineDevTestOptions.SectionName));
@@ -1068,7 +1075,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<SimulatedFinanzOnlineSessionClient>();
         builder.Services.AddScoped<IFinanzOnlineSessionClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().Session;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineSessionClient>()
                 : sp.GetRequiredService<CachedFinanzOnlineSessionClient>();
@@ -1082,7 +1089,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<TestModeFinanzOnlineRegistrierkassenClient>();
         builder.Services.AddScoped<IFinanzOnlineRegistrierkassenClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().Registrierkassen;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineRegistrierkassenClient>()
                 : sp.GetRequiredService<TestModeFinanzOnlineRegistrierkassenClient>();
@@ -1098,7 +1105,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<TestModeFinanzOnlineTransmissionQueryClient>();
         builder.Services.AddScoped<IFinanzOnlineTransmissionQueryClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().TransmissionQuery;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineTransmissionQueryClient>()
                 : sp.GetRequiredService<TestModeFinanzOnlineTransmissionQueryClient>();

@@ -10,9 +10,8 @@ echo.
 echo   Logs: %LOG_DIR%
 echo   Repo: %REPO_ROOT%
 echo.
-echo Default: Redis + Backend + Admin (RAM-safe).
-echo Full:    start-all.bat all   ^(also POS^)
-echo Cleanup: kills orphan Next.js workers first.
+echo Default: Redis + Backend + Admin + POS.
+echo Cleanup: leftover Next.js / Expo workers first.
 echo ========================================
 echo.
 
@@ -23,22 +22,18 @@ call npm run dev:cleanup
 popd
 echo.
 
-start "Regkasse Redis" cmd /k "call \"%~dp0start-redis.bat\""
+REM `start "title" cmd /k call "path"` — do NOT use \" inside .bat; cmd treats
+REM the quotes as part of the filename ("'path'" is not recognized).
+start "Regkasse Redis" cmd /k call "%~dp0start-redis.bat"
 timeout /t 2 /nobreak >nul
-start "Regkasse Backend" cmd /k "call \"%~dp0start-backend.bat\""
+start "Regkasse Backend" cmd /k call "%~dp0start-backend.bat"
 timeout /t 1 /nobreak >nul
-start "Regkasse Frontend Admin" cmd /k "call \"%~dp0start-frontend-admin.bat\""
+start "Regkasse Frontend Admin" cmd /k call "%~dp0start-frontend-admin.bat"
+timeout /t 1 /nobreak >nul
+start "Regkasse Frontend POS" cmd /k call "%~dp0start-frontend.bat"
 
-if /I "%~1"=="all" (
-    timeout /t 1 /nobreak >nul
-    start "Regkasse Frontend POS" cmd /k "call \"%~dp0start-frontend.bat\""
-    echo.
-    echo [OK] Launched Redis, Backend, Admin, POS.
-) else (
-    echo.
-    echo [OK] Launched Redis, Backend, Admin.
-    echo      POS icin: start-all.bat all
-)
+echo.
+echo [OK] Launched Redis, Backend, Admin, POS.
 
 echo Close each window ^(or kill-ports.bat / npm run dev:cleanup^) to stop.
 echo.

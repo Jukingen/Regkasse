@@ -31,13 +31,15 @@ echo ========================================
 echo.
 echo Project path: %PROJECT_PATH%
 echo Log file: %LOG_FILE%
-echo.
+echo Metro: --max-workers=2
 echo ========================================
 echo.
 
-echo %date% %time% - Cleanup orphan Expo/Next workers... >> "%LOG_FILE%"
+REM Only leaked Turbopack workers — do not kill a live Admin next dev session.
+echo Cleanup leaked .next/dev/build workers ^(orphans-only^)...
+echo %date% %time% - Cleanup orphans-only Next workers... >> "%LOG_FILE%"
 pushd "%REPO_ROOT%"
-call npm run dev:cleanup
+call npm run dev:cleanup:orphans
 popd
 
 if not exist "node_modules" (
@@ -46,8 +48,9 @@ if not exist "node_modules" (
     echo %date% %time% - WARNING: node_modules not found >> "%LOG_FILE%"
 )
 
-echo %date% %time% - Starting frontend... >> "%LOG_FILE%"
-npm start -- --clear >> "%LOG_FILE%" 2>&1
+echo %date% %time% - Starting frontend (expo start --max-workers=2)... >> "%LOG_FILE%"
+set "NODE_OPTIONS=--max-old-space-size=1536"
+npm run dev >> "%LOG_FILE%" 2>&1
 
 if %errorlevel% neq 0 (
     echo.

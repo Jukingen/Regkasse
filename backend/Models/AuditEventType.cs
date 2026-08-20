@@ -152,5 +152,8 @@ public enum AuditEventType
     /// <summary>Reserved: Super Admin previewed a key (not written on every FA keystroke).</summary>
     LicensePreviewed = 72,
 
+    /// <summary>Super Admin changed the FinanzOnline outbox worker enable/disable overlay.</summary>
+    FinanzOnlineOutboxSettingsChanged = 73,
+
     Other = 99
 }

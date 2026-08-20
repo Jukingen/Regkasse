@@ -141,6 +141,51 @@ public sealed class TseServiceSoftFallbackTests
     }
 
     [Fact]
+    public async Task CreateInvoiceSignature_DemoMode_FiskalyNotReady_UsesSoftTse()
+    {
+        await using var db = CreateDb();
+        var fiskaly = new Mock<IFiskalyTseService>();
+        fiskaly.Setup(s => s.IsReadyToSignAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var svc = CreateService(
+            db,
+            fiskaly.Object,
+            new TseOptions
+            {
+                TseMode = "Demo",
+                Mode = "Fake",
+                FallbackEnabled = true,
+                SoftTseEnabled = true,
+            },
+            Environments.Development,
+            new SoftTseService(
+                new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+                NullLogger<SoftTseService>.Instance));
+
+        var ex = await Record.ExceptionAsync(() =>
+            svc.CreateInvoiceSignatureAsync(
+                Guid.NewGuid(),
+                "AT-1",
+                10m,
+                "KASSE-1"));
+
+        Assert.False(
+            ex is TseUnavailableException,
+            ex?.Message);
+        fiskaly.Verify(
+            s => s.SignTransactionAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        fiskaly.Verify(
+            s => s.IsReadyToSignAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreateDailyClosingSignatureAsync_Production_WhenProviderNotReady_Throws()
     {
         await using var db = CreateDb();

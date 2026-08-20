@@ -918,7 +918,8 @@ modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
 npm install
 npm run dev                 # parallel RAM-safe: backend + admin (+ orphan cleanup)
 npm run dev:all             # parallel full: backend + admin + POS + sites
-npm run dev:cleanup         # kill orphan Next/Expo node workers
+npm run dev:cleanup         # kill leftover Next/Expo node workers
+npm run dev:cleanup:orphans # kill only `.next/dev/build` workers (safe while apps run)
 npm run dev:backend | dev:admin | dev:pos | dev:sites
 npm run test
 npm run verify:api-client

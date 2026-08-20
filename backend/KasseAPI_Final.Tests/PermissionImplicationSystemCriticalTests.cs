@@ -38,6 +38,38 @@ public class PermissionImplicationSystemCriticalTests
     }
 
     [Fact]
+    public void HasPermissionClaim_CompactManagerAdminJwt_Uses_Matrix_Without_PosWrites()
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim("role", Roles.Manager),
+                new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin),
+            },
+            authenticationType: "Test");
+        var principal = new ClaimsPrincipal(identity);
+
+        Assert.True(principal.HasPermissionClaim(AppPermissions.UserView));
+        Assert.False(principal.HasPermissionClaim(AppPermissions.PaymentTake));
+        Assert.False(principal.HasPermissionClaim(AppPermissions.SystemCritical));
+    }
+
+    [Fact]
+    public void HasPermissionClaim_CompactCashierPosJwt_Allows_PaymentTake()
+    {
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim("role", Roles.Cashier),
+                new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Pos),
+            },
+            authenticationType: "Test");
+        var principal = new ClaimsPrincipal(identity);
+
+        Assert.True(principal.HasPermissionClaim(AppPermissions.PaymentTake));
+    }
+
+    [Fact]
     public void HasPermissionClaim_Manager_Without_Claim_Denies()
     {
         var identity = new ClaimsIdentity(

@@ -413,6 +413,17 @@ namespace KasseAPI_Final.Services
 
         private async Task<TseSigningMode> ResolveSigningModeAsync(Guid cashRegisterId)
         {
+            var opts = _tseOptions?.CurrentValue ?? new TseOptions();
+
+            // Demo / Fake: Soft TSE is the primary signer until Fiskaly+FON are ready.
+            if ((opts.UseSoftTseWhenNoDevice || opts.IsFakeSigningMode)
+                && CanUseSoftTseFallback()
+                && _softTse is not null)
+            {
+                _logger.LogWarning("TseMode Demo/Fake — using Soft TSE in Development.");
+                return TseSigningMode.SoftTse;
+            }
+
             if (_fiskalyTse is not null
                 && _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) == true)
             {
@@ -422,6 +433,13 @@ namespace KasseAPI_Final.Services
                 _logger.LogWarning(
                     "Fiskaly is enabled but SCU or cash register is not INITIALIZED. cashRegisterId={CashRegisterId}",
                     cashRegisterId);
+
+                if (CanUseSoftTseFallback() && _softTse is not null)
+                {
+                    _logger.LogWarning("Fiskaly not ready; Soft TSE fallback in Development.");
+                    return TseSigningMode.SoftTse;
+                }
+
                 return TseSigningMode.Disabled;
             }
 

@@ -121,8 +121,30 @@ public sealed class FinanzOnlineReadinessEvaluatorTests
             tenantCompanyProbe: null);
 
         Assert.Equal("Unhealthy", r.OverallStatus);
-        Assert.Contains(r.Findings, f => f.Code == "FO_READINESS_OUTBOX_DISABLED");
+        Assert.Contains(r.Findings, f => f.Code == "FO_READINESS_OUTBOX_DISABLED" && f.Severity == "Error");
         Assert.False(r.RealTestSubmissionPossible);
+        Assert.False(r.Diagnostics!.OutboxPipelineEnabled);
+    }
+
+    [Fact]
+    public void Outbox_disabled_in_development_is_warning_not_blocking_error()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+        var r = FinanzOnlineReadinessEvaluator.Evaluate(
+            RealSessionWithFullConfigCredentials("https://x/s"),
+            new FinanzOnlineRegistrierkassenOptions { UseSimulation = false, EnableRealTestSubmission = true, BaseUrl = "https://x/r" },
+            new FinanzOnlineTransmissionQueryOptions { UseSimulation = false, EnableRealTestQuery = true },
+            new FinanzOnlineOutboxOptions { Enabled = false },
+            new FinanzOnlineConnectivityOptions { UseCompanySettings = false },
+            new FinanzOnlineDevTestOptions(),
+            simulationOptions: null,
+            hostEnvironment: env.Object,
+            tenantCompanyProbe: null);
+
+        Assert.Equal("Degraded", r.OverallStatus);
+        var finding = Assert.Single(r.Findings, f => f.Code == "FO_READINESS_OUTBOX_DISABLED");
+        Assert.Equal("Warning", finding.Severity);
         Assert.False(r.Diagnostics!.OutboxPipelineEnabled);
     }
 

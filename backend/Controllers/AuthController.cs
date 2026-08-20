@@ -30,9 +30,9 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     [ApiController]
     /// <summary>
-    /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) must match JWT
-    /// <c>permission</c> claims: both use <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix;
-    /// custom roles → AspNetRoleClaims), same as <see cref="ITokenClaimsService.BuildClaimsAsync"/>.
+    /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) use
+    /// <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix; custom roles → AspNetRoleClaims).
+    /// Canonical system-role JWTs omit the permission catalog (cookie size); SuperAdmin keeps <c>system.critical</c>.
     /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else <c>dev</c>/platform fallback).
     /// GET /me uses <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else default).
     /// </summary>
@@ -1222,7 +1222,7 @@ namespace KasseAPI_Final.Controllers
             claims.Add(new Claim(JwtRegisteredClaimNames.Jti, jti));
             claims.Add(new Claim("sid", sessionId.ToString()));
 
-            var token = new JwtSecurityToken(
+            var jwt = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
@@ -1230,7 +1230,9 @@ namespace KasseAPI_Final.Controllers
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var encoded = new JwtSecurityTokenHandler().WriteToken(jwt);
+            JwtCookieBudget.LogIfExceeded(_logger, encoded, _configuration);
+            return encoded;
         }
 
         private static string MaskEmail(string? email)
@@ -1304,7 +1306,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Effective permissions for API JSON: same set as embedded in JWT via <see cref="ITokenClaimsService"/>.
+        /// Effective permissions for API JSON (login /me). Canonical system-role JWTs omit this catalog.
         /// Sorted for stable serialization (JWT claim order is not significant for authorization).
         /// </summary>
         private async Task<List<string>> GetEffectivePermissionsListAsync(

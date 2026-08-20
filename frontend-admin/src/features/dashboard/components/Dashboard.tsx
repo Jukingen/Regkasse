@@ -12,6 +12,7 @@ import {
   fetchDashboardWidgetCatalog,
   saveDashboardPreferences,
 } from '@/features/dashboard/api/dashboardPreferences';
+import { DashboardHandyLinksCard } from '@/features/dashboard/components/DashboardHandyLinksCard';
 import { DashboardSettingsPanel } from '@/features/dashboard/components/DashboardSettingsPanel';
 import { WidgetGrid } from '@/features/dashboard/components/WidgetGrid';
 import {
@@ -185,6 +186,8 @@ export function Dashboard({ headerSlot }: DashboardProps) {
           style={{ marginTop: 8 }}
         />
       ) : null}
+
+      {!loading ? <DashboardHandyLinksCard /> : null}
 
       <DashboardSettingsPanel
         open={settingsOpen}

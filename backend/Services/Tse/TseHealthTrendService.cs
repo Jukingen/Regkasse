@@ -96,6 +96,9 @@ public sealed class TseHealthTrendService : ITseHealthTrendService
         }
         catch (Exception ex)
         {
+            // Prune/insert failures must not leave Added samples on the shared scoped DbContext
+            // (TseFailoverBackgroundService later SaveChanges would retry the INSERT).
+            DiscardPendingHealthSamples();
             _logger.LogWarning(ex, "Failed to record TSE health sample for device {DeviceId}", device.Id);
         }
     }
@@ -376,6 +379,15 @@ public sealed class TseHealthTrendService : ITseHealthTrendService
 
     private static string DeviceLabel(TseDevice d) =>
         !string.IsNullOrWhiteSpace(d.DeviceId) ? d.DeviceId! : d.SerialNumber;
+
+    private void DiscardPendingHealthSamples()
+    {
+        foreach (var entry in _db.ChangeTracker.Entries<TseDeviceHealthSample>().ToList())
+        {
+            if (entry.State != EntityState.Detached)
+                entry.State = EntityState.Detached;
+        }
+    }
 
     private static string? Truncate(string? value, int max) =>
         string.IsNullOrEmpty(value) ? value : value.Length <= max ? value : value[..max];
