@@ -93,7 +93,7 @@ jobs:
           NEXT_PUBLIC_RKSV_ENVIRONMENT: ${{ vars.FA_STAGING_RKSV_ENVIRONMENT || 'TEST' }}
           RELEASE_STAGE: staging
         run: |
-          ./scripts/ci-build.ps1 -Docker -Profiles admin,sites,pos -Push -Registry $env:DOCKER_REGISTRY -Tag $env:IMAGE_TAG
+          ./scripts/ci/ci-build.ps1 -Docker -Profiles admin,sites,pos -Push -Registry $env:DOCKER_REGISTRY -Tag $env:IMAGE_TAG
 
   resolve-target:
     name: Resolve deploy target

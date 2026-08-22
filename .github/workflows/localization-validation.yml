@@ -73,7 +73,7 @@ jobs:
       - name: Install frontend dependencies
         if: steps.cache-pos-nm.outputs.cache-hit != 'true'
         working-directory: frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps --workspaces=false
 
       - name: Install frontend-admin dependencies
         if: steps.cache-fa-nm.outputs.cache-hit != 'true'

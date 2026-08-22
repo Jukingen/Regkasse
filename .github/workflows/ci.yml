@@ -53,7 +53,7 @@ jobs:
 
       - name: Restore + build + test
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Backend -SkipAdmin -SkipPos
+        run: ./scripts/ci/ci-test.ps1 -Backend -SkipAdmin -SkipPos
 
   admin-tests:
     name: Admin tests
@@ -76,12 +76,12 @@ jobs:
 
       - name: Install
         working-directory: frontend-admin
-        run: npm ci --workspaces=false
+        run: npm ci
 
       - name: Lint · typecheck · test
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Admin -SkipBackend -SkipPos
+        run: ./scripts/ci/ci-test.ps1 -Admin -SkipBackend -SkipPos
 
   pos-tests:
     name: POS tests
@@ -102,7 +102,7 @@ jobs:
 
       - name: Lint · typecheck · test
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Pos -SkipBackend -SkipAdmin
+        run: ./scripts/ci/ci-test.ps1 -Pos -SkipBackend -SkipAdmin
 
   docker-build:
     name: Build Docker images
@@ -129,7 +129,7 @@ jobs:
           POS_API_URL: http://127.0.0.1:5184/api
           NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
           IMAGE_TAG: ci-${{ github.sha }}
-        run: ./scripts/ci-build.ps1 -Docker -Profiles admin,sites,pos -NoPush
+        run: ./scripts/ci/ci-build.ps1 -Docker -Profiles admin,sites,pos -NoPush
 
   smoke-script:
     name: Smoke script syntax

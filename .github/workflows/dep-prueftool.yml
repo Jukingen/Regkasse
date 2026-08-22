@@ -7,17 +7,17 @@ on:
   pull_request:
     paths:
       - 'backend/**'
-      - 'scripts/verify-rksv-dep-export.ps1'
-      - 'scripts/ensure-bmf-prueftool.ps1'
-      - 'scripts/generate-dep-export-fixtures.ps1'
+      - 'scripts/rksv/verify-rksv-dep-export.ps1'
+      - 'scripts/rksv/ensure-bmf-prueftool.ps1'
+      - 'scripts/rksv/generate-dep-export-fixtures.ps1'
       - '.github/workflows/dep-prueftool.yml'
   push:
     branches: [main, master]
     paths:
       - 'backend/**'
-      - 'scripts/verify-rksv-dep-export.ps1'
-      - 'scripts/ensure-bmf-prueftool.ps1'
-      - 'scripts/generate-dep-export-fixtures.ps1'
+      - 'scripts/rksv/verify-rksv-dep-export.ps1'
+      - 'scripts/rksv/ensure-bmf-prueftool.ps1'
+      - 'scripts/rksv/generate-dep-export-fixtures.ps1'
       - '.github/workflows/dep-prueftool.yml'
   workflow_dispatch:
 
@@ -68,16 +68,16 @@ jobs:
             backend/Tests/regkassen-verification-depformat-1.1.1.jar
             backend/Tests/regkassen-verification-receipts-1.1.1.jar
             backend/Tests/lib
-          key: bmf-prueftool-v1.1.1-${{ hashFiles('scripts/ensure-bmf-prueftool.ps1') }}
+          key: bmf-prueftool-v1.1.1-${{ hashFiles('scripts/rksv/ensure-bmf-prueftool.ps1') }}
 
       - name: Ensure BMF Prüftool JARs
         shell: pwsh
-        run: ./scripts/ensure-bmf-prueftool.ps1
+        run: ./scripts/rksv/ensure-bmf-prueftool.ps1
 
       - name: Verify committed fixtures (BMF CheckDEPExportFormat)
         shell: pwsh
         run: >
-          ./scripts/verify-rksv-dep-export.ps1
+          ./scripts/rksv/verify-rksv-dep-export.ps1
           -UseFixtures
           -OutputDir ./verification_output_ci_fixtures
 

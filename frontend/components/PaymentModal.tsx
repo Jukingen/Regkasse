@@ -14,6 +14,7 @@ import {
   Switch,
   Pressable,
   Platform,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -2558,13 +2559,13 @@ const styles = StyleSheet.create({
     // fixed + high z-index keeps the payment sheet and Zahlen hit-target above the tab UI.
     ...(Platform.OS === 'web'
       ? ({
-          position: 'fixed' as const,
+          position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
           zIndex: 2147483646,
-        } as const)
+        } as ViewStyle)
       : {}),
   },
   modal: {
