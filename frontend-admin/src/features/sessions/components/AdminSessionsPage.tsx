@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, Input, Space, Table, Typography } from 'antd';
+import { Alert, Button, Card, Input, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -17,6 +17,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import dayjs from '@/lib/dayjs';
 import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 type PendingConfirm =
   | { kind: 'revoke'; session: AdminActiveSession }
@@ -36,7 +37,7 @@ export function AdminSessionsPage() {
   const { t } = useI18n();
   const notify = useNotify();
   const { isSuperAdmin } = usePermissions();
-  const { sessions, isLoading, isFetching, refetch, terminateOne, terminateAll } =
+  const { sessions, isLoading, isFetching, isError, error, refetch, terminateOne, terminateAll } =
     useAdminSessions(isSuperAdmin);
   const [search, setSearch] = useState('');
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
@@ -97,6 +98,18 @@ export function AdminSessionsPage() {
       title: t('users.sessions.colDevice'),
       key: 'device',
       render: (_, record) => record.deviceName?.trim() || t('common.auth.sessions.unknownDevice'),
+    },
+    {
+      title: t('users.sessions.colBrowser'),
+      dataIndex: 'browser',
+      key: 'browser',
+      render: (value: string | null | undefined) => value?.trim() || '—',
+    },
+    {
+      title: t('users.sessions.colOs'),
+      dataIndex: 'os',
+      key: 'os',
+      render: (value: string | null | undefined) => value?.trim() || '—',
     },
     {
       title: t('users.sessions.colClient'),
@@ -167,46 +180,67 @@ export function AdminSessionsPage() {
         {t('users.sessions.pageDescription')}
       </Typography.Paragraph>
 
-      <Card
-        extra={
-          <Space wrap>
-            <Input.Search
-              allowClear
-              placeholder={t('users.sessions.searchPlaceholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 260 }}
+      {isError ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t('users.sessions.loadFailed')}
+          description={
+            <ApiErrorAlertDescription
+              t={t}
+              error={error}
+              logContext="AdminSessions.load"
+              fallbackKey="users.sessions.loadFailedHint"
             />
-            <Button onClick={() => void refetch()} loading={isFetching}>
-              {t('common.buttons.refresh')}
+          }
+          action={
+            <Button size="small" loading={isFetching} onClick={() => void refetch()}>
+              {t('common.buttons.retry')}
             </Button>
-            <Button
-              danger
-              disabled={sessions.filter((s) => !s.isCurrent).length === 0}
-              loading={isMutating}
-              onClick={() => setPendingConfirm({ kind: 'revokeAll' })}
-            >
-              {t('users.sessions.terminateAll')}
-            </Button>
-          </Space>
-        }
-      >
-        <Table<AdminActiveSession>
-          dataSource={filtered}
-          columns={columns}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 25, hideOnSinglePage: true }}
-          locale={{
-            emptyText: (
-              <EmptyState
-                title={t('users.sessions.empty')}
-                description={t('users.sessions.pageDescription')}
-              />
-            ),
-          }}
+          }
         />
-      </Card>
+      ) : (
+        <Card
+          extra={
+            <Space wrap>
+              <Input.Search
+                allowClear
+                placeholder={t('users.sessions.searchPlaceholder')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ width: 260 }}
+              />
+              <Button onClick={() => void refetch()} loading={isFetching}>
+                {t('common.buttons.refresh')}
+              </Button>
+              <Button
+                danger
+                disabled={sessions.filter((s) => !s.isCurrent).length === 0}
+                loading={isMutating}
+                onClick={() => setPendingConfirm({ kind: 'revokeAll' })}
+              >
+                {t('users.sessions.terminateAll')}
+              </Button>
+            </Space>
+          }
+        >
+          <Table<AdminActiveSession>
+            dataSource={filtered}
+            columns={columns}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{ pageSize: 25, hideOnSinglePage: true }}
+            locale={{
+              emptyText: (
+                <EmptyState
+                  title={t('users.sessions.empty')}
+                  description={t('users.sessions.pageDescription')}
+                />
+              ),
+            }}
+          />
+        </Card>
+      )}
 
       <ConfirmDialog
         open={pendingConfirm?.kind === 'revoke'}

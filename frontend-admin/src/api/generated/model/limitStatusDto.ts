@@ -25,5 +25,7 @@ export interface LimitStatusDto {
   /** @nullable */
   tenantName?: string | null;
   /** @nullable */
+  tenantSlug?: string | null;
+  /** @nullable */
   trend?: string | null;
 }

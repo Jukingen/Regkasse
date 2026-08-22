@@ -115,6 +115,8 @@
       "emptyLimits": "No limits for this filter.",
       "emptyUsers": "No users approaching or exceeding a limit.",
       "emptyLogs": "No limit events.",
+      "loadFailed": "Could not load limit data",
+      "loadFailedHint": "Please try again later.",
       "filter": {
         "all": "All",
         "healthy": "Healthy",
@@ -210,6 +212,8 @@
       "cacheCleared": "Limit cache cleared.",
       "saved": "Limit updated.",
       "error": "The limit could not be updated.",
+      "loadFailed": "Could not load test data",
+      "loadFailedHint": "Please try again later.",
       "scenarioSuccess": "Scenario applied.",
       "refresh": "Refresh",
       "allKeys": "All limits",

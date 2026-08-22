@@ -20456,6 +20456,14 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -56815,7 +56823,7 @@
             "format": "int32"
           },
           "totalAmount": {
-            "maximum": 1.7976931348623157E+308,
+            "maximum": 79228162514264337593543950335,
             "minimum": 0.01,
             "type": "number",
             "format": "double"
@@ -57175,6 +57183,10 @@
             "format": "uuid"
           },
           "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
             "type": "string",
             "nullable": true
           },
@@ -67595,6 +67607,10 @@
             "type": "string",
             "nullable": true
           },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
           "limitKey": {
             "type": "string",
             "nullable": true
@@ -67707,6 +67723,10 @@
             "format": "uuid"
           },
           "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
             "type": "string",
             "nullable": true
           },
@@ -76828,7 +76848,7 @@
         "type": "object",
         "properties": {
           "amount": {
-            "maximum": 1.7976931348623157E+308,
+            "maximum": 79228162514264337593543950335,
             "minimum": 0.01,
             "type": "number",
             "format": "double"
@@ -95010,14 +95030,14 @@
           },
           "maxTransactionAmount": {
             "maximum": 1000000000,
-            "minimum": 1,
+            "minimum": 0.01,
             "type": "number",
             "format": "double",
             "nullable": true
           },
           "dailyMaxRevenue": {
             "maximum": 1000000000,
-            "minimum": 1,
+            "minimum": 0.01,
             "type": "number",
             "format": "double",
             "nullable": true
@@ -96452,7 +96472,7 @@
             "writeOnly": true
           },
           "amount": {
-            "maximum": 1.7976931348623157E+308,
+            "maximum": 79228162514264337593543950335,
             "minimum": 0.01,
             "type": "number",
             "format": "double",
@@ -96606,7 +96626,7 @@
             "type": "string"
           },
           "amount": {
-            "maximum": 1.7976931348623157E+308,
+            "maximum": 79228162514264337593543950335,
             "minimum": 0.01,
             "type": "number",
             "format": "double"

@@ -45,6 +45,7 @@ export function useAdminSessions(enabled: boolean) {
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
+    error: query.error,
     refetch: query.refetch,
     terminateOne,
     terminateAll,

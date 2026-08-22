@@ -20,6 +20,8 @@ export interface LimitActivityDto {
   tenantId?: string;
   /** @nullable */
   tenantName?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
   timestampUtc?: string;
   /** @nullable */
   userName?: string | null;

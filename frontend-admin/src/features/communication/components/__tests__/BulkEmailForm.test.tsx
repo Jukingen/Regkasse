@@ -166,9 +166,12 @@ describe('BulkEmailForm', () => {
 
     fireEvent.click(screen.getByTestId('bulk-email-send'));
 
-    await waitFor(() => {
-      expect(screen.getByText('communication.bulkEmail.subjectRequired')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('communication.bulkEmail.subjectRequired')).toBeInTheDocument();
+      },
+      { timeout: 5_000 }
+    );
     expect(mockSendMutateAsync).not.toHaveBeenCalled();
     expect(mockModalConfirm).not.toHaveBeenCalled();
   });

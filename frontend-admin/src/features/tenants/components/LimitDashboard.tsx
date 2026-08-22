@@ -33,6 +33,7 @@ import { useNotify } from '@/hooks/useNotify';
 import { useTenant } from '@/hooks/useTenant';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function LimitDashboard() {
   const { t } = useI18n();
@@ -227,25 +228,48 @@ export default function LimitDashboard() {
         viewerUserName={user?.userName}
       />
 
-      <DashboardSummaryCards summary={data?.summary} />
-      <CriticalAlerts limits={data?.limits ?? []} users={criticalUsers} />
-      <LimitProgressList
-        limits={data?.limits ?? []}
-        loading={query.isLoading}
-        showTenant={showTenant}
-        isSuperAdmin={superAdmin}
-        filter={filter}
-        onFilterChange={setFilter}
-        onOpenDetail={(href) => router.push(href)}
-        registerLabel={registerLabel}
-      />
-      <CriticalUsersTable
-        users={criticalUsers}
-        showTenant={showTenant}
-        isSuperAdmin={superAdmin}
-        onOpenDetail={(href) => router.push(href)}
-      />
-      <ActivityLog rows={data?.recentActivity ?? []} showTenant={showTenant} />
+      {query.isError ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t('tenants.limits.dashboard.loadFailed')}
+          description={
+            <ApiErrorAlertDescription
+              t={t}
+              error={query.error}
+              logContext="LimitDashboard.load"
+              fallbackKey="tenants.limits.dashboard.loadFailedHint"
+            />
+          }
+          action={
+            <Button size="small" loading={query.isFetching} onClick={() => void query.refetch()}>
+              {t('common.buttons.retry')}
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <DashboardSummaryCards summary={data?.summary} />
+          <CriticalAlerts limits={data?.limits ?? []} users={criticalUsers} />
+          <LimitProgressList
+            limits={data?.limits ?? []}
+            loading={query.isLoading}
+            showTenant={showTenant}
+            isSuperAdmin={superAdmin}
+            filter={filter}
+            onFilterChange={setFilter}
+            onOpenDetail={(href) => router.push(href)}
+            registerLabel={registerLabel}
+          />
+          <CriticalUsersTable
+            users={criticalUsers}
+            showTenant={showTenant}
+            isSuperAdmin={superAdmin}
+            onOpenDetail={(href) => router.push(href)}
+          />
+          <ActivityLog rows={data?.recentActivity ?? []} showTenant={showTenant} />
+        </>
+      )}
     </Space>
   );
 }

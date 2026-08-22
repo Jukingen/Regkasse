@@ -107,7 +107,7 @@ en/tr catalogs live next to the DE strings (`frontend-admin/src/i18n/locales/*/t
 |--------|-------|-----|
 | GET / PUT / POST reset | `/api/admin/tenants/{tenantId}/limits` | Super Admin |
 | GET | `/api/admin/limits` | Ambient tenant usage (Manager + Super Admin) |
-| GET | `/api/admin/limits/dashboard` | Manager (own tenant) + Super Admin (`allTenants=true` or no ambient tenant = all mandants; `tenantId` = one mandant) |
+| GET | `/api/admin/limits/dashboard` | `license.manage`. Super Admin: `allTenants=true` or no ambient tenant = all mandants; `tenantId` = one mandant. Mandanten-Admin (`Manager`): ambient tenant only — see [Limit Dashboard tenant targeting](#limit-dashboard-tenant-targeting) |
 
 Usage DTO includes live counts: products, users, daily transactions/revenue, backups, cumulative backup MB, offline queue, peak assigned registers per user.
 
@@ -116,6 +116,63 @@ Dashboard DTO (`LimitDashboardDto`): `lastUpdated`, `summary` (healthy / warning
 Activity feed: `LimitApproaching` (warning) and `LimitExceeded` (error). Published on 409 enforcement and by `ActivityMonitoringHostedService` (deduped). FA page: `/admin/limits/dashboard` (Lizenzverwaltung).
 
 Cache: `CacheKeys` tenant-limits entry, TTL `CacheSettings:TenantLimitsCacheMinutes` (default **5**). Invalidated on Super Admin PUT/reset.
+
+### Limit Dashboard tenant targeting
+
+`GET /api/admin/limits/dashboard` (`license.manage`). FA: `/admin/limits/dashboard`.
+
+| Actor | Query | Behaviour |
+|-------|-------|-----------|
+| SuperAdmin | `?tenantId={guid}` | Loads that mandant (404 if the tenant does not exist) |
+| SuperAdmin | `?allTenants=true` | Aggregates all active, non-deleted mandants |
+| SuperAdmin | none | Ambient tenant if set; otherwise all mandants (same as `allTenants=true`) |
+| Mandanten-Admin (`Manager`) | `?tenantId=…` | **Ignored.** HTTP **200** with the **ambient** tenant dashboard. Foreign `tenantId` is never loaded |
+| Mandanten-Admin (`Manager`) | none | Ambient tenant. No ambient tenant → HTTP **404** (`Tenant context is required.`) |
+| Mandanten-Admin (`Manager`) | `?allTenants=true` | Ignored. Ambient tenant only |
+| Cashier | any | No `license.manage` — menu hidden; route **403** |
+
+Mandanten-Admin sending `tenantId` for another mandant is **not** a cross-tenant 404. Isolation is fail-closed by **ignoring** the query and returning the caller’s own dashboard (HTTP 200). This is intentional: the actor is allowed to read their own limits; the extra query must not retarget the read.
+
+FA does not send `tenantId` / `allTenants` for non–SuperAdmin. Super Admin may pick one mandant or “all tenants” in the context bar.
+
+---
+
+## Development Limit Test Panel
+
+QA surface for Super Admin to move caps relative to live usage (no fiscal test rows). Not a Production feature.
+
+| Surface | Path |
+|---------|------|
+| FA page | `/admin/development/limits` (sidebar **Entwicklung → Limit Test**, `developmentOnly`) |
+| API | `/api/dev/limits/*` (`DevLimitTestController`, `[Authorize(Roles = SuperAdmin)]`, hidden from OpenAPI) |
+
+### Access
+
+| Actor | Environment | Menu | Page | API |
+|-------|-------------|------|------|-----|
+| SuperAdmin | Development (`NODE_ENV=development` + `ASPNETCORE_ENVIRONMENT=Development`) | Visible | Panel | 200 when `tenantId` is valid |
+| SuperAdmin | Production | Hidden (`developmentOnly`) | UI **404** (`NotFoundAccessView`) | HTTP **404** (`EnsureNotDevelopment`) |
+| Mandanten-Admin (`Manager`) | Development | Hidden (`system.critical` required) | FA **403** (`ForbiddenAccessView`) | HTTP **403** (role) |
+| Cashier | Development | Hidden | FA **403** | HTTP **403** (role) |
+
+Mandanten-Admin / Cashier opening `/admin/development/limits` is **403**, not 404. That is expected: the route is gated by `system.critical` / SuperAdmin role, not by tenant isolation.
+
+### Tenant validation on `/api/dev/limits`
+
+`/api/dev/limits` is **not** in `TenantValidationMiddleware` SuperAdmin platform exemptions (`/api/admin/limits` is). Super Admin still needs an **ambient** tenant (JWT / `X-Tenant-Id` in Development). Missing ambient tenant → HTTP **404** before the controller. The panel then targets a mandant via explicit `tenantId` query/body (`IgnoreQueryFilters` on usage/caps).
+
+### Scenarios
+
+`POST /api/dev/limits/scenario/trigger` (`near` / `at` / `tiny` / `reset`) via `DevLimitScenarioPlanner`. Caps move relative to live usage; no payments/backups/offline rows are created.
+
+| Scenario | Effect |
+|----------|--------|
+| `near` | Cap ≈ usage / 0.8 (warning band). Zero usage → integer **5** (money keys use a small fallback) |
+| `at` | Cap = current usage (`Math.Max(1, current)` when usage is 0) |
+| `tiny` | Cap = 1 (money 1.00) |
+| `reset` | Defaults (`ResetLimitsAsync` when no `limitKey`) |
+
+Other routes: `GET …/status`, `POST …/set`, `POST …/reset-all`, `POST …/cache/clear`.
 
 ---
 

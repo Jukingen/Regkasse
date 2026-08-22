@@ -1,14 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LimitDashboardDto } from '@/features/tenants/api/tenantLimits';
 import LimitDashboard from '../LimitDashboard';
 
 const push = vi.fn();
 
-const dashboard = vi.hoisted(() => ({
-  current: {
+const { dashboard, dashboardQuery } = vi.hoisted(() => {
+  const data = {
     lastUpdated: '2026-08-22T08:00:00.000Z',
     summary: { total: 9, healthy: 7, warning: 1, critical: 1 },
     limits: [
@@ -61,8 +61,22 @@ const dashboard = vi.hoisted(() => ({
     approachingLimits: 1,
     unreadAlertCount: 2,
     allTenants: false,
-  } satisfies LimitDashboardDto,
-}));
+  } satisfies LimitDashboardDto;
+
+  return {
+    dashboard: { current: data },
+    dashboardQuery: {
+      current: {
+        data: data as LimitDashboardDto | undefined,
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        error: null as Error | null,
+        refetch: vi.fn(),
+      },
+    },
+  };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/limits/dashboard',
@@ -108,12 +122,7 @@ vi.mock('@/hooks/useCashRegisterSelection', () => ({
 }));
 
 vi.mock('@/features/tenants/hooks/useTenantLimits', () => ({
-  useLimitDashboard: () => ({
-    data: dashboard.current,
-    isLoading: false,
-    isFetching: false,
-    refetch: vi.fn(),
-  }),
+  useLimitDashboard: () => dashboardQuery.current,
 }));
 
 vi.mock('@/hooks/useNotify', () => ({
@@ -133,7 +142,22 @@ vi.mock('@/shared/adminShellLabels', () => ({
   adminOverviewCrumb: () => ({ title: 'Overview', href: '/dashboard' }),
 }));
 
+vi.mock('@/shared/errors/ApiErrorAlertDescription', () => ({
+  ApiErrorAlertDescription: ({ fallbackKey }: { fallbackKey: string }) => <span>{fallbackKey}</span>,
+}));
+
 describe('LimitDashboard', () => {
+  beforeEach(() => {
+    dashboardQuery.current = {
+      data: dashboard.current,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+  });
+
   it('shows usage, critical users, summary, and activity', () => {
     render(<LimitDashboard />);
 
@@ -143,5 +167,25 @@ describe('LimitDashboard', () => {
     expect(screen.getByText('tenants.limits.dashboard.context.mandantLine')).toBeTruthy();
     expect(screen.getByText('Limit maxProductsPerTenant is at 80%.')).toBeTruthy();
     expect(screen.getByText('tenants.limits.dashboard.summary.warning')).toBeTruthy();
+  });
+
+  it('shows an error alert with retry instead of empty tables', () => {
+    const refetch = vi.fn();
+    dashboardQuery.current = {
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: new Error('network'),
+      refetch,
+    };
+
+    render(<LimitDashboard />);
+
+    expect(screen.getByText('tenants.limits.dashboard.loadFailed')).toBeTruthy();
+    expect(screen.getByText('tenants.limits.dashboard.loadFailedHint')).toBeTruthy();
+    expect(screen.queryByText('Anna Kassier')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'common.buttons.retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

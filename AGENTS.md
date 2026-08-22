@@ -262,8 +262,10 @@ Per-mandant operational caps (`tenant_limits`, one row per tenant). Defaults are
 - Offline queue SoT is `tenant_limits`, **not** `TseOptions.MaxOfflineTransactionsPerCashRegister` (obsolete bind-only).
 - Distinct from `TrialLimitGuard` and `TenantOperationLimits` — do not merge.
 
-Usage: `GET /api/admin/limits`. Dashboard: `GET /api/admin/limits/dashboard` (`license.manage`; Super Admin may omit ambient tenant or pass `allTenants=true`). DTO: `lastUpdated`, `summary` (healthy/warning/critical/total), per-limit `Healthy`/`Warning` (≥80%)/`Critical` (≥100%) with 7-day trend, critical users (`Approaching`/`Full`/`Exceeded`), `recentActivity`. Super Admin CRUD: `/api/admin/tenants/{id}/limits`.
+Usage: `GET /api/admin/limits`. Dashboard: `GET /api/admin/limits/dashboard` (`license.manage`). Super Admin: `?allTenants=true` or no ambient tenant = all mandants; `?tenantId=` = one mandant. Mandanten-Admin: **own ambient tenant only** — `tenantId` / `allTenants` query is **ignored** (HTTP **200** own dashboard, not 404). DTO: `lastUpdated`, `summary` (healthy/warning/critical/total), per-limit `Healthy`/`Warning` (≥80%)/`Critical` (≥100%) with 7-day trend, critical users (`Approaching`/`Full`/`Exceeded`), `recentActivity`. Super Admin CRUD: `/api/admin/tenants/{id}/limits`.
 Activity feed: `LimitApproaching` (≥80%) and `LimitExceeded` (>100%) — in-app + email/webhook to Mandanten-Admin and Super Admin. FA: `/admin/limits/dashboard`.
+
+**Development Limit Test Panel** (`/admin/development/limits`, `/api/dev/limits/*`): SuperAdmin + Development only (`system.critical`). SuperAdmin + Production → FA UI 404 + API 404. Mandanten-Admin / Cashier → FA **403** (not 404). `/api/dev/limits` is **not** a SuperAdmin ambient-tenant exemption — missing ambient tenant → middleware **404**. Caps move relative to live usage (`near` / `at` / `tiny` / `reset`); no fiscal test rows. Details: [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md) § Development Limit Test Panel.
 
 ## Self-service portal (Mein Konto)
 
@@ -758,7 +760,7 @@ Use `/ai` docs selectively based on the task:
 - **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
 - **CI / monorepo DX** → root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md); Orval verify + Husky; i18n hard gate in `localization-validation.yml`
 - **Working hours (website/app only — never POS/FA)** → [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md); `AGENTS.md` § Working hours; `WebsiteStatusController`; `OnlineOrderIntakeService`; POS `useWorkingHours` (`posOperationsAllowed` always true)
-- **Tenant limits (users / catalog / sales volume / backup / offline queue)** → [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md); `AGENTS.md` § Tenant Limits; `backend/CONFIGURATION.md` § Tenant Limits
+- **Tenant limits (users / catalog / sales volume / backup / offline queue)** → [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md); `AGENTS.md` § Tenant Limits; `backend/CONFIGURATION.md` § Tenant Limits. Dashboard: Manager ignores `tenantId` (200 own tenant). Dev Limit Test: SuperAdmin+Development only; Manager/Cashier **403**; `/api/dev/limits` needs ambient tenant
 - **SuperAdmin 2FA (TOTP; Dev bypass)** → [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md); `TwoFactorAuthOptions`; `ITwoFactorService`; FA `TwoFactorAuth.tsx`
 - **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
 - **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`

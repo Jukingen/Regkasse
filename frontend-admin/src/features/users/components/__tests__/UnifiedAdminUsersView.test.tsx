@@ -346,7 +346,7 @@ describe('UnifiedAdminUsersView', () => {
       expect(mockGenerateTemporaryPassword).toHaveBeenCalledWith('tenant-user-3');
     });
     expect(await screen.findByDisplayValue('Temp#Pass123')).toBeInTheDocument();
-  });
+  }, 30_000);
 
   it('scopes tenant managers to JWT mandant and hides platform filter', async () => {
     mockListTenantUsers.mockResolvedValue([

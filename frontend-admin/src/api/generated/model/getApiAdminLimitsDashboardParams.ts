@@ -8,4 +8,5 @@
 
 export type GetApiAdminLimitsDashboardParams = {
 allTenants?: boolean;
+tenantId?: string;
 };

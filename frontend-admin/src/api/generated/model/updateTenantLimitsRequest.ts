@@ -8,7 +8,7 @@
 
 export interface UpdateTenantLimitsRequest {
   /**
-   * @minimum 1
+   * @minimum 0.01
    * @maximum 1000000000
    * @nullable
    */
@@ -50,7 +50,7 @@ export interface UpdateTenantLimitsRequest {
    */
   maxProductsPerTenant?: number | null;
   /**
-   * @minimum 1
+   * @minimum 0.01
    * @maximum 1000000000
    * @nullable
    */

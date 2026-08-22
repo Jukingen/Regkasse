@@ -115,6 +115,8 @@
       "emptyLimits": "Keine Limits für diesen Filter.",
       "emptyUsers": "Keine Benutzer nahe am oder über dem Limit.",
       "emptyLogs": "Keine Limit-Ereignisse.",
+      "loadFailed": "Fehler beim Laden der Limit-Daten",
+      "loadFailedHint": "Bitte versuchen Sie es später erneut.",
       "filter": {
         "all": "Alle",
         "healthy": "Gesund",
@@ -210,6 +212,8 @@
       "cacheCleared": "Limit-Cache geleert.",
       "saved": "Limit aktualisiert.",
       "error": "Limit konnte nicht aktualisiert werden.",
+      "loadFailed": "Fehler beim Laden der Test-Daten",
+      "loadFailedHint": "Bitte versuchen Sie es später erneut.",
       "scenarioSuccess": "Szenario angewendet.",
       "refresh": "Aktualisieren",
       "allKeys": "Alle Limits",

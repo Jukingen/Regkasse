@@ -414,6 +414,24 @@ There is **no** `TenantLimits:` appsettings section — Super Admin sets values 
 
 Do not confuse with `Trial:*` trial caps or `TenantOperationLimits`.
 
+### Development Limit Test Panel
+
+No extra `appsettings` key. The panel is **environment-gated**:
+
+| Layer | Gate |
+|-------|------|
+| FA menu `/admin/development/limits` | `NODE_ENV=development` + SuperAdmin (`system.critical`, `developmentOnly`) |
+| FA page | Production SuperAdmin → UI 404 (`NotFoundAccessView`). Mandanten-Admin / Cashier → **403** |
+| API `/api/dev/limits/*` | `IHostEnvironment.IsDevelopment()`; otherwise HTTP **404**. Role SuperAdmin; others **403** |
+
+Usage (Development only):
+
+1. Sign in as SuperAdmin (ambient tenant required — `/api/dev/limits` is **not** a `TenantValidationMiddleware` exemption).
+2. FA: **Entwicklung → Limit Test**.
+3. Pick a mandant, lower caps or run `near` / `at` / `tiny` / `reset`, then clear the limit cache and watch usage.
+
+Full behaviour: [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md) § Development Limit Test Panel.
+
 ## Unified license keys
 
 `LicenseKeyGenerator` produces `REGK-{yyyyMMdd}-{slug}-{8 alnum}`. Mandant slug is the tenant; deployment keys use slug `system`. Legacy on-prem `REGK-XXXXX-XXXXX-XXXXX` still validates (`RegkTenantLicenseKeyFormat`). Activate: `POST /api/license/activate`. Status cache: `CacheSettings:LicenseCacheMinutes` (5).

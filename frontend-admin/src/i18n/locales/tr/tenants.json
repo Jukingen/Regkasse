@@ -115,6 +115,8 @@
       "emptyLimits": "Bu filtrede limit yok.",
       "emptyUsers": "Limite yaklaşan veya aşan kullanıcı yok.",
       "emptyLogs": "Limit olayı yok.",
+      "loadFailed": "Limit verileri yüklenemedi",
+      "loadFailedHint": "Lütfen daha sonra tekrar deneyin.",
       "filter": {
         "all": "Tümü",
         "healthy": "Sağlıklı",
@@ -210,6 +212,8 @@
       "cacheCleared": "Limit önbelleği temizlendi.",
       "saved": "Limit güncellendi.",
       "error": "Limit güncellenemedi.",
+      "loadFailed": "Test verileri yüklenemedi",
+      "loadFailedHint": "Lütfen daha sonra tekrar deneyin.",
       "scenarioSuccess": "Senaryo uygulandı.",
       "refresh": "Yenile",
       "allKeys": "Tüm limitler",

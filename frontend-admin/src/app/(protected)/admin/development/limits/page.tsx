@@ -22,6 +22,7 @@ import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { NotFoundAccessView } from '@/shared/auth/NotFoundAccessView';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 type PanelForm = { tenantId: string };
 
@@ -189,7 +190,28 @@ export default function DevelopmentLimitsPage() {
         </Card>
       </Form>
 
-      <LimitStatusGrid usage={statusQuery.data} loading={statusQuery.isLoading} />
+      {statusQuery.isError ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t('tenants.limits.devPanel.loadFailed')}
+          description={
+            <ApiErrorAlertDescription
+              t={t}
+              error={statusQuery.error}
+              logContext="DevLimits.status"
+              fallbackKey="tenants.limits.devPanel.loadFailedHint"
+            />
+          }
+          action={
+            <Button size="small" loading={statusQuery.isFetching} onClick={() => void statusQuery.refetch()}>
+              {t('common.buttons.retry')}
+            </Button>
+          }
+        />
+      ) : (
+        <LimitStatusGrid usage={statusQuery.data} loading={statusQuery.isLoading} />
+      )}
       <LimitQuickEdit
         usage={statusQuery.data}
         disabled={!tenantId}

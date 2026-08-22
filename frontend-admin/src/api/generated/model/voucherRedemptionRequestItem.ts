@@ -9,7 +9,7 @@
 export interface VoucherRedemptionRequestItem {
   /**
    * @minimum 0.01
-   * @maximum 1.7976931348623157e+308
+   * @maximum 7.922816251426434e+28
    */
   amount: number;
   /**

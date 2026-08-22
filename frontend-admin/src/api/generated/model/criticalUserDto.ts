@@ -24,6 +24,8 @@ export interface CriticalUserDto {
   /** @nullable */
   tenantName?: string | null;
   /** @nullable */
+  tenantSlug?: string | null;
+  /** @nullable */
   userId?: string | null;
   /** @nullable */
   userName?: string | null;
