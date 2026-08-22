@@ -41,7 +41,7 @@
     "cancelled": "Storniert"
   },
   "orderTypes": {
-    "dine-in": "Vor Ort",
+    "dineIn": "Vor Ort",
     "takeaway": "Abholung",
     "delivery": "Lieferung"
   },

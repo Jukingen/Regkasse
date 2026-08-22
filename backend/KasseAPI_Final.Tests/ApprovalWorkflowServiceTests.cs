@@ -151,7 +151,7 @@ public sealed class ApprovalWorkflowServiceTests
 
         Assert.True(result.RequiresApproval);
         Assert.Contains("HIGH_STORNO_FREQUENCY", result.RiskFactors);
-        Assert.Contains(result.Reasons[0], "Zu viele Stornos in kurzer Zeit");
+        Assert.Contains("Zu viele Stornos in kurzer Zeit", result.Reasons[0]);
     }
 
     [Fact]

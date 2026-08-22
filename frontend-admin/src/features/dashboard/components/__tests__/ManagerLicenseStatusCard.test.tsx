@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ManagerLicenseStatusCard } from '@/features/dashboard/components/ManagerLicenseStatusCard';
 import type { LicenseStatusView } from '@/hooks/useLicenseStatus';
 
 import {
@@ -91,8 +92,6 @@ vi.mock('@/i18n', () => ({
     }),
   }),
 }));
-
-import { ManagerLicenseStatusCard } from '@/features/dashboard/components/ManagerLicenseStatusCard';
 
 describe('ManagerLicenseStatusCard', () => {
   beforeEach(() => {

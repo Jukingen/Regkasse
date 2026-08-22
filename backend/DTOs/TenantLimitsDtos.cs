@@ -22,10 +22,10 @@ public sealed class UpdateTenantLimitsRequest
     [Range(1, 1_000_000)]
     public int? DailyMaxTransactions { get; set; }
 
-    [Range(typeof(decimal), "0.01", "1000000000")]
+    [Range(typeof(decimal), "0.01", "1000000000", ParseLimitsInInvariantCulture = true)]
     public decimal? MaxTransactionAmount { get; set; }
 
-    [Range(typeof(decimal), "0.01", "1000000000")]
+    [Range(typeof(decimal), "0.01", "1000000000", ParseLimitsInInvariantCulture = true)]
     public decimal? DailyMaxRevenue { get; set; }
 
     [Range(1, 1_000_000)]

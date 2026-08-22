@@ -144,7 +144,7 @@ export function BillingSalesBulkProgressModal({
       title={t('billing.licenseSales.bulk.progress.title')}
       footer={null}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       destroyOnHidden
     >
       <Typography.Paragraph>

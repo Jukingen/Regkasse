@@ -70,7 +70,7 @@ export function ConvertTrialToPaidModal({
         <Alert
           type="success"
           showIcon
-          message={t('trials.convert.successMessage')}
+          title={t('trials.convert.successMessage')}
           description={
             <Typography.Paragraph style={{ marginBottom: 0 }}>
               {t('trials.convert.successValidUntil', {

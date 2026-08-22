@@ -44,6 +44,8 @@ export default defineConfig({
       '**/playwright-report/**',
       '**/test-results/**',
     ],
+    // Cap workers so antd/jsdom suites do not starve each other (timeouts under full parallel).
+    maxWorkers: process.env.CI ? 2 : 4,
     testTimeout: 15_000,
     hookTimeout: 15_000,
     clearMocks: true,

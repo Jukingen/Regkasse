@@ -6999,7 +6999,7 @@ export const ADMIN_TRANSLATION_KEYS = [
   'onlineOrders.detailTitleFallback',
   'onlineOrders.empty',
   'onlineOrders.orderTypes.delivery',
-  'onlineOrders.orderTypes.dine-in',
+  'onlineOrders.orderTypes.dineIn',
   'onlineOrders.orderTypes.takeaway',
   'onlineOrders.pageSubtitle',
   'onlineOrders.pageTitle',

@@ -29,6 +29,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^shared/(.*)$': '<rootDir>/shared/$1',
+    '^expo/virtual/env$': '<rootDir>/__mocks__/expoVirtualEnv.js',
   },
   testPathIgnorePatterns: ['/node_modules/', '/backup/', '<rootDir>/jest.setup.ts'],
 };

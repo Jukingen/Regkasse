@@ -307,11 +307,22 @@ namespace KasseAPI_Final.Controllers
                     }
                 }
 
-                var dto = await QueryCategoryDtos(tenantId)
-
-                    .FirstAsync(c => c.Id == category.Id);
-
-
+                var dto = new CategoryDto
+                {
+                    Id = category.Id,
+                    Key = category.Key,
+                    Name = category.Name,
+                    Description = category.Description,
+                    Icon = category.Icon,
+                    Color = category.Color,
+                    SortOrder = category.SortOrder,
+                    ProductCount = 0,
+                    DefaultTaxRate = category.VatRate,
+                    FiscalCategory = category.FiscalCategory,
+                    IsSystemCategory = category.IsSystemCategory,
+                    OriginalDemoName = category.OriginalDemoName,
+                    IsActive = category.IsActive,
+                };
 
                 return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, dto);
 

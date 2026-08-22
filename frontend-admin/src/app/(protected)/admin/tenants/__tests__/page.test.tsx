@@ -199,7 +199,7 @@ describe('SuperAdminTenantsPage', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /Mandant archivieren/i }));
 
     await waitFor(() => expect(mockSoftDeleteAdminTenant).toHaveBeenCalledWith(activeTenant.id));
-  });
+  }, 30_000);
 
   it('hard delete submit disabled until slug, phrase and retention ack confirmed', async () => {
     mockListAdminTenantsPaged.mockResolvedValue(paged([deletedTenant]));
@@ -222,7 +222,7 @@ describe('SuperAdminTenantsPage', () => {
     fireEvent.click(within(dialog).getByRole('checkbox'));
 
     await waitFor(() => expect(modalOk).not.toBeDisabled());
-  });
+  }, 30_000);
 
   it('restore button appears for deleted tenants', async () => {
     mockListAdminTenantsPaged.mockResolvedValue(paged([deletedTenant]));

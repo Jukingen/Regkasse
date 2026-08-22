@@ -344,7 +344,7 @@ export function SubscriptionInvoicesPageContent() {
           open={detail != null}
           onClose={() => setDetail(null)}
           destroyOnHidden
-          width={480}
+          size={480}
         >
           {detail ? (
             <Descriptions column={1} size="small">

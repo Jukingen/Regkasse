@@ -53,7 +53,7 @@ export const ShiftDetailModal: React.FC<ShiftDetailModalProps> = ({ open, shift,
       destroyOnHidden
     >
       {!shift ? null : (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Descriptions size="small" column={1} bordered>
             <Descriptions.Item label={ts('columns.cashier')}>
               {cashierInitial(shift.cashierName)} {shift.cashierName} (#{shortUserId(shift.cashierId)})

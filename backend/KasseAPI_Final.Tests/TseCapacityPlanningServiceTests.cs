@@ -73,11 +73,10 @@ public sealed class TseCapacityPlanningServiceTests
         var (tenantId, registerId) = await SeedAsync(db);
         var now = DateTime.UtcNow;
 
-        // Force high daily average vs tiny capacity.
         for (var d = 0; d < 7; d++)
         {
             for (var i = 0; i < 18; i++)
-                db.Receipts.Add(Receipt(tenantId, registerId, now.Date.AddDays(-d).AddHours(9), "sig"));
+                db.Receipts.Add(Receipt(tenantId, registerId, now.AddHours(-1).AddDays(-d).AddMinutes(-i), "sig"));
         }
 
         await db.SaveChangesAsync();

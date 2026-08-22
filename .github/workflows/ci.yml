@@ -53,7 +53,7 @@ jobs:
 
       - name: Restore + build + test
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Backend -SkipAdmin -SkipPos
+        run: ./scripts/ci/ci-test.ps1 -Backend -SkipAdmin -SkipPos
 
   admin-tests:
     name: Admin tests
@@ -72,15 +72,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend-admin/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install
+        working-directory: ${{ github.workspace }}
         run: npm ci
 
       - name: Lint · typecheck · test
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Admin -SkipBackend -SkipPos
+        run: ./scripts/ci/ci-test.ps1 -Admin -SkipBackend -SkipPos
 
   pos-tests:
     name: POS tests
@@ -97,11 +98,11 @@ jobs:
 
       - name: Install
         working-directory: frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps --workspaces=false
 
       - name: Lint · typecheck · test
         shell: pwsh
-        run: ./scripts/ci-test.ps1 -Pos -SkipBackend -SkipAdmin
+        run: ./scripts/ci/ci-test.ps1 -Pos -SkipBackend -SkipAdmin
 
   docker-build:
     name: Build Docker images
@@ -111,7 +112,8 @@ jobs:
     if: >
       always() &&
       needs.backend-tests.result == 'success' &&
-      (github.event_name != 'workflow_dispatch' || inputs.skip_docker != true)
+      github.event_name == 'workflow_dispatch' &&
+      inputs.skip_docker != true
     permissions:
       contents: read
     steps:
@@ -128,7 +130,7 @@ jobs:
           POS_API_URL: http://127.0.0.1:5184/api
           NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
           IMAGE_TAG: ci-${{ github.sha }}
-        run: ./scripts/ci-build.ps1 -Docker -Profiles admin,sites,pos -NoPush
+        run: ./scripts/ci/ci-build.ps1 -Docker -Profiles admin,sites,pos -NoPush
 
   smoke-script:
     name: Smoke script syntax

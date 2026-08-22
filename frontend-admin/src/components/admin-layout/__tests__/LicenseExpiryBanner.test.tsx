@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import type { LicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import type { LicenseStatusView } from '@/hooks/useLicenseStatus';
 
@@ -89,8 +90,6 @@ vi.mock('@/i18n', () => ({
     }),
   }),
 }));
-
-import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 
 describe('LicenseExpiryBanner', () => {
   beforeEach(() => {

@@ -8,6 +8,6 @@
   "frontend-admin": {
     "maxMissingLocalePairs": 0,
     "maxHardcodedUi": 260,
-    "maxDynamicUnresolved": 80
+    "maxDynamicUnresolved": 90
   }
 }

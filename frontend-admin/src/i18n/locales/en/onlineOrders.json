@@ -41,7 +41,7 @@
     "cancelled": "Cancelled"
   },
   "orderTypes": {
-    "dine-in": "Dine-in",
+    "dineIn": "Dine-in",
     "takeaway": "Takeaway",
     "delivery": "Delivery"
   },

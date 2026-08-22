@@ -41,7 +41,7 @@
     "cancelled": "İptal"
   },
   "orderTypes": {
-    "dine-in": "Masada",
+    "dineIn": "Masada",
     "takeaway": "Gel-al",
     "delivery": "Teslimat"
   },

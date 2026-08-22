@@ -22,8 +22,9 @@ export function assertRksvPublicEnvironmentForProductionBuild(options = {}) {
   const argv = options.argv ?? process.argv;
   if (!argv.includes('build')) return;
 
-  const raw =
-    options.envValue !== undefined ? options.envValue : process.env.NEXT_PUBLIC_RKSV_ENVIRONMENT;
+  const raw = Object.prototype.hasOwnProperty.call(options, 'envValue')
+    ? options.envValue
+    : process.env.NEXT_PUBLIC_RKSV_ENVIRONMENT;
   const trimmed = stripBomAndTrimRksvEnv(raw);
   const normalized = trimmed.toUpperCase();
   if (normalized === 'TEST' || normalized === 'PROD') return;

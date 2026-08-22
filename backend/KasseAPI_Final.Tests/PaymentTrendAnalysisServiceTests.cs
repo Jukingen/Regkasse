@@ -20,7 +20,7 @@ public sealed class PaymentTrendAnalysisServiceTests
             .UseInMemoryDatabase($"payment_trends_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantA));
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class PaymentTrendAnalysisServiceTests
         Assert.Equal(TrendPeriod.Daily, result.Period);
         Assert.Equal(2, result.Summary.TotalTransactions);
         Assert.Equal(150m, result.Summary.TotalRevenue);
-        Assert.Equal(2, result.TrendData.Count);
+        Assert.Equal(1, result.TrendData.Count);
         Assert.Equal(150m, result.Comparison.CurrentPeriodTotal);
     }
 

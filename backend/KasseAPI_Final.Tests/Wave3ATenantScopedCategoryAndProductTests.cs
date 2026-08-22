@@ -30,6 +30,15 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
+    private static AppDbContext CreateContextForTenant(Guid tenantId)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"Wave3A_{Guid.NewGuid()}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(tenantId));
+    }
+
     private static readonly Guid TenantA = SystemTenantIds.Platform;
     private static readonly Guid TenantB = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
@@ -252,15 +261,19 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     [Fact]
     public async Task CategoriesController_CreateCategory_StampsEffectiveTenant()
     {
-        await using var ctx = CreateContext();
+        await using var ctx = CreateContextForTenant(TenantB);
         EnsureTwoTenants(ctx);
+        await ctx.SaveChangesAsync();
         var controller = new CategoriesController(
             ctx,
             NullLogger<CategoriesController>.Instance,
             TenantTestDoubles.SettingsResolverReturning(TenantB),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ICategoryDemoResetService>(),
-            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>());
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
         var res = await controller.CreateCategory(new CreateCategoryRequest { Name = "Fresh", VatRate = 10m });
         var created = Assert.IsType<CreatedAtActionResult>(res.Result);
         var cat = Assert.IsType<CategoryDto>(created.Value);

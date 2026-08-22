@@ -137,7 +137,7 @@ namespace KasseAPI_Final.DTOs
         public int TableNumber { get; set; }
 
         [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0.")]
+        [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true, ErrorMessage = "Total amount must be greater than 0.")]
         public decimal TotalAmount { get; set; }
 
         [Required]

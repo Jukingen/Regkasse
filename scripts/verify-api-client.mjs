@@ -144,13 +144,15 @@ function main() {
 
   console.log('Running Orval (npm run generate:api)…');
   const adminPkg = join(root, 'frontend-admin');
-  if (!existsSync(join(adminPkg, 'node_modules', 'orval'))) {
-    console.error(`Missing frontend-admin/node_modules/orval.`);
+  const faOrval = join(adminPkg, 'node_modules', 'orval');
+  const rootOrval = join(root, 'node_modules', 'orval');
+  if (!existsSync(faOrval) && !existsSync(rootOrval)) {
+    console.error(`Missing orval (checked frontend-admin/node_modules/orval and node_modules/orval).`);
     console.error('Install first: npm ci --prefix frontend-admin  (or: npm install -w registrierkasse-admin)');
     process.exit(1);
   }
   try {
-    execSync('npm run generate:api', {
+    execSync(existsSync(faOrval) ? 'npm run generate:api' : 'npx orval', {
       cwd: adminPkg,
       stdio: 'inherit',
       env: { ...process.env, CI: 'true' },

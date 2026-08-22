@@ -18,7 +18,7 @@ public sealed class ComplianceOperationalReportingServiceTests
     {
         var tenantId = Guid.NewGuid();
         var registerId = Guid.NewGuid();
-        await using var db = CreateDb();
+        await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Slug = "test", Name = "Test", Status = TenantStatuses.Active });
         db.CashRegisters.Add(new CashRegister
         {
@@ -86,8 +86,11 @@ public sealed class ComplianceOperationalReportingServiceTests
             new PeakHoursAnalysisService(db),
             new ProductMovementAnalysisService(db, tenantResolver));
 
-    private static AppDbContext CreateDb() =>
+    private static AppDbContext CreateDb() => CreateDb(Guid.NewGuid());
+
+    private static AppDbContext CreateDb(Guid tenantId) =>
         new(new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
-            .Options);
+            .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
 }

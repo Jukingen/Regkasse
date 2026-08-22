@@ -855,8 +855,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
                 _hostEnvironment,
                 _tseOptions,
                 _developmentModeService,
-                _licenseOptions)
-            && !_hostEnvironment.IsDevelopment())
+                _licenseOptions))
         {
             return new TenantLicenseStatusDto(
                 "active",

@@ -146,7 +146,7 @@ export function FinanzOnlineRuntimeSettingsPanel() {
   ];
 
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
       <Typography.Text strong>{t('finanzOnlineOutbox.runtime.title')}</Typography.Text>
       {profile ? (
         <Space wrap size="small" align="center">
@@ -176,7 +176,7 @@ export function FinanzOnlineRuntimeSettingsPanel() {
           {t('finanzOnlineOutbox.runtime.productionLockedHint')}
         </Typography.Text>
       ) : (
-        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
           <Typography.Text>{t('finanzOnlineOutbox.runtime.selectorLabel')}</Typography.Text>
           <Segmented
             value={profile ?? undefined}

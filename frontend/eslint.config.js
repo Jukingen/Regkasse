@@ -103,4 +103,10 @@ module.exports = defineConfig([
       'no-console': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.{js,cjs,mjs,ts}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ]);

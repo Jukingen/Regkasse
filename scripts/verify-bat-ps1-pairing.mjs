@@ -69,6 +69,8 @@ const PS1_OPTIONAL_BAT = new Set([
   'dev/start-pos.bat',
   'start-sites.bat',
   'dev/start-sites.bat',
+  'start-dev-all.bat',
+  'dev/start-dev-all.bat',
   'test-all.bat',
   'test/test-all.bat',
   // DANGER bat-only (no same-name .ps1) — destructive ops

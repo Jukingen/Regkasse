@@ -1,4 +1,3 @@
-import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 'use client';
 
 import { LoginOutlined } from '@ant-design/icons';
@@ -19,6 +18,7 @@ import {
   buildTenantSelectorLabel,
   getTenantSelectorStatus,
 } from '@/features/super-admin/utils/tenantSelectorLabel';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 
