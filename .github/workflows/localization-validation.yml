@@ -65,10 +65,12 @@ jobs:
         id: cache-fa-nm
         uses: actions/cache@v4
         with:
-          path: frontend-admin/node_modules
-          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          path: |
+            node_modules
+            frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-${{ hashFiles('package-lock.json', 'frontend-admin/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-
 
       - name: Install frontend dependencies
         if: steps.cache-pos-nm.outputs.cache-hit != 'true'
@@ -77,7 +79,7 @@ jobs:
 
       - name: Install frontend-admin dependencies
         if: steps.cache-fa-nm.outputs.cache-hit != 'true'
-        working-directory: frontend-admin
+        working-directory: ${{ github.workspace }}
         run: npm ci
 
       - name: Resolve rollout phase

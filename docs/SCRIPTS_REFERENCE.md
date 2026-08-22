@@ -817,6 +817,23 @@ deploy.bat
 
 **Error handling:** Any failed step aborts with non-zero exit; health failure invokes `rollback.bat` (git-oriented — confirm intent).
 
+---
+
+### test-alertmanager-routing.ps1
+
+**Path:** [`./scripts/ops/test-alertmanager-routing.ps1`](../scripts/ops/test-alertmanager-routing.ps1)  
+**Windows:** [`./scripts/ops/test-alertmanager-routing.bat`](../scripts/ops/test-alertmanager-routing.bat)
+
+**Purpose:** POST a synthetic alert to a local or host Alertmanager to verify routing.
+
+**When to use:** After changing Alertmanager routes or during ops smoke checks.
+
+**Example:**
+
+```powershell
+pwsh ./scripts/ops/test-alertmanager-routing.ps1
+```
+
 **CI/CD alternative:** GitHub Actions — [`docs/CI_CD.md`](CI_CD.md) (`ci.yml`, `deploy.yml`, `deploy-production.yml`).
 
 ### deploy-docker.bat

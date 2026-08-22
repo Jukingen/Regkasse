@@ -2565,7 +2565,7 @@ const styles = StyleSheet.create({
           right: 0,
           bottom: 0,
           zIndex: 2147483646,
-        } as ViewStyle)
+        } as unknown as ViewStyle)
       : {}),
   },
   modal: {
