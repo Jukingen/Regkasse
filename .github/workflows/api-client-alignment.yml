@@ -58,7 +58,15 @@ jobs:
       - name: Install frontend-admin dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: frontend-admin
-        run: npm ci
+        run: npm ci --workspaces=false
+
+      - name: Ensure Orval is present (stale node_modules cache)
+        working-directory: frontend-admin
+        run: |
+          if [ ! -d node_modules/orval ]; then
+            echo "Orval missing from cache; running npm ci"
+            npm ci --workspaces=false
+          fi
 
       # Local: npm run verify:api-client | fast lint: npm run lint:api-contract (--openapi-only)
       - name: Verify OpenAPI JSON + Orval output (no drift)

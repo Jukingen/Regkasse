@@ -81,7 +81,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --workspaces=false
 
       - name: Permission key consistency
         working-directory: ${{ github.workspace }}
@@ -162,7 +162,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --workspaces=false
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
