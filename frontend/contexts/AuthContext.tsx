@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { safeLog } from '../utils/loggingUtils';
 
 import { SessionTimeoutWarning } from '../components/SessionTimeoutWarning';
@@ -22,11 +22,23 @@ import {
   type TenantSessionPolicy,
 } from '../services/api/sessionPolicyService';
 import { autoCloseShiftApi, autoOpenShiftApi } from '../services/api/shiftService';
-import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
-import { sessionManager } from '../services/session/sessionManager';
+import { getUserSettings, getUserSettingsAfterLogin } from '../services/api/userSettingsService';
+import { sessionManager, type StoredSessionUser } from '../services/session/sessionManager';
 import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
 import { authTrace } from '../utils/authTrace';
 import { createLoginFailedError, handleLoginError } from '../utils/loginErrorHandler';
+import {
+  needsPosCashRegisterSelection,
+  POS_CASH_REGISTER_SELECT_HREF,
+  readValidPosCashRegisterId,
+  resolveAutoOpenShiftRegisterId,
+} from '../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  SHIFT_AUTO_OPEN_CODES,
+  shouldClearPosRegisterAssignment,
+  shiftAutoOpenAlertI18nKeys,
+} from '../utils/shiftAutoOpenError';
 import { isPosAllowedRole } from '../utils/posRoleGuard';
 import { storage } from '../utils/storage';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
@@ -92,6 +104,32 @@ async function resolveTenantBootstrapFromSession(
 async function clearPersistedTenantBootstrap(): Promise<void> {
   await tenantStorage.clear();
   resetApiBaseUrlToConfigured();
+}
+
+/** Prefer a stored assignment; otherwise read UserSettings (no auto-open). */
+async function resolveCurrentCashRegisterIdFromSettings(
+  existing?: string | null
+): Promise<string | null> {
+  const fromExisting = readValidPosCashRegisterId(existing);
+  if (fromExisting) return fromExisting;
+  try {
+    const settings = await getUserSettings();
+    return readValidPosCashRegisterId(settings.cashRegisterId);
+  } catch {
+    return null;
+  }
+}
+
+async function persistResolvedCashRegisterId(
+  token: string,
+  stored: StoredSessionUser,
+  currentCashRegisterId: string | null
+): Promise<void> {
+  if (stored.currentCashRegisterId === currentCashRegisterId) return;
+  await sessionManager.persistSession({
+    token,
+    user: { ...stored, currentCashRegisterId },
+  });
 }
 
 /** Blocks session when mandant license is in lockdown (`canAccess === false`). */
@@ -175,6 +213,8 @@ interface User {
   isDemo?: boolean;
   mustChangePasswordOnNextLogin?: boolean;
   token?: string;
+  /** Assigned POS cash register (settings). Required before shift auto-open. */
+  currentCashRegisterId?: string | null;
 }
 
 /** Map backend `userName` onto canonical `username` for POS UI. */
@@ -194,6 +234,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   checkAuthStatus: () => Promise<void>;
   refreshUserFromBackend: () => Promise<void>;
+  setCurrentCashRegisterId: (cashRegisterId: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -221,6 +262,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthCheckInProgressRef = React.useRef(false);
   const lastAuthCheckTimeRef = React.useRef(0);
   const hasInitialAuthCheckRef = React.useRef(false);
+  const userRef = React.useRef<User | null>(null);
+  userRef.current = user;
+  const isAuthenticatedRef = React.useRef(false);
+  isAuthenticatedRef.current = isAuthenticated;
   const AUTH_CHECK_DEBOUNCE_MS = 2000;
 
   // 🧹 Cart cache temizleme fonksiyonu
@@ -442,9 +487,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               return;
             }
 
+            const currentCashRegisterId = await resolveCurrentCashRegisterIdFromSettings(
+              storedUser.currentCashRegisterId
+            );
+            await persistResolvedCashRegisterId(cleanToken, storedUser, currentCashRegisterId);
             const userWithToken: User = normalizeUser({
               ...storedUser,
               token: cleanToken,
+              currentCashRegisterId,
             });
 
             // FIX: Only update if user actually changed to reference loop
@@ -488,7 +538,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const shouldUpdate = !user || user.id !== result.user.id;
 
           if (shouldUpdate) {
-            setUser(normalizeUser(result.user));
+            const currentCashRegisterId = await resolveCurrentCashRegisterIdFromSettings(
+              result.user.currentCashRegisterId
+            );
+            setUser(normalizeUser({ ...result.user, currentCashRegisterId }));
+            await persistResolvedCashRegisterId(cleanToken, result.user, currentCashRegisterId);
             authDevLog('✅ [AUTH CHECK] User state updated from backend');
           }
           setIsAuthenticated(true);
@@ -574,9 +628,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Token geçerliyse user state'i restore et
+            const currentCashRegisterId = await resolveCurrentCashRegisterIdFromSettings(
+              storedUser.currentCashRegisterId
+            );
+            await persistResolvedCashRegisterId(cleanToken, storedUser, currentCashRegisterId);
             const userWithToken = normalizeUser({
               ...storedUser,
               token: cleanToken,
+              currentCashRegisterId,
             });
 
             authDevLog('✅ AUTH INIT: Restoring user state from storage');
@@ -666,6 +725,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const attemptNavigation = async () => {
         try {
           if (router && typeof router.replace === 'function') {
+            const latest = userRef.current;
+            if (!isAuthenticatedRef.current || !latest) return;
+            if (latest.mustChangePasswordOnNextLogin) return;
+            if (needsPosCashRegisterSelection(latest.currentCashRegisterId)) {
+              authDevLog('🧭 Navigating to cash-register-select...');
+              await router.replace(POS_CASH_REGISTER_SELECT_HREF);
+              return;
+            }
             authDevLog('🧭 Navigating to cash-register...'); // Debug log
             await router.replace('/(tabs)/cash-register');
             authDevLog('✅ Navigation successful!'); // Debug log
@@ -718,7 +785,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Invalid login response');
         }
 
-        // POS rol kontrolü: sadece Cashier ve SuperAdmin girebilir
+        // POS rol kontrolü: Cashier, Waiter ve SuperAdmin girebilir
         if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
           authDevWarn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
           setJustLoggedIn(false);
@@ -799,30 +866,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           authDevLog('User data prepared for state update'); // Debug log
         }
 
-        // State'leri birlikte set et - önce user, sonra authentication
-        const userWithToken = normalizeUser({
-          ...loggedInUser,
-          tenantId: loginUser.tenantId ?? loggedInUser.tenantId,
-          tenantSlug: loginUser.tenantSlug ?? loggedInUser.tenantSlug,
-          mustChangePasswordOnNextLogin:
-            (loggedInUser as { mustChangePasswordOnNextLogin?: boolean })
-              .mustChangePasswordOnNextLogin === true,
-          token: cleanToken, // cleanToken'ı user state'ine ekle (JWT only)
-        });
-        setUser(userWithToken);
-        authDevLog('User state set to:', userWithToken); // Debug log
+        const mustChangePasswordOnNextLogin =
+          (loggedInUser as { mustChangePasswordOnNextLogin?: boolean })
+            .mustChangePasswordOnNextLogin === true;
 
-        // Kısa bir gecikme ile authentication state'ini set et
-        setTimeout(() => {
-          setIsAuthenticated(true);
-          authDevLog('Authentication state set to true'); // Debug log
-          if (isDev) {
-            authDevLog('Auth state updated after login'); // Debug log
-          }
-        }, 100);
-
+        let currentCashRegisterId: string | null = null;
         // Kullanıcı ayarlarını backend'den çek (şifre değişimi bekleniyorsa atla — diğer API'ler 403 döner)
-        if (!userWithToken.mustChangePasswordOnNextLogin) {
+        if (!mustChangePasswordOnNextLogin) {
           try {
             authDevLog('Fetching user settings after login...');
 
@@ -841,16 +891,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userSettings
             );
 
-            const cashRegisterId =
-              typeof userSettings?.cashRegisterId === 'string'
-                ? userSettings.cashRegisterId.trim()
-                : '';
-            if (cashRegisterId) {
-              try {
-                await autoOpenShiftApi(cashRegisterId);
-                authDevLog('Auto-open shift completed for register:', cashRegisterId);
-              } catch (autoOpenErr) {
-                authDevWarn('Auto-open shift failed (non-blocking):', autoOpenErr);
+            currentCashRegisterId = resolveAutoOpenShiftRegisterId(userSettings?.cashRegisterId);
+            try {
+              const shift = await autoOpenShiftApi(currentCashRegisterId);
+              currentCashRegisterId =
+                readValidPosCashRegisterId(shift.cashRegisterId) ?? currentCashRegisterId;
+              authDevLog('Auto-open shift completed for register:', currentCashRegisterId);
+            } catch (autoOpenErr) {
+              const parsed = parseShiftAutoOpenError(autoOpenErr);
+              authDevWarn('Auto-open shift failed:', parsed.code, parsed.message);
+              if (shouldClearPosRegisterAssignment(parsed.code)) {
+                currentCashRegisterId = null;
+              }
+              if (parsed.code !== SHIFT_AUTO_OPEN_CODES.NEED_REGISTER_SELECTION) {
+                const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
+                Alert.alert(i18n.t(keys.titleKey), i18n.t(keys.messageKey));
               }
             }
 
@@ -880,6 +935,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
+
+        // State'leri birlikte set et - önce user, sonra authentication
+        const userWithToken = normalizeUser({
+          ...loggedInUser,
+          tenantId: loginUser.tenantId ?? loggedInUser.tenantId,
+          tenantSlug: loginUser.tenantSlug ?? loggedInUser.tenantSlug,
+          mustChangePasswordOnNextLogin,
+          currentCashRegisterId,
+          token: cleanToken, // cleanToken'ı user state'ine ekle (JWT only)
+        });
+        setUser(userWithToken);
+        authDevLog('User state set to:', userWithToken); // Debug log
+
+        await sessionManager.persistSession({
+          token: cleanToken,
+          refreshToken: refreshToken ?? null,
+          user: {
+            ...loggedInUser,
+            tenantId: loginUser.tenantId ?? loggedInUser.tenantId,
+            tenantSlug: loginUser.tenantSlug ?? loggedInUser.tenantSlug,
+            currentCashRegisterId,
+          },
+        });
+
+        setIsAuthenticated(true);
+        authDevLog('Authentication state set to true');
 
         // State güncellemesinin tamamlanmasını bekle
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -987,8 +1068,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refreshed = await authService.validateToken();
     if (refreshed?.id) {
       const token = await sessionManager.getAccessToken();
-      setUser(normalizeUser({ ...refreshed, token: token ?? undefined }));
+      const currentCashRegisterId = await resolveCurrentCashRegisterIdFromSettings(
+        userRef.current?.currentCashRegisterId
+      );
+      setUser(
+        normalizeUser({
+          ...refreshed,
+          token: token ?? undefined,
+          currentCashRegisterId,
+        })
+      );
       setIsAuthenticated(true);
+    }
+  }, []);
+
+  const setCurrentCashRegisterId = useCallback(async (cashRegisterId: string | null) => {
+    const resolved = readValidPosCashRegisterId(cashRegisterId);
+    setUser((prev) => (prev ? { ...prev, currentCashRegisterId: resolved } : prev));
+    const token = await sessionManager.getAccessToken();
+    const stored = await sessionManager.getStoredUser();
+    if (token && stored) {
+      await sessionManager.persistSession({
+        token,
+        user: { ...stored, currentCashRegisterId: resolved },
+      });
     }
   }, []);
 
@@ -1004,6 +1107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       checkAuthStatus: stableCheckAuthStatus,
       refreshUserFromBackend,
+      setCurrentCashRegisterId,
     }),
     [
       user,
@@ -1015,6 +1119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       stableCheckAuthStatus,
       refreshUserFromBackend,
+      setCurrentCashRegisterId,
     ]
   );
 

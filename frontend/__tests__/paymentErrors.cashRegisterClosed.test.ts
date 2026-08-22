@@ -87,3 +87,54 @@ describe('paymentErrors Fiskaly / license / Monatsbeleg', () => {
     expect(getPaymentErrorDisplayMessage(err)).toBe(getPaymentErrorMessage('MONATSBELEG_REQUIRED'));
   });
 });
+
+describe('paymentErrors LIMIT_EXCEEDED', () => {
+  it('maps classic 409 LimitErrorDto to German cashier copy', () => {
+    const err = normalizePaymentError({
+      response: {
+        status: 409,
+        data: {
+          code: 'LIMIT_EXCEEDED',
+          limitKey: 'dailyMaxTransactions',
+          limit: 1000,
+          current: 1000,
+          message: 'Daily transaction limit of 1000 reached',
+          canForce: false,
+        },
+      },
+    });
+    expect(err.code).toBe('LIMIT_EXCEEDED');
+    expect(err.limitKey).toBe('dailyMaxTransactions');
+    expect(getPaymentErrorDisplayMessage(err)).toMatch(/Tägliches Transaktionslimit|Daily transaction limit/i);
+  });
+
+  it('maps nested v2 limitError + offline queue key', () => {
+    const err = normalizePaymentError({
+      response: {
+        status: 409,
+        data: {
+          code: 'LIMIT_EXCEEDED',
+          message: 'Offline queue limit of 50 reached',
+          limitError: {
+            code: 'LIMIT_EXCEEDED',
+            limitKey: 'maxOfflineTransactions',
+            limit: 50,
+            current: 50,
+            canForce: false,
+          },
+        },
+      },
+    });
+    expect(err.code).toBe('LIMIT_EXCEEDED');
+    expect(getPaymentErrorDisplayMessage(err)).toMatch(/Offline-Warteschlange voll|Offline queue is full/i);
+    expect(
+      getPaymentResponseFailureMessage({
+        code: 'LIMIT_EXCEEDED',
+        diagnosticCode: 'LIMIT_EXCEEDED',
+        limitKey: 'maxTransactionAmount',
+        limit: 100,
+        current: 250,
+      })
+    ).toMatch(/Maximaler Transaktionsbetrag|Maximum transaction amount/i);
+  });
+});

@@ -94,6 +94,7 @@ export const PRESET_RAPOR_GORUNTULEME: RolePreset = {
     PERMISSIONS.AUDIT_VIEW,
     PERMISSIONS.SALE_VIEW,
     PERMISSIONS.INVOICE_VIEW,
+    AppPermissions.CashRegisterView,
   ],
   highlightKeys: [PERMISSIONS.REPORT_VIEW, PERMISSIONS.AUDIT_VIEW],
 };

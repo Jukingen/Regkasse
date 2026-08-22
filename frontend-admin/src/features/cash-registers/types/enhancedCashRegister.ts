@@ -24,6 +24,10 @@ export type EnhancedCashRegister = CashRegister & {
   offlineQueueCount?: number;
   lastSyncAtUtc?: string | null;
   currentCashierName?: string | null;
+  currentCashierUserName?: string | null;
+  currentCashierEmail?: string | null;
+  /** Display name for `assignedUserId`; the id itself comes from the base CashRegister shape. */
+  assignedUserName?: string | null;
   deviceInfo?: CashRegisterDeviceInfo | null;
 };
 

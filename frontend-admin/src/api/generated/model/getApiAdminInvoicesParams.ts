@@ -9,4 +9,8 @@
 export type GetApiAdminInvoicesParams = {
 page?: number;
 pageSize?: number;
+status?: string;
+tenantId?: string;
+fromUtc?: string;
+toUtc?: string;
 };

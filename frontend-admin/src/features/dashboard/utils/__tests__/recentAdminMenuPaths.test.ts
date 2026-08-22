@@ -18,6 +18,9 @@ describe('recentAdminMenuPaths', () => {
   it('maps nested tenant URLs to the catalog leaf', () => {
     expect(resolveRecentMenuStorageKey('/admin/tenants/abc-123')).toBe('/admin/tenants');
     expect(resolveRecentMenuStorageKey('/admin/cash-registers')).toBe('/admin/cash-registers');
+    expect(
+      resolveRecentMenuStorageKey('/admin/cash-registers/11111111-1111-1111-1111-111111111111')
+    ).toBe('/kassenverwaltung');
     expect(resolveRecentMenuStorageKey('/kassenverwaltung')).toBe('/kassenverwaltung');
   });
 

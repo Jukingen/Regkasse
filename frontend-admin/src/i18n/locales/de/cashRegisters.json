@@ -8,7 +8,13 @@
     "compliance": "RKSV",
     "activity": "Aktivität",
     "balance": "Kassenstand",
+    "assignedTo": "Zugewiesen an",
     "actions": "Aktionen"
+  },
+  "assignment": {
+    "unassigned": "Nicht zugewiesen",
+    "assignedToMe": "Mir zugewiesen",
+    "assignedToOther": "Anderem zugewiesen"
   },
   "tseHealth": {
     "healthy": "TSE OK",
@@ -39,8 +45,12 @@
     "partialSuccess": "{{success}} stillgelegt, {{failed}} fehlgeschlagen."
   },
   "shift": {
-    "openSuccess": "Kasse wurde geöffnet.",
-    "closeSuccess": "Kasse wurde geschlossen."
+    "openSuccess": "Kasse wurde geöffnet. Die Schicht läuft unter Ihrem Benutzer.",
+    "closeSuccess": "Kasse wurde geschlossen.",
+    "closeHeldByOther": "Diese Kasse ist in einer anderen Schicht geöffnet. Nur der Schichtinhaber kann sie schließen.",
+    "unknownHolder": "Ein anderer Benutzer",
+    "forceCloseTitle": "Kasse trotzdem schließen?",
+    "forceCloseContent": "{{holder}} hat die aktuelle Schicht. Die Kasse wird geschlossen; der Kassierer kann danach nicht mehr verkaufen."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Schicht & RKSV: Hinweise zum Kassenstatus",
@@ -122,7 +132,17 @@
     "closeShift": "Schicht schließen",
     "dailyClosing": "Tagesabschluss",
     "delete": "Löschen",
-    "viewReceipts": "Belege anzeigen"
+    "viewReceipts": "Belege anzeigen",
+    "exportReport": "Bericht exportieren",
+    "exportData": "Daten exportieren",
+    "createSpecialReceipt": "Sonderbeleg erstellen",
+    "decommissionedCannotOpen": "Diese Kasse wurde stillgelegt und kann nicht mehr geöffnet werden.",
+    "decommissionedCannotCreateSpecialReceipts": "Diese Kasse wurde stillgelegt. Es können keine neuen Sonderbelege erstellt werden.",
+    "viewReports": "Berichte anzeigen"
+  },
+  "permission": {
+    "denied": "Sie haben keine Berechtigung, diese Kasse anzuzeigen.",
+    "decommissioned": "Diese Kasse wurde stillgelegt und kann nicht mehr geöffnet werden."
   },
   "statusBadge": {
     "open": {
@@ -196,14 +216,41 @@
     "restoreTooltip": "RKSV: Stilllegung über Schlussbeleg ist unwiderruflich. Wiederherstellen ist nicht möglich."
   },
   "detail": {
-    "title": "Kasse",
+    "title": "Kasse Details",
     "titleWithNumber": "Kasse: {{number}}",
+    "name": "Name",
+    "description": "Beschreibung",
+    "status": "Status",
     "registerNumber": "Kassennummer",
     "location": "Bezeichnung / Standort",
     "createdAt": "Erstellt am",
+    "updatedAt": "Letzte Änderung",
+    "statistics": "Statistik",
+    "history": "Verlauf",
+    "actions": "Aktionen",
+    "notFound": "Kasse nicht gefunden.",
+    "statTransactions": "Transaktionen",
+    "statRevenue": "Umsatz",
+    "statShifts": "Schichten",
+    "statLastTransaction": "Letzte Transaktion",
+    "historyShifts": "Schichten",
+    "historyPayments": "Zahlungen",
+    "historySonderbelege": "Sonderbelege",
+    "historyAudit": "Audit Log",
+    "decommissionedTitle": "Diese Kasse wurde stillgelegt",
+    "decommissionedDescription": "Diese Kasse kann nicht mehr geöffnet werden. Alle historischen Daten sind weiterhin einsehbar.",
+    "openReports": "Kassenberichte öffnen",
     "currentBalance": "Aktueller Kassenstand",
     "startingBalance": "Startsaldo",
     "currentUser": "Geöffnet von",
+    "assignedUser": "Zugewiesener Kassierer",
+    "assignedUserNone": "Nicht zugewiesen",
+    "assignedUserPlaceholder": "Kassierer auswählen",
+    "assignedUserHint": "Nur dieser Kassierer sieht die Kasse in der POS-Auswahl. Die Zahlungsberechtigung bleibt an die geöffnete Schicht gebunden.",
+    "assignedUserHintUnassigned": "Ohne Zuweisung ist die Kasse für alle Kassierer des Mandanten sichtbar.",
+    "assignedUserSaved": "Kassierer wurde der Kasse zugewiesen.",
+    "assignedUserCleared": "Zuweisung wurde aufgehoben.",
+    "assignedUserFailed": "Die Zuweisung konnte nicht gespeichert werden.",
     "lastBalanceUpdate": "Letzte Standaktualisierung",
     "startbelegCreatedAt": "Startbeleg erstellt am",
     "lastMonatsbelegUtc": "Letzter Monatsbeleg",
@@ -222,7 +269,7 @@
     "deviceOs": "Betriebssystem",
     "deviceApp": "App-Version",
     "offlineQueueTransactions": "{{count}} Transaktion(en)",
-    "noCashier": "Niemand",
+    "noCashier": "Kein Kassierer",
     "deviceUnknown": "Unbekannt"
   },
   "hardDelete": {
@@ -310,5 +357,18 @@
     },
     "mandantHeader": "Mandant: {{name}} ({{slug}})",
     "defaultTag": "Standard"
+  },
+  "reports": {
+    "title": "Kassenberichte",
+    "intro": "Umsatz, Transaktionen, Schichten und Sonderbelege je Kasse — einschließlich stillgelegter Kassen.",
+    "filterRegister": "Kasse",
+    "selectRegister": "Bitte eine Kasse wählen.",
+    "types": {
+      "revenue": "Umsatzbericht",
+      "transactions": "Transaktionsbericht",
+      "shifts": "Schichtbericht",
+      "specialReceipts": "Sonderbelegbericht"
+    },
+    "userActivityCard": "Benutzer-Aktivität"
   }
 }

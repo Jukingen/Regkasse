@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -41,6 +42,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IOperationLogService _operationLogs;
         private readonly IProductPriceHistoryService _priceHistoryService;
         private readonly IPriceChangeService _priceChangeService;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public AdminProductsController(
             AppDbContext context,
@@ -57,7 +59,8 @@ namespace KasseAPI_Final.Controllers
             IProductExportService productExport,
             IOperationLogService operationLogs,
             IProductPriceHistoryService priceHistoryService,
-            IPriceChangeService priceChangeService)
+            IPriceChangeService priceChangeService,
+            ITenantLimitGuard? tenantLimitGuard = null)
             : base(logger)
         {
             _context = context;
@@ -74,6 +77,7 @@ namespace KasseAPI_Final.Controllers
             _operationLogs = operationLogs;
             _priceHistoryService = priceHistoryService;
             _priceChangeService = priceChangeService;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         /// <summary>
@@ -318,6 +322,18 @@ namespace KasseAPI_Final.Controllers
                     return ProductAnnotationValidationErrorResponse(product.Id, annotationErrors, "create");
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
 
                 var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
                 if (!taxGroupResult.IsValid)

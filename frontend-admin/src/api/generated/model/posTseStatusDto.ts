@@ -11,6 +11,8 @@ export interface PosTseStatusDto {
   /** @nullable */
   certificateValidUntil?: string | null;
   /** @nullable */
+  environment?: string | null;
+  /** @nullable */
   estimatedRecoveryTimeUtc?: string | null;
   /** @nullable */
   lastCheck?: string | null;
@@ -18,13 +20,16 @@ export interface PosTseStatusDto {
   lastErrorMessageSafe?: string | null;
   /** @nullable */
   lastSuccessfulPingUtc?: string | null;
-  message?: string;
+  /** @nullable */
+  message?: string | null;
   /** @nullable */
   nonFiscalPendingQueueCount?: number | null;
-  operationalHealth?: string;
+  /** @nullable */
+  operationalHealth?: string | null;
   /** @nullable */
   scuId?: string | null;
-  status?: string;
+  /** @nullable */
+  status?: string | null;
   /** @nullable */
   tssId?: string | null;
 }

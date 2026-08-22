@@ -143,6 +143,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Key/value settings (feature-flag overrides; TenantId null = global).</summary>
         public DbSet<TenantSetting> TenantSettings { get; set; }
 
+        /// <summary>Per-mandant operational caps (one row per tenant).</summary>
+        public DbSet<TenantLimits> TenantLimits { get; set; }
+
         /// <summary>CI/CD deployment status rows (platform-wide, not tenant-scoped).</summary>
         public DbSet<DeploymentRun> DeploymentRuns { get; set; }
 
@@ -1543,6 +1546,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastBalanceUpdate).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
                 entity.Property(e => e.CurrentUserId).HasMaxLength(450);
+                entity.Property(e => e.AssignedUserId).HasMaxLength(450);
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
@@ -1552,6 +1556,11 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.CurrentUserId)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(e => e.AssignedUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.AssignedUserId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(e => new { e.TenantId, e.RegisterNumber }).IsUnique();
                 entity.HasIndex(e => e.TenantId)
@@ -1559,6 +1568,7 @@ namespace KasseAPI_Final.Data
                     .HasFilter("\"is_default_for_tenant\" = true");
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CurrentUserId);
+                entity.HasIndex(e => e.AssignedUserId);
             });
 
             // CashRegisterTransaction configuration
@@ -2568,6 +2578,56 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired(false);
+            });
+
+            builder.Entity<TenantLimits>(entity =>
+            {
+                entity.ToTable("tenant_limits");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.MaxActiveRegistersPerUser)
+                    .HasColumnName("max_active_registers_per_user")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxActiveRegistersPerUser);
+                entity.Property(e => e.MaxProductsPerTenant)
+                    .HasColumnName("max_products_per_tenant")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxProductsPerTenant);
+                entity.Property(e => e.MaxUsersPerTenant)
+                    .HasColumnName("max_users_per_tenant")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxUsersPerTenant);
+                entity.Property(e => e.DailyMaxTransactions)
+                    .HasColumnName("daily_max_transactions")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultDailyMaxTransactions);
+                entity.Property(e => e.MaxTransactionAmount)
+                    .HasColumnName("max_transaction_amount")
+                    .HasColumnType("decimal(18,2)")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxTransactionAmount);
+                entity.Property(e => e.DailyMaxRevenue)
+                    .HasColumnName("daily_max_revenue")
+                    .HasColumnType("decimal(18,2)")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultDailyMaxRevenue);
+                entity.Property(e => e.MaxBackupsPerTenant)
+                    .HasColumnName("max_backups_per_tenant")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxBackupsPerTenant);
+                entity.Property(e => e.MaxBackupSizeMb)
+                    .HasColumnName("max_backup_size_mb")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxBackupSizeMb);
+                entity.Property(e => e.MaxOfflineTransactions)
+                    .HasColumnName("max_offline_transactions")
+                    .HasDefaultValue(KasseAPI_Final.Models.TenantLimits.DefaultMaxOfflineTransactions);
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .IsUnique()
+                    .HasDatabaseName("ux_tenant_limits_tenant_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<DeploymentRun>(entity =>

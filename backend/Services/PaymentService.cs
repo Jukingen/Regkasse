@@ -13,6 +13,7 @@ using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.DataProtection;
@@ -65,6 +66,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentReversalApprovalService _reversalApproval;
         private readonly ICardPaymentService? _cardPaymentService;
         private readonly FeatureFlags.IFeatureFlagService? _featureFlags;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public PaymentService(
             AppDbContext context,
@@ -102,7 +104,8 @@ namespace KasseAPI_Final.Services
             IOptions<LicenseOptions>? licenseOptions = null,
             IPaymentReversalApprovalService? reversalApproval = null,
             ICardPaymentService? cardPaymentService = null,
-            FeatureFlags.IFeatureFlagService? featureFlags = null)
+            FeatureFlags.IFeatureFlagService? featureFlags = null,
+            ITenantLimitGuard? tenantLimitGuard = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -140,6 +143,7 @@ namespace KasseAPI_Final.Services
             _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
             _cardPaymentService = cardPaymentService;
             _featureFlags = featureFlags;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         /// <summary>
@@ -229,6 +233,42 @@ namespace KasseAPI_Final.Services
                 "deployment",
                 "Die Server-Lizenz ist seit mehr als 15 Tagen abgelaufen. " +
                 "Zahlungen sind deaktiviert. Bitte verlaengern Sie die Lizenz im Admin-Panel.");
+        }
+
+        private async Task<PaymentResult?> TryRejectSaleForTenantLimitsAsync(
+            Guid tenantId,
+            decimal totalAmount,
+            Guid? offlineTransactionId,
+            CancellationToken cancellationToken)
+        {
+            if (_tenantLimitGuard is null || tenantId == Guid.Empty || offlineTransactionId.HasValue)
+                return null;
+
+            try
+            {
+                await _tenantLimitGuard
+                    .EnsureSaleWithinLimitsAsync(tenantId, totalAmount, cancellationToken)
+                    .ConfigureAwait(false);
+                return null;
+            }
+            catch (LimitExceededException ex)
+            {
+                _logger.LogWarning(
+                    "Payment blocked by tenant limit TenantId={TenantId} LimitKey={LimitKey} Limit={Limit} Current={Current}",
+                    tenantId,
+                    ex.LimitKey,
+                    ex.LimitAmount,
+                    ex.CurrentAmount);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = { ex.Message },
+                    DiagnosticCode = LimitExceededException.ErrorCodeValue,
+                    LimitError = ex.ToErrorDto(),
+                    IsDeterministicFailure = true,
+                };
+            }
         }
 
         private async Task<PaymentResult> CreatePaymentCoreAsync(
@@ -850,6 +890,19 @@ namespace KasseAPI_Final.Services
                             Message = "Total amount mismatch between client and server calculation.",
                             Errors = { "Total amount mismatch between client and server calculation." }
                         };
+                    }
+
+                    var limitRejection = await TryRejectSaleForTenantLimitsAsync(
+                            tenantIdForFlags,
+                            totalAmount,
+                            offlineTransactionId,
+                            licenseCheckCancellation)
+                        .ConfigureAwait(false);
+                    if (limitRejection != null)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return limitRejection;
                     }
 
                     var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(

@@ -192,6 +192,44 @@ public sealed class FiskalyHttpClientTests
         Assert.Contains("\"vat_rate\":\"REDUCED_1\"", body, StringComparison.Ordinal);
         Assert.Contains("\"amount\":\"5.50\"", body, StringComparison.Ordinal);
         Assert.Contains("\"amount\":\"15.50\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"standard_v1\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"line_items\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"currency_code\":\"EUR\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"receipt\":", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SignReceiptAsync_PostsRawSchemaWhenRequested()
+    {
+        var crId = Guid.Parse("33333333-3333-4333-8333-333333333333");
+        var rxId = Guid.Parse("66666666-6666-4666-8666-666666666666");
+        string? body = null;
+        var handler = new SequenceHandler
+        {
+            Responders =
+            {
+                _ => Json(HttpStatusCode.OK, """{"access_token":"tok"}"""),
+                req =>
+                {
+                    body = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                    return Json(HttpStatusCode.OK, $$"""{"_id":"{{rxId:D}}","state":"SIGNED","signed":true}""");
+                }
+            }
+        };
+        var client = CreateClient(handler, new FiskalyAccessTokenCache());
+
+        await client.SignReceiptAsync(crId, rxId, new FiskalyTransactionData
+        {
+            SchemaKind = FiskalyReceiptSchemaKinds.Raw,
+            AmountsPerVatRate =
+            [
+                new FiskalyVatAmount { VatRate = "STANDARD", Amount = 10.00m }
+            ]
+        });
+
+        Assert.Contains("\"raw\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"gross_amount_standard\":\"10.00\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"standard_v1\"", body, StringComparison.Ordinal);
     }
 
     [Fact]

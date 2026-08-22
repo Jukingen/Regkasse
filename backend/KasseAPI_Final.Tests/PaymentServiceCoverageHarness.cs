@@ -51,6 +51,7 @@ internal static class PaymentServiceCoverageHarness
         public bool DemoUser { get; init; }
         public KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService? FeatureFlags { get; init; }
         public CompanyProfileOptions? CompanyProfile { get; init; }
+        public KasseAPI_Final.Services.Limits.ITenantLimitGuard? TenantLimitGuard { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -224,7 +225,8 @@ internal static class PaymentServiceCoverageHarness
                 ? null
                 : Microsoft.Extensions.Options.Options.Create(options.LicenseOptions),
             cardPaymentService: options.Card,
-            featureFlags: options.FeatureFlags);
+            featureFlags: options.FeatureFlags,
+            tenantLimitGuard: options.TenantLimitGuard);
     }
 
     public static Mock<IAuditLogService> CreateAuditMock()

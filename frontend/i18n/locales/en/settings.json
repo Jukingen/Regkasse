@@ -185,6 +185,28 @@
     "saveErrorTitle": "Error",
     "saveErrorMessage": "Assignment was rejected by the server (invalid register, missing permission, or register is not open)."
   },
+  "registerSelect": {
+    "title": "Choose register",
+    "intro": "Please select a cash register. The shift will then be opened automatically.",
+    "select": "Select",
+    "openingShift": "Opening shift…",
+    "noDescription": "No description",
+    "statusOpen": "Open",
+    "statusClosedOpensOnSelect": "Closed – opens when selected",
+    "needRegisterTitle": "Select a register",
+    "needRegisterSelection": "Please select a cash register before continuing.",
+    "registerUnavailableTitle": "Register unavailable",
+    "registerUnavailable": "The selected cash register is not available. Please contact the administrator.",
+    "registerDecommissionedTitle": "Register decommissioned",
+    "registerDecommissioned": "This cash register has been decommissioned and can no longer be used.",
+    "noActiveRegistersTitle": "No registers",
+    "noActiveRegisters": "No active cash registers found. Please contact the administrator.",
+    "openShiftErrorTitle": "Could not open the shift",
+    "openShiftError": "Please try again or contact the administrator.",
+    "emptyNoneOpen": "All registers are closed. Please contact your administrator.",
+    "emptyNoneAssigned": "No cash register is assigned to you. Please ask your administrator to assign one.",
+    "emptyNoneSelectable": "No register is available for you. Please contact your administrator."
+  },
   "cashRegister": {
     "sectionTitle": "Register",
     "noRegistersAvailable": "No registers available",

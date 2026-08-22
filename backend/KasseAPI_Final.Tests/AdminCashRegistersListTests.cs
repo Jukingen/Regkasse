@@ -22,6 +22,8 @@ public sealed class AdminCashRegistersListTests
 {
     private static readonly Guid TenantAId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid TenantBId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    private static readonly Guid RegisterAId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001");
+    private static readonly Guid RegisterBId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0001");
 
     private static AppDbContext CreateDb()
     {
@@ -47,12 +49,15 @@ public sealed class AdminCashRegistersListTests
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
+            CashRegisterTestDoubles.PermissiveTenantLimits(),
             NullLogger<CashRegisterManagementService>.Instance);
 
         var controller = new AdminCashRegistersController(
             Mock.Of<ICashRegisterDecommissionService>(),
             management,
             enrichment,
+            Mock.Of<ICashRegisterShiftService>(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions(),
             TenantTestDoubles.TenantAccessorReturning(TenantAId),
             NullLogger<AdminCashRegistersController>.Instance,
             LocalizationTestDoubles.ApiMessageLocalizer());
@@ -83,6 +88,7 @@ public sealed class AdminCashRegistersListTests
         db.CashRegisters.AddRange(
             new CashRegister
             {
+                Id = RegisterAId,
                 TenantId = TenantAId,
                 RegisterNumber = "A-1",
                 Location = "A",
@@ -93,6 +99,7 @@ public sealed class AdminCashRegistersListTests
             },
             new CashRegister
             {
+                Id = RegisterBId,
                 TenantId = TenantBId,
                 RegisterNumber = "B-1",
                 Location = "B",
@@ -219,5 +226,131 @@ public sealed class AdminCashRegistersListTests
         var page = Assert.IsType<PagedResult<CashRegisterDto>>(ok.Value);
         Assert.Equal(2, page.TotalCount);
         Assert.DoesNotContain(page.Items, r => r.Status == RegisterStatus.Decommissioned);
+    }
+
+    [Fact]
+    public async Task ListCashRegisters_SuperAdmin_Hides_Platform_And_Leftover_Demo_Registers()
+    {
+        await using var db = CreateDb();
+        await SeedTwoTenantsWithRegistersAsync(db);
+
+        var now = DateTime.UtcNow;
+        var cafeId = Guid.Parse("b0000001-0001-4001-8001-000000000099");
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = SystemTenantIds.Platform,
+                Name = "Platform",
+                Slug = SystemTenantIds.PlatformSlug,
+                Status = TenantStatuses.Active,
+                IsActive = false,
+                CreatedAt = now,
+            },
+            new Tenant
+            {
+                Id = cafeId,
+                Name = "Test Cafe",
+                Slug = "cafe",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = now,
+            });
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                TenantId = SystemTenantIds.Platform,
+                RegisterNumber = "P-1",
+                Location = "Platform",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+            },
+            new CashRegister
+            {
+                TenantId = cafeId,
+                RegisterNumber = "C-1",
+                Location = "Cafe",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+            });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Roles.SuperAdmin);
+
+        var result = await controller.List(
+            tenantId: null,
+            cashRegisterId: null,
+            excludeStatus: null,
+            page: 1,
+            pageSize: 20,
+            cancellationToken: CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var page = Assert.IsType<PagedResult<CashRegisterDto>>(ok.Value);
+        Assert.Equal(2, page.TotalCount);
+        Assert.DoesNotContain(page.Items, r => r.TenantId == SystemTenantIds.Platform);
+        Assert.DoesNotContain(page.Items, r => r.TenantId == cafeId);
+        Assert.Contains(page.Items, r => r.TenantId == TenantAId);
+        Assert.Contains(page.Items, r => r.TenantId == TenantBId);
+    }
+
+    [Fact]
+    public async Task GetById_Manager_ReturnsOwnTenantRegister()
+    {
+        await using var db = CreateDb();
+        await SeedTwoTenantsWithRegistersAsync(db);
+
+        var controller = CreateController(
+            db,
+            TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Roles.Manager);
+
+        var result = await controller.GetById(RegisterAId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<CashRegisterDto>(ok.Value);
+        Assert.Equal("A-1", dto.RegisterNumber);
+        Assert.Equal(TenantAId, dto.TenantId);
+    }
+
+    [Fact]
+    public async Task GetById_Manager_OtherTenant_ReturnsNotFound()
+    {
+        await using var db = CreateDb();
+        await SeedTwoTenantsWithRegistersAsync(db);
+
+        var controller = CreateController(
+            db,
+            TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Roles.Manager);
+
+        var result = await controller.GetById(RegisterBId, CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetById_SuperAdmin_ReturnsOtherTenantRegister()
+    {
+        await using var db = CreateDb();
+        await SeedTwoTenantsWithRegistersAsync(db);
+
+        var controller = CreateController(
+            db,
+            TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Roles.SuperAdmin);
+
+        var result = await controller.GetById(RegisterBId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<CashRegisterDto>(ok.Value);
+        Assert.Equal("B-1", dto.RegisterNumber);
+        Assert.Equal(TenantBId, dto.TenantId);
     }
 }

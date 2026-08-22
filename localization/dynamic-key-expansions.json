@@ -257,6 +257,12 @@
         "suffixes": ["healthy", "degraded", "offline", "notConfigured", "lastCheck"]
       },
       {
+        "id": "cashRegisters.assignment",
+        "description": "Cash register list — assignment badge states",
+        "staticPrefix": "cashRegisters.assignment",
+        "suffixes": ["unassigned", "assignedToMe", "assignedToOther"]
+      },
+      {
         "id": "cashRegisters.shiftGuidance.closedReasons",
         "description": "Cash register closed reason labels",
         "staticPrefix": "cashRegisters.shiftGuidance.closedReasons",
@@ -382,6 +388,8 @@
           "CashRegisterDecommissioned",
           "LicenseExpiringSoon",
           "LicenseExpired",
+          "LimitApproaching",
+          "LimitExceeded",
           "OfflineQueueGrowing",
           "FinanzOnlineSubmissionFailed",
           "BackupFailed",
@@ -419,6 +427,7 @@
           "training",
           "mixed_vat",
           "zero_amount",
+          "raw",
           "monthly_close",
           "yearly_close"
         ]
@@ -433,6 +442,7 @@
           "training",
           "mixed_vat",
           "zero_amount",
+          "raw",
           "monthly_close",
           "yearly_close"
         ]

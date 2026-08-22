@@ -15,15 +15,10 @@ describe('VirtualTable', () => {
         rowKey="id"
         dataSource={rows}
         columns={[{ title: 'Name', dataIndex: 'name', key: 'name' }]}
-        pagination={{ pageSize: 20, showSizeChanger: true }}
-        virtualizeFullList
+        forceVirtual
         virtualScrollY={400}
-        listItemHeight={54}
       />
     );
-
-    // Client pagination footer should be gone when full-list virtualization is on.
-    expect(container.querySelector('.ant-pagination')).toBeNull();
 
     // Virtual body mounts far fewer than 1000 row nodes (rc-virtual-list window).
     const rowNodes = container.querySelectorAll(

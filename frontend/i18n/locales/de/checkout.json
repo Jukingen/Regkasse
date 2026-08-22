@@ -76,7 +76,8 @@
       "tableClearFailed": "Tisch {{table}} konnte nicht geleert werden",
       "tableCleared": "Tisch {{table}} geleert",
       "tableClearGenericFailed": "Tisch konnte nicht geleert werden",
-      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen."
+      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.",
+      "noOrderPermission": "Keine Berechtigung für Bestellungen"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg in {{days}} Tagen fällig",
@@ -168,6 +169,7 @@
         "scanA11y": "Gutschein scannen"
       },
       "blockedHints": {
+        "noPaymentPermission": "Keine Berechtigung für Zahlungen",
         "timeSyncCritical": "Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.",
         "methodsLoading": "Zahlungsarten werden geladen…",
         "selectMethod": "Bitte eine Zahlungsart wählen (Schritt 2).",

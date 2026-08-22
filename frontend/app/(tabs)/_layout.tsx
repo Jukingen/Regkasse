@@ -45,10 +45,15 @@ import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
 import { eventEmitter } from '../../utils/eventEmitter';
 import { formatPrice } from '../../utils/formatPrice';
 import {
+  needsPosCashRegisterSelection,
+  POS_CASH_REGISTER_SELECT_HREF,
+} from '../../utils/posCashRegister';
+import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 type PosTabsInnerProps = {
@@ -79,6 +84,7 @@ function PosTabsInner({
   developmentModeSettings,
 }: PosTabsInnerProps) {
   const posReadiness = usePosRegisterReadiness();
+  const { canMakePayment, canViewOrders } = usePosPermissions();
 
   const [tabBarToasts, setTabBarToasts] = useState<
     {
@@ -94,6 +100,13 @@ function PosTabsInner({
   }, []);
 
   const tryOpenPaymentModal = () => {
+    if (!canMakePayment) {
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+      );
+      return;
+    }
     if (cartCount === 0) {
       const id = `${Date.now()}-empty-cart`;
       const message = t('checkout:posFlow.toast.emptyCart');
@@ -260,6 +273,17 @@ function PosTabsInner({
             options={{
               title: t('navigation:cashRegister') || 'Kasa',
               tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+            }}
+          />
+
+          <Tabs.Screen
+            name="orders"
+            options={{
+              href: canViewOrders ? undefined : null,
+              title: t('navigation:orders'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="restaurant-outline" size={24} color={color} />
+              ),
             }}
           />
 
@@ -432,6 +456,10 @@ export default function TabLayout() {
     console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
     logout();
     return <Redirect href="/(auth)/login" />;
+  }
+
+  if (needsPosCashRegisterSelection(user.currentCashRegisterId)) {
+    return <Redirect href={POS_CASH_REGISTER_SELECT_HREF} />;
   }
 
   return (

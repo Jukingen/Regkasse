@@ -12,6 +12,10 @@ public interface IActivityEventPublisher
         string? actorUserId = null,
         string? dedupKey = null,
         CancellationToken cancellationToken = default);
+
+    Task TryPublishAsync(
+        ActivityEventPublishRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Fire-and-forget wrapper so primary flows never fail on activity feed errors.</summary>

@@ -197,7 +197,8 @@ public class UserManagementControllerUserLifecycleTests
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         using var context = CreateContext();
-        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "Manager");
+        // SuperAdmin skips the tenant membership gate so this assertion reaches the self-deactivate guard.
+        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "SuperAdmin");
 
         var result = await controller.DeactivateUser("u1", new DeactivateUserRequest { Reason = "Leaving" });
 
@@ -978,8 +979,8 @@ public class UserManagementControllerUserLifecycleTests
     public async Task After_UserManager_Create_Provisioner_Adds_Active_Membership()
     {
         var (context, userManager, _, _) = await CreateInMemoryUserManagerWithUsersAsync();
-        var tid = SystemTenantIds.Platform;
-        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = SystemTenantIds.PlatformSlug });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        TenantTestDoubles.EnsureTenant(context, DemoTenantIds.Dev, "dev");
         await context.SaveChangesAsync();
 
         var u = new ApplicationUser
@@ -998,11 +999,11 @@ public class UserManagementControllerUserLifecycleTests
         await userManager.AddToRoleAsync(u, "Cashier");
 
         var provisioner = new UserTenantMembershipProvisioner(context);
-        await provisioner.ProvisionActiveMembershipAsync(u.Id, tid);
+        await provisioner.ProvisionActiveMembershipAsync(u.Id, SystemTenantIds.Platform);
 
-        var m = await context.UserTenantMemberships.SingleAsync(x => x.UserId == u.Id);
+        var m = await context.UserTenantMemberships.IgnoreQueryFilters().SingleAsync(x => x.UserId == u.Id);
         Assert.True(m.IsActive);
-        Assert.Equal(tid, m.TenantId);
+        Assert.Equal(DemoTenantIds.Dev, m.TenantId);
     }
 
     /// <summary>UserManagement CreateUser: after success, exactly one active primary-tenant membership exists.</summary>
@@ -1010,8 +1011,8 @@ public class UserManagementControllerUserLifecycleTests
     public async Task CreateUser_WhenValid_CreatesActivePrimaryMembership()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync();
-        var tid = SystemTenantIds.Platform;
-        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = SystemTenantIds.PlatformSlug });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        TenantTestDoubles.EnsureTenant(context, DemoTenantIds.Dev, "dev");
         await context.SaveChangesAsync();
 
         var provisioner = new UserTenantMembershipProvisioner(context);
@@ -1041,10 +1042,10 @@ public class UserManagementControllerUserLifecycleTests
 
         var u = await userManager.FindByNameAsync("newuser");
         Assert.NotNull(u);
-        var memberships = await context.UserTenantMemberships.Where(m => m.UserId == u!.Id).ToListAsync();
+        var memberships = await context.UserTenantMemberships.IgnoreQueryFilters().Where(m => m.UserId == u!.Id).ToListAsync();
         Assert.Single(memberships);
         Assert.True(memberships[0].IsActive);
-        Assert.Equal(tid, memberships[0].TenantId);
+        Assert.Equal(DemoTenantIds.Dev, memberships[0].TenantId);
     }
 
     /// <summary>Update user with empty role -> 400 ROLE_REQUIRED.</summary>

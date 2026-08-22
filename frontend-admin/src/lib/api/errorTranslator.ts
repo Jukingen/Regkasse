@@ -10,6 +10,7 @@ import {
   getRegisteredMessageKeyForApiErrorCode,
   registerApiErrorCodeTranslation,
 } from '@/shared/errors/apiErrorCodeRegistry';
+import { translateLimitExceededError } from '@/shared/errors/limitExceededMessage';
 import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import { buildTechnicalApiErrorPayload } from '@/shared/errors/technicalApiErrorLog';
 
@@ -115,6 +116,9 @@ export function translateApiError(
     const ctx = options.logContext ?? 'translateApiError';
     technicalConsole.error(`[API Error] ${ctx}`, buildTechnicalApiErrorPayload(normalized));
   }
+
+  const limitMsg = translateLimitExceededError(t, error);
+  if (limitMsg) return limitMsg;
 
   const byCode = tryTranslateRegisteredCode(t, normalized.code);
   if (byCode) return byCode;

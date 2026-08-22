@@ -83,7 +83,11 @@ namespace KasseAPI_Final.Models
         /// </summary>
         public bool OfflineModeEnabled { get; set; } = true;
 
-        /// <summary>Cap of NonFiscalPending rows per cash register (server-side offline queue).</summary>
+        /// <summary>
+        /// Obsolete. Offline queue size is <c>tenant_limits.max_offline_transactions</c>
+        /// (<see cref="TenantLimits.MaxOfflineTransactions"/>). Kept so existing appsettings bind.
+        /// </summary>
+        [Obsolete("Use tenant_limits.max_offline_transactions (ITenantLimitService).")]
         public int MaxOfflineTransactionsPerCashRegister { get; set; } = 50;
 
         /// <summary>Background replay worker cadence for NonFiscalPending intents (seconds).</summary>

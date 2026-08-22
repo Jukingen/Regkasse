@@ -12,6 +12,8 @@ export interface LicenseActivationResult {
   /** @nullable */
   daysRemaining?: number | null;
   /** @nullable */
+  errorCode?: string | null;
+  /** @nullable */
   licenseType?: string | null;
   /** @nullable */
   message?: string | null;

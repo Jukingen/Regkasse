@@ -66,6 +66,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
 const TENANT_USERS_QUERY_KEY = ['admin', 'tenant-users'] as const;
@@ -186,7 +187,7 @@ export function TenantUsersTabCore({
         message.error(t('tenants.users.quick.messages.rateLimited'));
         return;
       }
-      message.error(t('tenants.users.quick.messages.failed'));
+      toastLimitExceededOrFallback(message, t, err, t('tenants.users.quick.messages.failed'));
     },
   });
 

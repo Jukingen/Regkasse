@@ -58,6 +58,7 @@ Bound from section `CacheSettings` (`KasseAPI_Final.Configuration.CacheSettings`
 | `CacheSettings:ProductCacheMinutes` | `15` | `CacheSettings__ProductCacheMinutes` | Product list TTL |
 | `CacheSettings:PermissionCacheMinutes` | `30` | `CacheSettings__PermissionCacheMinutes` | Effective user permissions TTL |
 | `CacheSettings:TenantSettingsCacheMinutes` | `60` | `CacheSettings__TenantSettingsCacheMinutes` | Tenant settings snapshot TTL |
+| `CacheSettings:TenantLimitsCacheMinutes` | `5` | `CacheSettings__TenantLimitsCacheMinutes` | Per-tenant operational caps (`tenant_limits_{tenantId}`) |
 | `CacheSettings:TseHealthCacheSeconds` | `30` | `CacheSettings__TseHealthCacheSeconds` | Reserved for domain TSE health via `CacheKeys.TseHealth` (process TSE monitor stays in-memory today) |
 
 **Environment-specific TTL guidance:**
@@ -108,6 +109,7 @@ Use `CacheKeys` helpers only (`backend/Services/Caching/CacheKeys.cs`) — no ad
 | `CacheKeys.ProductDetail` → `product_detail_{productId}` | `product_detail_…` | Optional single-product projection |
 | `CacheKeys.UserPermissions` → `user_permissions_{userId}` | `user_permissions_…` | Effective permission snapshot |
 | `CacheKeys.TenantSettings` → `tenant_settings_{tenantId}` | `tenant_settings_…` | Tenant settings snapshot |
+| `CacheKeys.TenantLimits` → `tenant_limits_{tenantId}` | `tenant_limits_…` | Per-tenant operational caps |
 | `CacheKeys.TseHealth` → `tse_health_{scopeId}` | `tse_health_…` | Reserved template for TSE health via `ICacheService` |
 | `CacheKeys.HealthPing` | `health_check_ping` | Ready probe only — not business data |
 
@@ -387,6 +389,30 @@ No dedicated `Support:` config section. Tickets persist in `support_tickets` / m
 | Super Admin inbox | `/api/admin/support/admin/tickets` (`system.critical`; ambient-tenant exempt) |
 
 Cross-tenant access → HTTP 404. Internal staff notes are omitted from tenant GET.
+
+## Tenant Limits
+
+Per-mandant caps in table `tenant_limits` (one row per tenant). Lazy-created with defaults on first read. Full reference: [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md).
+
+There is **no** `TenantLimits:` appsettings section — Super Admin sets values via `PUT /api/admin/tenants/{id}/limits`. Cache TTL is `CacheSettings:TenantLimitsCacheMinutes` (default **5**).
+
+| Key | Default | Enforcement |
+|-----|---------|-------------|
+| `maxActiveRegistersPerUser` | 5 | Cash-register assignment |
+| `maxProductsPerTenant` | 10000 | Product create |
+| `maxUsersPerTenant` | 50 | User create / invite |
+| `dailyMaxTransactions` | 1000 | POS sale (UTC day) |
+| `maxTransactionAmount` | 10000 EUR | POS sale |
+| `dailyMaxRevenue` | 50000 EUR | POS sale (UTC day) |
+| `maxBackupsPerTenant` | 50 | Tenant backup trigger (succeeded runs) |
+| `maxBackupSizeMB` | 500 | Tenant backup — **cumulative** LogicalDump size |
+| `maxOfflineTransactions` | 50 | TSE offline intent queue (tenant-wide) |
+
+`maxUsersPerRegister` was removed (assignment is 1:1 on `AssignedUserId`).
+
+`Tse:MaxOfflineTransactionsPerCashRegister` still binds but is **obsolete** — queue size is `tenant_limits.max_offline_transactions`. HTTP 409 bodies use `LimitErrorDto` (`code=LIMIT_EXCEEDED`). SuperAdmin `force=true` applies **only** to cash-register assignment.
+
+Do not confuse with `Trial:*` trial caps or `TenantOperationLimits`.
 
 ## Unified license keys
 

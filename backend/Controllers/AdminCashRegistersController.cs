@@ -4,8 +4,10 @@ using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +25,8 @@ public sealed class AdminCashRegistersController : ControllerBase
     private readonly ICashRegisterDecommissionService _decommission;
     private readonly ICashRegisterManagementService _cashRegisterManagement;
     private readonly ICashRegisterListEnrichmentService _enrichment;
+    private readonly ICashRegisterShiftService _cashRegisterShift;
+    private readonly ICashRegisterPermissionService _permissions;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminCashRegistersController> _logger;
     private readonly IApiMessageLocalizer _messages;
@@ -31,6 +35,8 @@ public sealed class AdminCashRegistersController : ControllerBase
         ICashRegisterDecommissionService decommission,
         ICashRegisterManagementService cashRegisterManagement,
         ICashRegisterListEnrichmentService enrichment,
+        ICashRegisterShiftService cashRegisterShift,
+        ICashRegisterPermissionService permissions,
         ICurrentTenantAccessor tenantAccessor,
         ILogger<AdminCashRegistersController> logger,
         IApiMessageLocalizer messages)
@@ -38,10 +44,40 @@ public sealed class AdminCashRegistersController : ControllerBase
         _decommission = decommission;
         _cashRegisterManagement = cashRegisterManagement;
         _enrichment = enrichment;
+        _cashRegisterShift = cashRegisterShift;
+        _permissions = permissions;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
         _messages = messages;
     }
+
+    /// <summary>
+    /// Maps a denied <see cref="ICashRegisterPermissionService"/> decision to its HTTP response, or null when allowed.
+    /// Cross-tenant registers surface as 404 so mandants cannot probe each other's inventory.
+    /// </summary>
+    private ActionResult? DenialResult(CashRegisterPermissionResult permission) => permission.Decision switch
+    {
+        CashRegisterPermissionDecision.Allowed => null,
+        CashRegisterPermissionDecision.NotFound =>
+            NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound), code = permission.Code }),
+        // Same body the management service already produced for this case, so FA keeps matching on it.
+        CashRegisterPermissionDecision.InvalidTarget =>
+            BadRequest(new
+            {
+                message = "Target user is not an active member of this cash register's tenant.",
+                code = permission.Code,
+            }),
+        _ => StatusCode(
+            StatusCodes.Status403Forbidden,
+            new
+            {
+                message = _messages.Get(
+                    permission.Code == CashRegisterPermissionCodes.RegisterHeldByOtherUser
+                        ? ApiMessageKeys.RegisterHeldByOtherUser
+                        : ApiMessageKeys.RegisterOperationNotPermitted),
+                code = permission.Code,
+            }),
+    };
 
     /// <summary>
     /// Lists cash registers. SuperAdmin may pass <paramref name="tenantId"/> to filter a mandant, or omit it to list all tenants.
@@ -104,6 +140,46 @@ public sealed class AdminCashRegistersController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Single register detail. SuperAdmin may read any mandant; other actors only their JWT tenant.
+    /// Cross-tenant / missing register → HTTP 404 (not 403).
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(CashRegisterDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
+    {
+        var permission = await _permissions.CanViewAsync(id, User, cancellationToken).ConfigureAwait(false);
+        if (DenialResult(permission) is { } denied)
+            return denied;
+
+        var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+
+        try
+        {
+            var register = await _cashRegisterManagement.GetByIdAsync(
+                id,
+                tenantIdFilter: null,
+                actorIsSuperAdmin,
+                cancellationToken).ConfigureAwait(false);
+            if (register == null)
+                return NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) });
+            return Ok(register);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Cash register detail rejected: missing tenant context RegisterId={RegisterId}", id);
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Tenant not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 
@@ -190,11 +266,16 @@ public sealed class AdminCashRegistersController : ControllerBase
     [HttpGet("{id:guid}/tse-health")]
     [HasPermission(AppPermissions.CashRegisterView)]
     [ProducesResponseType(typeof(CashRegisterTseHealthDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CashRegisterTseHealthDto>> GetTseHealth(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        var permission = await _permissions.CanViewAsync(id, User, cancellationToken).ConfigureAwait(false);
+        if (DenialResult(permission) is { } denied)
+            return denied;
+
         var health = await _enrichment.GetTseHealthAsync(id, cancellationToken).ConfigureAwait(false);
         if (health == null)
             return NotFound();
@@ -250,7 +331,7 @@ public sealed class AdminCashRegistersController : ControllerBase
 
             var dto = MapToDto(register);
             await _enrichment.ApplyAsync([dto], [register], cancellationToken).ConfigureAwait(false);
-            return CreatedAtAction(nameof(List), new { id = register.Id }, dto);
+            return CreatedAtAction(nameof(GetById), new { id = register.Id }, dto);
         }
         catch (TrialLimitExceededException ex)
         {
@@ -342,6 +423,239 @@ public sealed class AdminCashRegistersController : ControllerBase
         {
             _logger.LogError(ex, "Cash register update failed RegisterId={RegisterId}", id);
             return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterUpdateError), error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Assigns a cashier to a cash register, or clears the assignment when the body carries no user id.
+    /// The assignment scopes the POS picker (<c>GET /api/pos/cash-register/selectable</c>): a register assigned to
+    /// someone else disappears from every other cashier's list, while an unassigned register stays shared.
+    /// It is not a payment right — that stays with the open shift.
+    /// </summary>
+    [HttpPost("{id:guid}/assign")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(CashRegisterDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CashRegisterDto>> AssignUser(
+        Guid id,
+        [FromBody] AssignCashRegisterUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var actorUserId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(actorUserId))
+            return Unauthorized(new { message = "User not authenticated." });
+
+        var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+
+        var permission = await _permissions
+            .CanAssignUserAsync(id, request.UserId, User, cancellationToken)
+            .ConfigureAwait(false);
+        if (DenialResult(permission) is { } denied)
+            return denied;
+
+        try
+        {
+            var dto = await _cashRegisterManagement.AssignUserAsync(
+                id,
+                request,
+                actorUserId,
+                actorRole,
+                User.IsInRole(Roles.SuperAdmin),
+                cancellationToken).ConfigureAwait(false);
+            return Ok(dto);
+        }
+        catch (LimitExceededException ex)
+        {
+            return Conflict(ex.ToConflictBody());
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not an active member", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = ex.Message, code = "ASSIGNEE_NOT_IN_TENANT" });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Decommissioned", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cash register assign failed RegisterId={RegisterId}", id);
+            return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterUpdateError), error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Opens a closed cash register for the authenticated back-office actor.
+    /// FA must use this route (not <c>POST /api/CashRegister/{id}/open</c>): admin JWTs strip
+    /// <see cref="AppPermissions.ShiftOpen"/> but keep <see cref="AppPermissions.CashRegisterManage"/>.
+    /// SuperAdmin compact JWTs (<see cref="AppPermissions.SystemCritical"/>) satisfy manage via implication.
+    /// </summary>
+    [HttpPost("{id:guid}/open")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Open(
+        Guid id,
+        [FromBody] OpenCashRegisterModel model,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(actorUserId))
+            return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
+
+        if (model == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var permission = await _permissions.CanOpenAsync(id, User, cancellationToken).ConfigureAwait(false);
+        if (DenialResult(permission) is { } denied)
+            return denied;
+
+        var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        try
+        {
+            var register = await _cashRegisterManagement.GetByIdAsync(
+                id,
+                tenantIdFilter: null,
+                actorIsSuperAdmin,
+                cancellationToken).ConfigureAwait(false);
+            if (register == null)
+                return NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) });
+            if (register.Status == RegisterStatus.Decommissioned)
+            {
+                return BadRequest(new
+                {
+                    message = _messages.Get(ApiMessageKeys.RegisterDecommissionedCannotOpen),
+                    code = "REGISTER_DECOMMISSIONED",
+                });
+            }
+
+            var result = await _cashRegisterShift.TryOpenCashRegisterAsync(
+                id,
+                actorUserId,
+                model.OpeningBalance,
+                "Kasa açılışı",
+                allowIdempotentSameUser: false,
+                cancellationToken).ConfigureAwait(false);
+
+            return result.Kind switch
+            {
+                CashRegisterOpenKind.SuccessOpened or CashRegisterOpenKind.SuccessIdempotentAlreadyOpen =>
+                    Ok(new { message = _messages.Get(ApiMessageKeys.RegisterOpenSuccess) }),
+                CashRegisterOpenKind.FailedNotFound =>
+                    NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) }),
+                CashRegisterOpenKind.FailedAlreadyOpenSameUserNotIdempotent =>
+                    BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterAlreadyOpen) }),
+                CashRegisterOpenKind.FailedConflictOtherUser =>
+                    Conflict(new { message = _messages.Get(ApiMessageKeys.RegisterOpenedByOtherUser) }),
+                CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister =>
+                    Conflict(new
+                    {
+                        message =
+                            "Sie haben bereits eine andere geöffnete Kasse. Bitte schließen Sie diese zuerst, bevor Sie eine weitere öffnen."
+                    }),
+                CashRegisterOpenKind.FailedStartbelegRequired =>
+                    BadRequest(new
+                    {
+                        message = "Startbeleg muss erstellt werden.",
+                        code = "STARTBELEG_REQUIRED"
+                    }),
+                CashRegisterOpenKind.FailedMonatsbelegRequired =>
+                    BadRequest(new
+                    {
+                        message = _messages.Get(ApiMessageKeys.MonthlyReceiptRequired),
+                        code = "MONATSBELEG_REQUIRED"
+                    }),
+                CashRegisterOpenKind.FailedInvalidState =>
+                    BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterCannotOpenInState) }),
+                _ => StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterOpenError) })
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cash register open failed RegisterId={RegisterId}", id);
+            return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterOpenError), error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Closes an open cash register for the operational shift owner only.
+    /// FA must use this route (not <c>POST /api/CashRegister/{id}/close</c>): admin JWTs strip
+    /// <see cref="AppPermissions.ShiftClose"/> but keep <see cref="AppPermissions.CashRegisterManage"/>.
+    /// A register held by another user returns HTTP 403 (<c>REGISTER_HELD_BY_OTHER</c>); recovery close is
+    /// <see cref="ICashRegisterShiftService.TryForceCloseCashRegisterAsync"/> (shift management), not this action.
+    /// </summary>
+    [HttpPost("{id:guid}/close")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Close(
+        Guid id,
+        [FromBody] CloseCashRegisterModel model,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(actorUserId))
+            return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
+
+        if (model == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var permission = await _permissions.CanCloseAsync(id, User, cancellationToken).ConfigureAwait(false);
+        if (DenialResult(permission) is { } denied)
+            return denied;
+
+        try
+        {
+            var result = await _cashRegisterShift.TryCloseCashRegisterAsync(
+                id,
+                actorUserId,
+                model.ClosingBalance,
+                cancellationToken).ConfigureAwait(false);
+
+            return result.Kind switch
+            {
+                CashRegisterCloseKind.Success =>
+                    Ok(new { message = _messages.Get(ApiMessageKeys.RegisterCloseSuccess) }),
+                CashRegisterCloseKind.FailedNotFound =>
+                    NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) }),
+                CashRegisterCloseKind.FailedAlreadyClosed =>
+                    BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterAlreadyClosed) }),
+                CashRegisterCloseKind.FailedForbidden =>
+                    StatusCode(
+                        StatusCodes.Status403Forbidden,
+                        new
+                        {
+                            message = _messages.Get(ApiMessageKeys.RegisterHeldByOtherUser),
+                            code = CashRegisterPermissionCodes.RegisterHeldByOtherUser,
+                        }),
+                _ => StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCloseError) })
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cash register close failed RegisterId={RegisterId}", id);
+            return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCloseError), error = ex.Message });
         }
     }
 

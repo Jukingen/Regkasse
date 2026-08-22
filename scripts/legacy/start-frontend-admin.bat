@@ -31,7 +31,7 @@ echo ========================================
 echo.
 echo Project path: %PROJECT_PATH%
 echo Log file: %LOG_FILE%
-echo Dev mode: webpack ^(cpus=2, avoids Turbopack monorepo RAM leak^)
+echo Dev mode: webpack ^(cpus=2, heap=4096, avoids Turbopack monorepo RAM leak^)
 echo ========================================
 echo.
 
@@ -42,12 +42,9 @@ pushd "%REPO_ROOT%"
 call npm run dev:cleanup:orphans
 popd
 
-REM Do not delete whole .next (full recompile RAM spike). Drop leftover Turbopack dir only.
-if exist "%PROJECT_PATH%\.next\dev" (
-    echo [info] Removing leftover Turbopack cache: .next\dev
-    echo %date% %time% - Removing leftover .next\dev ... >> "%LOG_FILE%"
-    rmdir /s /q "%PROJECT_PATH%\.next\dev" 2>nul
-)
+REM Next.js 16 webpack persists its filesystem cache under .next\dev.
+REM Do not delete it on every start — that forces a full recompile and HMR
+REM chunk timeouts ("network errors"). Use `npm run dev:clean` when needed.
 
 if not exist "node_modules" (
     echo [WARN] node_modules not found!
@@ -56,7 +53,7 @@ if not exist "node_modules" (
 
 echo [2/2] Starting admin ^(next dev --webpack^)...
 echo %date% %time% - Starting admin (webpack)... >> "%LOG_FILE%"
-set "NODE_OPTIONS=--max-old-space-size=2048"
+set "NODE_OPTIONS=--max-old-space-size=4096"
 npm run dev >> "%LOG_FILE%" 2>&1
 
 if %errorlevel% neq 0 (

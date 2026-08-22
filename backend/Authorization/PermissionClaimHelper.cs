@@ -30,6 +30,27 @@ public static class PermissionClaimHelper
         return PermissionImplication.IsSatisfied(permission, filtered);
     }
 
+    /// <summary>
+    /// True for platform Super Admins. Accepts the role claim in any of its supported shapes and also
+    /// <see cref="AppPermissions.SystemCritical"/>, which is all a compact Super Admin JWT carries.
+    /// </summary>
+    public static bool IsSuperAdminPrincipal(ClaimsPrincipal? user)
+    {
+        if (user == null)
+            return false;
+
+        if (user.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        foreach (var role in GetRolesFromPrincipal(user))
+        {
+            if (string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return PrincipalHasAppPermission(user, AppPermissions.SystemCritical);
+    }
+
     public static IReadOnlyList<string> GetRolesFromPrincipal(ClaimsPrincipal user)
     {
         var list = new List<string>();

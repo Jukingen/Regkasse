@@ -7,6 +7,7 @@
  */
 import type { PaymentApiErrorContext } from './paymentApiErrorContext';
 import type { PaymentApiErrorBodyFieldErrors } from './paymentApiErrorBodyFieldErrors';
+import type { LimitErrorDto } from './limitErrorDto';
 
 export interface PaymentApiErrorBody {
   /** @nullable */
@@ -20,6 +21,7 @@ export interface PaymentApiErrorBody {
   detail?: string | null;
   /** @nullable */
   fieldErrors?: PaymentApiErrorBodyFieldErrors;
+  limitError?: LimitErrorDto;
   /** @nullable */
   message?: string | null;
   success?: boolean;

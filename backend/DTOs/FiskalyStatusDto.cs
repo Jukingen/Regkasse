@@ -125,7 +125,7 @@ public sealed class FiskalySignTestRequest
 {
     public Guid CashRegisterId { get; set; }
 
-    /// <summary>normal, cancellation, training, mixed_vat, zero_amount.</summary>
+    /// <summary>normal, cancellation, training, mixed_vat, zero_amount, raw.</summary>
     public string Scenario { get; set; } = FiskalySignTestScenarioIds.Normal;
 }
 
@@ -144,6 +144,7 @@ public static class FiskalySignTestScenarioIds
     public const string Training = "training";
     public const string MixedVat = "mixed_vat";
     public const string ZeroAmount = "zero_amount";
+    public const string Raw = "raw";
     public const string MonthlyClose = "monthly_close";
     public const string YearlyClose = "yearly_close";
 }

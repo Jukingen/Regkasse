@@ -8,6 +8,22 @@ import type { CashRegister } from '@/api/generated/model';
 import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
 import { I18nProvider } from '@/i18n';
 
+vi.mock('@/hooks/useCanAccessPath', () => ({
+  useCanAccessPath: () => true,
+}));
+
+vi.mock('@/features/license/hooks/useLicense', () => ({
+  useLicense: () => ({ licenseStatus: null }),
+}));
+
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    isSuperAdmin: false,
+    hasPermission: () => false,
+    user: { id: 'admin-1' },
+  }),
+}));
+
 const sampleRegister: CashRegister = {
   id: 'reg-1',
   createdAt: '2026-01-01T00:00:00Z',
@@ -59,9 +75,12 @@ describe('CashRegisterGrid', () => {
   it('renders register content and actions', () => {
     renderGrid();
 
-    expect(screen.getByText('KASSE-001')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'KASSE-001' })).toHaveAttribute(
+      'href',
+      '/admin/cash-registers/reg-1'
+    );
     expect(screen.getByText('Hauptkasse')).toBeInTheDocument();
-    expect(screen.getByText('Geschlossen')).toBeInTheDocument();
+    expect(screen.getByText(/Noch nicht geöffnet/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Details')).toBeInTheDocument();
     expect(screen.getByLabelText('Stilllegen')).toBeInTheDocument();
     expect(screen.getByLabelText('Sonderbelege')).toBeInTheDocument();
@@ -71,5 +90,34 @@ describe('CashRegisterGrid', () => {
     renderGrid({ registers: [], totalRegisterCount: 0 });
 
     expect(screen.getByText(/Keine Kassen vorhanden/i)).toBeInTheDocument();
+  });
+
+  it('shows the assignment state of a register', () => {
+    renderGrid({
+      registers: [
+        {
+          ...sampleRegister,
+          assignedUserId: 'cashier-9',
+          assignedUserName: 'Bernd Huber',
+        } as CashRegister,
+      ],
+    });
+
+    expect(screen.getByText('Bernd Huber')).toBeInTheDocument();
+    expect(screen.getByText('Anderem zugewiesen')).toBeInTheDocument();
+  });
+
+  it('marks an unassigned register', () => {
+    renderGrid();
+
+    expect(screen.getByText('Nicht zugewiesen')).toBeInTheDocument();
+  });
+
+  it('disables Sonderbelege for a decommissioned register', () => {
+    renderGrid({
+      registers: [{ ...sampleRegister, status: 5 }],
+    });
+
+    expect(screen.getByLabelText('Sonderbelege')).toBeDisabled();
   });
 });

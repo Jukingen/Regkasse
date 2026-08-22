@@ -10,10 +10,7 @@ export interface DailyClosingDayDto {
   canClose?: boolean;
   /** @nullable */
   closingId?: string | null;
-  /**
-   * Calendar day kind (normal/empty), not Daily/Monthly/Yearly.
-   * @nullable
-   */
+  /** @nullable */
   closingType?: string | null;
   date?: string;
   /** @nullable */

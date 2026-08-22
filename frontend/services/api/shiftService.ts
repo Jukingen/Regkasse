@@ -1,6 +1,12 @@
 import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { isRecord, unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import { classifyDailyClosingError } from '../../utils/errorMessages';
+import { resolveAutoOpenShiftRegisterId } from '../../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  SHIFT_AUTO_OPEN_CODES,
+  ShiftAutoOpenError,
+} from '../../utils/shiftAutoOpenError';
 import { sessionManager } from '../session/sessionManager';
 
 export interface CashierShiftDto {
@@ -147,16 +153,80 @@ export async function startShiftApi(
   return shift;
 }
 
-/** Auto-open CashierShift for the assigned register (idempotent). Non-blocking callers should catch. */
-export async function autoOpenShiftApi(cashRegisterId: string): Promise<CashierShiftDto> {
-  const raw = await apiClient.post<unknown>('/pos/shift/auto-open', {
-    cashRegisterId,
-  });
-  const shift = parseCashierShiftDto(unwrapApiResponseLayer(raw));
-  if (!shift) {
-    throw new Error('Invalid shift auto-open response');
+export function parseShiftAutoOpenResult(raw: unknown): {
+  success: boolean;
+  code: string;
+  message: string;
+  shift: CashierShiftDto | null;
+} {
+  if (!isRecord(raw)) {
+    return { success: false, code: 'UNKNOWN', message: '', shift: null };
   }
-  return shift;
+
+  // Read the ShiftAutoOpenResult envelope first. unwrapApiResponseLayer would drop
+  // `code`/`success` by returning the nested `data` shift object.
+  const successFlag = raw.success === true || raw.Success === true;
+  const failFlag = raw.success === false || raw.Success === false;
+  const codeRaw = raw.code ?? raw.Code;
+  const messageRaw = raw.message ?? raw.Message ?? raw.error ?? raw.Error;
+  const nestedShift = parseCashierShiftDto(raw.data ?? raw.Data);
+  const hasEnvelope =
+    successFlag ||
+    failFlag ||
+    (typeof codeRaw === 'string' && codeRaw.trim() !== '') ||
+    nestedShift != null;
+
+  if (hasEnvelope) {
+    const success = failFlag ? false : successFlag || nestedShift != null;
+    const code =
+      typeof codeRaw === 'string' && codeRaw.trim()
+        ? codeRaw.trim()
+        : success
+          ? SHIFT_AUTO_OPEN_CODES.SUCCESS
+          : 'UNKNOWN';
+    return {
+      success,
+      code,
+      message: typeof messageRaw === 'string' ? messageRaw : '',
+      shift: nestedShift,
+    };
+  }
+
+  const layer = unwrapApiResponseLayer(raw);
+  const rootShift = parseCashierShiftDto(layer);
+  return {
+    success: rootShift != null,
+    code: rootShift ? SHIFT_AUTO_OPEN_CODES.OK : 'UNKNOWN',
+    message: '',
+    shift: rootShift,
+  };
+}
+
+/**
+ * Auto-open CashierShift for the assigned register, or the persisted default when id is omitted.
+ * Idempotent when a shift is already open. Throws {@link ShiftAutoOpenError} with a structured code.
+ */
+export async function autoOpenShiftApi(
+  cashRegisterId?: string | null
+): Promise<CashierShiftDto> {
+  const registerId = resolveAutoOpenShiftRegisterId(cashRegisterId);
+  const body = registerId ? { cashRegisterId: registerId } : {};
+  try {
+    const raw = await apiClient.post<unknown>('/pos/shift/auto-open', body);
+    const parsed = parseShiftAutoOpenResult(raw);
+    if (parsed.success && parsed.shift) {
+      return parsed.shift;
+    }
+    if (parsed.code === SHIFT_AUTO_OPEN_CODES.SHIFT_ALREADY_OPEN && parsed.shift) {
+      return parsed.shift;
+    }
+    throw new ShiftAutoOpenError(
+      parsed.code || 'UNKNOWN',
+      parsed.message || 'Invalid shift auto-open response'
+    );
+  } catch (error: unknown) {
+    throw parseShiftAutoOpenError(error);
+  }
 }
 
 /** Soft-close active CashierShift without closing the register (idempotent). */

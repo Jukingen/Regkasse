@@ -19,6 +19,19 @@ vi.mock('@/features/reporting/hooks/useCashierFilterOptions', () => ({
   useCashierFilterOptions: () => mockUseCashierFilterOptions(),
 }));
 
+vi.mock('@/features/license/hooks/useLicense', () => ({
+  useLicense: () => ({ licenseStatus: null }),
+}));
+
+vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    isSuperAdminUser: false,
+    tenantName: 'Cafe',
+    tenantSlug: 'dev',
+  }),
+}));
+
 function renderFilters(props: Partial<React.ComponentProps<typeof ReportFilters>> = {}) {
   const onGenerate = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -78,8 +91,8 @@ describe('ReportFilters', () => {
   it('renders register, date range, and generate button', async () => {
     renderFilters();
 
-    expect(screen.getByText('KASSE-001')).toBeInTheDocument();
-    expect(screen.getByText(/Automatisch|auto/i)).toBeInTheDocument();
+    expect(screen.getByText(/KASSE-001/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Automatisch|auto/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Bericht|report|Rapor/i })).toBeInTheDocument();
   });
 

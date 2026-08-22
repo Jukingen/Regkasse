@@ -10,6 +10,7 @@ import {
 import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 export type UseCreateUserOptions = {
   /** When set, always creates under this mandant (tenant detail). */
@@ -50,8 +51,8 @@ export function useCreateUser(options: UseCreateUserOptions = {}) {
       message.success(t('users.create.success'));
       onSuccess?.();
     },
-    onError: () => {
-      message.error(t('tenants.users.create.messages.failed'));
+    onError: (error: unknown) => {
+      toastLimitExceededOrFallback(message, t, error, t('tenants.users.create.messages.failed'));
       onError?.();
     },
   });

@@ -31,7 +31,7 @@ public class RoleManagementTests
         var catalog = roleMgmt.Object.GetPermissionsCatalog();
         Assert.NotEmpty(catalog);
         Assert.Contains(catalog, c => c.Key == AppPermissions.UserView && c.Resource == "user" && c.Action == "view");
-        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Product");
+        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Sortiment & Preise");
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsSystemRole_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -311,7 +311,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsDemo_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;

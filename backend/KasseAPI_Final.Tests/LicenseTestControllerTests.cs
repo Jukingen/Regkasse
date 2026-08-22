@@ -36,7 +36,7 @@ public sealed class LicenseTestControllerTests
                 ValidUntil = DateTime.UtcNow.AddDays(7),
             });
 
-        Assert.IsType<NotFoundResult>(result);
+        Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]

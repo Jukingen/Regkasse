@@ -45,7 +45,8 @@ public sealed class DevCleanupControllerTests
 
         var result = await controller.CleanupOrphanedUsers();
 
-        Assert.IsType<NotFoundResult>(result.Result);
+        var forbidden = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, forbidden.StatusCode);
     }
 
     [Fact]
@@ -102,10 +103,10 @@ public sealed class DevCleanupControllerTests
         db.Users.Add(new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = "admin@dev.regkasse.at",
-            Email = "admin@dev.regkasse.at",
-            NormalizedEmail = "ADMIN@DEV.REGKASSE.AT",
-            NormalizedUserName = "ADMIN@DEV.REGKASSE.AT",
+            UserName = "keepme@example.com",
+            Email = "keepme@example.com",
+            NormalizedEmail = "KEEPME@EXAMPLE.COM",
+            NormalizedUserName = "KEEPME@EXAMPLE.COM",
             FirstName = "Admin",
             LastName = "Dev",
             EmployeeNumber = "EMP-KEEP-1",

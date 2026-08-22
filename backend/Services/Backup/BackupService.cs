@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -36,6 +37,7 @@ public sealed class BackupService : IBackupService
     private readonly IBackupStagingDiskMonitor _diskMonitor;
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly ILogger<BackupService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public BackupService(
         AppDbContext db,
@@ -44,7 +46,8 @@ public sealed class BackupService : IBackupService
         IManualRestoreTriggerService manualRestore,
         IBackupStagingDiskMonitor diskMonitor,
         IOptionsMonitor<BackupOptions> options,
-        ILogger<BackupService> logger)
+        ILogger<BackupService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _manualTrigger = manualTrigger;
@@ -53,6 +56,7 @@ public sealed class BackupService : IBackupService
         _diskMonitor = diskMonitor;
         _options = options;
         _logger = logger;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     public Task<BackupResult> CreateBackupAsync(
@@ -78,6 +82,24 @@ public sealed class BackupService : IBackupService
             .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
         if (tenant == null)
             return BackupResult.Fail(TenantNotFoundCode, "Tenant not found.");
+
+        if (_tenantLimitGuard != null)
+        {
+            try
+            {
+                await _tenantLimitGuard.EnsureCanCreateBackupAsync(tenantId, ct).ConfigureAwait(false);
+            }
+            catch (LimitExceededException ex)
+            {
+                _logger.LogWarning(
+                    "Tenant backup blocked by limit TenantId={TenantId} LimitKey={LimitKey} Limit={Limit} Current={Current}",
+                    tenantId,
+                    ex.LimitKey,
+                    ex.LimitAmount,
+                    ex.CurrentAmount);
+                return BackupResult.Fail(LimitExceededException.ErrorCodeValue, ex.Message);
+            }
+        }
 
         var budget = await EnsureStorageBudgetAsync(ct);
         if (budget != null)

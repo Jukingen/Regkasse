@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -74,6 +75,40 @@ public sealed class BackupServiceTests
         Assert.True(result.Succeeded);
         Assert.Equal(runId, result.BackupRunId);
         Assert.Equal(BackupManualTriggerResultKind.NewRunQueued, result.TriggerKind);
+    }
+
+    [Fact]
+    public async Task CreateBackupAsync_fails_when_tenant_backup_limit_exceeded()
+    {
+        var tenantId = Guid.NewGuid();
+        var guard = new Mock<ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanCreateBackupAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxBackupsPerTenant,
+                1,
+                1,
+                "Maximum 1 backups per tenant reached"));
+
+        var (sut, db) = CreateSut(
+            nameof(CreateBackupAsync_fails_when_tenant_backup_limit_exceeded),
+            tenantLimitGuard: guard.Object);
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Acme",
+            Slug = "acme-limits",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await sut.CreateBackupAsync(tenantId, Guid.NewGuid());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(LimitExceededException.ErrorCodeValue, result.Code);
+        Assert.Contains("Maximum 1 backups", result.Error, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -291,7 +326,8 @@ public sealed class BackupServiceTests
     private static (BackupService Sut, AppDbContext Db) CreateSut(
         string dbName,
         Action<Mock<IBackupManualTriggerService>>? trigger = null,
-        Mock<IManualRestoreTriggerService>? manualRestore = null)
+        Mock<IManualRestoreTriggerService>? manualRestore = null,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(dbName)
@@ -320,7 +356,8 @@ public sealed class BackupServiceTests
             restoreMock.Object,
             new BackupStagingDiskMonitor(),
             new FixedOptionsMonitor<BackupOptions>(new BackupOptions { ArtifactStagingRoot = null }),
-            NullLogger<BackupService>.Instance);
+            NullLogger<BackupService>.Instance,
+            tenantLimitGuard);
 
         return (sut, db);
     }

@@ -50,6 +50,14 @@ public static class FiskalySignTestScenarios
         },
         new()
         {
+            Id = FiskalySignTestScenarioIds.Raw,
+            ReceiptType = "NORMAL",
+            CanSign = true,
+            Description = "Raw schema fallback: 10.00 EUR STANDARD via gross_amount_standard.",
+            Amounts = [Row("STANDARD", 10.00m)]
+        },
+        new()
+        {
             Id = FiskalySignTestScenarioIds.MonthlyClose,
             ReceiptType = "MONTHLY_CLOSE",
             CanSign = false,
@@ -83,14 +91,30 @@ public static class FiskalySignTestScenarios
             })
             .ToArray();
 
+        var total = amounts.Sum(a => a.Amount);
+        var schemaKind = string.Equals(scenario.Id, FiskalySignTestScenarioIds.Raw, StringComparison.OrdinalIgnoreCase)
+            ? FiskalyReceiptSchemaKinds.Raw
+            : FiskalyReceiptSchemaKinds.StandardV1;
+
         return new FiskalyTransactionData
         {
             CashRegisterId = cashRegisterId.ToString("D"),
             ReceiptType = scenario.ReceiptType,
             PaymentType = "CASH",
-            TotalAmount = amounts.Sum(a => a.Amount),
+            CurrencyCode = FiskalyReceiptSchemaMapper.DefaultCurrency,
+            SchemaKind = schemaKind,
+            TotalAmount = total,
             VatRate = amounts.FirstOrDefault()?.VatRate ?? "STANDARD",
-            AmountsPerVatRate = amounts
+            AmountsPerVatRate = amounts,
+            LineItems =
+            [
+                new FiskalyLineItem
+                {
+                    Quantity = "1",
+                    Text = "Test Produkt",
+                    PricePerUnit = FiskalyReceiptSchemaMapper.FormatAmount(total)
+                }
+            ]
         };
     }
 

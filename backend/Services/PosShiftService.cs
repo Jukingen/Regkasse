@@ -75,11 +75,20 @@ public sealed class PosShiftService : IPosShiftService
             throw new PosShiftStartException(PosShiftStartResultKind.AlreadyActive, "Already have an active shift");
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-        var registerExists = await _context.CashRegisters.AsNoTracking()
-            .AnyAsync(r => r.Id == request.CashRegisterId && r.TenantId == tenantId, cancellationToken);
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
+                cancellationToken);
 
-        if (!registerExists)
+        if (register == null)
             throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+
+        if (CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, register.AssignedUserId))
+        {
+            throw new PosShiftStartException(
+                PosShiftStartResultKind.RegisterNotAssigned,
+                "Cash register is assigned to another user");
+        }
 
         var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
             request.CashRegisterId,
@@ -230,10 +239,10 @@ public sealed class PosShiftService : IPosShiftService
         }
     }
 
-    public async Task<CashierShiftDto> AutoOpenShiftAsync(
+    public async Task<ShiftAutoOpenResult> AutoOpenShiftAsync(
         string cashierUserId,
         string cashierDisplayName,
-        Guid cashRegisterId,
+        Guid? cashRegisterId = null,
         CancellationToken cancellationToken = default)
     {
         var existing = await _context.CashierShifts.AsNoTracking()
@@ -248,19 +257,74 @@ public sealed class PosShiftService : IPosShiftService
                 existing.StartedAt,
                 DateTime.UtcNow,
                 cancellationToken);
-            return MapToDto(existing, liveTotals);
+            return ShiftAutoOpenResult.AlreadyOpen(MapToDto(existing, liveTotals));
         }
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        var resolvedRegisterId = await ResolveAutoOpenRegisterIdAsync(
+            cashierUserId,
+            cashRegisterId,
+            cancellationToken);
+
+        if (resolvedRegisterId == null)
+        {
+            var operationalCount = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.TenantId == tenantId)
+                .WhereCountsTowardPosOperationalCardinality()
+                .CountAsync(cancellationToken);
+
+            if (operationalCount == 0)
+            {
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.NoActiveRegisters,
+                    ShiftAutoOpenMessages.NoActiveRegisters);
+            }
+
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.NeedRegisterSelection,
+                ShiftAutoOpenMessages.NeedRegisterSelection);
+        }
+
         var register = await _context.CashRegisters.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == cashRegisterId && r.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(
+                r => r.Id == resolvedRegisterId.Value && r.TenantId == tenantId,
+                cancellationToken);
 
         if (register == null)
-            throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, resolvedRegisterId.Value, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterNotFound,
+                ShiftAutoOpenMessages.RegisterNotFound);
+        }
+
+        if (register.Status == RegisterStatus.Decommissioned)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterDecommissioned,
+                ShiftAutoOpenMessages.RegisterDecommissioned);
+        }
+
+        if (!register.IsActive ||
+            register.Status is RegisterStatus.Maintenance or RegisterStatus.Disabled)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterUnavailable,
+                ShiftAutoOpenMessages.RegisterUnavailable);
+        }
+
+        if (CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, register.AssignedUserId))
+        {
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterUnavailable,
+                ShiftAutoOpenMessages.RegisterUnavailable);
+        }
 
         var startBalance = register.CurrentBalance;
         var openResult = await _cashRegisterShift.TryOpenCashRegisterAsync(
-            cashRegisterId,
+            register.Id,
             cashierUserId,
             startBalance,
             "POS auto-open shift",
@@ -273,20 +337,32 @@ public sealed class PosShiftService : IPosShiftService
             case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
                 break;
             case CashRegisterOpenKind.FailedNotFound:
-                throw new PosShiftStartException(PosShiftStartResultKind.RegisterNotFound, "Cash register not found");
+                await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterNotFound,
+                    ShiftAutoOpenMessages.RegisterNotFound);
+            case CashRegisterOpenKind.FailedInvalidState:
+                await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+                return ShiftAutoOpenResult.Fail(
+                    register.Status == RegisterStatus.Decommissioned
+                        ? ShiftAutoOpenCodes.RegisterDecommissioned
+                        : ShiftAutoOpenCodes.RegisterUnavailable,
+                    register.Status == RegisterStatus.Decommissioned
+                        ? ShiftAutoOpenMessages.RegisterDecommissioned
+                        : ShiftAutoOpenMessages.RegisterUnavailable);
             case CashRegisterOpenKind.FailedConflictOtherUser:
-                throw new PosShiftStartException(
-                    PosShiftStartResultKind.RegisterOpenConflict,
-                    "Cash register is held by another user");
+            case CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister:
+            case CashRegisterOpenKind.FailedStartbelegRequired:
+            case CashRegisterOpenKind.FailedMonatsbelegRequired:
             default:
-                throw new PosShiftStartException(
-                    PosShiftStartResultKind.RegisterOpenFailed,
-                    "Cash register could not be opened for this shift");
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterUnavailable,
+                    ShiftAutoOpenMessages.RegisterUnavailable);
         }
 
         // Re-read balance after open (may have been set by open path).
         var balanceAfterOpen = await _context.CashRegisters.AsNoTracking()
-            .Where(r => r.Id == cashRegisterId)
+            .Where(r => r.Id == register.Id)
             .Select(r => r.CurrentBalance)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -295,7 +371,7 @@ public sealed class PosShiftService : IPosShiftService
         var shift = new CashierShift
         {
             TenantId = tenantId,
-            CashRegisterId = cashRegisterId,
+            CashRegisterId = register.Id,
             CashierId = cashierUserId,
             CashierName = displayName,
             StartBalance = balanceAfterOpen,
@@ -324,9 +400,48 @@ public sealed class PosShiftService : IPosShiftService
             "Cashier shift {ShiftId} auto-opened by {UserId} on register {RegisterId}",
             shift.Id,
             cashierUserId,
-            cashRegisterId);
+            register.Id);
 
-        return MapToDto(shift);
+        return ShiftAutoOpenResult.Opened(MapToDto(shift));
+    }
+
+    private async Task<Guid?> ResolveAutoOpenRegisterIdAsync(
+        string cashierUserId,
+        Guid? requestedRegisterId,
+        CancellationToken cancellationToken)
+    {
+        if (requestedRegisterId is { } requested && requested != Guid.Empty)
+            return requested;
+
+        var settings = await _context.UserSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == cashierUserId, cancellationToken);
+        var raw = settings?.CashRegisterId?.Trim();
+        if (string.IsNullOrEmpty(raw))
+            return null;
+        if (!Guid.TryParse(raw, out var fromSettings) || fromSettings == Guid.Empty)
+            return null;
+        return fromSettings;
+    }
+
+    private async Task ClearStaleDefaultRegisterAsync(
+        string cashierUserId,
+        Guid registerId,
+        CancellationToken cancellationToken)
+    {
+        var settings = await _context.UserSettings
+            .FirstOrDefaultAsync(s => s.UserId == cashierUserId, cancellationToken);
+        if (settings == null)
+            return;
+        if (!Guid.TryParse(settings.CashRegisterId, out var stored) || stored != registerId)
+            return;
+
+        settings.CashRegisterId = null;
+        settings.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation(
+            "Cleared stale default cash register {RegisterId} for user {UserId}",
+            registerId,
+            cashierUserId);
     }
 
     public async Task<CashierShiftDto?> AutoCloseShiftAsync(

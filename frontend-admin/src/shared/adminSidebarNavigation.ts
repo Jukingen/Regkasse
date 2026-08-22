@@ -89,6 +89,7 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   backupConfig: 'grp-backup-config',
   /** Nested under Einstellungen: digital services (tenant + Super Admin manage) */
   digitalServices: 'grp-digital-services',
+  development: 'grp-development',
   /** Nested under Lizenzverwaltung: Super Admin outbound communication */
   communication: 'grp-communication',
   /** Nested under Lizenzverwaltung: Mandanten-Admin self-service (hub, invoices, support) */
@@ -122,6 +123,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/license/dashboard',
     '/admin/license',
     '/admin/license-management',
+    '/admin/limits/dashboard',
     '/admin/license/audit',
     '/admin/licenses',
     '/admin/billing',
@@ -284,6 +286,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.admin]: [
     '/admin/access',
     '/admin/users',
+    '/admin/sessions',
     '/admin/access/roles',
     '/admin/access/matrix',
     '/admin/tenants',
@@ -375,6 +378,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/monitoring',
     '/admin/risk-dashboard',
   ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.development]: ['/admin/development'],
 };
 
 /**
@@ -505,6 +509,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/access/') ||
     p === '/admin/users' ||
     p.startsWith('/admin/users/') ||
+    p === '/admin/sessions' ||
+    p.startsWith('/admin/sessions/') ||
     p === '/admin/tenants' ||
     p.startsWith('/admin/tenants/') ||
     p === '/admin/support' ||
@@ -608,6 +614,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/license/') ||
     p === '/admin/license-management' ||
     p.startsWith('/admin/license-management/') ||
+    p === '/admin/limits/dashboard' ||
+    p.startsWith('/admin/limits/') ||
     p === '/admin/licenses' ||
     p === '/admin/billing' ||
     p.startsWith('/admin/billing/') ||
@@ -742,6 +750,7 @@ export function filterSidebarMenuItems(
     '/admin/errors',
     '/admin/licenses',
     '/admin/cash-registers',
+    '/admin/sessions',
   ]);
 
   const leafAllowed = (key: string): boolean => {

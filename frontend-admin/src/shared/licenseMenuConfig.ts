@@ -59,6 +59,7 @@ export const LOCKDOWN_VISIBLE_MENUS = [
       '/license/dashboard',
       '/admin/license',
       '/admin/license-management',
+      '/admin/limits/dashboard',
     ],
   },
   {

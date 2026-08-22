@@ -176,6 +176,8 @@ public static class DemoTenantAdminSeed
                 .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: true, cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        await ArchiveLeftoverDemoTenantsAsync(db, now, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -197,6 +199,56 @@ public static class DemoTenantAdminSeed
         }
 
         return string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Soft-delete leftover Test Cafe / Test Bar rows so they leave switcher and cash-register views.
+    /// Platform sentinel is never archived here (FK continuity).
+    /// </summary>
+    internal static async Task ArchiveLeftoverDemoTenantsAsync(
+        AppDbContext db,
+        DateTime utcNow,
+        CancellationToken cancellationToken)
+    {
+        var leftover = await db.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => LeftoverDemoTenantSlugs.StorageSlugs.Contains(t.Slug))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        leftover.RemoveAll(t =>
+            SystemTenantIds.IsPlatformTenantId(t.Id) || SystemTenantIds.IsPlatformSlug(t.Slug));
+
+        if (leftover.Count == 0)
+            return;
+
+        var changed = false;
+        foreach (var tenant in leftover)
+        {
+            if (TenantStatuses.IsRemoved(tenant.Status) && !tenant.IsActive)
+                continue;
+
+            tenant.Status = TenantStatuses.Cancelled;
+            tenant.IsActive = false;
+            tenant.DeletedAtUtc ??= utcNow;
+            tenant.UpdatedAt = utcNow;
+            changed = true;
+            Console.WriteLine("Leftover demo tenant soft-deleted: {0} ({1})", tenant.Name, tenant.Slug);
+        }
+
+        if (!changed)
+            return;
+
+        var leftoverIds = leftover.Select(t => t.Id).ToList();
+        var memberships = await db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .Where(m => leftoverIds.Contains(m.TenantId) && m.IsActive)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var membership in memberships)
+            membership.IsActive = false;
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static bool IsDevelopmentPresetSlug(string slug) =>

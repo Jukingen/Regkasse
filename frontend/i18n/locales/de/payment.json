@@ -74,6 +74,11 @@
     "licenseLockedTitle": "Lizenz gesperrt",
     "licenseLocked": "Lizenz gesperrt. Bitte Administrator kontaktieren.",
     "monatsbelegRequired": "Monatsbeleg erforderlich",
+    "limitExceeded": "Mandanten-Limit erreicht.",
+    "limitDailyTransactions": "Tägliches Transaktionslimit ({{limit}}) erreicht. Aktuell: {{current}}. Bitte warten Sie bis morgen.",
+    "limitTransactionAmount": "Maximaler Transaktionsbetrag ({{limit}} €) überschritten. Bitte reduzieren Sie den Betrag.",
+    "limitDailyRevenue": "Tägliches Umsatzlimit ({{limit}} €) erreicht. Aktuell: {{current}} €. Bitte warten Sie bis morgen.",
+    "limitOfflineQueue": "Offline-Warteschlange voll ({{current}}/{{limit}}). Bitte synchronisieren Sie die Warteschlange.",
     "nonFiscalQueued": "Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht fiskalisch verbucht. Vor einer erneuten Zahlung bitte Einstellungen → Offline-Warteschlange prüfen; eine zweite Zahlung kann sonst zu doppelten Buchungen führen."
   },
   "cancellation": {

@@ -9,6 +9,7 @@ using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Services.RestoreVerification;
 using Microsoft.AspNetCore.Authorization;
@@ -118,6 +119,7 @@ public sealed class AdminBackupController : ControllerBase
     [ProducesResponseType(typeof(BackupTriggerResponseDto), 202)]
     [ProducesResponseType(typeof(BackupTriggerResponseDto), 200)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BackupTriggerResponseDto>> TriggerManual(
         [FromBody] BackupTriggerRequestDto? body,
         CancellationToken cancellationToken)
@@ -140,16 +142,24 @@ public sealed class AdminBackupController : ControllerBase
 
         var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
-        var outcome = await _trigger.RequestManualBackupAsync(
-            userId,
-            role,
-            body?.IdempotencyKey,
-            correlationId,
-            strategy: isSuperAdmin && !_tenantAccessor.TenantId.HasValue
-                ? BackupStrategyKind.System
-                : BackupStrategyKind.Tenant,
-            deploymentWide: isSuperAdmin && !_tenantAccessor.TenantId.HasValue,
-            cancellationToken: cancellationToken);
+        BackupManualTriggerOutcome outcome;
+        try
+        {
+            outcome = await _trigger.RequestManualBackupAsync(
+                userId,
+                role,
+                body?.IdempotencyKey,
+                correlationId,
+                strategy: isSuperAdmin && !_tenantAccessor.TenantId.HasValue
+                    ? BackupStrategyKind.System
+                    : BackupStrategyKind.Tenant,
+                deploymentWide: isSuperAdmin && !_tenantAccessor.TenantId.HasValue,
+                cancellationToken: cancellationToken);
+        }
+        catch (LimitExceededException ex)
+        {
+            return Conflict(ex.ToConflictBody());
+        }
 
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         var dto = BackupTriggerResponseFactory.Create(

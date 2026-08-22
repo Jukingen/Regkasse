@@ -92,6 +92,10 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/trials/analytics")]
     [InlineData("/api/admin/fiskaly")]
     [InlineData("/api/admin/fiskaly/settings")]
+    [InlineData("/api/admin/limits")]
+    [InlineData("/api/admin/limits/dashboard")]
+    [InlineData("/api/admin/sessions")]
+    [InlineData("/api/admin/sessions/terminate-all")]
     [InlineData("/api/tenants/switcher")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {
@@ -114,6 +118,7 @@ public sealed class TenantValidationMiddlewareTests
     [Theory]
     [InlineData("/api/admin/tenants")]
     [InlineData("/api/admin/billing/stats")]
+    [InlineData("/api/admin/limits/dashboard")]
     public async Task NonSuperAdmin_OnPlatformPath_WithoutTenant_Returns404(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };

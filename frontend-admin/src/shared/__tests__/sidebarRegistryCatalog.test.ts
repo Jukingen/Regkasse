@@ -135,6 +135,8 @@ describe('sidebarRegistryCatalog', () => {
     expect(byGroup.monitoringLogs).toEqual(
       expect.arrayContaining(['adminMonitoring', 'adminRiskDashboard', 'elmahErrors'])
     );
+    expect(byGroup.development).toEqual(expect.arrayContaining(['limitTest']));
+    expect(SIDEBAR_NAV_ITEM_CATALOG.limitTest.developmentOnly).toBe(true);
   });
 
   it('nests TSE leaves under Sicherheit & TSE subgroups', () => {

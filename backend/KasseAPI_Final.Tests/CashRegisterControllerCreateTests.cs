@@ -79,9 +79,11 @@ public class CashRegisterControllerCreateTests
                 new PaymentMethodDefinitionBootstrapService(ctx),
                 TseProvisioningTestDoubles.Successful(),
                 Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
+                CashRegisterTestDoubles.PermissiveTenantLimits(),
                 NullLogger<CashRegisterManagementService>.Instance),
             Mock.Of<ICashRegisterListEnrichmentService>(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -172,7 +174,11 @@ public class CashRegisterControllerCreateTests
 
         Assert.IsType<CreatedAtActionResult>(primaryTenantResult);
 
-        var registers = await ctx.CashRegisters.AsNoTracking().OrderBy(r => r.RegisterNumber).ToListAsync();
+        var registers = await ctx.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .OrderBy(r => r.RegisterNumber)
+            .ToListAsync();
         Assert.Equal(2, registers.Count);
         Assert.Equal(OtherTenantId, registers[0].TenantId);
         Assert.Equal(PrimaryTenantId, registers[1].TenantId);

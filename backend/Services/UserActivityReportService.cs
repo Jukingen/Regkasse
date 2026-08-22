@@ -29,6 +29,8 @@ public sealed class UserActivityReportService : IUserActivityReportService
         AuditLogActions.USER_REACTIVATE,
         AuditLogActions.USER_PASSWORD_RESET,
         AuditLogActions.FORCE_RESET_PASSWORD,
+        AuditLogActions.USER_FORCE_LOGOUT,
+        AuditLogActions.USER_SESSION_TERMINATED,
     };
 
     private static readonly HashSet<string> PaymentProcessedActions = new(StringComparer.Ordinal)

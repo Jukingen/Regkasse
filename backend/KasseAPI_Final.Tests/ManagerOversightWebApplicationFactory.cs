@@ -50,8 +50,8 @@ public sealed class ManagerOversightWebApplicationFactory : WebApplicationFactor
 
     protected override void Dispose(bool disposing)
     {
-        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
-        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, null);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, _previousOpenApiExportFlag);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _previousInMemoryDbName);
         base.Dispose(disposing);
     }
 

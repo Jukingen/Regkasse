@@ -50,6 +50,7 @@ import {
   type BackupContentValidationDto,
 } from '@/features/backup/logic/backupContentValidationApi';
 import { runRestoreDrill } from '@/features/backup/logic/backupDrillApi';
+import { isSystemBackupStrategy } from '@/features/backup/logic/backupStrategyKind';
 import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
 import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
 import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
@@ -106,8 +107,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     enabled: open,
   });
 
-  const isSystemBackup =
-    run?.strategy === 1 || run?.strategy === 'System';
+  const isSystemBackup = isSystemBackupStrategy(run?.strategy);
 
   const allowClientPipelineFallback = isBackupPipelineClientFallbackEnabled();
   const simulated = isSimulatedBackupAdapterKind(run?.adapterKind);

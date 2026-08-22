@@ -1922,6 +1922,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AssignedUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("assigned_user_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -2008,6 +2013,8 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId");
 
                     b.HasIndex("CurrentUserId");
 
@@ -11970,6 +11977,93 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_domains", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<decimal>("DailyMaxRevenue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(50000m)
+                        .HasColumnName("daily_max_revenue");
+
+                    b.Property<int>("DailyMaxTransactions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1000)
+                        .HasColumnName("daily_max_transactions");
+
+                    b.Property<int>("MaxActiveRegistersPerUser")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("max_active_registers_per_user");
+
+                    b.Property<int>("MaxBackupSizeMb")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(500)
+                        .HasColumnName("max_backup_size_mb");
+
+                    b.Property<int>("MaxBackupsPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_backups_per_tenant");
+
+                    b.Property<int>("MaxOfflineTransactions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_offline_transactions");
+
+                    b.Property<int>("MaxProductsPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10000)
+                        .HasColumnName("max_products_per_tenant");
+
+                    b.Property<decimal>("MaxTransactionAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(10000m)
+                        .HasColumnName("max_transaction_amount");
+
+                    b.Property<int>("MaxUsersPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_users_per_tenant");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_limits_tenant_id");
+
+                    b.ToTable("tenant_limits", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantNotificationConfig", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -15338,6 +15432,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegister", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("KasseAPI_Final.Models.ApplicationUser", "CurrentUser")
                         .WithMany("CashRegisters")
                         .HasForeignKey("CurrentUserId")
@@ -15348,6 +15447,8 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("AssignedUser");
 
                     b.Navigation("CurrentUser");
 
@@ -16556,6 +16657,17 @@ namespace KasseAPI_Final.Migrations
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TenantDomain", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()

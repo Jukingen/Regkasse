@@ -1,6 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -211,12 +212,14 @@ public sealed class OfflineMonitoringServiceTests
         var env = new Mock<IHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
 
+        var limits = new Mock<ITenantLimitService>();
         return new OfflineMonitoringService(
             ctx,
             accessor,
             optionsMonitor.Object,
             alertRulesMonitor.Object,
             tseOptions.Object,
+            limits.Object,
             env.Object);
     }
 }

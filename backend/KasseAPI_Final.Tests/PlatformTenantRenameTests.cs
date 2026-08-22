@@ -24,6 +24,19 @@ public sealed class PlatformTenantRenameTests
         Assert.False(SystemTenantIds.IsPlatformSlug("dev"));
     }
 
+    [Theory]
+    [InlineData("cafe")]
+    [InlineData("bar")]
+    [InlineData("test-cafe")]
+    [InlineData("TEST_BAR")]
+    public void LeftoverDemoTenantSlugs_Match_Legacy_Demo_Rows(string slug)
+    {
+        Assert.True(LeftoverDemoTenantSlugs.Matches(slug));
+        Assert.False(LeftoverDemoTenantSlugs.Matches("dev"));
+        Assert.False(LeftoverDemoTenantSlugs.Matches("prod"));
+        Assert.False(LeftoverDemoTenantSlugs.Matches("platform"));
+    }
+
     [Fact]
     public void DevTenantSlugAliases_No_Longer_Maps_Default_Or_Platform()
     {
@@ -73,6 +86,61 @@ public sealed class PlatformTenantRenameTests
 
         Assert.DoesNotContain(filtered, t => SystemTenantIds.IsPlatformSlug(t.Slug));
         Assert.Contains(filtered, t => t.Slug == "dev");
+    }
+
+    [Fact]
+    public void ExcludeUnusedDefaultTenant_Hides_Leftover_Cafe_And_Bar()
+    {
+        var exclude = typeof(AdminTenantService).GetMethod(
+            "ExcludeUnusedDefaultTenant",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(exclude);
+
+        var now = DateTime.UtcNow;
+        var items = new List<AdminTenantListItemDto>
+        {
+            new(
+                Guid.Parse("b0000001-0001-4001-8001-000000000099"),
+                "Test Cafe",
+                "cafe",
+                null,
+                null,
+                TenantStatuses.Active,
+                true,
+                null,
+                null,
+                now,
+                null),
+            new(
+                Guid.Parse("b0000001-0001-4001-8001-000000000098"),
+                "Test Bar",
+                "test-bar",
+                null,
+                null,
+                TenantStatuses.Active,
+                true,
+                null,
+                null,
+                now,
+                null),
+            new(
+                DemoTenantIds.Prod,
+                "Production",
+                "prod",
+                null,
+                null,
+                TenantStatuses.Active,
+                true,
+                null,
+                null,
+                now,
+                null),
+        };
+
+        var filtered = (IReadOnlyList<AdminTenantListItemDto>)exclude!.Invoke(null, [items])!;
+
+        Assert.DoesNotContain(filtered, t => LeftoverDemoTenantSlugs.Matches(t.Slug));
+        Assert.Contains(filtered, t => t.Slug == "prod");
     }
 
     [Fact]

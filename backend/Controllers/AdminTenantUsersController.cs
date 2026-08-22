@@ -1,8 +1,10 @@
 using System.Security.Claims;
 
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -418,6 +420,9 @@ public sealed class AdminTenantUsersController : ControllerBase
 
     private ActionResult MapTenantUserError(string error)
     {
+        if (LimitErrorDto.TryParseServiceError(error, out var limitError))
+            return Conflict(limitError);
+
         if (error.StartsWith(TrialLimitExceededException.ErrorCodeValue, StringComparison.OrdinalIgnoreCase))
         {
             var message = error.Contains(':')

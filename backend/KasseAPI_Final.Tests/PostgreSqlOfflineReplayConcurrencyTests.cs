@@ -35,6 +35,10 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
 {
     private readonly PostgreSqlReplayFixture _fixture;
 
+    // xUnit builds one instance per test, and the fixture database is shared across the whole collection.
+    // A per-test tenant keeps the per-tenant unique indexes (register number, category key, …) from colliding.
+    private readonly Guid _tenantId = Guid.NewGuid();
+
     public PostgreSqlOfflineReplayConcurrencyTests(PostgreSqlReplayFixture fixture)
     {
         _fixture = fixture;
@@ -45,7 +49,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(_tenantId));
     }
 
     private static TseService CreateTseService(AppDbContext ctx, SignaturePipeline pipeline, ITseKeyProvider keyProvider)
@@ -54,17 +58,18 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         return new TseService(ctx, pipeline, keyProvider, closingProvider, Mock.Of<ILogger<TseService>>());
     }
 
-    private static async Task<(Guid categoryId, Guid productId, Guid customerId, Guid cashRegisterId)> SeedMinimalDomainAsync(AppDbContext ctx)
+    private async Task<(Guid categoryId, Guid productId, Guid customerId, Guid cashRegisterId)> SeedMinimalDomainAsync(AppDbContext ctx)
     {
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        TenantTestDoubles.EnsureTenant(ctx, _tenantId);
+        var taxGroupId = TenantTestDoubles.EnsureTaxGroup(ctx, _tenantId);
         ctx.Categories.Add(new Category
         {
-            TenantId = SystemTenantIds.Platform,
+            TenantId = _tenantId,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -72,11 +77,12 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         ctx.Products.Add(new Product
         {
             Id = productId,
-            TenantId = SystemTenantIds.Platform,
+            TenantId = _tenantId,
             Name = "Döner",
             Description = "-",
             Price = 6.90m,
             CategoryId = categoryId,
+            TaxGroupId = taxGroupId,
             Category = "Speisen",
             StockQuantity = 1000,
             MinStockLevel = 0,
@@ -89,12 +95,12 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        ctx.Customers.Add(new Customer { Id = customerId, Name = "PGTest", Email = "pg@test.com", Phone = "1", IsActive = true });
+        ctx.Customers.Add(new Customer { Id = customerId, TenantId = _tenantId, Name = "PGTest", Email = "pg@test.com", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = SystemTenantIds.Platform,
+            TenantId = _tenantId,
             Id = cashRegisterId,
-            RegisterNumber = "PG-K01",
+            RegisterNumber = $"PG-{cashRegisterId:N}"[..20],
             Location = "T",
             StartingBalance = 0,
             CurrentBalance = 0,
@@ -117,12 +123,13 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         FooterText = ""
     };
 
-    private static (PaymentService payment, OfflineTransactionService offline) CreateServices(
+    private (PaymentService payment, OfflineTransactionService offline) CreateServices(
         AppDbContext ctx,
         Mock<IAuditLogService> audit,
         ITseService tse,
         IReceiptSequenceService receiptSeq)
     {
+        var tenantResolver = TenantTestDoubles.SettingsResolverReturning(_tenantId);
         var paymentRepo = new GenericRepository<PaymentDetails>(ctx, Mock.Of<ILogger<GenericRepository<PaymentDetails>>>());
         var productRepo = new GenericRepository<Product>(ctx, Mock.Of<ILogger<GenericRepository<Product>>>());
         var customerRepo = new GenericRepository<Customer>(ctx, Mock.Of<ILogger<GenericRepository<Customer>>>());
@@ -141,9 +148,9 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             tse,
             TenantTestDoubles.CompanyProfileProviderReturning(TestCompany),
             userMock.Object,
-            TenantTestDoubles.PrimaryTenantResolver, TenantTestDoubles.ProductionHostEnvironment);
+            tenantResolver, TenantTestDoubles.ProductionHostEnvironment);
 
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             ctx,
@@ -163,9 +170,9 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
             httpAccessor,
-            new PaymentMethodCatalogService(ctx, TenantTestDoubles.PrimaryTenantResolver),
-            new PricingRuleResolver(ctx, TenantTestDoubles.PrimaryTenantResolver),
-            TenantTestDoubles.PrimaryTenantResolver);
+            new PaymentMethodCatalogService(ctx, tenantResolver),
+            new PricingRuleResolver(ctx, tenantResolver),
+            tenantResolver);
 
         var dataProtection = new EphemeralDataProtectionProvider();
         var offlineService = new OfflineTransactionService(
@@ -426,7 +433,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var numbers = payments.Select(p => p.ReceiptNumber).Distinct().ToList();
         Assert.Equal(n, numbers.Count);
 
-        var chain = await verify.SignatureChainState.AsNoTracking()
+        var chain = await verify.SignatureChainState.IgnoreQueryFilters().AsNoTracking()
             .FirstOrDefaultAsync(s => s.CashRegisterId == cashRegisterId);
         Assert.NotNull(chain);
         Assert.Equal(n, chain!.LastCounter);

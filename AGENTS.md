@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`**, optionally **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`**, and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-08-13
+**Last updated:** 2026-08-22
 
 ## Language Rules
 Follow these language rules strictly:
@@ -151,10 +151,11 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
-- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
+- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, `/api/admin/sessions`, `/api/admin/limits`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
 - **Route/body tenant target:** Super Admin ops that touch a specific mandant MUST validate the tenant exists (`GetByIdAsync` / equivalent → HTTP 404). Do not rely on ambient JWT tenant alone for cross-tenant SaaS actions; use the explicit `tenantId` from the route or body.
 - **Impersonation:** issues JWT with target `tenant_id` + `tenant_impersonation=true`; subsequent EF filters bind to the target. Host↔JWT match is skipped for impersonation tokens (`Auth:RequireTenantHostMatch`).
 - **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
+- **Session management:** Super Admin can list/terminate `auth_sessions` and force-logout a user (`/api/admin/sessions`, FA `/admin/sessions` + user detail). Force logout rotates Identity `SecurityStamp` (JWT `sst` claim) and revokes refresh tokens; the next API call fails in JWT `OnTokenValidated`. Platform “terminate all” keeps the caller’s current session.
 - **Digital services:** create / publish / edit / delete websites and apps; approve digital requests (`/admin/digital`, `/admin/digital/requests`)
 - **Online orders:** full FA control including optional POS cart bridge (`digital.orders.approve`)
 - **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**
@@ -239,6 +240,30 @@ SaaS mandant trials are first-class (`Trial` config section, `ITrialService`). N
 | Limits | `TrialLimitGuard` — extra registers/users while trial is open → `TrialLimitExceededException` |
 
 Wizard create-tenant can start a managed trial (syncs `LicenseValidUntilUtc`, no paid `LicenseKey` until conversion).
+
+## Tenant Limits
+
+Per-mandant operational caps (`tenant_limits`, one row per tenant). Defaults are applied when the row is missing. Full reference: [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md). Config TTL: `CacheSettings:TenantLimitsCacheMinutes` (5).
+
+| Key | Default | Where it fires |
+|-----|---------|----------------|
+| `maxActiveRegistersPerUser` | 5 | FA cash-register assignment |
+| `maxProductsPerTenant` | 10000 | Product create |
+| `maxUsersPerTenant` | 50 | User create / invite |
+| `dailyMaxTransactions` | 1000 | POS sale |
+| `maxTransactionAmount` | 10000 EUR | POS sale |
+| `dailyMaxRevenue` | 50000 EUR | POS sale |
+| `maxBackupsPerTenant` | 50 | Tenant backup trigger |
+| `maxBackupSizeMB` | 500 | Tenant backup (cumulative dump size) |
+| `maxOfflineTransactions` | 50 | TSE offline intent queue (tenant-wide) |
+
+- HTTP **409** + `LimitErrorDto` (`code=LIMIT_EXCEEDED`, `limitKey`, `limit`, `current`, `message`, `canForce`).
+- SuperAdmin **override** (`force=true`) exists **only** for assignment (`maxActiveRegistersPerUser`).
+- Offline queue SoT is `tenant_limits`, **not** `TseOptions.MaxOfflineTransactionsPerCashRegister` (obsolete bind-only).
+- Distinct from `TrialLimitGuard` and `TenantOperationLimits` — do not merge.
+
+Usage: `GET /api/admin/limits`. Dashboard: `GET /api/admin/limits/dashboard` (`license.manage`; Super Admin may omit ambient tenant or pass `allTenants=true`). DTO: `lastUpdated`, `summary` (healthy/warning/critical/total), per-limit `Healthy`/`Warning` (≥80%)/`Critical` (≥100%) with 7-day trend, critical users (`Approaching`/`Full`/`Exceeded`), `recentActivity`. Super Admin CRUD: `/api/admin/tenants/{id}/limits`.
+Activity feed: `LimitApproaching` (≥80%) and `LimitExceeded` (>100%) — in-app + email/webhook to Mandanten-Admin and Super Admin. FA: `/admin/limits/dashboard`.
 
 ## Self-service portal (Mein Konto)
 
@@ -469,9 +494,10 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 - TSE health status MUST be monitored continuously
 
 ### TSE Offline Mode
-- Max **50** offline transactions per cash register (`TseOptions.MaxOfflineTransactionsPerCashRegister`)
-- When limit is reached, POS must block new offline transactions
-- Show warning at 40 transactions (80% capacity)
+- Max **50** offline TSE intents **per tenant** by default (`tenant_limits.max_offline_transactions`)
+- When the limit is reached, POS must block new offline transactions (HTTP 409 `LIMIT_EXCEEDED`)
+- Show warning at 80% of the tenant cap
+- `TseOptions.MaxOfflineTransactionsPerCashRegister` is obsolete and is not used for enforcement
 - Offline queue must persist across app restarts
 
 ### NTP Time Sync
@@ -732,6 +758,7 @@ Use `/ai` docs selectively based on the task:
 - **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
 - **CI / monorepo DX** → root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md); Orval verify + Husky; i18n hard gate in `localization-validation.yml`
 - **Working hours (website/app only — never POS/FA)** → [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md); `AGENTS.md` § Working hours; `WebsiteStatusController`; `OnlineOrderIntakeService`; POS `useWorkingHours` (`posOperationsAllowed` always true)
+- **Tenant limits (users / catalog / sales volume / backup / offline queue)** → [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md); `AGENTS.md` § Tenant Limits; `backend/CONFIGURATION.md` § Tenant Limits
 - **SuperAdmin 2FA (TOTP; Dev bypass)** → [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md); `TwoFactorAuthOptions`; `ITwoFactorService`; FA `TwoFactorAuth.tsx`
 - **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
 - **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
@@ -796,7 +823,7 @@ The system uses Redis as a distributed cache (`RedisCacheService`) with automati
 
 ### When to use cache
 
-- **Do cache:** Read-heavy, rarely changing domain snapshots — mandant license status, product catalogs, effective user permissions, tenant settings.
+- **Do cache:** Read-heavy, rarely changing domain snapshots — mandant license status, product catalogs, effective user permissions, tenant settings, tenant operational caps.
 - **Do not put on `ICacheService`:** CSRF tokens, lockout counters, rate-limits, 2FA challenges — those stay on process-local `IMemoryCache`.
 - **Never cache sensitive data:** passwords (including hashes), voucher codes, payment card / payment detail payloads, PII, TSE/JWS secrets, raw fiscal signature material.
 - **Never cache real-time accuracy data:** live stock levels, payment/checkout status, open cart contents.
@@ -809,6 +836,7 @@ The system uses Redis as a distributed cache (`RedisCacheService`) with automati
 | Products (`product_list_{tenantId}` / `CacheKeys.ProductList`) | **15 min** | `CacheSettings:ProductCacheMinutes` |
 | Permissions (`user_permissions_{userId}` / `CacheKeys.UserPermissions`) | **30 min** | `CacheSettings:PermissionCacheMinutes` |
 | Tenant settings (`tenant_settings_{tenantId}` / `CacheKeys.TenantSettings`) | **60 min** | `CacheSettings:TenantSettingsCacheMinutes` |
+| Tenant limits (`tenant_limits_{tenantId}` / `CacheKeys.TenantLimits`) | **5 min** | `CacheSettings:TenantLimitsCacheMinutes` |
 | TSE health (`tse_health_{scopeId}` / `CacheKeys.TseHealth`) | **30 sec** | `CacheSettings:TseHealthCacheSeconds` (reserved; process monitor is in-memory) |
 
 Override per environment in appsettings / env (`CacheSettings__*`). Details: `backend/CONFIGURATION.md`.

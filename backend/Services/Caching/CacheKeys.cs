@@ -61,6 +61,12 @@ public static class CacheKeys
     public const string TenantSettings = "tenant_settings_{0}";
 
     /// <summary>
+    /// Per-tenant operational caps snapshot.
+    /// Format: <c>tenant_limits_{tenantId}</c> — arg0 = tenant id.
+    /// </summary>
+    public const string TenantLimits = "tenant_limits_{0}";
+
+    /// <summary>
     /// Cached TSE health snapshot key template (device/register scoped when used).
     /// Format: <c>tse_health_{0}</c> — arg0 = cash register id or device scope id.
     /// Reserved for domain <see cref="ICacheService"/>; process TSE monitor may use in-memory snapshots instead.

@@ -11,6 +11,12 @@ import type { Tenant } from './tenant';
 import type { CashRegisterTransaction } from './cashRegisterTransaction';
 
 export interface CashRegister {
+  assignedUser?: ApplicationUser;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  assignedUserId?: string | null;
   createdAt: string;
   /**
    * @maxLength 450

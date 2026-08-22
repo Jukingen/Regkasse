@@ -84,6 +84,26 @@ describe('translateApiError', () => {
     ).toBe('common.errors.http403');
   });
 
+  it('maps LIMIT_EXCEEDED 409 to the limit-key i18n instead of http409', () => {
+    expect(
+      translateApiError(
+        t,
+        {
+          response: {
+            status: 409,
+            data: {
+              code: 'LIMIT_EXCEEDED',
+              limitKey: 'maxBackupsPerTenant',
+              limit: 50,
+              current: 50,
+            },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('tenants.limits.errors.maxBackupsPerTenant');
+  });
+
   it('uses unknownError for unmatched errors', () => {
     expect(translateApiError(t, new Error('weird'), { skipLog: true })).toBe(
       'common.messages.unknownError'

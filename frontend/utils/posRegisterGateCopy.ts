@@ -203,6 +203,9 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Keine geöffnete Kasse';
     }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Keine Kasse zugewiesen';
+    }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Keine freie Kasse';
     }
@@ -224,6 +227,13 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
     ctx.registerListEmptyReason === 'none_open'
   ) {
     return 'Keine geöffnete Kasse';
+  }
+  if (
+    listFetchSucceeded(ctx) &&
+    ctx.registerPicklistCount === 0 &&
+    ctx.registerListEmptyReason === 'none_assigned'
+  ) {
+    return 'Keine Kasse zugewiesen';
   }
   if (
     listFetchSucceeded(ctx) &&
@@ -282,6 +292,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Es sind Registrierkassen vorhanden, aber keine ist geöffnet. Bitte in der Kassenverwaltung eine Schicht starten oder eine berechtigte Person bitten.';
     }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Es sind Registrierkassen vorhanden, aber alle sind anderen Benutzern zugewiesen. Bitten Sie den Administrator, Ihnen eine Kasse zuzuweisen.';
+    }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht sichtbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um die Berechtigung „Kassenansicht“ bzw. um Zuweisung.';
     }
@@ -314,6 +327,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Es sind Kassen vorhanden, aber keine ist geöffnet. Bitte zuerst in der Kassenverwaltung eine Schicht starten (Kasse öffnen).';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Alle vorhandenen Kassen sind anderen Benutzern zugewiesen. Bitten Sie den Administrator, Ihnen eine Kasse zuzuweisen — danach erscheint sie hier zur Auswahl.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht wählbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um „Kassenansicht“ / Zuweisung durch den Administrator.';
@@ -349,6 +365,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return 'Alle Kassen sind geschlossen. Bitte zuerst in der Kassenverwaltung eine Schicht starten; ohne geöffnete Kasse ist keine Auswahl möglich.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return 'Ihnen ist keine Registrierkasse zugewiesen. Alle Kassen gehören anderen Benutzern — bitte den Administrator um eine Zuweisung bitten.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return 'Für Sie ist momentan keine geöffnete Kasse wählbar (fremde Schichten oder fehlende Sicht). Eigene Schicht an freier Kasse starten oder Administrator um Berechtigung / Zuweisung bitten.';
@@ -406,6 +425,9 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return '„Zahlen“ ist deaktiviert: keine geöffnete Kasse — zuerst Schicht starten.';
     }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return '„Zahlen“ ist deaktiviert: keine Kasse zugewiesen — Administrator um Zuweisung bitten.';
+    }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return '„Zahlen“ ist deaktiviert: keine freie Kasse für Sie — eigene Schicht oder Administrator.';
     }
@@ -433,6 +455,9 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return '„Zahlen“ ist deaktiviert: alle Kassen geschlossen — Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return '„Zahlen“ ist deaktiviert: keine Kasse zugewiesen — Administrator informieren.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return '„Zahlen“ ist deaktiviert: keine freie Kasse (fremde Schicht / keine Sicht).';
@@ -487,6 +512,9 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Bitte zuerst eine Kasse öffnen (Schicht). Ohne geöffnete Kasse ist keine Zuweisung möglich.';
     }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Ihnen ist keine Kasse zugewiesen. Bitte den Administrator um eine Zuweisung bitten.';
+    }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Keine Kasse für Sie wählbar (fremde Schichten). Eigene Schicht starten oder Administrator bitten.';
     }
@@ -509,6 +537,9 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return 'Alle Kassen sind geschlossen. Bitte zuerst eine Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return 'Ihnen ist keine Kasse zugewiesen. Bitte Administrator um Zuweisung bitten.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return 'Keine freie Kasse für Sie. Eigene Schicht oder Berechtigung „Kassenansicht“ / Zuweisung.';

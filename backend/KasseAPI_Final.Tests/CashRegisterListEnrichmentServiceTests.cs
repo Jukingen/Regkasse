@@ -26,11 +26,13 @@ public sealed class CashRegisterListEnrichmentServiceTests
 
     private static AppDbContext CreateDb()
     {
+        var accessor = new NullCurrentTenantAccessor();
+        accessor.TenantId = TenantId;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"CashRegEnrich_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        return new AppDbContext(options, accessor);
     }
 
     [Theory]
@@ -112,6 +114,64 @@ public sealed class CashRegisterListEnrichmentServiceTests
         Assert.Equal(now.AddDays(-30), dto.LastJahresbelegUtc);
         Assert.Equal(1, dto.OfflineQueueCount);
         Assert.Equal("healthy", dto.TseHealthStatus);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_sets_current_cashier_name_username_and_email()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant { Id = TenantId, Name = "T", Slug = "t", CreatedAt = now });
+        var cashier = new ApplicationUser
+        {
+            Id = "cashier-1",
+            UserName = "cashier1",
+            Email = "anna.berger@example.com",
+            FirstName = "Anna",
+            LastName = "Berger",
+            IsActive = true,
+            Role = "Cashier",
+        };
+        db.Users.Add(cashier);
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = RegisterId,
+            TenantId = TenantId,
+            RegisterNumber = "K1",
+            Location = "Main",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Open,
+            CurrentUserId = cashier.Id,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new CashRegisterHealthService(
+            db,
+            AlwaysOnlineTseHealthMonitor.Instance,
+            CreateTseOptionsMonitor("Device"));
+
+        var entity = await db.CashRegisters.Include(r => r.CurrentUser).FirstAsync();
+        var dto = new CashRegisterDto
+        {
+            Id = entity.Id,
+            TenantId = entity.TenantId,
+            RegisterNumber = entity.RegisterNumber,
+            Location = entity.Location,
+            Status = entity.Status,
+            StartingBalance = entity.StartingBalance,
+            CurrentBalance = entity.CurrentBalance,
+            LastBalanceUpdate = entity.LastBalanceUpdate,
+            CreatedAt = entity.CreatedAt,
+            CurrentUserId = entity.CurrentUserId,
+        };
+
+        await service.ApplyOperationalFieldsAsync([dto], [entity], CancellationToken.None);
+
+        Assert.Equal("Anna Berger", dto.CurrentCashierName);
+        Assert.Equal("cashier1", dto.CurrentCashierUserName);
+        Assert.Equal("anna.berger@example.com", dto.CurrentCashierEmail);
     }
 
     [Fact]

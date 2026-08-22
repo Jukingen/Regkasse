@@ -39,6 +39,20 @@ describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
     });
   });
 
+  it('maps assignedUserId from the selectable row', async () => {
+    jest.mocked(apiClient.get).mockResolvedValue({
+      registers: [
+        {
+          id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          registerNumber: 'K1',
+          assignedUserId: 'user-1',
+        },
+      ],
+    });
+    const { registers } = await fetchPosSelectableRegisters();
+    expect(registers[0].assignedUserId).toBe('user-1');
+  });
+
   it('empty selectable list yields empty registers and optional emptyReason', async () => {
     jest.mocked(apiClient.get).mockResolvedValue({ registers: [], emptyReason: 'none_open' });
     const { registers, emptyReason } = await fetchPosSelectableRegisters();
@@ -53,7 +67,7 @@ describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
     expect(apiClient.get).not.toHaveBeenCalledWith('/CashRegister');
   });
 
-  it('inventory-style payload with only Closed rows yields empty registers and none_open (no false picker)', async () => {
+  it('keeps Closed rows — they are opened by shift auto-open once picked', async () => {
     jest.mocked(apiClient.get).mockResolvedValue({
       registers: [
         { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', registerNumber: 'K1', status: 'Closed' },
@@ -61,22 +75,43 @@ describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
       ],
     });
     const { registers, emptyReason } = await fetchPosSelectableRegisters();
-    expect(registers).toEqual([]);
-    expect(emptyReason).toBe('none_open');
+    expect(registers).toHaveLength(2);
+    expect(registers[0].status).toBe('Closed');
+    expect(emptyReason).toBeNull();
   });
 
-  it('mixed Open/Closed rows surfaces only Open for assignment', async () => {
+  it('surfaces none_assigned when every register belongs to another cashier', async () => {
+    jest.mocked(apiClient.get).mockResolvedValue({ registers: [], emptyReason: 'none_assigned' });
+    const { registers, emptyReason } = await fetchPosSelectableRegisters();
+    expect(registers).toEqual([]);
+    expect(emptyReason).toBe('none_assigned');
+  });
+
+  it('mixed rows keep Open and Closed but drop states no shift can use', async () => {
     jest.mocked(apiClient.get).mockResolvedValue({
       registers: [
         { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', registerNumber: 'K1', status: 'Closed' },
         { id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', registerNumber: 'K2', status: 'Open' },
-        { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', registerNumber: 'K3', status: 'closed' },
+        { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', registerNumber: 'K3', status: 'Maintenance' },
       ],
     });
     const { registers, emptyReason } = await fetchPosSelectableRegisters();
-    expect(registers).toHaveLength(1);
-    expect(registers[0].id).toBe('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+    expect(registers.map((r) => r.id)).toEqual([
+      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    ]);
     expect(emptyReason).toBeNull();
+  });
+
+  it('reports none_selectable_for_user when the server only offered unusable rows', async () => {
+    jest.mocked(apiClient.get).mockResolvedValue({
+      registers: [
+        { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', registerNumber: 'K1', status: 'Maintenance' },
+      ],
+    });
+    const { registers, emptyReason } = await fetchPosSelectableRegisters();
+    expect(registers).toEqual([]);
+    expect(emptyReason).toBe('none_selectable_for_user');
   });
 
   it('rows without status are unchanged (canonical selectable endpoint)', async () => {

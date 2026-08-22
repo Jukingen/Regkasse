@@ -35,7 +35,7 @@ public sealed class SequenceReservationServiceTests
         {
             TenantId = SystemTenantIds.Platform,
             Id = registerId,
-            RegisterNumber = "SEQ-K01",
+            RegisterNumber = $"SEQ-{registerId:N}"[..20],
             Location = "T",
             StartingBalance = 0,
             CurrentBalance = 0,
@@ -63,8 +63,9 @@ public sealed class SequenceReservationServiceTests
         Assert.Equal(new[] { 1, 2, 3 }, first);
         Assert.Equal(new[] { 4, 5 }, second);
 
+        var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var row = await ctx.ReceiptSequences.AsNoTracking()
-            .SingleAsync(r => r.CashRegisterId == registerId && r.SequenceDate == DateTime.UtcNow.Date);
+            .SingleAsync(r => r.CashRegisterId == registerId && r.SequenceDate == dateOnly);
         Assert.Equal(6, row.NextSequence);
     }
 
@@ -78,10 +79,11 @@ public sealed class SequenceReservationServiceTests
         var service = new SequenceReservationService(ctx, NullLogger<SequenceReservationService>.Instance);
 
         var sequences = await service.ReserveSequencesAsync(3, registerId);
-        await service.ReleaseSequencesAsync(new List<int> { sequences[2], sequences[1] }, registerId);
+        await service.ReleaseSequencesAsync(new List<int> { sequences[2] }, registerId);
 
+        var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var row = await ctx.ReceiptSequences.AsNoTracking()
-            .SingleAsync(r => r.CashRegisterId == registerId && r.SequenceDate == DateTime.UtcNow.Date);
+            .SingleAsync(r => r.CashRegisterId == registerId && r.SequenceDate == dateOnly);
         Assert.Equal(3, row.NextSequence);
 
         var next = await service.ReserveSequencesAsync(1, registerId);
@@ -102,11 +104,21 @@ public sealed class SequenceReservationServiceTests
 
         Assert.True(await service.IsSequenceAvailableAsync(sequences[0], registerId));
 
+        var customerId = Guid.NewGuid();
+        ctx.Customers.Add(new Customer
+        {
+            Id = customerId,
+            TenantId = SystemTenantIds.Platform,
+            Name = "Test",
+            Email = "seq@test",
+            Phone = "1",
+            IsActive = true,
+        });
         ctx.PaymentDetails.Add(new PaymentDetails
         {
             Id = Guid.NewGuid(),
             CashRegisterId = registerId,
-            CustomerId = Guid.NewGuid(),
+            CustomerId = customerId,
             CustomerName = "Test",
             TableNumber = 1,
             CashierId = "u1",

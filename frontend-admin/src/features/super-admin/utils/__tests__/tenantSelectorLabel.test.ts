@@ -28,7 +28,7 @@ describe('tenantSelectorLabel', () => {
       },
       t
     );
-    expect(label).toBe('Test Bar (bar) - ✅ Admin: admin@prod.regkasse.at');
+    expect(label).toBe('Test Bar (prod) - ✅ Admin: admin@prod.regkasse.at');
   });
 
   it('prefers demo preset over owner for dev slug', () => {

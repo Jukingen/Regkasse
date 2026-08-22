@@ -29,7 +29,7 @@ public sealed class SequenceReservationService : ISequenceReservationService
 
         await EnsureActiveRegisterAsync(cashRegisterId, ct).ConfigureAwait(false);
 
-        var dateOnly = DateTime.UtcNow.Date;
+        var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var start = await AllocateSequenceBlockAsync(cashRegisterId, dateOnly, count, ct).ConfigureAwait(false);
         var sequences = Enumerable.Range(start, count).ToList();
 
@@ -50,7 +50,7 @@ public sealed class SequenceReservationService : ISequenceReservationService
         if (cashRegisterId == Guid.Empty)
             throw new ArgumentException("Cash register id is required.", nameof(cashRegisterId));
 
-        var dateOnly = DateTime.UtcNow.Date;
+        var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var row = await _context.ReceiptSequences
             .FirstOrDefaultAsync(
                 r => r.CashRegisterId == cashRegisterId && r.SequenceDate == dateOnly,
@@ -109,7 +109,7 @@ public sealed class SequenceReservationService : ISequenceReservationService
         if (register == null || string.IsNullOrWhiteSpace(register.RegisterNumber))
             return false;
 
-        var dateOnly = DateTime.UtcNow.Date;
+        var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var belegNr = FormatBelegNr(register.RegisterNumber, dateOnly, sequenceNumber);
 
         var taken = await _context.PaymentDetails

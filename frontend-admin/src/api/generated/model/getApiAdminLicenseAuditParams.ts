@@ -13,4 +13,5 @@ tenantId?: string;
 action?: string;
 fromUtc?: string;
 toUtc?: string;
+userSearch?: string;
 };

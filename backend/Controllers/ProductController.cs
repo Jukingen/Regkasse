@@ -5,6 +5,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,16 +26,19 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public ProductController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
             ILogger<ProductController> logger,
-            ISettingsTenantResolver settingsTenantResolver) : base(productRepository, logger)
+            ISettingsTenantResolver settingsTenantResolver,
+            ITenantLimitGuard? tenantLimitGuard = null) : base(productRepository, logger)
         {
             _context = context;
             _productRepository = productRepository;
             _settingsTenantResolver = settingsTenantResolver;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         private Task<Guid> EffectiveTenantIdAsync(CancellationToken cancellationToken = default) =>
@@ -667,6 +671,19 @@ namespace KasseAPI_Final.Controllers
 
                 // CategoryId'den kategori adını senkronize et
                 var tenantId = await EffectiveTenantIdAsync();
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
+
                 var category = await _context.Categories
                     .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
                 if (category == null || !category.IsActive)

@@ -54,6 +54,8 @@
     "CashRegisterDecommissioned": "Kasse stillgelegt",
     "LicenseExpiringSoon": "Lizenz läuft ab",
     "LicenseExpired": "Lizenz abgelaufen",
+    "LimitApproaching": "Limit nähert sich",
+    "LimitExceeded": "Limit überschritten",
     "OfflineQueueGrowing": "Offline-Warteschlange wächst",
     "FinanzOnlineSubmissionFailed": "FinanzOnline-Fehler",
     "BackupFailed": "Backup fehlgeschlagen",

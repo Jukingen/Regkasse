@@ -1,5 +1,6 @@
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -80,7 +81,8 @@ public static class PaymentApiContractMapper
             {
                 DiagnosticCode = result.DiagnosticCode,
                 LegacyErrors = result.Errors.Count > 0 ? result.Errors : null
-            }
+            },
+            LimitError = result.LimitError,
         };
     }
 
@@ -89,6 +91,9 @@ public static class PaymentApiContractMapper
         if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == CashRegisterResolutionCodes.Forbidden)
             return StatusCodes.Status403Forbidden;
         if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
+            return StatusCodes.Status409Conflict;
+        if (result.LimitError != null
+            || string.Equals(result.DiagnosticCode, LimitExceededException.ErrorCodeValue, StringComparison.Ordinal))
             return StatusCodes.Status409Conflict;
         return StatusCodes.Status400BadRequest;
     }
@@ -101,6 +106,8 @@ public static class PaymentApiContractMapper
             return PaymentApiErrorCodes.ForbiddenRegister;
         if (d == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
             return PaymentApiErrorCodes.BenefitAllowanceConflict;
+        if (d == LimitExceededException.ErrorCodeValue)
+            return LimitExceededException.ErrorCodeValue;
         if (!string.IsNullOrEmpty(d))
         {
             if (d.Contains("TSE", StringComparison.OrdinalIgnoreCase) && result.Message.Contains("not connected", StringComparison.OrdinalIgnoreCase))

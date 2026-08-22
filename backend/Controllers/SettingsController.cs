@@ -8,6 +8,7 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -341,6 +342,10 @@ namespace KasseAPI_Final.Controllers
                     nameof(AdminBackupController).Replace("Controller", string.Empty, StringComparison.Ordinal),
                     new { id = outcome.Run.Id },
                     dto);
+            }
+            catch (LimitExceededException ex)
+            {
+                return Conflict(ex.ToConflictBody());
             }
             catch (Exception ex)
             {

@@ -29,6 +29,10 @@ vi.mock('@/features/backup/components/TenantBackupView', () => ({
   TenantBackupView: () => <div data-testid="tenant-view" />,
 }));
 
+vi.mock('@/features/exports/components/ExportTemplateApplyBanner', () => ({
+  ExportTemplateApplyBanner: () => null,
+}));
+
 describe('BackupOverviewPage role-aware views', () => {
   beforeEach(() => {
     usePermissionsMock.mockReset();

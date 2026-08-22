@@ -1151,7 +1151,7 @@
     "title": "Letzte Backup-Läufe",
     "statusHint": "Jede Zeile zeigt das von der API gemeldete Ergebnis dieses Laufs. Der Verlauf ersetzt nicht die „letzte bekannte gute“ Nachweise in der Recoverability-Karte."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Letzte Restore-Verifikationen",
     "empty": "Noch keine Restore-Drills erfasst.",
     "statusHint": "Jede Zeile zeigt das API-Ergebnis des Drills. Ein abgeschlossener Drill ist technische Metadaten — keine vollständige Recovery-Garantie."

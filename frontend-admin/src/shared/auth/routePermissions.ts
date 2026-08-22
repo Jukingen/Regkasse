@@ -8,6 +8,8 @@
  * matching backend multi-`[HasPermission]` attributes.
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
+import { isCashRegisterDetailPath } from '@/shared/cashRegisterRoutes';
+
 import { ANY_AUTHENTICATED_PERMISSION, AppPermissions, PERMISSIONS } from './permissions';
 
 /**
@@ -96,6 +98,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/download-history/analytics': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
+  '/admin/sessions': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/access': PERMISSIONS.USER_VIEW,
   /** Role CRUD + permission editor — Super Admin only (role.manage). */
   '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
@@ -182,9 +185,11 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.LICENSE_VIEW,
     PERMISSIONS.SETTINGS_VIEW,
   ],
+  '/admin/limits/dashboard': PERMISSIONS.LICENSE_MANAGE,
   '/admin/license/grace-period': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/audit': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/test': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/development/limits': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/debug': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Platform Super Admin landing (`SuperAdminModeBanner` → Mandant auswählen).
@@ -363,6 +368,13 @@ export function getRequiredPermissionForPath(pathname: string): string | string[
   if (ROUTE_PERMISSIONS[normalized] !== undefined) return ROUTE_PERMISSIONS[normalized];
   const tenantScoped = getTenantScopedRoutePermission(normalized);
   if (tenantScoped !== undefined) return tenantScoped;
+  /**
+   * `/admin/cash-registers/{id}` is tenant-scoped detail (cash_register.view), not the Super Admin
+   * platform list (`/admin/cash-registers` → system.critical).
+   */
+  if (isCashRegisterDetailPath(normalized)) {
+    return [AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage];
+  }
   for (const key of ROUTE_KEYS_SORTED) {
     if (normalized === key || normalized.startsWith(key + '/')) return ROUTE_PERMISSIONS[key];
   }

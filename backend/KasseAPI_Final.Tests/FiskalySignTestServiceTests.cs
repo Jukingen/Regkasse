@@ -183,6 +183,7 @@ public sealed class FiskalySignTestServiceTests
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.Training && s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.MixedVat && s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.ZeroAmount && s.CanSign);
+        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.Raw && s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.MonthlyClose && !s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.YearlyClose && !s.CanSign);
     }

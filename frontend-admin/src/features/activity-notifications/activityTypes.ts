@@ -10,6 +10,8 @@ export const ACTIVITY_EVENT_TYPES = [
   'CashRegisterDecommissioned',
   'LicenseExpiringSoon',
   'LicenseExpired',
+  'LimitApproaching',
+  'LimitExceeded',
   'OfflineQueueGrowing',
   'FinanzOnlineSubmissionFailed',
   'BackupFailed',

@@ -18,9 +18,15 @@ export interface LicensePreviewResult {
   /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
+  licenseKind?: string | null;
+  /** @nullable */
   planName?: string | null;
   /** @nullable */
   status?: string | null;
+  /** @nullable */
+  tenantId?: string | null;
+  /** @nullable */
+  tenantName?: string | null;
   valid?: boolean;
   /** @nullable */
   validFromUtc?: string | null;

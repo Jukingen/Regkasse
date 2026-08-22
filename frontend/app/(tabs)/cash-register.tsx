@@ -30,6 +30,7 @@ import { ModifierSelectionBottomSheet } from '../../components/ModifierSelection
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import {
   SoftColors,
   SoftRadius,
@@ -365,6 +366,7 @@ export default function CashRegisterScreen() {
   } = useCart();
 
   const posReadiness = usePosRegisterReadiness();
+  const { canTakeOrders } = usePosPermissions();
 
   useFocusEffect(
     useCallback(() => {
@@ -454,6 +456,28 @@ export default function CashRegisterScreen() {
     t,
     productDisplayLocale
   );
+
+  const guardTakeOrder = useCallback((): boolean => {
+    if (canTakeOrders) return true;
+    addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+    return false;
+  }, [addToast, canTakeOrders, t]);
+
+  const onAddProductGuarded = useCallback(
+    (product: Parameters<typeof handleAddProduct>[0]) => {
+      if (!guardTakeOrder()) return;
+      return handleAddProduct(product);
+    },
+    [guardTakeOrder, handleAddProduct]
+  );
+
+  const onAddAddOnGuarded = useCallback(
+    (addOn: Parameters<typeof handleAddAddOn>[0]) => {
+      if (!guardTakeOrder()) return;
+      return handleAddAddOn(addOn);
+    },
+    [guardTakeOrder, handleAddAddOn]
+  );
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
@@ -474,6 +498,10 @@ export default function CashRegisterScreen() {
       base: { productId: string; productName: string; price: number },
       addOns: { productId: string; productName: string; price: number }[]
     ) => {
+      if (!guardTakeOrder()) {
+        setModifierSheetProduct(null);
+        return;
+      }
       try {
         await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
         addToast(
@@ -486,7 +514,7 @@ export default function CashRegisterScreen() {
       }
       setModifierSheetProduct(null);
     },
-    [addItemWithAddOns, addToast]
+    [addItemWithAddOns, addToast, guardTakeOrder, t]
   );
 
   /** Table number → { items, totalItems } for table selector badges. */
@@ -749,9 +777,12 @@ export default function CashRegisterScreen() {
       <ProductList
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
-        onAddProduct={handleAddProduct}
-        onAddAddOn={handleAddAddOn}
-        onOpenAddOnSheet={setModifierSheetProduct}
+        onAddProduct={onAddProductGuarded}
+        onAddAddOn={onAddAddOnGuarded}
+        onOpenAddOnSheet={(product) => {
+          if (!guardTakeOrder()) return;
+          setModifierSheetProduct(product);
+        }}
         onLongPressProduct={(product) => {
           const wasFavorite = isFavorite(product.id);
           void toggleFavorite(product.id)
@@ -773,6 +804,10 @@ export default function CashRegisterScreen() {
             <FavoritesBar
               favorites={favorites}
               removeFavorite={removeFavorite}
+              canAddToCart={canTakeOrders}
+              onAddDenied={() => {
+                addToast('error', t('checkout:posFlow.toast.noOrderPermission'), 3000);
+              }}
               onProductAdded={(name) => {
                 addToast(
                   'success',

@@ -2,6 +2,7 @@
  * Operatör görünür anlamlar: Fake/stub başlıkları üretim “indirilebilir pg_dump” dili kullanmaz;
  * API başarılı çalıştırma başlığı Fake modunda seçilmez; şüpheli gerçek satırlar stub sanılmaz.
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
@@ -17,6 +18,33 @@ vi.mock('@/lib/axios', () => ({
     interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
   },
   customInstance: vi.fn(),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (k: string) => k,
+    formatLocale: 'en-US',
+    textLocale: 'en',
+  }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: { success: vi.fn(), error: vi.fn() },
+  }),
+}));
+
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { role: 'SuperAdmin', permissions: ['settings.manage'] } }),
+}));
+
+vi.mock('@/hooks/useSensitiveExportGate', () => ({
+  useSensitiveExportGate: () => ({
+    requireGate: async (fn: () => void) => fn(),
+    gated: false,
+  }),
 }));
 
 beforeAll(() => {
@@ -35,7 +63,10 @@ beforeAll(() => {
   });
 });
 
-/** Identity translator — asserts exact i18n keys wired to visible surfaces. */
+function renderCard(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 const t = (k: string, o?: Record<string, string | number>) => (o ? `${k} ${JSON.stringify(o)}` : k);
 
 const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactResponseDto => ({
@@ -48,7 +79,7 @@ const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactR
 
 describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   it('uses Fake titles and scope keys — not API-success / recoverability-summary download titles', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -69,7 +100,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   });
 
   it('shows stub byte column + stub payload note, not non-Fake suspicion bulk alert', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -88,7 +119,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   });
 
   it('does not regress to “downloadable logical dump” wording: Fake mode avoids production API-success title', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="last_known_good"
         runId="run-fake"
@@ -105,7 +136,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
   });
 
   it('Fake artifact row shows stub/simulated reality tag, stub content summary, and expected-tiny byte footnote — not operational dump labeling', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-fake"
@@ -135,7 +166,7 @@ describe('BackupArtifactsDownloadCard — Fake / stub honesty', () => {
 
 describe('BackupArtifactsDownloadCard — non-Fake suspicion vs stub', () => {
   it('flags very small logical dump with suspicion tag — not stub recoverability line', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-real"
@@ -164,7 +195,7 @@ describe('BackupArtifactsDownloadCard — non-Fake suspicion vs stub', () => {
   });
 
   it('uses Request download (not stub button) for non-simulated eligible row', () => {
-    render(
+    renderCard(
       <BackupArtifactsDownloadCard
         variant="latest_success"
         runId="run-real"

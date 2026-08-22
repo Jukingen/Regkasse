@@ -55,7 +55,8 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

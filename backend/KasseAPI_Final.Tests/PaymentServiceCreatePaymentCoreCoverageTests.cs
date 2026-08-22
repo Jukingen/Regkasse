@@ -208,6 +208,8 @@ public sealed class PaymentServiceCreatePaymentCoreCoverageTests
     [Fact]
     public async Task CreatePayment_WhenLicenseCheckFails_ThrowsLicenseExpiredException()
     {
+        OpenApiExportHostGate.EnsureExportModeDisabled();
+
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();
         var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
         await PaymentServiceCoverageHarness.SetTenantLicenseValidUntilAsync(ctx, DateTime.UtcNow.AddDays(-10));

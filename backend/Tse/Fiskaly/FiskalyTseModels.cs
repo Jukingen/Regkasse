@@ -59,8 +59,20 @@ public sealed class FiskalyTransactionData
 
     public string PaymentType { get; init; } = "CASH";
 
+    /// <summary>ISO 4217 currency for <c>amounts_per_payment_type</c>. SIGN AT is EUR.</summary>
+    public string CurrencyCode { get; init; } = FiskalyReceiptSchemaMapper.DefaultCurrency;
+
+    /// <summary>
+    /// <see cref="FiskalyReceiptSchemaKinds.StandardV1"/> (default) or
+    /// <see cref="FiskalyReceiptSchemaKinds.Raw"/>.
+    /// </summary>
+    public string SchemaKind { get; init; } = FiskalyReceiptSchemaKinds.StandardV1;
+
     /// <summary>When set, used instead of <see cref="VatRate"/> + <see cref="TotalAmount"/> for mixed VAT.</summary>
     public IReadOnlyList<FiskalyVatAmount>? AmountsPerVatRate { get; init; }
+
+    /// <summary>Optional <c>standard_v1.line_items</c>. A single summary line is synthesized when empty.</summary>
+    public IReadOnlyList<FiskalyLineItem>? LineItems { get; init; }
 }
 
 public sealed class FiskalyResourceEnsureResult

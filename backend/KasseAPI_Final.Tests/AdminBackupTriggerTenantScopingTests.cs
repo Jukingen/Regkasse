@@ -4,9 +4,11 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
@@ -177,5 +179,31 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Trigger_Manager_WhenBackupLimitExceeded_Returns409()
+    {
+        await using var db = CreateDb();
+        var (controller, trigger) = CreateController(db, Roles.Manager, tenantId: Guid.NewGuid());
+        trigger
+            .Setup(t => t.RequestManualBackupAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxBackupsPerTenant,
+                50,
+                50,
+                "Maximum 50 backups per tenant reached"));
+
+        var result = await controller.TriggerManual(null, CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
     }
 }

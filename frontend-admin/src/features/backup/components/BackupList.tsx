@@ -32,6 +32,10 @@ import {
   useBackupList,
 } from '@/features/backup/hooks/useBackupList';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import {
+  isSystemBackupStrategy,
+  isTenantBackupStrategy,
+} from '@/features/backup/logic/backupStrategyKind';
 import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
 import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
 import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
@@ -61,10 +65,6 @@ type DownloadTarget = {
   fileName: string;
   isSystemBackup?: boolean;
 };
-
-function isSystemBackupStrategy(strategy: BackupListItemResponseDto['strategy']): boolean {
-  return strategy === 1 || strategy === 'System';
-}
 
 function toDownloadTarget(
   backupRunId: string | null | undefined,
@@ -325,7 +325,7 @@ export function BackupList({
       key: 'strategy',
       width: 110,
       render: (strategy: BackupListItemResponseDto['strategy']) => {
-        const isTenant = strategy === 0 || strategy === 'Tenant';
+        const isTenant = isTenantBackupStrategy(strategy);
         return (
           <Tag color={isTenant ? 'blue' : 'purple'}>
             {isTenant
@@ -543,9 +543,9 @@ export function BackupList({
   const rows = useMemo(() => {
     let all = listQuery.data ?? [];
     if (strategyFilter === 'tenant') {
-      all = all.filter((r) => r.strategy === 0 || r.strategy === 'Tenant');
+      all = all.filter((r) => isTenantBackupStrategy(r.strategy));
     } else if (strategyFilter === 'system') {
-      all = all.filter((r) => r.strategy === 1 || r.strategy === 'System');
+      all = all.filter((r) => isSystemBackupStrategy(r.strategy));
     }
     if (limit == null || limit <= 0) return all;
     return all.slice(0, limit);

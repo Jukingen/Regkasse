@@ -13,11 +13,19 @@ export interface SubscriptionInvoiceDto {
   amountVat?: number;
   /** @nullable */
   currency?: string | null;
+  /** @nullable */
+  emailSentAtUtc?: string | null;
   id?: string;
   /** @nullable */
   invoiceNumber?: string | null;
   issuedAtUtc?: string;
   licenseType?: LicenseType;
+  /** @nullable */
+  paidAtUtc?: string | null;
+  /** @nullable */
+  paymentMethod?: string | null;
+  /** @nullable */
+  paymentReference?: string | null;
   periodEndUtc?: string;
   periodStartUtc?: string;
   /** @nullable */
@@ -28,4 +36,8 @@ export interface SubscriptionInvoiceDto {
   /** @nullable */
   tenantSlug?: string | null;
   vatRate?: number;
+  /** @nullable */
+  voidedAtUtc?: string | null;
+  /** @nullable */
+  voidReason?: string | null;
 }

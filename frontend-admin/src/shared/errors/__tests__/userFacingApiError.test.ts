@@ -82,4 +82,25 @@ describe('getUserFacingApiErrorMessage', () => {
       )
     ).toBe('payments.errors.invoiceLocked');
   });
+
+  it('maps LIMIT_EXCEEDED to the limit-key i18n instead of http409', () => {
+    expect(
+      getUserFacingApiErrorMessage(
+        t,
+        {
+          response: {
+            status: 409,
+            data: {
+              code: 'LIMIT_EXCEEDED',
+              limitKey: 'maxActiveRegistersPerUser',
+              limit: 5,
+              current: 5,
+              message: 'Max 5 active registers per user reached',
+            },
+          },
+        },
+        { logContext: 'x' }
+      )
+    ).toBe('tenants.limits.errors.maxActiveRegistersPerUser');
+  });
 });

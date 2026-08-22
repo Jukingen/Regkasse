@@ -9,6 +9,7 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
@@ -94,7 +95,8 @@ public sealed class PaymentServiceFiskalyCoverageTests
         ITseHealthMonitor? tseHealthMonitor = null,
         IHostEnvironment? hostEnvironment = null,
         Mock<IReceiptSequenceService>? receiptSeqMock = null,
-        bool demoUser = false)
+        bool demoUser = false,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         var paymentRepo = new GenericRepository<PaymentDetails>(context, Mock.Of<ILogger<GenericRepository<PaymentDetails>>>());
         var productRepo = new GenericRepository<Product>(context, Mock.Of<ILogger<GenericRepository<Product>>>());
@@ -184,7 +186,8 @@ public sealed class PaymentServiceFiskalyCoverageTests
             new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver,
             tseHealthMonitor: tseHealthMonitor,
-            hostEnvironment: hostEnvironment);
+            hostEnvironment: hostEnvironment,
+            tenantLimitGuard: tenantLimitGuard);
     }
 
     private static async Task<(Guid CustomerId, Guid ProductId, Guid CashRegisterId)> SeedCatalogAsync(
@@ -454,19 +457,15 @@ public sealed class PaymentServiceFiskalyCoverageTests
     {
         await using var ctx = CreateContext();
         var (customerId, productId, registerId) = await SeedCatalogAsync(ctx);
-        ctx.OfflineTransactions.Add(new OfflineTransaction
-        {
-            TenantId = SystemTenantIds.Platform,
-            CashRegisterId = registerId,
-            PayloadJson = "{}",
-            PayloadHash = "aa",
-            ServerReceivedAtUtc = DateTime.UtcNow,
-            OfflineCreatedAtUtc = DateTime.UtcNow,
-            Status = OfflineTransactionStatus.NonFiscalPending,
-            CreatedBy = CashierId,
-            RetryCount = 0
-        });
-        await ctx.SaveChangesAsync();
+        var guard = new Mock<ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanQueueOfflineTransactionAsync(
+                It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxOfflineTransactions,
+                1,
+                1,
+                "Offline queue limit of 1 reached"));
 
         var sut = CreatePaymentService(
             ctx,
@@ -474,16 +473,53 @@ public sealed class PaymentServiceFiskalyCoverageTests
             tseOptions: new TseOptions
             {
                 TseMode = "Device",
-                OfflineModeEnabled = true,
-                MaxOfflineTransactionsPerCashRegister = 1
+                OfflineModeEnabled = true
             },
             tseHealthMonitor: OfflineHealthMonitor(),
-            hostEnvironment: TenantTestDoubles.ProductionHostEnvironment);
+            hostEnvironment: TenantTestDoubles.ProductionHostEnvironment,
+            tenantLimitGuard: guard.Object);
 
         var result = await sut.CreatePaymentAsync(CashSaleRequest(customerId, productId, registerId), CashierId);
 
         Assert.False(result.Success);
-        Assert.Equal("OFFLINE_QUEUE_FULL", result.DiagnosticCode);
+        Assert.Equal(LimitExceededException.ErrorCodeValue, result.DiagnosticCode);
+        Assert.NotNull(result.LimitError);
+    }
+
+    [Fact]
+    public async Task CreatePayment_WhenTenantOfflineQueueLimitExceeded_ReturnsOfflineQueueFull()
+    {
+        await using var ctx = CreateContext();
+        var (customerId, productId, registerId) = await SeedCatalogAsync(ctx);
+
+        var guard = new Mock<ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanQueueOfflineTransactionAsync(
+                It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxOfflineTransactions,
+                50,
+                50,
+                "Offline queue limit of 50 reached"));
+
+        var sut = CreatePaymentService(
+            ctx,
+            CreateFiskalyTseMock(),
+            tseOptions: new TseOptions
+            {
+                TseMode = "Device",
+                OfflineModeEnabled = true
+            },
+            tseHealthMonitor: OfflineHealthMonitor(),
+            hostEnvironment: TenantTestDoubles.ProductionHostEnvironment,
+            tenantLimitGuard: guard.Object);
+
+        var result = await sut.CreatePaymentAsync(CashSaleRequest(customerId, productId, registerId), CashierId);
+
+        Assert.False(result.Success);
+        Assert.Equal(LimitExceededException.ErrorCodeValue, result.DiagnosticCode);
+        Assert.True(result.IsDeterministicFailure);
+        Assert.Contains("Offline queue limit of 50", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

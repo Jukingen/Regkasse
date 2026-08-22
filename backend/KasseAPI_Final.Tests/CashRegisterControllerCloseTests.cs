@@ -54,7 +54,8 @@ public class CashRegisterControllerCloseTests
             TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -146,7 +147,8 @@ public class CashRegisterControllerCloseTests
         var controller = CreateController(ctx, otherId);
         var actionResult = await controller.CloseCashRegister(regId, new CloseCashRegisterModel { ClosingBalance = 1m }, CancellationToken.None);
 
-        Assert.IsType<ForbidResult>(actionResult);
+        var forbidden = Assert.IsType<ObjectResult>(actionResult);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
 
         var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
         Assert.Equal(RegisterStatus.Open, reg.Status);

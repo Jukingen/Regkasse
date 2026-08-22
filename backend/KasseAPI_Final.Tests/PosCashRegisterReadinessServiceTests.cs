@@ -64,9 +64,9 @@ public class PosCashRegisterReadinessServiceTests
         mock.Setup(s => s.AutoOpenShiftAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<Guid>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CashierShiftDto());
+            .ReturnsAsync(ShiftAutoOpenResult.Opened(new CashierShiftDto()));
         return mock.Object;
     }
 

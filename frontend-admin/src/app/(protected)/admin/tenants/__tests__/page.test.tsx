@@ -4,6 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { App } from 'antd';
 import React from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -48,6 +49,10 @@ vi.mock('@/features/super-admin/components/CreateTenantWizard', () => ({
   CreateTenantWizard: () => null,
 }));
 
+vi.mock('@/features/super-admin/components/TenantLicenseBadge', () => ({
+  TenantLicenseBadge: () => null,
+}));
+
 vi.mock('@/features/super-admin/components/ImpersonationRedirectOverlay', () => ({
   ImpersonationRedirectOverlay: () => null,
 }));
@@ -63,6 +68,8 @@ const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAntdApp', () => ({
   useAntdApp: () => ({
     message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: {},
   }),
 }));
 
@@ -130,7 +137,9 @@ function renderPage() {
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <SuperAdminTenantsPage />
+        <App>
+          <SuperAdminTenantsPage />
+        </App>
       </I18nProvider>
     </QueryClientProvider>
   );
@@ -185,10 +194,9 @@ describe('SuperAdminTenantsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Archivieren/i }));
 
-    expect(await screen.findByText('Mandant archivieren?')).toBeInTheDocument();
-
-    const modal = document.querySelector('.ant-modal') as HTMLElement;
-    fireEvent.click(within(modal).getByRole('button', { name: /Mandant archivieren/i }));
+    const archiveTitle = await screen.findByText('Mandant archivieren?');
+    const dialog = archiveTitle.closest('.ant-modal') as HTMLElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: /Mandant archivieren/i }));
 
     await waitFor(() => expect(mockSoftDeleteAdminTenant).toHaveBeenCalledWith(activeTenant.id));
   });
@@ -200,19 +208,18 @@ describe('SuperAdminTenantsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Endgültig löschen/i }));
 
-    const modal = await waitFor(() => document.querySelector('.ant-modal') as HTMLElement);
     await waitFor(() => expect(mockGetDeleteDependencies).toHaveBeenCalled());
-    await waitFor(() => expect(within(modal).getByText('Bestätigung')).toBeInTheDocument());
+    const deleteTitle = await screen.findByText('Mandant endgültig löschen');
+    const dialog = deleteTitle.closest('.ant-modal') as HTMLElement;
+    await waitFor(() => expect(within(dialog).getByText('Bestätigung')).toBeInTheDocument());
 
-    const modalOk = within(modal)
-      .getAllByRole('button', { name: /Endgültig löschen/i })
-      .at(-1)!;
+    const modalOk = within(dialog).getByRole('button', { name: /Endgültig löschen/i });
     expect(modalOk).toBeDisabled();
 
-    const inputs = within(modal).getAllByRole('textbox');
+    const inputs = within(dialog).getAllByRole('textbox');
     fireEvent.change(inputs[0], { target: { value: 'closed-shop' } });
     fireEvent.change(inputs[1], { target: { value: TENANT_PERMANENT_DELETE_CONFIRM_PHRASE } });
-    fireEvent.click(within(modal).getByRole('checkbox'));
+    fireEvent.click(within(dialog).getByRole('checkbox'));
 
     await waitFor(() => expect(modalOk).not.toBeDisabled());
   });

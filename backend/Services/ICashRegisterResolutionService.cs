@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 
@@ -25,7 +26,7 @@ public interface ICashRegisterResolutionService
 {
     /// <summary>
     /// When the user has no assignment and the database has exactly one cash-register row and that register is <see cref="RegisterStatus.Open"/>,
-    /// and it is not on another user&apos;s shift, persist its id on settings.
+    /// and it is not on another user&apos;s shift nor assigned to another cashier (<see cref="CashRegister.AssignedUserId"/>), persist its id on settings.
     /// Does not run when the sole register is Closed (POS ensure-ready may open first, then persist assignment via readiness flow).
     /// </summary>
     Task ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(
@@ -34,9 +35,10 @@ public interface ICashRegisterResolutionService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Validates updating UserSettings.CashRegisterId. Null/empty clears assignment. Non-empty must reference an existing open register;
-    /// principals with <see cref="AppPermissions.CashRegisterView"/> may assign any open register including one on another user&apos;s shift
-    /// (preference only). Others may assign only registers they effectively &quot;own&quot; for assignment (sole unclaimed/own shift, or their shift row).
+    /// Validates updating UserSettings.CashRegisterId. Null/empty clears assignment. Non-empty must reference an existing operational register —
+    /// <see cref="RegisterStatus.Closed"/> is accepted so a cashier can store and then open their own register, while decommissioned,
+    /// maintenance, disabled, and inactive rows are rejected. Beyond that, Super Admin may target any register and everyone else only
+    /// registers that are unassigned or assigned to them (<see cref="CashRegister.AssignedUserId"/>).
     /// </summary>
     Task<CashRegisterResolutionValidationResult> ValidateAssignmentChangeAsync(
         string userId,
@@ -67,10 +69,11 @@ public interface ICashRegisterResolutionService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Domain projection: open registers the current user may select for POS assignment (self-service picker), after
-    /// <see cref="AppPermissions.CashRegisterView"/> / sole-register / shift-ownership rules. Closed and maintenance/disabled rows are excluded.
-    /// Registers open on another user&apos;s shift are excluded for all principals (including <see cref="AppPermissions.CashRegisterView"/>)
-    /// so the list never shows payment-dead conflict rows; full inventory remains on separate admin endpoints.
+    /// Domain projection: operational registers (active, <see cref="RegisterStatus.Open"/> or <see cref="RegisterStatus.Closed"/>) the current
+    /// user may select in the POS picker. Closed rows are included so a cashier can pick and open their own register; maintenance / disabled /
+    /// decommissioned / inactive rows are excluded. Non–Super Admin principals additionally see only registers that are unassigned or assigned
+    /// to them (<see cref="CashRegisterAssignment"/>). Registers held on another user&apos;s shift are excluded for every principal so the list
+    /// never shows payment-dead conflict rows; full inventory remains on separate admin endpoints.
     /// </summary>
     /// <remarks>
     /// Admin or reporting UIs that need every row (any status) must use inventory APIs (e.g. <c>GET /api/CashRegister</c>), not this method.
@@ -82,7 +85,7 @@ public interface ICashRegisterResolutionService
 
     /// <summary>
     /// POS HTTP facade: same rows as <see cref="ListSelectableRegistersAsync"/> plus <see cref="PosSelectableListResult.EmptyReason"/> when the list is empty
-    /// (<c>no_registers</c>, <c>none_open</c>, <c>none_selectable_for_user</c>). Exposed at <c>GET /api/pos/cash-register/selectable</c>.
+    /// (<c>no_registers</c>, <c>none_assigned</c>, <c>none_selectable_for_user</c>). Exposed at <c>GET /api/pos/cash-register/selectable</c>.
     /// </summary>
     Task<PosSelectableListResult> ListSelectableForPosPickerAsync(
         string userId,
@@ -98,6 +101,23 @@ public sealed class CashRegisterSelectableRow
     public Guid Id { get; init; }
     public string RegisterNumber { get; init; } = string.Empty;
     public string? Location { get; init; }
+
+    /// <summary>
+    /// <see cref="RegisterStatus.Open"/> or <see cref="RegisterStatus.Closed"/>. A closed row is still selectable: POS opens it
+    /// through <c>POST /api/pos/shift/auto-open</c> right after the user picks it, so the client can label it accordingly.
+    /// </summary>
+    /// <remarks>
+    /// Serialized by name (<c>"Open"</c> / <c>"Closed"</c>) rather than the default ordinal, because the POS picker matches on the
+    /// status name. The API has no global string-enum converter, so the converter has to sit on this property.
+    /// </remarks>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public RegisterStatus Status { get; init; }
+
+    /// <summary>
+    /// Admin-managed cashier assignment. Null means the register is shared. POS uses this only for
+    /// picker labeling / client-side visibility; payment authorization does not read it.
+    /// </summary>
+    public string? AssignedUserId { get; init; }
 }
 
 /// <summary>
@@ -108,7 +128,8 @@ public sealed class PosSelectableListResult
     public IReadOnlyList<CashRegisterSelectableRow> Registers { get; init; } = Array.Empty<CashRegisterSelectableRow>();
 
     /// <summary>
-    /// Set only when <see cref="Registers"/> is empty: <c>no_registers</c>, <c>none_open</c>, or <c>none_selectable_for_user</c>.
+    /// Set only when <see cref="Registers"/> is empty: <c>no_registers</c>, <c>none_assigned</c>, or <c>none_selectable_for_user</c>.
+    /// <c>none_open</c> is no longer produced (the picker lists closed registers too) but stays a known value for older clients.
     /// </summary>
     public string? EmptyReason { get; init; }
 }

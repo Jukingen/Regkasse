@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
@@ -9,6 +10,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,7 +32,23 @@ public sealed class AdminProductsBulkDeactivateTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
-    private static AdminProductsController CreateController(AppDbContext ctx) =>
+    private static AdminProductsController CreateController(AppDbContext ctx)
+    {
+        var controller = NewController(ctx);
+        // BulkDeactivateProducts stamps UpdatedBy from User.Identity, so HttpContext must exist.
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [new Claim(ClaimTypes.Name, "admin-1")],
+                    "Test")),
+            },
+        };
+        return controller;
+    }
+
+    private static AdminProductsController NewController(AppDbContext ctx) =>
         new(
             ctx,
             Mock.Of<IGenericRepository<Product>>(),

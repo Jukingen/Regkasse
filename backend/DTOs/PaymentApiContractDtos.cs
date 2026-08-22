@@ -120,6 +120,10 @@ public sealed class PaymentApiErrorBody
     [JsonPropertyName("context")]
     public PaymentApiErrorContext? Context { get; set; }
 
+    /// <summary>Present when <see cref="Code"/> is <c>LIMIT_EXCEEDED</c> (same shape as HTTP 409 classic body).</summary>
+    [JsonPropertyName("limitError")]
+    public LimitErrorDto? LimitError { get; set; }
+
     [JsonPropertyName("timestamp")]
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 }

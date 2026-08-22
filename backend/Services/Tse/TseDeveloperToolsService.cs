@@ -117,8 +117,7 @@ public sealed class TseDeveloperToolsService : ITseDeveloperToolsService
 
         checks.Add(Ok(
             "TseOptions",
-            $"Mode={opts.Mode}, TseMode={opts.TseMode}, OfflineMode={opts.OfflineModeEnabled}, "
-            + $"MaxOffline={opts.MaxOfflineTransactionsPerCashRegister}."));
+            $"Mode={opts.Mode}, TseMode={opts.TseMode}, OfflineMode={opts.OfflineModeEnabled}."));
 
         if (opts.IsOff && devices.Count > 0)
             checks.Add(Warn("TseModeOff", "TseMode=Off while devices exist — payments may skip TSE."));
@@ -270,15 +269,9 @@ public sealed class TseDeveloperToolsService : ITseDeveloperToolsService
                 "Error"));
         }
 
-        if (opts.MaxOfflineTransactionsPerCashRegister is >= 1 and <= 500)
             checks.Add(Ok(
                 "OfflineCap",
-                $"MaxOfflineTransactionsPerCashRegister={opts.MaxOfflineTransactionsPerCashRegister}."));
-        else
-            checks.Add(Fail(
-                "OfflineCap",
-                "MaxOfflineTransactionsPerCashRegister should be between 1 and 500.",
-                "Error"));
+                "Offline queue cap is tenant_limits.max_offline_transactions (not TseOptions)."));
 
         if (opts.SlaTargetUptimePercent is > 0 and <= 100
             && opts.SlaTargetResponseTimeMs > 0

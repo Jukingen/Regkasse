@@ -55,6 +55,7 @@ export interface User {
   isDemo?: boolean;
   tenantId?: string | null;
   tenantSlug?: string | null;
+  currentCashRegisterId?: string | null;
 }
 
 /** Prefer backend `userName`; keep both fields in sync for POS UI. */

@@ -7,6 +7,7 @@ import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { MeinKontoQuickAccessCard } from '@/features/dashboard/components/MeinKontoQuickAccessCard';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useFormattedDate } from '@/hooks/useFormattedDate';
@@ -108,6 +109,8 @@ export function ManagerDashboard() {
       ) : null}
 
       <MeinKontoQuickAccessCard />
+
+      <LimitWarning limitKey={['dailyMaxTransactions', 'dailyMaxRevenue']} />
 
       <Dashboard />
     </div>

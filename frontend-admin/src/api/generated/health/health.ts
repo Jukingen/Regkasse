@@ -15,6 +15,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  FiskalyStatusDto,
   HealthProbeResponseDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -178,6 +179,61 @@ export const useGetApiHealth = <TData = Awaited<ReturnType<typeof getApiHealth>>
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiHealthFiskalyStatus = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<FiskalyStatusDto>(
+      {url: `/api/health/fiskaly/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiHealthFiskalyStatusQueryKey = () => {
+    return [`/api/health/fiskaly/status`] as const;
+    }
+
+    
+export const getGetApiHealthFiskalyStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiHealthFiskalyStatusQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>> = ({ signal }) => getApiHealthFiskalyStatus(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiHealthFiskalyStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>>
+export type GetApiHealthFiskalyStatusQueryError = unknown
+
+export const useGetApiHealthFiskalyStatus = <TData = Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiHealthFiskalyStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

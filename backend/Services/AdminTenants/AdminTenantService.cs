@@ -380,12 +380,15 @@ public sealed partial class AdminTenantService : IAdminTenantService
         items.DistinctBy(t => t.Id).ToList();
 
     /// <summary>
-    /// Platform sentinel is excluded from switcher (not a business mandant).
+    /// Platform sentinel and leftover cafe/bar demo rows are excluded from switcher
+    /// (not operational mandants). Platform must stay in DB for FK continuity.
     /// </summary>
     private static IReadOnlyList<AdminTenantListItemDto> ExcludeUnusedDefaultTenant(
         IEnumerable<AdminTenantListItemDto> items) =>
         items
-            .Where(t => !SystemTenantIds.IsPlatformSlug(t.Slug))
+            .Where(t =>
+                !SystemTenantIds.IsPlatformSlug(t.Slug)
+                && !LeftoverDemoTenantSlugs.Matches(t.Slug))
             .ToList();
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)

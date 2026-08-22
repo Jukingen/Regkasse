@@ -292,6 +292,8 @@ namespace KasseAPI_Final.DTOs
 
         public bool ApprovalNotificationSent { get; set; }
 
+        public LimitErrorDto? LimitError { get; set; }
+
         /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
         public bool TimeSyncWarning { get; set; }
     }

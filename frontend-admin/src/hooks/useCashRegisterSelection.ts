@@ -35,6 +35,8 @@ export type UseCashRegisterSelectionOptions = {
   autoSelectSingle?: boolean;
   /** Persist selection to session quick-switch storage (tenant-scoped when possible). */
   persistSelection?: boolean;
+  /** When false, decommissioned registers are included (reporting / historical views). */
+  includeDecommissioned?: boolean;
 };
 
 function resolveInitialSelection(
@@ -95,6 +97,7 @@ export function useCashRegisterSelection(options: UseCashRegisterSelectionOption
     autoSelect = false,
     autoSelectSingle = true,
     persistSelection = false,
+    includeDecommissioned = false,
   } = options;
 
   const { tenantId: contextTenantId, isSuperAdminUser } = useCurrentTenant();
@@ -105,6 +108,7 @@ export function useCashRegisterSelection(options: UseCashRegisterSelectionOption
     tenantId: effectiveTenantId,
     allowAllTenants: listAllTenants,
     allowTenantScopedDefault: !listAllTenants,
+    excludeDecommissioned: !includeDecommissioned,
     enabled: enabled && (listAllTenants || !isSuperAdminUser || Boolean(effectiveTenantId)),
   });
 

@@ -185,6 +185,28 @@
     "saveErrorTitle": "Hata",
     "saveErrorMessage": "Atama sunucu tarafından reddedildi (geçersiz kasa, yetki yok veya kasa açık değil)."
   },
+  "registerSelect": {
+    "title": "Kasa seçin",
+    "intro": "Lütfen bir yazar kasa seçin. Vardiya ardından otomatik açılır.",
+    "select": "Seç",
+    "openingShift": "Vardiya açılıyor…",
+    "noDescription": "Açıklama yok",
+    "statusOpen": "Açık",
+    "statusClosedOpensOnSelect": "Kapalı – seçildiğinde açılır",
+    "needRegisterTitle": "Kasa seçin",
+    "needRegisterSelection": "Devam etmeden önce lütfen bir kasa seçin.",
+    "registerUnavailableTitle": "Kasa kullanılamıyor",
+    "registerUnavailable": "Seçilen kasa kullanılamıyor. Lütfen yöneticinizle iletişime geçin.",
+    "registerDecommissionedTitle": "Kasa kapatıldı",
+    "registerDecommissioned": "Bu kasa kapatıldı ve artık kullanılamaz.",
+    "noActiveRegistersTitle": "Kasa yok",
+    "noActiveRegisters": "Aktif kasa bulunamadı. Lütfen yöneticinizle iletişime geçin.",
+    "openShiftErrorTitle": "Vardiya açılamadı",
+    "openShiftError": "Lütfen tekrar deneyin veya yöneticinizle iletişime geçin.",
+    "emptyNoneOpen": "Tüm kasalar kapalı. Lütfen yöneticinizle iletişime geçin.",
+    "emptyNoneAssigned": "Size atanmış bir kasa yok. Lütfen yöneticinizden kasa ataması isteyin.",
+    "emptyNoneSelectable": "Sizin için kullanılabilir kasa yok. Lütfen yöneticinizle iletişime geçin."
+  },
   "cashRegister": {
     "sectionTitle": "Kasa",
     "noRegistersAvailable": "Kullanılabilir kasa yok",

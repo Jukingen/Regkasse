@@ -1,4 +1,4 @@
-rimport { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   CASHIER_ADMIN_PERMISSIONS,
@@ -72,6 +72,7 @@ describe('canAccessPath', () => {
   it('Manager can access /admin/license-management with license.manage', () => {
     expect(canAccessPath('/admin/license-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
     expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/limits/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
   });
 
   it('Manager can access /tenant/invoices with license.manage', () => {
@@ -133,5 +134,29 @@ describe('canAccessPath', () => {
   it('staff list requires user.view only', () => {
     expect(canAccessPath('/staff/list', [PERMISSIONS.USER_VIEW])).toBe(true);
     expect(canAccessPath('/staff/list', [PERMISSIONS.REPORT_VIEW])).toBe(false);
+  });
+
+  it('allows Manager cash register detail while blocking the Super Admin list', () => {
+    const perms = [...MANAGER_ADMIN_PERMISSIONS];
+    expect(canAccessPath('/admin/cash-registers', perms)).toBe(false);
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', perms)
+    ).toBe(true);
+  });
+
+  it('allows ReportViewer cash register detail via cash_register.view', () => {
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', [
+        PERMISSIONS.CASHREGISTER_VIEW,
+        PERMISSIONS.REPORT_VIEW,
+        PERMISSIONS.REPORT_EXPORT,
+      ])
+    ).toBe(true);
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', [
+        PERMISSIONS.REPORT_VIEW,
+        PERMISSIONS.REPORT_EXPORT,
+      ])
+    ).toBe(false);
   });
 });

@@ -17,6 +17,7 @@ import enPaymentHistory from './locales/en/paymentHistory.json';
 import enProducts from './locales/en/products.json';
 import enReports from './locales/en/reports.json';
 import enSettings from './locales/en/settings.json';
+import enShift from './locales/en/shift.json';
 import enSystem from './locales/en/system.json';
 import enTables from './locales/en/tables.json';
 
@@ -35,6 +36,7 @@ import dePaymentHistory from './locales/de/paymentHistory.json';
 import deProducts from './locales/de/products.json';
 import deReports from './locales/de/reports.json';
 import deSettings from './locales/de/settings.json';
+import deShift from './locales/de/shift.json';
 import deSystem from './locales/de/system.json';
 import deTables from './locales/de/tables.json';
 import enAuth from './locales/en/auth.json';
@@ -62,6 +64,7 @@ import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trProducts from './locales/tr/products.json';
 import trReports from './locales/tr/reports.json';
 import trSettings from './locales/tr/settings.json';
+import trShift from './locales/tr/shift.json';
 import trSystem from './locales/tr/system.json';
 import trTables from './locales/tr/tables.json';
 
@@ -96,6 +99,7 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
   'products',
   'reports',
   'settings',
+  'shift',
   'system',
   'tables',
 ] as const;
@@ -117,6 +121,7 @@ export const resources = {
     products: enProducts,
     reports: enReports,
     settings: enSettings,
+    shift: enShift,
     system: enSystem,
     tables: enTables,
   },
@@ -136,6 +141,7 @@ export const resources = {
     products: deProducts,
     reports: deReports,
     settings: deSettings,
+    shift: deShift,
     system: deSystem,
     tables: deTables,
   },
@@ -155,6 +161,7 @@ export const resources = {
     products: trProducts,
     reports: trReports,
     settings: trSettings,
+    shift: trShift,
     system: trSystem,
     tables: trTables,
   },

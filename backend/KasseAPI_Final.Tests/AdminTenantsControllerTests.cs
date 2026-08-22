@@ -1228,6 +1228,48 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task ListForSwitcherAsync_Excludes_Leftover_Cafe_And_Bar_Tenants()
+    {
+        await using var db = CreateDb();
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = DemoTenantIds.Dev,
+                Name = "Development",
+                Slug = "dev",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = Guid.Parse("b0000001-0001-4001-8001-000000000099"),
+                Name = "Test Cafe",
+                Slug = "cafe",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = Guid.Parse("b0000001-0001-4001-8001-000000000098"),
+                Name = "Test Bar",
+                Slug = "bar",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
+
+        Assert.Contains(list, t => t.Slug == "dev");
+        Assert.DoesNotContain(list, t => t.Slug == "cafe");
+        Assert.DoesNotContain(list, t => t.Slug == "bar");
+    }
+
+    [Fact]
     public async Task ListForSwitcherAsync_SuperAdmin_Returns_Unique_Tenant_Ids_Even_With_Multiple_Owner_Memberships()
     {
         await using var db = CreateDb();

@@ -75,6 +75,8 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterDecommissioned => "Cash register decommissioned",
             ActivityEventType.LicenseExpiringSoon => ResolveLicenseExpiringTitle(metadata),
             ActivityEventType.LicenseExpired => "License expired",
+            ActivityEventType.LimitApproaching => "Limit approaching",
+            ActivityEventType.LimitExceeded => "Limit exceeded",
             ActivityEventType.OfflineQueueGrowing => "Offline queue growing",
             ActivityEventType.OfflineOrdersBacklogGrowing => "Offline orders backlog growing",
             ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",
@@ -213,6 +215,9 @@ internal static class ActivityEventPublishBuilder
                 TryFormatBackup(metadata),
             ActivityEventType.LicenseExpiringSoon or ActivityEventType.LicenseExpired =>
                 TryFormatLicense(metadata),
+            ActivityEventType.LimitApproaching or ActivityEventType.LimitExceeded =>
+                TryGetString(metadata, "Message")
+                ?? TryGetString(metadata, "Description"),
             ActivityEventType.OnlineOrderPushedToPos =>
                 TryFormatOnlineOrder(metadata),
             ActivityEventType.OnlineOrderPaid =>
@@ -323,6 +328,8 @@ internal static class ActivityEventPublishBuilder
 
         return type switch
         {
+            ActivityEventType.LimitApproaching or ActivityEventType.LimitExceeded
+                => ("tenant_limit", TryGetString(metadata, "LimitKey")),
             ActivityEventType.UserCreated or ActivityEventType.UserUpdated or ActivityEventType.UserDeleted
                 => ("user", TryGetString(metadata, "UserId")),
             ActivityEventType.BackupFailed or ActivityEventType.BackupSucceeded

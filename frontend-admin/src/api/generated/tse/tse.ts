@@ -16,12 +16,68 @@ import type {
 } from '@tanstack/react-query'
 import type {
   GetApiTseHealthParams,
-  TseHealthResponseDto
+  TseHealthResponseDto,
+  TseStatus
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+export const getApiTseStatus = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TseStatus>(
+      {url: `/api/tse/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiTseStatusQueryKey = () => {
+    return [`/api/tse/status`] as const;
+    }
+
+    
+export const getGetApiTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiTseStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiTseStatusQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTseStatus>>> = ({ signal }) => getApiTseStatus(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTseStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTseStatus>>>
+export type GetApiTseStatusQueryError = unknown
+
+export const useGetApiTseStatus = <TData = Awaited<ReturnType<typeof getApiTseStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiTseStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 export const getApiTseHealth = (

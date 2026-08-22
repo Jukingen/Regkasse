@@ -437,7 +437,9 @@ internal static class ApplicationHost
             builder.Services.Configure<TseOptions>(options =>
             {
                 options.OfflineModeEnabled = true;
+#pragma warning disable CS0618
                 options.MaxOfflineTransactionsPerCashRegister = LicenseEnforcementPolicy.MaxOfflineTransactionsUnlimited;
+#pragma warning restore CS0618
             });
         }
         builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
@@ -646,15 +648,17 @@ internal static class ApplicationHost
                     var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
                     var userId = context.Principal?.GetActorUserId();
 
-                    var sidRaw = context.Principal?.FindFirst("sid")?.Value;
-                    if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(sidRaw, out var sessionId))
+                    if (!string.IsNullOrWhiteSpace(userId))
                     {
-                        var refreshTokenService = context.HttpContext.RequestServices.GetRequiredService<IRefreshTokenService>();
-                        var isActive = await refreshTokenService.IsSessionActiveAsync(
-                            userId,
-                            sessionId,
-                            context.HttpContext.RequestAborted).ConfigureAwait(false);
-                        if (!isActive)
+                        var sidRaw = context.Principal?.FindFirst("sid")?.Value;
+                        Guid? sessionId = Guid.TryParse(sidRaw, out var parsedSid) ? parsedSid : null;
+                        var stamp = context.Principal?.FindFirst(TokenClaimsService.SecurityStampClaimType)?.Value;
+                        var sessionManagement = context.HttpContext.RequestServices
+                            .GetRequiredService<ISessionManagementService>();
+                        var isValid = await sessionManagement
+                            .IsSessionValidAsync(userId, sessionId, stamp, context.HttpContext.RequestAborted)
+                            .ConfigureAwait(false);
+                        if (!isValid)
                         {
                             context.Fail("Session invalidated");
                             return;
@@ -751,6 +755,11 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<RksvDataCleanupHostedService>();
         builder.Services.AddScoped<ITenantService, TenantService>();
         builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitCacheService, KasseAPI_Final.Services.Limits.TenantLimitCacheService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitService, KasseAPI_Final.Services.Limits.TenantLimitService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitGuard, KasseAPI_Final.Services.Limits.TenantLimitGuard>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitDashboardService, KasseAPI_Final.Services.Limits.TenantLimitDashboardService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitAlertService, KasseAPI_Final.Services.Limits.TenantLimitAlertService>();
         builder.Services.AddScoped<IAdminTenantCsvExportService, AdminTenantCsvExportService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.ICustomerAnalyticsService, KasseAPI_Final.Services.Analytics.CustomerAnalyticsService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.ITseUsageAnalyticsService, KasseAPI_Final.Services.Analytics.TseUsageAnalyticsService>();
@@ -1166,6 +1175,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
         builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
         builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagementService>();
+        builder.Services.AddScoped<ICashRegisterPermissionService, CashRegisterPermissionService>();
         builder.Services.AddScoped<ICashRegisterHealthService, CashRegisterHealthService>();
         builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListEnrichmentService>();
         builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
@@ -1291,6 +1301,7 @@ internal static class ApplicationHost
         // Audit log service
         builder.Services.AddScoped<ITenantSessionPolicyService, TenantSessionPolicyService>();
         builder.Services.AddScoped<IUserSessionService, UserSessionService>();
+        builder.Services.AddScoped<ISessionManagementService, SessionManagementService>();
         builder.Services.AddScoped<ISessionService, SessionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Session.IDeviceSessionService, KasseAPI_Final.Services.Session.DeviceSessionService>();
         builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();

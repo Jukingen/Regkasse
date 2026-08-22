@@ -185,6 +185,28 @@
     "saveErrorTitle": "Fehler",
     "saveErrorMessage": "Zuweisung wurde vom Server abgelehnt (ungültige Kasse, keine Berechtigung oder Kasse nicht geöffnet)."
   },
+  "registerSelect": {
+    "title": "Kasse wählen",
+    "intro": "Bitte wählen Sie eine Registrierkasse. Die Schicht wird danach automatisch geöffnet.",
+    "select": "Auswählen",
+    "openingShift": "Schicht wird geöffnet…",
+    "noDescription": "Keine Beschreibung",
+    "statusOpen": "Offen",
+    "statusClosedOpensOnSelect": "Geschlossen – wird beim Auswählen geöffnet",
+    "needRegisterTitle": "Kasse auswählen",
+    "needRegisterSelection": "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.",
+    "registerUnavailableTitle": "Kasse nicht verfügbar",
+    "registerUnavailable": "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.",
+    "registerDecommissionedTitle": "Kasse stillgelegt",
+    "registerDecommissioned": "Diese Kasse wurde stillgelegt und kann nicht mehr verwendet werden.",
+    "noActiveRegistersTitle": "Keine Kassen",
+    "noActiveRegisters": "Keine aktiven Kassen gefunden. Bitte kontaktieren Sie den Administrator.",
+    "openShiftErrorTitle": "Fehler beim Öffnen der Schicht",
+    "openShiftError": "Bitte versuchen Sie es erneut oder kontaktieren Sie den Administrator.",
+    "emptyNoneOpen": "Alle Kassen sind geschlossen. Bitte den Administrator kontaktieren.",
+    "emptyNoneAssigned": "Ihnen ist keine Kasse zugewiesen. Bitte den Administrator um eine Zuweisung bitten.",
+    "emptyNoneSelectable": "Keine Kasse ist für Sie freigegeben. Bitte den Administrator kontaktieren."
+  },
   "cashRegister": {
     "sectionTitle": "Kasse",
     "noRegistersAvailable": "Keine Kassen verfügbar",

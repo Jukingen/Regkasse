@@ -80,7 +80,9 @@ import type {
   RefundPaymentRequest,
   ReorderFavoritesRequest,
   ResetCartAfterPaymentRequest,
+  SetDefaultCashRegisterRequest,
   SetProductModifierGroupsRequest,
+  ShiftAutoOpenResult,
   SplitCartItemsRequest,
   SplitSessionDto,
   StartShiftRequest,
@@ -2630,6 +2632,112 @@ export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<ty
 
 
 
+export const postApiPosCashRegisterDefault = (
+    setDefaultCashRegisterRequest: SetDefaultCashRegisterRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/cash-register/default`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: setDefaultCashRegisterRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosCashRegisterDefaultMutationOptions = <TError = ShiftAutoOpenResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, TError,{data: SetDefaultCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, TError,{data: SetDefaultCashRegisterRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, {data: SetDefaultCashRegisterRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosCashRegisterDefault(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosCashRegisterDefaultMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>>
+    export type PostApiPosCashRegisterDefaultMutationBody = SetDefaultCashRegisterRequest
+    export type PostApiPosCashRegisterDefaultMutationError = ShiftAutoOpenResult
+
+    export const usePostApiPosCashRegisterDefault = <TError = ShiftAutoOpenResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, TError,{data: SetDefaultCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>,
+        TError,
+        {data: SetDefaultCashRegisterRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosCashRegisterDefaultMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosCashRegisterDefault = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/cash-register/default`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosCashRegisterDefaultQueryKey = () => {
+    return [`/api/pos/cash-register/default`] as const;
+    }
+
+    
+export const getGetApiPosCashRegisterDefaultQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterDefaultQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>> = ({ signal }) => getApiPosCashRegisterDefault(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosCashRegisterDefaultQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>>
+export type GetApiPosCashRegisterDefaultQueryError = ProblemDetails
+
+export const useGetApiPosCashRegisterDefault = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosCashRegisterDefaultQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiPosCompany = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -3428,7 +3536,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<CashierShiftDto>(
+      return customInstance<ShiftAutoOpenResult>(
       {url: `/api/pos/shift/auto-open`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: autoOpenShiftRequest
@@ -3438,7 +3546,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   
 
 
-export const getPostApiPosShiftAutoOpenMutationOptions = <TError = ProblemDetails,
+export const getPostApiPosShiftAutoOpenMutationOptions = <TError = ShiftAutoOpenResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, TError,{data: AutoOpenShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, TError,{data: AutoOpenShiftRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -3459,9 +3567,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiPosShiftAutoOpenMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>>
     export type PostApiPosShiftAutoOpenMutationBody = AutoOpenShiftRequest
-    export type PostApiPosShiftAutoOpenMutationError = ProblemDetails
+    export type PostApiPosShiftAutoOpenMutationError = ShiftAutoOpenResult
 
-    export const usePostApiPosShiftAutoOpen = <TError = ProblemDetails,
+    export const usePostApiPosShiftAutoOpen = <TError = ShiftAutoOpenResult,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, TError,{data: AutoOpenShiftRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>,
@@ -3948,62 +4056,6 @@ export const useGetApiPosStatusOverview = <TData = Awaited<ReturnType<typeof get
 
 
 
-export const getApiPosTseStatus = (
-    params?: GetApiPosTseStatusParams,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<PosTseStatusDto>(
-      {url: `/api/pos/tse/status`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
-
-export const getGetApiPosTseStatusQueryKey = (params?: GetApiPosTseStatusParams,) => {
-    return [`/api/pos/tse/status`, ...(params ? [params]: [])] as const;
-    }
-
-    
-export const getGetApiPosTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = void>(params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiPosTseStatusQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosTseStatus>>> = ({ signal }) => getApiPosTseStatus(params, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiPosTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosTseStatus>>>
-export type GetApiPosTseStatusQueryError = void
-
-export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = void>(
- params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiPosTseStatusQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const postApiPosStorno = (
     stornoRequest: StornoRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -4055,7 +4107,63 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPosVouchersValidate = (
+    export const getApiPosTseStatus = (
+    params?: GetApiPosTseStatusParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PosTseStatusDto>(
+      {url: `/api/pos/tse/status`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosTseStatusQueryKey = (params?: GetApiPosTseStatusParams,) => {
+    return [`/api/pos/tse/status`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = ProblemDetails>(params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosTseStatusQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosTseStatus>>> = ({ signal }) => getApiPosTseStatus(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosTseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosTseStatus>>>
+export type GetApiPosTseStatusQueryError = ProblemDetails
+
+export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = ProblemDetails>(
+ params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosTseStatusQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiPosVouchersValidate = (
     validateVoucherRequest: ValidateVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       

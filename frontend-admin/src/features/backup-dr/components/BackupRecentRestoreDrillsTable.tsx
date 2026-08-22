@@ -162,13 +162,13 @@ export function BackupRecentRestoreDrillsTable({
 
   return (
     <RecentRestoreDrillsTable
-      title={t('backupDr.restoreHistory.title')}
+      title={t('backupDr.recentRestoreDrills.title')}
       rowKey="id"
       dataSource={restoreHistoryQuery.data?.items ?? []}
       columns={restoreHistoryColumns}
       loading={restoreHistoryQuery.isFetching}
       queryError={restoreHistoryQuery.isError}
-      emptyText={t('backupDr.restoreHistory.empty')}
+      emptyText={t('backupDr.recentRestoreDrills.empty')}
       t={t}
       onRetry={onRetry}
       pagination={{

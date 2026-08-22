@@ -25,6 +25,8 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
     private static readonly Guid TenantA = SystemTenantIds.Platform;
 
+    private static string Barcode(string prefix, Guid id) => $"{prefix}{id.ToString("N")[..11]}";
+
     private static async Task EnsureSecondaryTenantAsync(AppDbContext ctx)
     {
         if (!await ctx.Tenants.AnyAsync(t => t.Id == TenantB))
@@ -46,15 +48,16 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = "CA", VatRate = 10m });
-        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = "CB", VatRate = 10m });
+        var taxB = TenantTestDoubles.EnsureTaxGroup(ctx, TenantB);
+        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = $"CA-{catA:N}"[..20], VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = $"CB-{catB:N}"[..20], VatRate = 10m });
         var groupId = Guid.NewGuid();
         var productB = Guid.NewGuid();
         ctx.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
             TenantId = TenantA,
-            Name = "G",
+            Name = $"G-{groupId:N}"[..20],
             SortOrder = 0,
             IsActive = true
         });
@@ -66,13 +69,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 1m,
             CategoryId = catB,
+            TaxGroupId = taxB,
             Category = "CB",
             StockQuantity = 1,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"M1{productB:N[..11]}",
+            Barcode = Barcode("M1", productB),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -103,15 +107,16 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = "CA", VatRate = 10m });
-        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = "CB", VatRate = 10m });
+        var taxA = TenantTestDoubles.EnsureTaxGroup(ctx, TenantA);
+        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = $"CA-{catA:N}"[..20], VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = $"CB-{catB:N}"[..20], VatRate = 10m });
         var groupB = Guid.NewGuid();
         var productA = Guid.NewGuid();
         ctx.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupB,
             TenantId = TenantB,
-            Name = "GB",
+            Name = $"GB-{groupB:N}"[..20],
             SortOrder = 0,
             IsActive = true
         });
@@ -123,13 +128,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 1m,
             CategoryId = catA,
+            TaxGroupId = taxA,
             Category = "CA",
             StockQuantity = 1,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"M2{productA:N[..11]}",
+            Barcode = Barcode("M2", productA),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -159,8 +165,10 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = "CA", VatRate = 10m });
-        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = "CB", VatRate = 10m });
+        var taxA = TenantTestDoubles.EnsureTaxGroup(ctx, TenantA);
+        var taxB = TenantTestDoubles.EnsureTaxGroup(ctx, TenantB);
+        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = $"CA-{catA:N}"[..20], VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = $"CB-{catB:N}"[..20], VatRate = 10m });
         var groupB = Guid.NewGuid();
         var productA = Guid.NewGuid();
         var addOnA = Guid.NewGuid();
@@ -168,7 +176,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
         {
             Id = groupB,
             TenantId = TenantB,
-            Name = "GB",
+            Name = $"GB-{groupB:N}"[..20],
             SortOrder = 0,
             IsActive = true
         });
@@ -180,13 +188,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 2m,
             CategoryId = catA,
+            TaxGroupId = taxA,
             Category = "CA",
             StockQuantity = 1,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"M3{productA:N[..11]}",
+            Barcode = Barcode("M3", productA),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -200,13 +209,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 0.5m,
             CategoryId = catA,
+            TaxGroupId = taxA,
             Category = "CA",
             StockQuantity = 0,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"M4{addOnA:N[..11]}",
+            Barcode = Barcode("M4", addOnA),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -236,8 +246,10 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
-        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = "CA2", VatRate = 10m });
-        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = "CB2", VatRate = 10m });
+        var taxA = TenantTestDoubles.EnsureTaxGroup(ctx, TenantA);
+        var taxB = TenantTestDoubles.EnsureTaxGroup(ctx, TenantB);
+        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catA, Name = $"CA2-{catA:N}"[..20], VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = $"CB2-{catB:N}"[..20], VatRate = 10m });
 
         var groupA = Guid.NewGuid();
         var groupB = Guid.NewGuid();
@@ -246,19 +258,20 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
         var addOnA = Guid.NewGuid();
         var addOnB = Guid.NewGuid();
 
-        ctx.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupA, TenantId = TenantA, Name = "GA", SortOrder = 0, IsActive = true });
-        ctx.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupB, TenantId = TenantB, Name = "GB", SortOrder = 0, IsActive = true });
+        ctx.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupA, TenantId = TenantA, Name = $"GA-{groupA:N}"[..20], SortOrder = 0, IsActive = true });
+        ctx.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupB, TenantId = TenantB, Name = $"GB-{groupB:N}"[..20], SortOrder = 0, IsActive = true });
 
-        void AddProduct(Guid id, Guid catId, string catName, Guid tenant, string barcode, bool addOn)
+        void AddProduct(Guid id, Guid catId, string catName, Guid tenant, Guid taxGroupId, string barcode, bool addOn)
         {
             ctx.Products.Add(new Product
             {
                 Id = id,
                 TenantId = tenant,
-                Name = "P",
+                Name = $"P-{id:N}"[..12],
                 Description = "-",
                 Price = 1m,
                 CategoryId = catId,
+                TaxGroupId = taxGroupId,
                 Category = catName,
                 StockQuantity = 1,
                 MinStockLevel = 0,
@@ -274,10 +287,10 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             });
         }
 
-        AddProduct(mainA, catA, "CA2", TenantA, $"pg-w3b-2t-mainA-{mainA:N}", false);
-        AddProduct(addOnA, catA, "CA2", TenantA, $"pg-w3b-2t-aoA-{addOnA:N}", true);
-        AddProduct(mainB, catB, "CB2", TenantB, $"pg-w3b-2t-mainB-{mainB:N}", false);
-        AddProduct(addOnB, catB, "CB2", TenantB, $"pg-w3b-2t-aoB-{addOnB:N}", true);
+        AddProduct(mainA, catA, "CA2", TenantA, taxA, $"w3b-a-{mainA:N}"[..32], false);
+        AddProduct(addOnA, catA, "CA2", TenantA, taxA, $"w3b-aoa-{addOnA:N}"[..32], true);
+        AddProduct(mainB, catB, "CB2", TenantB, taxB, $"w3b-b-{mainB:N}"[..32], false);
+        AddProduct(addOnB, catB, "CB2", TenantB, taxB, $"w3b-aob-{addOnB:N}"[..32], true);
 
         ctx.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = mainA, ModifierGroupId = groupA, TenantId = TenantA, SortOrder = 0 });
         ctx.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = mainB, ModifierGroupId = groupB, TenantId = TenantB, SortOrder = 0 });
@@ -286,9 +299,10 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
 
         await ctx.SaveChangesAsync();
 
-        Assert.Equal(1, await ctx.ProductModifierGroupAssignments.CountAsync(a => a.TenantId == TenantA));
-        Assert.Equal(1, await ctx.ProductModifierGroupAssignments.CountAsync(a => a.TenantId == TenantB));
-        Assert.Equal(2, await ctx.AddOnGroupProducts.CountAsync(a => a.ModifierGroupId == groupA || a.ModifierGroupId == groupB));
+        Assert.Equal(1, await ctx.ProductModifierGroupAssignments.IgnoreQueryFilters().CountAsync(a => a.ProductId == mainA && a.ModifierGroupId == groupA));
+        Assert.Equal(1, await ctx.ProductModifierGroupAssignments.IgnoreQueryFilters().CountAsync(a => a.ProductId == mainB && a.ModifierGroupId == groupB));
+        Assert.Equal(1, await ctx.AddOnGroupProducts.IgnoreQueryFilters().CountAsync(a => a.ModifierGroupId == groupA && a.ProductId == addOnA));
+        Assert.Equal(1, await ctx.AddOnGroupProducts.IgnoreQueryFilters().CountAsync(a => a.ModifierGroupId == groupB && a.ProductId == addOnB));
     }
 
     /// <summary>Rows stamped with legacy default tenant remain readable (post-migration single-tenant shape).</summary>
@@ -304,13 +318,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
         var groupId = Guid.NewGuid();
         var mainId = Guid.NewGuid();
         var addOnId = Guid.NewGuid();
+        var taxA = TenantTestDoubles.EnsureTaxGroup(ctx, TenantA);
 
-        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catId, Name = "CLegacy", VatRate = 10m });
+        ctx.Categories.Add(new Category { TenantId = TenantA, Id = catId, Name = $"CLegacy-{catId:N}"[..20], VatRate = 10m });
         ctx.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
             TenantId = TenantA,
-            Name = "GLegacy",
+            Name = $"GLegacy-{groupId:N}"[..20],
             SortOrder = 0,
             IsActive = true
         });
@@ -322,13 +337,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 3m,
             CategoryId = catId,
+            TaxGroupId = taxA,
             Category = "CLegacy",
             StockQuantity = 1,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"LM{mainId:N[..12]}",
+            Barcode = Barcode("LM", mainId),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -342,13 +358,14 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
             Description = "-",
             Price = 0.25m,
             CategoryId = catId,
+            TaxGroupId = taxA,
             Category = "CLegacy",
             StockQuantity = 0,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = TaxTypes.Reduced,
             TaxRate = TaxTypes.GetTaxRate(TaxTypes.Reduced),
-            Barcode = $"LA{addOnId:N[..12]}",
+            Barcode = Barcode("LA", addOnId),
             IsFiscalCompliant = true,
             IsTaxable = true,
             RksvProductType = RksvProductTypes.Standard,
@@ -360,6 +377,7 @@ public sealed class Wave3BTenantScopedModifierRelationsPostgreSqlTests
         await ctx.SaveChangesAsync();
 
         var group = await ctx.ProductModifierGroups
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(g => g.ProductAssignments)
             .Include(g => g.AddOnGroupProducts)

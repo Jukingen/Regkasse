@@ -15,8 +15,76 @@ public sealed class StartShiftRequest
 
 public sealed class AutoOpenShiftRequest
 {
-    [Required]
-    public Guid CashRegisterId { get; set; }
+    /// <summary>
+    /// Optional register id. When omitted or empty, auto-open resolves
+    /// <see cref="KasseAPI_Final.Models.UserSettings.CashRegisterId"/> for the caller.
+    /// </summary>
+    public string? CashRegisterId { get; set; }
+}
+
+/// <summary>Machine-readable outcomes for <c>POST /api/pos/shift/auto-open</c>.</summary>
+public static class ShiftAutoOpenCodes
+{
+    public const string Success = "SUCCESS";
+    /// <summary>Alias of <see cref="Success"/> for older POS clients.</summary>
+    public const string Ok = Success;
+    public const string NeedRegisterSelection = "NEED_REGISTER_SELECTION";
+    public const string RegisterUnavailable = "REGISTER_UNAVAILABLE";
+    public const string RegisterNotFound = "REGISTER_NOT_FOUND";
+    public const string ShiftAlreadyOpen = "SHIFT_ALREADY_OPEN";
+    public const string RegisterDecommissioned = "REGISTER_DECOMMISSIONED";
+    public const string NoActiveRegisters = "NO_ACTIVE_REGISTERS";
+}
+
+/// <summary>German POS-facing copy for auto-open (default locale de-DE).</summary>
+public static class ShiftAutoOpenMessages
+{
+    public const string ShiftOpened = "Schicht erfolgreich geöffnet.";
+    public const string NeedRegisterSelection =
+        "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.";
+    public const string RegisterUnavailable =
+        "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterNotFound = "Die ausgewählte Kasse wurde nicht gefunden.";
+    public const string ShiftAlreadyOpen = "Die Schicht ist bereits geöffnet.";
+    public const string RegisterDecommissioned =
+        "Diese Kasse wurde stillgelegt und kann nicht mehr verwendet werden.";
+    public const string NoActiveRegisters =
+        "Keine aktiven Kassen gefunden. Bitte kontaktieren Sie den Administrator.";
+}
+
+/// <summary>
+/// Structured auto-open result. HTTP 200 when <see cref="Success"/> is true
+/// (including <see cref="ShiftAutoOpenCodes.ShiftAlreadyOpen"/>); HTTP 400 otherwise.
+/// </summary>
+public sealed class ShiftAutoOpenResult
+{
+    public bool Success { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+    public CashierShiftDto? Data { get; init; }
+
+    public static ShiftAutoOpenResult Opened(CashierShiftDto shift) => new()
+    {
+        Success = true,
+        Code = ShiftAutoOpenCodes.Success,
+        Message = ShiftAutoOpenMessages.ShiftOpened,
+        Data = shift,
+    };
+
+    public static ShiftAutoOpenResult AlreadyOpen(CashierShiftDto shift) => new()
+    {
+        Success = true,
+        Code = ShiftAutoOpenCodes.ShiftAlreadyOpen,
+        Message = ShiftAutoOpenMessages.ShiftAlreadyOpen,
+        Data = shift,
+    };
+
+    public static ShiftAutoOpenResult Fail(string code, string message) => new()
+    {
+        Success = false,
+        Code = code,
+        Message = message,
+    };
 }
 
 public sealed class EndShiftRequest

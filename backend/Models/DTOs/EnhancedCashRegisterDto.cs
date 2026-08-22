@@ -39,6 +39,12 @@ public sealed class EnhancedCashRegisterDto
 
     public string? CurrentCashierName { get; set; }
 
+    /// <summary>Login of the open-shift cashier; used to disambiguate similar display names.</summary>
+    public string? CurrentCashierUserName { get; set; }
+
+    /// <summary>Email of the open-shift cashier; omitted when the till is unattended.</summary>
+    public string? CurrentCashierEmail { get; set; }
+
     public CashRegisterDeviceInfoDto DeviceInfo { get; set; } = new();
 
     public static EnhancedCashRegisterDto From(CashRegisterDto source) =>
@@ -69,6 +75,8 @@ public sealed class EnhancedCashRegisterDto
             OfflineQueueCount = source.OfflineQueueCount,
             LastSyncAtUtc = source.LastSyncAtUtc,
             CurrentCashierName = source.CurrentCashierName,
+            CurrentCashierUserName = source.CurrentCashierUserName,
+            CurrentCashierEmail = source.CurrentCashierEmail,
             DeviceInfo = source.DeviceInfo,
         };
 }

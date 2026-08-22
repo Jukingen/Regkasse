@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -104,6 +105,36 @@ public sealed class BackupPhase1OrchestrationTests
         Assert.NotNull(outcome.Run.IdempotencyKey);
         Assert.Contains($"manual-tenant-{tenantId:D}", outcome.Run.IdempotencyKey, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(tenantId, outcome.Run.TenantId);
+    }
+
+    [Fact]
+    public async Task Manual_trigger_tenant_strategy_throws_when_backup_limit_exceeded()
+    {
+        var tenantId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        await using var db = CreateDb();
+        var audit = new Mock<IAuditLogService>();
+        var guard = new Mock<ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanCreateBackupAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxBackupsPerTenant,
+                1,
+                1,
+                "Maximum 1 backups per tenant reached"));
+
+        var tenantAccessor = new NullCurrentTenantAccessor { TenantId = tenantId };
+        var svc = new BackupManualTriggerService(
+            db,
+            audit.Object,
+            tenantAccessor,
+            OptionsMonitor(new BackupOptions()),
+            Mock.Of<IBackupAlertPublisher>(),
+            NullLogger<BackupManualTriggerService>.Instance,
+            guard.Object);
+
+        await Assert.ThrowsAsync<LimitExceededException>(
+            () => svc.RequestManualBackupAsync("u1", "Manager", null, "corr-limit", cancellationToken: default));
+        Assert.Equal(0, await db.BackupRuns.CountAsync());
     }
 
     [Fact]

@@ -9,6 +9,7 @@ import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlo
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import { extractRawApiErrorMessage } from './extractRawApiErrorMessage';
+import { isLimitExceededError } from './limitExceededMessage';
 import { normalizeApiError } from './normalizedApiError';
 import { buildTechnicalApiErrorPayload } from './technicalApiErrorLog';
 import {
@@ -28,7 +29,7 @@ export function openApiErrorMessage(
     buildTechnicalApiErrorPayload(normalizeApiError(error))
   );
   const short = getUserFacingApiErrorMessage(t, error, { ...options, skipLog: true });
-  const raw = extractRawApiErrorMessage(error);
+  const raw = isLimitExceededError(error) ? undefined : extractRawApiErrorMessage(error);
   messageOpen({
     type: 'error',
     content: (

@@ -54,6 +54,8 @@
     "CashRegisterDecommissioned": "Cash register decommissioned",
     "LicenseExpiringSoon": "License expiring soon",
     "LicenseExpired": "License expired",
+    "LimitApproaching": "Limit approaching",
+    "LimitExceeded": "Limit exceeded",
     "OfflineQueueGrowing": "Offline queue growing",
     "FinanzOnlineSubmissionFailed": "FinanzOnline submission failed",
     "BackupFailed": "Backup failed",

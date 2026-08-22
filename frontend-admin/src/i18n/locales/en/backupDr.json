@@ -1151,7 +1151,7 @@
     "title": "Recent backup runs",
     "statusHint": "Each row shows the API-reported outcome for that run. This history is not the same as last-known-good proof in the recoverability section."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Recent restore verifications",
     "empty": "No restore drills recorded yet.",
     "statusHint": "Each row shows the API-reported drill outcome. A completed drill is technical metadata — not a full recovery guarantee."

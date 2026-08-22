@@ -1151,7 +1151,7 @@
     "title": "Son yedek çalıştırmaları",
     "statusHint": "Her satır o çalıştırma için API’nin bildirdiği sonucu gösterir. Bu geçmiş, kurtarılabilirlik bölümündeki son bilinen iyi kanıtının yerini tutmaz."
   },
-  "restoreHistory": {
+  "recentRestoreDrills": {
     "title": "Son geri yükleme doğrulamaları",
     "empty": "Henüz geri yükleme tatbikatı yok.",
     "statusHint": "Her satır tatbikat için API’nin bildirdiği sonucu gösterir. Tamamlanmış tatbikat teknik metadata’dır — tam kurtarma garantisi değildir."

@@ -8,7 +8,13 @@
     "compliance": "RKSV",
     "activity": "Activity",
     "balance": "Balance",
+    "assignedTo": "Assigned to",
     "actions": "Actions"
+  },
+  "assignment": {
+    "unassigned": "Not assigned",
+    "assignedToMe": "Assigned to me",
+    "assignedToOther": "Assigned to someone else"
   },
   "tseHealth": {
     "healthy": "TSE OK",
@@ -39,8 +45,12 @@
     "partialSuccess": "{{success}} decommissioned, {{failed}} failed."
   },
   "shift": {
-    "openSuccess": "Register opened.",
-    "closeSuccess": "Register closed."
+    "openSuccess": "Register opened. The shift now runs under your user.",
+    "closeSuccess": "Register closed.",
+    "closeHeldByOther": "This register is open on another shift. Only the shift holder can close it.",
+    "unknownHolder": "Another user",
+    "forceCloseTitle": "Close this register anyway?",
+    "forceCloseContent": "{{holder}} currently holds the shift. Closing it ends their till; they cannot sell afterwards."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Shift & RKSV: cash register status guide",
@@ -122,7 +132,17 @@
     "closeShift": "Close shift",
     "dailyClosing": "Daily closing",
     "delete": "Delete",
-    "viewReceipts": "View receipts"
+    "viewReceipts": "View receipts",
+    "exportReport": "Export report",
+    "exportData": "Export data",
+    "createSpecialReceipt": "Create special receipt",
+    "decommissionedCannotOpen": "This register has been decommissioned and can no longer be opened.",
+    "decommissionedCannotCreateSpecialReceipts": "This register has been decommissioned. New special receipts cannot be created.",
+    "viewReports": "View reports"
+  },
+  "permission": {
+    "denied": "You do not have permission to view this cash register.",
+    "decommissioned": "This cash register has been decommissioned and can no longer be opened."
   },
   "statusBadge": {
     "open": {
@@ -196,14 +216,41 @@
     "restoreTooltip": "RKSV: decommissioning via Schlussbeleg is irreversible. Restore is not possible."
   },
   "detail": {
-    "title": "Register",
+    "title": "Register details",
     "titleWithNumber": "Register: {{number}}",
+    "name": "Name",
+    "description": "Description",
+    "status": "Status",
     "registerNumber": "Register number",
     "location": "Name / location",
     "createdAt": "Created at",
+    "updatedAt": "Last updated",
+    "statistics": "Statistics",
+    "history": "History",
+    "actions": "Actions",
+    "notFound": "Register not found.",
+    "statTransactions": "Transactions",
+    "statRevenue": "Revenue",
+    "statShifts": "Shifts",
+    "statLastTransaction": "Last transaction",
+    "historyShifts": "Shifts",
+    "historyPayments": "Payments",
+    "historySonderbelege": "Special receipts",
+    "historyAudit": "Audit log",
+    "decommissionedTitle": "This register was decommissioned",
+    "decommissionedDescription": "This register can no longer be opened. All historical data remains available.",
+    "openReports": "Open register reports",
     "currentBalance": "Current balance",
     "startingBalance": "Starting balance",
     "currentUser": "Opened by",
+    "assignedUser": "Assigned cashier",
+    "assignedUserNone": "Not assigned",
+    "assignedUserPlaceholder": "Select cashier",
+    "assignedUserHint": "Only this cashier sees the register in the POS picker. Payment authorization stays tied to the open shift.",
+    "assignedUserHintUnassigned": "Without an assignment the register is visible to every cashier of the tenant.",
+    "assignedUserSaved": "Cashier assigned to the register.",
+    "assignedUserCleared": "Assignment removed.",
+    "assignedUserFailed": "The assignment could not be saved.",
     "lastBalanceUpdate": "Last balance update",
     "startbelegCreatedAt": "Startbeleg created at",
     "lastMonatsbelegUtc": "Last Monatsbeleg",
@@ -222,7 +269,7 @@
     "deviceOs": "OS",
     "deviceApp": "App version",
     "offlineQueueTransactions": "{{count}} transaction(s)",
-    "noCashier": "Nobody",
+    "noCashier": "No cashier",
     "deviceUnknown": "Unknown"
   },
   "hardDelete": {
@@ -310,5 +357,18 @@
     },
     "mandantHeader": "Tenant: {{name}} ({{slug}})",
     "defaultTag": "Default"
+  },
+  "reports": {
+    "title": "Register reports",
+    "intro": "Revenue, transactions, shifts and special receipts per register — including decommissioned registers.",
+    "filterRegister": "Register",
+    "selectRegister": "Please select a register.",
+    "types": {
+      "revenue": "Revenue report",
+      "transactions": "Transaction report",
+      "shifts": "Shift report",
+      "specialReceipts": "Special receipt report"
+    },
+    "userActivityCard": "User activity"
   }
 }

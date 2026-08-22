@@ -14,8 +14,8 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration: Manager triggers tenant-scoped manual backup, worker completes it, artifact download succeeds.
 /// </summary>
-[Collection("BackupHttpIntegration")]
-public sealed class BackupTriggerDownloadIntegrationTests
+[Collection("OpenApiExportWebHost")]
+public sealed class BackupTriggerDownloadIntegrationTests : IClassFixture<BackupImportWebApplicationFactory>
 {
     private readonly BackupImportWebApplicationFactory _factory;
 

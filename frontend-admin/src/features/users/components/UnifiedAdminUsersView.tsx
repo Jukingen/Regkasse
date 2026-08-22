@@ -90,6 +90,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
 
@@ -502,8 +503,8 @@ export function UnifiedAdminUsersView({
     onSuccess: () => {
       invalidateUserLists();
     },
-    onError: () => {
-      message.error(t('tenants.users.create.messages.failed'));
+    onError: (err: unknown) => {
+      toastLimitExceededOrFallback(message, t, err, t('tenants.users.create.messages.failed'));
     },
   });
   const assignTenantsMutation = useMutation({
@@ -533,7 +534,7 @@ export function UnifiedAdminUsersView({
         message.error(t('tenants.users.quick.messages.rateLimited'));
         return;
       }
-      message.error(t('tenants.users.quick.messages.failed'));
+      toastLimitExceededOrFallback(message, t, err, t('tenants.users.quick.messages.failed'));
     },
   });
   const quickPlatformMutation = useMutation({

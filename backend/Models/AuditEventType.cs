@@ -155,5 +155,11 @@ public enum AuditEventType
     /// <summary>Super Admin changed the FinanzOnline outbox worker enable/disable overlay.</summary>
     FinanzOnlineOutboxSettingsChanged = 73,
 
+    /// <summary>Super Admin force-logged-out a user (security stamp + all sessions).</summary>
+    UserForceLogout = 74,
+
+    /// <summary>Super Admin terminated one or more auth sessions (refresh tokens revoked).</summary>
+    UserSessionTerminated = 75,
+
     Other = 99
 }

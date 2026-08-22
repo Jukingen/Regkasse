@@ -18,6 +18,7 @@ import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import { useBackupAttention } from '@/features/backup/hooks/useBackupAttention';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
+import { isDecommissionedRegister } from '@/features/cash-registers/utils/registerStatus';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useOpenShifts } from '@/features/shifts/hooks/useOpenShifts';
 import { useShiftManagement } from '@/features/shifts/hooks/useShiftManagement';
@@ -88,6 +89,8 @@ export function QuickActions() {
     [router, selectedRegister?.id]
   );
 
+  const selectedIsDecommissioned = isDecommissionedRegister(selectedRegister?.status);
+
   const actions = useMemo((): QuickActionItem[] => {
     const openShiftCount = openShifts.length;
 
@@ -97,21 +100,25 @@ export function QuickActions() {
         icon: <PlayCircleOutlined />,
         label: t('quickActions.actions.openShift'),
         onClick: () => handleAction('open-shift'),
-        visible: Boolean(canManageShifts && !isShiftOpen && selectedRegister),
+        visible: Boolean(
+          canManageShifts && !isShiftOpen && selectedRegister && !selectedIsDecommissioned
+        ),
       },
       {
         key: 'close-shift',
         icon: <StopOutlined />,
         label: t('quickActions.actions.closeShift'),
         onClick: () => handleAction('close-shift'),
-        visible: Boolean(canManageShifts && isShiftOpen && selectedRegister),
+        visible: Boolean(
+          canManageShifts && isShiftOpen && selectedRegister && !selectedIsDecommissioned
+        ),
       },
       {
         key: 'daily-closing',
         icon: <CheckCircleOutlined />,
         label: t('quickActions.actions.dailyClosing'),
         onClick: () => navigateWithRegister('/tagesabschluss'),
-        visible: Boolean(canViewDailyClosing && selectedRegister),
+        visible: Boolean(canViewDailyClosing && selectedRegister && !selectedIsDecommissioned),
       },
       {
         key: 'daily-report',
@@ -184,6 +191,7 @@ export function QuickActions() {
     pendingMonatsbeleg.length,
     posUrl,
     router,
+    selectedIsDecommissioned,
     selectedRegister,
     t,
     navigateWithRegister,

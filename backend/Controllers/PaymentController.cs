@@ -7,6 +7,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tse;
 using Microsoft.AspNetCore.Authorization;
@@ -289,6 +290,16 @@ namespace KasseAPI_Final.Controllers
                     return StatusCode(403, new { success = false, message = result.Message, code = result.DiagnosticCode, details = new { errors = result.Errors } });
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
                     return ErrorResponse(result.Message, 409, new { code = "BENEFIT_DAILY_ALLOWANCE_CONFLICT", errors = result.Errors });
+                if (result.LimitError != null
+                    || string.Equals(result.DiagnosticCode, LimitExceededException.ErrorCodeValue, StringComparison.Ordinal))
+                {
+                    var body = result.LimitError ?? new LimitErrorDto
+                    {
+                        Code = LimitExceededException.ErrorCodeValue,
+                        Message = result.Message,
+                    };
+                    return StatusCode(StatusCodes.Status409Conflict, body);
+                }
                 if (!string.IsNullOrEmpty(result.DiagnosticCode))
                     return ErrorResponse(result.Message, 400, new { code = result.DiagnosticCode, errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 return ErrorResponse(result.Message, 400, result.Errors);

@@ -69,4 +69,18 @@ public sealed class ActivityEventPublishBuilderTests
         Assert.Equal("Admin deleted role 'TempRole'", request.Title);
         Assert.Equal(ActivityEventType.RoleDeleted, request.Type);
     }
+
+    [Fact]
+    public void FromMetadata_maps_limit_approaching_title()
+    {
+        var request = ActivityEventPublishBuilder.FromMetadata(
+            Guid.NewGuid(),
+            ActivityEventType.LimitApproaching,
+            new { LimitKey = "maxUsersPerTenant", Message = "Limit maxUsersPerTenant is at 80%." });
+
+        Assert.Equal("Limit approaching", request.Title);
+        Assert.Equal("tenant_limit", request.EntityType);
+        Assert.Equal("maxUsersPerTenant", request.EntityId);
+        Assert.Contains("80%", request.Description);
+    }
 }

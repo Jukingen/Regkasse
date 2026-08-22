@@ -55,6 +55,11 @@ export type AdminCashRegisterListItem = {
   lastBalanceUpdate?: string;
   currentUserId?: string | null;
   currentCashierName?: string | null;
+  currentCashierUserName?: string | null;
+  currentCashierEmail?: string | null;
+  /** Admin-managed cashier assignment — scopes who sees this register in the POS picker. */
+  assignedUserId?: string | null;
+  assignedUserName?: string | null;
   isActive?: boolean;
   isDefaultForTenant?: boolean;
   decommissionedAtUtc?: string | null;
@@ -107,6 +112,18 @@ export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersPar
 export const cashRegisterByTenantQueryKey = (tenantId?: string) =>
   ['cash-registers', 'by-tenant', tenantId ?? '__none__'] as const;
 
+export const adminCashRegisterDetailQueryKey = (id: string) =>
+  ['admin', 'cash-registers', 'detail', id] as const;
+
+/** Single register via `GET /api/admin/cash-registers/{id}`. Cross-tenant → HTTP 404. */
+export async function getAdminCashRegisterById(id: string): Promise<AdminCashRegisterListItem> {
+  const trimmed = id.trim();
+  return customInstance<AdminCashRegisterListItem>({
+    url: `/api/admin/cash-registers/${encodeURIComponent(trimmed)}`,
+    method: 'GET',
+  });
+}
+
 /** Map admin list DTO onto CashRegister/Enhanced shape used by FA table + detail UI. */
 export function toEnhancedCashRegister(row: AdminCashRegisterListItem): EnhancedCashRegister {
   const startbeleg =
@@ -127,6 +144,10 @@ export function toEnhancedCashRegister(row: AdminCashRegisterListItem): Enhanced
     offlineQueueCount: row.offlineQueueCount,
     lastSyncAtUtc: row.lastSyncAtUtc ?? null,
     currentCashierName: row.currentCashierName ?? null,
+    currentCashierUserName: row.currentCashierUserName ?? null,
+    currentCashierEmail: row.currentCashierEmail ?? null,
+    assignedUserId: row.assignedUserId ?? null,
+    assignedUserName: row.assignedUserName ?? null,
     deviceInfo: row.deviceInfo ?? null,
   };
 }
@@ -222,5 +243,55 @@ export async function getCashRegisterTseHealth(id: string): Promise<CashRegister
   return customInstance<CashRegisterTseHealthResponse>({
     url: `/api/admin/cash-registers/${id}/tse-health`,
     method: 'GET',
+  });
+}
+
+export type OpenCashRegisterRequest = {
+  openingBalance: number;
+};
+
+export type CloseCashRegisterRequest = {
+  closingBalance: number;
+};
+
+/** FA shift open — requires cash_register.manage (admin JWT strips shift.open). */
+export async function openCashRegister(
+  id: string,
+  body: OpenCashRegisterRequest = { openingBalance: 0 }
+): Promise<unknown> {
+  return customInstance<unknown>({
+    url: `/api/admin/cash-registers/${id}/open`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+  });
+}
+
+/** FA shift close — requires cash_register.manage (admin JWT strips shift.close). */
+export async function closeCashRegister(
+  id: string,
+  body: CloseCashRegisterRequest
+): Promise<unknown> {
+  return customInstance<unknown>({
+    url: `/api/admin/cash-registers/${id}/close`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+  });
+}
+
+/**
+ * Sets (or clears, with `null`) the cashier this register is reserved for — requires `cash_register.manage`.
+ * Assignment only scopes POS visibility; it does not grant or revoke payment rights, which stay tied to the open shift.
+ */
+export async function assignCashRegisterUser(
+  id: string,
+  userId: string | null
+): Promise<AdminCashRegisterListItem> {
+  return customInstance<AdminCashRegisterListItem>({
+    url: `/api/admin/cash-registers/${encodeURIComponent(id.trim())}/assign`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: { userId },
   });
 }

@@ -25,7 +25,9 @@ public sealed class TseServiceSignatureChainPostgreSqlTests
     public TseServiceSignatureChainPostgreSqlTests(PostgreSqlReplayFixture fixture) => _fixture = fixture;
 
     private AppDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options);
+        new(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
     private static TseService CreateTseService(AppDbContext context, SignaturePipeline pipeline, SoftwareTseKeyProvider keyProvider)
     {

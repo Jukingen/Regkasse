@@ -210,4 +210,9 @@ public enum ActivityEventType
     SupportTicketResolved = 233,
     /// <summary>Support ticket closed.</summary>
     SupportTicketClosed = 234,
+
+    /// <summary>A tenant operational cap is at or above 80% of the configured limit.</summary>
+    LimitApproaching = 240,
+    /// <summary>A tenant operational cap is at or above 100% of the configured limit.</summary>
+    LimitExceeded = 241,
 }

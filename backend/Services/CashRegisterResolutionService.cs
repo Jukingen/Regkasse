@@ -14,7 +14,10 @@ namespace KasseAPI_Final.Services;
 /// and <see cref="PosCashRegisterReadinessService"/> (ensure-ready).
 /// - <see cref="UserSettings.CashRegisterId"/> = persisted POS payment preference / assignment for the user.
 /// - <see cref="CashRegister.CurrentUserId"/> = operational shift ownership (who opened the register).
-/// - <see cref="AppPermissions.CashRegisterView"/> widens <see cref="ValidateAssignmentChangeAsync"/> only: an open register on another
+/// - <see cref="CashRegister.AssignedUserId"/> = admin-managed cashier assignment, a visibility rule only (see <see cref="CashRegisterAssignment"/>).
+/// It scopes <see cref="ListSelectableRegistersAsync"/> and <see cref="ValidateAssignmentChangeAsync"/> for non–Super Admins and is deliberately
+/// absent from <see cref="ValidatePaymentRegisterAsync"/>: payment authority stays with the operational shift.
+/// - <see cref="AppPermissions.CashRegisterView"/> widens <see cref="ValidateAssignmentChangeAsync"/> only: a register on another
 /// user&apos;s shift may still be saved as assignment (e.g. waiter default register). <see cref="ListSelectableRegistersAsync"/> still filters
 /// those rows out of the self-service picker; <see cref="ValidatePaymentRegisterAsync"/> always rejects payment on them for the non-owner.
 /// Payment is allowed when the register exists, <see cref="RegisterStatus.Open"/>, and no other user holds the operational shift
@@ -82,6 +85,17 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         if (candidate == null)
             return;
 
+        if (CashRegisterAssignment.IsAssignedToOtherUser(userId, candidate.AssignedUserId))
+        {
+            _logger.LogInformation(
+                "{Reason} cash register {RegisterId} is assigned to user {AssignedUserId}; skipping auto-assignment for user {UserId}",
+                assignReason,
+                candidate.Id,
+                candidate.AssignedUserId,
+                userId);
+            return;
+        }
+
         if (candidate.Status != RegisterStatus.Open)
         {
             _logger.LogInformation(
@@ -147,14 +161,22 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "Cash register not found.");
         }
 
-        if (register.Status != RegisterStatus.Open)
+        if (register.Status == RegisterStatus.Decommissioned)
+        {
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.Decommissioned,
+                "Cash register is permanently decommissioned (RKSV Schlussbeleg) and cannot be assigned.");
+        }
+
+        // Closed is accepted on purpose: POS opens the picked register through shift auto-open right after this saves.
+        if (!CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(register))
         {
             return CashRegisterResolutionValidationResult.Failure(
                 CashRegisterResolutionCodes.Closed,
-                "Cash register is not open and cannot be assigned for payment.");
+                "Cash register is not operational (maintenance, disabled, or inactive) and cannot be assigned.");
         }
 
-        if (!await CanUserSelectRegisterForAssignmentAsync(userId, register, principal, tenantId, cancellationToken))
+        if (!CanUserSelectRegisterForAssignment(userId, register, principal))
         {
             return CashRegisterResolutionValidationResult.Failure(
                 CashRegisterResolutionCodes.Forbidden,
@@ -356,8 +378,16 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     /// <inheritdoc />
     /// <remarks>
     /// POS clients consume this via <see cref="ListSelectableForPosPickerAsync"/> (<c>GET /api/pos/cash-register/selectable</c>).
-    /// Rows that are <see cref="RegisterStatus.Open"/> but held on shift by another user (<see cref="CashRegister.CurrentUserId"/>)
-    /// are omitted for every principal so the picker never surfaces payment-dead options (inventory-style listing stays on admin APIs).
+    /// Two filters apply, in this order:
+    /// <list type="number">
+    /// <item>occupancy — a register held on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>) is omitted for every
+    /// principal, Super Admin included, so the picker never surfaces payment-dead options;</item>
+    /// <item>assignment — a non–Super Admin sees only unassigned registers and registers assigned to them
+    /// (<see cref="CashRegisterAssignment.IsVisibleTo"/>).</item>
+    /// </list>
+    /// <see cref="RegisterStatus.Closed"/> rows are listed: picking one triggers <c>POST /api/pos/shift/auto-open</c>, which opens it.
+    /// <see cref="AppPermissions.CashRegisterView"/> no longer widens this list — Cashier and Waiter both hold it, so it could never
+    /// express the assignment rule. Full inventory listing stays on admin APIs.
     /// </remarks>
     public async Task<IReadOnlyList<CashRegisterSelectableRow>> ListSelectableRegistersAsync(
         string userId,
@@ -365,52 +395,25 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         CancellationToken cancellationToken = default)
     {
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-        var open = await _context.CashRegisters
+        var operational = await _context.CashRegisters
             .AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open)
+            .Where(r => r.TenantId == tenantId)
+            .WhereCountsTowardPosOperationalCardinality()
             .OrderBy(r => r.RegisterNumber)
             .ToListAsync(cancellationToken);
 
-        var usableOpen = open.Where(r => CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId)).ToList();
+        var seesEveryAssignment = PermissionClaimHelper.IsSuperAdminPrincipal(principal);
 
-        if (PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView))
-        {
-            return usableOpen
-                .Select(r => new CashRegisterSelectableRow
-                {
-                    Id = r.Id,
-                    RegisterNumber = r.RegisterNumber,
-                    Location = r.Location
-                })
-                .ToList();
-        }
-
-        var operationalTotal = await _context.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
-            .WhereCountsTowardPosOperationalCardinality()
-            .CountAsync(cancellationToken);
-        if (operationalTotal == 1 && usableOpen.Count == 1)
-        {
-            var r = usableOpen[0];
-            return new List<CashRegisterSelectableRow>
-            {
-                new()
-                {
-                    Id = r.Id,
-                    RegisterNumber = r.RegisterNumber,
-                    Location = r.Location
-                }
-            };
-        }
-
-        return usableOpen
-            .Where(r => !string.IsNullOrEmpty(r.CurrentUserId) &&
-                        string.Equals(r.CurrentUserId, userId, StringComparison.Ordinal))
+        return operational
+            .Where(r => CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId))
+            .Where(r => seesEveryAssignment || CashRegisterAssignment.IsVisibleTo(userId, r.AssignedUserId))
             .Select(r => new CashRegisterSelectableRow
             {
                 Id = r.Id,
                 RegisterNumber = r.RegisterNumber,
-                Location = r.Location
+                Location = r.Location,
+                Status = r.Status,
+                AssignedUserId = r.AssignedUserId
             })
             .ToList();
     }
@@ -422,33 +425,36 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         CancellationToken cancellationToken = default)
     {
         var registers = await ListSelectableRegistersAsync(userId, principal, cancellationToken);
+        var seesEveryAssignment = PermissionClaimHelper.IsSuperAdminPrincipal(principal);
         if (registers.Count > 0)
         {
             _logger.LogDebug(
-                "PosSelectable resolved: UserId={UserId} returnedCount={Count} emptyReason=null hasCashRegisterView={HasView}",
+                "PosSelectable resolved: UserId={UserId} returnedCount={Count} emptyReason=null isSuperAdmin={IsSuperAdmin}",
                 userId,
                 registers.Count,
-                PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView));
+                seesEveryAssignment);
             return new PosSelectableListResult { Registers = registers, EmptyReason = null };
         }
 
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var totalRows = await _context.CashRegisters.AsNoTracking().CountAsync(r => r.TenantId == tenantId, cancellationToken);
-        var operationalTotal = await _context.CashRegisters.AsNoTracking()
+        var operationalRows = await _context.CashRegisters.AsNoTracking()
             .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
-            .CountAsync(cancellationToken);
-        var openRows = await _context.CashRegisters
-            .AsNoTracking()
-            .CountAsync(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open, cancellationToken);
-        var openUnclaimedOrSelf = await _context.CashRegisters
-            .AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open &&
-                        (r.CurrentUserId == null || r.CurrentUserId == userId))
-            .CountAsync(cancellationToken);
-        var hasCashRegisterView =
-            PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView);
+            .Select(r => new { r.Status, r.CurrentUserId, r.AssignedUserId })
+            .ToListAsync(cancellationToken);
 
+        var operationalTotal = operationalRows.Count;
+        var openRows = operationalRows.Count(r => r.Status == RegisterStatus.Open);
+        var visibleByAssignment = operationalRows
+            .Count(r => seesEveryAssignment || CashRegisterAssignment.IsVisibleTo(userId, r.AssignedUserId));
+        var assignedToOtherUsers = operationalRows
+            .Count(r => CashRegisterAssignment.IsAssignedToOtherUser(userId, r.AssignedUserId));
+        var heldByOtherShift = operationalRows
+            .Count(r => CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, r.CurrentUserId));
+
+        // Distinguishes the two ways the picker can come up empty while registers exist: everything belongs to another
+        // cashier (none_assigned) versus visible but currently on someone else's shift (none_selectable_for_user).
         string emptyReason;
         if (operationalTotal == 0)
         {
@@ -456,20 +462,21 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         }
         else
         {
-            var openCount = openRows;
-            emptyReason = openCount == 0 ? "none_open" : "none_selectable_for_user";
+            emptyReason = visibleByAssignment == 0 ? "none_assigned" : "none_selectable_for_user";
         }
 
         _logger.LogInformation(
-            "PosSelectable empty: UserId={UserId} totalRows={TotalRows} operationalRows={OperationalRows} openRows={OpenRows} openRowsUnclaimedOrSelf={OpenUnclaimedOrSelf} selectableReturned=0 emptyReason={EmptyReason} hasCashRegisterView={HasView}. " +
-            "Operational = active + (Open or Closed); picker lists Open only; non-operational = Maintenance/Disabled or inactive.",
+            "PosSelectable empty: UserId={UserId} totalRows={TotalRows} operationalRows={OperationalRows} openRows={OpenRows} visibleByAssignment={VisibleByAssignment} assignedToOtherUsers={AssignedToOtherUsers} heldByOtherShift={HeldByOtherShift} selectableReturned=0 emptyReason={EmptyReason} isSuperAdmin={IsSuperAdmin}. " +
+            "Operational = active + (Open or Closed); the picker lists both and opens a closed pick on selection; non-operational = Maintenance/Disabled/Decommissioned or inactive.",
             userId,
             totalRows,
             operationalTotal,
             openRows,
-            openUnclaimedOrSelf,
+            visibleByAssignment,
+            assignedToOtherUsers,
+            heldByOtherShift,
             emptyReason,
-            hasCashRegisterView);
+            seesEveryAssignment);
 
         if (totalRows > 0 && operationalTotal == 0)
         {
@@ -489,26 +496,25 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     }
 
     /// <summary>
-    /// Assignment API gate for <see cref="ValidateAssignmentChangeAsync"/> (not payment, not picker).
-    /// <see cref="AppPermissions.CashRegisterView"/> returns true for any <see cref="RegisterStatus.Open"/> register after existence/open checks —
-    /// including when <see cref="CashRegister.CurrentUserId"/> is another user — so roles like waiter can persist a default register id even
-    /// when they cannot yet pay on it. POS picker uses <see cref="CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift"/> first and never lists those rows.
+    /// Assignment API gate for <see cref="ValidateAssignmentChangeAsync"/> (not payment, not picker): mirrors the picker's
+    /// assignment rule so a user can only store a preference for a register they are actually allowed to see.
+    /// Super Admin may target any register; everyone else needs it unassigned or assigned to themselves.
     /// </summary>
-    private async Task<bool> CanUserSelectRegisterForAssignmentAsync(
+    /// <remarks>
+    /// Deliberately does not consider <see cref="CashRegister.CurrentUserId"/>: persisting a preference for a register that is
+    /// momentarily on another user&apos;s shift stays allowed (e.g. a waiter's default register), exactly as before. Occupancy is
+    /// still enforced where it matters — the picker omits those rows and <see cref="ValidatePaymentRegisterAsync"/> rejects payment
+    /// on them for the non-owner.
+    /// </remarks>
+    private static bool CanUserSelectRegisterForAssignment(
         string userId,
         CashRegister register,
-        ClaimsPrincipal principal,
-        Guid tenantId,
-        CancellationToken cancellationToken)
+        ClaimsPrincipal principal)
     {
-        if (PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView))
+        if (PermissionClaimHelper.IsSuperAdminPrincipal(principal))
             return true;
 
-        var operationalTotal = await _context.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
-            .WhereCountsTowardPosOperationalCardinality()
-            .CountAsync(cancellationToken);
-        return CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView(userId, register, operationalTotal);
+        return CashRegisterAssignment.IsVisibleTo(userId, register.AssignedUserId);
     }
 
     private static bool IsMissingOrEmptyGuid(string? cashRegisterId)

@@ -14,7 +14,11 @@ export interface EnhancedCashRegisterDto {
   createdBy?: string | null;
   currentBalance?: number;
   /** @nullable */
+  currentCashierEmail?: string | null;
+  /** @nullable */
   currentCashierName?: string | null;
+  /** @nullable */
+  currentCashierUserName?: string | null;
   /** @nullable */
   currentUserId?: string | null;
   /** @nullable */

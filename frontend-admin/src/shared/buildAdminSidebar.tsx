@@ -329,6 +329,8 @@ export function buildAdminSidebarMenuItems(params: {
     if (row.kind !== 'group') continue;
 
     const meta = SIDEBAR_GROUP_META[row.group];
+    const children = buildDomainBlocks(t, row.blocks, rksvMenuGroups);
+    if (!children?.length) continue;
     const groupLabel = t(meta.labelKey);
     const groupSubtitle = resolveSidebarSubtitle(t, meta.labelKey);
     menuItems.push({
@@ -336,7 +338,7 @@ export function buildAdminSidebarMenuItems(params: {
       icon: iconEl(resolveSidebarGroupIcon(row.group, meta.icon)),
       label: labeledTitle(groupLabel, groupSubtitle),
       title: groupLabel,
-      children: buildDomainBlocks(t, row.blocks, rksvMenuGroups),
+      children,
     });
   }
 

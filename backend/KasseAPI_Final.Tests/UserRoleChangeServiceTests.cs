@@ -207,7 +207,7 @@ public sealed class UserRoleChangeServiceTests
             Mock.Of<IQuickUserGeneratorService>(),
             Mock.Of<IUserCreationService>(),
             auditMock.Object,
-            Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+            TenantTestDoubles.SuperAdminHttpAccessor(),
             NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,

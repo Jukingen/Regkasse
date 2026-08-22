@@ -58,6 +58,13 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_ReportViewer_Has_CashRegisterView()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.ReportViewer, AppPermissions.CashRegisterView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.ReportViewer, AppPermissions.CashRegisterManage));
+    }
+
+    [Fact]
     public void RoleHasPermission_SuperAdmin_Has_SettingsManage()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.SettingsManage));

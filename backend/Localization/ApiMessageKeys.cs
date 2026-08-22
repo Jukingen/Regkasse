@@ -48,6 +48,7 @@ public static class ApiMessageKeys
     public const string RegistersFetchError = "cash_register.registers_fetch_error";
     public const string RegistersFetchSuccess = "cash_register.registers_fetch_success";
     public const string RegisterNotFound = "cash_register.not_found";
+    public const string RegisterOperationNotPermitted = "cash_register.operation_not_permitted";
     public const string RegisterFetchSuccess = "cash_register.fetch_success";
     public const string RegisterFetchError = "cash_register.fetch_error";
     public const string RegisterCreateSuccess = "cash_register.create_success";
@@ -58,9 +59,11 @@ public static class ApiMessageKeys
     public const string RegisterOpenedByOtherUser = "cash_register.opened_by_other_user";
     public const string MonthlyReceiptRequired = "cash_register.monthly_receipt_required";
     public const string RegisterCannotOpenInState = "cash_register.cannot_open_in_state";
+    public const string RegisterDecommissionedCannotOpen = "cash_register.decommissioned_cannot_open";
     public const string RegisterOpenError = "cash_register.open_error";
     public const string RegisterCloseSuccess = "cash_register.close_success";
     public const string RegisterAlreadyClosed = "cash_register.already_closed";
+    public const string RegisterHeldByOtherUser = "cash_register.held_by_other_user";
     public const string RegisterCloseError = "cash_register.close_error";
     public const string TransactionsFetchSuccess = "cash_register.transactions_fetch_success";
     public const string TransactionsFetchError = "cash_register.transactions_fetch_error";

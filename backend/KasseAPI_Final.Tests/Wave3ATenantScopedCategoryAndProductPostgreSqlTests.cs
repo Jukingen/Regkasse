@@ -55,6 +55,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
         await ctx.SaveChangesAsync();
 
         var catId = Guid.NewGuid();
+        var taxGroupId = TenantTestDoubles.EnsureTaxGroup(ctx, SystemTenantIds.Platform);
         ctx.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = catId, Name = "CPg", VatRate = 10m });
         await ctx.SaveChangesAsync();
         const string barcode = "DUP-PG-BC";
@@ -66,6 +67,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
             Description = "-",
             Price = 1m,
             CategoryId = catId,
+            TaxGroupId = taxGroupId,
             Category = "CPg",
             StockQuantity = 1,
             MinStockLevel = 0,
@@ -87,6 +89,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
             Description = "-",
             Price = 2m,
             CategoryId = catId,
+            TaxGroupId = taxGroupId,
             Category = "CPg",
             StockQuantity = 1,
             MinStockLevel = 0,
@@ -112,6 +115,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
         await EnsureSecondaryTenantAsync(ctx);
 
         var catB = Guid.NewGuid();
+        var taxGroupId = TenantTestDoubles.EnsureTaxGroup(ctx, SystemTenantIds.Platform);
         ctx.Categories.Add(new Category { TenantId = TenantB, Id = catB, Name = "OnlyB", VatRate = 10m });
         await ctx.SaveChangesAsync();
 
@@ -123,6 +127,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductPostgreSqlTests
             Description = "-",
             Price = 1m,
             CategoryId = catB,
+            TaxGroupId = taxGroupId,
             Category = "OnlyB",
             StockQuantity = 1,
             MinStockLevel = 0,

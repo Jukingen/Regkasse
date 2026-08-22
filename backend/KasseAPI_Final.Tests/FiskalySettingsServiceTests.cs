@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Http;
@@ -152,6 +153,46 @@ public sealed class FiskalySettingsServiceTests
         Assert.True(status.ScuInitialized);
         Assert.Equal(scuId.ToString("D"), status.ScuId);
         Assert.Equal(FiskalyResourceStates.Initialized, status.ScuState);
+        Assert.False(status.CashRegisterInitialized);
+    }
+
+    [Fact]
+    public async Task GetStatus_Authenticated_ProbesInitializedCashRegister()
+    {
+        var scuId = Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        var registerId = Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        var tenantId = Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+        var client = new Mock<IFiskalyClient>();
+        client.Setup(c => c.AuthenticateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyAuthResult(true, DateTimeOffset.UtcNow.AddHours(1), 8));
+        client.Setup(c => c.GetSignatureCreationUnitAsync(scuId.ToString("D"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyScuInfo(scuId.ToString("D"), FiskalyResourceStates.Initialized, "SN"));
+        client.Setup(c => c.GetCashRegisterAsync(registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyCashRegisterInfo(registerId.ToString("D"), FiskalyResourceStates.Initialized));
+
+        var cashRegisters = new Mock<ICashRegisterManagementService>();
+        cashRegisters
+            .Setup(c => c.ListAsync(tenantId, "Decommissioned", true, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<CashRegisterDto>
+            {
+                Items = [new CashRegisterDto { Id = registerId, RegisterNumber = "kasse-03-dev" }]
+            });
+
+        var opts = new FiskalyOptions
+        {
+            Enabled = true,
+            ApiKey = "k",
+            ApiSecret = "s",
+            SignatureCreationUnitId = scuId.ToString("D")
+        };
+        var accessor = TenantTestDoubles.TenantAccessorReturning(tenantId);
+        var (factory, cache) = CreateStore(opts, accessor);
+        var svc = CreateService(factory, cache, opts, client.Object, accessor, cashRegisters.Object);
+
+        var status = await svc.GetStatusAsync();
+
+        Assert.True(status.ScuInitialized);
+        Assert.True(status.CashRegisterInitialized);
     }
 
     private static (IDbContextFactory<AppDbContext> Factory, FiskalyEnabledOverrideCache Cache) CreateStore(
@@ -186,7 +227,8 @@ public sealed class FiskalySettingsServiceTests
         FiskalyEnabledOverrideCache cache,
         FiskalyOptions options,
         IFiskalyClient? client = null,
-        ICurrentTenantAccessor? tenantAccessor = null)
+        ICurrentTenantAccessor? tenantAccessor = null,
+        ICashRegisterManagementService? cashRegisters = null)
     {
         var audit = new Mock<IAuditLogService>();
         audit.Setup(a => a.LogSystemOperationAsync(
@@ -205,7 +247,8 @@ public sealed class FiskalySettingsServiceTests
             factory,
             audit.Object,
             NullLogger<FiskalySettingsService>.Instance,
-            tenantAccessor);
+            tenantAccessor,
+            cashRegisters);
     }
 }
 

@@ -1,15 +1,19 @@
 'use client';
 
 import { CloudSyncOutlined, SafetyOutlined } from '@ant-design/icons';
-import { Button, Descriptions, Modal, Space, Tag, Typography } from 'antd';
+import { Button, Descriptions, Modal, Space, Typography } from 'antd';
 
 import type { CashRegister } from '@/api/generated/model';
+import { CashRegisterAssignedUserField } from '@/features/cash-registers/components/CashRegisterAssignedUserField';
+import { CashierDisplay } from '@/features/cash-registers/components/CashierDisplay';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import { useCashRegisterPermissions } from '@/features/cash-registers/hooks/useCashRegisterPermissions';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import {
+  isDecommissionedRegister,
   rawRegisterStatus,
   readDecommissionMeta,
   readStartbelegCreatedAt,
@@ -37,18 +41,14 @@ export function RegisterDetailModal({
   const { t, formatLocale } = useI18n();
   const enhanced = register as EnhancedCashRegister | null;
   const status = register ? rawRegisterStatus(register) : undefined;
+  const decommissioned = isDecommissionedRegister(status);
   const decommissionMeta = register ? readDecommissionMeta(register) : null;
   const registerNumber = register?.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY;
   const registerId = register?.id?.trim();
+  const permissions = useCashRegisterPermissions(enhanced);
   const offlineHref = registerId
     ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
     : '/admin/tse/offline-transactions';
-
-  const cashierName =
-    enhanced?.currentCashierName?.trim() ||
-    register?.currentUser?.userName?.trim() ||
-    register?.currentUserId?.trim() ||
-    null;
 
   const startbelegCreatedAt = readStartbelegCreatedAt(register);
 
@@ -137,7 +137,25 @@ export function RegisterDetailModal({
             )}
           </Descriptions.Item>
           <Descriptions.Item label={t('cashRegisters.detail.currentCashier')}>
-            {cashierName ?? t('cashRegisters.detail.noCashier')}
+            <CashierDisplay
+              user={register.currentUser}
+              displayName={enhanced?.currentCashierName}
+              userName={enhanced?.currentCashierUserName ?? register.currentUser?.userName}
+              email={enhanced?.currentCashierEmail ?? register.currentUser?.email}
+            />
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cashRegisters.detail.assignedUser')}>
+            {registerId ? (
+              <CashRegisterAssignedUserField
+                registerId={registerId}
+                assignedUserId={enhanced?.assignedUserId}
+                assignedUserName={enhanced?.assignedUserName}
+                canEdit={permissions.canAssignUser}
+                disabled={decommissioned}
+              />
+            ) : (
+              FORMAT_EMPTY_DISPLAY
+            )}
           </Descriptions.Item>
           <Descriptions.Item label={t('cashRegisters.detail.deviceInfoTitle')}>
             {deviceModel || deviceOs || deviceApp ? (

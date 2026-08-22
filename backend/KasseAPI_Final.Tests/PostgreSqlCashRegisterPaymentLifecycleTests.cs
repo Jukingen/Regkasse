@@ -33,7 +33,9 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         _fixture = fixture;
 
     private AppDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options);
+        new(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
 
     private static async Task AddMinimalUserAsync(AppDbContext ctx, string id)
     {
@@ -50,7 +52,8 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             FirstName = "T",
-            LastName = "U"
+            LastName = "U",
+            EmployeeNumber = id
         });
     }
 
@@ -73,6 +76,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, "u1");
+            TenantTestDoubles.EnsurePlatformTenant(seed);
             seed.CashRegisters.Add(new CashRegister
             {
                 TenantId = SystemTenantIds.Platform,
@@ -100,7 +104,8 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         var closeTask = Task.Run(async () =>
         {
             await using var closeCtx = new AppDbContext(
-                new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options);
+                new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options,
+                TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
             var mgr = CreateUserManagerMock();
             var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             return await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
@@ -124,6 +129,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, "u1");
+            TenantTestDoubles.EnsurePlatformTenant(seed);
             seed.CashRegisters.Add(new CashRegister
             {
                 TenantId = SystemTenantIds.Platform,
@@ -164,40 +170,45 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         var r1 = Guid.NewGuid();
         var r2 = Guid.NewGuid();
+        var u1Id = $"u1{Guid.NewGuid():N}"[..20];
+        var u2Id = $"u2{Guid.NewGuid():N}"[..20];
         var u1 = new ApplicationUser
         {
-            Id = "life-u1",
-            UserName = "life-u1",
-            NormalizedUserName = "LIFE-U1",
-            Email = "life-u1@x.test",
-            NormalizedEmail = "LIFE-U1@X.TEST",
+            Id = u1Id,
+            UserName = u1Id,
+            NormalizedUserName = u1Id.ToUpperInvariant(),
+            Email = $"{u1Id}@x.test",
+            NormalizedEmail = $"{u1Id}@x.test".ToUpperInvariant(),
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             FirstName = "A",
-            LastName = "One"
+            LastName = "One",
+            EmployeeNumber = u1Id
         };
         var u2 = new ApplicationUser
         {
-            Id = "life-u2",
-            UserName = "life-u2",
-            NormalizedUserName = "LIFE-U2",
-            Email = "life-u2@x.test",
-            NormalizedEmail = "LIFE-U2@X.TEST",
+            Id = u2Id,
+            UserName = u2Id,
+            NormalizedUserName = u2Id.ToUpperInvariant(),
+            Email = $"{u2Id}@x.test",
+            NormalizedEmail = $"{u2Id}@x.test".ToUpperInvariant(),
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString("N"),
             FirstName = "B",
-            LastName = "Two"
+            LastName = "Two",
+            EmployeeNumber = u2Id
         };
 
         await using (var seed = CreateContext())
         {
             seed.Users.Add(u1);
             seed.Users.Add(u2);
+            TenantTestDoubles.EnsurePlatformTenant(seed);
             seed.CashRegisters.Add(new CashRegister
             {
                 TenantId = SystemTenantIds.Platform,
                 Id = r1,
-                RegisterNumber = "PG-R1",
+                RegisterNumber = $"R1-{r1:N}"[..20],
                 Location = "T",
                 StartingBalance = 0,
                 CurrentBalance = 0,
@@ -211,7 +222,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             {
                 TenantId = SystemTenantIds.Platform,
                 Id = r2,
-                RegisterNumber = "PG-R2",
+                RegisterNumber = $"R2-{r2:N}"[..20],
                 Location = "T",
                 StartingBalance = 0,
                 CurrentBalance = 0,
@@ -233,7 +244,9 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         await using (var step = CreateContext())
         {
-            var mgr = CreateUserManagerMock(u1, u2);
+            var mgr = CreateUserManagerMock();
+            mgr.Setup(m => m.FindByIdAsync(It.IsAny<string>()))
+                .Returns((string id) => Task.FromResult(step.Users.Find(id))!);
             var shift = new CashRegisterShiftService(step, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             var closeR = await shift.TryCloseCashRegisterAsync(r1, u1.Id, 0m, CancellationToken.None);
             Assert.Equal(CashRegisterCloseKind.Success, closeR.Kind);
@@ -269,14 +282,17 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         {
             await AddMinimalUserAsync(seed, "u1");
             TenantTestDoubles.EnsurePlatformTenant(seed);
-            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
+            var taxGroupId = TenantTestDoubles.EnsureTaxGroup(seed, SystemTenantIds.Platform);
+            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = $"Speisen-{categoryId:N}"[..20], VatRate = 10m });
             seed.Products.Add(new Product
             {
                 Id = productId,
                 TenantId = SystemTenantIds.Platform,
                 Name = "Item",
+                Description = "-",
                 Price = 6.90m,
                 CategoryId = categoryId,
+                TaxGroupId = taxGroupId,
                 Category = "Speisen",
                 StockQuantity = 100,
                 MinStockLevel = 0,
@@ -292,6 +308,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             seed.Customers.Add(new Customer
             {
                 Id = customerId,
+                TenantId = SystemTenantIds.Platform,
                 Name = "C",
                 Email = "c@test",
                 Phone = "1",
@@ -301,7 +318,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             {
                 TenantId = SystemTenantIds.Platform,
                 Id = cashRegisterId,
-                RegisterNumber = "PG-PAY-1",
+                RegisterNumber = $"PAY1-{cashRegisterId:N}"[..20],
                 Location = "T",
                 StartingBalance = 0,
                 CurrentBalance = 0,
@@ -357,10 +374,11 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         {
             await AddMinimalUserAsync(seed, "u1");
             TenantTestDoubles.EnsurePlatformTenant(seed);
-            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
-            seed.Products.Add(new Product { Id = productId, TenantId = SystemTenantIds.Platform, Name = "Item", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 100, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), IsFiscalCompliant = true, IsTaxable = true, IsActive = true });
-            seed.Customers.Add(new Customer { Id = customerId, Name = "C", IsActive = true });
-            seed.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = cashRegisterId, RegisterNumber = "PG-PAY-RES1", Status = RegisterStatus.Open, CurrentUserId = "u1", IsActive = true, CreatedAt = DateTime.UtcNow, LastBalanceUpdate = DateTime.UtcNow, Location = "T" });
+            var taxGroupId = TenantTestDoubles.EnsureTaxGroup(seed, SystemTenantIds.Platform);
+            seed.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = $"Speisen-{categoryId:N}"[..20], VatRate = 10m });
+            seed.Products.Add(new Product { Id = productId, TenantId = SystemTenantIds.Platform, Name = "Item", Description = "-", Price = 6.90m, CategoryId = categoryId, TaxGroupId = taxGroupId, Category = "Speisen", StockQuantity = 100, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{productId:N}", IsFiscalCompliant = true, IsTaxable = true, IsActive = true });
+            seed.Customers.Add(new Customer { Id = customerId, TenantId = SystemTenantIds.Platform, Name = "C", IsActive = true });
+            seed.CashRegisters.Add(new CashRegister { TenantId = SystemTenantIds.Platform, Id = cashRegisterId, RegisterNumber = $"PAYR-{cashRegisterId:N}"[..20], Status = RegisterStatus.Open, CurrentUserId = "u1", IsActive = true, CreatedAt = DateTime.UtcNow, LastBalanceUpdate = DateTime.UtcNow, Location = "T" });
             await seed.SaveChangesAsync();
         }
 

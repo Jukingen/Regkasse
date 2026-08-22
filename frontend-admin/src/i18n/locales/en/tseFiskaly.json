@@ -120,6 +120,7 @@
       "training": "Training receipt",
       "mixed_vat": "Mixed VAT rates",
       "zero_amount": "Zero receipt (€0.00)",
+      "raw": "Raw schema (fallback)",
       "monthly_close": "Monthly close (automatic)",
       "yearly_close": "Yearly close (automatic)"
     },
@@ -129,6 +130,7 @@
       "training": "TRAINING — not tax-relevant.",
       "mixed_vat": "€10.00 STANDARD and €5.50 REDUCED_1.",
       "zero_amount": "Nullbeleg: NORMAL with €0.00 and VAT rate NULL.",
+      "raw": "Minimal raw payload: €10.00 STANDARD via gross_amount_standard. Use only if standard_v1 is rejected.",
       "monthly_close": "MONTHLY_CLOSE is created automatically by fiskaly when the month changes. It cannot be signed manually.",
       "yearly_close": "YEARLY_CLOSE is created automatically by fiskaly when the year changes. It cannot be signed manually."
     }

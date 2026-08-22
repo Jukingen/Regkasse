@@ -76,7 +76,8 @@
       "tableClearFailed": "Could not clear table {{table}}",
       "tableCleared": "Table {{table}} cleared",
       "tableClearGenericFailed": "Could not clear table",
-      "emptyCart": "Cart is empty. Please add items first."
+      "emptyCart": "Cart is empty. Please add items first.",
+      "noOrderPermission": "No permission to take orders"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg due in {{days}} days",
@@ -168,6 +169,7 @@
         "scanA11y": "Scan voucher"
       },
       "blockedHints": {
+        "noPaymentPermission": "No permission to process payments",
         "timeSyncCritical": "System time invalid — payments blocked. Contact administrator.",
         "methodsLoading": "Loading payment methods…",
         "selectMethod": "Please select a payment method (step 2).",

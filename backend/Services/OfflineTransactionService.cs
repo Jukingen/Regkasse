@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -30,6 +31,7 @@ public class OfflineTransactionService : IOfflineTransactionService
     private readonly ICoreMetrics? _metrics;
     private readonly IDataProtector _offlineFullPayloadProtector;
     private readonly IOptionsMonitor<OfflineVoucherEncryptionOptions>? _offlineVoucherEncryption;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public OfflineTransactionService(
         AppDbContext context,
@@ -39,7 +41,8 @@ public class OfflineTransactionService : IOfflineTransactionService
         IDataProtectionProvider dataProtectionProvider,
         IOptions<OfflineReplayOptions>? replayOptions = null,
         ICoreMetrics? metrics = null,
-        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
+        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _context = context;
         _paymentService = paymentService;
@@ -49,6 +52,7 @@ public class OfflineTransactionService : IOfflineTransactionService
         _metrics = metrics;
         _offlineFullPayloadProtector = OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider);
         _offlineVoucherEncryption = offlineVoucherEncryption;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     /// <summary>Optional AES layer for voucher-bearing offline payloads (before Data Protection seal).</summary>
@@ -259,16 +263,30 @@ public class OfflineTransactionService : IOfflineTransactionService
                             if (offline == null)
                             {
                                 // 5) Create new offline transaction row.
-                                offline = await CreateOfflineTransactionRowAsync(
-                                        item,
-                                        payloadPrepared,
-                                        userId,
-                                        userRole,
-                                        replayBatchCorrelationId,
-                                        replayBatchAuditKey)
-                                    .ConfigureAwait(false);
-
-                                createdThisCall = true;
+                                try
+                                {
+                                    offline = await CreateOfflineTransactionRowAsync(
+                                            item,
+                                            payloadPrepared,
+                                            userId,
+                                            userRole,
+                                            replayBatchCorrelationId,
+                                            replayBatchAuditKey)
+                                        .ConfigureAwait(false);
+                                    createdThisCall = true;
+                                }
+                                catch (LimitExceededException ex)
+                                {
+                                    _metrics?.RecordReplayFailed(1);
+                                    results.Add(FailedLocalItem(
+                                        requestedId: item.OfflineTransactionId,
+                                        resolvedId: item.OfflineTransactionId,
+                                        errorCode: LimitExceededException.ErrorCodeValue,
+                                        message: ex.Message,
+                                        retryCount: 0,
+                                        replayBatchCorrelationId));
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -567,6 +585,23 @@ public class OfflineTransactionService : IOfflineTransactionService
         Guid replayBatchCorrelationId,
         string replayBatchAuditKey)
     {
+        if (_tenantLimitGuard != null)
+        {
+            var tenantId = await _context.CashRegisters
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(r => r.Id == item.CashRegisterId)
+                .Select(r => r.TenantId)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+            if (tenantId != Guid.Empty)
+            {
+                await _tenantLimitGuard
+                    .EnsureCanQueueOfflineTransactionAsync(tenantId)
+                    .ConfigureAwait(false);
+            }
+        }
+
         var now = DateTime.UtcNow;
         var offlineCreatedAtUtc = NormalizeUtc(item.CreatedAtUtc);
 

@@ -162,6 +162,10 @@ public static class ApiMessageCatalog
                 de: "Kasse nicht gefunden",
                 en: "Cash register not found",
                 tr: "Kasa bulunamadı"),
+            [ApiMessageKeys.RegisterOperationNotPermitted] = Msg(
+                de: "Sie haben keine Berechtigung für diese Aktion an dieser Kasse.",
+                en: "You are not allowed to perform this action on this cash register.",
+                tr: "Bu kasada bu işlemi yapma yetkiniz yok."),
             [ApiMessageKeys.RegisterFetchSuccess] = Msg(
                 de: "Kasse erfolgreich abgerufen",
                 en: "Cash register fetched successfully",
@@ -202,6 +206,10 @@ public static class ApiMessageCatalog
                 de: "Kasse kann in diesem Zustand nicht geöffnet werden.",
                 en: "Cash register cannot be opened in this state.",
                 tr: "Kasa bu durumda açılamaz."),
+            [ApiMessageKeys.RegisterDecommissionedCannotOpen] = Msg(
+                de: "Diese Kasse wurde stillgelegt und kann nicht mehr geöffnet werden.",
+                en: "This cash register has been decommissioned and can no longer be opened.",
+                tr: "Bu kasa stillgelegt edildi ve artık açılamaz."),
             [ApiMessageKeys.RegisterOpenError] = Msg(
                 de: "Fehler beim Öffnen der Kasse",
                 en: "Error opening cash register",
@@ -214,6 +222,10 @@ public static class ApiMessageCatalog
                 de: "Kasse ist bereits geschlossen",
                 en: "Cash register is already closed",
                 tr: "Kasa zaten kapalı"),
+            [ApiMessageKeys.RegisterHeldByOtherUser] = Msg(
+                de: "Diese Kasse ist in einer anderen Schicht geöffnet. Nur der Schichtinhaber kann sie schließen.",
+                en: "This cash register is open on another shift. Only the shift holder can close it.",
+                tr: "Bu kasa başka bir vardiyada açık. Yalnızca vardiya sahibi kapatabilir."),
             [ApiMessageKeys.RegisterCloseError] = Msg(
                 de: "Fehler beim Schließen der Kasse",
                 en: "Error closing cash register",

@@ -30,6 +30,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import {
   createPlatformUser,
@@ -85,6 +86,7 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 function fullName(record: UserInfo): string {
   const first = record.firstName ?? '';
@@ -317,7 +319,12 @@ export default function UsersPage() {
       setCreatePlatformMode(false);
     },
     onError: (e: unknown) => {
-      message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
+      toastLimitExceededOrFallback(
+        message,
+        t,
+        e,
+        normalizeError(e, t('users.messages.errorGeneric')).message
+      );
     },
   });
   const updateUserRoleMutation = useUpdateUserRole();
@@ -584,6 +591,8 @@ export default function UsersPage() {
       </AdminPageHeader>
 
       <UsersPageActiveTenantContext />
+
+      {!isSuperAdminLayout ? <LimitWarning limitKey="maxUsersPerTenant" /> : null}
 
       {isSuperAdminLayout ? (
         <UnifiedAdminUsersView

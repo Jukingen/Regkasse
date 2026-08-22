@@ -134,6 +134,7 @@ const HIDDEN_EXACT = new Set<string>([
   '/benefit-definitions',
   '/benefit-assignments',
   '/admin/users',
+  '/admin/sessions',
   '/admin/access',
   '/admin/cash-registers',
   '/rksv',

@@ -22,6 +22,7 @@ public class AdminCashRegistersAuthorizationTests
 
     [Theory]
     [InlineData(nameof(AdminCashRegistersController.List))]
+    [InlineData(nameof(AdminCashRegistersController.GetById))]
     [InlineData(nameof(AdminCashRegistersController.ListByTenant))]
     [InlineData(nameof(AdminCashRegistersController.GetCashRegisterCount))]
     [InlineData(nameof(AdminCashRegistersController.GetTseHealth))]
@@ -56,10 +57,32 @@ public class AdminCashRegistersAuthorizationTests
         Assert.Contains(AppPermissions.CashRegisterManage, GetHasPermissionValues(method));
     }
 
+    [Theory]
+    [InlineData(nameof(AdminCashRegistersController.Open))]
+    [InlineData(nameof(AdminCashRegistersController.Close))]
+    public void ShiftOpenClose_RequireCashRegisterManage_NotShiftOpen(string actionName)
+    {
+        var method = FindAction(actionName);
+        Assert.NotNull(method);
+
+        var permissions = GetHasPermissionValues(method).ToList();
+        Assert.Contains(AppPermissions.CashRegisterManage, permissions);
+        Assert.DoesNotContain(AppPermissions.ShiftOpen, permissions);
+        Assert.DoesNotContain(AppPermissions.ShiftClose, permissions);
+    }
+
     [Fact]
     public void Create_Requires_CashRegisterManage_Cashier_DoesNotHave_Permission()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterManage));
+    }
+
+    [Fact]
+    public void Assign_Requires_CashRegisterManage()
+    {
+        var method = FindAction(nameof(AdminCashRegistersController.AssignUser));
+        Assert.NotNull(method);
+        Assert.Contains(AppPermissions.CashRegisterManage, GetHasPermissionValues(method));
     }
 
     [Fact]

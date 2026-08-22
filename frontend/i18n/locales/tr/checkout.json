@@ -76,7 +76,8 @@
       "tableClearFailed": "{{table}} numaralı masa temizlenemedi",
       "tableCleared": "{{table}} numaralı masa temizlendi",
       "tableClearGenericFailed": "Masa temizlenemedi",
-      "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin."
+      "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin.",
+      "noOrderPermission": "Sipariş alma yetkiniz yok"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg {{days}} gün içinde",
@@ -168,6 +169,7 @@
         "scanA11y": "Kupon tara"
       },
       "blockedHints": {
+        "noPaymentPermission": "Ödeme yetkiniz yok",
         "timeSyncCritical": "Sistem saati hatali — odemeler engellendi. Yoneticiye basvurun.",
         "methodsLoading": "Odeme yontemleri yukleniyor…",
         "selectMethod": "Lutfen bir odeme yontemi secin (adim 2).",

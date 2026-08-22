@@ -12,6 +12,7 @@ import {
 } from '@/features/license/utils/applyActivatedLicenseToCache';
 import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import { useNotify } from '@/hooks/useNotify';
+import type { OptimisticQuerySnapshot } from '@/lib/query/optimisticUpdateHelpers';
 import { useI18n } from '@/i18n';
 
 export type ExtendTenantLicenseFormValues = {
@@ -50,7 +51,12 @@ export function useExtendTenantLicense(tenantId: string) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  return useMutation<ExtendTenantLicenseResult, unknown, ExtendTenantLicenseFormValues>({
+  return useMutation<
+    ExtendTenantLicenseResult,
+    unknown,
+    ExtendTenantLicenseFormValues,
+    OptimisticQuerySnapshot | undefined
+  >({
     mutationFn: (values) => activateUnifiedLicense(values.licenseKey, tenantId),
     onMutate: async (values) => {
       const expectedValidUntilUtc = values.expectedValidUntilUtc?.trim();

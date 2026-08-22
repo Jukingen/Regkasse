@@ -68,7 +68,9 @@ public sealed class TenantUserServiceTests
         IQuickUserGeneratorService? quickUserGenerator = null,
         IAuditLogService? auditLog = null,
         ICurrentTenantAccessor? tenantAccessor = null,
-        IUserRoleChangeService? userRoleChangeService = null)
+        IUserRoleChangeService? userRoleChangeService = null,
+        string actorRole = Roles.SuperAdmin,
+        KasseAPI_Final.Services.Limits.ITenantLimitGuard? tenantLimitGuard = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var roleChange = userRoleChangeService ?? new UserRoleChangeService(
@@ -88,7 +90,7 @@ public sealed class TenantUserServiceTests
                     [
                         new System.Security.Claims.Claim(
                             System.Security.Claims.ClaimTypes.Role,
-                            Roles.SuperAdmin),
+                            actorRole),
                         new System.Security.Claims.Claim(
                             System.Security.Claims.ClaimTypes.NameIdentifier,
                             "test-super-admin"),
@@ -116,7 +118,8 @@ public sealed class TenantUserServiceTests
             ActivityEventTestSupport.CreateRecorder(),
             roleChange,
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
-            Mock.Of<ILogger<TenantUserService>>());
+            Mock.Of<ILogger<TenantUserService>>(),
+            tenantLimitGuard);
     }
 
     private static Mock<IAuditLogService> CreateAuditMock()
@@ -315,6 +318,48 @@ public sealed class TenantUserServiceTests
 
         var created = await db.Users.AsNoTracking().SingleAsync(u => u.Email == "create@cafe.test");
         Assert.Null(created.TaxNumber);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTenantUserLimitExceeded_ReturnsLimitError()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Capped Cafe",
+            Slug = "capped-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var guard = new Mock<KasseAPI_Final.Services.Limits.ITenantLimitGuard>();
+        guard
+            .Setup(g => g.EnsureCanCreateUserAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new KasseAPI_Final.Services.Limits.LimitExceededException(
+                TenantLimitKeys.MaxUsersPerTenant,
+                1,
+                1,
+                "Maximum 1 users per tenant reached"));
+
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantLimitGuard: guard.Object);
+        var (result, error) = await service.CreateAsync(
+            tenantId,
+            new CreateTenantUserRequest { Email = "over@cafe.test", Role = Roles.Cashier },
+            Guid.NewGuid().ToString("D"),
+            Roles.SuperAdmin);
+
+        Assert.Null(result);
+        Assert.NotNull(error);
+        Assert.StartsWith(KasseAPI_Final.Services.Limits.LimitExceededException.ErrorCodeValue, error);
+        Assert.Equal(0, await db.Users.CountAsync(u => u.Email == "over@cafe.test"));
     }
 
     [Fact]
@@ -779,7 +824,11 @@ public sealed class TenantUserServiceTests
             });
         await db.SaveChangesAsync();
 
-        var service = CreateService(db, CreateUserManager(db), tenantAccessor: tenantAccessor);
+        var service = CreateService(
+            db,
+            CreateUserManager(db),
+            tenantAccessor: tenantAccessor,
+            actorRole: Roles.Manager);
         var result = await service.ListAsync(tenantB);
 
         Assert.Null(result);

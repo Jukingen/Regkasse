@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Empty, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import Link from 'next/link';
 import type { Key } from 'react';
 import { memo } from 'react';
 
@@ -25,6 +26,10 @@ import {
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
+import {
+  assignmentTagColor,
+  resolveAssignmentState,
+} from '@/features/cash-registers/utils/assignmentStatus';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import {
   isDecommissionedRegister,
@@ -35,6 +40,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { AppPermissions } from '@/shared/auth/permissions';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
+import { cashRegisterDetailPath } from '@/shared/cashRegisterRoutes';
 
 import styles from './CashRegisterTable.module.css';
 
@@ -48,6 +54,11 @@ function resolveCashierName(record: EnhancedCashRegister): string | null {
     return fromApi;
   }
   return record.currentUser?.userName?.trim() || record.currentUserId?.trim() || null;
+}
+
+function resolveDetailHref(record: CashRegister): string | undefined {
+  const registerId = record.id?.trim();
+  return registerId ? cashRegisterDetailPath(registerId) : undefined;
 }
 
 export type CashRegisterTableProps = {
@@ -87,7 +98,7 @@ export const CashRegisterTable = memo(function CashRegisterTable({
   onRegisterAction,
 }: CashRegisterTableProps) {
   const { t, formatLocale } = useI18n();
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { hasPermission, isSuperAdmin, user } = usePermissions();
   const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
   const canManageRegisters = hasPermission(AppPermissions.CashRegisterManage);
 
@@ -107,27 +118,40 @@ export const CashRegisterTable = memo(function CashRegisterTable({
       title: t('cashRegisters.columns.name'),
       key: 'name',
       width: 320,
-      render: (_: unknown, record) => (
-        <div className={styles.registerCell}>
-          <span className={styles.registerIcon} aria-hidden>
-            <ShopOutlined />
-          </span>
-          <div className={styles.registerContent}>
-            <div className={styles.registerHeading}>
-              <Typography.Text strong className={styles.registerNumber}>
-                {record.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY}
+      render: (_: unknown, record) => {
+        const detailHref = resolveDetailHref(record);
+        const registerNumber = (
+          <Typography.Text strong className={styles.registerNumber}>
+            {record.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY}
+          </Typography.Text>
+        );
+
+        return (
+          <div className={styles.registerCell}>
+            <span className={styles.registerIcon} aria-hidden>
+              <ShopOutlined />
+            </span>
+            <div className={styles.registerContent}>
+              <div className={styles.registerHeading}>
+                {detailHref ? (
+                  <Link href={detailHref} className={styles.registerNumberLink}>
+                    {registerNumber}
+                  </Link>
+                ) : (
+                  registerNumber
+                )}
+                {record.isActive === false ? (
+                  <Tag>{t('common.categories.table.inactive')}</Tag>
+                ) : null}
+              </div>
+              <Typography.Text className={styles.registerLocation}>
+                <EnvironmentOutlined />
+                {record.location?.trim() || FORMAT_EMPTY_DISPLAY}
               </Typography.Text>
-              {record.isActive === false ? (
-                <Tag>{t('common.categories.table.inactive')}</Tag>
-              ) : null}
             </div>
-            <Typography.Text className={styles.registerLocation}>
-              <EnvironmentOutlined />
-              {record.location?.trim() || FORMAT_EMPTY_DISPLAY}
-            </Typography.Text>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: t('cashRegisters.columns.status'),
@@ -169,6 +193,26 @@ export const CashRegisterTable = memo(function CashRegisterTable({
             <Typography.Text className={styles.cellSubtle}>
               <UserOutlined /> {resolveCashierName(enhanced) ?? FORMAT_EMPTY_DISPLAY}
             </Typography.Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: t('cashRegisters.columns.assignedTo'),
+      key: 'assignedTo',
+      width: 200,
+      render: (_: unknown, record) => {
+        const enhanced = asEnhanced(record);
+        const state = resolveAssignmentState(enhanced.assignedUserId, user?.id);
+
+        return (
+          <Space orientation="vertical" size={4}>
+            <Typography.Text className={styles.cellValue}>
+              {enhanced.assignedUserName?.trim() ||
+                enhanced.assignedUserId?.trim() ||
+                FORMAT_EMPTY_DISPLAY}
+            </Typography.Text>
+            <Tag color={assignmentTagColor(state)}>{t(`cashRegisters.assignment.${state}`)}</Tag>
           </Space>
         );
       },
@@ -267,6 +311,7 @@ export const CashRegisterTable = memo(function CashRegisterTable({
         const status = rawRegisterStatus(record);
         const decommissioned = isDecommissionedRegister(status);
         const registerId = record.id?.trim();
+        const detailHref = resolveDetailHref(record);
         const offlineHref = registerId
           ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
           : '/admin/tse/offline-transactions';
@@ -283,7 +328,8 @@ export const CashRegisterTable = memo(function CashRegisterTable({
                 size="small"
                 icon={<EyeOutlined />}
                 aria-label={t('cashRegisters.actions.view')}
-                onClick={() => onEdit(record)}
+                href={detailHref}
+                onClick={detailHref ? undefined : () => onEdit(record)}
               />
             </Tooltip>
             <Tooltip title={t('cashRegisters.actions.tseHealth')}>
@@ -309,13 +355,22 @@ export const CashRegisterTable = memo(function CashRegisterTable({
               </Tooltip>
             ) : null}
             {canOpenSonderbelege ? (
-              <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
-                <Button
-                  size="small"
-                  icon={<FileProtectOutlined />}
-                  aria-label={t('cashRegisters.actions.specialReceipts')}
-                  href="/rksv/sonderbelege?focus=schlussbeleg"
-                />
+              <Tooltip
+                title={
+                  decommissioned
+                    ? t('cashRegisters.actions.decommissionedCannotCreateSpecialReceipts')
+                    : t('cashRegisters.actions.specialReceipts')
+                }
+              >
+                <span>
+                  <Button
+                    size="small"
+                    icon={<FileProtectOutlined />}
+                    aria-label={t('cashRegisters.actions.specialReceipts')}
+                    disabled={decommissioned}
+                    href={decommissioned ? undefined : '/rksv/sonderbelege?focus=schlussbeleg'}
+                  />
+                </span>
               </Tooltip>
             ) : null}
             {isSuperAdmin && decommissioned ? (
@@ -350,7 +405,7 @@ export const CashRegisterTable = memo(function CashRegisterTable({
           : undefined
       }
       pagination={{ ...adminTablePaginationDefaults }}
-      scroll={{ x: showBalanceColumn || canManageRegisters ? 1400 : 1200 }}
+      scroll={{ x: showBalanceColumn || canManageRegisters ? 1600 : 1400 }}
       locale={{
         emptyText: <Empty description={emptyDescription} />,
       }}

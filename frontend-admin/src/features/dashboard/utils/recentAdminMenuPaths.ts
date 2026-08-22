@@ -1,4 +1,5 @@
 import { SIDEBAR_NAV_ITEM_CATALOG } from '@/shared/adminSidebarRegistry';
+import { isCashRegisterDetailPath, KASSENVERWALTUNG_PATH } from '@/shared/cashRegisterRoutes';
 
 export const RECENT_ADMIN_MENU_STORAGE_KEY = 'rk_admin_recent_menu_paths';
 export const MAX_RECENT_ADMIN_MENU_PATHS = 4;
@@ -29,6 +30,10 @@ export function resolveRecentMenuStorageKey(pathname: string): string | null {
   const normalized = normalizePath(pathname);
   if (SKIP_RECENT_PATHS.has(normalized) || normalized.startsWith('/login/')) {
     return null;
+  }
+
+  if (isCashRegisterDetailPath(normalized)) {
+    return KASSENVERWALTUNG_PATH;
   }
 
   for (const key of catalogMenuKeysLongestFirst()) {

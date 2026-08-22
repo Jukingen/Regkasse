@@ -220,6 +220,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ReportView, AppPermissions.ReportExport,
                 AppPermissions.AuditView,
                 AppPermissions.SettingsView,
+                AppPermissions.CashRegisterView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Accountant] = new[]

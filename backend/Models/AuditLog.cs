@@ -207,6 +207,10 @@ namespace KasseAPI_Final.Models
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
         public const string USER_TENANT_MEMBERSHIP_CHANGED = "USER_TENANT_MEMBERSHIP_CHANGED";
         public const string USER_NAME_CHANGE = "USER_NAME_CHANGE";
+        /// <summary>Super Admin force logout (security stamp rotation + all sessions).</summary>
+        public const string USER_FORCE_LOGOUT = "USER_FORCE_LOGOUT";
+        /// <summary>Super Admin terminated one or more auth sessions.</summary>
+        public const string USER_SESSION_TERMINATED = "USER_SESSION_TERMINATED";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
@@ -262,6 +266,12 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
+
+        /// <summary>Cashier assigned to a cash register (POST /api/admin/cash-registers/{id}/assign).</summary>
+        public const string CASH_REGISTER_ASSIGNED = "CASH_REGISTER_ASSIGNED";
+
+        /// <summary>Cashier assignment removed from a cash register (POST /api/admin/cash-registers/{id}/assign with null user).</summary>
+        public const string CASH_REGISTER_UNASSIGNED = "CASH_REGISTER_UNASSIGNED";
 
         /// <summary>Reversible admin operation undone via operation log.</summary>
         public const string OPERATION_UNDONE = "OPERATION_UNDONE";

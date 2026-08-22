@@ -74,6 +74,11 @@
     "licenseLockedTitle": "Lisans kilitli",
     "licenseLocked": "Lisans kilitli. Lütfen yöneticinize başvurun.",
     "monatsbelegRequired": "Monatsbeleg gerekli",
+    "limitExceeded": "Kiracı limiti doldu.",
+    "limitDailyTransactions": "Günlük işlem limiti ({{limit}}) doldu. Mevcut: {{current}}. Lütfen yarına kadar bekleyin.",
+    "limitTransactionAmount": "Maksimum işlem tutarı ({{limit}} €) aşıldı. Lütfen tutarı düşürün.",
+    "limitDailyRevenue": "Günlük ciro limiti ({{limit}} €) doldu. Mevcut: {{current}} €. Lütfen yarına kadar bekleyin.",
+    "limitOfflineQueue": "Çevrimdışı kuyruk dolu ({{current}}/{{limit}}). Lütfen kuyruğu senkronize edin.",
     "nonFiscalQueued": "Mali onay yok: ödeme yalnızca yerel kuyrukta. Bağlantı gelince senkronize edilir — o zamana kadar RKSV geçerli değil. Tekrar ödeme yapmadan önce Ayarlar > Çevrimdışı kuyruğu kontrol edin; aynı satış için ikinci ödeme mükerrer kayıt riski taşır."
   },
   "cancellation": {

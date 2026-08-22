@@ -105,6 +105,18 @@ export interface Tenant {
    */
   trialStatus?: string | null;
   /** @nullable */
+  tseProvisionedAtUtc?: string | null;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  tseScuId?: string | null;
+  /**
+   * @maxLength 32
+   * @nullable
+   */
+  tseStatus?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
   /**
    * @maxLength 450

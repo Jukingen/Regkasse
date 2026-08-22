@@ -67,6 +67,28 @@ public class TokenClaimsServiceRoleClaimTests
     }
 
     [Fact]
+    public async Task BuildClaimsAsync_Includes_SecurityStamp_When_Present()
+    {
+        var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
+        var svc = new TokenClaimsService(resolver);
+        var stamp = Guid.NewGuid().ToString("D");
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "a@b.c",
+            UserName = "a@b.c",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            SecurityStamp = stamp,
+        };
+
+        var claims = await svc.BuildClaimsAsync(user, new List<string> { Roles.Cashier });
+
+        Assert.Contains(claims, c => c.Type == TokenClaimsService.SecurityStampClaimType && c.Value == stamp);
+    }
+
+    [Fact]
     public async Task BuildClaimsAsync_Jwt_RoundTrip_Preserves_SuperAdmin_Role_For_Authorization()
     {
         var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());

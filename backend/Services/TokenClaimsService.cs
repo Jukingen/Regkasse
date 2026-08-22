@@ -15,6 +15,9 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
+    /// <summary>Compact JWT claim for Identity <see cref="ApplicationUser.SecurityStamp"/> (force-logout invalidation).</summary>
+    public const string SecurityStampClaimType = "sst";
+
     private readonly IEffectivePermissionResolver _effectivePermissionResolver;
 
     public TokenClaimsService(IEffectivePermissionResolver effectivePermissionResolver)
@@ -99,6 +102,8 @@ public sealed class TokenClaimsService : ITokenClaimsService
         list.Add(new Claim("userId", user.Id));
         if (!string.IsNullOrWhiteSpace(user.Email))
             list.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
+        if (!string.IsNullOrEmpty(user.SecurityStamp))
+            list.Add(new Claim(SecurityStampClaimType, user.SecurityStamp));
 
         var canonicalRoles = CollectCanonicalRoles(roles, user.Role);
 

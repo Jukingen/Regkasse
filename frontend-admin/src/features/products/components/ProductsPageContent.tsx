@@ -65,6 +65,7 @@ import {
 import { TaxQuickActions } from '@/features/tax/components/TaxQuickActions';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDownloadPreview } from '@/hooks/useDownloadPreview';
 import { useLicenseGuard } from '@/hooks/useLicenseGuard';
@@ -75,6 +76,7 @@ import { estimateTabularExportBytes } from '@/lib/download/downloadPreview';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -285,7 +287,7 @@ export default function ProductsPage() {
       setFormVisible(false);
       invalidateList();
     } catch (err) {
-      message.error(t('products.messages.createError'));
+      toastLimitExceededOrFallback(message, t, err, t('products.messages.createError'));
       throw err;
     }
   };
@@ -768,6 +770,8 @@ export default function ProductsPage() {
           {t('products.page.searchHint', { min: MIN_SEARCH_LENGTH })}
         </Typography.Paragraph>
       </AdminPageHeader>
+
+      <LimitWarning limitKey="maxProductsPerTenant" />
 
       <ProductFilterBar
         filters={filters}

@@ -81,6 +81,7 @@ import {
   POS_TSE_STATUS_FAILURE_WARN_STREAK,
   registerPosTseStatusCheckOutcome,
 } from '../constants/posOperatorWarnings';
+import { usePosPermissions } from '../hooks/usePosPermissions';
 import { canShowPosStornoRefundButton } from '../utils/posStornoRefundGate';
 import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSyncContact';
 import { useAuth } from '../contexts/AuthContext';
@@ -265,6 +266,7 @@ export default function PaymentModal({
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings', 'system']);
   const { t: tLicense } = useTranslation('license');
   const { user } = useAuth();
+  const { canMakePayment } = usePosPermissions();
   const { status: licenseSnapshot } = useLicenseStatus();
   const { isBlocking: maintenanceBlocksPayment } = useMaintenance();
   const showStornoRefundEntry = canShowPosStornoRefundButton(user);
@@ -657,6 +659,7 @@ export default function PaymentModal({
   );
 
   const paySubmitDisabled =
+    !canMakePayment ||
     purchaseState === 'processing' ||
     paymentBusy ||
     methodsLoading ||
@@ -674,27 +677,29 @@ export default function PaymentModal({
 
   const paySubmitBlockedHint =
     paySubmitDisabled && !showPayWorking
-      ? maintenanceBlocksPayment
-        ? t('system:maintenanceNotice.paymentBlocked')
-        : licenseBlocksPaymentUi
-        ? tLicense('criticalGuard.expiredBody')
-        : timeSyncCritical
-          ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
-          : methodsLoading
-            ? t('checkout:posFlow.payment.blockedHints.methodsLoading')
-            : !hasValidSettlementMethod
-              ? t('checkout:posFlow.payment.blockedHints.selectMethod')
-              : !paymentCoverageOk
-                ? t('checkout:posFlow.payment.blockedHints.coverageMissing')
-                : voucherEnabled && !voucherSettlementValid
-                  ? t('checkout:posFlow.payment.blockedHints.voucherInvalid')
-                  : isRegisterGateBlockingPayment
-                    ? registerGateFooterHint(registerGateCtx)
-                    : payGateTseBlocked
-                      ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
-                      : offlineBlocksVoucher
-                        ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
-                        : undefined
+      ? !canMakePayment
+        ? t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+        : maintenanceBlocksPayment
+          ? t('system:maintenanceNotice.paymentBlocked')
+          : licenseBlocksPaymentUi
+            ? tLicense('criticalGuard.expiredBody')
+            : timeSyncCritical
+              ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
+              : methodsLoading
+                ? t('checkout:posFlow.payment.blockedHints.methodsLoading')
+                : !hasValidSettlementMethod
+                  ? t('checkout:posFlow.payment.blockedHints.selectMethod')
+                  : !paymentCoverageOk
+                    ? t('checkout:posFlow.payment.blockedHints.coverageMissing')
+                    : voucherEnabled && !voucherSettlementValid
+                      ? t('checkout:posFlow.payment.blockedHints.voucherInvalid')
+                      : isRegisterGateBlockingPayment
+                        ? registerGateFooterHint(registerGateCtx)
+                        : payGateTseBlocked
+                          ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
+                          : offlineBlocksVoucher
+                            ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
+                            : undefined
       : undefined;
 
   useEffect(() => {
@@ -715,6 +720,7 @@ export default function PaymentModal({
     if (!visible) return;
     debugPosPaymentTrace('zahlen_button_disabled_snapshot', {
       paySubmitDisabled,
+      canMakePayment,
       purchaseState,
       paymentBusy,
       cashRegisterResolved,
@@ -724,6 +730,7 @@ export default function PaymentModal({
   }, [
     visible,
     paySubmitDisabled,
+    canMakePayment,
     purchaseState,
     paymentBusy,
     cashRegisterResolved,
@@ -1429,6 +1436,13 @@ export default function PaymentModal({
   };
 
   const handlePayment = async () => {
+    if (!canMakePayment) {
+      Alert.alert(
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
+        t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
+      );
+      return;
+    }
     if (timeSyncCritical) {
       return;
     }
@@ -2242,73 +2256,84 @@ export default function PaymentModal({
                       </Text>
                     </Pressable>
                   ) : null}
-                  <Pressable
-                    onPress={handlePayment}
-                    style={({ pressed }) => [
-                      styles.payButton,
-                      showStornoRefundEntry && styles.payButtonWhenStornoPresent,
-                      paySubmitDisabled && styles.payButtonDisabled,
-                      pressed && !paySubmitDisabled && SoftState.pressedScale,
-                    ]}
-                    disabled={paySubmitDisabled}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityLabel={t('checkout:posFlow.payment.footer.payA11y', {
-                      amount: formatPrice(settlementAmountDue),
-                    })}
-                    accessibilityHint={paySubmitBlockedHint}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      disabled: paySubmitDisabled,
-                    }}>
-                    {showPayWorking ? (
-                      <View style={styles.payButtonContent}>
-                        <WaveLoader size={18} color={SoftColors.textInverse} />
-                        <Text style={styles.payButtonText}>
-                          {t('checkout:posFlow.payment.footer.processing')}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.payButtonContent}>
-                        {showPayTrialWarningIcon ? (
-                          <Ionicons
-                            name="warning"
-                            size={18}
-                            color="#FFB300"
-                            accessibilityLabel={t(
-                              'checkout:posFlow.payment.footer.licenseHintA11y'
-                            )}
-                          />
-                        ) : null}
-                        <Text style={styles.payButtonText} numberOfLines={2}>
-                          {voucherEnabled &&
-                          voucherSettlementValid &&
-                          paymentCoverageOk &&
-                          settlementAmountDue <= 0.01
-                            ? t('checkout:posFlow.payment.voucher.payCta', {
-                                amount: formatPrice(totalAmount),
-                              })
-                            : settlementAmountDue > 0.01 && selectedSettlementMethod
-                              ? t('checkout:posFlow.payment.footer.payMethodSuffix', {
-                                  amount: formatPrice(settlementAmountDue),
-                                  method: selectedSettlementMethod.name.toLowerCase(),
-                                })
-                              : t('checkout:posFlow.payment.footer.payGeneric', {
+                  {canMakePayment ? (
+                    <Pressable
+                      onPress={handlePayment}
+                      style={({ pressed }) => [
+                        styles.payButton,
+                        showStornoRefundEntry && styles.payButtonWhenStornoPresent,
+                        paySubmitDisabled && styles.payButtonDisabled,
+                        pressed && !paySubmitDisabled && SoftState.pressedScale,
+                      ]}
+                      disabled={paySubmitDisabled}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityLabel={t('checkout:posFlow.payment.footer.payA11y', {
+                        amount: formatPrice(settlementAmountDue),
+                      })}
+                      accessibilityHint={paySubmitBlockedHint}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        disabled: paySubmitDisabled,
+                      }}>
+                      {showPayWorking ? (
+                        <View style={styles.payButtonContent}>
+                          <WaveLoader size={18} color={SoftColors.textInverse} />
+                          <Text style={styles.payButtonText}>
+                            {t('checkout:posFlow.payment.footer.processing')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.payButtonContent}>
+                          {showPayTrialWarningIcon ? (
+                            <Ionicons
+                              name="warning"
+                              size={18}
+                              color="#FFB300"
+                              accessibilityLabel={t(
+                                'checkout:posFlow.payment.footer.licenseHintA11y'
+                              )}
+                            />
+                          ) : null}
+                          <Text style={styles.payButtonText} numberOfLines={2}>
+                            {voucherEnabled &&
+                            voucherSettlementValid &&
+                            paymentCoverageOk &&
+                            settlementAmountDue <= 0.01
+                              ? t('checkout:posFlow.payment.voucher.payCta', {
                                   amount: formatPrice(totalAmount),
-                                })}
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
+                                })
+                              : settlementAmountDue > 0.01 && selectedSettlementMethod
+                                ? t('checkout:posFlow.payment.footer.payMethodSuffix', {
+                                    amount: formatPrice(settlementAmountDue),
+                                    method: selectedSettlementMethod.name.toLowerCase(),
+                                  })
+                                : t('checkout:posFlow.payment.footer.payGeneric', {
+                                    amount: formatPrice(totalAmount),
+                                  })}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ) : (
+                    <View
+                      style={styles.payPermissionBanner}
+                      accessibilityRole="alert"
+                      accessibilityLiveRegion="polite">
+                      <Text style={styles.payPermissionBannerText}>
+                        {t('checkout:posFlow.payment.blockedHints.noPaymentPermission')}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                {!cashRegisterResolved ? (
+                {canMakePayment && !cashRegisterResolved ? (
                   <Text style={styles.footerBlockedHint}>
                     {t('checkout:posFlow.payment.footer.registerSettingsLoading')}
                   </Text>
-                ) : !hasValidCashRegisterId ? (
+                ) : canMakePayment && !hasValidCashRegisterId ? (
                   <Text style={styles.footerBlockedHint}>
                     {registerGateFooterHint(registerGateCtx)}
                   </Text>
-                ) : paySubmitBlockedHint ? (
+                ) : canMakePayment && paySubmitBlockedHint ? (
                   <Text style={styles.footerBlockedHint}>{paySubmitBlockedHint}</Text>
                 ) : null}
               </View>
@@ -2930,6 +2955,24 @@ const styles = StyleSheet.create({
     color: SoftColors.error,
     textAlign: 'center',
     paddingHorizontal: SoftSpacing.sm,
+  },
+  payPermissionBanner: {
+    flex: 2,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.errorBg,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payPermissionBannerText: {
+    ...SoftTypography.caption,
+    fontWeight: '700',
+    color: SoftColors.error,
+    textAlign: 'center',
   },
   cancelButton: {
     flex: 1,

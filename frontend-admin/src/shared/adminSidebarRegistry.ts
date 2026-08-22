@@ -38,7 +38,8 @@ export type SidebarGroupId =
   | 'administration'
   | 'securityTse'
   | 'deploymentSystem'
-  | 'monitoringLogs';
+  | 'monitoringLogs'
+  | 'development';
 
 /** Keys into `SIDEBAR_ICON_COMPONENTS` in `buildAdminSidebar.tsx`. */
 export type SidebarIconToken =
@@ -385,6 +386,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'TeamOutlined',
     permission: PERMISSIONS.REPORT_VIEW,
   },
+  cashRegisterReports: {
+    id: 'cashRegisterReports',
+    menuKey: '/admin/reports',
+    href: '/admin/reports',
+    labelKey: 'nav.cashRegisterReports',
+    icon: 'BarChartOutlined',
+    permission: PERMISSIONS.REPORT_VIEW,
+  },
   tagesbericht: {
     id: 'tagesbericht',
     menuKey: '/reporting/tagesbericht',
@@ -450,6 +459,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.users',
     icon: 'TeamOutlined',
     ...sidebarFieldsFromMenuMap('users'),
+  },
+  adminSessions: {
+    id: 'adminSessions',
+    menuKey: '/admin/sessions',
+    href: '/admin/sessions',
+    labelKey: 'nav.sessions',
+    icon: 'LaptopOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
   accessOverview: {
     id: 'accessOverview',
@@ -759,6 +776,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'DashboardOutlined',
     permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
   },
+  limitDashboard: {
+    id: 'limitDashboard',
+    menuKey: '/admin/limits/dashboard',
+    href: '/admin/limits/dashboard',
+    labelKey: 'nav.limitDashboard',
+    icon: 'BarChartOutlined',
+    permission: PERMISSIONS.LICENSE_MANAGE,
+  },
   /** Super Admin: mandants currently in the license grace window. */
   licenseGracePeriod: {
     id: 'licenseGracePeriod',
@@ -783,6 +808,16 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/license/test',
     labelKey: 'nav.licenseTest',
     icon: 'ExperimentOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+    developmentOnly: true,
+  },
+  /** Dev-only Super Admin QA for tenant operational caps. */
+  limitTest: {
+    id: 'limitTest',
+    menuKey: '/admin/development/limits',
+    href: '/admin/development/limits',
+    labelKey: 'nav.limitTest',
+    icon: 'BugOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
     developmentOnly: true,
   },
@@ -1454,6 +1489,11 @@ export const SIDEBAR_GROUP_META: Record<
     labelKey: 'nav.monitoringLogs',
     icon: 'DashboardOutlined',
   },
+  development: {
+    menuKey: ADMIN_SIDEBAR_GROUP_KEYS.development,
+    labelKey: 'nav.development',
+    icon: 'ExperimentOutlined',
+  },
 };
 
 /** @deprecated Use `SIDEBAR_GROUP_META` */
@@ -1495,7 +1535,7 @@ export type SidebarLayoutRow =
 /**
  * Top-to-bottom shell layout (order = render order).
  * Primary groups: Dashboard → Lizenz → Betrieb → RKSV → Sortiment → Kunden → Berichte → Backup →
- * Einstellungen → Verwaltung → Sicherheit & TSE → Deployment & System → Monitoring & Logs.
+ * Einstellungen → Verwaltung → Sicherheit & TSE → Deployment & System → Monitoring & Logs → Entwicklung.
  */
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
   {
@@ -1511,6 +1551,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'leaves',
         catalogIds: [
           'licenseStatusDashboard',
+          'limitDashboard',
           'licenseGracePeriod',
           'licenseAudit',
           'licenseManagement',
@@ -1654,6 +1695,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         catalogIds: [
           'reportingOverview',
           'reportCenter',
+          'cashRegisterReports',
           'steuerberichte',
           'activityLog',
           'userActivityReport',
@@ -1760,6 +1802,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'superAdminTrials',
           'superAdminCashRegisters',
           'adminSupportInbox',
+          'adminSessions',
         ],
       },
     ],
@@ -1866,6 +1909,11 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         catalogIds: ['adminMonitoring', 'adminRiskDashboard', 'elmahErrors'],
       },
     ],
+  },
+  {
+    kind: 'group',
+    group: 'development',
+    blocks: [{ kind: 'leaves', catalogIds: ['limitTest'] }],
   },
 ];
 

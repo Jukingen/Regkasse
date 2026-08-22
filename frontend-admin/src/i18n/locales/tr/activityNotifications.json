@@ -54,6 +54,8 @@
     "CashRegisterDecommissioned": "Kasa devre dışı",
     "LicenseExpiringSoon": "Lisans süresi doluyor",
     "LicenseExpired": "Lisans süresi doldu",
+    "LimitApproaching": "Limit yaklaşıyor",
+    "LimitExceeded": "Limit aşıldı",
     "OfflineQueueGrowing": "Çevrimdışı kuyruk büyüyor",
     "FinanzOnlineSubmissionFailed": "FinanzOnline gönderim hatası",
     "BackupFailed": "Yedekleme başarısız",

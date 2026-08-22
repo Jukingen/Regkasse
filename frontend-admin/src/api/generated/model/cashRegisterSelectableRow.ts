@@ -5,11 +5,15 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { RegisterStatus } from './registerStatus';
 
 export interface CashRegisterSelectableRow {
+  /** @nullable */
+  assignedUserId?: string | null;
   id?: string;
   /** @nullable */
   location?: string | null;
   /** @nullable */
   registerNumber?: string | null;
+  status?: RegisterStatus;
 }

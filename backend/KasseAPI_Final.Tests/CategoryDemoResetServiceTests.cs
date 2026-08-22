@@ -9,14 +9,6 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CategoryDemoResetServiceTests
 {
-    private static AppDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"category_reset_{Guid.NewGuid():N}")
-            .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
-    }
-
     [Fact]
     public void ResolveDemoDisplayName_UsesOriginalDemoNameFirst()
     {
@@ -41,19 +33,32 @@ public sealed class CategoryDemoResetServiceTests
 
         Assert.Equal("Kebap", CategoryDemoResetService.ResolveDemoDisplayName(category));
     }
+}
 
-    [Fact]
+[Collection("PostgreSqlReplay")]
+[Trait("Category", "PostgreSql")]
+public sealed class CategoryDemoResetServicePostgreSqlTests
+{
+    private readonly PostgreSqlReplayFixture _fixture;
+
+    public CategoryDemoResetServicePostgreSqlTests(PostgreSqlReplayFixture fixture) => _fixture = fixture;
+
+    [SkippableFact]
     public async Task ResetDemoDisplayNamesAsync_RestoresNamesAndSyncsProducts()
     {
-        await using var db = CreateDb();
-        var tenantId = Guid.NewGuid();
-        db.Tenants.Add(new Tenant { Id = tenantId, Name = "Test", Slug = "test-reset", IsActive = true });
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
 
+        var tenantId = Guid.NewGuid();
+        await using var db = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
+
+        TenantTestDoubles.EnsureTenant(db, tenantId);
         var category = new Category
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
-            Key = "salate",
+            Key = $"salate-{tenantId:N}"[..20],
             Name = "Meine Salate",
             OriginalDemoName = "Salate",
             IsSystemCategory = true,

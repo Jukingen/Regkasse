@@ -22,6 +22,8 @@ export interface StoredSessionUser {
   isDemo?: boolean;
   tenantId?: string | null;
   tenantSlug?: string | null;
+  /** Last selected POS cash register (settings assignment). */
+  currentCashRegisterId?: string | null;
 }
 
 export interface SessionSnapshot {

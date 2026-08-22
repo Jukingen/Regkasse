@@ -777,8 +777,11 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal("K1", list[0].RegisterNumber);
     }
 
+    /// <summary>
+    /// Operational cardinality decides membership now: Open and Closed rows are listed, Maintenance / Disabled are not.
+    /// </summary>
     [Fact]
-    public async Task ListSelectableRegisters_WithCashRegisterView_ReturnsOnlyOpenRegisters()
+    public async Task ListSelectableRegisters_ReturnsOpenAndClosed_ButNotMaintenanceOrDisabled()
     {
         await using var ctx = CreateContext();
         var openId = Guid.NewGuid();
@@ -841,9 +844,10 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var list = await svc.ListSelectableRegistersAsync("u1", principal);
 
-        Assert.Single(list);
-        Assert.Equal(openId, list[0].Id);
-        Assert.Equal("K-OPEN", list[0].RegisterNumber);
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, r => r.Id == openId && r.RegisterNumber == "K-OPEN" && r.Status == RegisterStatus.Open);
+        Assert.Contains(list, r => r.RegisterNumber == "K-CLOSED" && r.Status == RegisterStatus.Closed);
+        Assert.DoesNotContain(list, r => r.RegisterNumber is "K-MNT" or "K-DIS");
     }
 
     [Fact]
@@ -1100,13 +1104,14 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
-    public async Task ListSelectableRegisters_AllClosed_ReturnsEmpty()
+    public async Task ListSelectableRegisters_AllClosed_ReturnsClosedRowsWithStatus()
     {
         await using var ctx = CreateContext();
+        var closedId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = SystemTenantIds.Platform,
-            Id = Guid.NewGuid(),
+            Id = closedId,
             RegisterNumber = "K1",
             Location = "A",
             StartingBalance = 0,
@@ -1122,7 +1127,9 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var list = await svc.ListSelectableRegistersAsync("u1", principal);
 
-        Assert.Empty(list);
+        Assert.Single(list);
+        Assert.Equal(closedId, list[0].Id);
+        Assert.Equal(RegisterStatus.Closed, list[0].Status);
     }
 
     [Fact]
@@ -1136,14 +1143,19 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal("no_registers", result.EmptyReason);
     }
 
+    /// <summary>
+    /// A closed register is a valid pick: POS opens it via shift auto-open on selection, so the picker must list it
+    /// instead of reporting an empty list.
+    /// </summary>
     [Fact]
-    public async Task ListSelectableForPosPicker_AllClosed_EmptyReasonNoneOpen()
+    public async Task ListSelectableForPosPicker_AllClosed_ReturnsClosedRow_WithoutEmptyReason()
     {
         await using var db = CreateContext();
+        var closedId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
             TenantId = SystemTenantIds.Platform,
-            Id = Guid.NewGuid(),
+            Id = closedId,
             RegisterNumber = "K1",
             Location = "A",
             StartingBalance = 0,
@@ -1158,8 +1170,11 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(db);
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_open", result.EmptyReason);
+
+        Assert.Single(result.Registers);
+        Assert.Equal(closedId, result.Registers[0].Id);
+        Assert.Equal(RegisterStatus.Closed, result.Registers[0].Status);
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
@@ -1343,8 +1358,12 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal(CashRegisterResolutionCodes.Forbidden, second.Code);
     }
 
+    /// <summary>
+    /// Assignment now turns on <see cref="CashRegister.AssignedUserId"/> rather than shift occupancy: an unassigned register
+    /// may be stored as a preference even while another user holds the shift. Payment and the picker still block it.
+    /// </summary>
     [Fact]
-    public async Task ValidateAssignmentChange_SoleRegister_OpenByOtherUser_ReturnsForbidden_WithoutCashRegisterView()
+    public async Task ValidateAssignmentChange_UnassignedRegister_OpenByOtherUser_Succeeds()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
@@ -1368,8 +1387,8 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), principal);
 
-        Assert.False(r.Ok);
-        Assert.Equal(CashRegisterResolutionCodes.Forbidden, r.Code);
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
     }
 
     /// <summary>
@@ -1523,6 +1542,180 @@ public class CashRegisterResolutionServiceTests
 
         Assert.Empty(list);
     }
+
+    [Fact]
+    public async Task ListSelectableRegisters_HidesRegistersAssignedToOtherUsers()
+    {
+        await using var ctx = CreateContext();
+        var mine = Guid.NewGuid();
+        var shared = Guid.NewGuid();
+        var theirs = Guid.NewGuid();
+        AddRegister(ctx, mine, "K1", RegisterStatus.Closed, assignedUserId: "u1");
+        AddRegister(ctx, shared, "K2", RegisterStatus.Open);
+        AddRegister(ctx, theirs, "K3", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.Equal(2, list.Count);
+        Assert.Contains(list, r => r.Id == mine);
+        Assert.Contains(list, r => r.Id == shared);
+        Assert.DoesNotContain(list, r => r.Id == theirs);
+    }
+
+    /// <summary>Only Super Admin bypasses the assignment filter; <c>cash_register.view</c> no longer does (Cashier and Waiter both hold it).</summary>
+    [Fact]
+    public async Task ListSelectableRegisters_SuperAdmin_SeesRegistersAssignedToOtherUsers()
+    {
+        await using var ctx = CreateContext();
+        var theirs = Guid.NewGuid();
+        AddRegister(ctx, theirs, "K1", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("sa", PrincipalWithRole(Roles.SuperAdmin));
+
+        Assert.Single(list);
+        Assert.Equal(theirs, list[0].Id);
+    }
+
+    /// <summary>Assignment does not override occupancy: an assigned register on another user's shift stays out of the picker.</summary>
+    [Fact]
+    public async Task ListSelectableRegisters_AssignedToCallerButHeldByOtherShift_IsExcluded()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Open, assignedUserId: "u1", currentUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.Empty(list);
+    }
+
+    [Fact]
+    public async Task ListSelectableForPosPicker_AllRegistersAssignedToOthers_EmptyReasonNoneAssigned()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Open, assignedUserId: "u2");
+        AddRegister(ctx, Guid.NewGuid(), "K2", RegisterStatus.Closed, assignedUserId: "u3");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var result = await svc.ListSelectableForPosPickerAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.Empty(result.Registers);
+        Assert.Equal("none_assigned", result.EmptyReason);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_ClosedRegister_Succeeds()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Closed);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_RegisterAssignedToOtherUser_ReturnsForbidden()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Open, assignedUserId: "u2");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Forbidden, r.Code);
+    }
+
+    [Theory]
+    [InlineData(RegisterStatus.Maintenance)]
+    [InlineData(RegisterStatus.Disabled)]
+    public async Task ValidateAssignmentChange_NonOperationalStatus_ReturnsClosed(RegisterStatus status)
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", status);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Closed, r.Code);
+    }
+
+    [Fact]
+    public async Task ValidateAssignmentChange_DecommissionedRegister_ReturnsDecommissioned()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Decommissioned);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidateAssignmentChangeAsync("u1", regId.ToString(), PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Decommissioned, r.Code);
+    }
+
+    [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_SkipsRegisterAssignedToAnotherUser()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Open, assignedUserId: "u2");
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Null(us.CashRegisterId);
+    }
+
+    private static void AddRegister(
+        AppDbContext ctx,
+        Guid id,
+        string registerNumber,
+        RegisterStatus status,
+        string? assignedUserId = null,
+        string? currentUserId = null) =>
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = id,
+            RegisterNumber = registerNumber,
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = status,
+            AssignedUserId = assignedUserId,
+            CurrentUserId = currentUserId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
 
     [Fact]
     public async Task ValidateAssignmentChange_InvalidGuid_ReturnsInvalid()

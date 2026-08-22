@@ -20,6 +20,9 @@ public sealed class CacheSettings
     /// <summary>TTL for tenant settings snapshots (<c>tenant_settings_{tenantId}</c>).</summary>
     public int TenantSettingsCacheMinutes { get; set; } = 60;
 
+    /// <summary>TTL for per-tenant operational caps (<c>tenant_limits_{tenantId}</c>).</summary>
+    public int TenantLimitsCacheMinutes { get; set; } = 5;
+
     /// <summary>
     /// TTL for optional TSE health snapshots via <see cref="Services.Caching.CacheKeys.TseHealth"/>.
     /// Process-wide TSE monitor uses in-memory snapshots today; this value is reserved for
@@ -34,6 +37,8 @@ public sealed class CacheSettings
     public TimeSpan PermissionCacheTtl => TimeSpan.FromMinutes(Math.Max(1, PermissionCacheMinutes));
 
     public TimeSpan TenantSettingsCacheTtl => TimeSpan.FromMinutes(Math.Max(1, TenantSettingsCacheMinutes));
+
+    public TimeSpan TenantLimitsCacheTtl => TimeSpan.FromMinutes(Math.Max(1, TenantLimitsCacheMinutes));
 
     public TimeSpan TseHealthCacheTtl => TimeSpan.FromSeconds(Math.Max(1, TseHealthCacheSeconds));
 }

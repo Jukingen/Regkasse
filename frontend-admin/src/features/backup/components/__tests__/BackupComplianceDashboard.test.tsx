@@ -19,6 +19,15 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
     formatLocale: 'de-AT',
+    textLocale: 'de',
+  }),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    formatLocale: 'de-AT',
+    textLocale: 'de',
   }),
 }));
 

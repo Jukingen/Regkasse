@@ -10,11 +10,17 @@ import {
   listAdminTenants,
 } from '@/features/super-admin/api/adminTenants';
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
+import { isTestTenantSlug } from '@/features/tenancy/hooks/useTenantListForSwitcher';
 import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 
 export type UseTenantListOptions = {
   enabled?: boolean;
 };
+
+/** Active business mandants for pickers — hides platform and leftover Test Cafe / Test Bar. */
+export function isOperationalPickerTenant(row: Pick<AdminTenantListItem, 'isActive' | 'slug'>): boolean {
+  return row.isActive && isBusinessTenantSlug(row.slug) && !isTestTenantSlug(row.slug);
+}
 
 /**
  * Active business tenants for invite modals and pickers.
@@ -38,7 +44,7 @@ export function useTenantList(options?: UseTenantListOptions) {
   const tenants = useMemo((): AdminTenantListItem[] => {
     const rows = superAdmin ? (adminTenantsQuery.data ?? []) : (switcherTenantsQuery.data ?? []);
     return rows
-      .filter((row) => row.isActive && isBusinessTenantSlug(row.slug))
+      .filter((row) => isOperationalPickerTenant(row))
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
   }, [superAdmin, adminTenantsQuery.data, switcherTenantsQuery.data]);
 

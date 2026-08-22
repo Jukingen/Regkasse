@@ -68,6 +68,13 @@ public sealed class CashRegisterDto
     public decimal CurrentBalance { get; init; }
     public DateTime LastBalanceUpdate { get; init; }
     public string? CurrentUserId { get; init; }
+
+    /// <summary>
+    /// Admin-managed cashier assignment. Null means the register is selectable by every POS user of the tenant.
+    /// Controls POS picker visibility only — payment authorization stays on <see cref="CurrentUserId"/> (open shift).
+    /// </summary>
+    public string? AssignedUserId { get; init; }
+
     public bool IsActive { get; init; }
     public bool IsDefaultForTenant { get; init; }
     public DateTime? DecommissionedAtUtc { get; init; }
@@ -93,5 +100,29 @@ public sealed class CashRegisterDto
 
     public string? CurrentCashierName { get; set; }
 
+    /// <summary>Login of the open-shift cashier; used to disambiguate similar display names.</summary>
+    public string? CurrentCashierUserName { get; set; }
+
+    /// <summary>Email of the open-shift cashier; omitted when the till is unattended.</summary>
+    public string? CurrentCashierEmail { get; set; }
+
+    /// <summary>Display name of <see cref="AssignedUserId"/>; null when the register is unassigned.</summary>
+    public string? AssignedUserName { get; set; }
+
     public CashRegisterDeviceInfoDto DeviceInfo { get; set; } = new();
+}
+
+/// <summary>
+/// Assigns a cash register to a cashier, or clears the assignment when <see cref="UserId"/> is null or empty.
+/// </summary>
+public sealed class AssignCashRegisterUserRequest
+{
+    /// <summary>Target user id. Must be an active member of the register's tenant. Null or empty removes the assignment.</summary>
+    public string? UserId { get; init; }
+
+    /// <summary>
+    /// SuperAdmin-only: skip tenant assignment cap (<c>maxActiveRegistersPerUser</c>).
+    /// Ignored for every other role.
+    /// </summary>
+    public bool Force { get; init; }
 }

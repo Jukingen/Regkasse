@@ -12,6 +12,7 @@ import { BackupConfigCard } from '@/features/backup/components/BackupConfigCard'
 import { BackupList } from '@/features/backup/components/BackupList';
 import { BackupProgress } from '@/features/backup/components/BackupProgress';
 import { BackupStats } from '@/features/backup/components/BackupStats';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useI18n } from '@/i18n';
 import { BACKUP_RUNS_PATH } from '@/shared/backupAreaRoutes';
 
@@ -26,6 +27,7 @@ export function TenantBackupView() {
         title={t('backupDr.overview.tenantView.alertTitle')}
         description={t('backupDr.overview.tenantView.alertDescription')}
       />
+      <LimitWarning limitKey={['maxBackupsPerTenant', 'maxBackupSizeMB']} />
       <BackupStats />
       <BackupProgress />
       <BackupConfigCard />

@@ -154,6 +154,8 @@ public class AdminAppPermissionProfileTests
     [InlineData(AppPermissions.SaleCreate)]
     [InlineData(AppPermissions.OrderUpdate)]
     [InlineData(AppPermissions.TseSign)]
+    [InlineData(AppPermissions.ShiftOpen)]
+    [InlineData(AppPermissions.ShiftClose)]
     public void Filter_Admin_Manager_StripsOperationalWritePermissions(string writePermission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });

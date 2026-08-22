@@ -667,6 +667,8 @@ namespace KasseAPI_Final.Services
                 AuditEventType.UserDeleted => AuditLogActions.USER_DELETE,
                 AuditEventType.UserTenantMembershipChanged => AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED,
                 AuditEventType.UserNameChanged => AuditLogActions.USER_NAME_CHANGE,
+                AuditEventType.UserForceLogout => AuditLogActions.USER_FORCE_LOGOUT,
+                AuditEventType.UserSessionTerminated => AuditLogActions.USER_SESSION_TERMINATED,
                 AuditEventType.RestoreRequested => AuditLogActions.RESTORE_REQUESTED,
                 AuditEventType.RestoreApproved => AuditLogActions.RESTORE_APPROVED,
                 AuditEventType.RestoreRejected => AuditLogActions.RESTORE_REJECTED,
@@ -726,6 +728,8 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.USER_DELETE => AuditEventType.UserDeleted,
                 AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED => AuditEventType.UserTenantMembershipChanged,
                 AuditLogActions.USER_NAME_CHANGE => AuditEventType.UserNameChanged,
+                AuditLogActions.USER_FORCE_LOGOUT => AuditEventType.UserForceLogout,
+                AuditLogActions.USER_SESSION_TERMINATED => AuditEventType.UserSessionTerminated,
                 AuditLogActions.RESTORE_REQUESTED => AuditEventType.RestoreRequested,
                 AuditLogActions.RESTORE_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.RESTORE_REJECTED => AuditEventType.RestoreRejected,
@@ -1163,7 +1167,9 @@ namespace KasseAPI_Final.Services
                     AuditLogActions.CHANGE_OWN_PASSWORD,
                     AuditLogActions.USER_ROLE_CHANGE,
                     AuditLogActions.USER_CREATE,
-                    AuditLogActions.TENANT_QUICK_USER_CREATED
+                    AuditLogActions.TENANT_QUICK_USER_CREATED,
+                    AuditLogActions.USER_FORCE_LOGOUT,
+                    AuditLogActions.USER_SESSION_TERMINATED
                 };
 
                 var query = AuditLogsReadOnlyWithUser

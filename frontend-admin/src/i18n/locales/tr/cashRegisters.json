@@ -8,7 +8,13 @@
     "compliance": "RKSV",
     "activity": "Aktivite",
     "balance": "Bakiye",
+    "assignedTo": "Atanan kişi",
     "actions": "İşlemler"
+  },
+  "assignment": {
+    "unassigned": "Atanmamış",
+    "assignedToMe": "Bana atanmış",
+    "assignedToOther": "Başkasına atanmış"
   },
   "tseHealth": {
     "healthy": "TSE OK",
@@ -66,7 +72,17 @@
     "closeShift": "Vardiya kapat",
     "dailyClosing": "Gün sonu kapanışı",
     "delete": "Sil",
-    "viewReceipts": "Fişleri göster"
+    "viewReceipts": "Fişleri göster",
+    "exportReport": "Raporu dışa aktar",
+    "exportData": "Verileri dışa aktar",
+    "createSpecialReceipt": "Sonderbeleg oluştur",
+    "decommissionedCannotOpen": "Bu kasa stillgelegt edildi ve artık açılamaz.",
+    "decommissionedCannotCreateSpecialReceipts": "Bu kasa stillgelegt edildi. Yeni Sonderbeleg oluşturulamaz.",
+    "viewReports": "Raporları göster"
+  },
+  "permission": {
+    "denied": "Bu kasayı görüntüleme yetkiniz yok.",
+    "decommissioned": "Bu kasa stillgelegt edildi ve artık açılamaz."
   },
   "statusBadge": {
     "open": {
@@ -115,8 +131,12 @@
     "unknown": "Durum {{status}}"
   },
   "shift": {
-    "openSuccess": "Kasa açıldı.",
-    "closeSuccess": "Kasa kapatıldı."
+    "openSuccess": "Kasa açıldı. Vardiya sizin kullanıcınız altında çalışıyor.",
+    "closeSuccess": "Kasa kapatıldı.",
+    "closeHeldByOther": "Bu kasa başka bir vardiyada açık. Yalnızca vardiya sahibi kapatabilir.",
+    "unknownHolder": "başka bir kullanıcı",
+    "forceCloseTitle": "Kasa yine de kapatılsın mı?",
+    "forceCloseContent": "Güncel vardiya {{holder}} adlı kullanıcıda. Kasa kapanır; kasiyer ardından satış yapamaz."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Vardiya ve RKSV: kasa durumu rehberi",
@@ -196,14 +216,41 @@
     "restoreTooltip": "RKSV: Schlussbeleg ile kapatma geri alınamaz."
   },
   "detail": {
-    "title": "Kasa",
+    "title": "Kasa ayrıntıları",
     "titleWithNumber": "Kasa: {{number}}",
+    "name": "Ad",
+    "description": "Açıklama",
+    "status": "Durum",
     "registerNumber": "Kasa numarası",
     "location": "Ad / konum",
     "createdAt": "Oluşturulma",
+    "updatedAt": "Son değişiklik",
+    "statistics": "İstatistik",
+    "history": "Geçmiş",
+    "actions": "İşlemler",
+    "notFound": "Kasa bulunamadı.",
+    "statTransactions": "İşlemler",
+    "statRevenue": "Ciro",
+    "statShifts": "Vardiyalar",
+    "statLastTransaction": "Son işlem",
+    "historyShifts": "Vardiyalar",
+    "historyPayments": "Ödemeler",
+    "historySonderbelege": "Sonderbelege",
+    "historyAudit": "Denetim günlüğü",
+    "decommissionedTitle": "Bu kasa stillgelegt edildi",
+    "decommissionedDescription": "Bu kasa artık açılamaz. Tüm geçmiş veriler görüntülenebilir.",
+    "openReports": "Kasa raporlarını aç",
     "currentBalance": "Güncel bakiye",
     "startingBalance": "Başlangıç bakiyesi",
     "currentUser": "Açan kullanıcı",
+    "assignedUser": "Atanmış kasiyer",
+    "assignedUserNone": "Atanmamış",
+    "assignedUserPlaceholder": "Kasiyer seçin",
+    "assignedUserHint": "Kasayı POS seçim listesinde yalnızca bu kasiyer görür. Ödeme yetkisi açık vardiyaya bağlı kalır.",
+    "assignedUserHintUnassigned": "Atama yapılmadığında kasa, mandantın tüm kasiyerlerine görünür.",
+    "assignedUserSaved": "Kasiyer kasaya atandı.",
+    "assignedUserCleared": "Atama kaldırıldı.",
+    "assignedUserFailed": "Atama kaydedilemedi.",
     "lastBalanceUpdate": "Son bakiye güncellemesi",
     "startbelegCreatedAt": "Startbeleg oluşturulma",
     "lastMonatsbelegUtc": "Son Monatsbeleg",
@@ -222,7 +269,7 @@
     "deviceOs": "İşletim sistemi",
     "deviceApp": "Uygulama sürümü",
     "offlineQueueTransactions": "{{count}} işlem",
-    "noCashier": "Kimse yok",
+    "noCashier": "Kasiyer yok",
     "deviceUnknown": "Bilinmiyor"
   },
   "hardDelete": {
@@ -310,5 +357,18 @@
     },
     "mandantHeader": "Kiracı: {{name}} ({{slug}})",
     "defaultTag": "Varsayılan"
+  },
+  "reports": {
+    "title": "Kasa raporları",
+    "intro": "Kasa bazında ciro, işlem, vardiya ve Sonderbeleg raporları — stillgelegt kasalar dahil.",
+    "filterRegister": "Kasa",
+    "selectRegister": "Lütfen bir kasa seçin.",
+    "types": {
+      "revenue": "Ciro raporu",
+      "transactions": "İşlem raporu",
+      "shifts": "Vardiya raporu",
+      "specialReceipts": "Sonderbeleg raporu"
+    },
+    "userActivityCard": "Kullanıcı aktivitesi"
   }
 }

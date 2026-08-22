@@ -66,49 +66,6 @@ public sealed class LicenseReminderServiceTests
     }
 
     [Fact]
-    public async Task SendDueMandantExpiryRemindersAsync_SendsExpiredOnce()
-    {
-        var (db, _) = await CreateDbAsync();
-        await using var _ = db;
-
-        var tenant = SeedTenant(db, validUntilUtc: DateTime.UtcNow.AddDays(-2));
-        SeedOwnerUser(db, tenant.Id, "owner@regkasse.test");
-
-        var emailSender = new Mock<ILicenseReminderEmailSender>();
-        emailSender
-            .Setup(x => x.TrySendTenantLicenseReminderAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var billingAudit = new Mock<IBillingAuditService>();
-        billingAudit
-            .Setup(x => x.LogAsync(
-                BillingAuditEventTypes.LicenseReminderSent,
-                Guid.Empty,
-                tenant.Id,
-                null,
-                It.IsAny<string>(),
-                null,
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var sut = CreateService(db, emailSender.Object, billingAudit.Object);
-        var result = await sut.SendDueMandantExpiryRemindersAsync();
-
-        Assert.Equal(1, result.EmailsSent);
-        emailSender.Verify(
-            x => x.TrySendTenantLicenseReminderAsync(
-                "owner@regkasse.test",
-                It.Is<string>(s => s.Contains("DRINGEND", StringComparison.Ordinal)),
-                It.Is<string>(b => b.Contains("abgelaufen", StringComparison.OrdinalIgnoreCase)),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task SendDueMandantExpiryRemindersAsync_SkipsExpiredOutsideArchiveWindow()
     {
         var (db, _) = await CreateDbAsync();
@@ -406,7 +363,7 @@ public sealed class LicenseReminderServiceTests
         Assert.NotNull(reminder.ReminderSentAtUtc);
     }
 
-    private static LicenseReminderService CreateService(
+    internal static LicenseReminderService CreateService(
         AppDbContext db,
         ILicenseReminderEmailSender emailSender,
         IBillingAuditService billingAudit)
@@ -443,7 +400,7 @@ public sealed class LicenseReminderServiceTests
         return (db, factory);
     }
 
-    private static Tenant SeedTenant(
+    internal static Tenant SeedTenant(
         AppDbContext db,
         DateTime? validUntilUtc = null,
         string slug = "cafe",
@@ -452,7 +409,7 @@ public sealed class LicenseReminderServiceTests
         var tenant = new Tenant
         {
             Id = Guid.NewGuid(),
-            Name = "Cafe Demo",
+            Name = slug,
             Slug = slug,
             Email = email,
             Status = TenantStatuses.Active,
@@ -466,7 +423,7 @@ public sealed class LicenseReminderServiceTests
         return tenant;
     }
 
-    private static void SeedOwnerUser(AppDbContext db, Guid tenantId, string email)
+    internal static void SeedOwnerUser(AppDbContext db, Guid tenantId, string email)
     {
         var userId = Guid.NewGuid().ToString();
         db.Users.Add(new ApplicationUser
@@ -480,6 +437,7 @@ public sealed class LicenseReminderServiceTests
             LastName = "User",
             Role = Roles.Cashier,
             IsActive = true,
+            EmployeeNumber = userId.Length > 20 ? userId[..20] : userId,
         });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -512,6 +470,7 @@ public sealed class LicenseReminderServiceTests
             LastName = lastName,
             Role = Roles.Manager,
             IsActive = true,
+            EmployeeNumber = userId.Length > 20 ? userId[..20] : userId,
         });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
@@ -550,5 +509,65 @@ public sealed class LicenseReminderServiceTests
         db.LicenseSales.Add(sale);
         db.SaveChanges();
         return sale;
+    }
+}
+
+[Collection("PostgreSqlReplay")]
+[Trait("Category", "PostgreSql")]
+public sealed class LicenseReminderExpiredSuspendPostgreSqlTests
+{
+    private readonly PostgreSqlReplayFixture _fixture;
+
+    public LicenseReminderExpiredSuspendPostgreSqlTests(PostgreSqlReplayFixture fixture) => _fixture = fixture;
+
+    [SkippableFact]
+    public async Task SendDueMandantExpiryRemindersAsync_SendsExpiredOnce()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+
+        await using var db = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            NullCurrentTenantAccessor.Instance);
+
+        var slug = $"lr-{Guid.NewGuid():N}"[..12];
+        var email = $"owner-{slug}@regkasse.test";
+        var tenant = LicenseReminderServiceTests.SeedTenant(
+            db,
+            validUntilUtc: DateTime.UtcNow.AddDays(-2),
+            slug: slug);
+        LicenseReminderServiceTests.SeedOwnerUser(db, tenant.Id, email);
+
+        var emailSender = new Mock<ILicenseReminderEmailSender>();
+        emailSender
+            .Setup(x => x.TrySendTenantLicenseReminderAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var billingAudit = new Mock<IBillingAuditService>();
+        billingAudit
+            .Setup(x => x.LogAsync(
+                BillingAuditEventTypes.LicenseReminderSent,
+                Guid.Empty,
+                tenant.Id,
+                null,
+                It.IsAny<string>(),
+                null,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = LicenseReminderServiceTests.CreateService(db, emailSender.Object, billingAudit.Object);
+        var result = await sut.SendDueMandantExpiryRemindersAsync();
+
+        Assert.Equal(1, result.EmailsSent);
+        emailSender.Verify(
+            x => x.TrySendTenantLicenseReminderAsync(
+                email,
+                It.Is<string>(s => s.Contains("DRINGEND", StringComparison.Ordinal)),
+                It.Is<string>(b => b.Contains("abgelaufen", StringComparison.OrdinalIgnoreCase)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

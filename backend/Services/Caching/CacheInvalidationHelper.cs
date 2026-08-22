@@ -117,7 +117,8 @@ public static class CacheInvalidationHelper
                 tenantId,
                 cancellationToken,
                 CacheKeys.LicenseStatus,
-                CacheKeys.TenantSettings)
+                CacheKeys.TenantSettings,
+                CacheKeys.TenantLimits)
             .ConfigureAwait(false);
 
         await InvalidateProductCacheAsync(cache, tenantId, productId: null, cancellationToken)

@@ -13,4 +13,6 @@ export interface ActivateLicenseRequest {
   machineFingerprint?: string | null;
   /** @nullable */
   offlineActivationJwt?: string | null;
+  /** @nullable */
+  tenantId?: string | null;
 }

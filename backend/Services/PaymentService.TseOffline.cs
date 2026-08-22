@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,31 +28,41 @@ public partial class PaymentService
         if (IsVoucherPaymentForOfflineQueue(request))
             throw new InvalidOperationException("Voucher payments cannot be processed offline.");
 
-        var max = LicenseEnforcementPolicy.GetMaxOfflineTransactionsPerCashRegister(
-            _hostEnvironment,
-            _tseOptions,
-            _developmentModeService,
-            _licenseOptions);
-        var pendingCount = await _context.OfflineTransactions.CountAsync(x =>
-                x.CashRegisterId == resolvedCashRegisterId &&
-                x.Status == OfflineTransactionStatus.NonFiscalPending)
-            .ConfigureAwait(false);
-
-        if (pendingCount >= max)
+        if (!LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                _hostEnvironment,
+                _tseOptions,
+                _developmentModeService,
+                _licenseOptions)
+            && _tenantLimitGuard != null)
         {
-            _logger.LogWarning(
-                "Non-fiscal offline queue full for RegisterId={RegisterId} Count={Count} Max={Max}",
-                resolvedCashRegisterId,
-                pendingCount,
-                max);
-            return new PaymentResult
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
+            if (tenantId != Guid.Empty)
             {
-                Success = false,
-                Message = "Offline queue limit reached for this cash register.",
-                Errors = { "Too many pending non-fiscal transactions; wait for replay or contact support." },
-                DiagnosticCode = "OFFLINE_QUEUE_FULL",
-                IsDeterministicFailure = false
-            };
+                try
+                {
+                    await _tenantLimitGuard
+                        .EnsureCanQueueOfflineTransactionAsync(tenantId)
+                        .ConfigureAwait(false);
+                }
+                catch (LimitExceededException ex)
+                {
+                    _logger.LogWarning(
+                        "Non-fiscal offline queue tenant limit TenantId={TenantId} LimitKey={LimitKey} Count={Current} Max={Max}",
+                        tenantId,
+                        ex.LimitKey,
+                        ex.CurrentValue,
+                        ex.Limit);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = ex.Message,
+                        Errors = { ex.Message },
+                        DiagnosticCode = LimitExceededException.ErrorCodeValue,
+                        LimitError = ex.ToErrorDto(),
+                        IsDeterministicFailure = true
+                    };
+                }
+            }
         }
 
         var payloadRaw = JsonSerializer.Serialize(request, OfflineIntentJsonOptions);

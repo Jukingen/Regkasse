@@ -7,6 +7,7 @@ import { ensureDefaultApiErrorTranslations } from '@/lib/api/errorTranslator';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 import { getRegisteredMessageKeyForApiErrorCode } from './apiErrorCodeRegistry';
+import { translateLimitExceededError } from './limitExceededMessage';
 import type { NormalizedApiError } from './normalizedApiError';
 import { normalizeApiError } from './normalizedApiError';
 import { buildTechnicalApiErrorPayload } from './technicalApiErrorLog';
@@ -56,6 +57,9 @@ export function getUserFacingApiErrorMessage(
   if (options.loginContext && normalized.httpStatus === 401 && normalized.rawMessage) {
     return normalized.rawMessage;
   }
+
+  const limitMsg = translateLimitExceededError(t, error);
+  if (limitMsg) return limitMsg;
 
   const byCode = tryCodeBasedUserMessage(t, normalized);
   if (byCode) return byCode;

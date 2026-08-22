@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,7 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IAuditLogService _auditLog;
     private readonly ICurrentTenantAccessor? _tenantAccessor;
+    private readonly ICashRegisterManagementService? _cashRegisters;
     private readonly ILogger<FiskalySettingsService> _logger;
 
     public FiskalySettingsService(
@@ -26,7 +28,8 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
         IDbContextFactory<AppDbContext> dbFactory,
         IAuditLogService auditLog,
         ILogger<FiskalySettingsService> logger,
-        ICurrentTenantAccessor? tenantAccessor = null)
+        ICurrentTenantAccessor? tenantAccessor = null,
+        ICashRegisterManagementService? cashRegisters = null)
     {
         _options = options;
         _enabledCache = enabledCache;
@@ -35,6 +38,7 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
         _auditLog = auditLog;
         _logger = logger;
         _tenantAccessor = tenantAccessor;
+        _cashRegisters = cashRegisters;
     }
 
     public FiskalySettingsDto GetSettings()
@@ -74,6 +78,7 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
             if (auth.Success)
             {
                 await ProbeScuAsync(status, opts, cancellationToken).ConfigureAwait(false);
+                await ProbeCashRegistersAsync(status, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -111,6 +116,33 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
             status.ScuInitialized = false;
             status.Error ??= Sanitize(ex.Message);
             _logger.LogWarning(ex, "Fiskaly SCU status probe failed.");
+        }
+    }
+
+    private async Task ProbeCashRegistersAsync(FiskalyStatusDto status, CancellationToken cancellationToken)
+    {
+        if (_cashRegisters is null || _tenantAccessor?.TenantId is not Guid tenantId)
+            return;
+
+        try
+        {
+            var registers = await _cashRegisters
+                .ListAsync(tenantId, excludeStatus: "Decommissioned", actorIsSuperAdmin: true, 1, 20, cancellationToken)
+                .ConfigureAwait(false);
+
+            foreach (var register in registers.Items)
+            {
+                var remote = await _client.GetCashRegisterAsync(register.Id, cancellationToken).ConfigureAwait(false);
+                if (string.Equals(remote?.State, FiskalyResourceStates.Initialized, StringComparison.OrdinalIgnoreCase))
+                {
+                    status.CashRegisterInitialized = true;
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fiskaly cash register status probe failed.");
         }
     }
 

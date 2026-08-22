@@ -69,7 +69,7 @@ function mondayFirstIndex(year: number, month: number): number {
 }
 
 function buildGrid(year: number, month: number, days: DailyClosingCalendarDay[]): GridCell[] {
-  const byDate = new Map(days.map((day) => [calendarDateKey(day.date), day]));
+  const byDate = new Map(days.map((day) => [calendarDateKey(day.date ?? ''), day]));
   const daysInMonth = new Date(year, month, 0).getDate();
   const lead = mondayFirstIndex(year, month);
   const cells: GridCell[] = [];
@@ -132,7 +132,7 @@ export function DailyClosingCalendar({
 
   const moveSelection = useCallback(
     (current: DailyClosingCalendarDay, delta: number) => {
-      const index = dayOrder.findIndex((cell) => cell.key === calendarDateKey(current.date));
+      const index = dayOrder.findIndex((cell) => cell.key === calendarDateKey(current.date ?? ''));
       if (index < 0) return;
       const next = dayOrder[index + delta];
       if (next) onSelectDay(next.day);
@@ -185,7 +185,9 @@ export function DailyClosingCalendar({
             return <div key={cell.key} className={styles.pad} />;
           }
           const selected = selectedDate === dateKey;
-          const tooltip = t(calendarStatusTooltipKey(status), { count: day.transactionCount });
+          const tooltip = t(calendarStatusTooltipKey(status), {
+            count: day.transactionCount ?? 0,
+          });
           const todayTip = day.isToday ? ` ${t('tagesabschluss.calendar.tooltip.today')}` : '';
           const items: NonNullable<MenuProps['items']> = [];
           if (canExecute && day.canClose) {
@@ -247,7 +249,7 @@ export function DailyClosingCalendar({
             >
               <span className={styles.dayNumber}>{Number(dateKey.slice(8, 10))}</span>
               <span className={styles.count}>
-                {t('tagesabschluss.calendar.txCount', { count: day.transactionCount })}
+                {t('tagesabschluss.calendar.txCount', { count: day.transactionCount ?? 0 })}
               </span>
             </button>
           );

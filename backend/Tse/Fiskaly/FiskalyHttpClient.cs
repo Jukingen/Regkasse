@@ -26,6 +26,11 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
     private readonly SemaphoreSlim _authLock = new(1, 1);
 
+    private static readonly JsonSerializerOptions FiskalyJson = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     public FiskalyHttpClient(
         HttpClient httpClient,
         IOptions<FiskalyOptions> options,
@@ -298,35 +303,13 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             throw new FiskalyApiException("Fiskaly is disabled. Fiscal signing is not available.");
 
         var token = await RequireAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-        var vatRows = ResolveVatRows(data);
-        var paymentType = string.IsNullOrWhiteSpace(data.PaymentType) ? "CASH" : data.PaymentType.Trim().ToUpperInvariant();
-        var receiptType = string.IsNullOrWhiteSpace(data.ReceiptType) ? "NORMAL" : data.ReceiptType.Trim().ToUpperInvariant();
-        var paymentAmount = FormatAmount(vatRows.Sum(row => row.Amount));
+        var payload = FiskalyReceiptSchemaMapper.BuildSignRequest(data);
 
         using var request = new HttpRequestMessage(
             HttpMethod.Put,
             $"cash-register/{cashRegisterId:D}/receipt/{receiptId:D}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        request.Content = JsonContent.Create(new
-        {
-            receipt_type = receiptType,
-            schema = new
-            {
-                standard_v1 = new
-                {
-                    receipt = new
-                    {
-                        amounts_per_vat_rate = vatRows
-                            .Select(row => new { vat_rate = row.VatRate, amount = FormatAmount(row.Amount) })
-                            .ToArray(),
-                        amounts_per_payment_type = new[]
-                        {
-                            new { payment_type = paymentType, amount = paymentAmount }
-                        }
-                    }
-                }
-            }
-        });
+        request.Content = JsonContent.Create(payload, options: FiskalyJson);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessAsync(response, "Sign receipt", cancellationToken).ConfigureAwait(false);
@@ -803,34 +786,6 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             dto?.ReceiptType,
             fonJson);
     }
-
-    internal static IReadOnlyList<FiskalyVatAmount> ResolveVatRows(FiskalyTransactionData data)
-    {
-        if (data.AmountsPerVatRate is { Count: > 0 })
-        {
-            return data.AmountsPerVatRate
-                .Select(row => new FiskalyVatAmount
-                {
-                    VatRate = string.IsNullOrWhiteSpace(row.VatRate)
-                        ? "STANDARD"
-                        : row.VatRate.Trim().ToUpperInvariant(),
-                    Amount = row.Amount
-                })
-                .ToArray();
-        }
-
-        return
-        [
-            new FiskalyVatAmount
-            {
-                VatRate = string.IsNullOrWhiteSpace(data.VatRate) ? "STANDARD" : data.VatRate.Trim().ToUpperInvariant(),
-                Amount = data.TotalAmount
-            }
-        ];
-    }
-
-    private static string FormatAmount(decimal amount) =>
-        amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
     private sealed class FiskalyReceiptResponseDto
     {

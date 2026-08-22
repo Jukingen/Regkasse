@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -171,8 +172,10 @@ public sealed class TseOfflineQueueServiceTests
         IActivityEventPublisher activity,
         IAuditLogService audit)
     {
-        var tse = new Mock<IOptionsMonitor<TseOptions>>();
-        tse.Setup(o => o.CurrentValue).Returns(new TseOptions { MaxOfflineTransactionsPerCashRegister = 50 });
+        var limits = new Mock<ITenantLimitService>();
+        limits
+            .Setup(s => s.GetLimitValueAsync(It.IsAny<Guid>(), TenantLimitKeys.MaxOfflineTransactions, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(50);
         var monitoring = new Mock<IOptionsMonitor<OfflineMonitoringOptions>>();
         monitoring.Setup(o => o.CurrentValue).Returns(new OfflineMonitoringOptions
         {
@@ -185,7 +188,7 @@ public sealed class TseOfflineQueueServiceTests
             ctx,
             activity,
             audit,
-            tse.Object,
+            limits.Object,
             monitoring.Object,
             NullLogger<TseOfflineQueueService>.Instance);
     }

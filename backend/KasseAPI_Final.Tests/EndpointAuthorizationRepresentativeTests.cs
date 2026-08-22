@@ -215,11 +215,11 @@ public class EndpointAuthorizationRepresentativeTests
     }
 
     [Fact]
-    public async Task Reports_ReportView_Cashier_Denied()
+    public async Task Reports_ReportView_Cashier_Allowed()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
         var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.ReportView));
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
     }
 
     // --- Settings ---

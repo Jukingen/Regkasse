@@ -6,6 +6,110 @@
     "version": "v1"
   },
   "paths": {
+    "/api/admin/daily-closing/calendar": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyClosingCalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/daily-closing/dashboard-summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyClosingDashboardSummaryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/activities": {
       "get": {
         "tags": [
@@ -967,6 +1071,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -3208,6 +3322,183 @@
         }
       }
     },
+    "/api/admin/cash-registers/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCashRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HardDeleteCashRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/cash-registers/by-tenant": {
       "get": {
         "tags": [
@@ -3348,6 +3639,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -3380,8 +3681,8 @@
         }
       }
     },
-    "/api/admin/cash-registers/{id}": {
-      "put": {
+    "/api/admin/cash-registers/{id}/assign": {
+      "post": {
         "tags": [
           "Admin"
         ],
@@ -3400,7 +3701,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCashRegisterRequest"
+                "$ref": "#/components/schemas/AssignCashRegisterUserRequest"
               }
             }
           }
@@ -3418,6 +3719,26 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -3447,8 +3768,10 @@
             }
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/api/admin/cash-registers/{id}/open": {
+      "post": {
         "tags": [
           "Admin"
         ],
@@ -3467,14 +3790,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HardDeleteCashRegisterRequest"
+                "$ref": "#/components/schemas/OpenCashRegisterModel"
               }
             }
           }
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "OK"
           },
           "400": {
             "description": "Bad Request",
@@ -3486,8 +3809,110 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/cash-registers/{id}/close": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseCashRegisterModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3739,112 +4164,6 @@
         }
       }
     },
-    "/api/admin/daily-closing/calendar": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "GET: month grid of closed / open / empty / future Vienna days for the ambient tenant.",
-        "parameters": [
-          {
-            "name": "year",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "month",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "cashRegisterId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyClosingCalendarDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/daily-closing/dashboard-summary": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "GET: Vienna-today status plus ISO week (Mon–Sun) counts for the dashboard widget.",
-        "parameters": [
-          {
-            "name": "cashRegisterId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyClosingDashboardSummaryDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/admin/reports/daily-closing": {
       "get": {
         "tags": [
@@ -3971,6 +4290,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeploymentRunListResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/deployments/go-live-status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoLiveStatusDto"
                 }
               }
             }
@@ -6478,6 +6826,226 @@
         }
       }
     },
+    "/api/admin/fiskaly/settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalySettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFiskalySettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalySettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiskaly/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "probeAuthentication",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiskaly/setup": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalySetupStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiskaly/fon/authenticate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticateFonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyFonAuthDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiskaly/scu/initialize": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyScuSetupDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiskaly/cash-register/{id}/initialize": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyCashRegisterSetupDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/grace-periods/config": {
       "get": {
         "tags": [
@@ -7177,6 +7745,36 @@
         }
       }
     },
+    "/api/admin/license/certificate": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/license/{issuedLicenseId}/export": {
       "get": {
         "tags": [
@@ -7816,6 +8414,13 @@
               "type": "string",
               "format": "date-time"
             }
+          },
+          {
+            "name": "userSearch",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7825,6 +8430,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LicenseAuditLogListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/audit/export": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "userSearch",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -15612,6 +16277,187 @@
         }
       }
     },
+    "/api/admin/sessions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminActiveSessionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/user/{userId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminActiveSessionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/{sessionId}/terminate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/user/{userId}/terminate-all": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionsCountDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/user/{userId}/force-logout": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForceLogoutResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/terminate-all": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionsCountDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/shifts/overview": {
       "get": {
         "tags": [
@@ -15933,6 +16779,37 @@
               "format": "int32",
               "default": 50
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -16045,6 +16922,124 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MonthlyInvoiceGenerationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/invoices/{id}/mark-paid": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkPaidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionInvoiceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/invoices/{id}/void": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidInvoiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionInvoiceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -19285,6 +20280,204 @@
           },
           "503": {
             "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/limits": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantLimitsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantLimitsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantLimitsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/limits/reset": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/limits": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantLimitUsageDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/limits/dashboard": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "allTenants",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitDashboardDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -29301,6 +30494,108 @@
         }
       }
     },
+    "/api/admin/analytics/tse": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TseAnalyticsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/analytics/payment-volume": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentVolumeAnalyticsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/app/version": {
       "get": {
         "tags": [
@@ -32478,6 +33773,116 @@
         }
       }
     },
+    "/api/admin/finanzonline-outbox/worker-settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFinanzOnlineOutboxWorkerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/finanzonline-outbox/runtime-settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanzOnlineRuntimeSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFinanzOnlineRuntimeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanzOnlineRuntimeSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finanzonline-outbox": {
       "get": {
         "tags": [
@@ -32959,6 +34364,25 @@
           },
           "503": {
             "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/health/fiskaly/status": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyStatusDto"
+                }
+              }
+            }
           }
         }
       }
@@ -38440,6 +39864,57 @@
         }
       }
     },
+    "/api/pos/cash-register/default": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDefaultCashRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftAutoOpenResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/company": {
       "get": {
         "tags": [
@@ -38955,7 +40430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CashierShiftDto"
+                  "$ref": "#/components/schemas/ShiftAutoOpenResult"
                 }
               }
             }
@@ -38965,27 +40440,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ShiftAutoOpenResult"
                 }
               }
             }
@@ -39381,41 +40836,6 @@
         }
       }
     },
-    "/api/pos/tse/status": {
-      "get": {
-        "tags": [
-          "POS"
-        ],
-        "parameters": [
-          {
-            "name": "cashRegisterId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PosTseStatusDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/api/pos/storno": {
       "post": {
         "tags": [
@@ -39457,6 +40877,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StornoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/tse/status": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosTseStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -41825,6 +43294,26 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -41865,6 +43354,26 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -41931,6 +43440,26 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -41979,6 +43508,26 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -42019,6 +43568,26 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -43190,6 +44759,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tse/status": {
+      "get": {
+        "tags": [
+          "Tse"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TseStatus"
                 }
               }
             }
@@ -44461,6 +46049,11 @@
           "machineFingerprint": {
             "type": "string",
             "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -44993,6 +46586,88 @@
             "maxLength": 500,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminActiveSessionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientApp": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "browser": {
+            "type": "string",
+            "nullable": true
+          },
+          "os": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "startedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isCurrent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -47621,6 +49296,19 @@
         },
         "additionalProperties": false
       },
+      "AssignCashRegisterUserRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "force": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "AssignItemRequest": {
         "required": [
           "itemId"
@@ -47738,6 +49426,18 @@
           61,
           62,
           63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
           99
         ],
         "type": "integer",
@@ -48465,15 +50165,39 @@
         },
         "additionalProperties": false
       },
-      "AutoOpenShiftRequest": {
+      "AuthenticateFonRequest": {
         "required": [
-          "cashRegisterId"
+          "fonParticipantId",
+          "fonUserId",
+          "fonUserPin"
         ],
+        "type": "object",
+        "properties": {
+          "fonParticipantId": {
+            "maxLength": 12,
+            "minLength": 8,
+            "pattern": "^[0-9A-Za-z]{8,12}$",
+            "type": "string"
+          },
+          "fonUserId": {
+            "maxLength": 12,
+            "minLength": 5,
+            "type": "string"
+          },
+          "fonUserPin": {
+            "maxLength": 128,
+            "minLength": 5,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AutoOpenShiftRequest": {
         "type": "object",
         "properties": {
           "cashRegisterId": {
             "type": "string",
-            "format": "uuid"
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -51673,6 +53397,11 @@
             "type": "string",
             "nullable": true
           },
+          "assignedUserId": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
           "lastMonatsbelegUtc": {
             "type": "string",
             "format": "date-time",
@@ -51715,6 +53444,9 @@
             "$ref": "#/components/schemas/Tenant"
           },
           "currentUser": {
+            "$ref": "#/components/schemas/ApplicationUser"
+          },
+          "assignedUser": {
             "$ref": "#/components/schemas/ApplicationUser"
           },
           "transactions": {
@@ -51791,6 +53523,10 @@
             "type": "string",
             "nullable": true
           },
+          "assignedUserId": {
+            "type": "string",
+            "nullable": true
+          },
           "isActive": {
             "type": "boolean"
           },
@@ -51855,6 +53591,18 @@
             "type": "string",
             "nullable": true
           },
+          "currentCashierUserName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentCashierEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedUserName": {
+            "type": "string",
+            "nullable": true
+          },
           "deviceInfo": {
             "$ref": "#/components/schemas/CashRegisterDeviceInfoDto"
           }
@@ -51873,6 +53621,13 @@
             "nullable": true
           },
           "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/RegisterStatus"
+          },
+          "assignedUserId": {
             "type": "string",
             "nullable": true
           }
@@ -55412,6 +57167,60 @@
         "type": "integer",
         "format": "int32"
       },
+      "CriticalUserDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "limitKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "current": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendedAction": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CryptoMaterialDto": {
         "type": "object",
         "properties": {
@@ -55743,6 +57552,22 @@
           "newTenantsLast30Days": {
             "type": "integer",
             "format": "int32"
+          },
+          "churnRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "arpu": {
+            "type": "number",
+            "format": "double"
+          },
+          "planDistribution": {
+            "$ref": "#/components/schemas/PlanDistributionDto"
+          },
+          "customerLtv": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -55925,46 +57750,6 @@
         },
         "additionalProperties": false
       },
-      "DailyClosingDayDto": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date"
-          },
-          "isClosed": {
-            "type": "boolean"
-          },
-          "dayKind": {
-            "type": "string",
-            "nullable": true
-          },
-          "closingType": {
-            "type": "string",
-            "nullable": true,
-            "description": "Calendar day kind (normal/empty), not Daily/Monthly/Yearly."
-          },
-          "transactionCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "canClose": {
-            "type": "boolean"
-          },
-          "closingId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "isToday": {
-            "type": "boolean"
-          },
-          "isFuture": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
       "DailyClosingDashboardSummaryDto": {
         "type": "object",
         "properties": {
@@ -55983,6 +57768,45 @@
             "$ref": "#/components/schemas/DailyClosingLastClosingDto"
           },
           "requiresAttention": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingDayDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "dayKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "closingType": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "closingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isToday": {
+            "type": "boolean"
+          },
+          "isFuture": {
             "type": "boolean"
           }
         },
@@ -56042,44 +57866,6 @@
             "nullable": true
           },
           "transactionCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "DailyClosingWeekSummaryDto": {
-        "type": "object",
-        "properties": {
-          "start": {
-            "type": "string",
-            "format": "date"
-          },
-          "end": {
-            "type": "string",
-            "format": "date"
-          },
-          "totalDays": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "closedDays": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "emptyDays": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "openDays": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "noTransactionDays": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "futureDays": {
             "type": "integer",
             "format": "int32"
           }
@@ -56279,6 +58065,44 @@
         },
         "additionalProperties": false
       },
+      "DailyClosingWeekSummaryDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "closedDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emptyDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noTransactionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "futureDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "DailyReconciliationReportDto": {
         "type": "object",
         "properties": {
@@ -56382,6 +58206,24 @@
         },
         "additionalProperties": false
       },
+      "DailyVolumeDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "DashboardPreferencesResponseDto": {
         "type": "object",
         "properties": {
@@ -56396,6 +58238,28 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardSummaryDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "healthy": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warning": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "critical": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -59444,6 +61308,14 @@
             "type": "string",
             "nullable": true
           },
+          "currentCashierUserName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentCashierEmail": {
+            "type": "string",
+            "nullable": true
+          },
           "deviceInfo": {
             "$ref": "#/components/schemas/CashRegisterDeviceInfoDto"
           }
@@ -60154,6 +62026,118 @@
         },
         "additionalProperties": false
       },
+      "FinanzOnlineOutboxWorkerAllowedDto": {
+        "type": "object",
+        "properties": {
+          "pollIntervalSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "maxAttempts": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "baseDelaySeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "backoffCapSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "jitterMaxSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "processingTimeoutSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineOutboxWorkerNumericDto": {
+        "type": "object",
+        "properties": {
+          "effective": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "config": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overlay": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineOutboxWorkerRangeDto": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineOutboxWorkerSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "configEnabled": {
+            "type": "boolean"
+          },
+          "overrideEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pollIntervalSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "maxAttempts": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "baseDelaySeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "backoffCapSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "jitterMaxSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "processingTimeoutSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "allowed": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerAllowedDto"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "isProduction": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "FinanzOnlineReadinessDiagnosticsDto": {
         "type": "object",
         "properties": {
@@ -60440,6 +62424,85 @@
           "submittedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineRuntimeAllowedDto": {
+        "type": "object",
+        "properties": {
+          "retryIntervalSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "retryMaxRetryCount": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "retryBaseDelaySeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "retryBackoffCapSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          },
+          "retryBatchSize": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerRangeDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineRuntimeSettingsDto": {
+        "type": "object",
+        "properties": {
+          "useSimulation": {
+            "type": "boolean"
+          },
+          "configUseSimulation": {
+            "type": "boolean"
+          },
+          "enableRealTestSubmission": {
+            "type": "boolean"
+          },
+          "configEnableRealTestSubmission": {
+            "type": "boolean"
+          },
+          "enableRealTestQuery": {
+            "type": "boolean"
+          },
+          "configEnableRealTestQuery": {
+            "type": "boolean"
+          },
+          "retryJobEnabled": {
+            "type": "boolean"
+          },
+          "configRetryJobEnabled": {
+            "type": "boolean"
+          },
+          "retryIntervalSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "retryMaxRetryCount": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "retryBaseDelaySeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "retryBackoffCapSeconds": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "retryBatchSize": {
+            "$ref": "#/components/schemas/FinanzOnlineOutboxWorkerNumericDto"
+          },
+          "allowed": {
+            "$ref": "#/components/schemas/FinanzOnlineRuntimeAllowedDto"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "isProduction": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -60847,6 +62910,188 @@
         },
         "additionalProperties": false
       },
+      "FiskalyCashRegisterSetupDto": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "initializedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalyFonAuthDto": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "authenticationStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "participantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "authenticatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalyScuSetupDto": {
+        "type": "object",
+        "properties": {
+          "scuId": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "initializedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalySettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "configEnabled": {
+            "type": "boolean"
+          },
+          "overrideEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isConfigured": {
+            "type": "boolean"
+          },
+          "apiBaseUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalySetupStatusDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "isConfigured": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "fon": {
+            "$ref": "#/components/schemas/FiskalyFonAuthDto"
+          },
+          "scu": {
+            "$ref": "#/components/schemas/FiskalyScuSetupDto"
+          },
+          "cashRegisters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FiskalyCashRegisterSetupDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalyStatusDto": {
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "isConfigured": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAuthenticated": {
+            "type": "boolean"
+          },
+          "lastCheck": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "scuId": {
+            "type": "string",
+            "nullable": true
+          },
+          "scuState": {
+            "type": "string",
+            "nullable": true
+          },
+          "scuInitialized": {
+            "type": "boolean"
+          },
+          "cashRegisterInitialized": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ForceCleanupRequest": {
         "type": "object",
         "properties": {
@@ -60858,6 +63103,15 @@
           "reason": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ForceLogoutResultDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -61265,6 +63519,56 @@
           },
           "template": {
             "$ref": "#/components/schemas/ReceiptTemplate"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GoLiveCheckDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "remediation": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GoLiveStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoLiveCheckDto"
+            },
+            "nullable": true
+          },
+          "checkedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -63738,6 +66042,10 @@
           "status": {
             "type": "string",
             "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -64130,6 +66438,24 @@
         },
         "additionalProperties": false
       },
+      "LicenseLayerPublicStatusDto": {
+        "type": "object",
+        "properties": {
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "LicensePreviewResult": {
         "type": "object",
         "properties": {
@@ -64172,6 +66498,19 @@
             "nullable": true
           },
           "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenantName": {
             "type": "string",
             "nullable": true
           }
@@ -64257,6 +66596,22 @@
             "nullable": true
           },
           "requiresRenewal": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemLicense": {
+            "$ref": "#/components/schemas/LicenseLayerPublicStatusDto"
+          },
+          "tenantLicense": {
+            "$ref": "#/components/schemas/LicenseLayerPublicStatusDto"
+          },
+          "anyActive": {
+            "type": "boolean"
+          },
+          "allActive": {
             "type": "boolean"
           }
         },
@@ -65221,6 +67576,183 @@
         ],
         "type": "string"
       },
+      "LimitActivityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timestampUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "limitKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRead": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LimitDashboardDto": {
+        "type": "object",
+        "properties": {
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DashboardSummaryDto"
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LimitStatusDto"
+            },
+            "nullable": true
+          },
+          "criticalUsers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriticalUserDto"
+            },
+            "nullable": true
+          },
+          "recentActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LimitActivityDto"
+            },
+            "nullable": true
+          },
+          "totalViolations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approachingLimits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unreadAlertCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allTenants": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LimitErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "limitKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "canForce": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LimitStatusDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "current": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "trend": {
+            "type": "string",
+            "nullable": true
+          },
+          "changeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changeUnit": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LinkedMonatsberichtLineDto": {
         "type": "object",
         "properties": {
@@ -65589,6 +68121,25 @@
           "backupDeviceId": {
             "type": "string",
             "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarkPaidRequest": {
+        "type": "object",
+        "properties": {
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -66577,6 +69128,24 @@
         },
         "additionalProperties": false
       },
+      "MonthlyVolumeDto": {
+        "type": "object",
+        "properties": {
+          "yearMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "revenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "NonRksvDataStatus": {
         "type": "object",
         "properties": {
@@ -66922,6 +69491,12 @@
               },
               "SupportTicketClosed": {
                 "type": "boolean"
+              },
+              "LimitApproaching": {
+                "type": "boolean"
+              },
+              "LimitExceeded": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -67219,6 +69794,12 @@
                 "type": "string"
               },
               "SupportTicketClosed": {
+                "type": "string"
+              },
+              "LimitApproaching": {
+                "type": "string"
+              },
+              "LimitExceeded": {
                 "type": "string"
               }
             },
@@ -69209,6 +71790,9 @@
           "context": {
             "$ref": "#/components/schemas/PaymentApiErrorContext"
           },
+          "limitError": {
+            "$ref": "#/components/schemas/LimitErrorDto"
+          },
           "timestamp": {
             "type": "string",
             "format": "date-time"
@@ -69991,6 +72575,58 @@
           "finanzOnlineSentAmount": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentVolumeAnalyticsDto": {
+        "type": "object",
+        "properties": {
+          "totalRevenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "revenueThisMonth": {
+            "type": "number",
+            "format": "double"
+          },
+          "revenueLastMonth": {
+            "type": "number",
+            "format": "double"
+          },
+          "monthlyGrowth": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transactionsThisMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transactionsLastMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageTransactionValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "dailyVolume": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyVolumeDto"
+            },
+            "nullable": true
+          },
+          "monthlyVolume": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthlyVolumeDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -71093,6 +73729,28 @@
         },
         "additionalProperties": false
       },
+      "PlanDistributionDto": {
+        "type": "object",
+        "properties": {
+          "trial": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "starter": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "business": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plus": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PosCashRegisterContextDto": {
         "type": "object",
         "properties": {
@@ -71507,14 +74165,34 @@
         },
         "additionalProperties": false
       },
+      "PosStatusSettingsSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "settingsVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "PosTseStatusDto": {
         "type": "object",
         "properties": {
           "status": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "lastCheck": {
             "type": "string",
@@ -71538,7 +74216,8 @@
             "type": "boolean"
           },
           "operationalHealth": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "lastErrorMessageSafe": {
             "type": "string",
@@ -71558,24 +74237,10 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "PosStatusSettingsSnapshotDto": {
-        "type": "object",
-        "properties": {
-          "cashRegisterId": {
+          },
+          "environment": {
             "type": "string",
             "nullable": true
-          },
-          "settingsVersion": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "updatedAtUtc": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -78079,6 +80744,16 @@
         },
         "additionalProperties": false
       },
+      "SetDefaultCashRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "registerId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "SetFeatureFlagRequest": {
         "type": "object",
         "properties": {
@@ -78181,6 +80856,26 @@
           "warning": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ShiftAutoOpenResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CashierShiftDto"
           }
         },
         "additionalProperties": false
@@ -79100,6 +81795,33 @@
           "issuedAtUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "paidAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "emailSentAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -81450,6 +84172,21 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "tseScuId": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
+          },
+          "tseStatus": {
+            "maxLength": 32,
+            "type": "string",
+            "nullable": true
+          },
+          "tseProvisionedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -82891,6 +85628,112 @@
         },
         "additionalProperties": false
       },
+      "TenantLimitUsageDto": {
+        "required": [
+          "limits"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/TenantLimitsDto"
+          },
+          "currentProducts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentUsers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentDailyTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentDailyRevenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentBackups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentBackupSizeMb": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentOfflineTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMaxAssignedRegistersPerUser": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TenantLimitsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "maxActiveRegistersPerUser": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxProductsPerTenant": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxUsersPerTenant": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dailyMaxTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxTransactionAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "dailyMaxRevenue": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxBackupsPerTenant": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxBackupSizeMB": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxOfflineTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "TenantOnboardingOverviewDto": {
         "type": "object",
         "properties": {
@@ -83319,6 +86162,25 @@
           },
           "forcePasswordChangeOnNextLogin": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TerminateSessionResultDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TerminateSessionsCountDto": {
+        "type": "object",
+        "properties": {
+          "terminatedCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -83932,6 +86794,54 @@
           "lastFailoverReason": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TseAnalyticsDto": {
+        "type": "object",
+        "properties": {
+          "totalRegisters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeRegisters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tseEnabled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tseDisabled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "signaturesToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "signaturesThisMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedSignatures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageSignaturesPerRegister": {
+            "type": "number",
+            "format": "double"
+          },
+          "dailyUsage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TseDailyUsageDto"
+            },
+            "nullable": true
+          },
+          "diagnosticOnly": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -85913,6 +88823,20 @@
             "format": "int32"
           },
           "signedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TseDailyUsageDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signatures": {
             "type": "integer",
             "format": "int32"
           }
@@ -89717,6 +92641,44 @@
         },
         "additionalProperties": false
       },
+      "TseStatus": {
+        "type": "object",
+        "properties": {
+          "isConnected": {
+            "type": "boolean"
+          },
+          "isReady": {
+            "type": "boolean"
+          },
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "serialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOperational": {
+            "type": "boolean"
+          },
+          "canCreateInvoices": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastConnectionTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TseSustainabilityOptimizationResultDto": {
         "type": "object",
         "properties": {
@@ -91089,6 +94051,111 @@
         },
         "additionalProperties": false
       },
+      "UpdateFinanzOnlineOutboxWorkerRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "pollIntervalSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "baseDelaySeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "backoffCapSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "jitterMaxSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "processingTimeoutSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "clearOverride": {
+            "type": "boolean"
+          },
+          "confirmProductionDisable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateFinanzOnlineRuntimeRequest": {
+        "type": "object",
+        "properties": {
+          "useSimulation": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "enableRealTestSubmission": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "enableRealTestQuery": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "retryJobEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "retryIntervalSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "retryMaxRetryCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "retryBaseDelaySeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "retryBackoffCapSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "retryBatchSize": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "clearOverride": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateFiskalySettingsRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateInventoryItemRequest": {
         "required": [
           "minStockLevel",
@@ -91905,6 +94972,75 @@
           "customPrice": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateTenantLimitsRequest": {
+        "type": "object",
+        "properties": {
+          "maxActiveRegistersPerUser": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxProductsPerTenant": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxUsersPerTenant": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dailyMaxTransactions": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxTransactionAmount": {
+            "maximum": 1000000000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "dailyMaxRevenue": {
+            "maximum": 1000000000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxBackupsPerTenant": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxBackupSizeMB": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxOfflineTransactions": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -93447,6 +96583,16 @@
         },
         "additionalProperties": false
       },
+      "VoidInvoiceRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "VoucherRedemptionRequestItem": {
         "required": [
           "amount",
@@ -93920,6 +97066,9 @@
   ],
   "tags": [
     {
+      "name": "Admin"
+    },
+    {
       "name": "AdminActivities"
     },
     {
@@ -93990,6 +97139,9 @@
     },
     {
       "name": "AdminFiscalExportAudit"
+    },
+    {
+      "name": "AdminFiskaly"
     },
     {
       "name": "AdminGracePeriods"
@@ -94103,6 +97255,9 @@
       "name": "AdminRksvSignature"
     },
     {
+      "name": "AdminSession"
+    },
+    {
       "name": "AdminShifts"
     },
     {
@@ -94149,6 +97304,12 @@
     },
     {
       "name": "AdminTenantLicenses"
+    },
+    {
+      "name": "AdminTenantLimits"
+    },
+    {
+      "name": "AdminTenantLimitUsage"
     },
     {
       "name": "AdminTenants"
@@ -94425,6 +97586,9 @@
     },
     {
       "name": "PosStorno"
+    },
+    {
+      "name": "PosTse"
     },
     {
       "name": "PosVoucher"

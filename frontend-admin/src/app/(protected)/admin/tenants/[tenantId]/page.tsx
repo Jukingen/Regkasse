@@ -38,6 +38,7 @@ import { TenantDetailCashRegistersTab } from '@/features/super-admin/components/
 import { TenantDetailLicenseTab } from '@/features/super-admin/components/TenantDetailLicenseTab';
 import { TenantDetailOverviewTab } from '@/features/super-admin/components/TenantDetailOverviewTab';
 import { TenantDetailSettingsTab } from '@/features/super-admin/components/TenantDetailSettingsTab';
+import { TenantLimitsSettings } from '@/features/tenants/components/TenantLimitsSettings';
 import {
   TENANT_DETAIL_LEGACY_USERS_TAB,
   TENANT_DETAIL_TAB_KEYS,
@@ -196,6 +197,11 @@ export default function SuperAdminTenantDetailPage() {
         key: 'license',
         label: t('tenants.detail.tabs.license'),
         children: <TenantDetailLicenseTab tenant={tenant} onUpdated={invalidateTenant} />,
+      },
+      {
+        key: 'limits',
+        label: t('tenants.detail.tabs.limits'),
+        children: <TenantLimitsSettings tenantId={tenantId} />,
       },
       {
         key: 'settings',

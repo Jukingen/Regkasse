@@ -144,6 +144,8 @@ export interface ApiProduct {
     Icon?: string | null;
     austrianCode?: string | null;
     AustrianCode?: string | null;
+    createdAt?: string;
+    CreatedAt?: string;
   } | null;
   taxGroup?: {
     id?: string;
@@ -158,6 +160,8 @@ export interface ApiProduct {
     Icon?: string | null;
     austrianCode?: string | null;
     AustrianCode?: string | null;
+    createdAt?: string;
+    CreatedAt?: string;
   } | null;
   IsActive?: boolean;
   isActive?: boolean;
@@ -197,8 +201,9 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Pr
         austrianCode: (taxGroupRaw.austrianCode ?? taxGroupRaw.AustrianCode ?? null) as
           | string
           | null,
+        createdAt: taxGroupRaw.createdAt ?? taxGroupRaw.CreatedAt ?? '',
       }
-    : null;
+    : undefined;
 
   return {
     id: apiProduct.Id || apiProduct.id,
@@ -219,7 +224,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Pr
     categoryId: apiProduct.CategoryId || apiProduct.categoryId || undefined,
     taxType,
     taxRate,
-    taxGroupId: taxGroupId ? String(taxGroupId) : null,
+    taxGroupId: taxGroupId ? String(taxGroupId) : undefined,
     taxGroup,
     isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
     barcode: apiProduct.Barcode || apiProduct.barcode || '',

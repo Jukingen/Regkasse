@@ -5,8 +5,11 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { LicenseLayerPublicStatusDto } from './licenseLayerPublicStatusDto';
 
 export interface LicensePublicStatusDto {
+  allActive?: boolean;
+  anyActive?: boolean;
   /** @nullable */
   canAccess?: boolean | null;
   /** @nullable */
@@ -31,9 +34,13 @@ export interface LicensePublicStatusDto {
   /** @nullable */
   restrictions?: string[] | null;
   /** @nullable */
+  status?: string | null;
+  /** @nullable */
   statusMessage?: string | null;
   /** @nullable */
   statusMessageKey?: string | null;
+  systemLicense?: LicenseLayerPublicStatusDto;
+  tenantLicense?: LicenseLayerPublicStatusDto;
   /** @nullable */
   validUntil?: string | null;
 }

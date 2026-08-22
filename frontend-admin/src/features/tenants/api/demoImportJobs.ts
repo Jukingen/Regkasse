@@ -2,6 +2,7 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  type IRetryPolicy,
   LogLevel,
 } from '@microsoft/signalr';
 
@@ -129,6 +130,20 @@ export type DemoImportProgressCallbacks = {
 
 const POLL_INTERVAL_MS = 400;
 const TERMINAL: DemoImportJobStatus[] = ['Completed', 'Failed', 'Cancelled'];
+const DEMO_IMPORT_RECONNECT_DELAYS_MS = [0, 2000, 5000, 10_000, 20_000, 30_000];
+const DEMO_IMPORT_RECONNECT_MAX_ELAPSED_MS = 120_000;
+
+export const demoImportReconnectPolicy: IRetryPolicy = {
+  nextRetryDelayInMilliseconds(retryContext) {
+    if (retryContext.elapsedMilliseconds >= DEMO_IMPORT_RECONNECT_MAX_ELAPSED_MS) {
+      return null;
+    }
+    if (retryContext.previousRetryCount >= DEMO_IMPORT_RECONNECT_DELAYS_MS.length) {
+      return null;
+    }
+    return DEMO_IMPORT_RECONNECT_DELAYS_MS[retryContext.previousRetryCount] ?? null;
+  },
+};
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -190,7 +205,7 @@ export async function runDemoImportWithProgress(
       const hubUrl = `${getApiBaseUrl()}/hubs/demo-import-progress`;
       connection = new HubConnectionBuilder()
         .withUrl(hubUrl, { accessTokenFactory: () => token })
-        .withAutomaticReconnect()
+        .withAutomaticReconnect(demoImportReconnectPolicy)
         .configureLogging(LogLevel.Warning)
         .build();
 

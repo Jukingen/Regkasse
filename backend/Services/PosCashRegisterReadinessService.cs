@@ -82,7 +82,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
 
         var operationalRegisterCount = CashRegisterPosOperationalCardinality.CountOperationalRegisters(registers);
 
-        var (effectiveRegister, resolution) = ResolveEffectiveRegister(userSettings, registers);
+        var (effectiveRegister, resolution) = ResolveEffectiveRegister(userId, userSettings, registers);
 
         if (registers.Count == 0 || operationalRegisterCount == 0)
         {
@@ -294,7 +294,15 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     {
         try
         {
-            await _posShift.AutoOpenShiftAsync(userId, string.Empty, cashRegisterId, cancellationToken);
+            var result = await _posShift.AutoOpenShiftAsync(userId, string.Empty, cashRegisterId, cancellationToken);
+            if (!result.Success)
+            {
+                _logger.LogWarning(
+                    "Auto-open CashierShift declined for user {UserId} on register {RegisterId}: {Code}",
+                    userId,
+                    cashRegisterId,
+                    result.Code);
+            }
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
@@ -350,7 +358,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             }, userSettings);
         }
 
-        var (effective, resolution) = ResolveEffectiveRegister(userSettings, registers);
+        var (effective, resolution) = ResolveEffectiveRegister(userId, userSettings, registers);
         if (effective == null)
         {
             return StampPreferred(new PosCashRegisterContextDto
@@ -449,10 +457,20 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         return g.ToString("D");
     }
 
+    /// <summary>
+    /// Picks the register this session should act on: explicit preference first, then sole operational register, then
+    /// tenant default. Registers assigned to another cashier (<see cref="CashRegister.AssignedUserId"/>) are removed up
+    /// front — they are invisible in the POS picker, so no resolution path may hand one back and auto-open it.
+    /// </summary>
     private static (CashRegister? Register, string Resolution) ResolveEffectiveRegister(
+        string userId,
         UserSettings? userSettings,
         List<CashRegister> registers)
     {
+        var candidates = registers
+            .Where(r => !CashRegisterAssignment.IsAssignedToOtherUser(userId, r.AssignedUserId))
+            .ToList();
+
         CashRegister? effective = null;
         var resolution = "none";
 
@@ -461,14 +479,14 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             Guid.TryParse(assignedRaw, out var ag) &&
             ag != Guid.Empty)
         {
-            effective = registers.FirstOrDefault(r => r.Id == ag);
+            effective = candidates.FirstOrDefault(r => r.Id == ag);
             if (effective != null)
                 resolution = "settings";
         }
 
         if (effective == null)
         {
-            var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
+            var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(candidates);
             if (singleOperational != null)
             {
                 effective = singleOperational;
@@ -479,7 +497,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         // Align with FA auto-select: prefer tenant default when settings/sole do not resolve.
         if (effective == null)
         {
-            var tenantDefault = registers.FirstOrDefault(r =>
+            var tenantDefault = candidates.FirstOrDefault(r =>
                 r.IsDefaultForTenant &&
                 CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(r));
             if (tenantDefault != null)

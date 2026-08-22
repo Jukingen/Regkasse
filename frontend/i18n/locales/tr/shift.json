@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "needRegisterSelection": "Devam etmeden önce lütfen bir kasa seçin.",
+    "registerNotFound": "Seçilen kasa bulunamadı.",
+    "registerUnavailable": "Seçilen kasa kullanılamıyor. Lütfen yöneticinizle iletişime geçin.",
+    "registerDecommissioned": "Bu kasa kapatıldı ve artık kullanılamaz.",
+    "noActiveRegisters": "Aktif kasa bulunamadı. Lütfen yöneticinizle iletişime geçin.",
+    "shiftAlreadyOpen": "Vardiya zaten açık.",
+    "unknown": "Bir hata oluştu. Lütfen tekrar deneyin."
+  },
+  "success": {
+    "shiftOpened": "Vardiya başarıyla açıldı.",
+    "shiftAlreadyOpen": "Vardiya zaten açık."
+  },
+  "alerts": {
+    "needRegisterTitle": "Kasa seçin",
+    "registerNotFoundTitle": "Kasa bulunamadı",
+    "registerUnavailableTitle": "Kasa kullanılamıyor",
+    "registerDecommissionedTitle": "Kasa kapatıldı",
+    "noActiveRegistersTitle": "Kasa yok",
+    "shiftAlreadyOpenTitle": "Vardiya zaten açık",
+    "unknownTitle": "Vardiya açılamadı"
+  }
+}

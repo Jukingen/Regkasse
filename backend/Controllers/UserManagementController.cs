@@ -13,6 +13,7 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Validators;
@@ -48,6 +49,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IUsernameChangeEmailService _usernameChangeEmail;
         private readonly ActivityEventRecorder? _activityEvents;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public UserManagementController(
             AppDbContext context,
@@ -67,7 +69,8 @@ namespace KasseAPI_Final.Controllers
             PasswordErrorTranslator passwordErrors,
             IUserUsernameHistoryService usernameHistory,
             IUsernameChangeEmailService usernameChangeEmail,
-            ActivityEventRecorder? activityEvents = null)
+            ActivityEventRecorder? activityEvents = null,
+            ITenantLimitGuard? tenantLimitGuard = null)
         {
             _context = context;
             _userManager = userManager;
@@ -87,6 +90,7 @@ namespace KasseAPI_Final.Controllers
             _usernameHistory = usernameHistory;
             _usernameChangeEmail = usernameChangeEmail;
             _activityEvents = activityEvents;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
@@ -659,6 +663,27 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Employee number already exists" });
                 if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null))
                     return BadRequest(new { message = "Tax number already exists" });
+
+                if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+                    && _tenantLimitGuard != null)
+                {
+                    Guid? limitTenantId = _tenantAccessor.TenantId is Guid currentTenant && currentTenant != Guid.Empty
+                        ? currentTenant
+                        : IsCurrentUserSuperAdmin() ? SystemTenantIds.Platform : null;
+                    if (limitTenantId is Guid membershipTenantForLimit)
+                    {
+                        try
+                        {
+                            await _tenantLimitGuard.EnsureCanCreateUserAsync(
+                                membershipTenantForLimit,
+                                HttpContext?.RequestAborted ?? default);
+                        }
+                        catch (LimitExceededException ex)
+                        {
+                            return Conflict(ex.ToConflictBody());
+                        }
+                    }
+                }
 
                 var user = new ApplicationUser
                 {

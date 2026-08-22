@@ -50,9 +50,15 @@ public sealed class AdminShiftManagementServiceTests
         });
         await ctx.SaveChangesAsync();
 
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(
+            userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManager
+            .Setup(m => m.FindByIdAsync(actorId))
+            .ReturnsAsync(new ApplicationUser { Id = actorId, UserName = "manager", IsActive = true });
         var shiftSvc = new CashRegisterShiftService(
             ctx,
-            Mock.Of<UserManager<ApplicationUser>>(),
+            userManager.Object,
             Mock.Of<ILogger<CashRegisterShiftService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             RksvStartbelegTestDoubles.GateOff(),

@@ -4,6 +4,7 @@
  * Bileşen + pano entegrasyonu: yalnızca saf yardımcı fonksiyon testi değil.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { App } from 'antd';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
@@ -79,12 +80,45 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t,
     formatLocale: 'en-US',
+    textLocale: 'en',
+  }),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  useI18n: () => ({
+    t,
+    formatLocale: 'en-US',
+    textLocale: 'en',
   }),
 }));
 
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => ({
     user: { permissions: ['settings.manage'] },
+  }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    modal: { confirm: vi.fn() },
+    notification: {},
+  }),
+}));
+
+vi.mock('@/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    tenantSlug: 'dev',
+    isSuperAdminUser: true,
+  }),
+}));
+
+vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({
+    tenantId: 'tenant-a',
+    tenantSlug: 'dev',
+    isSuperAdminUser: true,
   }),
 }));
 
@@ -125,7 +159,11 @@ function wrap(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <App>{ui}</App>
+    </QueryClientProvider>
+  );
 }
 
 beforeAll(() => {

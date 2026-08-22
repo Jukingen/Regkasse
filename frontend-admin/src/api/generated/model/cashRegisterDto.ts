@@ -9,12 +9,20 @@ import type { CashRegisterDeviceInfoDto } from './cashRegisterDeviceInfoDto';
 import type { RegisterStatus } from './registerStatus';
 
 export interface CashRegisterDto {
+  /** @nullable */
+  assignedUserId?: string | null;
+  /** @nullable */
+  assignedUserName?: string | null;
   createdAt?: string;
   /** @nullable */
   createdBy?: string | null;
   currentBalance?: number;
   /** @nullable */
+  currentCashierEmail?: string | null;
+  /** @nullable */
   currentCashierName?: string | null;
+  /** @nullable */
+  currentCashierUserName?: string | null;
   /** @nullable */
   currentUserId?: string | null;
   /** @nullable */

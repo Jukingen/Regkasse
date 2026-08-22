@@ -507,15 +507,14 @@ public sealed class LicenseReminderService : ILicenseReminderService
         string dedupKey,
         CancellationToken cancellationToken)
     {
-        return await _db.BillingAuditLogs
+        var details = await _db.BillingAuditLogs
             .AsNoTracking()
-            .AnyAsync(
-                l => l.TenantId == tenantId
-                     && l.Action == BillingAuditEventTypes.LicenseReminderSent
-                     && l.Details != null
-                     && l.Details.Contains(dedupKey, StringComparison.Ordinal),
-                cancellationToken)
+            .Where(l => l.TenantId == tenantId && l.Action == BillingAuditEventTypes.LicenseReminderSent)
+            .Select(l => l.Details)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        return details.Any(d => d != null && d.Contains(dedupKey, StringComparison.Ordinal));
     }
 
     private Task LogReminderSentAsync(

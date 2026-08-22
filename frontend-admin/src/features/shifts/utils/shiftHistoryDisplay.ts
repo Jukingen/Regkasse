@@ -56,16 +56,15 @@ export type ShiftHistoryClientFilters = {
   search?: string;
 };
 
-export function filterShiftHistory(
-  rows: ReadonlyArray<{
+export function filterShiftHistory<
+  T extends {
     cashierId: string;
     cashierName: string;
     cashRegisterId: string;
     registerNumber?: string | null;
     status: string;
-  }>,
-  filters: ShiftHistoryClientFilters
-): typeof rows {
+  },
+>(rows: readonly T[], filters: ShiftHistoryClientFilters): T[] {
   const search = filters.search?.trim().toLowerCase();
   return rows.filter((row) => {
     if (filters.cashierId && row.cashierId !== filters.cashierId) return false;

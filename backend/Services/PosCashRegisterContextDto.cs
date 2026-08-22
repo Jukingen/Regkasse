@@ -28,6 +28,11 @@ public sealed class PosCashRegisterContextDto
     public string MessageCode { get; set; } = PosCashRegisterReadinessMessageCodes.CashRegisterRequired;
 }
 
+public sealed class SetDefaultCashRegisterRequest
+{
+    public Guid RegisterId { get; set; }
+}
+
 /// <summary>
 /// Machine-readable readiness codes for POS clients.
 /// </summary>

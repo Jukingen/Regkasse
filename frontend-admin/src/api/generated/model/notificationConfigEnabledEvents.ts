@@ -31,6 +31,8 @@ export type NotificationConfigEnabledEvents = {
   FinanzOnlineSubmissionFailed?: boolean;
   LicenseExpired?: boolean;
   LicenseExpiringSoon?: boolean;
+  LimitApproaching?: boolean;
+  LimitExceeded?: boolean;
   MaintenanceForceDisplayEnabled?: boolean;
   MaintenanceStarted?: boolean;
   MaintenanceUpcoming?: boolean;

@@ -20,6 +20,7 @@
   "accessibleScreens": "Zugängliche Bildschirme",
   "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar",
   "cashRegister": "Kassa",
+  "orders": "Bestellungen",
   "settings": "Einstellungen",
   "offlineQueue": {
     "title": "Offline-Warteschlange",

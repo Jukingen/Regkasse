@@ -120,6 +120,7 @@
       "training": "Trainingsbeleg",
       "mixed_vat": "Gemischte Steuersätze",
       "zero_amount": "Nullbeleg (0,00 €)",
+      "raw": "Raw-Schema (Fallback)",
       "monthly_close": "Monatsbeleg (automatisch)",
       "yearly_close": "Jahresbeleg (automatisch)"
     },
@@ -129,6 +130,7 @@
       "training": "TRAINING — nicht steuerrelevant.",
       "mixed_vat": "10,00 € STANDARD und 5,50 € REDUCED_1.",
       "zero_amount": "Nullbeleg: NORMAL mit 0,00 € und USt-Satz NULL.",
+      "raw": "Minimaler raw-Payload: 10,00 € STANDARD über gross_amount_standard. Nur nutzen, wenn standard_v1 abgelehnt wird.",
       "monthly_close": "MONTHLY_CLOSE wird von fiskaly automatisch erzeugt, wenn sich der Monat ändert. Manuelles Signieren ist nicht möglich.",
       "yearly_close": "YEARLY_CLOSE wird von fiskaly automatisch erzeugt, wenn sich das Jahr ändert. Manuelles Signieren ist nicht möglich."
     }

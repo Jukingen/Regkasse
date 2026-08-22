@@ -120,6 +120,7 @@
       "training": "Eğitim fişi",
       "mixed_vat": "Karışık KDV oranları",
       "zero_amount": "Nullbeleg (0,00 €)",
+      "raw": "Raw şema (yedek)",
       "monthly_close": "Aylık kapanış (otomatik)",
       "yearly_close": "Yıllık kapanış (otomatik)"
     },
@@ -129,6 +130,7 @@
       "training": "TRAINING — vergiye tabi değil.",
       "mixed_vat": "10,00 € STANDARD ve 5,50 € REDUCED_1.",
       "zero_amount": "Nullbeleg: NORMAL, 0,00 € ve KDV oranı NULL.",
+      "raw": "Minimal raw yük: 10,00 € STANDARD, gross_amount_standard. Yalnızca standard_v1 reddedilirse kullanın.",
       "monthly_close": "MONTHLY_CLOSE, ay değişince fiskaly tarafından otomatik oluşturulur. Elle imzalanamaz.",
       "yearly_close": "YEARLY_CLOSE, yıl değişince fiskaly tarafından otomatik oluşturulur. Elle imzalanamaz."
     }

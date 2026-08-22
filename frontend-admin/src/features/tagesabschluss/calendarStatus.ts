@@ -8,7 +8,7 @@ export enum CalendarDayStatus {
 }
 
 export type CalendarDayFields = {
-  date: string;
+  date?: string;
   isClosed?: boolean;
   dayKind?: string | null;
   closingType?: string | null;

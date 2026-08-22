@@ -1,6 +1,7 @@
 'use client';
 
 import { Collapse, Select, Space, Table, Tag, Typography } from 'antd';
+import type { SelectProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useCallback, useMemo } from 'react';
 
@@ -101,7 +102,8 @@ export function SonderbelegeRegisterPicker({
     [tenants]
   );
 
-  const selectOptions = useMemo(() => {
+  // Grouped and flat shapes are both valid Select options; widen so the union resolves.
+  const selectOptions = useMemo<SelectProps['options']>(() => {
     if (showGroupedBrowser) {
       return tenantGroups.map((group) => ({
         label: t('rksvHub.sonderbelege.tenantGroupLabel', {

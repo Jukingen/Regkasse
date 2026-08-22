@@ -13,8 +13,13 @@ namespace KasseAPI_Final.Tests;
 /// Enforcement runs only in Production + Device TSE with <see cref="ILicenseService"/> present.
 /// GraceWrite allows payments (no PaymentResult warning). GET / admin reads are not gated here.
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public sealed class PaymentServiceLicenseGateTests
 {
+    public PaymentServiceLicenseGateTests()
+    {
+        OpenApiExportHostGate.EnsureExportModeDisabled();
+    }
     [Fact]
     public async Task CreatePayment_WhenTenantLicenseActive_AllowsPayment()
     {

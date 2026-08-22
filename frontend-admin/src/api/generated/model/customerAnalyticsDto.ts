@@ -5,15 +5,21 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { PlanDistributionDto } from './planDistributionDto';
 
 export interface CustomerAnalyticsDto {
   activeTenants?: number;
+  arpu?: number;
+  churnRate?: number;
+  /** @nullable */
+  customerLtv?: number | null;
   expiredTenants?: number;
   expiringSoon?: number;
   inOnboardingTenants?: number;
   mrr?: number;
   newTenantsLast30Days?: number;
   paidTenants?: number;
+  planDistribution?: PlanDistributionDto;
   suspendedTenants?: number;
   totalTenants?: number;
   trialTenants?: number;

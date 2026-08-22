@@ -19,6 +19,22 @@ const SLUG_ALIASES: Record<string, string> = {
   prod: 'prod',
 };
 
+/** Wave-0 system sentinel row: not a mandant, never selectable in switchers. */
+export const PLATFORM_TENANT_SLUG = 'platform';
+
+const PRESET_SLUGS = new Set<string>(DEV_TENANT_PRESETS.map((row) => row.slug));
+
+/** Platform sentinel plus legacy demo slugs that survive only as aliases (test-cafe, bar, …). */
+const HIDDEN_SWITCHER_SLUGS = new Set<string>([
+  PLATFORM_TENANT_SLUG,
+  ...Object.keys(SLUG_ALIASES).filter((alias) => !PRESET_SLUGS.has(alias)),
+]);
+
+/** Matches the raw slug, not the canonical one, so aliased leftovers stay hidden. */
+export function isHiddenSwitcherTenantSlug(slug: string): boolean {
+  return HIDDEN_SWITCHER_SLUGS.has(slug.trim().toLowerCase());
+}
+
 export function canonicalDevTenantSlug(slug: string): string {
   const trimmed = slug.trim();
   if (!trimmed) {

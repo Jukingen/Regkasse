@@ -7,5 +7,6 @@
  */
 
 export interface AutoOpenShiftRequest {
-  cashRegisterId: string;
+  /** @nullable */
+  cashRegisterId?: string | null;
 }

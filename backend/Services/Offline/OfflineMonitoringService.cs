@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ public sealed class OfflineMonitoringService : IOfflineMonitoringService
     private readonly IOptionsMonitor<OfflineMonitoringOptions> _options;
     private readonly IOptionsMonitor<OfflineAlertRules> _alertRules;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly ITenantLimitService _tenantLimits;
     private readonly IHostEnvironment _environment;
 
     public OfflineMonitoringService(
@@ -24,6 +26,7 @@ public sealed class OfflineMonitoringService : IOfflineMonitoringService
         IOptionsMonitor<OfflineMonitoringOptions> options,
         IOptionsMonitor<OfflineAlertRules> alertRules,
         IOptionsMonitor<TseOptions> tseOptions,
+        ITenantLimitService tenantLimits,
         IHostEnvironment environment)
     {
         _context = context;
@@ -31,6 +34,7 @@ public sealed class OfflineMonitoringService : IOfflineMonitoringService
         _options = options;
         _alertRules = alertRules;
         _tseOptions = tseOptions;
+        _tenantLimits = tenantLimits;
         _environment = environment;
     }
 
@@ -124,9 +128,9 @@ public sealed class OfflineMonitoringService : IOfflineMonitoringService
 
     public async Task<List<OfflineAnomaly>> CheckAnomaliesAsync(CancellationToken ct = default)
     {
-        RequireTenantId();
-        var opts = _options.CurrentValue;
+        var tenantId = RequireTenantId();
         var rules = _alertRules.CurrentValue;
+        var opts = _options.CurrentValue;
         var detectedAt = DateTime.UtcNow;
         var anomalies = new List<OfflineAnomaly>();
 
@@ -229,22 +233,19 @@ public sealed class OfflineMonitoringService : IOfflineMonitoringService
                 detectedAt));
         }
 
-        var maxOffline = LicenseEnforcementPolicy.GetMaxOfflineTransactionsPerCashRegister(
-            _environment,
-            _tseOptions.CurrentValue);
-        if (maxOffline < LicenseEnforcementPolicy.MaxOfflineTransactionsUnlimited)
+        if (!LicenseEnforcementPolicy.ShouldSkipOfflineQueueCaps(_environment, _tseOptions.CurrentValue))
         {
+            var maxOffline = await _tenantLimits
+                .GetLimitValueAsync(tenantId, TenantLimitKeys.MaxOfflineTransactions, ct)
+                .ConfigureAwait(false);
+            var queuedTotal = transactionStats.PendingCount + transactionStats.NonFiscalPendingCount;
             var warnAt = (int)Math.Floor(maxOffline * (opts.TseOfflineCapWarningPercent / 100.0));
-            foreach (var row in transactionStats.ByRegister)
+            if (queuedTotal >= warnAt)
             {
-                if (row.PendingCount < warnAt)
-                    continue;
-
-                registerLabels.TryGetValue(row.CashRegisterId, out var label);
                 anomalies.Add(Anomaly(
-                    row.PendingCount >= maxOffline ? "tse_cap_reached" : "tse_cap_warning",
-                    row.PendingCount >= maxOffline ? "critical" : "warning",
-                    $"Cash register {label ?? row.RegisterNumber} has {row.PendingCount}/{maxOffline} TSE offline transactions.",
+                    queuedTotal >= maxOffline ? "tse_cap_reached" : "tse_cap_warning",
+                    queuedTotal >= maxOffline ? "critical" : "warning",
+                    $"Tenant has {queuedTotal}/{maxOffline} offline TSE transactions.",
                     detectedAt));
             }
         }

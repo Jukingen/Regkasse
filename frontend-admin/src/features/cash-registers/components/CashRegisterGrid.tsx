@@ -14,19 +14,26 @@ import {
 } from '@ant-design/icons';
 import { Button, Card, Col, Empty, Row, Tag, Tooltip, Typography } from 'antd';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 import type { CashRegister } from '@/api/generated/model';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
+  assignmentTagColor,
+  resolveAssignmentState,
+} from '@/features/cash-registers/utils/assignmentStatus';
+import {
   canDecommissionRegister,
   isDecommissionedRegister,
   rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
+import { cashRegisterDetailPath } from '@/shared/cashRegisterRoutes';
 
 import styles from './CashRegisterGrid.module.css';
 
@@ -78,6 +85,7 @@ export function CashRegisterGrid({
   onDecommission,
 }: CashRegisterGridProps) {
   const { t, formatLocale } = useI18n();
+  const { user } = usePermissions();
   const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
   const emptyDescription =
@@ -101,6 +109,7 @@ export function CashRegisterGrid({
         const enhanced = asEnhanced(register);
         const status = rawRegisterStatus(register);
         const decommissioned = isDecommissionedRegister(status);
+        const assignmentState = resolveAssignmentState(enhanced.assignedUserId, user?.id);
         const registerId = register.id?.trim();
         const offlineHref = registerId
           ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
@@ -108,6 +117,7 @@ export function CashRegisterGrid({
         const canStilllegen = canDecommission && !decommissioned && canDecommissionRegister(status);
 
         const actions: ReactNode[] = [];
+        const detailHref = registerId ? cashRegisterDetailPath(registerId) : undefined;
 
         if (canManage) {
           actions.push(
@@ -116,7 +126,8 @@ export function CashRegisterGrid({
                 type="text"
                 icon={<EyeOutlined />}
                 aria-label={t('cashRegisters.actions.view')}
-                onClick={() => onEdit(register)}
+                href={detailHref}
+                onClick={detailHref ? undefined : () => onEdit(register)}
               />
             </Tooltip>
           );
@@ -189,13 +200,23 @@ export function CashRegisterGrid({
 
         if (canOpenSonderbelege) {
           actions.push(
-            <Tooltip title={t('cashRegisters.actions.specialReceipts')} key="special">
-              <Button
-                type="text"
-                icon={<FileProtectOutlined />}
-                aria-label={t('cashRegisters.actions.specialReceipts')}
-                href="/rksv/sonderbelege?focus=schlussbeleg"
-              />
+            <Tooltip
+              title={
+                decommissioned
+                  ? t('cashRegisters.actions.decommissionedCannotCreateSpecialReceipts')
+                  : t('cashRegisters.actions.specialReceipts')
+              }
+              key="special"
+            >
+              <span>
+                <Button
+                  type="text"
+                  icon={<FileProtectOutlined />}
+                  aria-label={t('cashRegisters.actions.specialReceipts')}
+                  disabled={decommissioned}
+                  href={decommissioned ? undefined : '/rksv/sonderbelege?focus=schlussbeleg'}
+                />
+              </span>
             </Tooltip>
           );
         }
@@ -211,7 +232,13 @@ export function CashRegisterGrid({
                 avatar={<ShopOutlined style={{ fontSize: 28, color: '#1677ff' }} />}
                 title={
                   <span className={styles.metaTitle}>
-                    {register.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY}
+                    {detailHref ? (
+                      <Link href={detailHref}>
+                        {register.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY}
+                      </Link>
+                    ) : (
+                      register.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY
+                    )}
                   </span>
                 }
                 description={
@@ -276,6 +303,20 @@ export function CashRegisterGrid({
                   <Typography.Text className={styles.detailValue}>
                     {resolveCashierName(enhanced) ?? FORMAT_EMPTY_DISPLAY}
                   </Typography.Text>
+                </div>
+
+                <div>
+                  <Typography.Text className={styles.detailLabel}>
+                    <UserOutlined /> {t('cashRegisters.columns.assignedTo')}
+                  </Typography.Text>
+                  <Typography.Text className={styles.detailValue}>
+                    {enhanced.assignedUserName?.trim() ||
+                      enhanced.assignedUserId?.trim() ||
+                      FORMAT_EMPTY_DISPLAY}
+                  </Typography.Text>
+                  <Tag color={assignmentTagColor(assignmentState)}>
+                    {t(`cashRegisters.assignment.${assignmentState}`)}
+                  </Tag>
                 </div>
 
                 <div>

@@ -4,6 +4,10 @@ import { View } from 'react-native';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import {
+  needsPosCashRegisterSelection,
+  POS_CASH_REGISTER_SELECT_HREF,
+} from '../../utils/posCashRegister';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 export default function AuthLayout() {
@@ -42,6 +46,9 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated && user) {
+    if (needsPosCashRegisterSelection(user.currentCashRegisterId)) {
+      return <Redirect href={POS_CASH_REGISTER_SELECT_HREF} />;
+    }
     return <Redirect href="/(tabs)/cash-register" />;
   }
 

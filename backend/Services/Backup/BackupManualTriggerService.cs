@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupAlertPublisher _alerts;
     private readonly ILogger<BackupManualTriggerService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public BackupManualTriggerService(
         AppDbContext db,
@@ -32,7 +34,8 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         ICurrentTenantAccessor tenantAccessor,
         IOptionsMonitor<BackupOptions> options,
         IBackupAlertPublisher alerts,
-        ILogger<BackupManualTriggerService> logger)
+        ILogger<BackupManualTriggerService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _audit = audit;
@@ -40,6 +43,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         _logger = logger;
         _options = options;
         _alerts = alerts;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     public async Task<BackupManualTriggerOutcome> RequestManualBackupAsync(
@@ -155,6 +159,16 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         {
             throw new InvalidOperationException(
                 "Incremental package watermark is only valid for Tenant strategy backups.");
+        }
+
+        if (resolvedStrategy == BackupStrategyKind.Tenant
+            && runTenantId is Guid tenantLimitId
+            && tenantLimitId != Guid.Empty
+            && _tenantLimitGuard != null)
+        {
+            await _tenantLimitGuard
+                .EnsureCanCreateBackupAsync(tenantLimitId, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var configJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(

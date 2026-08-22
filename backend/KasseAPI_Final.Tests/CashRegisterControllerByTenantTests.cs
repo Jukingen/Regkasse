@@ -50,7 +50,8 @@ public sealed class CashRegisterControllerByTenantTests
             tenantAccessor,
             Mock.Of<ICashRegisterManagementService>(),
             enrichment ?? CashRegisterTestDoubles.NoOpListEnrichment(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
 
         controller.ControllerContext = new ControllerContext
         {

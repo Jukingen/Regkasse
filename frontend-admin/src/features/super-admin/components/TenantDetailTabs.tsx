@@ -4,7 +4,7 @@
  * Tab key helpers for the super-admin tenant detail dashboard.
  * Page composition lives in `app/(protected)/admin/tenants/[tenantId]/page.tsx`.
  */
-export const TENANT_DETAIL_TAB_KEYS = ['overview', 'registers', 'license', 'settings'] as const;
+export const TENANT_DETAIL_TAB_KEYS = ['overview', 'registers', 'license', 'limits', 'settings'] as const;
 
 /** Legacy `?tab=users` URLs redirect to `/admin/users?tenantId=`. */
 export const TENANT_DETAIL_LEGACY_USERS_TAB = 'users';

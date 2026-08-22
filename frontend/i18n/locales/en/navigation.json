@@ -20,6 +20,7 @@
   "accessibleScreens": "Accessible Screens",
   "demoUserInfo": "Demo User: Only test functions available",
   "cashRegister": "Cash Register",
+  "orders": "Orders",
   "settings": "Settings",
   "offlineQueue": {
     "title": "Offline Queue",

@@ -184,7 +184,7 @@ public sealed class DepExportHistoryServiceTests
         Assert.True(row.FileSizeBytes > 0);
         Assert.False(row.IsSimulated);
         Assert.Null(row.SimulationNote);
-        Assert.StartsWith("dep-export_default_KASSE-01_", row.FileName);
+        Assert.StartsWith($"dep-export_{SystemTenantIds.PlatformSlug}_KASSE-01_", row.FileName);
         Assert.EndsWith(".json", row.FileName);
         Assert.False(string.IsNullOrWhiteSpace(row.StoragePath));
         Assert.True(File.Exists(row.StoragePath!));

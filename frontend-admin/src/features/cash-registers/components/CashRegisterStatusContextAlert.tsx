@@ -9,7 +9,11 @@ import {
   inferClosedRegisterContext,
   isClosedRegister,
 } from '@/features/cash-registers/utils/registerClosedContext';
-import { REGISTER_STATUS, rawRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
+import {
+  REGISTER_STATUS,
+  isDecommissionedRegister,
+  rawRegisterStatus,
+} from '@/features/cash-registers/utils/registerStatus';
 import { useI18n } from '@/i18n';
 
 const OPEN_PREREQUISITE_KEYS = [
@@ -30,6 +34,18 @@ export function CashRegisterStatusContextAlert({
 }: CashRegisterStatusContextAlertProps) {
   const { t } = useI18n();
   const status = rawRegisterStatus(register);
+
+  if (isDecommissionedRegister(status)) {
+    return (
+      <Alert
+        type="info"
+        showIcon
+        title={t('cashRegisters.detail.decommissionedTitle')}
+        description={t('cashRegisters.detail.decommissionedDescription')}
+        style={{ marginBottom: 16 }}
+      />
+    );
+  }
 
   if (status === REGISTER_STATUS.open) {
     return (

@@ -19,13 +19,14 @@ public interface IPosShiftService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Idempotent: returns the active shift if one exists; otherwise opens the register (if needed)
-    /// and creates a CashierShift with <c>IsAutoOpened</c>.
+    /// Idempotent auto-open. Resolves the register from <paramref name="cashRegisterId"/> or
+    /// <see cref="Models.UserSettings.CashRegisterId"/>. Returns a structured result instead of throwing
+    /// for missing/unavailable registers so POS can guide the cashier.
     /// </summary>
-    Task<CashierShiftDto> AutoOpenShiftAsync(
+    Task<ShiftAutoOpenResult> AutoOpenShiftAsync(
         string cashierUserId,
         string cashierDisplayName,
-        Guid cashRegisterId,
+        Guid? cashRegisterId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -49,6 +50,7 @@ public enum PosShiftStartResultKind
     Success,
     AlreadyActive,
     RegisterNotFound,
+    RegisterNotAssigned,
     RegisterOpenConflict,
     RegisterOpenFailed,
 }

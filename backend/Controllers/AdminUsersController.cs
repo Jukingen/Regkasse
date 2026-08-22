@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -10,6 +11,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Validators;
 using Microsoft.AspNetCore.Authorization;
@@ -1057,6 +1059,8 @@ public partial class AdminUsersController : ControllerBase
 
         if (error == "Tenant not found.")
             return NotFound(ApiError.NotFound("Tenant not found", error));
+        if (LimitErrorDto.TryParseServiceError(error, out var limitError))
+            return Conflict(limitError);
         if (error != null)
             return BadRequest(ApiError.Validation("User creation failed", new Dictionary<string, string[]> { ["create"] = new[] { error } }));
 

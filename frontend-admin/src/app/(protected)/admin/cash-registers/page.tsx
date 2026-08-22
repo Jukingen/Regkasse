@@ -197,9 +197,12 @@ export default function AdminCashRegistersPage() {
     refetch: refetchRegisters,
   } = useAdminCashRegisterList({
     tenantId: selectedTenantId,
-    enabled: isSuperAdminUser && Boolean(selectedTenantId) && canView,
+    allowAllTenants: isSuperAdminUser && !selectedTenantId,
+    enabled: isSuperAdminUser && canView,
     pollIntervalMs: 30_000,
   });
+
+  const showRegisterInventory = isSuperAdminUser && canView;
 
   const allRegisters = useMemo(() => tenantRegisters, [tenantRegisters]);
 
@@ -563,7 +566,7 @@ export default function AdminCashRegistersPage() {
               loading={tenantsLoading}
               allowClear
             />
-            {selectedTenantId ? (
+            {showRegisterInventory ? (
               <Segmented<'table' | 'grid'>
                 value={viewMode}
                 onChange={(value) => setViewMode(value)}
@@ -606,7 +609,7 @@ export default function AdminCashRegistersPage() {
             />
           ) : null}
 
-          {selectedTenantId ? (
+          {showRegisterInventory ? (
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12} lg={6}>
                 <Card size="small" loading={registersLoading} style={statsAccentCardStyle()}>
@@ -674,7 +677,7 @@ export default function AdminCashRegistersPage() {
             </Row>
           ) : null}
 
-          {selectedTenantId ? (
+          {showRegisterInventory ? (
             <Space wrap align="center" style={{ width: '100%' }} className={pageStyles.filtersBar}>
               <Input.Search
                 placeholder={t('cashRegisters.filter.searchPlaceholder')}
@@ -756,7 +759,7 @@ export default function AdminCashRegistersPage() {
                 icon={<ReloadOutlined />}
                 onClick={() => void refetchRegisters()}
                 loading={registersFetching}
-                disabled={!selectedTenantId}
+                disabled={!showRegisterInventory}
               >
                 {t('cashRegisters.actions.refresh')}
               </Button>
@@ -771,7 +774,7 @@ export default function AdminCashRegistersPage() {
           ) : null}
         </Space>
 
-        {!selectedTenantId ? (
+        {!showRegisterInventory ? (
           <Empty description={t('cashRegisters.adminPage.selectTenantHint')} />
         ) : registersError ? (
           <Alert

@@ -255,7 +255,7 @@ const CRITICAL_INTENT_ROWS: CriticalIntentRow[] = [
   },
   {
     family: 'restore_history_metadata_not_guarantee',
-    key: 'restoreHistory.statusHint',
+    key: 'recentRestoreDrills.statusHint',
     note: 'Drill satırları teknik metadata — tam kurtarma garantisi değil',
     patterns: {
       en: [/technical metadata|not a full recovery guarantee/i],

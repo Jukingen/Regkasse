@@ -16,6 +16,10 @@ export interface CashRegisterSelectableRow {
   id: string;
   registerNumber: string;
   location?: string;
+  /** RegisterStatus name, e.g. "Open" / "Closed". A closed row is opened when the user picks it. */
+  status?: string;
+  /** Admin assignment. Null/omitted = shared. Not used for payment authorization. */
+  assignedUserId?: string | null;
 }
 
 /**
@@ -23,9 +27,13 @@ export interface CashRegisterSelectableRow {
  */
 export type CashRegisterRow = CashRegisterSelectableRow;
 
-/** When `registers` is empty, server may explain why (GET /api/pos/cash-register/selectable). */
+/**
+ * When `registers` is empty, server may explain why (GET /api/pos/cash-register/selectable).
+ * `none_open` is no longer produced by the backend (closed registers are listed now) but stays
+ * accepted so an older API keeps rendering a meaningful message.
+ */
 export type PosSelectableEmptyReason =
-  'no_registers' | 'none_open' | 'none_selectable_for_user' | null;
+  'no_registers' | 'none_open' | 'none_assigned' | 'none_selectable_for_user' | null;
 
 export type PosSelectableListPayload = {
   registers: CashRegisterSelectableRow[];
@@ -50,7 +58,14 @@ function extractRegistersArrayFromCashRegisterBody(body: unknown): unknown[] {
 
 function parseSelectableEmptyReason(v: unknown): PosSelectableEmptyReason {
   const s = typeof v === 'string' ? v.trim() : '';
-  if (s === 'no_registers' || s === 'none_open' || s === 'none_selectable_for_user') return s;
+  if (
+    s === 'no_registers' ||
+    s === 'none_open' ||
+    s === 'none_assigned' ||
+    s === 'none_selectable_for_user'
+  ) {
+    return s;
+  }
   return null;
 }
 
@@ -60,8 +75,9 @@ function extractEmptyReasonFromBody(body: unknown): PosSelectableEmptyReason {
 }
 
 /**
- * Fetches open, user-selectable cash registers for POS assignment (ListSelectableForPosPickerAsync).
- * Do not use GET /api/CashRegister — full inventory includes closed rows and breaks picker semantics.
+ * Fetches the user-selectable cash registers for POS assignment (ListSelectableForPosPickerAsync).
+ * Rows may be Open or Closed — a closed one is opened by shift auto-open once the user picks it.
+ * Do not use GET /api/CashRegister — full inventory ignores assignment and shift occupancy.
  */
 export async function fetchPosSelectableRegisters(): Promise<PosSelectableListPayload> {
   const raw = await apiClient.get<unknown>(POS_SELECTABLE_REGISTERS_PATH);
@@ -85,22 +101,61 @@ export async function fetchPosSelectableRegisters(): Promise<PosSelectableListPa
     const statusRaw = row.status ?? row.Status;
     const status =
       statusRaw != null && String(statusRaw).trim() !== '' ? String(statusRaw).trim() : undefined;
-    parsed.push({ id, registerNumber, location: location || undefined, status });
+    const assignedRaw = row.assignedUserId ?? row.AssignedUserId;
+    const assignedUserId =
+      assignedRaw != null && String(assignedRaw).trim() !== ''
+        ? String(assignedRaw).trim()
+        : null;
+    parsed.push({
+      id,
+      registerNumber,
+      location: location || undefined,
+      status,
+      assignedUserId,
+    });
   }
   const beforeFilterCount = parsed.length;
   const usable = filterPaymentUsableSelectableRows(parsed);
-  const out: CashRegisterSelectableRow[] = usable.map(({ id, registerNumber, location }) => ({
-    id,
-    registerNumber,
-    location,
-  }));
+  const out: CashRegisterSelectableRow[] = usable.map(
+    ({ id, registerNumber, location, status, assignedUserId }) => ({
+      id,
+      registerNumber,
+      location,
+      status,
+      assignedUserId,
+    })
+  );
   let effectiveEmptyReason: PosSelectableEmptyReason;
   if (out.length > 0) {
     effectiveEmptyReason = null;
   } else if (beforeFilterCount > 0) {
-    effectiveEmptyReason = 'none_open';
+    // Server offered rows but every one is maintenance / disabled / decommissioned, so from the
+    // cashier's point of view nothing is selectable.
+    effectiveEmptyReason = 'none_selectable_for_user';
   } else {
     effectiveEmptyReason = emptyReason;
   }
   return { registers: out, emptyReason: effectiveEmptyReason };
+}
+
+/** POST /api/pos/cash-register/default — persist UserSettings.CashRegisterId for later auto-open. */
+export async function setDefaultPosCashRegister(registerId: string): Promise<string> {
+  const raw = await apiClient.post<unknown>('/pos/cash-register/default', { registerId });
+  const body = unwrapApiResponseLayer(raw);
+  if (body != null && typeof body === 'object') {
+    const row = body as Record<string, unknown>;
+    const id = String(row.cashRegisterId ?? row.CashRegisterId ?? registerId).trim();
+    if (id) return id;
+  }
+  return registerId;
+}
+
+/** GET /api/pos/cash-register/default — persisted default register id, or null. */
+export async function getDefaultPosCashRegister(): Promise<string | null> {
+  const raw = await apiClient.get<unknown>('/pos/cash-register/default');
+  const body = unwrapApiResponseLayer(raw);
+  if (body == null || typeof body !== 'object') return null;
+  const row = body as Record<string, unknown>;
+  const id = String(row.registerId ?? row.RegisterId ?? '').trim();
+  return id || null;
 }

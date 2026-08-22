@@ -31,7 +31,7 @@ function iconForType(type: string): ReactNode {
   if (type.startsWith('CashRegister')) {
     return <ShopOutlined />;
   }
-  if (type.startsWith('License')) {
+  if (type.startsWith('License') || type.startsWith('Limit')) {
     return <WarningOutlined />;
   }
   if (type === 'OfflineQueueGrowing') {

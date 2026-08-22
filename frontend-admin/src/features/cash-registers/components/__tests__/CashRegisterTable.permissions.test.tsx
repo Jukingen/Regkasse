@@ -100,7 +100,14 @@ describe('CashRegisterTable permissions', () => {
 
     renderTable();
 
-    expect(screen.getByRole('button', { name: /Details/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'KASSE-001' })).toHaveAttribute(
+      'href',
+      '/admin/cash-registers/reg-1'
+    );
+    expect(screen.getByRole('link', { name: /Details/i })).toHaveAttribute(
+      'href',
+      '/admin/cash-registers/reg-1'
+    );
     expect(screen.getByRole('button', { name: /Aktionen/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Stilllegen/i })).not.toBeInTheDocument();
   });

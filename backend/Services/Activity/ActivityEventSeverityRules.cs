@@ -16,6 +16,8 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.OfflineOrdersExpiringSoon => ActivitySeverityNames.Warning,
             ActivityEventType.OfflineSyncStalled => ActivitySeverityNames.Error,
             ActivityEventType.LicenseExpiringSoon => ActivitySeverityNames.Warning,
+            ActivityEventType.LimitApproaching => ActivitySeverityNames.Warning,
+            ActivityEventType.LimitExceeded => ActivitySeverityNames.Error,
             ActivityEventType.SuspiciousHighValuePayment => ActivitySeverityNames.Error,
             ActivityEventType.SuspiciousMultipleStornos => ActivitySeverityNames.Warning,
             ActivityEventType.SuspiciousMultipleRefunds => ActivitySeverityNames.Error,

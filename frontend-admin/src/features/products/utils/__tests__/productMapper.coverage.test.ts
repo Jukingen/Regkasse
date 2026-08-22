@@ -104,7 +104,7 @@ describe('mapApiProductToUi', () => {
     });
     expect(ui.taxRate).toBe(0);
     expect(ui.taxGroupId).toBe('tg-zero');
-    expect(ui.taxGroup).toBeNull();
+    expect(ui.taxGroup).toBeUndefined();
     expect(ui.isActive).toBe(true);
   });
 });
