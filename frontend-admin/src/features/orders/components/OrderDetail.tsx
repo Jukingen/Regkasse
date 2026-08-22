@@ -29,9 +29,14 @@ type OrderDetailProps = {
 };
 
 function orderTypeLabel(t: (key: string) => string, orderType: string): string {
-  const known = ['dine-in', 'takeaway', 'delivery'] as const;
-  if ((known as readonly string[]).includes(orderType)) {
-    return t(`onlineOrders.orderTypes.${orderType}`);
+  const i18nKeyByApiValue: Record<string, string> = {
+    'dine-in': 'dineIn',
+    takeaway: 'takeaway',
+    delivery: 'delivery',
+  };
+  const i18nKey = i18nKeyByApiValue[orderType];
+  if (i18nKey) {
+    return t(`onlineOrders.orderTypes.${i18nKey}`);
   }
   return orderType;
 }

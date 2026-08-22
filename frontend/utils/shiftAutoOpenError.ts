@@ -82,7 +82,9 @@ export function shouldClearPosRegisterAssignment(code: string): boolean {
   );
 }
 
-export function shiftAutoOpenNavigateHref(code: string): string | null {
+export function shiftAutoOpenNavigateHref(
+  code: string
+): typeof POS_CASH_REGISTER_SELECT_HREF | null {
   if (shouldClearPosRegisterAssignment(code) || code === SHIFT_AUTO_OPEN_CODES.NEED_REGISTER_SELECTION) {
     return POS_CASH_REGISTER_SELECT_HREF;
   }

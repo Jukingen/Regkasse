@@ -110,6 +110,7 @@
   },
   "pushReminders": {
     "title30": "License expires in 30 days",
+    "title15": "License expires in 15 days",
     "title14": "License expires in 14 days",
     "title7": "License expires in 7 days",
     "title1": "License expires tomorrow",

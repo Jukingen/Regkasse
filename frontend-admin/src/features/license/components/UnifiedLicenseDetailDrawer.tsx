@@ -37,7 +37,7 @@ export function UnifiedLicenseDetailDrawer({ licenseKey, onClose }: UnifiedLicen
       open={open}
       onClose={onClose}
       destroyOnHidden
-      width={480}
+      size={480}
     >
       {infoQuery.isFetching ? (
         <Spin />

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Globalization;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +13,7 @@ using KasseAPI_Final.HealthChecks;
 using KasseAPI_Final.Hubs;
 using KasseAPI_Final.Logging;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.ModelBinding;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
@@ -254,6 +256,10 @@ internal static class ApplicationHost
         }
 
         var isDevelopment = builder.Environment.IsDevelopment();
+
+        // Invariant number parsing so Range("0.01") and decimal binders work on de-AT hosts.
+        // Do not set DefaultThreadCurrentUICulture — LanguageMiddleware still localizes messages (de/en/tr).
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
         // On Windows, EventLog provider can throw ObjectDisposedException during shutdown races
         // when background services still emit logs. Keep other providers active and mute EventLog.
@@ -963,7 +969,10 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ICacheManagementService, CacheManagementService>();
 
         // API servisleri
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options =>
+        {
+            options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
+        })
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // GET /api/UserManagement/{id} etc. return camelCase for frontend

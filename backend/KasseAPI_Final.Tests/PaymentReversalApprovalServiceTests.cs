@@ -24,7 +24,7 @@ public sealed class PaymentReversalApprovalServiceTests
             .UseInMemoryDatabase($"rev_approval_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantId));
     }
 
     private static IOptionsMonitor<T> MonitorOf<T>(T value) where T : class
@@ -44,16 +44,20 @@ public sealed class PaymentReversalApprovalServiceTests
         tenantResolver.Setup(x => x.ResolveEffectiveTenantIdAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(TenantId);
 
+        var createdEmailMock = emailMock is null;
         emailMock ??= new Mock<IPaymentReversalApprovalEmailService>();
-        emailMock.Setup(x => x.TrySendApprovalTokenAsync(
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<string>(),
-                It.IsAny<PaymentDetails>(),
-                It.IsAny<PaymentReversalOperation>(),
-                It.IsAny<decimal?>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        if (createdEmailMock)
+        {
+            emailMock.Setup(x => x.TrySendApprovalTokenAsync(
+                    It.IsAny<IReadOnlyList<string>>(),
+                    It.IsAny<string>(),
+                    It.IsAny<PaymentDetails>(),
+                    It.IsAny<PaymentReversalOperation>(),
+                    It.IsAny<decimal?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+        }
 
         var workflow = new ApprovalWorkflowService(
             db,

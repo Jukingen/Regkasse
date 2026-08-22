@@ -119,7 +119,7 @@ describe('shiftService parsers', () => {
 });
 
 describe('autoOpenShiftApi', () => {
-  const postMock = apiClient.post as jest.Mock;
+  const postMock = apiClient.post as unknown as jest.Mock<(url: string, body?: unknown) => Promise<unknown>>;
 
   beforeEach(() => {
     postMock.mockReset();

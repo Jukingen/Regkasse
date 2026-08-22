@@ -19,7 +19,7 @@ public record CreateLicenseSaleRequest
     public DateTime? CustomValidUntilUtc { get; init; }
 
     [Required]
-    [Range(0.01, 999999.99)]
+    [Range(typeof(decimal), "0.01", "999999.99", ParseLimitsInInvariantCulture = true)]
     public decimal PriceNet { get; init; }
 
     [Range(0, 100)]
@@ -45,7 +45,7 @@ public record LicenseSalePreviewRequest
     public DateTime? CustomValidUntilUtc { get; init; }
 
     [Required]
-    [Range(0.01, 999999.99)]
+    [Range(typeof(decimal), "0.01", "999999.99", ParseLimitsInInvariantCulture = true)]
     public decimal PriceNet { get; init; }
 
     [Range(0, 100)]

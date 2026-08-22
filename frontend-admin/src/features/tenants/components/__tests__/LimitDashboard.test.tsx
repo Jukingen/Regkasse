@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { LimitDashboardDto } from '@/features/tenants/api/tenantLimits';
+import LimitDashboard from '../LimitDashboard';
 
 const push = vi.fn();
 
@@ -131,8 +132,6 @@ vi.mock('@/i18n', () => ({
 vi.mock('@/shared/adminShellLabels', () => ({
   adminOverviewCrumb: () => ({ title: 'Overview', href: '/dashboard' }),
 }));
-
-import LimitDashboard from '../LimitDashboard';
 
 describe('LimitDashboard', () => {
   it('shows usage, critical users, summary, and activity', () => {

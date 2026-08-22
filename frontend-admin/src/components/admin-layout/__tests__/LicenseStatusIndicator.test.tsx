@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 import type { LicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 
 import {
@@ -61,8 +62,6 @@ vi.mock('@/i18n', () => ({
     }),
   }),
 }));
-
-import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 
 function tenantHeader(partial: Partial<HeaderLicenseMock>): HeaderLicenseMock {
   return {

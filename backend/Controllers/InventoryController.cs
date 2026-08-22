@@ -140,12 +140,12 @@ namespace KasseAPI_Final.Controllers
 
                 if (inventoryId.HasValue)
                 {
-                    var ownerTenant = await (
+                    var existsForTenant = await (
                         from i in _context.Inventory.AsNoTracking()
                         join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
-                        where i.Id == inventoryId.Value
-                        select p.TenantId).FirstOrDefaultAsync(cancellationToken);
-                    if (ownerTenant != default && ownerTenant != tenantId)
+                        where i.Id == inventoryId.Value && p.TenantId == tenantId
+                        select i.Id).AnyAsync(cancellationToken);
+                    if (!existsForTenant)
                         return NotFound(new { message = "Inventory item not found" });
                 }
 

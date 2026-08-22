@@ -123,7 +123,7 @@ export function TrialsDashboardPageContent() {
       title: t('trials.columns.tenant'),
       key: 'tenant',
       render: (_, r) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Link href={`/admin/tenants/${r.tenantId}`}>{r.name}</Link>
           <Typography.Text type="secondary">{r.slug}</Typography.Text>
         </Space>

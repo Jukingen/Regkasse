@@ -111,7 +111,7 @@ export function FinanzOnlineOutboxWorkerSwitch() {
   };
 
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
       <Space wrap size="middle" align="center">
         <Switch
           checked={data?.enabled ?? false}

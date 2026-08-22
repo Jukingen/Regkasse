@@ -4,6 +4,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { BulkEmailForm } from '@/features/communication/components/BulkEmailForm';
+
 const {
   mockPreviewMutate,
   mockPreviewMutateAsync,
@@ -106,8 +108,6 @@ vi.mock('@/hooks/useAntdApp', () => ({
     notification: {},
   }),
 }));
-
-import { BulkEmailForm } from '@/features/communication/components/BulkEmailForm';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {

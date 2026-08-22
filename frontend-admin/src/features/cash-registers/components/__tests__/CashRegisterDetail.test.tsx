@@ -4,7 +4,10 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
+import {
+  getAdminCashRegisterById,
+  type AdminCashRegisterListItem,
+} from '@/features/cash-registers/api/cashRegisters';
 import { CashRegisterDetail } from '@/features/cash-registers/components/CashRegisterDetail';
 import { I18nProvider } from '@/i18n';
 
@@ -111,8 +114,6 @@ vi.mock('@/hooks/usePermissions', () => ({
     user: { id: 'admin-1', tenantId: 'tenant-a', role: 'Manager' },
   }),
 }));
-
-import { getAdminCashRegisterById } from '@/features/cash-registers/api/cashRegisters';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {

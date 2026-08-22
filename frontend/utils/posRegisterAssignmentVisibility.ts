@@ -35,7 +35,7 @@ export function isSelectableRegisterVisibleToUser(
 }
 
 export function filterSelectableRegistersForPosUser<
-  T extends { assignedUserId?: string | null },
+  T extends { id?: string; assignedUserId?: string | null },
 >(rows: T[], user: PosAssignmentUser | null | undefined): T[] {
   if (!user) return [];
   if (seesEveryPosRegisterAssignment(user)) return rows;

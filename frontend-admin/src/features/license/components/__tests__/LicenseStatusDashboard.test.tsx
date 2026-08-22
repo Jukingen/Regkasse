@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LicenseStatusView } from '@/hooks/useLicenseStatus';
 
+import LicenseStatusDashboard from '@/features/license/components/LicenseStatusDashboard';
+
 import {
   ACTIVE_UNTIL_DISPLAY,
   EXTENDED_UNTIL_DISPLAY,
@@ -110,8 +112,6 @@ vi.mock('@/i18n', () => ({
     }),
   }),
 }));
-
-import LicenseStatusDashboard from '@/features/license/components/LicenseStatusDashboard';
 
 describe('LicenseStatusDashboard', () => {
   beforeEach(() => {

@@ -1,4 +1,3 @@
-import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 'use client';
 
 import {
@@ -74,6 +73,7 @@ import {
   buildTenantDecommissionPreflightChecks,
   buildTenantDecommissionRegisterSummary,
 } from '@/features/super-admin/utils/tenantDecommissionWizard';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime, useI18n } from '@/i18n';

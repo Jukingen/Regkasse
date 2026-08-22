@@ -29,7 +29,9 @@ public sealed class LanguageMiddleware
             _ => CultureInfo.GetCultureInfo("de-AT"),
         };
 
-        CultureInfo.CurrentCulture = cultureInfo;
+        // Keep number/date parsing invariant so Range("0.01") and decimal binders
+        // work when the UI culture is de-AT (comma decimal separator).
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
         CultureInfo.CurrentUICulture = cultureInfo;
         context.Items[LanguageItemKey] = language;
 

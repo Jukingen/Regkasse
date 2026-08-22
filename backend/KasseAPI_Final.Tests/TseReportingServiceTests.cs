@@ -148,7 +148,7 @@ public sealed class TseReportingServiceTests
                 TenantId = tenantId,
                 CashRegisterId = Guid.NewGuid(),
                 ReceiptNumber = $"R-{i}",
-                IssuedAt = now.Date.AddDays(-i).AddHours(12),
+                IssuedAt = now.AddDays(-i).AddMinutes(-5),
                 SignatureValue = "sig",
                 CreatedAt = now,
                 SubTotal = 1,
