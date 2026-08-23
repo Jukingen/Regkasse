@@ -170,6 +170,8 @@ HttpOnly cookies for **browser** sessions, split by `clientApp` so FA and POS in
 
 POS/native still uses JSON `token` / `refreshToken` (SecureStore) as the source of truth; Bearer header wins when present. Legacy `access_token` / `refresh_token` are still **read and expired** so leftover shared cookies do not collide. JWT Bearer header wins when present. Cookie pick when both apps are logged in: `X-App-Context` / `RefreshRequest.clientApp` / Origin (`admin.*` vs `pos.*`), else admin then POS.
 
+**Logout security (cookie scope, SecurityStamp, CSRF, client cleanup):** [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
+
 | Setting | JSON path | Notes |
 |--------|------------|--------|
 | Enabled | `AuthCookies:Enabled` | Default `true`. |

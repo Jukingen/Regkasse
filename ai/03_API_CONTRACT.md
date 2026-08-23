@@ -1,64 +1,69 @@
-# API Contract
+# API contract
 
 ## Source of truth
-- Contract kaynağı: `backend/swagger.json`.
-- Backend implementation ve frontend tüketimi bu dosyayla hizalı olmalıdır.
+
+- Contract source: `backend/swagger.json`.
+- Backend implementation and frontend consumption must stay aligned with this file.
 - **Supplement (auth / username deltas):** [`docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) — `loginIdentifier`, `userName`, Quick Create (`/users/quick`).
 
-## API Headers
+## API headers
 
-### Tenant Identification
+### Tenant identification
 
-- **Production (hedef):** Shared hosts `api.regkasse.at` / `pos.regkasse.at` / `admin.regkasse.at` — kiracı JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`).
-- **Host slug:** `{slug}.regkasse.at` **POS production entry değildir** (legacy / geçiş veya `TenantDomain` müşteri sitesi).
-- **Development only:** `X-Tenant-Id: {slug}` veya `?tenant={slug}` — değer kiracı **slug**’ıdır (UUID değil); Production’da yok.
+- **Production (target):** Shared hosts `api.regkasse.at` / `pos.regkasse.at` / `admin.regkasse.at` — tenant is JWT `tenant_id` (`docs/POS_PRODUCTION_ARCHITECTURE.md`).
+- **Host slug:** `{slug}.regkasse.at` is **not** the POS production entry (legacy / transition or `TenantDomain` customer site).
+- **Development only:** `X-Tenant-Id: {slug}` or `?tenant={slug}` — value is the tenant **slug** (not a UUID); absent in Production.
 
-JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware` (POS/API için otoriter).
+JWT: after auth, `tenant_id` claim (Guid) + `TenantContextMiddleware` (authoritative for POS/API).
 
-### Super Admin Endpoints
+### Super Admin endpoints
 
-- `/api/admin/tenants/*` → yalnızca `SuperAdmin` rolü.
-- `tenants` tablosu global; `ITenantEntity` filtreleri bu CRUD’u kapsamaz.
-- Operasyonel veri için: `POST /api/admin/tenants/{tenantId}/impersonate`.
+- `/api/admin/tenants/*` → `SuperAdmin` role only.
+- The `tenants` table is global; `ITenantEntity` filters do not cover this CRUD.
+- For operational data: `POST /api/admin/tenants/{tenantId}/impersonate`.
 
-## Multi-Tenant Architecture
+## Multi-tenant architecture
 
-- Kiracı dışı kaynak ID’leri: **404** (sızıntı önleme).
-- Startup / singleton backend kodu: `IServiceScopeFactory` + scoped `AppDbContext` (`LicenseService`); root factory kullanma.
+- Foreign tenant resource IDs: **404** (anti-leak).
+- Startup / singleton backend code: `IServiceScopeFactory` + scoped `AppDbContext` (`LicenseService`); do not use the root factory.
 
-## Boundary kuralı
+## Boundary rule
+
 - Admin: `/api/admin/*`
 - POS: `/api/pos/*`
-- Sites / public (storefront, online order intake): `/api/public/*`, `/api/sites/*` — POS/FA boundary’sine karıştırma; working hours yalnızca bu yüzeyi etkiler.
-- RKSV özel fişler: `/api/rksv/*` (canonical; yüksek risk).
-- Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) **removed** (2026-08-13). Canonical: `/api/pos/payment`, `/api/pos/cart`, `/api/pos` + `/api/admin/products`.
+- Sites / public (storefront, online order intake): `/api/public/*`, `/api/sites/*` — do not mix with the POS/FA boundary; working hours affect only this surface.
+- RKSV special receipts: `/api/rksv/*` (canonical; high risk).
+- Legacy prefixes (`/api/Payment`, `/api/Cart`, `/api/Product`) were **removed** (2026-08-13). Canonical: `/api/pos/payment`, `/api/pos/cart`, `/api/pos` + `/api/admin/products`.
 
-## Yüksek risk (contract değişikliği öncesi)
-- Ödeme: `/api/pos/payment*`, offline intent replay: `/api/offline-transactions/*`
-- **Offline order snapshots:** `/api/pos/offline-orders/*`, `/api/admin/offline-orders/*` (bkz. [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](../docs/release/OFFLINE_SYSTEMS_SEPARATION.md))
+## High risk (before a contract change)
+
+- Payment: `/api/pos/payment*`, offline intent replay: `/api/offline-transactions/*`
+- **Offline order snapshots:** `/api/pos/offline-orders/*`, `/api/admin/offline-orders/*` (see [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](../docs/release/OFFLINE_SYSTEMS_SEPARATION.md))
 - **Offline TSE intents (legacy):** `/api/offline-transactions/*`, `/api/admin/offline-transactions/*` — **not** the same as offline orders
 - RKSV: `/api/rksv/special-receipts/*`
-- TSE tanılama ve kasa oturumu ile ilişkili uçlar
+- TSE diagnostics and register-session related endpoints
 - Fiscal export: `/api/admin/fiscal-export*`
 
-## Contract değişikliği kuralı
-- Endpoint/DTO/error shape değişiyorsa:
-  1. backend kodunu güncelle,
-  2. `backend/swagger.json` güncelle,
-  3. admin tarafında Orval ile `frontend-admin/src/api/generated/**` yenile,
-  4. `node scripts/verify-api-client.mjs` ve kritik path scriptlerini çalıştır.
+## Contract change rule
 
-## Development Setup for Multi-Tenant Testing
+If endpoint/DTO/error shape changes:
 
-`ASPNETCORE_ENVIRONMENT=Development` gerekir. Slug, DB’de `tenants.slug` ile eşleşmeli (ör. `dev`, `cafe`, `dev`).
+1. Update backend code.
+2. Update `backend/swagger.json`.
+3. Regenerate Orval for admin (`frontend-admin/src/api/generated/**`).
+4. Run `node scripts/verify-api-client.mjs` and critical-path scripts.
 
-### Option 1: Header-based (simplest)
+## Development setup for multi-tenant testing
+
+Requires `ASPNETCORE_ENVIRONMENT=Development`. Slug must match `tenants.slug` in the DB (for example `dev`, `cafe`).
+
+### Option 1: Header (simplest)
 
 ```bash
 curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
 ```
 
-### Option 2: Query string (Dev-only)
+### Option 2: Query string (Dev only)
 
 ```bash
 curl "http://localhost:5184/api/health?tenant=dev"
@@ -71,14 +76,15 @@ curl "http://localhost:5184/api/health?tenant=dev"
 127.0.0.1 dev.regkasse.local
 ```
 
-Örnek: FA `http://admin.regkasse.local:3000`; API slug host (opsiyonel) `http://dev.regkasse.local:5184`.
+Example: FA `http://admin.regkasse.local:3000`; optional API slug host `http://dev.regkasse.local:5184`.
 
 ### Option 4: FA tenant switcher
 
-Development’ta header dropdown (`HeaderDevTenantSwitch`); `X-Tenant-Id` + reload.
+In Development, header dropdown (`HeaderDevTenantSwitch`); `X-Tenant-Id` + reload.
 
-POS: `EXPO_PUBLIC_DEV_TENANT_ID=dev`, `DevTenantSwitcher`. Ayrıntı: `REGKASSE_AI_ONBOARDING.md`.
+POS: `EXPO_PUBLIC_DEV_TENANT_ID=dev`, `DevTenantSwitcher`. Detail: `REGKASSE_AI_ONBOARDING.md`.
 
-## Kontroller
+## Checks
+
 - `node scripts/validate-critical-openapi-paths.mjs`
 - `node scripts/verify-api-client.mjs`

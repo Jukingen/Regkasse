@@ -31,6 +31,8 @@ export interface IOfflineStorage {
   deleteOrder(id: string): Promise<void>;
   updateOrderStatus(id: string, status: string): Promise<void>;
   deleteAllSynced(): Promise<void>;
+  /** Removes every queued order (pending, failed, synced). Used on logout for session isolation. */
+  clearAll(): Promise<void>;
 }
 
 function isOfflineOrderStatus(value: string): value is OfflineOrderStatus {
@@ -88,6 +90,10 @@ export class AsyncStorageAdapter implements IOfflineStorage {
   async deleteAllSynced(): Promise<void> {
     const orders = await readAllFromAsyncStorage();
     await writeAllToAsyncStorage(orders.filter((o) => o.status !== 'synced'));
+  }
+
+  async clearAll(): Promise<void> {
+    await writeAllToAsyncStorage([]);
   }
 }
 
@@ -203,6 +209,12 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
       const index = store.index('status');
       const synced = (await idbRequest(index.getAll('synced'))) as OfflineOrder[];
       await Promise.all(synced.map((order) => idbRequest(store.delete(order.id))));
+    });
+  }
+
+  async clearAll(): Promise<void> {
+    await this.withStore('readwrite', async (store) => {
+      await idbRequest(store.clear());
     });
   }
 }

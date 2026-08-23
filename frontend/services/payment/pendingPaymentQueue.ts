@@ -167,6 +167,11 @@ async function writeQueue(entries: PendingPaymentEntry[]): Promise<void> {
   await storage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
+/** Drops the local TSE/payment offline queue. Called on logout so the next cashier cannot replay another session. */
+export async function clearPendingPaymentQueue(): Promise<void> {
+  await writeQueue([]);
+}
+
 function newQueueId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();

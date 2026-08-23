@@ -1,5 +1,7 @@
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
+import { FORMAT_STORAGE_KEY } from '@/i18n/languageStorage';
 import { decodeJwtPayload, isTruthyJwtClaim } from '@/lib/auth/jwtPayload';
+import { clearStoredPersonalization } from '@/lib/personalization/storage';
 
 /**
  * FA session presence for Edge `proxy.ts` and `/me` bootstrap.
@@ -208,7 +210,8 @@ export const authStorage = {
   },
 
   /**
-   * Clears client session metadata. HttpOnly API cookies are cleared by `POST /api/Auth/logout`.
+   * Clears client session metadata (tenant, theme, preferences).
+   * HttpOnly API cookies are cleared by `POST /api/Auth/logout`.
    */
   removeToken: (): void => {
     if (typeof window !== 'undefined') {
@@ -217,6 +220,12 @@ export const authStorage = {
       window.localStorage.removeItem(IMPERSONATING_KEY);
       clearClientAuthCookies();
       tenantStorage.clear();
+      clearStoredPersonalization();
+      try {
+        window.localStorage.removeItem(FORMAT_STORAGE_KEY);
+      } catch {
+        /* restricted storage */
+      }
       window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));
     }
   },

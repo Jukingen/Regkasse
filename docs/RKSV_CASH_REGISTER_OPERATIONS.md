@@ -1,94 +1,94 @@
-# RKSV Kasa İşlemleri — Operasyonel El Kitabı
+# RKSV Cash Register Operations — Operational Handbook
 
-> **Yasal uyarı:** Bu belge yalnızca kod tabanındaki uygulamayı özetler; hukuki danışmanlık veya RKSV/ABG uyumluluk garantisi değildir. Avusturya mevzuatı ve resmi yorumlar için uzman veya yetkili mercilere başvurun.
+> **Legal notice:** This document only summarizes the implementation in this codebase. It is not legal advice and does not guarantee RKSV/ABG compliance. For Austrian law and official interpretations, consult a specialist or the competent authorities.
 
-> **Kapsam:** Açıklamalar **Türkçe**; arayüzde Almanca kullanılan menü/sayfa adları **Almanca** bırakılmıştır.
+> **Scope:** Explanations are in **English**. Menu and page names that appear in German in the UI are left in **German**.
 
 ---
 
-## 1. Tagesbericht (formal günlük rapor)
+## 1. Tagesbericht (formal daily report)
 
-### Ne
-Viyana takvim günü ve kasa kapsamında özetlenmiş, `SnapshotJson` + hash ile dondurulabilen **resmî Tagesbericht** kaydı. FinanzOnline tarafına özet gönderimi için outbox mesajı üretilebilir (kodda “Non-DEP summary” olarak not düşülür).
+### What
+A **formal Tagesbericht** record summarized for a Vienna calendar day and cash register, which can be frozen with `SnapshotJson` + hash. An outbox message can be produced for summary submission to FinanzOnline (noted in code as a "Non-DEP summary").
 
-### Neden (işletme / RKSV bağlamı)
-Operasyonel gün sonu ile karışmaması için ayrı bir **formal rapor** katmanı; denetim ve muhasebe ile hizalanmış özet + gönderim durumu izlenebilir.
+### Why (business / RKSV context)
+A separate **formal report** layer so it is not mixed with operational end-of-day. A summary aligned with audit and accounting plus submission status can be tracked.
 
-### Menü / sayfa (`frontend-admin`)
-- **Tagesbericht (formal)** — `frontend-admin/src/app/(protected)/reporting/tagesbericht/page.tsx` (liste), `.../tagesbericht/[id]/page.tsx` (detay).
-- Yan bağlantılar: **Report Center** (`reporting/report-center/page.tsx`), **RKSV** altındaki FinanzOnline ekranları (aşağıda).
+### Menu / page (`frontend-admin`)
+- **Tagesbericht (formal)** — `frontend-admin/src/app/(protected)/reporting/tagesbericht/page.tsx` (list), `.../tagesbericht/[id]/page.tsx` (detail).
+- Side links: **Report Center** (`reporting/report-center/page.tsx`), FinanzOnline screens under **RKSV** (below).
 
-### POS / mobil (`frontend`)
-- Formal Tagesbericht API’sine bağlı **gerçek** bir POS ekranı **bulunamadı**. `frontend/app/(screens)/reports.tsx` dosyasında örnek veri ve `TODO: API` notları vardır; üretimde formal Tagesbericht **yalnızca admin** tarafında işlenir.
+### POS / mobile (`frontend`)
+- A **real** POS screen bound to the formal Tagesbericht API was **not found**. `frontend/app/(screens)/reports.tsx` has sample data and `TODO: API` notes; in production, formal Tagesbericht is processed **only on the admin** side.
 
 ### Backend
-- **Controller:** `backend/Controllers/TagesberichtReportsController.cs` — `GET/POST` altında `api/reports/tagesbericht` (liste, `generate`, `finalize`, `correction`, `{id}/submit-finanzonline`).
-- **Servis:** `ITagesberichtService` / `TagesberichtService.cs`.
-- **Model:** `backend/Models/TagesberichtReport.cs` (tablo `tagesbericht_reports`).
+- **Controller:** `backend/Controllers/TagesberichtReportsController.cs` — `GET/POST` under `api/reports/tagesbericht` (list, `generate`, `finalize`, `correction`, `{id}/submit-finanzonline`).
+- **Service:** `ITagesberichtService` / `TagesberichtService.cs`.
+- **Model:** `backend/Models/TagesberichtReport.cs` (table `tagesbericht_reports`).
 - **DTO:** `backend/Models/Reports/TagesberichtDtos.cs`.
 
-### İzinler
-- **Görüntüleme:** `report.view` (`AppPermissions.ReportView`).
-- **Üret / finalize / düzeltme:** `report.export` (`AppPermissions.ReportExport`).
-- **FinanzOnline gönder:** `finanzonline.submit` (`AppPermissions.FinanzOnlineSubmit`).
+### Permissions
+- **View:** `report.view` (`AppPermissions.ReportView`).
+- **Generate / finalize / correction:** `report.export` (`AppPermissions.ReportExport`).
+- **Submit to FinanzOnline:** `finanzonline.submit` (`AppPermissions.FinanzOnlineSubmit`).
 
-### Adım adım (özet)
-1. Admin’de **Tagesbericht (formal)** listesine girin; tarih / kasa filtrelerini kullanın.
-2. Gerekirse **generate** ile geçici (`Provisional`) özet oluşturun veya yenileyin.
-3. İçerik doğrulandıktan sonra **finalize** ile kalıcı hale getirin (kodda `Finalized` / düzeltme zinciri).
-4. Gerekirse **FinanzOnline** gönderimini tetikleyin (`POST .../submit-finanzonline`); outbox ve satır üzerindeki gönderim alanları güncellenir.
+### Step by step (summary)
+1. In Admin, open the **Tagesbericht (formal)** list; use date / cash register filters.
+2. If needed, **generate** a provisional (`Provisional`) summary or refresh it.
+3. After the content is verified, **finalize** it so it becomes permanent (in code: `Finalized` / correction chain).
+4. If needed, trigger **FinanzOnline** submission (`POST .../submit-finanzonline`); the outbox and the submission fields on the row are updated.
 
-### Beklenen çıktı
-- Liste/detay DTO’larında özet tutarlar, vergi / ödeme yöntemi dağılımı, mutabakat bayrakları, gönderim durumu (`TagesberichtSubmissionStateDto` vb.).
+### Expected output
+- List/detail DTOs include summary amounts, tax / payment-method breakdown, reconciliation flags, and submission status (`TagesberichtSubmissionStateDto` and similar).
 
-### Sık hatalar / engeller
-- Yetkisiz kullanıcı: `403` (ilgili `HasPermission`).
-- Gönderim hataları: rapor satırında `LastSubmissionError` / outbox terminal durumları (ayrıntı için FinanzOnline outbox ekranı).
+### Common errors / blockers
+- Unauthorized user: `403` (related `HasPermission`).
+- Submission errors: `LastSubmissionError` on the report row / outbox terminal states (see the FinanzOnline outbox screen for detail).
 
-### Eksik / kısmi
-- POS’tan formal Tagesbericht **yok** (`reports.tsx` placeholder).
-- FinanzOnline tarafı kod yorumlarında **DEP satırı değil**, bilgilendirici özet hattı olarak tanımlanır (`FinanzOnlineOutbox.cs` notları).
+### Missing / partial
+- Formal Tagesbericht from POS is **absent** (`reports.tsx` placeholder).
+- Code comments describe the FinanzOnline side as an informational summary line, **not** a DEP row (`FinanzOnlineOutbox.cs` notes).
 
 ---
 
-## 2. Monatsbericht (formal aylık rapor)
+## 2. Monatsbericht (formal monthly report)
 
-### Ne
-Ay bazlı formal rapor; Tagesbericht ile aynı yaşam döngüsü desenine yakın (geçici → finalize → düzeltme → FinanzOnline).
+### What
+A month-based formal report; the lifecycle pattern is close to Tagesbericht (provisional → finalize → correction → FinanzOnline).
 
-### Neden
-Aylık resmî özet ve gönderim izi; üst raporlar (ör. Jahresbericht) ile birleştirilebilir.
+### Why
+A monthly official summary and submission trail; it can be combined with higher-level reports (for example Jahresbericht).
 
-### Menü / sayfa (`frontend-admin`)
+### Menu / page (`frontend-admin`)
 - **Monatsbericht (formal)** — `reporting/monatsbericht/page.tsx`, `reporting/monatsbericht/[id]/page.tsx`.
 
 ### POS
-**Not found in current implementation** (doğrudan tetikleyici).
+**Not found in current implementation** (no direct trigger).
 
 ### Backend
 - `backend/Controllers/MonatsberichtReportsController.cs` — `api/reports/monatsbericht` (+ `generate`, `finalize`, `correction`, `{id}/submit-finanzonline`).
 - `IMonatsberichtService` / `MonatsberichtService.cs`, model `MonatsberichtReport`.
 
-### İzinler
-Tagesbericht ile aynı: `ReportView`, `ReportExport`, `FinanzOnlineSubmit`.
+### Permissions
+Same as Tagesbericht: `ReportView`, `ReportExport`, `FinanzOnlineSubmit`.
 
-### Adım adım
-Tagesbericht ile paralel: ay seçimi → generate → finalize → isteğe bağlı FinanzOnline submit.
+### Step by step
+Parallel to Tagesbericht: select month → generate → finalize → optional FinanzOnline submit.
 
-### Beklenen çıktü
-`MonatsberichtDto` / liste öğeleri; bağlı günler ve gönderim özeti.
+### Expected output
+`MonatsberichtDto` / list items; linked days and submission summary.
 
-### Eksik / kısmi
-- FinanzOnline notu: **Non-DEP monthly summary** (`FinanzOnlineOutbox.cs`).
+### Missing / partial
+- FinanzOnline note: **Non-DEP monthly summary** (`FinanzOnlineOutbox.cs`).
 
 ---
 
-## 3. Jahresbericht (formal yıllık rapor)
+## 3. Jahresbericht (formal annual report)
 
-### Ne
-Yıl bazlı formal rapor; aynı controller/servis kalıbı.
+### What
+A year-based formal report; the same controller/service pattern.
 
-### Menü / sayfa (`frontend-admin`)
+### Menu / page (`frontend-admin`)
 - **Jahresbericht (formal)** — `reporting/jahresbericht/page.tsx`, `reporting/jahresbericht/[id]/page.tsx`.
 
 ### POS
@@ -97,21 +97,21 @@ Yıl bazlı formal rapor; aynı controller/servis kalıbı.
 ### Backend
 - `backend/Controllers/JahresberichtReportsController.cs` — `api/reports/jahresbericht`.
 
-### İzinler
+### Permissions
 `ReportView`, `ReportExport`, `FinanzOnlineSubmit`.
 
-### Eksik / kısmi
-- FinanzOnline notu: **Non-DEP annual summary** (`FinanzOnlineOutbox.cs`).
+### Missing / partial
+- FinanzOnline note: **Non-DEP annual summary** (`FinanzOnlineOutbox.cs`).
 
 ---
 
 ## 4. RKSV Sonderbelege — Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg
 
-RKSV özel fişleri **POS ödeme rotalarından ayrıdır**; `PaymentService` üzerinden oluşturulmaz. Üretim `RksvSpecialReceiptsController` + `RksvSpecialReceiptService` ile yapılır; sonuç kayıtları normal `PaymentDetails` / `Invoice` / `Receipt` tablolarına yazılır ve fiş DTO’sunda `RksvSpecialReceiptKind` ile işaretlenir.
+RKSV special receipts are **separate from POS payment routes**; they are not created through `PaymentService`. Production uses `RksvSpecialReceiptsController` + `RksvSpecialReceiptService`; result records are written to the normal `PaymentDetails` / `Invoice` / `Receipt` tables and marked on the receipt DTO with `RksvSpecialReceiptKind`.
 
-### Ortak API (`backend`)
+### Shared API (`backend`)
 
-| İşlem | HTTP | İzin (`AppPermissions`) |
+| Operation | HTTP | Permission (`AppPermissions`) |
 |--------|------|-------------------------|
 | Monats-Nullbeleg | `POST api/rksv/special-receipts/nullbeleg` | `RksvNullbelegCreate` |
 | Startbeleg | `POST api/rksv/special-receipts/startbeleg` | `RksvStartbelegCreate` |
@@ -119,239 +119,239 @@ RKSV özel fişleri **POS ödeme rotalarından ayrıdır**; `PaymentService` üz
 | Jahresbeleg | `POST api/rksv/special-receipts/jahresbeleg` | `RksvJahresbelegCreate` |
 | Schlussbeleg (Endbeleg) | `POST api/rksv/special-receipts/schlussbeleg` | `RksvSchlussbelegCreate` |
 
-İstek/yanıt gövdeleri: `backend/DTOs/RksvSpecialReceiptDtos.cs`. Controller: `backend/Controllers/RksvSpecialReceiptsController.cs`. İş kuralları ve TSE sıfır tutarlı imza: `backend/Services/RksvSpecialReceiptService.cs`.
+Request/response bodies: `backend/DTOs/RksvSpecialReceiptDtos.cs`. Controller: `backend/Controllers/RksvSpecialReceiptsController.cs`. Business rules and TSE zero-amount signature: `backend/Services/RksvSpecialReceiptService.cs`.
 
-### Admin arayüzü (`frontend-admin`)
+### Admin UI (`frontend-admin`)
 
-- **Sayfa:** `frontend-admin/src/app/(protected)/rksv/sonderbelege/page.tsx` → `RksvSonderbelegePage` (`frontend-admin/src/features/rksv-operations/components/RksvSonderbelegePage.tsx`).
-- **Menü:** RKSV grubu altında **Sonderbelege** (`nav.rksvLeafSonderbelege`); rota `/rksv/sonderbelege` (`frontend-admin/src/features/rksv/rksvAdminMenuModel.ts`).
-- **Akış (özet):** Kasa seçimi → ilgili izin varsa oluşturma kartları (Nullbeleg / Startbeleg / Monatsbeleg / Jahresbeleg / Schlussbeleg) → `POST /api/rksv/special-receipts/...` → son fiş listesi `getApiReceiptsList` ile son 300 kayıt içinden `rksvSpecialReceiptKind` dolu olanlarla süzülür. İsteğe bağlı **Beleg erneut drucken** (`ReceiptReprintWizard`, `RECEIPT_REPRINT`). Schlussbeleg için ek onay metni modalı vardır.
-- **Fiş detayı:** `receipts/[receiptId]/page.tsx` içinde Startbeleg/Jahresbeleg için `RksvSpecialReceiptFinanzOnlineSubmissionCard` (`ReceiptDTO.rksvFinanzOnlineSubmission`).
-- **FinanzOnline durumu (yalnızca izlenen türler):** Arayüzde Startbeleg ve Jahresbeleg için gönderim rozeti/metni `isRksvFinanzOnlineTrackedSpecialReceiptKind` (`frontend-admin/src/features/receipts/utils/rksvFinanzOnlineSubmissionUi.ts`) ile sınırlanır; backend ile uyumludur.
+- **Page:** `frontend-admin/src/app/(protected)/rksv/sonderbelege/page.tsx` → `RksvSonderbelegePage` (`frontend-admin/src/features/rksv-operations/components/RksvSonderbelegePage.tsx`).
+- **Menu:** **Sonderbelege** under the RKSV group (`nav.rksvLeafSonderbelege`); route `/rksv/sonderbelege` (`frontend-admin/src/features/rksv/rksvAdminMenuModel.ts`).
+- **Flow (summary):** Select cash register → creation cards if the related permission is present (Nullbeleg / Startbeleg / Monatsbeleg / Jahresbeleg / Schlussbeleg) → `POST /api/rksv/special-receipts/...` → the latest-receipt list is filtered via `getApiReceiptsList` from the last 300 records that have `rksvSpecialReceiptKind` set. Optional **Beleg erneut drucken** (`ReceiptReprintWizard`, `RECEIPT_REPRINT`). Schlussbeleg has an extra confirmation-text modal.
+- **Receipt detail:** `receipts/[receiptId]/page.tsx` includes `RksvSpecialReceiptFinanzOnlineSubmissionCard` for Startbeleg/Jahresbeleg (`ReceiptDTO.rksvFinanzOnlineSubmission`).
+- **FinanzOnline status (tracked kinds only):** In the UI, the submission badge/text for Startbeleg and Jahresbeleg is limited by `isRksvFinanzOnlineTrackedSpecialReceiptKind` (`frontend-admin/src/features/receipts/utils/rksvFinanzOnlineSubmissionUi.ts`); this matches the backend.
 
-### FinanzOnline outbox izi (kod davranışı)
+### FinanzOnline outbox trail (code behavior)
 
-- **Outbox kuyruğuna eklenen Sonderbeleg türleri:** yalnızca **Startbeleg** ve **Jahresbeleg** (`RksvSpecialReceiptService` içinde `EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` çağrıları; mesaj türleri `FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission` / `RksvJahresbelegSubmission`).
-- **Nullbeleg, Monatsbeleg, Schlussbeleg:** `RksvSpecialReceiptService` bu türler için `EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` çağırmaz; `RksvSpecialReceiptFinanzOnlineSubmissions` satırı da bu oluşturma yollarında eklenmez.
-- **Durum satırı:** `RksvSpecialReceiptFinanzOnlineSubmission` entity + `ReceiptDTO.RksvFinanzOnlineSubmission` (`RksvFinanzOnlineSubmissionStatusDto`). İşleyici: `RksvSpecialReceiptFinanzOnlineOutboxHandler`.
+- **Sonderbeleg kinds enqueued to the outbox:** only **Startbeleg** and **Jahresbeleg** (`EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` calls inside `RksvSpecialReceiptService`; message types `FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission` / `RksvJahresbelegSubmission`).
+- **Nullbeleg, Monatsbeleg, Schlussbeleg:** `RksvSpecialReceiptService` does not call `EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` for these kinds; a `RksvSpecialReceiptFinanzOnlineSubmissions` row is also not added on these create paths.
+- **Status row:** `RksvSpecialReceiptFinanzOnlineSubmission` entity + `ReceiptDTO.RksvFinanzOnlineSubmission` (`RksvFinanzOnlineSubmissionStatusDto`). Handler: `RksvSpecialReceiptFinanzOnlineOutboxHandler`.
 
 ### 4.1 Nullbeleg
 
-Viyana takvimi `year`/`month` için kasa başına tek kayıt; `ActsAsJahresbeleg` isteğe bağlı (gövdede `null` ise Aralık için `true` varsayılanı serviste uygulanır). Misafir müşteri + sıfır tutarlı ödeme/fatura/fiş üretimi `RksvSpecialReceiptService.CreateNullbelegAsync`.
+One record per cash register for the Vienna calendar `year`/`month`; `ActsAsJahresbeleg` is optional (if the body is `null`, the service applies a December default of `true`). Guest customer + zero-amount payment/invoice/receipt creation: `RksvSpecialReceiptService.CreateNullbelegAsync`.
 
 ### 4.2 Startbeleg
 
-Kasa başına tek Startbeleg; kasa kalıcı devre dışı değilse. Oluşturma sonrası FO submission satırı ve outbox mesajı eklenir (`CreateStartbelegAsync`).
+One Startbeleg per cash register, unless the register is permanently disabled. After create, a FO submission row and outbox message are added (`CreateStartbelegAsync`).
 
 ### 4.3 Monatsbeleg
 
-**Üretim:** Geçmiş Viyana takvim ayları için TSE imzalı Monatsbeleg; **Aralık** isteği serviste **Jahresbeleg** yoluna yönlendirilir.
+**Create:** TSE-signed Monatsbeleg for past Vienna calendar months; a **December** request is routed in the service to the **Jahresbeleg** path.
 
-**FinanzOnline:** Ayrı `belegpruefung` outbox **yok** (ürün kararı **NotRequired**). Zorunlu FON Belegcheck Startbeleg + Jahresbeleg içindir. Detay: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; fiş detayında NotRequired notu.
+**FinanzOnline:** No separate `belegpruefung` outbox (product decision **NotRequired**). Mandatory FON Belegcheck applies to Startbeleg + Jahresbeleg. Detail: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; NotRequired note on the receipt detail.
 
 ### 4.4 Jahresbeleg
 
-Viyana takvim yılı **şu anki yıl veya bir önceki yıl** ile sınırlı; erken düzenleme notu `EarlyReason` ile taşınabilir. Oluşturma sonrası FO submission + outbox (`CreateJahresbelegAsync`).
+Limited to the Vienna calendar year that is **the current year or the previous year**; an early-issue note can be carried in `EarlyReason`. After create: FO submission + outbox (`CreateJahresbelegAsync`).
 
 ### 4.5 Schlussbeleg (Endbeleg)
 
-Açık vardiya yokken ve kasa durumu kapalı uygunluğunda; sonrasında kasa **kalıcı olarak devre dışı** bırakılır. FO özel iz kaydı yok.
+When there is no open shift and the cash register status is eligible for close; afterward the register is **permanently disabled**. No dedicated FO trail record.
 
 ---
 
-## 9. Belege / fişler (Receipts)
+## 9. Belege / receipts (Receipts)
 
-### Ne
-Ödeme ile atomik oluşturulan **kalıcı** fiş (`receipts` tablosu + kalemler + vergi satırları). “Ödeme sonrası tembel üretim” yok; `GetReceiptByPaymentId` açıkça kalıcı fiş bekler.
+### What
+A **persistent** receipt created atomically with payment (`receipts` table + line items + tax rows). There is no “lazy production after payment”; `GetReceiptByPaymentId` explicitly expects a persistent receipt.
 
-### Neden
-RKSV için imza, zincir, QR yükü ve satır düzeyi kanıt.
+### Why
+Signature, chain, QR payload, and line-level evidence for RKSV.
 
-### Menü / sayfa (`frontend-admin`)
-- **Belege** — `frontend-admin/src/app/(protected)/receipts/page.tsx`, detay `receipts/[receiptId]/page.tsx` (nav etiketi: `nav.receipts` / varsayılan Almanca **Belege**).
+### Menu / page (`frontend-admin`)
+- **Belege** — `frontend-admin/src/app/(protected)/receipts/page.tsx`, detail `receipts/[receiptId]/page.tsx` (nav label: `nav.receipts` / default German **Belege**).
 
 ### POS
-- Ödeme tamamlama: `frontend/components/PaymentModal.tsx` → `frontend/services/api/paymentService.ts` (`api/pos/payment`).
-- Fiş verisi: `PaymentService.GetReceiptDataAsync` → `ReceiptsController` / `ReceiptService`.
+- Payment completion: `frontend/components/PaymentModal.tsx` → `frontend/services/api/paymentService.ts` (`api/pos/payment`).
+- Receipt data: `PaymentService.GetReceiptDataAsync` → `ReceiptsController` / `ReceiptService`.
 
 ### Backend
-- **Liste / okuma:** `backend/Controllers/ReceiptsController.cs` — `api/Receipts/list` (`SaleView`), `api/Receipts/by-payment/{paymentId}`, `api/Receipts/{receiptId}`.
-- **Oluşturma:** Ödeme sırasında `PaymentService` içinde `_receiptService.AddReceiptFromPaymentToContextAsync` (`PaymentService.cs`).
-- **Servis:** `ReceiptService.cs` (QR yükü `_R1-AT1_...` biçimi, önceki imza, sertifika seri no).
+- **List / read:** `backend/Controllers/ReceiptsController.cs` — `api/Receipts/list` (`SaleView`), `api/Receipts/by-payment/{paymentId}`, `api/Receipts/{receiptId}`.
+- **Create:** During payment, `_receiptService.AddReceiptFromPaymentToContextAsync` inside `PaymentService` (`PaymentService.cs`).
+- **Service:** `ReceiptService.cs` (QR payload `_R1-AT1_...` format, previous signature, certificate serial number).
 
-### İzinler
-- Admin liste/detay: `sale.view` (`ReceiptsController` üzerinde `HasPermission(AppPermissions.SaleView)`).
+### Permissions
+- Admin list/detail: `sale.view` (`HasPermission(AppPermissions.SaleView)` on `ReceiptsController`).
 - `create-from-payment`: `sale.create`.
-- POS ödeme: `payment.take` (`PaymentController`).
+- POS payment: `payment.take` (`PaymentController`).
 
-### Adım adım
-1. POS’ta sepeti ödeyin → sunucu ödeme + fatura + fişi tek transaction’da yazar.
-2. Admin’de **Belege** üzerinden arama / detay veya ödeme kaydından ilişkili fişe geçin.
+### Step by step
+1. Pay the cart in POS → the server writes payment + invoice + receipt in a single transaction.
+2. In Admin, search / open detail via **Belege**, or go to the related receipt from the payment record.
 
-### Beklenen çıktü
-`ReceiptDTO`: `ReceiptNumber`, `Date`, `KassenID`, şirket, satırlar, `TaxRates`, `Payments`, `Signature` (JWS, önceki imza, QR metni).
+### Expected output
+`ReceiptDTO`: `ReceiptNumber`, `Date`, `KassenID`, company, lines, `TaxRates`, `Payments`, `Signature` (JWS, previous signature, QR text).
 
-### Sık hatalar
-- Ödeme var fiş yok: `GetReceiptDataAsync` log’unda “receipt must be created at payment time” uyarısı ile uyumlu `404`.
+### Common errors
+- Payment exists, receipt does not: `404` consistent with the “receipt must be created at payment time” warning in the `GetReceiptDataAsync` log.
 
-### Eksik / kısmi
-- (Sonderbelege için bkz. **bölüm 4**; normal satış fişi yolu değişmedi.)
+### Missing / partial
+- (For Sonderbelege see **section 4**; the normal sales receipt path is unchanged.)
 
 ---
 
-## 10. Zahlungen / ödemeler (Payments)
+## 10. Zahlungen / payments (Payments)
 
-### Ne
-`payment_details` tabanlı satış ödemesi; POS faturası (`invoices` + `SourcePaymentId`) ile eşlenir.
+### What
+A sales payment based on `payment_details`; mapped to the POS invoice (`invoices` + `SourcePaymentId`).
 
-### Neden
-Gün sonu ve formal raporların **fatura eşlemesi** kontrolleri (ör. `GetPaymentsWithoutInvoiceCountAsync`) ödeme–fatura tutarlılığına dayanır.
+### Why
+End-of-day and formal-report **invoice mapping** checks (for example `GetPaymentsWithoutInvoiceCountAsync`) depend on payment–invoice consistency.
 
-### Menü / sayfa (`frontend-admin`)
+### Menu / page (`frontend-admin`)
 - **Zahlungen** — `frontend-admin/src/app/(protected)/payments/page.tsx`.
 
 ### POS
-- `PaymentModal` + `paymentService` → `POST api/pos/payment` (legacy: `api/Payment` aynı controller).
+- `PaymentModal` + `paymentService` → `POST api/pos/payment` (legacy: `api/Payment`, same controller).
 
 ### Backend
-- `backend/Controllers/PaymentController.cs` — sınıf düzeyi `payment.take`; yöntemler `methods`, `POST` create vb.
+- `backend/Controllers/PaymentController.cs` — class-level `payment.take`; methods `methods`, `POST` create, and similar.
 
-### İzinler
-- Ana POS ödemesi: `payment.take`.
-- Admin ödeme listesi için ilgili sayfadaki guard’lar (repo: `routePermissions` / özellikler; detay için `frontend-admin` route izin eşlemesine bakın).
+### Permissions
+- Main POS payment: `payment.take`.
+- Admin payment list uses the guards on that page (repo: `routePermissions` / features; for detail see the `frontend-admin` route permission mapping).
 
-### Adım adım
-POS’ta ödeme alın; admin’de **Zahlungen** ile doğrulama, FinanzOnline kuyruğu veya mutabakat için çapraz kontrol.
+### Step by step
+Take payment in POS; in Admin, use **Zahlungen** for verification and cross-check against the FinanzOnline queue or reconciliation.
 
-### Eksik / kısmi
-- `paymentService` içinde günlük rapor için kullanılmaması gerektiğine dair yorum vardır (backend’de ayrı “daily-report” route yok).
+### Missing / partial
+- There is a comment in `paymentService` that it must not be used for the daily report (there is no separate “daily-report” route on the backend).
 
 ---
 
-## 11. Tagesabschluss / operativer Tagesabschluss (gün sonu ve dönem kapanışları)
+## 11. Tagesabschluss / operativer Tagesabschluss (end of day and period closings)
 
-### Ne
-- **Günlük:** `DailyClosing` (`ClosingType = Daily`), TSE imzası, Viyana takvim günü için `Invoice` (Paid) toplamları; FinanzOnline açıksa `SubmitDailyClosingAsync`.
-- **Aylık / yıllık:** Benzer şekilde `Monthly` / `Yearly` kapanış kaydı ve TSE imzası; **kod incelemesinde** aylık/yıllık yol için `FinanzOnlineService.SubmitMonthlyClosingAsync` / `SubmitYearlyClosingAsync` çağrısı **günlük** akıştaki gibi görünmedi (yalnızca günlük kapanışta `SubmitDailyClosingAsync` çağrısı vardı).
+### What
+- **Daily:** `DailyClosing` (`ClosingType = Daily`), TSE signature, `Invoice` (Paid) totals for the Vienna calendar day; if FinanzOnline is enabled, `SubmitDailyClosingAsync`.
+- **Monthly / yearly:** Likewise a `Monthly` / `Yearly` closing record and TSE signature; **in a code review**, calls to `FinanzOnlineService.SubmitMonthlyClosingAsync` / `SubmitYearlyClosingAsync` for the monthly/yearly path did **not** appear the way they do on the daily flow (only the daily closing had a `SubmitDailyClosingAsync` call).
 
-### Neden
-Kasa dönemini TSE ile mühürlemek ve (etkinse) FinanzOnline’a iletmek.
+### Why
+Seal the cash-register period with TSE and (when enabled) forward it to FinanzOnline.
 
-### Menü / sayfa (`frontend-admin`)
+### Menu / page (`frontend-admin`)
 - **Operativer Tagesabschluss** — `frontend-admin/src/app/(protected)/tagesabschluss/page.tsx` (nav: `nav.tagesabschluss`).
 
 ### POS
-- `frontend/components/TagesabschlussModal.tsx` → `frontend/services/api/tagesabschlussService.ts` → `POST /tagesabschluss/daily|monthly|yearly`, `GET .../can-close/{id}`, `history`, `statistics` (istemci tabanı `/api` önekli olabilir; sunucu sınıfı `api/Tagesabschluss`).
+- `frontend/components/TagesabschlussModal.tsx` → `frontend/services/api/tagesabschlussService.ts` → `POST /tagesabschluss/daily|monthly|yearly`, `GET .../can-close/{id}`, `history`, `statistics` (the client base may include an `/api` prefix; server class is `api/Tagesabschluss`).
 
 ### Backend
-- `backend/Controllers/TagesabschlussController.cs` — **tüm** aksiyonlar sınıf düzeyinde `HasPermission(AppPermissions.TseSign)`.
+- `backend/Controllers/TagesabschlussController.cs` — **all** actions at class level `HasPermission(AppPermissions.TseSign)`.
 - `backend/Services/TagesabschlussService.cs` — `PerformDailyClosingAsync`, `PerformMonthlyClosingAsync`, `PerformYearlyClosingAsync`.
 
-### İzinler
-- **`tse.sign`** (controller sınıfı).
+### Permissions
+- **`tse.sign`** (controller class).
 
-### Adım adım
-1. `can-close` ile engel kontrolü (TSE bağlı mı, gün içi faturasız ödeme var mı, bugün zaten kapanmış mı).
-2. Günlük kapanışı çalıştırın; sonuç DTO’sunda `TseSignature`, isteğe bağlı `FinanzOnlineStatus` alanları.
+### Step by step
+1. Check blockers with `can-close` (is TSE connected, are there in-day payments without an invoice, is today already closed).
+2. Run the daily closing; the result DTO includes `TseSignature` and optional `FinanzOnlineStatus` fields.
 
-### Sık hatalar
-- TSE bağlı değil: `InvalidOperationException` (“TSE device is not connected…”).
-- Faturasız ödeme: `Closing blocked: N payment(s) without a matching invoice`.
-- İşlem yok: “No transactions found for today…”.
+### Common errors
+- TSE not connected: `InvalidOperationException` (“TSE device is not connected…”).
+- Payment without invoice: `Closing blocked: N payment(s) without a matching invoice`.
+- No transactions: “No transactions found for today…”.
 
 ### Nachträglicher (rückdatierter) Tagesabschluss
-- Geçmiş Vienna iş günü için kapanış mümkün; `CreatedAt` / TSE imza zamanı **geriye alınmaz**.
-- `is_backdated`, `late_creation_reason` (zorunlu) ve audit `TagesabschlussBackdatedCreated`.
-- Ayrıntı: [`docs/BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md).
+- Closing is possible for a past Vienna business day; `CreatedAt` / TSE signature time are **not** backdated.
+- `is_backdated`, `late_creation_reason` (required), and audit `TagesabschlussBackdatedCreated`.
+- Detail: [`docs/BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md).
 
-### Tagesabschluss sonrası (doğrulanmış RKSV davranış)
+### After Tagesabschluss (verified RKSV behavior)
 
-| Kural | Uygulama |
+| Rule | Implementation |
 |-------|----------|
-| Kapalı kasada yeni ödeme yok | `RegisterStatus.Closed` → `ValidatePaymentRegister*` → `CASH_REGISTER_CLOSED` → HTTP 400 |
-| Yeni satış için kasa/schicht açılmalı | `TryOpenCashRegisterAsync` → `Open` |
-| Aynı Viyana gününde ikinci Daily closing yok | `CanPerformClosingAsync` + unique index `(CashRegisterId, ClosingDate, ClosingType)` |
+| No new payment on a closed cash register | `RegisterStatus.Closed` → `ValidatePaymentRegister*` → `CASH_REGISTER_CLOSED` → HTTP 400 |
+| Cash register / shift must be opened for a new sale | `TryOpenCashRegisterAsync` → `Open` |
+| No second Daily closing on the same Vienna day | `CanPerformClosingAsync` + unique index `(CashRegisterId, ClosingDate, ClosingType)` |
 
-**Not:** `IsClosed` alanı yok; durum `CashRegister.Status` enum’udur. Aynı takvim gününde Z-Bericht sonrası yeniden açıp satış almak kodda engellenmez; ikinci kapanış engellenir — operasyonel risk ayrıntısı: [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
+**Note:** There is no `IsClosed` field; status is the `CashRegister.Status` enum. Reopening on the same calendar day after a Z-Bericht and taking a sale is not blocked in code; a second closing is blocked — operational-risk detail: [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
 
-### Eksik / kısmi
-- Aylık/yıllık kapanışta FinanzOnline gönderiminin günlük ile **paralel olmadığı** kod okumasıyla ortaya çıkar; üretim kararı için ek doğrulama önerilir.
-- Aynı Viyana gününde Tagesabschluss sonrası reopen + ödeme için sert engel **yok** (yukarıdaki doğrulama dokümanı).
+### Missing / partial
+- Code reading shows that FinanzOnline submission on monthly/yearly closing is **not parallel** to the daily path; extra verification is recommended before a production decision.
+- There is **no** hard block for reopen + payment after Tagesabschluss on the same Vienna day (see the verification document above).
 
 ---
 
-## 12. DEP / dışa aktarma / denetim izi
+## 12. DEP / export / audit trail
 
-### Ne (uygulamada)
-1. **FinanzOnline RKDB `belegpruefung`:** DEP desenine uyan `beleg` metni için yapısal doğrulama (`FinanzOnlineRkdbBelegpruefungValidator`). Fiş QR metni çoğu zaman bu desenle **aynı değildir** (`FinanzOnlineService.TryResolveRkdbBelegpruefungAsync` yorumu).
-2. **Fiscal export (DEP-benzeri paket):** `GET api/admin/fiscal-export` — `IFiscalExportService` “DEP-like fiscal export package” üretir; profiller `operational_preview`, `accounting_report`, `legal_compliance_export`, `diagnostic_package` (`FiscalExportController`, `FiscalExportProfileRules`).
-3. **Bütünlük raporu:** `GET api/admin/integrity` — `IntegrityController`, `AuditView`.
-4. **Hukuki export öncesi kapı:** `GET api/reports/legal-export-completeness/...` — `LegalExportCompletenessController`, `ReportView`.
+### What (in the implementation)
+1. **FinanzOnline RKDB `belegpruefung`:** Structural validation for `beleg` text that matches the DEP pattern (`FinanzOnlineRkdbBelegpruefungValidator`). Receipt QR text is usually **not** the same as this pattern (comment on `FinanzOnlineService.TryResolveRkdbBelegpruefungAsync`).
+2. **Fiscal export (DEP-like package):** `GET api/admin/fiscal-export` — `IFiscalExportService` produces a “DEP-like fiscal export package”; profiles `operational_preview`, `accounting_report`, `legal_compliance_export`, `diagnostic_package` (`FiscalExportController`, `FiscalExportProfileRules`).
+3. **Integrity report:** `GET api/admin/integrity` — `IntegrityController`, `AuditView`.
+4. **Gate before legal export:** `GET api/reports/legal-export-completeness/...` — `LegalExportCompletenessController`, `ReportView`.
 
-### Menü / sayfa (`frontend-admin`)
-- **Fiscal export (tanı)** — `/rksv/fiscal-export-diagnostics` (`fiscal-export-diagnostics/page.tsx`); izin eşlemesi `routePermissions.ts` içinde `REPORT_EXPORT`.
+### Menu / page (`frontend-admin`)
+- **Fiscal export (diagnostics)** — `/rksv/fiscal-export-diagnostics` (`fiscal-export-diagnostics/page.tsx`); permission mapping `REPORT_EXPORT` in `routePermissions.ts`.
 - **RKSV · Integrity** — `/rksv/integrity` (`integrity/page.tsx`).
-- Formal raporlarla ilişkili metin çözümleyiciler: `formalReportContentResolver.ts` (export profili satırı).
+- Text resolvers related to formal reports: `formalReportContentResolver.ts` (export profile row).
 
 ### POS
-Doğrudan DEP dışa aktarma **yok**; veri sunucu/admin API’lerinden alınır.
+No direct DEP export; data is taken from server/admin APIs.
 
-### İzinler (özet)
-- Fiscal export: en az `report.export`; daha sıkı profiller `audit.view` ve `fiscal.export.compliance` (`FiscalExportProfileRules`).
+### Permissions (summary)
+- Fiscal export: at least `report.export`; stricter profiles `audit.view` and `fiscal.export.compliance` (`FiscalExportProfileRules`).
 - Integrity: `audit.view`.
 
-### Eksik / kısmi
-- Klasik “tek düz DEP dosyası üret ve BMF’ye yükle” akışı bu belgede **ayrı bir ürün özelliği olarak doğrulanmadı**; mevcut olan fiscal export JSON paketi ve RKDB `belegpruefung` doğrulama katmanlarıdır.
+### Missing / partial
+- A classic “produce a flat DEP file and upload it to BMF” flow was **not verified as a separate product feature** in this document; what exists are the fiscal export JSON package and the RKDB `belegpruefung` validation layers.
 
 ---
 
-## 13. FinanzOnline / RKSV doğrulama ve operasyon ekranları
+## 13. FinanzOnline / RKSV verification and operations screens
 
-### Ne
-- **Yapılandırma ve tanı:** `FinanzOnlineController` — `api/FinanzOnline/config`, `status`, test connection, hata geçmişi vb. (`SettingsView` / `FinanzOnlineView` / `FinanzOnlineManage` kombinasyonları endpoint bazında dosyada ayrılmıştır).
-- **Outbox (birincil yaşam döngüsü):** `FinanzOnlineOutboxAdminController` — `GET api/admin/finanzonline-outbox` (`FinanzOnlineView`).
-- **Eski ödeme satırı mutabakatı:** `FinanzOnlineReconciliationController` — `GET api/admin/finanzonline-reconciliation` (`FinanzOnlineView`), `POST .../retry/{paymentId}` (`FinanzOnlineSubmit`); controller açıklamasında **legacy** ve outbox’a tercih edilmesi notu vardır.
-- **Hazırlık özeti:** `FinanzOnlineReadinessController` — `GET api/admin/finanzonline-readiness` (`FinanzOnlineView`).
+### What
+- **Configuration and diagnostics:** `FinanzOnlineController` — `api/FinanzOnline/config`, `status`, test connection, error history, and similar (`SettingsView` / `FinanzOnlineView` / `FinanzOnlineManage` combinations are split per endpoint in the file).
+- **Outbox (primary lifecycle):** `FinanzOnlineOutboxAdminController` — `GET api/admin/finanzonline-outbox` (`FinanzOnlineView`).
+- **Legacy payment-row reconciliation:** `FinanzOnlineReconciliationController` — `GET api/admin/finanzonline-reconciliation` (`FinanzOnlineView`), `POST .../retry/{paymentId}` (`FinanzOnlineSubmit`); the controller description notes it is **legacy** and that the outbox should be preferred.
+- **Readiness summary:** `FinanzOnlineReadinessController` — `GET api/admin/finanzonline-readiness` (`FinanzOnlineView`).
 
-### Menü / sayfa (`frontend-admin`, Almanca nav örnekleri)
+### Menu / page (`frontend-admin`, German nav examples)
 - **FinanzOnline · Outbox** — `/rksv/finanz-online-outbox`
-- **FinanzOnline-Abgleich** (kuyruk) — `/rksv/finanz-online-queue`
-- **FinanzOnline-Abgleich (Legacy)** — aynı kuyruk sayfasında legacy rozet
+- **FinanzOnline-Abgleich** (queue) — `/rksv/finanz-online-queue`
+- **FinanzOnline-Abgleich (Legacy)** — legacy badge on the same queue page
 - **RKSV Übersicht / Status** — `/rksv/status`
 - **FinanzOnline (diagnostic)** — `/rksv/finanz-online-operations`
-- **Verifications** — `/rksv/verifications` (dosya mevcut)
-- **Report Center** — FinanzOnline outbox’a bağlantılar içerir
+- **Verifications** — `/rksv/verifications` (file exists)
+- **Report Center** — includes links to the FinanzOnline outbox
 
 ### POS
-FinanzOnline yönetim ekranları **admin**dedir; POS ödeme sonrası gönderim `PaymentService` / `FinanzOnlineService` ile arka planda yürür (ayrıntı için ilgili servis ve `DispatchPostCommitComplianceAsync`).
+FinanzOnline management screens are in **admin**; after POS payment, submission runs in the background via `PaymentService` / `FinanzOnlineService` (see the related service and `DispatchPostCommitComplianceAsync`).
 
-### İzinler (özet)
+### Permissions (summary)
 - `finanzonline.view`, `finanzonline.manage`, `finanzonline.submit` (`AppPermissions`).
 
-### Eksik / kısmi
-- Formal rapor FinanzOnline mesajları **DEP özet hattı değildir** (outbox notları).
+### Missing / partial
+- Formal-report FinanzOnline messages are **not** a DEP summary line (outbox notes).
 
 ---
 
-## Ek: Operative Berichte (Tagesbericht değil)
+## Appendix: Operative Berichte (not Tagesbericht)
 
-**Operative Berichte** / **Report Center** / **Personal / Kassenleistung** — `OperationalReportsController.cs` (`api/Reports/operational/...`). Bunlar `payment_details` tabanlı operasyonel özetlerdir; formal **Tagesbericht (formal)** ile karıştırılmamalıdır (controller XML yorumunda X/Z açıklaması vardır).
+**Operative Berichte** / **Report Center** / **Personal / Kassenleistung** — `OperationalReportsController.cs` (`api/Reports/operational/...`). These are operational summaries based on `payment_details`; they must not be confused with formal **Tagesbericht (formal)** (the controller XML comment has an X/Z explanation).
 
 ---
 
-## Hızlı referans — API yolları (kanıt özeti)
+## Quick reference — API paths (evidence summary)
 
-| Alan | Temel route |
+| Area | Base route |
 |------|----------------|
 | Formal Tagesbericht | `api/reports/tagesbericht` |
 | Formal Monatsbericht | `api/reports/monatsbericht` |
 | Formal Jahresbericht | `api/reports/jahresbericht` |
-| Operasyonel raporlar | `api/Reports/operational/...` |
+| Operational reports | `api/Reports/operational/...` |
 | Legal export completeness | `api/reports/legal-export-completeness/...` |
-| POS ödeme | `api/pos/payment` (+ legacy `api/Payment`) |
+| POS payment | `api/pos/payment` (+ legacy `api/Payment`) |
 | Tagesabschluss | `api/Tagesabschluss/...` |
 | RKSV Sonderbelege | `api/rksv/special-receipts/nullbeleg`, `.../startbeleg`, `.../monatsbeleg`, `.../jahresbeleg`, `.../schlussbeleg` |
-| Fişler | `api/Receipts/...` |
+| Receipts | `api/Receipts/...` |
 | Fiscal export | `api/admin/fiscal-export` |
 | Integrity | `api/admin/integrity` |
 | FO outbox | `api/admin/finanzonline-outbox` |
@@ -361,11 +361,11 @@ FinanzOnline yönetim ekranları **admin**dedir; POS ödeme sonrası gönderim `
 
 ---
 
-## Son kontrol listesi (operasyon)
+## Final operations checklist
 
-| Konu | Durum |
+| Topic | Status |
 |------|--------|
-| POS’tan formal Tagesbericht | Eksik (placeholder ekran) |
-| RKSV Sonderbelege (Nullbeleg … Schlussbeleg) | Bölüm 4 + `api/rksv/special-receipts/*`; FO özel iz: Startbeleg + Jahresbeleg |
-| Aylık/yıllık Tagesabschluss → FinanzOnline | Günlük ile aynı otomasyon kodda görülmedi |
-| Formal rapor FO gönderimi | Bilgilendirici / Non-DEP özet (outbox notu) |
+| Formal Tagesbericht from POS | Missing (placeholder screen) |
+| RKSV Sonderbelege (Nullbeleg … Schlussbeleg) | Section 4 + `api/rksv/special-receipts/*`; dedicated FO trail: Startbeleg + Jahresbeleg |
+| Monthly/yearly Tagesabschluss → FinanzOnline | Same automation as daily was not seen in code |
+| Formal-report FO submission | Informational / Non-DEP summary (outbox note) |

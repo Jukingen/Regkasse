@@ -14,6 +14,7 @@ import {
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { customInstance, refreshAccessToken } from '@/lib/axios';
+import { clearCsrfTokenCache } from '@/lib/csrf';
 import type { AuthUser } from '@/shared/auth/types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -210,6 +211,7 @@ export const useAuth = () => {
       } catch (logoutError) {
         technicalConsole.error('Logout request failed', logoutError);
       } finally {
+        clearCsrfTokenCache();
         authStorage.removeToken();
         queryClient.setQueryData(AUTH_KEYS.user, null);
         queryClient.clear();

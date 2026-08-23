@@ -1,84 +1,84 @@
 # DeviceId / ClientSequence coverage (offline replay observability)
 
-## Amaç
+## Purpose
 
-Eski mobil build'lerin hâlâ `DeviceId` veya `ClientSequenceNumber` göndermediği durumları ölçmek ve rollout riskini görünür kılmak. Domain davranışı değiştirilmez; sadece observability eklenir.
-
----
-
-## Coverage nasıl hesaplanıyor
-
-- **Kaynak:** Her offline replay isteğinde, geçerli olan (boş olmayan `OfflineTransactionId` ve `CashRegisterId`) her item için bir **sample** yazılır: `offline_intent_coverage_samples` tablosuna.
-- **Alanlar (sample başına):** `created_at_utc`, `cash_register_id`, `has_device_id` (gönderildiyse true), `has_client_sequence` (gönderildiyse true), `replay_batch_correlation_id`.
-- **deviceId eksik oranı** = `has_device_id = false` olan sample sayısı / toplam sample sayısı (belirli zaman aralığı ve isteğe bağlı register filtresiyle).
-- **sequence eksik oranı** = `has_client_sequence = false` olan sample sayısı / toplam sample sayısı.
-- **Register bazında coverage:** Aynı tabloda `cash_register_id` ile gruplanarak her kasa için total / withDeviceId / withSequence sayıları üretilir.
-- **Zaman bazlı trend:** `created_at_utc` ile tarih/saat dilimine göre gruplama yapılarak günlük/saatlik coverage oranları çıkarılabilir (SQL veya admin endpoint ile).
-
-Sample yazma, replay akışında **best-effort**’tur: kayıt atarken hata olursa sadece uyarı log’lanır, replay işlemi başarısız sayılmaz.
+Measure cases where older mobile builds still omit `DeviceId` or `ClientSequenceNumber`, and make rollout risk visible. Domain behavior does not change; only observability is added.
 
 ---
 
-## Fraud-resistance path’inin degrade olması
+## How coverage is calculated
 
-Offline replay’da sıra tabanlı dolandırıcılık koruması şu blokta çalışır:
+- **Source:** On every offline replay request, a **sample** is written to the `offline_intent_coverage_samples` table for each valid item (non-empty `OfflineTransactionId` and `CashRegisterId`).
+- **Fields (per sample):** `created_at_utc`, `cash_register_id`, `has_device_id` (true if sent), `has_client_sequence` (true if sent), `replay_batch_correlation_id`.
+- **deviceId missing rate** = count of samples with `has_device_id = false` / total sample count (for a time window and optional cash-register filter).
+- **sequence missing rate** = count of samples with `has_client_sequence = false` / total sample count.
+- **Coverage by cash register:** Group the same table by `cash_register_id` to produce total / withDeviceId / withSequence counts per cash register.
+- **Time-based trend:** Group by `created_at_utc` date/hour to produce daily/hourly coverage rates (SQL or the admin endpoint).
 
-- **Koşul:** `!string.IsNullOrWhiteSpace(offline.DeviceId) && offline.ClientSequenceNumber.HasValue`
-- **Yapılan:** Aynı `(CashRegisterId, DeviceId)` için önceki maksimum `ClientSequenceNumber` ile karşılaştırma; gap veya duplicate tespit edilirse ilgili audit’ler ve status güncellemesi (Failed / gap flag) uygulanır.
-- **Unique index:** `(CashRegisterId, DeviceId, ClientSequenceNumber)` — Postgres’te **null** değerler unique sayılmadığı için, DeviceId veya ClientSequenceNumber **eksik** olan satırlar bu index ile çoğaltma engeli **göremez**.
-
-**Sonuç:** DeviceId veya ClientSequenceNumber gönderilmeyen (eski mobil build) intents için:
-
-- Sıra tabanlı gap/duplicate kontrolü **hiç çalışmaz**.
-- Aynı cihazdan gelen birden fazla “boş sıra”lı intent, unique index ile engellenmez (null’lar tekrarlanabilir).
-- Fraud-resistance path’i **o intent için** devre dışı kalır; rollout’ta eski client’ların oranı yüksekse risk artar.
-
-Bu davranış `OfflineTransactionService` içinde değiştirilmedi; sadece hangi oranda intent’in bu korumadan yararlanmadığı artık ölçülebilir.
+Sample writes are **best-effort** in the replay flow. If insert fails, only a warning is logged; the replay is not treated as failed.
 
 ---
 
-## Değişen / eklenen dosyalar
+## When the fraud-resistance path degrades
 
-| Dosya | Değişiklik |
-|-------|------------|
-| `backend/Models/OfflineIntentCoverageSample.cs` | Yeni entity (observability sample). |
-| `backend/Data/AppDbContext.cs` | `OfflineIntentCoverageSamples` DbSet + tablo konfigürasyonu. |
-| `backend/Migrations/20260319003746_AddOfflineIntentCoverageSamples.cs` | `offline_intent_coverage_samples` tablosu. |
-| `backend/Services/OfflineTransactionService.cs` | Replay loop’ta geçerli item sonrası `RecordOfflineIntentCoverageAsync` çağrısı; private method ile sample insert (try/catch). |
+Sequence-based fraud protection on offline replay runs in this block:
+
+- **Condition:** `!string.IsNullOrWhiteSpace(offline.DeviceId) && offline.ClientSequenceNumber.HasValue`
+- **Action:** Compare against the previous maximum `ClientSequenceNumber` for the same `(CashRegisterId, DeviceId)`. On gap or duplicate, apply the related audits and status updates (Failed / gap flag).
+- **Unique index:** `(CashRegisterId, DeviceId, ClientSequenceNumber)` — in Postgres, **null** values are not treated as unique, so rows **missing** DeviceId or ClientSequenceNumber **do not** get duplicate protection from this index.
+
+**Result:** For intents that omit DeviceId or ClientSequenceNumber (older mobile builds):
+
+- Sequence-based gap/duplicate checks **do not run**.
+- Multiple “empty sequence” intents from the same device are not blocked by the unique index (nulls can repeat).
+- The fraud-resistance path is **off for that intent**. If the share of old clients is high during rollout, risk increases.
+
+This behavior was not changed in `OfflineTransactionService`. What is new is the ability to measure what share of intents do not get this protection.
+
+---
+
+## Changed / added files
+
+| File | Change |
+|------|--------|
+| `backend/Models/OfflineIntentCoverageSample.cs` | New entity (observability sample). |
+| `backend/Data/AppDbContext.cs` | `OfflineIntentCoverageSamples` DbSet + table configuration. |
+| `backend/Migrations/20260319003746_AddOfflineIntentCoverageSamples.cs` | `offline_intent_coverage_samples` table. |
+| `backend/Services/OfflineTransactionService.cs` | After a valid item in the replay loop, call `RecordOfflineIntentCoverageAsync`; private method inserts the sample (try/catch). |
 | `backend/Models/Export/FiscalExportDtos.cs` | `FiscalExportIntegrityDto`: `OfflineIntentCoverageTotal`, `OfflineIntentCoverageWithDeviceId`, `OfflineIntentCoverageWithSequence`. |
-| `backend/Services/FiscalExportService.cs` | Export penceresinde coverage sorgusu; Integrity’ye sayılar + diagnostic not. |
-| `backend/Controllers/OfflineIntentCoverageController.cs` | `GET /api/admin/offline-intent-coverage` (fromUtc, toUtc, cashRegisterId opsiyonel). |
-| `docs/release/DEVICE_SEQUENCE_COVERAGE.md` | Bu doküman. |
+| `backend/Services/FiscalExportService.cs` | Coverage query in the export window; counts + diagnostic note on Integrity. |
+| `backend/Controllers/OfflineIntentCoverageController.cs` | `GET /api/admin/offline-intent-coverage` (`fromUtc`, `toUtc`, optional `cashRegisterId`). |
+| `docs/release/DEVICE_SEQUENCE_COVERAGE.md` | This document. |
 
 ---
 
-## Operasyonda nasıl izlenecek
+## How to watch this in operations
 
 1. **Admin endpoint:** `GET /api/admin/offline-intent-coverage?fromUtc=&toUtc=&cashRegisterId=`  
-   - Dönüş: `total`, `withDeviceId`, `withSequence`, `deviceIdMissingRate`, `sequenceMissingRate`, `byRegister` (kasa bazlı).  
-   - Varsayılan: son 24 saat; `cashRegisterId` verilmezse tüm kasalar.
+   - Response: `total`, `withDeviceId`, `withSequence`, `deviceIdMissingRate`, `sequenceMissingRate`, `byRegister` (per cash register).  
+   - Default: last 24 hours. If `cashRegisterId` is omitted, all cash registers.
 
-2. **Fiscal export:** `GET /api/admin/fiscal-export?...` → `integrity.offlineIntentCoverageTotal`, `offlineIntentCoverageWithDeviceId`, `offlineIntentCoverageWithSequence` ve `integrityDiagnosticNotes` içinde özet cümle (DeviceId/Sequence coverage % ve “Low coverage increases replay/fraud-resistance risk” uyarısı).
+2. **Fiscal export:** `GET /api/admin/fiscal-export?...` → `integrity.offlineIntentCoverageTotal`, `offlineIntentCoverageWithDeviceId`, `offlineIntentCoverageWithSequence`, plus a summary sentence in `integrityDiagnosticNotes` (DeviceId/Sequence coverage % and the “Low coverage increases replay/fraud-resistance risk” warning).
 
 3. **SQL (trend):**  
-   - Günlük: `created_at_utc::date` ile grupla, total / with_device_id / with_client_sequence say.  
-   - Saatlik: `date_trunc('hour', created_at_utc)` ile aynı metrikler.
+   - Daily: group by `created_at_utc::date`; count total / with_device_id / with_client_sequence.  
+   - Hourly: same metrics with `date_trunc('hour', created_at_utc)`.
 
-4. **Log:** Sample yazma hatası olursa `OfflineTransactionService` uyarı log’u: “Offline intent coverage sample insert failed for CashRegisterId=…; replay continues.”
-
----
-
-## Rollout kararları için kullanım
-
-- **deviceIdMissingRate** veya **sequenceMissingRate** yüksekse: hâlâ çok sayıda eski client replay yapıyor demektir; sıra tabanlı fraud-resistance bu intents için devre dışı.
-- **byRegister** ile belirli kasa/lokasyonlarda düşük coverage tespit edilebilir; hedef build güncellemesi veya eğitim planlanabilir.
-- Zaman bazlı trend ile yeni build rollout’tan sonra oranların düştüğü doğrulanabilir; tam tersi kalıyorsa eski client kullanımı sürüyor demektir.
-- Fiscal export alanları, denetim/destek paketlerinde “bu dönemde offline intent’lerin X%’inde DeviceId/Sequence vardı” bilgisini raporlamak için kullanılabilir.
+4. **Log:** If sample insert fails, `OfflineTransactionService` warning: “Offline intent coverage sample insert failed for CashRegisterId=…; replay continues.”
 
 ---
 
-## İlgili referanslar
+## Use for rollout decisions
 
-- Offline replay akışı: `backend/Services/OfflineTransactionService.cs` (ReplayOfflineTransactionsAsync, CreateOfflineTransactionRowAsync).
-- Sıra kontrolü: aynı dosyada “Step 2: client sequence tracking” bloğu ve unique index yorumu.
+- A high **deviceIdMissingRate** or **sequenceMissingRate** means many old clients are still replaying; sequence-based fraud resistance is off for those intents.
+- **byRegister** can show low coverage on specific cash registers/locations so you can plan a target build update or training.
+- A time-based trend can confirm rates drop after a new-build rollout. If they stay high, old-client usage is continuing.
+- Fiscal export fields can report “in this period, X% of offline intents had DeviceId/Sequence” in audit/support packages.
+
+---
+
+## Related references
+
+- Offline replay flow: `backend/Services/OfflineTransactionService.cs` (ReplayOfflineTransactionsAsync, CreateOfflineTransactionRowAsync).
+- Sequence check: “Step 2: client sequence tracking” block and unique-index comment in the same file.
 - Fiscal export semantics: `docs/release/FISCAL_EXPORT_DIAGNOSTICS.md`.

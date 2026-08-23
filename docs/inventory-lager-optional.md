@@ -1,49 +1,49 @@
-# Lager / Inventory — isteğe bağlı kullanım (kısa rehber)
+# Inventory / Lager — optional use (short guide)
 
-Bu doküman, stok ve Lager yüzeylerini **kapatılmış** dağıtımlar için operasyon özeti verir. Şema ve ürün alanları silinmez; sadece davranış ve UI yapılandırılır.
+This document is an operations summary for deployments that **turn off** stock and Lager surfaces. Schema and product fields stay; only behavior and UI are configured.
 
-## Önerilen “Lager kapalı” paketi
+## Recommended “Lager off” package
 
-1. **API (satış blokajı yok):** `Inventory__EnforceStockAvailability=false`  
-   - veya `appsettings` / ortamda `Inventory:EnforceStockAvailability`: `false`  
-   - Ödeme sırasında stok kontrolü ve stok düşümü/geri yazımı yapılmaz; fiş akışı stoktan etkilenmez.
+1. **API (no sales block):** `Inventory__EnforceStockAvailability=false`
+   - or `Inventory:EnforceStockAvailability`: `false` in appsettings / environment
+   - Payment does not check stock or decrement/restore stock; the receipt flow does not depend on inventory.
 
-2. **Admin — ürün listesi:** `NEXT_PUBLIC_ADMIN_PRODUCTS_SHOW_LAGER=false`  
-   - Ürünler tablosunda Lager kolonu, stok butonu ve düşük stok etiketleri gizlenir.  
-   - `frontend-admin` için **build öncesi** ayarlanmalıdır (`next build`).
+2. **Admin — product list:** `NEXT_PUBLIC_ADMIN_PRODUCTS_SHOW_LAGER=false`
+   - Hides the Lager column, stock button, and low-stock tags on the products table.
+   - Must be set **before build** for `frontend-admin` (`next build`).
 
-3. **Admin — Lager modülü:** `NEXT_PUBLIC_ADMIN_SHOW_INVENTORY_NAV=false`  
-   - Kenar çubuğunda “Lager” girişi gizlenir; `/inventory` doğrudan açılırsa bilgilendirme mesajı gösterilir, envanter API çağrıları tetiklenmez.  
-   - Yine **build öncesi** ayar.
+3. **Admin — Lager module:** `NEXT_PUBLIC_ADMIN_SHOW_INVENTORY_NAV=false`
+   - Hides the “Lager” sidebar entry; opening `/inventory` directly shows an info message and does not fire inventory API calls.
+   - Also **before build**.
 
-API değişikliğinden sonra API’yi yeniden başlatın; admin tarafında env değiştiyse admin uygulamasını yeniden derleyin.
+Restart the API after the API change. If admin env changed, rebuild the admin app.
 
-### Uygulama yenileme gereksinimi (önemli)
+### When a change takes effect (important)
 
-| Değişiklik | Ne zaman etkili olur |
-|------------|----------------------|
-| `Inventory__EnforceStockAvailability` (veya `appsettings`) | API süreci **yeniden başlatıldığında** (ve yapılandırmanın yüklendiğinden emin olun). |
-| `NEXT_PUBLIC_ADMIN_*` | **Sonraki** `next dev` / `next build` ile üretilen istemci paketinde; çalışan konteynıra sadece runtime env enjekte etmek **yetmez**. |
+| Change | When it applies |
+|--------|-----------------|
+| `Inventory__EnforceStockAvailability` (or appsettings) | When the API process **restarts** (and the config is loaded). |
+| `NEXT_PUBLIC_ADMIN_*` | In the client bundle from the **next** `next dev` / `next build`; injecting runtime env into a running container is **not** enough. |
 
-## Smoke test checklist (Lager kapalı paket)
+## Smoke test checklist (Lager off package)
 
-Önkoşul: API’de `EnforceStockAvailability=false`, admin `.env.local` veya CI’da `NEXT_PUBLIC_ADMIN_PRODUCTS_SHOW_LAGER=false` ve `NEXT_PUBLIC_ADMIN_SHOW_INVENTORY_NAV=false`; ardından **admin yeniden build**, **API restart**.
+Prerequisite: API `EnforceStockAvailability=false`; admin `.env.local` or CI has `NEXT_PUBLIC_ADMIN_PRODUCTS_SHOW_LAGER=false` and `NEXT_PUBLIC_ADMIN_SHOW_INVENTORY_NAV=false`; then **admin rebuild**, **API restart**.
 
-- [ ] **Satış:** Stok `0` olan normal ürün (add-on değil) ile POS’tan ödeme tamamlanır; API “Insufficient stock” dönmez.
-- [ ] **Ürünler:** `/products` tablosunda **Lager** kolonu yok; satırda **Lager/stock** aksiyon butonu yok.
-- [ ] **Sidebar:** Katalog grubunda **Lager / Inventory** menü kalemi yok.
-- [ ] **Dashboard:** “Hospitality” hızlı linkler kartında **Stok / Lager** linki yok (env kapalıyken).
-- [ ] **Doğrudan URL:** Tarayıcıda `/inventory` açılınca bilgilendirme mesajı gelir; Network’te `/api/Inventory` isteği **yok** (veya sayfa yüklenir yüklenmez tetiklenmez).
-- [ ] **API-only:** `EnforceStockAvailability` tekrar `true` yapılıp API restart sonrası aynı stok-0 senaryosu beklenen şekilde reddedilir (regresyon kontrolü).
+- [ ] **Sale:** Payment from POS completes for a normal product (not an add-on) with stock `0`; API does not return “Insufficient stock”.
+- [ ] **Products:** `/products` table has **no** Lager column and **no** Lager/stock row action.
+- [ ] **Sidebar:** Catalog group has **no** Lager / Inventory menu item.
+- [ ] **Dashboard:** Hospitality quick-links card has **no** Stock / Lager link (when env is off).
+- [ ] **Direct URL:** Opening `/inventory` shows the info message; Network has **no** `/api/Inventory` request (or it is not fired on page load).
+- [ ] **API-only:** Set `EnforceStockAvailability` back to `true`, restart the API, and confirm the same stock-0 scenario is rejected (regression check).
 
-## Varsayılanlar (geriye dönük uyumluluk)
+## Defaults (backward compatibility)
 
-- API: `EnforceStockAvailability` **true** (önceki stok davranışı).  
-- Admin: `NEXT_PUBLIC_*` tanımsız veya `true` → Lager yüzeyleri görünür.
+- API: `EnforceStockAvailability` **true** (previous stock behavior).
+- Admin: `NEXT_PUBLIC_*` unset or `true` → Lager surfaces visible.
 
-## İlgili dosyalar (geliştirici)
+## Related files (developers)
 
-- `backend/Configuration/InventoryOptions.cs`, `PaymentService` stok dalları  
-- `frontend-admin/src/shared/config/adminInventoryNavUi.ts`, `buildAdminSidebar.tsx`  
-- `frontend-admin/src/features/products/utils/adminProductsLagerUi.ts`, `products/page.tsx`  
+- `backend/Configuration/InventoryOptions.cs`, `PaymentService` stock branches
+- `frontend-admin/src/shared/config/adminInventoryNavUi.ts`, `buildAdminSidebar.tsx`
+- `frontend-admin/src/features/products/utils/adminProductsLagerUi.ts`, `products/page.tsx`
 - `backend/appsettings.example.json`, `backend/CONFIGURATION.md`

@@ -1,102 +1,102 @@
-# RKSV Production Cutover Checklist
+# RKSV production cutover checklist
 
-**Tarih:** 2026-07-29  
-**Amaç:** Bilinçli **simülasyon** ortamından (`Soft TSE` / `RKSV:Mode=Demo` / `FinanzOnline:UseSimulation=true`) **üretim fiskal** moda geçiş adımları.  
-**Plan:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) · **Hazırlık:** [`RKSV_IMPLEMENTATION_READINESS.md`](RKSV_IMPLEMENTATION_READINESS.md)  
-**FON ek detay:** [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)  
-**TSE kilidi:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)
+**Date:** 2026-07-29  
+**Purpose:** Steps to leave a deliberate **simulation** environment (`Soft TSE` / `RKSV:Mode=Demo` / `FinanzOnline:UseSimulation=true`) and enter **production fiscal** mode.  
+**Plan:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) · **Readiness:** [`RKSV_IMPLEMENTATION_READINESS.md`](RKSV_IMPLEMENTATION_READINESS.md)  
+**FON extra detail:** [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)  
+**TSE lock:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)
 
-> Cutover tamamlanmadan “RKSV üretim uyumlu” veya “BMF Verified production” iddiası **yapılmaz**.  
-> Secrets bu dosyaya yazılmaz.
-
----
-
-## 0. Önkoşullar (simülasyon fazı yeşil)
-
-- [ ] **P0-S1** Simulation Mode indicator FA + POS (+ API/logs) canlı ve anlaşıldı  
-- [ ] DEP export + (mümkünse) Prüftool CI yeşil  
-- [ ] Mayıs 2027 program yüzeyi (P1-3) en azından banner/rapor  
-- [ ] Ausfall episode/FA (P1-A) simülasyonda doğrulandı; **send kapalı** olduğu dokümante  
-- [ ] Compliance + Ops cutover penceresi onaylı  
+> Do **not** claim “RKSV production compliant” or “BMF Verified production” until cutover is complete.  
+> Do not write secrets into this file.
 
 ---
 
-## 1. TSE / SCU (Soft TSE → gerçek)
+## 0. Prerequisites (simulation phase green)
 
-- [ ] Soft TSE / Demo cihaz envanteri (hangi tenant/register)  
-- [ ] Gerçek **Signaturerstellungseinheit** (ör. fiskaly) credential + `SignatureCreationUnitId`  
-- [ ] `TseMode` Production değeri: Device / vendor (Demo/Off/Fake **yasak**)  
-- [ ] `TseProductionOptionsValidator` / `/health/tse/mode` **fail-closed** beklenen sonucu veriyor  
-- [ ] Escape hatch yok veya Compliance yazılı onayı var  
-- [ ] Smoke: bir test ödemesi **gerçek** compact JWS + thumbprint stamp  
-
-**Referans:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)
+- [ ] **P0-S1** Simulation Mode indicator live on FA + POS (+ API/logs) and understood
+- [ ] DEP export + (where possible) Prüftool CI green
+- [ ] May 2027 program surface (P1-3) at least banner/report
+- [ ] Ausfall episode/FA (P1-A) verified in simulation; **send closed** documented
+- [ ] Compliance + Ops approved the cutover window
 
 ---
 
-## 2. RKSV uygulama modu
+## 1. TSE / SCU (Soft TSE → real)
 
-- [ ] `RKSV:Mode` (veya eşdeğeri) Demo → Production/Test politikasına göre  
-- [ ] Simulation banner Production’da **kapanıyor** veya “Production” sinyeline dönüyor  
-- [ ] Legal notice / DEP `IsDemo` bayrakları production metnine geçiyor  
+- [ ] Soft TSE / Demo device inventory (which tenant/register)
+- [ ] Real **Signaturerstellungseinheit** (for example Fiskaly) credential + `SignatureCreationUnitId`
+- [ ] `TseMode` Production value: Device / vendor (Demo/Off/Fake **forbidden**)
+- [ ] `TseProductionOptionsValidator` / `/health/tse/mode` returns the expected **fail-closed** result
+- [ ] No escape hatch, or Compliance written approval exists
+- [ ] Smoke: one test payment with a **real** compact JWS + thumbprint stamp
+
+**Reference:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)
+
+---
+
+## 2. RKSV application mode
+
+- [ ] `RKSV:Mode` (or equivalent) Demo → Production/Test per policy
+- [ ] Simulation banner **closes** in Production or switches to a “Production” signal
+- [ ] Legal notice / DEP `IsDemo` flags switch to production text
 
 ---
 
 ## 3. FinanzOnline
 
-- [ ] `FinanzOnline:UseSimulation=false` (hedef ortam)  
-- [ ] Webservice kullanıcısı (tid/benid/pin) — önce **TEST**, sonra **PROD** (ayrı kapılar)  
-- [ ] Kasa + SCU FON’da kayıtlı; AES / benutzerschlüssel doğru  
-- [ ] `RksvSubmission` **ClientKind=Real** (Fake Production’da yasak)  
-- [ ] Outbox Mode ambient = hedef ortam (TEST sabiti yok)  
-- [ ] Startbeleg + Jahresbeleg **belegpruefung** E2E (önce TEST)  
+- [ ] `FinanzOnline:UseSimulation=false` (target environment)
+- [ ] Webservice user (tid/benid/pin) — **TEST** first, then **PROD** (separate gates)
+- [ ] Cash register + SCU registered in FON; AES / Benutzerschlüssel correct
+- [ ] `RksvSubmission` **ClientKind=Real** (Fake forbidden in Production)
+- [ ] Outbox Mode ambient = target environment (no TEST constant)
+- [ ] Startbeleg + Jahresbeleg **belegpruefung** E2E (TEST first)
 
-**Referans:** [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)
+**Reference:** [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)
 
 ---
 
 ## 4. Ausfallmeldung
 
-- [ ] Episode + FA yolu simülasyonda doğrulandı  
-- [ ] Compliance: auto-enqueue politikası (on/off) yazılı  
-- [ ] Canlı Ausfall / Wiederinbetriebnahme gönderimi **açıldı** (gate kaldırıldı)  
-- [ ] Staging failover drill → episode + (politikaya göre) outbox  
+- [ ] Episode + FA path verified in simulation
+- [ ] Compliance: auto-enqueue policy (on/off) in writing
+- [ ] Live Ausfall / Wiederinbetriebnahme submit **opened** (gate removed)
+- [ ] Staging failover drill → episode + (per policy) outbox
 
-**Referans:** [`AUSFALL_BENACHRICHTIGUNG_PLAN.md`](AUSFALL_BENACHRICHTIGUNG_PLAN.md)
+**Reference:** [`AUSFALL_BENACHRICHTIGUNG_PLAN.md`](AUSFALL_BENACHRICHTIGUNG_PLAN.md)
 
 ---
 
 ## 5. DEP / Prüftool
 
-- [ ] Production crypto material / register-özel anahtar süreci biliniyor  
-- [ ] Leaf `Signaturzertifikat` hard-fail davranışı prod SCU ile smoke  
-- [ ] Legacy JWS envanteri (varsa) biliniyor; Prüftool beklentisi yönetildi  
-- [ ] CI `dep-prueftool` yeşil (regresyon kapısı)  
+- [ ] Production crypto material / per-register key process is known
+- [ ] Leaf `Signaturzertifikat` hard-fail behavior smoked with prod SCU
+- [ ] Legacy JWS inventory (if any) is known; Prüftool expectation managed
+- [ ] CI `dep-prueftool` green (regression gate)
 
 ---
 
-## 6. Operasyonel / iletişim
+## 6. Operations / communication
 
-- [ ] Simulation banner kaldırıldı / Production mesajı  
-- [ ] Mandanten / iç ekibe cutover duyurusu  
-- [ ] Rollback planı (UseSimulation geri, Soft TSE yalnızca non-prod)  
-- [ ] [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) zorunlu maddeler işaretli  
-- [ ] [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5 Sonuç güncellendi  
-- [ ] `ai/05_SECURITY_COMPLIANCE.md` cutover satırları (P2-4)  
+- [ ] Simulation banner removed / Production message
+- [ ] Cutover announcement to mandanten / internal team
+- [ ] Rollback plan (`UseSimulation` back on; Soft TSE only on non-prod)
+- [ ] [`RKSV_FINAL_VALIDATION_CHECKLIST.md`](RKSV_FINAL_VALIDATION_CHECKLIST.md) required items checked
+- [ ] [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5 Result updated
+- [ ] `ai/05_SECURITY_COMPLIANCE.md` cutover rows (P2-4)
 
 ---
 
 ## 7. Sign-off
 
-| Rol | Ad | Tarih | Onay |
-|-----|-----|-------|------|
+| Role | Name | Date | Approval |
+|------|------|------|----------|
 | **Ops** | | | ☐ Soft TSE off + FON + SCU |
-| **Compliance** | | | ☐ Politikalar + Ausfall send |
+| **Compliance** | | | ☐ Policies + Ausfall send |
 | **Backend lead** | | | ☐ Config + health |
 | **Product** | | | ☐ Go-live |
 
-**Ortam:** ☐ BMF TEST cutover tamam · ☐ BMF PROD cutover tamam  
+**Environment:** ☐ BMF TEST cutover complete · ☐ BMF PROD cutover complete
 
 ---
 
-**Son güncelleme:** 2026-07-29 — simulation-first P0-S2 teslimatı.
+**Last updated:** 2026-07-29 — simulation-first P0-S2 delivery.

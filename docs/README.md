@@ -12,6 +12,8 @@ Human-facing guides for operators and developers.
 
 | Doc | Audience | Topic |
 |-----|----------|--------|
+| [`DOCUMENTATION_STANDARDS.md`](DOCUMENTATION_STANDARDS.md) | All authors | English docs style, terminology (POS vs cash register, tenant, license) |
+| [`TRANSLATION_CHECKLIST.md`](TRANSLATION_CHECKLIST.md) | Authors | Language inventory and remaining Turkish → English work |
 | [`MULTI_TENANT.md`](MULTI_TENANT.md) | Dev / ops | Tenant resolution, isolation, hosts, Dev headers |
 | [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) | Dev / ops | Single POS UI (`pos.regkasse.at`), JWT tenant |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | Super Admin / FA | Mandant CRUD, switcher, provisioning |
@@ -126,6 +128,7 @@ Release notes under [`release/`](release/) (FO reconciliation, offline separatio
 | Doc | Topic |
 |-----|--------|
 | [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) | SuperAdmin TOTP / Dev bypass |
+| [`AUTH_LOGOUT.md`](AUTH_LOGOUT.md) | Logout security (cookies, stamp, CSRF, FA/POS) |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | Users, Access & Roles hub |
 | [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) / [`LICENSE_MANAGEMENT_DESIGN.md`](LICENSE_MANAGEMENT_DESIGN.md) | Deployment vs mandant license |
 | [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) | License sales |
@@ -211,6 +214,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`API_CONTRACTS.md`](API_CONTRACTS.md) | API contract notes |
 | [`API_LEGACY_DEPRECATION.md`](API_LEGACY_DEPRECATION.md) | Legacy route policy |
 | [`AUTH_TWO_FACTOR.md`](AUTH_TWO_FACTOR.md) | SuperAdmin 2FA |
+| [`AUTH_LOGOUT.md`](AUTH_LOGOUT.md) | Logout security |
 | [`BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md) | Backdated daily closing |
 | [`backend-postgresql-integration-tests.md`](backend-postgresql-integration-tests.md) | PG integration tests |
 | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) | Backup hub |

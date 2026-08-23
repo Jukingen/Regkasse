@@ -172,6 +172,39 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
+    public async Task RevokeForUserAndClientApp_OnlyRevokesMatchingApp()
+    {
+        using var db = CreateContext();
+        var service = CreateService(db);
+
+        var adminLogin = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken);
+        var posLogin = await service.IssueLoginTokensAsync("u1", "pos", BuildAccessToken);
+
+        await service.RevokeForUserAndClientAppAsync("u1", "admin", "logout");
+
+        Assert.False(await service.IsSessionActiveAsync("u1", adminLogin.SessionId));
+        Assert.True(await service.IsSessionActiveAsync("u1", posLogin.SessionId));
+
+        var posRefresh = await service.RotateAsync(posLogin.RefreshToken, BuildAccessToken);
+        Assert.True(posRefresh.Success);
+
+        var adminRefresh = await service.RotateAsync(adminLogin.RefreshToken, BuildAccessToken);
+        Assert.False(adminRefresh.Success);
+    }
+
+    [Fact]
+    public async Task RevokeForUserAndClientApp_UnknownApp_IsNoOp()
+    {
+        using var db = CreateContext();
+        var service = CreateService(db);
+
+        var login = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken);
+        await service.RevokeForUserAndClientAppAsync("u1", "unknown", "logout");
+
+        Assert.True(await service.IsSessionActiveAsync("u1", login.SessionId));
+    }
+
+    [Fact]
     public async Task Login_Persists_Session_TenantId_When_Provided()
     {
         using var db = CreateContext();

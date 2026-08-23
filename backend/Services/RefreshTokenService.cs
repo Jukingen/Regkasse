@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
@@ -190,6 +191,33 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
             .Where(x => x.UserId == userId && x.RevokedAtUtc == null)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
+
+        foreach (var sessionId in sessionIds)
+            await LogoutSessionAsync(sessionId, reason, cancellationToken);
+    }
+
+    public async Task RevokeForUserAndClientAppAsync(
+        string userId,
+        string? clientApp,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || !ClientAppPolicy.IsKnownApp(clientApp))
+            return;
+
+        var app = clientApp!.Trim().ToLowerInvariant();
+        List<Guid> sessionIds;
+        try
+        {
+            sessionIds = await _db.AuthSessions
+                .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ClientApp == app)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex) when (IsMissingAuthSchemaException(ex))
+        {
+            throw new InvalidOperationException(MissingAuthSchemaMessage, ex);
+        }
 
         foreach (var sessionId in sessionIds)
             await LogoutSessionAsync(sessionId, reason, cancellationToken);

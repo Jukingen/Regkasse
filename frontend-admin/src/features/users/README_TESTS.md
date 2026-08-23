@@ -1,47 +1,47 @@
-# Users Modülü Test Paketi
+# Users module test pack
 
-> **Status:** NEEDS HUMAN REVIEW. Validate freshness before treating as current source of truth.
+> **Status:** NEEDS HUMAN REVIEW. Validate freshness before treating this as the current source of truth.
 
-## Kapsam
+## Scope
 
-- **`hooks/__tests__/useUsersList.test.ts`** – Liste hook: başarılı/boş/hatalı yükleme, parametre iletimi (role, isActive, query, page, pageSize), `enabled: false` ile çağrı yok.
-- **`app/(protected)/users/__tests__/page.test.tsx`** – Users sayfası: liste, filtreler, create/edit, deactivate/reactivate, reset password, yetki bazlı buton görünürlüğü.
+- **`hooks/__tests__/useUsersList.test.ts`** — List hook: success/empty/error load, parameter passing (`role`, `isActive`, `query`, `page`, `pageSize`), no call when `enabled: false`.
+- **`app/(protected)/users/__tests__/page.test.tsx`** — Users page: list, filters, create/edit, deactivate/reactivate, reset password, permission-based button visibility.
 
-## Çalıştırma
+## Run
 
 ```bash
 npm run test
-# veya watch
+# or watch
 npm run test:watch
 ```
 
-## Mock’lar
+## Mocks
 
-- **usersGateway**: `getUsersList`, `createUser`, `updateUser`, `deactivateUser`, `reactivateUser`, `resetPassword`, `createRole`, `normalizeError` – gerçek endpoint şekilleri (`UserInfo`, `UsersListResponse`) kullanılır.
-- **useAuth**: `{ user: { id, role: 'Admin' } }`
-- **useUsersPolicy**: Varsayılan tam yetki; permission testinde `canCreate: false` override.
-- **UserFormDrawer / UserDetailDrawer**: Basit stub (form submit ve kapatma).
+- **usersGateway:** `getUsersList`, `createUser`, `updateUser`, `deactivateUser`, `reactivateUser`, `resetPassword`, `createRole`, `normalizeError` — real endpoint shapes (`UserInfo`, `UsersListResponse`).
+- **useAuth:** `{ user: { id, role: 'Admin' } }`
+- **useUsersPolicy:** Default full permission; permission test overrides `canCreate: false`.
+- **UserFormDrawer / UserDetailDrawer:** Simple stub (form submit and close).
 
-## Davranış odaklı senaryolar
+## Behavior-focused scenarios
 
-| Senaryo                | Beklenen davranış                                              |
-| ---------------------- | -------------------------------------------------------------- |
-| List load success      | Tabloda kullanıcılar, email/role görünür                       |
-| List empty             | "Keine Benutzer gefunden."                                     |
-| List error             | Hata metni + "Erneut versuchen" butonu                         |
-| Filter default         | İlk çağrıda `page: 1`, `pageSize: 20`, `isActive: true`        |
-| Search                 | Arama gönderilince `query` ile tekrar çağrı                    |
-| Create success         | `createUser` çağrılır, "Benutzer angelegt."                    |
-| Create error           | `message.error` çağrılır                                       |
-| Edit submit            | `updateUser(id, data)` çağrılır                                |
-| Deactivate             | Modal açılır, reason girilir, `deactivateUser(id, { reason })` |
-| Reactivate             | Modal açılır, onayda `reactivateUser(id, undefined)`           |
-| Reset password kısa    | Modal açık kalır, `resetPassword` çağrılmaz                    |
-| Reset password geçerli | `resetPassword(id, { newPassword })` + success mesajı          |
-| canCreate false        | "Benutzer anlegen" butonu yok                                  |
+| Scenario | Expected behavior |
+|----------|-------------------|
+| List load success | Users, email/role visible in the table |
+| List empty | "Keine Benutzer gefunden." |
+| List error | Error text + "Erneut versuchen" button |
+| Filter default | First call `page: 1`, `pageSize: 20`, `isActive: true` |
+| Search | Repeat call with `query` after search submit |
+| Create success | `createUser` called, "Benutzer angelegt." |
+| Create error | `message.error` called |
+| Edit submit | `updateUser(id, data)` called |
+| Deactivate | Modal opens, reason entered, `deactivateUser(id, { reason })` |
+| Reactivate | Modal opens, confirm `reactivateUser(id, undefined)` |
+| Reset password too short | Modal stays open, `resetPassword` not called |
+| Reset password valid | `resetPassword(id, { newPassword })` + success message |
+| canCreate false | No "Benutzer anlegen" button |
 
-## Flakiness önleme
+## Flakiness prevention
 
-- `retry: false` (QueryClient) ile ağ yeniden denemesi kapalı.
-- `testTimeout: 15000` (vitest.config) ile yavaş ortamlarda zaman aşımı azaltılır.
-- Buton seçicilerde Ant Design ikon+metin birleşik isim için regex kullanılır (örn. `/Bearbeiten/`).
+- `retry: false` (QueryClient) disables network retries.
+- `testTimeout: 15000` (vitest.config) reduces timeouts in slow environments.
+- Button selectors use regex for Ant Design icon+text combined names (for example `/Bearbeiten/`).

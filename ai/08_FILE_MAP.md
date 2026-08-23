@@ -1,10 +1,12 @@
-# Repository File Map (current)
+# Repository file map (current)
 
-## AI / proje özü
-- Repo kökü: `REGKASSE_AI_ONBOARDING.md` (ana AI onboarding özeti).
-- Kısa bağlam paketi: `ai/00_CONTEXT_README.md` ve bu dosyanın altındaki klasör yolları.
+## AI / project core
+
+- Repo root: `REGKASSE_AI_ONBOARDING.md` (primary AI onboarding summary).
+- Short context pack: `ai/00_CONTEXT_README.md` and the folder paths below.
 
 ## Backend (`backend/`)
+
 - Tenancy: `backend/Tenancy/` (`SubdomainTenantProvider`, `CurrentTenantService`, `TenantHostNames`, `ITenantDomainService` / TenantDomain)
 - Tenant middleware: `backend/Middleware/TenantResolutionMiddleware.cs`, `TenantContextMiddleware.cs`
 - Controllers: `backend/Controllers/`
@@ -21,13 +23,15 @@
 - OpenAPI contract: `backend/swagger.json`
 - Backend tests: `backend/KasseAPI_Final.Tests/`
 
-## POS Frontend (`frontend/`)
+## POS frontend (`frontend/`)
+
 - Expo Router app: `frontend/app/`
 - API services: `frontend/services/api/`
 - Contexts: `frontend/contexts/`
 - POS tests: `frontend/__tests__/`
 
-## Admin Frontend (`frontend-admin/`)
+## Admin frontend (`frontend-admin/`)
+
 - Next App Router pages: `frontend-admin/src/app/`
 - Super Admin TSE ops UI: `frontend-admin/src/app/(protected)/admin/tse/*/`, features `frontend-admin/src/features/tse-*` — `ai/modules/tse_admin_ops.md`
 - Auth gate: `frontend-admin/src/proxy.ts` (Next.js 16)
@@ -38,9 +42,11 @@
 - Toasts: `frontend-admin/src/hooks/useNotify.ts`, `src/lib/notificationService.ts`
 
 ## Customer sites (`frontend-sites/`)
+
 - Shared storefront: `frontend-sites/` — `/[slug]`; public catalog / order APIs. See `frontend-sites/README.md`.
 
-## CI & verification
+## CI and verification
+
 - Workflows: `.github/workflows/*.yml` (inventory: `.github/workflows/README.md`)
 - OpenAPI/Orval checks: `scripts/verify-api-client.mjs`, `scripts/validate-critical-openapi-paths.mjs`
 - Localization checks: `localization/scripts/*.mjs`

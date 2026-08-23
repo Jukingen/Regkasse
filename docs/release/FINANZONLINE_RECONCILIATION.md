@@ -1,144 +1,144 @@
 # FinanzOnline submit — reconciliation & alerting
 
-## Amaç
+## Purpose
 
-Ödeme/fatura/fiş DB transaction commit olduktan sonra yapılan FinanzOnline submit’te, DB ile dış raporlama arasında geçici uyuşmazlık oluştuğunda bunun sessiz kalmaması: state, alert/event ve operasyonel görünürlük.
+After the payment / invoice / receipt DB transaction commits, FinanzOnline submit can leave a temporary mismatch between the DB and external reporting. That mismatch must not stay silent: persist state, raise alerts/events, and keep operational visibility.
 
-**Önemli:** DB truth geri alınmaz; sadece reconciliation state ve retry/alerting eklenir.
-
----
-
-## 1. Commit sonrası akış ve hata davranışı
-
-- **Yer:** `PaymentService.CreatePaymentAsync` — transaction commit (payment + invoice + receipt + stock) sonrası, audit log’lardan hemen sonra.
-- **Koşul:** `effectiveTseRequired == true` (TSE imzalı ödeme).
-- **Yapılan:** `IFinanzOnlineService.SubmitInvoiceAsync(createdInvoice)` çağrılır; sonuç **best-effort** olarak `PaymentDetails` üzerinde reconciliation alanlarına yazılır. Submit veya state güncellemesi hata verirse ödeme işlemi başarılı sayılmaya devam eder (DB rollback yok).
+**Important:** DB truth is not rolled back. Only reconciliation state and retry/alerting are added.
 
 ---
 
-## 2. Failure sınıflandırması
+## 1. Post-commit flow and error behavior
 
-| Tür | Açıklama | Örnek | Retry / Alert |
-|-----|----------|--------|----------------|
-| **Transient** | Geçici ağ/sunucu hatası | `HttpRequestException`, `TaskCanceledException`, timeout, 5xx | Retry uygun; status **Pending**. |
-| **Permanent** | Kalıcı/validasyon/duplicate | Mesajda "duplicate", "already submitted", "validation", "forbidden" | Otomatik retry yapılmaz; status **Failed**. |
-| **Unknown** | Diğer | Beklenmeyen exception | Retry denenebilir; status **Failed**. |
-
-Sınıflandırma: `FinanzOnlineService.ClassifyFailure` ve payment catch path’te `PaymentService.ClassifyFinanzOnlineFailure` (aynı mantık).
+- **Location:** `PaymentService.CreatePaymentAsync` — after the transaction commit (payment + invoice + receipt + stock), immediately after audit logs.
+- **Condition:** `effectiveTseRequired == true` (TSE-signed payment).
+- **Action:** `IFinanzOnlineService.SubmitInvoiceAsync(createdInvoice)` is called. The result is written **best-effort** to reconciliation fields on `PaymentDetails`. If submit or the state update fails, the payment is still treated as successful (no DB rollback).
 
 ---
 
-## 3. Yeni state modeli (PaymentDetails)
+## 2. Failure classification
 
-| Alan | Açıklama |
-|------|----------|
-| `finanz_online_status` | **NotSent** (kullanılmıyor), **Pending**, **Submitted**, **Failed**, **NeedsReconciliation** |
-| `finanz_online_error` | Son hata mesajı (truncate 500); Submitted ise null. |
-| `finanz_online_reference_id` | Dış sistem referans ID (Submitted ise dolu). |
-| `finanz_online_last_attempt_at_utc` | Son deneme zamanı (UTC). |
-| `finanz_online_retry_count` | Manuel/otomatik retry sayacı. |
+| Kind | Description | Example | Retry / Alert |
+|------|-------------|---------|---------------|
+| **Transient** | Temporary network/server error | `HttpRequestException`, `TaskCanceledException`, timeout, 5xx | Retry is appropriate; status **Pending**. |
+| **Permanent** | Permanent / validation / duplicate | Message contains "duplicate", "already submitted", "validation", "forbidden" | No automatic retry; status **Failed**. |
+| **Unknown** | Other | Unexpected exception | Retry may be attempted; status **Failed**. |
 
-**Kurallar:**
+Classification: `FinanzOnlineService.ClassifyFailure` and, on the payment catch path, `PaymentService.ClassifyFinanzOnlineFailure` (same logic).
 
-- İlk submit sonrası: **Submitted** (başarı) veya **Pending** (Transient) / **Failed** (Permanent/Unknown).
-- Retry başarılı olursa **Submitted**; retry da başarısızsa yine **Pending** veya **Failed**.
-- Zaten **Submitted** iken retry çağrılırsa external submit **tekrar çağrılmaz** (duplicate submit riski yönetilir).
+---
+
+## 3. New state model (PaymentDetails)
+
+| Field | Description |
+|-------|-------------|
+| `finanz_online_status` | **NotSent** (unused), **Pending**, **Submitted**, **Failed**, **NeedsReconciliation** |
+| `finanz_online_error` | Last error message (truncated to 500); null when Submitted. |
+| `finanz_online_reference_id` | External-system reference ID (set when Submitted). |
+| `finanz_online_last_attempt_at_utc` | Last attempt time (UTC). |
+| `finanz_online_retry_count` | Manual/automatic retry counter. |
+
+**Rules:**
+
+- After the first submit: **Submitted** (success) or **Pending** (Transient) / **Failed** (Permanent/Unknown).
+- A successful retry becomes **Submitted**; a failed retry stays **Pending** or **Failed**.
+- If status is already **Submitted**, a retry **does not call** external submit again (duplicate-submit risk is managed).
 
 ---
 
 ## 4. Retry-safe reconciliation & event/log
 
-- **FinanzOnlineSubmission:** Her submit denemesi (başarılı/başarısız) için bir kayıt; `InvoiceId`, `Success`, `ErrorMessage`, `ResponseStatusCode`, `ResponseBodyJson`, `SubmittedAt`.
-- **FinanzOnlineError:** Her **başarısız** submit’te bir kayıt; `ErrorType = "Submission"`, `InvoiceNumber`, `CashRegisterId`, `ReferenceId`, `Status = "Active"`.
-- **Log:** Başarı: `Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId=…`. Başarısız: `FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind=…`. State güncellemesi hata verirse: `Failed to update PaymentDetails FinanzOnline state for PaymentId=…; reconciliation view may be stale.`
+- **FinanzOnlineSubmission:** One row per submit attempt (success or failure); `InvoiceId`, `Success`, `ErrorMessage`, `ResponseStatusCode`, `ResponseBodyJson`, `SubmittedAt`.
+- **FinanzOnlineError:** One row per **failed** submit; `ErrorType = "Submission"`, `InvoiceNumber`, `CashRegisterId`, `ReferenceId`, `Status = "Active"`.
+- **Log:** Success: `Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId=…`. Failure: `FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind=…`. If the state update fails: `Failed to update PaymentDetails FinanzOnline state for PaymentId=…; reconciliation view may be stale.`
 
-Alerting: Otomatik retry job çalıştıktan sonra Failed sayısı veya aynı register’da tekrarlayan hata eşiği aşılırsa log (FinanzOnlineAlert) + isteğe bağlı `IFinanzOnlineAlertSink` ile event. Metrikler: `GET /api/admin/finanzonline-reconciliation/metrics` (finanzonline_submit_total, finanzonline_submit_failed_total by FailureKind).
+Alerting: After the automatic retry job runs, if the Failed count or the repeated-failure threshold on the same cash register is exceeded, write a log (FinanzOnlineAlert) and optionally emit an event via `IFinanzOnlineAlertSink`. Metrics: `GET /api/admin/finanzonline-reconciliation/metrics` (`finanzonline_submit_total`, `finanzonline_submit_failed_total` by FailureKind).
 
 ---
 
-## 5. Ops dashboard / sorgulanabilir status
+## 5. Ops dashboard / queryable status
 
 - **GET /api/admin/finanzonline-reconciliation**  
-  Sorgulanabilir liste: `status` (Pending, Failed, NeedsReconciliation), `cashRegisterId`, `fromUtc`, `toUtc`, `limit`.  
-  Cevap: `total`, `items[]` (PaymentId, ReceiptNumber, CreatedAt, TotalAmount, CashRegisterId, FinanzOnlineStatus, FinanzOnlineError, FinanzOnlineReferenceId, FinanzOnlineLastAttemptAtUtc, FinanzOnlineRetryCount).
+  Queryable list: `status` (Pending, Failed, NeedsReconciliation), `cashRegisterId`, `fromUtc`, `toUtc`, `limit`.  
+  Response: `total`, `items[]` (PaymentId, ReceiptNumber, CreatedAt, TotalAmount, CashRegisterId, FinanzOnlineStatus, FinanzOnlineError, FinanzOnlineReferenceId, FinanzOnlineLastAttemptAtUtc, FinanzOnlineRetryCount).
 
 - **POST /api/admin/finanzonline-reconciliation/retry/{paymentId}**  
-  Manuel retry. Zaten Submitted ise 200 + “Submitted”, external submit tekrar çağrılmaz.
+  Manual retry. If already Submitted, returns 200 + “Submitted”; external submit is not called again.
 
 - **GET /api/admin/finanzonline-reconciliation/metrics**  
-  Sayaçlar: submitTotal, submitFailedTotal, submitFailedTransient/Permanent/Unknown (uygulama yeniden başlayınca sıfırlanır).
+  Counters: submitTotal, submitFailedTotal, submitFailedTransient/Permanent/Unknown (reset when the application restarts).
 
 - **SQL (trend / dashboard):**  
   `SELECT finanz_online_status, COUNT(*) FROM payment_details WHERE created_at >= @from AND created_at <= @to GROUP BY finanz_online_status`
 
 ---
 
-## 6. Support / admin görünürlüğü
+## 6. Support / admin visibility
 
-- Reconciliation listesi: **Pending / Failed / NeedsReconciliation** durumları filtrelenebilir.
-- Retry: Tekil ödeme için “Retry submit” ile yeniden deneme.
-- Fiscal export: Şu an sadece **DailyClosing** için FinanzOnlineStatus/Error/ReferenceId var; payment bazlı FO durumu bu endpoint ve `payment_details` kolonları üzerinden izlenir.
-
----
-
-## 7. Duplicate external submit riski
-
-- Aynı payment için retry, **Submitted** ise `SubmitInvoiceAsync` **çağrılmaz**; mevcut `FinanzOnlineReferenceId` ile 200 dönülür.
-- Gerçek FinanzOnline API’de “zaten gönderilmiş” cevabı gelirse, ileride **Permanent** (duplicate) olarak sınıflandırılıp status **Submitted** yapılabilir ve mevcut referenceId saklanabilir (şu an simülasyon).
+- Reconciliation list: **Pending / Failed / NeedsReconciliation** can be filtered.
+- Retry: Retry a single payment with “Retry submit”.
+- Fiscal export: FinanzOnlineStatus/Error/ReferenceId currently exist only for **DailyClosing**. Payment-level FO status is tracked through this endpoint and the `payment_details` columns.
 
 ---
 
-## 8. Otomatik retry job (background) ve metrikler
+## 7. Duplicate external submit risk
 
-- **HostedService:** `FinanzOnlineRetryHostedService` — periyodik (varsayılan 2 dk) Pending kayıtları seçer; exponential backoff (BaseDelaySeconds × 2^RetryCount, cap BackoffCapSeconds) ve max retry (varsayılan 5) uygular. Başarı → Submitted; Transient fail → Pending; Permanent/Unknown fail → Failed. Max retry aşıldıktan sonra status Failed yapılır, hata metnine "(Max retries exceeded)." eklenir.
-- **Duplicate submit:** Job sadece status = Pending olanları seçer; `RetryFinanzOnlineSubmitAsync` zaten Submitted ise external submit çağırmaz.
-- **Alert:** Her döngü sonunda: (1) Failed sayısı > AlertFailedThreshold ise log "FinanzOnlineAlert: Failed count … exceeds threshold …" + `IFinanzOnlineAlertSink.OnFailedCountThresholdExceeded`. (2) Aynı register’da Failed veya max-retry Pending sayısı ≥ RegisterRepeatedFailureThreshold ise log + `OnRegisterRepeatedFailure`.
-- **Metrikler:** `IFinanzOnlineMetrics` — her submit denemesi için `IncrementSubmitTotal`; başarısızda `IncrementSubmitFailed(FailureKind)`. GET `/api/admin/finanzonline-reconciliation/metrics` ile okunur (submitTotal, submitFailedTransient/Permanent/Unknown).
+- A retry for the same payment **does not call** `SubmitInvoiceAsync` when status is **Submitted**; the response is 200 with the existing `FinanzOnlineReferenceId`.
+- If the real FinanzOnline API later returns “already submitted,” that can be classified as **Permanent** (duplicate), status set to **Submitted**, and the existing referenceId kept (currently simulation).
+
+---
+
+## 8. Automatic retry job (background) and metrics
+
+- **HostedService:** `FinanzOnlineRetryHostedService` — periodically (default 2 min) selects Pending rows; applies exponential backoff (BaseDelaySeconds × 2^RetryCount, cap BackoffCapSeconds) and a max retry (default 5). Success → Submitted; Transient fail → Pending; Permanent/Unknown fail → Failed. After max retry is exceeded, status becomes Failed and "(Max retries exceeded)." is appended to the error text.
+- **Duplicate submit:** The job selects only status = Pending. `RetryFinanzOnlineSubmitAsync` does not call external submit if already Submitted.
+- **Alert:** At the end of each loop: (1) If Failed count > AlertFailedThreshold, log "FinanzOnlineAlert: Failed count … exceeds threshold …" + `IFinanzOnlineAlertSink.OnFailedCountThresholdExceeded`. (2) If Failed or max-retry Pending count on the same cash register ≥ RegisterRepeatedFailureThreshold, log + `OnRegisterRepeatedFailure`.
+- **Metrics:** `IFinanzOnlineMetrics` — `IncrementSubmitTotal` on every submit attempt; `IncrementSubmitFailed(FailureKind)` on failure. Read via GET `/api/admin/finanzonline-reconciliation/metrics` (submitTotal, submitFailedTransient/Permanent/Unknown).
 - **Config:** `appsettings` → `FinanzOnlineRetryJob`: Enabled, Interval, MaxRetryCount, BaseDelaySeconds, BackoffCapSeconds, BatchSize, AlertFailedThreshold, RegisterRepeatedFailureThreshold.
 
 ---
 
-## 9. Değişen / eklenen dosyalar
+## 9. Changed / added files
 
-| Dosya | Değişiklik |
-|-------|------------|
+| File | Change |
+|------|--------|
 | `backend/Services/IFinanzOnlineService.cs` | `FinanzOnlineSubmitResponse.FailureKind`, `FinanzOnlineFailureKind` enum. |
-| `backend/Models/PaymentDetails.cs` | FinanzOnline reconciliation kolonları. |
-| `backend/Data/AppDbContext.cs` | PaymentDetails FO kolon config + index. |
-| `backend/Migrations/*_AddPaymentDetailsFinanzOnlineReconciliation.cs` | Tablo migration. |
-| `backend/Services/FinanzOnlineService.cs` | SubmitInvoiceAsync: submission/error kaydı, failure sınıflandırması. |
-| `backend/Services/PaymentService.cs` | Commit sonrası FO sonucuna göre state güncelleme; `RetryFinanzOnlineSubmitAsync`; `UpdatePaymentFinanzOnlineStateAsync`, `ClassifyFinanzOnlineFailure`; isteğe bağlı `IFinanzOnlineMetrics`. |
+| `backend/Models/PaymentDetails.cs` | FinanzOnline reconciliation columns. |
+| `backend/Data/AppDbContext.cs` | PaymentDetails FO column config + index. |
+| `backend/Migrations/*_AddPaymentDetailsFinanzOnlineReconciliation.cs` | Table migration. |
+| `backend/Services/FinanzOnlineService.cs` | SubmitInvoiceAsync: submission/error row, failure classification. |
+| `backend/Services/PaymentService.cs` | Post-commit FO state update; `RetryFinanzOnlineSubmitAsync`; `UpdatePaymentFinanzOnlineStateAsync`, `ClassifyFinanzOnlineFailure`; optional `IFinanzOnlineMetrics`. |
 | `backend/Controllers/FinanzOnlineReconciliationController.cs` | GET list, POST retry, GET metrics. |
 | `backend/Options/FinanzOnlineRetryJobOptions.cs` (namespace Configuration) | Retry job config. |
 | `backend/Services/FinanzOnlineMetrics.cs` | IFinanzOnlineMetrics, IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink. |
 | `backend/Services/FinanzOnlineRetryHostedService.cs` | Background job: Pending retry + backoff + max retry + alert. |
 | `backend/Program.cs` | FinanzOnlineRetryJob options, IFinanzOnlineMetrics, IFinanzOnlineAlertSink, FinanzOnlineRetryHostedService. |
-| `backend/KasseAPI_Final.Tests/FinanzOnlineReconciliationTests.cs` | Retry başarı, already-submitted idempotency, payment not found. |
-| `docs/release/FINANZONLINE_RECONCILIATION.md` | Bu doküman. |
+| `backend/KasseAPI_Final.Tests/FinanzOnlineReconciliationTests.cs` | Retry success, already-submitted idempotency, payment not found. |
+| `docs/release/FINANZONLINE_RECONCILIATION.md` | This document. |
 
 ---
 
-## 10. Mevcut risk (önceki durum)
+## 10. Previous risk (before this work)
 
-- Commit başarılı, FinanzOnline submit başarısız olsa bile **hiçbir yerde** kalıcı state yoktu; sadece log.
-- Hangi ödemelerin dışarıya gönderilmediği **sorgulanamıyordu**.
-- Retry veya manuel inceleme için **işaret yoktu**.
-- Duplicate submit riski **sadece** “retry yapılmazsa” ile sınırlıydı; artık Submitted ise retry tekrar göndermiyor.
-
----
-
-## 11. Eksik kalan alanlar
-
-- **DailyClosing:** TagesabschlussService’te FO submit sonrası sadece try/catch ile status yazılıyor; response’taki `Success`/`FailureKind` ile state iyileştirmesi yapılmadı (kapsam dışı).
-- **Fiscal export:** Payment bazlı FO status özeti (sayı/yüzde) export JSON’a eklenmedi; istenirse `integrity` veya ayrı bir alanla eklenebilir.
-- **Prometheus:** Metrikler şu an in-memory + GET metrics endpoint; Prometheus scrape eklenirse aynı sayaçlar expose edilebilir.
+- After a successful commit, a failed FinanzOnline submit left **no durable state** anywhere; only a log line.
+- Payments that were not sent externally **could not be queried**.
+- There was **no marker** for retry or manual review.
+- Duplicate-submit risk was limited to “do not retry”; now a Submitted row is not sent again on retry.
 
 ---
 
-## 12. Operasyonda takip yöntemi
+## 11. Remaining gaps
 
-1. **Metrikler:** GET `/api/admin/finanzonline-reconciliation/metrics` → `submitTotal`, `submitFailedTotal`, `submitFailedTransient/Permanent/Unknown` (uygulama yeniden başlayınca sıfırlanır).
-2. **Liste:** GET `/api/admin/finanzonline-reconciliation?status=Pending,Failed` ile Pending/Failed kayıtları.
-3. **Alert (log):** "FinanzOnlineAlert" mesajlarına alert kuralı (Failed count threshold veya register repeated failure). İsteğe bağlı: `IFinanzOnlineAlertSink` implementasyonu (webhook, queue) kaydedilerek event’leri dış sisteme gönderin.
-4. **Retry stratejisi:** Otomatik job Pending’leri exponential backoff ile en fazla MaxRetryCount (varsayılan 5) kez dener; sonrasında status Failed yapılır. Manuel retry her zaman mümkün (POST retry/{paymentId}).
-5. **Duplicate submit:** Job ve manuel retry, Submitted kayıtları tekrar göndermez; sadece Pending/Failed seçilir / hedeflenir.
+- **DailyClosing:** `TagesabschlussService` still writes FO status after submit with only try/catch. State is not improved from `Success`/`FailureKind` on the response (out of scope).
+- **Fiscal export:** A payment-level FO status summary (count/percent) was not added to the export JSON. It can be added later under `integrity` or a separate field if needed.
+- **Prometheus:** Metrics are currently in-memory plus the GET metrics endpoint. The same counters can be exposed if Prometheus scrape is added.
+
+---
+
+## 12. How to follow this in operations
+
+1. **Metrics:** GET `/api/admin/finanzonline-reconciliation/metrics` → `submitTotal`, `submitFailedTotal`, `submitFailedTransient/Permanent/Unknown` (reset when the application restarts).
+2. **List:** GET `/api/admin/finanzonline-reconciliation?status=Pending,Failed` for Pending/Failed rows.
+3. **Alert (log):** Alert rule on "FinanzOnlineAlert" messages (Failed count threshold or register repeated failure). Optional: register an `IFinanzOnlineAlertSink` implementation (webhook, queue) to send events to an external system.
+4. **Retry strategy:** The automatic job retries Pending rows with exponential backoff up to MaxRetryCount (default 5); then status becomes Failed. Manual retry is always available (POST retry/{paymentId}).
+5. **Duplicate submit:** The job and manual retry do not resend Submitted rows; only Pending/Failed are selected / targeted.

@@ -1,36 +1,41 @@
-# API Contract Stabilization Plan
+# API contract stabilization plan
 
 **Status:** Active, incremental (no big-bang rewrite).
 
-**Context:** Üst seviye davranış ve RKSV/voucher kuralları için `REGKASSE_AI_ONBOARDING.md` ana özettir; bu dosya route/OpenAPI stabilize iş kuyruğuna odaklanır.
+**Context:** `REGKASSE_AI_ONBOARDING.md` is the top-level behavior and RKSV/voucher summary. This file is the route/OpenAPI stabilization work queue.
 
-## Multi-Tenant Architecture
+## Multi-tenant architecture
 
-- Yeni admin uçları kiracı bağlamını bozmamalı; Super Admin yüzeyi `/api/admin/tenants` altında kalır.
-- OpenAPI/swagger değişikliklerinde `tenant_id` claim ve admin tenant DTO’ları diff’te kontrol edilir.
+- New admin endpoints must not break tenant context; the Super Admin surface stays under `/api/admin/tenants`.
+- On OpenAPI/swagger changes, review `tenant_id` claims and admin tenant DTOs in the diff.
 
 ## Current repository facts
+
 - Canonical boundaries exist: `/api/admin/*` and `/api/pos/*`.
 - Legacy aliases for `Payment`, `Cart`, `Product` were **hard-removed** (2026-08-13). See `docs/API_LEGACY_DEPRECATION.md`.
 - OpenAPI contract checks run via `scripts/validate-critical-openapi-paths.mjs` and `scripts/verify-api-client.mjs`.
 
 ## Stabilization goals
+
 1. Stop legacy expansion.
 2. Keep OpenAPI and implementation aligned.
 3. Move consumers to canonical paths with minimal risk.
 4. Preserve fiscal/compliance behavior during migration.
 
 ## Practical rules
+
 - New endpoint: canonical route only.
-- Do not reintroduce `/api/Payment|/api/Cart|/api/Product`.
-- Contract değişikliği: `backend/swagger.json` + ilgili consumer güncellemesi aynı değişim setinde.
+- Do not reintroduce `/api/Payment`, `/api/Cart`, or `/api/Product`.
+- Contract change: update `backend/swagger.json` and the related consumer in the same change set.
 
 ## Near-term work queue
-1. **Payment contract hardening:** v2 envelope kullanımını takip et; legacy parse dallarını metriklerle küçült.
-2. **OpenAPI governance:** critical-path scriptleri CI’de yeşil tut; yeni retired prefix eklenmesini engelle.
-3. **Route inventory upkeep:** `ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md` güncel kalsın.
+
+1. **Payment contract hardening:** Track v2 envelope usage; shrink legacy parse branches with metrics.
+2. **OpenAPI governance:** Keep critical-path scripts green in CI; block new retired prefixes.
+3. **Route inventory upkeep:** Keep `ai/09_LEGACY_CANONICAL_ROUTE_INVENTORY.md` current.
 
 ## Validation baseline
+
 - `node scripts/validate-critical-openapi-paths.mjs`
 - `node scripts/verify-api-client.mjs`
 - `dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests"`

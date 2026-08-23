@@ -111,6 +111,10 @@ public class AuthControllerTests
         if (userByEmail != null)
             mgr.Setup(m => m.FindByIdAsync(userByEmail.Id)).ReturnsAsync(userByEmail);
 
+        mgr.Setup(m => m.UpdateSecurityStampAsync(It.IsAny<ApplicationUser>()))
+            .Callback<ApplicationUser>(u => u.SecurityStamp = Guid.NewGuid().ToString("D"))
+            .ReturnsAsync(IdentityResult.Success);
+
         return mgr.Object;
     }
 
@@ -271,7 +275,8 @@ public class AuthControllerTests
         UserManager<ApplicationUser>? userManagerOverride = null,
         AppDbContext? appDbOverride = null,
         Mock<ISessionService>? sessionServiceMock = null,
-        IAccountLockoutService? accountLockoutService = null)
+        IAccountLockoutService? accountLockoutService = null,
+        Mock<IRefreshTokenService>? refreshTokenServiceMock = null)
     {
         var userManager = userManagerOverride
             ?? CreateMockUserManager(userByEmail, passwordValid, roles, userByName);
@@ -288,7 +293,23 @@ public class AuthControllerTests
             RequireTenantMembershipForLogin = requireTenantMembershipForLogin,
             RequireSuperAdminTwoFactor = false,
         });
-        var refreshTokenService = new Mock<IRefreshTokenService>();
+        var refreshTokenService = refreshTokenServiceMock ?? new Mock<IRefreshTokenService>();
+        refreshTokenService.Setup(x => x.LogoutSessionAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        refreshTokenService.Setup(x => x.RevokeForUserAndClientAppAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        refreshTokenService.Setup(x => x.LogoutAllAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         refreshTokenService.Setup(x => x.IssueLoginTokensAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
@@ -1319,6 +1340,49 @@ public class AuthControllerTests
         sessionService.Verify(
             s => s.TouchSessionActivityAsync(sessionId, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Logout_RotatesSecurityStamp_AndRevokesClientAppSessions()
+    {
+        var stampBefore = "stamp-before";
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            Email = "cashier@example.com",
+            UserName = "cashier1",
+            SecurityStamp = stampBefore,
+        };
+        var refreshTokenService = new Mock<IRefreshTokenService>();
+        var controller = CreateController(userByEmail: user, refreshTokenServiceMock: refreshTokenService);
+        var sessionId = Guid.NewGuid();
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim("sid", sessionId.ToString("D")),
+                    new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin),
+                },
+                authenticationType: "Test")),
+        };
+        http.RequestServices = Mock.Of<IServiceProvider>();
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+
+        var result = await controller.Logout();
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotEqual(stampBefore, user.SecurityStamp);
+        refreshTokenService.Verify(
+            s => s.LogoutSessionAsync(sessionId, "logout", It.IsAny<CancellationToken>()),
+            Times.Once);
+        refreshTokenService.Verify(
+            s => s.RevokeForUserAndClientAppAsync(user.Id, "admin", "logout", It.IsAny<CancellationToken>()),
+            Times.Once);
+        refreshTokenService.Verify(
+            s => s.LogoutAllAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
 

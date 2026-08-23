@@ -1,25 +1,25 @@
-# Admin i18n (frontend-admin)
+# Admin i18n (`frontend-admin`)
 
-## Source of truth (sıra)
+## Source of truth (order)
 
-1. **Runtime çeviri:** `src/i18n/config.ts` — `catalogs[locale]` altındaki **catalog anahtarları** (`AdminNamespace`) ve import edilen JSON dosyaları.
-2. **`t('…')` çözümlemesi:** `I18nProvider` — ilk segment = catalog adı (aşağıdaki “Runtime namespace” sütunu).
-3. **Araç / parity / CSV:** `localization/namespace-manifest.json` — `frontend-admin.namespaces` listesi **locale dosya adlarıyla** uyumlu olmalı (`de/<stem>.json`).
+1. **Runtime translation:** `src/i18n/config.ts` — **catalog keys** under `catalogs[locale]` (`AdminNamespace`) and the imported JSON files.
+2. **`t('…')` resolution:** `I18nProvider` — first segment = catalog name (see the “Runtime namespace” column below).
+3. **Tooling / parity / CSV:** `localization/namespace-manifest.json` — the `frontend-admin.namespaces` list must match **locale file names** (`de/<stem>.json`).
 
-JSON kataloglar: `src/i18n/locales/{de,en,tr}/`. Varsayılan metin dili: **`de`** (`DEFAULT_TEXT_LOCALE`).
+JSON catalogs: `src/i18n/locales/{de,en,tr}/`. Default text locale: **`de`** (`DEFAULT_TEXT_LOCALE`).
 
 ---
 
 ## Text locale vs format locale
 
-- **Metin dili:** `de` | `en` | `tr` — `textLocale` (`I18nProvider`).
-- **Format dili (Intl):** `de-AT` | `en-US` | `tr-TR` — `formatLocale`; `TEXT_TO_FORMAT_LOCALE` ile metin dilinden türetilir.
+- **Text language:** `de` | `en` | `tr` — `textLocale` (`I18nProvider`).
+- **Format locale (Intl):** `de-AT` | `en-US` | `tr-TR` — `formatLocale`; derived from the text language via `TEXT_TO_FORMAT_LOCALE`.
 
 ### Formatting (`src/i18n/formatting.ts`)
 
-Tek yüzey: `formatCurrency`, `formatNumber`, `formatPercent`, `formatDate`, `formatDateTime` — hepsi `(…, formatLocale, …)` ile `useI18n().formatLocale` alır. Çok kullanımda `createIntlFormatters(formatLocale)` ile bağlı helper’lar üretilebilir.
+Single surface: `formatCurrency`, `formatNumber`, `formatPercent`, `formatDate`, `formatDateTime` — all take `(…, formatLocale, …)` from `useI18n().formatLocale`. For repeated use, build bound helpers with `createIntlFormatters(formatLocale)`.
 
-**Örnek:**
+**Example:**
 
 ```tsx
 const { formatLocale } = useI18n();
@@ -27,42 +27,42 @@ const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
 return <span>{fmt.formatCurrency(row.amount)}</span>;
 ```
 
-**Yüzde:** `formatPercent` Intl kurallarına uyar — değer **0–1 aralığında** oran (ör. `0,2` → %20).
+**Percent:** `formatPercent` follows Intl rules — value is a **0–1 ratio** (for example `0.2` → 20%).
 
-**EUR:** `formatCurrency` varsayılan `currency: 'EUR'`, 2 ondalık.
+**EUR:** `formatCurrency` defaults to `currency: 'EUR'`, 2 fraction digits.
 
-**Kullanımdan kaçının:** `new Intl.NumberFormat('de-AT', …)` doğrudan; `toFixed(2) + '€'`; sabit `'de-DE'` / `'de-AT'` locale string’leri (formatLocale dışında).
-
----
-
-## `t(key)` biçimi
-
-- `namespace.path.to.leaf` — ilk nokta öncesi segment = **runtime namespace** (`config.ts` ile birebir).
-- Alternatif: `namespace:path.to.leaf` (aynı anlama).
-
-Örnek: `adminShell.hospitalityHub.title` → namespace `adminShell`, path `hospitalityHub.title`.
+**Avoid:** calling `new Intl.NumberFormat('de-AT', …)` directly; `toFixed(2) + '€'`; hardcoded `'de-DE'` / `'de-AT'` locale strings (except via `formatLocale`).
 
 ---
 
-## Runtime namespace ↔ dosya adı (kebab / camel)
+## `t(key)` format
 
-| Runtime (`t` ilk segmenti, `AdminNamespace`) | Locale dosyası (`de/…`)           | Not                                                                |
-| -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------ |
-| `adminShell`                                 | `admin-shell.json`                | Tek istisna: dosya **kebab-case**, catalog anahtarı **camelCase**. |
-| `common`                                     | `common.json`                     |                                                                    |
-| `nav`                                        | `nav.json`                        |                                                                    |
-| `users`                                      | `users.json`                      |                                                                    |
-| `settings`                                   | `settings.json`                   |                                                                    |
-| `products`                                   | `products.json`                   |                                                                    |
-| `finanzOnlineOutbox`                         | `finanzOnlineOutbox.json`         |                                                                    |
-| `finanzOnlineReconciliation`                 | `finanzOnlineReconciliation.json` |                                                                    |
-| `rksvHub`                                    | `rksvHub.json`                    |                                                                    |
+- `namespace.path.to.leaf` — the segment before the first dot is the **runtime namespace** (must match `config.ts`).
+- Alternative: `namespace:path.to.leaf` (same meaning).
 
-**`localization/namespace-manifest.json`** içindeki `frontend-admin.namespaces` değerleri **dosya kök adı**dır (`admin-shell`, `finanzOnlineOutbox`, …); runtime string ile karakter bazında her zaman aynı değildir — `admin-shell` ↔ `adminShell` eşlemesi validate ve import/export script’lerinde kebab/camel ile hizalanır.
+Example: `adminShell.hospitalityHub.title` → namespace `adminShell`, path `hospitalityHub.title`.
 
 ---
 
-## Kurallar
+## Runtime namespace ↔ file name (kebab / camel)
 
-- Yalnızca UI metni; ürün/kategori gibi API alanlarını `t()` üzerinden geçirme.
-- Anahtarları stabil tut; toplu rename için migration notu gerekir.
+| Runtime (`t` first segment, `AdminNamespace`) | Locale file (`de/…`)              | Note                                                               |
+| --------------------------------------------- | --------------------------------- | ------------------------------------------------------------------ |
+| `adminShell`                                  | `admin-shell.json`                | Only exception: file is **kebab-case**, catalog key is **camelCase**. |
+| `common`                                      | `common.json`                     |                                                                    |
+| `nav`                                         | `nav.json`                        |                                                                    |
+| `users`                                       | `users.json`                      |                                                                    |
+| `settings`                                    | `settings.json`                   |                                                                    |
+| `products`                                    | `products.json`                   |                                                                    |
+| `finanzOnlineOutbox`                          | `finanzOnlineOutbox.json`         |                                                                    |
+| `finanzOnlineReconciliation`                  | `finanzOnlineReconciliation.json` |                                                                    |
+| `rksvHub`                                     | `rksvHub.json`                    |                                                                    |
+
+Values in **`localization/namespace-manifest.json`** → `frontend-admin.namespaces` are **file stems** (`admin-shell`, `finanzOnlineOutbox`, …). They are not always character-identical to the runtime string — `admin-shell` ↔ `adminShell` is aligned in validate and import/export scripts via kebab/camel mapping.
+
+---
+
+## Rules
+
+- UI copy only; do not run product/category API fields through `t()`.
+- Keep keys stable; bulk renames need a migration note.

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using KasseAPI_Final.Auth;
@@ -17,6 +18,7 @@ using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Token;
 using KasseAPI_Final.Services.TwoFactor;
+using KasseAPI_Final.Services.Security;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -719,11 +721,24 @@ namespace KasseAPI_Final.Controllers
                 // Immediate access-token revocation (complements session revoke below).
                 BlacklistCurrentAccessToken();
 
+                var logoutClientApp = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
+                    ?? ResolveAuthCookieClientApp(null);
+
                 var sidRaw = User.FindFirst("sid")?.Value;
                 if (Guid.TryParse(sidRaw, out var sessionId))
                 {
                     await _refreshTokenService.LogoutSessionAsync(sessionId, "logout");
                 }
+
+                // App-scoped refresh revoke: FA logout must not kill POS sessions (and vice versa).
+                await _refreshTokenService.RevokeForUserAndClientAppAsync(
+                    userId,
+                    logoutClientApp,
+                    "logout");
+
+                await RotateSecurityStampForLogoutAsync(userId);
+
+                InvalidateCsrfForLogout();
 
                 // 🧹 KULLANICI SEPETLERİNİ TEMİZLE
                 try
@@ -767,9 +782,7 @@ namespace KasseAPI_Final.Controllers
                     "Logout successful for user: {UserEmail} ({UserId})",
                     userLogLabel,
                     userLogId);
-                ClearAuthCookies(
-                    User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
-                    ?? ResolveAuthCookieClientApp(null));
+                ClearAuthCookies(logoutClientApp);
                 return Ok(new { success = true, message = "Logout successful" });
             }
             catch (Exception ex)
@@ -1140,7 +1153,9 @@ namespace KasseAPI_Final.Controllers
             }
 
             await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
+            await RotateSecurityStampForLogoutAsync(userId);
             await TryLogLogoutAuditAsync(userId, reason: "logout_all");
+            InvalidateCsrfForLogout();
             ClearAuthCookies(clientApp: null);
             return Ok(new { message = "All sessions invalidated" });
         }
@@ -1266,6 +1281,75 @@ namespace KasseAPI_Final.Controllers
         private void ClearAuthCookies(string? clientApp = null)
         {
             TryGetAuthCookieService()?.ClearAuthCookies(Response, clientApp);
+        }
+
+        /// <summary>
+        /// Rotates Identity <c>SecurityStamp</c> so outstanding JWTs fail <c>sst</c> checks.
+        /// Per-app refresh sessions stay intact until revoked above; the other app can recover via refresh.
+        /// Failures must not block logout.
+        /// </summary>
+        private async Task RotateSecurityStampForLogoutAsync(string userId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+                if (user == null)
+                    return;
+
+                var stampResult = await _userManager.UpdateSecurityStampAsync(user).ConfigureAwait(false);
+                if (!stampResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Security stamp rotation failed during logout for user {UserId}: {Errors}",
+                        userId,
+                        string.Join("; ", stampResult.Errors.Select(e => e.Description)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Security stamp rotation failed during logout for user {UserId}; logout continues",
+                    userId);
+            }
+        }
+
+        /// <summary>
+        /// Drops the current request CSRF token from the server cache and expires the cookie
+        /// so a stolen XSRF-TOKEN cannot be reused after logout.
+        /// </summary>
+        private void InvalidateCsrfForLogout()
+        {
+            try
+            {
+                var csrf = HttpContext?.RequestServices.GetService<ICsrfTokenService>();
+                var csrfOptions = HttpContext?.RequestServices.GetService<IOptionsMonitor<CsrfOptions>>()?.CurrentValue;
+                var cookieName = string.IsNullOrWhiteSpace(csrfOptions?.CookieName)
+                    ? "XSRF-TOKEN"
+                    : csrfOptions!.CookieName.Trim();
+                var headerName = string.IsNullOrWhiteSpace(csrfOptions?.HeaderName)
+                    ? "X-XSRF-TOKEN"
+                    : csrfOptions!.HeaderName.Trim();
+
+                csrf?.InvalidateToken(Request.Cookies[cookieName]);
+                csrf?.InvalidateToken(Request.Headers[headerName].FirstOrDefault());
+
+                var expired = new CookieOptions
+                {
+                    HttpOnly = false,
+                    Path = "/",
+                    MaxAge = TimeSpan.Zero,
+                    Expires = DateTimeOffset.UnixEpoch,
+                    Secure = !_environment.IsDevelopment(),
+                    SameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+                    IsEssential = true,
+                };
+                Response.Cookies.Append(cookieName, string.Empty, expired);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CSRF invalidation on logout failed; continuing logout");
+            }
         }
 
         private string? ResolveAuthCookieClientApp(string? explicitClientApp)

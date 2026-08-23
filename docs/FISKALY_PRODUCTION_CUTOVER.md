@@ -26,7 +26,7 @@ Template: `backend/appsettings.Production.example.json`. Docker: `.env.productio
 
 ---
 
-## Adım 1 — Fiskaly Dashboard: LIVE SCU + API key
+## Step 1 — Fiskaly Dashboard: LIVE SCU + API key
 
 Do this in the **LIVE** organization (not the TEST SCU used in Development).
 
@@ -63,7 +63,7 @@ GET /api/admin/fiskaly/status
 
 Expect:
 
-| Field | After Adım 1 |
+| Field | After Step 1 |
 |-------|----------------|
 | `environment` | `LIVE` |
 | `isEnabled` / `isAuthenticated` | `true` |
@@ -75,7 +75,7 @@ If `environment` is still `TEST`, `Fiskaly:Environment` was not set (Docker prev
 
 ---
 
-## Adım 2 — FON ile SCU initialize
+## Step 2 — Initialize the SCU with FON
 
 Fiskaly SCU setup and BMF SOAP are **not** the same secret.
 
@@ -117,7 +117,7 @@ Host config / `company_settings`: username + password + `TelematikId` + `Herstel
 
 ---
 
-## Adım 3 — Production fiscal config (DEMO label off)
+## Step 3 — Production fiscal config (DEMO label off)
 
 `backend/appsettings.Production.example.json` and `docker-compose.prod.yml` already ship these defaults. Copy them into the **untracked** host file / `.env.production`; do not commit secrets.
 
@@ -150,7 +150,7 @@ Expect `showDemoLabel: false`, `isDemoMode: false`, TSE lock Production / Device
 
 ---
 
-## Adım 4 — UID ve firma bilgileri
+## Step 4 — UID and company details
 
 POS receipts read **tenant `company_settings`**, not `appsettings` `Company`. `ATU00000000` is the `CompanyProfile` fallback default — replace it on the mandant.
 
@@ -166,7 +166,7 @@ Verify on a later receipt: Firmenname, Adresse, UID (`ATU` + 8 digits). Not `ATU
 
 ---
 
-## Adım 5 — Production receipt (ComplianceOfficer)
+## Step 5 — Production receipt (ComplianceOfficer)
 
 A LIVE “test payment” is a **real RKSV receipt**. Do **not** run POS `SMOKE_POS_PAYMENT=1` against Production.
 

@@ -23,7 +23,7 @@ import {
   normalizeFormatLocale,
   normalizeTextLocale,
 } from './config';
-import { getStoredLanguage, setStoredLanguage } from './languageStorage';
+import { FORMAT_STORAGE_KEY, getStoredLanguage, setStoredLanguage } from './languageStorage';
 import { USER_FACING_MISSING_TRANSLATION_LABEL } from './translationFallback';
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -39,8 +39,6 @@ type I18nContextValue = {
   setFormatLocale: (next: string) => void;
   t: (key: string, options?: TranslateOptions) => string;
 };
-
-const FORMAT_STORAGE_KEY = 'regkasse.admin.formatLocale';
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 

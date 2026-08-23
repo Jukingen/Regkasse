@@ -1,144 +1,144 @@
-# BMF Belegcheck — Manuel İş Akışı ve Sistem Özeti
+# BMF Belegcheck — Manual Workflow and System Summary
 
-> **Yasal uyarı:** Bu belge **operasyonel rehberlik** içindir; **hukuki danışmanlık değildir**. Avusturya RKSV, FinanzOnline ve BMF süreçleri için bağlayıcı bilgi ve son tarihler için yetkili merciler, resmi kılavuzlar ve uzman görüşü esas alınmalıdır.
+> **Legal notice:** This document is for **operational guidance**. It is **not legal advice**. For binding information and deadlines on Austrian RKSV, FinanzOnline, and BMF processes, rely on the competent authorities, official guides, and specialist opinion.
 
-> **Dil:** Açıklamalar **Türkçe**; kullanıcı arayüzünde ve resmi süreçte yerleşik **Almanca** terimler (ör. **Startbeleg**, **Jahresbeleg**, **FinanzOnline**, **BMF Belegcheck**) bu metinde de **Almanca** bırakılmıştır.
-
----
-
-## 1. BMF Belegcheck nedir?
-
-**BMF Belegcheck**, Federal Maliye Bakanlığı (**BMF**) çevresindeki kayıtlı kasa (**Registrierkasse**) dünyasında, bir **Beleg** (fiş) üzerindeki **RKSV-QR kodunun** okunup doğrulanmasına yönelik süreç ve araçlar bütünü olarak düşünülebilir. Pratikte operatörler genelde:
-
-- Mobil cihazda **BMF Belegcheck** uygulaması ile QR tarar,
-- Gerekirse **FinanzOnline** tarafında kimlik doğrulama / kod ile oturum açar,
-- Uygulamanın verdiği **doğrulama sonucunu** (geçerli / geçersiz ve gerekçe) işletme kayıtlarına veya arşive not düşer.
-
-Bu doküman, özellikle **Startbeleg** ve **Jahresbeleg** için hem **manuel** (uygulama + QR) hem de **sistem içi** (admin paneli, kuyruk, durum alanları) izlenecek yolu özetler; diğer **Sonderbelege** için ise **manuel doğrulama** ile **otomatik FinanzOnline gönderiminin** ayrımını netleştirir.
+> **Language:** Explanations are in **English**. **German** terms that are established in the user interface and official process (for example **Startbeleg**, **Jahresbeleg**, **FinanzOnline**, **BMF Belegcheck**) are left in **German** in this text as well.
 
 ---
 
-## 2. Hangi fişler ilgilidir?
+## 1. What is BMF Belegcheck?
 
-### 2.1. Manuel BMF Belegcheck (QR) — tüm ilgili Sonderbelege
+**BMF Belegcheck** can be thought of as the set of processes and tools around the Federal Ministry of Finance (**BMF**) for registered cash registers (**Registrierkasse**) that read and verify the **RKSV-QR code** on a **Beleg** (receipt). In practice, operators typically:
 
-Aşağıdaki RKSV **Sonderbelege** için fiş üzerindeki **RKSV-QR**, resmi **BMF Belegcheck** uygulaması ile taranıp sonuç kaydedilebilir; bu yol **kod tarafında zorunlu kılınmaz**, operasyonel tercihtir.
+- Scan the QR with the **BMF Belegcheck** app on a mobile device,
+- If needed, sign in on the **FinanzOnline** side with authentication / a code,
+- Note the app’s **verification result** (valid / invalid and reason) in the business records or archive.
 
-| Fiş türü | Bu repoda otomatik FinanzOnline “RKSV submission” izi (`RksvSpecialReceiptFinanzOnlineSubmission` / fiş detayı kartı) | Manuel Belegcheck (QR) |
+This document summarizes the path to follow for **Startbeleg** and **Jahresbeleg** in both **manual** (app + QR) and **in-system** (admin panel, queue, status fields) form. For other **Sonderbelege**, it clarifies the split between **manual verification** and **automatic FinanzOnline submission**.
+
+---
+
+## 2. Which receipts are in scope?
+
+### 2.1. Manual BMF Belegcheck (QR) — all relevant Sonderbelege
+
+For the RKSV **Sonderbelege** below, the **RKSV-QR** on the receipt can be scanned with the official **BMF Belegcheck** app and the result recorded; this path is **not mandated in code** and is an operational choice.
+
+| Receipt kind | Automatic FinanzOnline “RKSV submission” trail in this repo (`RksvSpecialReceiptFinanzOnlineSubmission` / receipt-detail card) | Manual Belegcheck (QR) |
 |----------|---------------------------------------------------------------------------------------------------------------------|-------------------------|
-| **Nullbeleg** | Yok — yalnızca manuel doğrulama (uygulama / operasyon notu). | Evet (QR okunabilir ise). |
-| **Monatsbeleg** | Yok — **NotRequired** (ayrı otomatik FON gönderimi bilinçli olarak yok; Aralık → Jahresbeleg). Karar: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA bilgi kartı + fiş detayı notu. | Evet (isteğe bağlı). |
-| **Startbeleg** | Var — oluşturma sonrası outbox + submission satırı; worker hattı. | Evet (önerilen operasyonel tamamlayıcı). |
-| **Jahresbeleg** | Var — oluşturma sonrası outbox + submission satırı; worker hattı. | Evet. |
-| **Schlussbeleg** | Yok — `RksvSpecialReceiptService` bu tür için RKSV özel fiş outbox kuyruğunu tetiklemez; **otomatik RKSV webservice gönderimi yoktur**. | Evet (QR ile). |
+| **Nullbeleg** | None — manual verification only (app / operations note). | Yes (if the QR is readable). |
+| **Monatsbeleg** | None — **NotRequired** (no separate automatic FON submission by design; December → Jahresbeleg). Decision: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA info card + receipt-detail note. | Yes (optional). |
+| **Startbeleg** | Present — outbox + submission row after create; worker path. | Yes (recommended operational complement). |
+| **Jahresbeleg** | Present — outbox + submission row after create; worker path. | Yes. |
+| **Schlussbeleg** | None — `RksvSpecialReceiptService` does not trigger the RKSV special-receipt outbox queue for this kind; **there is no automatic RKSV webservice submission**. | Yes (via QR). |
 
-Özet: **FinanzOnline üzerinden izlenen otomatik RKSV özel fiş gönderimi** yalnızca **Startbeleg** ve **Jahresbeleg** oluşturma yollarında tanımlıdır; **Monatsbeleg** için ürün kararı **NotRequired**’dır (DEP’te saklama zorunlu, ayrı FON outbox yok); **Nullbeleg** için sistem bu anlamda yalnızca manuel doğrulamaya uygundur; **Schlussbeleg** otomatik bu hatla gönderilmez.
+Summary: **Automatic RKSV special-receipt submission tracked through FinanzOnline** is defined only on the **Startbeleg** and **Jahresbeleg** create paths; for **Monatsbeleg** the product decision is **NotRequired** (DEP storage is required, no separate FON outbox); for **Nullbeleg** the system in this sense only supports manual verification; **Schlussbeleg** is not sent on this automatic path.
 
-### 2.2. Fatura mutabakatı (legacy) ile RKSV submission farkı
+### 2.2. Difference between invoice reconciliation (legacy) and RKSV submission
 
-| Kavram | Ne günceller / ne izler? | Tipik admin girişi |
+| Concept | What does it update / track? | Typical admin entry |
 |--------|---------------------------|-------------------|
-| **Fatura / ödeme satırı FinanzOnline mutabakatı (legacy)** | `PaymentService.RetryFinanzOnlineSubmitAsync` → `FinanzOnlineService.SubmitInvoiceAsync` ile **fatura** gönderimi; `PaymentDetails` üzerindeki **FinanzOnlineStatus** vb. mutabakat alanları (`FinanzOnlineReconciliationController`, `POST api/admin/finanzonline-reconciliation/retry/{paymentId}`). | FinanzOnline-Abgleich **(Legacy)** kuyruğu / retry. |
-| **RKSV özel fiş FinanzOnline submission izi** | **Startbeleg** / **Jahresbeleg** için `rksv_special_receipt_finanz_online_submissions` ve ilgili **FinanzOnline outbox** mesaj türleri (`RksvStartbelegSubmission`, `RksvJahresbelegSubmission`); fiş DTO’sunda `RksvFinanzOnlineSubmission`. | FinanzOnline **outbox** worker işleyişi; **Beleg** detayındaki RKSV FinanzOnline kartı. |
+| **Invoice / payment-row FinanzOnline reconciliation (legacy)** | Invoice submission via `PaymentService.RetryFinanzOnlineSubmitAsync` → `FinanzOnlineService.SubmitInvoiceAsync`; reconciliation fields such as **FinanzOnlineStatus** on `PaymentDetails` (`FinanzOnlineReconciliationController`, `POST api/admin/finanzonline-reconciliation/retry/{paymentId}`). | FinanzOnline-Abgleich **(Legacy)** queue / retry. |
+| **RKSV special-receipt FinanzOnline submission trail** | For **Startbeleg** / **Jahresbeleg**: `rksv_special_receipt_finanz_online_submissions` and the related **FinanzOnline outbox** message types (`RksvStartbelegSubmission`, `RksvJahresbelegSubmission`); `RksvFinanzOnlineSubmission` on the receipt DTO. | FinanzOnline **outbox** worker processing; RKSV FinanzOnline card on the **Beleg** detail. |
 
-**Legacy admin retry** (`.../finanzonline-reconciliation/retry/{paymentId}`) **fatura** gönderim yolunu yeniler; **Startbeleg/Jahresbeleg** için fiş detayında gösterilen **RKSV submission** durumunu bu endpoint **güncellemez** (farklı veri modeli ve işlem hattı).
-
----
-
-## 3. Manuel iş akışı (operatör)
-
-Aşağıdaki sıra tipik bir **manuel BMF Belegcheck** hazırlığıdır; ortam ve yetkilere göre küçük farklar olabilir.
-
-### 3.1. Fişi oluşturma (**create receipt**)
-
-1. İlgili **Sonderbeleg** türü için yetkili kullanıcı, **admin** tarafında RKSV **Sonderbeleg** akışını tamamlar (**Startbeleg** / **Jahresbeleg** / diğerleri — bkz. §2.1).
-2. Admin tarafında özet: **RKSV Sonderbelege** ekranı (`frontend-admin` içinde RKSV menüsü altı) veya **Belegliste** üzerinden ilgili fişe gidilir. FinanzOnline **RKSV submission** özet kartı yalnızca **Startbeleg** ve **Jahresbeleg** detaylarında anlamlıdır.
-3. Fiş oluşturulduğunda sunucuda **Receipt** / ödeme kaydı ve TSE imzası üretimi backend kurallarına göre tamamlanır (detay: `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md`).
-
-### 3.2. Fişi yazdırma (**print receipt**)
-
-1. Fişin fiziksel veya PDF kopyası, QR kodun **okunabilir** kalması için yazdırılır veya dışa aktarılır.
-2. QR bozulmuş, kesilmiş veya kontrast yetersizse mobil uygulama okuyamaz (bkz. [Bölüm 7](#7-sorun-giderme-troubleshooting)).
-
-### 3.3. QR ile **BMF Belegcheck** uygulamasında tarama
-
-1. Resmi **BMF Belegcheck** mobil uygulaması açılır.
-2. Fiş üzerindeki **RKSV-QR** kod taranır.
-3. Uygulama, kodun format ve imza zinciri açısından özet sonuç gösterir.
-
-### 3.4. Gerekirse **FinanzOnline** kodu ile kimlik doğrulama
-
-1. Bazı senaryolarda uygulama, işletmenin **FinanzOnline** oturumu veya tek kullanımlık doğrulama kodu ister.
-2. Kod, güvenli kanaldan (yetkili kişi) girilir; **parola / client secret** gibi sırlar bu dokümanda ve operasyon notlarında **yazılmamalı**, ekran görüntüsü paylaşılmamalıdır.
-
-### 3.5. Sonucu doğrulama (**verify result**)
-
-1. Uygulama çıktısı (ör. geçerli / uyarı / hata kodu) kaydedilir.
-2. İşletme içi kalite kontrol: fiş numarası, tarih ve kasa (**Kassen-ID**) ile uygulama sonucunun eşleştiği teyit edilir.
-
-### 3.6. Arşivleme (**archive receipt / result**)
-
-1. Yazdırılmış fiş veya PDF, uygulama ekran görüntüsü (kurumsal politika uygunsa) veya resmi çıktı, **denetim süresi** boyunca erişilebilir arşivde saklanır.
-2. Sadece kişisel veri minimizasyonu ve DSGVO / iç politika kurallarına uygunluk gözetilir.
+**Legacy admin retry** (`.../finanzonline-reconciliation/retry/{paymentId}`) retries the **invoice** submission path; that endpoint does **not** update the **RKSV submission** status shown on the receipt detail for **Startbeleg/Jahresbeleg** (different data model and processing path).
 
 ---
 
-## 4. Sistem içi iş akışı (bu repo)
+## 3. Manual workflow (operator)
 
-Aşağıdaki tablo, geliştirici / sistem yöneticisi için **kod ve arayüz** üzerinden izlenecek yerleri özetler; hukuki “yeterlilik” iddiası taşımaz.
+The sequence below is typical preparation for a **manual BMF Belegcheck**; small differences can exist by environment and permissions.
 
-| Adım | Ne oluyor? | Nerede izlenir / görünür? |
+### 3.1. Create the receipt (**create receipt**)
+
+1. An authorized user completes the RKSV **Sonderbeleg** flow on the **admin** side for the relevant **Sonderbeleg** kind (**Startbeleg** / **Jahresbeleg** / others — see §2.1).
+2. Admin summary: go to the receipt via the **RKSV Sonderbelege** screen (under the RKSV menu in `frontend-admin`) or the **Belegliste**. The FinanzOnline **RKSV submission** summary card is meaningful only on **Startbeleg** and **Jahresbeleg** details.
+3. When the receipt is created, the **Receipt** / payment record and TSE signature production complete on the server according to backend rules (detail: `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md`).
+
+### 3.2. Print the receipt (**print receipt**)
+
+1. A physical or PDF copy of the receipt is printed or exported so the QR code stays **readable**.
+2. If the QR is damaged, cropped, or contrast is too low, the mobile app cannot read it (see [Section 7](#7-troubleshooting-troubleshooting)).
+
+### 3.3. Scan in the **BMF Belegcheck** app via QR
+
+1. Open the official **BMF Belegcheck** mobile app.
+2. Scan the **RKSV-QR** code on the receipt.
+3. The app shows a summary result for format and signature-chain aspects of the code.
+
+### 3.4. Authenticate with a **FinanzOnline** code if needed
+
+1. In some scenarios the app asks for the business **FinanzOnline** session or a one-time verification code.
+2. The code is entered through a secure channel (authorized person); secrets such as **password / client secret** must **not** be written in this document or in operations notes, and screenshots must not be shared.
+
+### 3.5. Verify the result (**verify result**)
+
+1. Record the app output (for example valid / warning / error code).
+2. Internal quality check: confirm that the receipt number, date, and cash register (**Kassen-ID**) match the app result.
+
+### 3.6. Archive (**archive receipt / result**)
+
+1. Keep the printed receipt or PDF, an app screenshot (if corporate policy allows), or the official output in an accessible archive for the **audit retention period**.
+2. Observe personal-data minimization and DSGVO / internal policy rules only.
+
+---
+
+## 4. In-system workflow (this repo)
+
+The table below summarizes where developers / system administrators can follow the path through **code and UI**. It does not claim legal “sufficiency.”
+
+| Step | What happens? | Where is it tracked / visible? |
 |------|------------|---------------------------|
-| Fiş oluşturma | **Startbeleg** / **Jahresbeleg** üretimi backend’de özel fiş servisleri ve ödeme/fiş kayıtları ile yapılır. | Backend: `RksvSpecialReceiptsController`, `RksvSpecialReceiptService` (özet). Admin: **RKSV Sonderbelege** sayfası, fiş oluşturma butonları. |
-| QR görünürlüğü | Fiş DTO’sunda imza bloğu içinde QR verisi taşınır; yazdırma POS/admin akışına bağlıdır. | Admin **Beleg** detayı: `ReceiptDTO` / detay kartında QR alanı; şablon ve yazıcı yolları POS tarafında. |
-| Durum izleme (RKSV özel fiş FinanzOnline hattı) | Yalnızca **Startbeleg** ve **Jahresbeleg** için gönderim yaşam döngüsü `rksv_special_receipt_finanz_online_submissions` + outbox (`RksvSpecialReceiptFinanzOnlineOutboxHandler`). **Nullbeleg**, **Monatsbeleg**, **Schlussbeleg** bu tabloda izlenmez. | Admin **RKSV Sonderbelege** tablosunda (yalnızca izlenen türler için) durum sütunu; **Beleg** detayında RKSV FinanzOnline kartı. |
-| Hata görünümü | Son hata kodu / mesajı ve son deneme zamanı DTO’ya yansıtılır (ham credential yok). | Aynı detay kartı ve loglar (teknik loglar İngilizce politika ile; operatör metni Almanca ekranlarda). |
+| Create receipt | **Startbeleg** / **Jahresbeleg** production on the backend uses special-receipt services and payment/receipt records. | Backend: `RksvSpecialReceiptsController`, `RksvSpecialReceiptService` (summary). Admin: **RKSV Sonderbelege** page, receipt-create buttons. |
+| QR visibility | QR data is carried in the signature block of the receipt DTO; printing depends on the POS/admin flow. | Admin **Beleg** detail: QR field on `ReceiptDTO` / detail card; template and printer paths on the POS side. |
+| Status tracking (RKSV special-receipt FinanzOnline path) | Submission lifecycle for **Startbeleg** and **Jahresbeleg** only: `rksv_special_receipt_finanz_online_submissions` + outbox (`RksvSpecialReceiptFinanzOnlineOutboxHandler`). **Nullbeleg**, **Monatsbeleg**, and **Schlussbeleg** are not tracked in this table. | Status column on the admin **RKSV Sonderbelege** table (tracked kinds only); RKSV FinanzOnline card on the **Beleg** detail. |
+| Error view | Last error code / message and last-attempt time are reflected on the DTO (no raw credentials). | Same detail card and logs (technical logs follow the English policy; operator text on German screens). |
 
-Admin içi **QR format kontrolü** (sunucuya parse isteği) için ayrıca **Belegcheck** benzeri bir doğrulama sayfası (`/rksv/belegcheck` vb.) kullanılabilir; bu, BMF uygulamasının yerine geçmez — **ek doğrulama** veya destek amaçlıdır.
-
----
-
-## 5. Webservice (otomatik gönderim) iş akışı
-
-**FinanzOnline** webservice entegrasyonu ve outbox mimarisi açıksa (şirket / TSE ayarları ve worker işleyişi):
-
-- Sistem, uygun mesajları **kuyruğa alır** ve işler (**queue → submit**),
-- Başarılı protokol adımlarında durum **Submitted** / **Verified** gibi değerlerle güncellenebilir,
-- Geçici ağ veya oturum hatalarında outbox **worker** yeniden deneme politikası uygulanır (RKSV özel fiş mesajları dahil). **Legacy ödeme satırı reconciliation** ekranındaki retry ise **fatura** gönderimine aittir; bkz. §2.2.
-
-Entegrasyon **kapalı** veya iş kuralı gereği manuel onay bekleniyorsa:
-
-- İzleme satırında **ManualVerificationRequired** (manuel doğrulama gerekli) anlamına gelebilen durumlar görülebilir; operatör **BMF Belegcheck** veya resmi süreçle sonucu tamamlar ve arşiv notunu günceller.
-
-> **Not:** “Webservice açık/kapalı” tam eşlemenin her ortamda aynı olduğu garanti edilmez; üretimde `FinanzOnline` yapılandırması, outbox ekranı ve ilgili loglar birlikte okunmalıdır.
+For in-admin **QR format check** (parse request to the server), a Belegcheck-like verification page (`/rksv/belegcheck` and similar) can also be used; this does not replace the BMF app — it is for **extra verification** or support.
 
 ---
 
-## 6. Son tarihler (**deadlines**)
+## 5. Webservice (automatic submission) workflow
 
-- **Jahresbeleg** için BMF / FinanzOnline tarafında **yasal son tarih** ve resmi formülasyon, yalnızca **yetkili kaynaklardan** teyit edilmelidir; bu belge bağlayıcı takvim vermez.
-- **Operasyonel not (hukuki tavsiye değil):** birçok işletme pratiğinde yıllık fişin **Belegcheck** / bildirim tarafı **takip eden yılın 15 Şubat’ına** kadar tamamlanmış olması hedeflenir. Bu ifade **işletme içi planlama** içindir; mevzuat metninin yerine geçmez.
+If the **FinanzOnline** webservice integration and outbox architecture are enabled (company / TSE settings and worker processing):
+
+- The system **enqueues** and processes matching messages (**queue → submit**),
+- Status can be updated to values such as **Submitted** / **Verified** on successful protocol steps,
+- On transient network or session errors, the outbox **worker** retry policy applies (including RKSV special-receipt messages). **Retry** on the **legacy payment-row reconciliation** screen belongs to **invoice** submission; see §2.2.
+
+If the integration is **off** or the business rule waits for manual approval:
+
+- The tracking row can show states that mean **ManualVerificationRequired** (manual verification needed); the operator completes the result with **BMF Belegcheck** or the official process and updates the archive note.
+
+> **Note:** It is not guaranteed that the “webservice on/off” mapping is the same in every environment; in production, read the `FinanzOnline` configuration, the outbox screen, and the related logs together.
 
 ---
 
-## 7. Sorun giderme (**troubleshooting**)
+## 6. Deadlines (**deadlines**)
 
-| Belirti | Olası neden | Önerilen kontrol |
+- The **legal deadline** and official wording on the BMF / FinanzOnline side for **Jahresbeleg** must be confirmed only from **authoritative sources**; this document does not give a binding calendar.
+- **Operational note (not legal advice):** in many business practices the Belegcheck / notification side of the annual receipt is targeted for completion by **15 February of the following year**. This wording is for **internal planning**; it does not replace the statutory text.
+
+---
+
+## 7. Troubleshooting (**troubleshooting**)
+
+| Symptom | Possible cause | Suggested check |
 |---------|-------------|------------------|
-| **QR missing** (QR yok) | Yazdırma kırpması, şablon hatası veya imza bloğunun fişe düşmemesi. | POS/admin fiş önizlemesi; **Beleg** detayında QR alanı; yazıcı DPI / kesim alanları. |
-| **Invalid QR** (geçersiz QR) | Bozuk payload, yanlış kasa sırası, imza zinciri uyumsuzluğu. | **BMF Belegcheck** sonuç kodu; admin **Belegcheck** doğrulama sayfası (varsa) ile format kontrolü; TSE zincir logları (teknik). |
-| **TSE unavailable** | İmzalama anında donanım veya servis kesintisi. | TSE bağlantı uyarıları (POS), backend TSE hata logları; fiş oluşturma öncesi kasa **Bereitschaft** kontrolleri. |
-| **FinanzOnline credentials missing** | API kullanıcısı / sertifika / şirket ayarı eksik. | Şirket FinanzOnline ayarları; yetkili kullanıcı; **credential** değerleri operasyon dokümanına **yazılmamalı**. |
-| **Failed submission** | Ağ, oturum, doğrulama veya servis reddi (RKSV özel fiş outbox hattı veya fatura hattı). | **Startbeleg/Jahresbeleg:** fiş detayı + FinanzOnline **outbox** (RKSV mesaj türü). **Legacy retry** fatura alanlarını etkiler; RKSV submission satırını güncellemez (§2.2). |
+| **QR missing** | Print crop, template error, or the signature block not landing on the receipt. | POS/admin receipt preview; QR field on the **Beleg** detail; printer DPI / cut areas. |
+| **Invalid QR** | Corrupt payload, wrong cash-register sequence, signature-chain mismatch. | **BMF Belegcheck** result code; format check with the admin **Belegcheck** verification page (if present); TSE chain logs (technical). |
+| **TSE unavailable** | Hardware or service interruption at signing time. | TSE connection warnings (POS), backend TSE error logs; cash-register **Bereitschaft** checks before receipt create. |
+| **FinanzOnline credentials missing** | Missing API user / certificate / company setting. | Company FinanzOnline settings; authorized user; **credential** values must **not** be written into operations documents. |
+| **Failed submission** | Network, session, validation, or service rejection (RKSV special-receipt outbox path or invoice path). | **Startbeleg/Jahresbeleg:** receipt detail + FinanzOnline **outbox** (RKSV message type). **Legacy retry** affects invoice fields; it does not update the RKSV submission row (§2.2). |
 
 ---
 
-## İlgili dokümanlar
+## Related documents
 
-- `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md` — Fiş alanları ve uygulama durumu.
-- `docs/RKSV_CASH_REGISTER_OPERATIONS.md` — Kasa ve RKSV operasyonları (admin yolları, izinler).
-- `docs/RKSV_OFFICIAL_SOURCES.md` — BMF / FinanzOnline / RIS bağlantıları (dış kaynak).
+- `docs/RKSV_RECEIPT_INVOICE_REQUIREMENTS.md` — Receipt fields and implementation status.
+- `docs/RKSV_CASH_REGISTER_OPERATIONS.md` — Cash register and RKSV operations (admin paths, permissions).
+- `docs/RKSV_OFFICIAL_SOURCES.md` — BMF / FinanzOnline / RIS links (external source).
 
 ---
 
-*Belge sonu — operasyonel rehber; hukuki danışmanlık değildir.*
+*End of document — operational guide; not legal advice.*

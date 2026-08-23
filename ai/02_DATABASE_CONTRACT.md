@@ -1,106 +1,111 @@
-# Database Contract (PostgreSQL + EF Core)
+# Database contract (PostgreSQL + EF Core)
 
-## Database Schema
+## Database schema
 
-### Multi-Tenant Columns
+### Multi-tenant columns
 
-`ITenantEntity` uygulayan tüm kiracı kapsamlı tablolarda:
+On every tenant-scoped table that implements `ITenantEntity`:
 
 - `tenant_id uuid NOT NULL` — FK `tenants.id`
-- Performans için index (`AppDbContext` `HasIndex(e => e.TenantId)`)
-- Değer istek başına uygulama katmanından gelir: **Production shared hosts** → auth sonrası JWT `tenant_id`; **Dev** → `X-Tenant-Id` / `?tenant=` slug; **Host** (legacy slug / `TenantDomain` siteleri) → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId` (Guid)
+- Index for performance (`AppDbContext` `HasIndex(e => e.TenantId)`)
+- Value comes from the application per request: **Production shared hosts** → JWT `tenant_id` after auth; **Dev** → `X-Tenant-Id` / `?tenant=` slug; **Host** (legacy slug / `TenantDomain` sites) → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId` (Guid)
 
-Kök / global örnekler: `tenants`, Identity kullanıcı tabloları. Dış anahtar string: `tenants.slug` (Host / Dev çözümlemesi; POS production entry değil).
+Root / global examples: `tenants`, Identity user tables. External string key: `tenants.slug` (Host / Dev resolution; not the POS production entry).
 
-### Global Query Filters
+### Global query filters
 
-EF Core tüm `ITenantEntity` sorgularına otomatik filtre ekler:
+EF Core adds a filter to every `ITenantEntity` query:
 
 ```text
 WHERE tenant_id = @currentTenantId
 ```
 
-Kaynak: `AppDbContext.CreateTenantQueryFilter` → `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
+Source: `AppDbContext.CreateTenantQueryFilter` → `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
 
-### AppDbContext constructors ve DI
+### AppDbContext constructors and DI
 
-| Constructor | Amaç |
-|-------------|------|
-| `AppDbContext(DbContextOptions<AppDbContext> options)` | Design-time / `dotnet ef` — `NullCurrentTenantAccessor`, filtre kapalı |
+| Constructor | Purpose |
+|-------------|---------|
+| `AppDbContext(DbContextOptions<AppDbContext> options)` | Design-time / `dotnet ef` — `NullCurrentTenantAccessor`, filters off |
 | `AppDbContext(options, ICurrentTenantAccessor)` | Runtime — `[ActivatorUtilitiesConstructor]` |
 
-`IDbContextFactory<AppDbContext>` singleton servislerde yalnızca **`IServiceScopeFactory` scope’u içinden** kullanılmalı (`LicenseService`).
+Use `IDbContextFactory<AppDbContext>` in singleton services **only from inside an `IServiceScopeFactory` scope** (`LicenseService`).
 
-**Not tenant-scoped:** `activated_licenses` (deployment-local lisans aktivasyonu).
+**Not tenant-scoped:** `activated_licenses` (deployment-local license activation).
 
-## Multi-Tenant Architecture
+## Multi-tenant architecture
 
-- Kiracı kök tablosu: `tenants` (`Tenant` entity — global, `ITenantEntity` değil).
-- Kiracı kapsamlı tablolar: `tenant_id` (UUID, non-null) + `ITenantEntity` / `BaseTenantEntity`.
-- Kullanıcı–kiracı: `user_tenant_memberships` (login’de tek aktif üyelik beklentisi; çoklu üyelik loglanır).
-- Çapraz kiracı okuma/yazma: uygulama katmanında **404**; `IgnoreQueryFilters()` yalnızca Super Admin / seed / bilinçli bypass.
-- Migration’larda `tenant_id` ekleme: fiscal/audit dalgalarına bak (`AddTenantIdToFiscalAndAuditTables` vb.).
+- Tenant root table: `tenants` (`Tenant` entity — global, not `ITenantEntity`).
+- Tenant-scoped tables: `tenant_id` (UUID, non-null) + `ITenantEntity` / `BaseTenantEntity`.
+- User–tenant: `user_tenant_memberships` (login expects one active membership; multiple memberships are logged).
+- Cross-tenant read/write: **404** at the application layer; `IgnoreQueryFilters()` only for Super Admin / seed / deliberate bypass.
+- Adding `tenant_id` in migrations: follow fiscal/audit waves (`AddTenantIdToFiscalAndAuditTables`, and similar).
 
 ## Migrating existing databases
 
-Mevcut tek-kiracılı PostgreSQL kurulumları için repoda **dalga dalga** migration zinciri kullanılır (tek `AddTenantIdToAllTables` yok).
+Existing single-tenant PostgreSQL installs use a **wave-by-wave** migration chain (there is no single `AddTenantIdToAllTables`).
 
 ### Pattern (EF Core)
 
-1. `tenants` tablosu + default kiracı seed (`20260403190133_AddTenantsAndSettingsTenantId`).
-2. İlgili tablolara `tenant_id uuid NOT NULL` ekle — geçici/default: `SystemTenantIds.Platform` (sabit Guid; string `'legacy'` değil).
-3. Veri backfill migration’ları (ör. `BackfillUserTenantMembershipsData`).
+1. `tenants` table + default tenant seed (`20260403190133_AddTenantsAndSettingsTenantId`).
+2. Add `tenant_id uuid NOT NULL` on related tables — temporary/default: `SystemTenantIds.Platform` (fixed Guid; not the string `'legacy'`).
+3. Data backfill migrations (for example `BackfillUserTenantMembershipsData`).
 4. Wave migrations: payment methods / cash registers (Wave2), categories / products (Wave3A), modifiers (Wave3B), fiscal / audit / offline (`20260516101549_AddTenantIdToFiscalAndAuditTables`).
-5. `HasIndex(e => e.TenantId)` — `AppDbContext` içinde.
+5. `HasIndex(e => e.TenantId)` — inside `AppDbContext`.
 
-### Komutlar
+### Commands
 
 ```bash
 dotnet ef migrations list --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
 dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
 ```
 
-Yeni tabloya `tenant_id` eklerken:
+When adding `tenant_id` to a new table:
 
 ```bash
 dotnet ef migrations add <DescriptiveName> --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
 ```
 
-### Dikkat
+### Cautions
 
-- Fiscal / receipt / TSE tablolarında destructive migration yok sayma; additive + default Guid kullan.
-- `IgnoreQueryFilters()` yalnızca Super Admin servisleri, seed veya bilinçli bakım yollarında.
-- Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md` (Database Schema).
-- **Üretim güvenliği:** expand → backfill → contract (min. 2 release); [`docs/DATABASE_MIGRATION_STRATEGY.md`](../docs/DATABASE_MIGRATION_STRATEGY.md). Durum: `GET /health/migrations`, FA `/admin/database/migrations`.
+- Do not treat destructive migrations as acceptable on fiscal / receipt / TSE tables; use additive changes + a default Guid.
+- `IgnoreQueryFilters()` only on Super Admin services, seed, or deliberate maintenance paths.
+- Detail: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md` (Database Schema).
+- **Production safety:** expand → backfill → contract (minimum two releases); [`docs/DATABASE_MIGRATION_STRATEGY.md`](../docs/DATABASE_MIGRATION_STRATEGY.md). Status: `GET /health/migrations`, FA `/admin/database/migrations`.
 
-## Kaynak
-- Gerçek model kaynağı: `backend/Data/AppDbContext.cs` ve `backend/Migrations/*`.
-- Migration yönetimi EF Core ile yapılır; migration geçmişi authoritative kabul edilir.
+## Source
 
-## Veri modeli prensipleri
-- Finansal alanlarda `decimal(18,2)` yaygındır; vergi/oran alanlarında daha dar precision kullanılabilir (örn. `decimal(5,2)`).
-- Identity + uygulama tabloları aynı context içinde yönetilir.
-- Auth session tabloları kritik: `auth_sessions`, `refresh_tokens`.
-- JSON/esnek payload alanları mevcut; keyfi yeni json alanı açma.
+- Real model source: `backend/Data/AppDbContext.cs` and `backend/Migrations/*`.
+- EF Core owns migration management; migration history is authoritative.
 
-## Hassas domain alanları
-- **PaymentDetails** ve ilişkili ödeme satırları: normal satış + RKSV özel fiş alanları (`RksvSpecialReceiptKind`, yıl/ay metadatası, `RksvNullbelegActsAsJahresbeleg`, storno/refund ve offline replay metadatası vb.—gerçek sütun listesi için `AppDbContext` + migration’lar).
-- **Receipt** / **ReceiptSequence** / **`signature_chain_state`**: fiş numarası sırası ve imza zinciri tutarlılığı; ayrı tablolarda kırılmaması gerekir.
-- **Voucher:** `vouchers`, `voucher_ledger_entries` (bakiye ve denetim izi; düz metin voucher kodu saklanmaz—hash/masked gösterim modeli).
-- TSE cihaz/imza tabloları (`tse_devices`, `tse_signatures`, vb.)
+## Data model principles
+
+- Financial fields commonly use `decimal(18,2)`; tax/rate fields may use tighter precision (for example `decimal(5,2)`).
+- Identity and application tables live in the same context.
+- Auth session tables are critical: `auth_sessions`, `refresh_tokens`.
+- JSON / flexible payload columns exist; do not add arbitrary new JSON columns.
+
+## Sensitive domain areas
+
+- **PaymentDetails** and related payment lines: normal sales plus RKSV special-receipt fields (`RksvSpecialReceiptKind`, year/month metadata, `RksvNullbelegActsAsJahresbeleg`, storno/refund and offline replay metadata — real column list: `AppDbContext` + migrations).
+- **Receipt** / **ReceiptSequence** / **`signature_chain_state`**: receipt-number sequence and signature-chain consistency; do not split these across unrelated tables.
+- **Voucher:** `vouchers`, `voucher_ledger_entries` (balance and audit trail; plaintext voucher codes are not stored — hash/masked display model).
+- TSE device/signature tables (`tse_devices`, `tse_signatures`, and similar)
 - `offline_transactions` — legacy payment-intent replay, payload hash, device/sequence coverage
 - **`offline_orders`** — full POS order snapshots (`order_data` JSONB), 72 h expiry, sync to `payment_details` via replay (`20260627002059_AddOfflineOrdersTable`)
-- `DailyClosing` ve rapor kapanışı ile ilişkili tablolar
-- FinanzOnline outbox/submission tabloları
-- Backup/restore verification tabloları (operasyonel güvence için)
+- `DailyClosing` and tables related to report close
+- FinanzOnline outbox/submission tables
+- Backup/restore verification tables (operational assurance)
 
-## Şema değişikliği kuralları
-1. Önce mevcut entity mapping ve migration paternini incele.
-2. Public contract etkisini (DTO/OpenAPI) ayrı değerlendir.
-3. Geriye dönük uyumluluk olmadan destructive değişiklik yapma.
-4. **Fiscal/RKSV alanlarında tercih:** ihtiyaç halinde nullable/additive migration ve geri dönüşü testli küçük adımlar (`REGKASSE_AI_ONBOARDING.md` migration notu ile uyumlu).
-5. Hassas alanlarda index/constraint değişikliklerini testsiz bırakma.
+## Schema change rules
 
-## Minimum kontrol
+1. Inspect existing entity mapping and migration patterns first.
+2. Evaluate public-contract impact (DTO/OpenAPI) separately.
+3. Do not make destructive changes without backward compatibility.
+4. **Fiscal/RKSV fields:** prefer nullable/additive migrations and small, tested rollback steps (aligned with the `REGKASSE_AI_ONBOARDING.md` migration note).
+5. Do not change indexes/constraints on sensitive fields without tests.
+
+## Minimum checks
+
 - `dotnet ef migrations list --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`
 - `dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`

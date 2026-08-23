@@ -97,6 +97,20 @@ describe('AsyncStorageAdapter offline queue persistence', () => {
     expect(await offlineStorage.getOrder('b')).not.toBeNull();
   });
 
+  it('clearAll removes pending and synced orders', async () => {
+    const offlineStorage = new AsyncStorageAdapter();
+    await offlineStorage.saveOrder(sampleOrder({ id: 'a', status: 'pending' }));
+    await offlineStorage.saveOrder(
+      sampleOrder({ id: 'b', offlineOrderId: 'off-2', status: 'synced' })
+    );
+
+    await offlineStorage.clearAll();
+
+    expect(await offlineStorage.getOrder('a')).toBeNull();
+    expect(await offlineStorage.getOrder('b')).toBeNull();
+    expect(await offlineStorage.getPendingOrders()).toEqual([]);
+  });
+
   it('upserts by id without duplicating rows', async () => {
     const offlineStorage = new AsyncStorageAdapter();
     await offlineStorage.saveOrder(sampleOrder({ orderTotal: 10 }));

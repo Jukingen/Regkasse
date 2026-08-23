@@ -1,120 +1,120 @@
-# Structural fallback — kaldırma analizi ve plan
+# Structural fallback — removal analysis and plan
 
 > **Status:** Verification required before implementation. Treat as release/plan document, not current runtime behavior unless validated.
 
-**Amaç:** Karmaşıklığı azaltmak; structural fallback tamamen kaldırılabilir mi analiz ve kaldırma ön koşulları, feature-flag rollout ve PR planı.
+**Goal:** Reduce complexity. Analyze whether structural fallback can be removed entirely, including removal preconditions, feature-flag rollout, and a PR plan.
 
 ---
 
-## 1. Mevcut durum özeti
+## 1. Current-state summary
 
-- **Structural fallback:** Replay sırasında hash yolu (direct + recomputed) ile offline satır bulunamazsa, son N satırda (varsayılan 50, max 500) **structural JSON eşleşmesi** ile tek bir satır bulunursa o kullanılır; 0 veya 2+ eşleşmede resolve yapılmaz.
-- **Konum:** `OfflineTransactionService.TryResolveOfflineByStructuralPayloadAsync`, yalnızca `OfflineReplay:AllowStructuralFallback = true` iken çağrılıyor.
-- **Kill-switch:** `AllowStructuralFallback = false` ile adım 4 tamamen devre dışı; kod yolu hâlâ mevcut, sadece giriş yapılmıyor.
+- **Structural fallback:** During replay, if the hash path (direct + recomputed) does not find an offline row, the service scans the last N rows (default 50, max 500) for a **structural JSON match**. If exactly one row matches, that row is used. Zero or two-or-more matches do not resolve.
+- **Location:** `OfflineTransactionService.TryResolveOfflineByStructuralPayloadAsync`, called only when `OfflineReplay:AllowStructuralFallback = true`.
+- **Kill switch:** `AllowStructuralFallback = false` disables step 4 entirely. The code path still exists; it is just not entered.
 
-**Kaldırma sorusu:** Bu kod yolunu (metot + çağrı + config alanları) tamamen silmek mümkün mü? **Evet**, ön koşullar sağlandıktan sonra tamamen kaldırılabilir.
+**Removal question:** Can this code path (method + call site + config fields) be deleted entirely? **Yes**, after the preconditions are met.
 
 ---
 
-## 2. Fallback usage metriği
+## 2. Fallback usage metric
 
-### 2.1 Counter (uygulandı)
+### 2.1 Counter (implemented)
 
 - **Prometheus:**
-  - `structural_fallback_resolved_total`: Hash yolu eşleşmeyen, structural ile **tek eşleşme** bulunup resolve edilen replay sayısı.
-  - `structural_fallback_ambiguous_total`: Structural fallback’te **birden fazla** eşleşme bulunup resolve yapılmayan (skip) sayısı.
-- **Kullanım:** Grafana’da `rate(structural_fallback_resolved_total[1h])` veya `increase(structural_fallback_resolved_total[7d])` ile kullanım izlenir. Uzun süre 0 ise fallback fiilen kullanılmıyordur.
-- **Kod:** `ICoreMetrics.RecordStructuralFallbackResolved` / `RecordStructuralFallbackAmbiguous`, `OfflineTransactionService.TryResolveOfflineByStructuralPayloadAsync` içinde çağrılıyor.
+  - `structural_fallback_resolved_total`: Replay count where the hash path did not match and structural fallback found **exactly one** match and resolved it.
+  - `structural_fallback_ambiguous_total`: Count of structural fallback scans that found **more than one** match and skipped resolve.
+- **Usage:** In Grafana, watch `rate(structural_fallback_resolved_total[1h])` or `increase(structural_fallback_resolved_total[7d])`. A long stretch at 0 means the fallback is effectively unused.
+- **Code:** `ICoreMetrics.RecordStructuralFallbackResolved` / `RecordStructuralFallbackAmbiguous`, called from `OfflineTransactionService.TryResolveOfflineByStructuralPayloadAsync`.
 
-### 2.2 Log tarama (alternatif)
+### 2.2 Log scan (alternative)
 
-- **Aranacak metin:** `"Offline resolved by structural fallback"` (Information).
+- **Search text:** `"Offline resolved by structural fallback"` (Information).
 - **Ambiguous:** `"Offline structural fallback: ambiguous match"` (Debug).
-- **Araç:** Mevcut log toplama (ör. Loki, ELK) ile bu mesajlara göre arama; counter yokken veya geçmiş dönem için kullanılabilir.
+- **Tool:** Existing log aggregation (for example Loki, ELK). Use this when counters are unavailable or for historical periods.
 
-**Öneri:** Counter ile metrik toplanıyor; kaldırma öncesi en az 1–2 hafta (tercihen 2–4 hafta) `structural_fallback_resolved_total` artışının 0’a yakın olduğu doğrulanmalı.
-
----
-
-## 3. Kaldırma ön koşulları
-
-### 3.1 Mismatch oranı düşük olmalı
-
-- **Anlam:** `payload_hash` ile runtime canonical hash uyumsuz satır oranı düşük olmalı; böylece replay çoğunlukla hash yolu (direct veya recomputed) ile çözülecek, structural’a ihtiyaç kalmaz.
-- **Ölçüm:**
-  - **API:** `POST /api/admin/offline-payload-hash/analyze` (sample size ile) → `MismatchRatioPercent`, `LegacyDataQualityRiskHigh`.
-  - **Export / risk:** `GET /api/admin/offline-payload-hash/risk` → mismatch oranı ve risk bayrağı.
-  - **Guard:** `PayloadHashGuard:MismatchWarningThresholdPercent` (varsayılan 10); bu eşiğin altında olmak “düşük” için makul hedef.
-- **Koşul (önerilen):**
-  1. `MismatchRatioPercent` hedef: **&lt; %5** (tercihen %1’e yakın veya 0).
-  2. Gerekirse **repair:** `POST /api/admin/offline-payload-hash/repair` (dry-run sonrası gerçek) ile uyumsuz satırlar hizalandıktan sonra tekrar analyze.
-  3. Lazy repair (replay sırasında hizalama) zaten var; repair sonrası yeni replay’ların çoğu hash ile çözülecektir.
-
-### 3.2 Fallback kullanımı ihmal edilebilir
-
-- **Metrik:** `structural_fallback_resolved_total` artışı (ör. son 2–4 hafta) **0’a yakın** veya toplam replay’a göre çok düşük (ör. &lt; %0,1).
-- **Log:** Production’da “Offline resolved by structural fallback” çok nadir veya hiç görülmemeli.
-
-Bu iki koşul sağlandığında structural fallback’i kapatmak ve sonra kaldırmak güvenlidir.
+**Recommendation:** Counters already collect the metric. Before removal, confirm for at least 1–2 weeks (preferably 2–4 weeks) that `structural_fallback_resolved_total` growth is near 0.
 
 ---
 
-## 4. Feature flag rollout planı
+## 3. Removal preconditions
 
-Mevcut flag: **`OfflineReplay:AllowStructuralFallback`** (zaten var).
+### 3.1 Mismatch rate must be low
 
-| Aşama | Ne yapılır | Doğrulama |
-|-------|------------|-----------|
-| **0. Metrik** | Counter’lar açık (`structural_fallback_resolved_total`, `structural_fallback_ambiguous_total`). | Grafana’da metrik görünür, bir süre veri toplanır. |
-| **1. Mismatch düşürme** | Analyze → repair (gerekirse) → tekrar analyze. MismatchRatioPercent &lt; %5 (tercihen ~0). | Risk endpoint ve analyze response. |
-| **2. İzleme** | En az 2–4 hafta production’da replay + fallback metrikleri izlenir. | `structural_fallback_resolved_total` artışı ~0. |
-| **3. Flag kapatma** | Canlıda `AllowStructuralFallback: false` (önce tek kasa/ortam, sonra tümü). | Replay başarı oranı ve hata logları değişmemeli; fallback metrikleri artmaz. |
-| **4. Sabit kapalı** | Tüm ortamlarda flag false; bir release boyunca sorun yoksa kaldırma PR’ına geçilir. | Incident yok, replay davranışı aynı. |
-| **5. Kod kaldırma** | Aşağıdaki “Fallback removal PR” uygulanır. | Testler yeşil, regression yok. |
+- **Meaning:** The share of rows where `payload_hash` does not match the runtime canonical hash must be low, so replay usually resolves via the hash path (direct or recomputed) and does not need structural matching.
+- **Measurement:**
+  - **API:** `POST /api/admin/offline-payload-hash/analyze` (with sample size) → `MismatchRatioPercent`, `LegacyDataQualityRiskHigh`.
+  - **Export / risk:** `GET /api/admin/offline-payload-hash/risk` → mismatch ratio and risk flag.
+  - **Guard:** `PayloadHashGuard:MismatchWarningThresholdPercent` (default 10). Staying under this threshold is a reasonable “low” target.
+- **Condition (recommended):**
+  1. `MismatchRatioPercent` target: **&lt; 5%** (preferably near 1% or 0).
+  2. If needed, **repair:** `POST /api/admin/offline-payload-hash/repair` (dry-run first, then live) to align mismatched rows, then analyze again.
+  3. Lazy repair (align during replay) already exists. After repair, most new replays resolve via hash.
 
-**Geri alma:** Flag tekrar `true` yapılarak structural fallback yeniden açılabilir; kod kaldırıldıktan sonra geri almak için yeniden kod gerekir (bu yüzden 4. aşama önemli).
+### 3.2 Fallback usage must be negligible
 
----
+- **Metric:** Growth of `structural_fallback_resolved_total` (for example last 2–4 weeks) **near 0**, or very low relative to total replay (for example &lt; 0.1%).
+- **Log:** Production should show “Offline resolved by structural fallback” rarely or never.
 
-## 5. Fallback removal PR (kod kaldırma)
-
-### 5.1 Kaldırılacaklar
-
-| Yer | Değişiklik |
-|-----|------------|
-| `OfflineTransactionService.cs` | `TryResolveOfflineByStructuralPayloadAsync` metodu **tamamen silinir**. |
-| `OfflineTransactionService.cs` | Hash/recomputed sonrası “4) structural fallback” bloğu: `if (offline == null && _replayOptions.AllowStructuralFallback)` ve içindeki `TryResolveOfflineByStructuralPayloadAsync` çağrısı + dedup audit bloğu **kaldırılır**. |
-| `OfflineReplayOptions.cs` | `AllowStructuralFallback` ve `StructuralPayloadFallbackLimit` property’leri **kaldırılır**. |
-| `appsettings.json` | `OfflineReplay` altında bu iki ayar varsa **kaldırılır** (diğer OfflineReplay ayarları kalır). |
-
-### 5.2 Metrikler (opsiyonel)
-
-- **Seçenek A:** Structural fallback tamamen gittiği için `RecordStructuralFallbackResolved` / `RecordStructuralFallbackAmbiguous` çağrıları da kalkar; **counter’ları Prometheus’tan kaldırmak** isteğe bağlı (eski veri kalır, yeni artış olmaz).
-- **Seçenek B:** Counter’ları ve interface metodlarını da **silerek** tam sadeleştirme yapılabilir.
-
-PR açıklamasında: “Structural fallback removal; preconditions (low mismatch rate, zero fallback usage) verified; AllowStructuralFallback no longer used.”
-
-### 5.3 Doküman güncellemeleri
-
-- `OFFLINE_STRUCTURAL_FALLBACK_SIMPLIFICATION.md`: “Structural fallback kaldırıldı” notu; artık sadece tarihsel referans.
-- `LEGACY_PAYLOAD_HASH_MISMATCH.md`: “Disabling structural fallback” yerine “Structural fallback has been removed”.
-- `TECH_REVIEW_BACKLOG.md`: P2.1 satırı “Removed” veya “Done (removed)” olarak güncellenir.
-
-### 5.4 Testler
-
-- Mevcut replay testleri hash/recomputed path’e dayanıyor; structural’a özel test yok. **Regression:** Tüm offline replay testleri çalıştırılır; başarılı olmalı.
-- İsteğe bağlı: `AllowStructuralFallback = false` ile replay’ın “create new row” veya “recomputed match” senaryolarında aynı sonucu verdiği bir entegrasyon testi eklenebilir (zaten recompute path testleri var).
+When both conditions hold, turning off structural fallback and then removing it is safe.
 
 ---
 
-## 6. Özet
+## 4. Feature-flag rollout plan
 
-| Soru | Cevap |
-|------|--------|
-| Structural fallback tamamen kaldırılabilir mi? | **Evet**, mismatch oranı düşük ve fallback kullanımı ihmal edilebilir olduktan sonra. |
-| Fallback usage metriği | **Counter:** `structural_fallback_resolved_total`, `structural_fallback_ambiguous_total` (Prometheus). **Alternatif:** Log’da “Offline resolved by structural fallback” taraması. |
-| Kaldırma ön koşulları | Mismatch oranı düşük (analyze/repair, hedef &lt; %5); fallback metrik artışı ~0 (2–4 hafta). |
-| Feature flag rollout | Mevcut `AllowStructuralFallback`; önce metrik + mismatch düşürme → izleme → flag false → sabit kalma → removal PR. |
-| Fallback removal PR | `TryResolveOfflineByStructuralPayloadAsync` ve çağrısı silinir; options’tan iki property kaldırılır; config ve docs güncellenir. |
+Existing flag: **`OfflineReplay:AllowStructuralFallback`** (already present).
 
-Bu plan ile karmaşıklık azaltılır ve tek çözüm yolu (hash + recompute) kalır.
+| Stage | Action | Verification |
+|-------|--------|--------------|
+| **0. Metrics** | Counters on (`structural_fallback_resolved_total`, `structural_fallback_ambiguous_total`). | Metric visible in Grafana; collect data for a period. |
+| **1. Lower mismatch** | Analyze → repair (if needed) → analyze again. MismatchRatioPercent &lt; 5% (preferably ~0). | Risk endpoint and analyze response. |
+| **2. Watch** | Watch replay and fallback metrics in production for at least 2–4 weeks. | `structural_fallback_resolved_total` growth ~0. |
+| **3. Turn flag off** | Set `AllowStructuralFallback: false` in production (one cash register/environment first, then all). | Replay success rate and error logs must not change; fallback metrics must not grow. |
+| **4. Stay off** | Flag false in all environments. If a release passes with no issues, proceed to the removal PR. | No incident; replay behavior unchanged. |
+| **5. Remove code** | Apply the “Fallback removal PR” below. | Tests green; no regression. |
+
+**Rollback:** Setting the flag back to `true` re-enables structural fallback. After the code is removed, rollback requires restoring code (that is why stage 4 matters).
+
+---
+
+## 5. Fallback removal PR (code removal)
+
+### 5.1 What to remove
+
+| Location | Change |
+|----------|--------|
+| `OfflineTransactionService.cs` | Delete `TryResolveOfflineByStructuralPayloadAsync` **entirely**. |
+| `OfflineTransactionService.cs` | After hash/recomputed: remove the “4) structural fallback” block: `if (offline == null && _replayOptions.AllowStructuralFallback)` and the `TryResolveOfflineByStructuralPayloadAsync` call plus the dedup audit block. |
+| `OfflineReplayOptions.cs` | Remove `AllowStructuralFallback` and `StructuralPayloadFallbackLimit`. |
+| `appsettings.json` | If those two settings exist under `OfflineReplay`, **remove them** (keep other OfflineReplay settings). |
+
+### 5.2 Metrics (optional)
+
+- **Option A:** Structural fallback is gone, so `RecordStructuralFallbackResolved` / `RecordStructuralFallbackAmbiguous` calls go away. **Removing the counters from Prometheus** is optional (old data remains; no new growth).
+- **Option B:** Also **delete** the counters and interface methods for a full cleanup.
+
+PR description: “Structural fallback removal; preconditions (low mismatch rate, zero fallback usage) verified; AllowStructuralFallback no longer used.”
+
+### 5.3 Documentation updates
+
+- `OFFLINE_STRUCTURAL_FALLBACK_SIMPLIFICATION.md`: Note that “Structural fallback has been removed”; keep as historical reference only.
+- `LEGACY_PAYLOAD_HASH_MISMATCH.md`: Replace “Disabling structural fallback” with “Structural fallback has been removed”.
+- `TECH_REVIEW_BACKLOG.md`: Mark the P2.1 row as “Removed” or “Done (removed)”.
+
+### 5.4 Tests
+
+- Existing replay tests rely on the hash/recomputed path; there is no structural-specific test. **Regression:** Run all offline replay tests; they must pass.
+- Optional: Add an integration test that `AllowStructuralFallback = false` still yields the same result for “create new row” or “recomputed match” scenarios (recompute-path tests already exist).
+
+---
+
+## 6. Summary
+
+| Question | Answer |
+|----------|--------|
+| Can structural fallback be removed entirely? | **Yes**, after the mismatch rate is low and fallback usage is negligible. |
+| Fallback usage metric | **Counter:** `structural_fallback_resolved_total`, `structural_fallback_ambiguous_total` (Prometheus). **Alternative:** Scan logs for “Offline resolved by structural fallback”. |
+| Removal preconditions | Low mismatch rate (analyze/repair, target &lt; 5%); fallback metric growth ~0 (2–4 weeks). |
+| Feature-flag rollout | Existing `AllowStructuralFallback`; first metrics + lower mismatch → watch → flag false → stay off → removal PR. |
+| Fallback removal PR | Delete `TryResolveOfflineByStructuralPayloadAsync` and its call site; remove the two properties from options; update config and docs. |
+
+This plan reduces complexity and leaves a single resolve path (hash + recompute).

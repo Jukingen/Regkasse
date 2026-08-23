@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import {
   THEME_MODE_STORAGE_KEY,
+  clearStoredPersonalization,
   patchStoredPersonalization,
   readStoredPersonalization,
   writeStoredPersonalization,
@@ -90,6 +91,8 @@ export type UiPreferencesState = {
   setHydrated: (value: boolean) => void;
   setIsSyncing: (value: boolean) => void;
   getPreferences: () => PersonalizationPreferences;
+  /** In-memory reset after logout. Storage keys are already removed by authStorage.removeToken. */
+  resetToDefaultsOnLogout: () => void;
 };
 
 const initialStored =
@@ -228,6 +231,20 @@ export const useUiPreferencesStore = create<UiPreferencesState>((set, get) => ({
   setHydrated: (hydrated) => set({ hydrated }),
   setIsSyncing: (isSyncing) => set({ isSyncing }),
   getPreferences: () => snapshotPreferences(get()),
+  resetToDefaultsOnLogout: () => {
+    clearStoredPersonalization();
+    set({
+      themeMode: DEFAULT_PERSONALIZATION.themeMode,
+      densityMode: DEFAULT_PERSONALIZATION.density,
+      effectiveTheme: resolveEffectiveTheme(DEFAULT_PERSONALIZATION.themeMode),
+      defaultLandingPath: DEFAULT_PERSONALIZATION.defaultLandingPath,
+      dateFormat: DEFAULT_PERSONALIZATION.dateFormat,
+      timeFormat: DEFAULT_PERSONALIZATION.timeFormat,
+      timeZone: DEFAULT_PERSONALIZATION.timeZone,
+      language: DEFAULT_PERSONALIZATION.language,
+      reducedAnimations: DEFAULT_PERSONALIZATION.reducedAnimations,
+    });
+  },
 }));
 
 /** Full preferences object for consumers that previously used Context value.preferences. */

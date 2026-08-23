@@ -1,47 +1,55 @@
-# AI Task Template
+# Agent task template
 
-## 0) Analiz önce (zorunlu)
-- İlgili mevcut kod ve testleri oku; varsayım yapma.
-- Kısa bulgu: mevcut davranış ne, ne değişecek, neden güvenli?
+## 0) Analyze first (required)
 
-## 1) Hedef
-- İstenen değişiklik:
-- Kapsam dışı:
+- Read related existing code and tests; do not assume.
+- Short finding: what the current behavior is, what will change, why it is safe.
 
-## 2) Etki alanı
-- Backend: E/H
-- Frontend POS: E/H
-- Frontend Admin: E/H
-- DB/Migration: E/H
-- OpenAPI/Generated client: E/H
-- Multi-tenant (host/slug, `tenant_id`, query filter, Super Admin): E/H
-- Singleton + EF (`IServiceScopeFactory`, root `IDbContextFactory` yasağı): E/H
+## 1) Goal
 
-## 3) Risk notu
-- Compliance/fiscal etkisi var mı?
-- Auth/RBAC etkisi var mı?
-- Kiracı izolasyonu / çapraz kiracı erişim etkisi var mı?
-- Geriye dönük uyumluluk riski var mı?
+- Requested change:
+- Out of scope:
 
-## 4) Plan (kısa)
-- Adım 1
-- Adım 2
-- Adım 3
+## 2) Impact area
 
-## 5) Doğrulama
-- **Hedefli testler** (fiscal alan: ilgili `KasseAPI_Final.Tests` filtreleri veya sözleşme scriptleri)
-- Çalıştırılacak diğer script/komutlar (`verify-api-client`, OpenAPI kritik path, i18n vb.)
-- Beklenen sonuç
+- Backend: Y/N
+- Frontend POS: Y/N
+- Frontend Admin: Y/N
+- DB/Migration: Y/N
+- OpenAPI/Generated client: Y/N
+- Multi-tenant (host/slug, `tenant_id`, query filter, Super Admin): Y/N
+- Singleton + EF (`IServiceScopeFactory`, root `IDbContextFactory` forbidden): Y/N
 
-## 6) Çıktı formatı
-- **Etkilenen dosyalar** (tam yol veya repo-göreli net liste)
-- Kısa gerekçe
-- Test/script sonuçları
-- **Risk özeti** (fiscal, auth, geriye dönük uyumluluk)
-- Kalan belirsizlikler
+## 3) Risk note
 
-## 7) Son denetim (final audit)
-- Davranış değişikliği istenenle sınırlı mı?
-- Swagger + Orval etkilendiyse senkron mu?
-- Hassas alanlarda log/PII/voucher sızıntısı yok mu?
-- Gerekirse `REGKASSE_AI_ONBOARDING.md` ve ilgili `/ai` maddeleriyle tutarlılık kontrolü
+- Compliance/fiscal impact?
+- Auth/RBAC impact?
+- Tenant isolation / cross-tenant access impact?
+- Backward-compatibility risk?
+
+## 4) Plan (short)
+
+- Step 1
+- Step 2
+- Step 3
+
+## 5) Verification
+
+- **Targeted tests** (fiscal area: relevant `KasseAPI_Final.Tests` filters or contract scripts)
+- Other scripts/commands to run (`verify-api-client`, OpenAPI critical path, i18n, and similar)
+- Expected result
+
+## 6) Output format
+
+- **Affected files** (full path or a clear repo-relative list)
+- Short rationale
+- Test/script results
+- **Risk summary** (fiscal, auth, backward compatibility)
+- Remaining unknowns
+
+## 7) Final audit
+
+- Is the behavior change limited to what was requested?
+- If Swagger + Orval were affected, are they in sync?
+- No log/PII/voucher leak in sensitive areas?
+- Consistency check against `REGKASSE_AI_ONBOARDING.md` and related `/ai` items if needed

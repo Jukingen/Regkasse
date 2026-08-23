@@ -1,38 +1,43 @@
-# OpenAPI Contract Governance
+# OpenAPI contract governance
 
-**İlişkili:** Proje davranış özeti `REGKASSE_AI_ONBOARDING.md` (API listeleri ve guardrail’ler); bu dosya üretim/senkron sürecine odaklanır.
+**Related:** Project behavior summary `REGKASSE_AI_ONBOARDING.md` (API lists and guardrails). This file focuses on generation and sync.
 
 ## Source of truth
-- `backend/swagger.json` API contract kaynağıdır.
-- Backend controller/DTO implementation bu dosya ile uyumlu olmalıdır.
-- Admin generated client (`frontend-admin/src/api/generated/**`) bu dosyadan türetilir.
+
+- `backend/swagger.json` is the API contract source.
+- Backend controller/DTO implementation must stay aligned with this file.
+- The admin generated client (`frontend-admin/src/api/generated/**`) is derived from this file.
 
 ## Required workflow
-1. API davranışını backend’de güncelle.
-2. `backend/swagger.json` güncelle.
-3. Admin için Orval üretimini yenile.
-4. Contract scriptlerini çalıştır.
 
-**Tenancy / DI (backend-only):** Singleton servislerde EF erişimi `IServiceScopeFactory` ile — `LicenseService`; contract değişikliği değil, `REGKASSE_AI_ONBOARDING.md` mimari notu.
+1. Update API behavior in the backend.
+2. Update `backend/swagger.json`.
+3. Refresh Orval generation for admin.
+4. Run contract scripts.
+
+**Tenancy / DI (backend-only):** Singleton services access EF through `IServiceScopeFactory` — `LicenseService`; this is not a contract change. See the architecture note in `REGKASSE_AI_ONBOARDING.md`.
 
 ## Required checks
+
 - `node scripts/validate-critical-openapi-paths.mjs`
 - `node scripts/verify-api-client.mjs`
 - CI: `.github/workflows/api-client-alignment.yml`
 - CI: `.github/workflows/api-contract-tests.yml`
 
-## Multi-Tenant Architecture
+## Multi-tenant architecture
 
-- Swagger’da admin tenant ve auth `tenant_id` alanları contract parçasıdır; breaking change etiketle.
-- Orval sonrası admin Super Admin tipleri (`adminTenants`, tenant DTO’lar) senkron kalmalı.
+- Admin tenant and auth `tenant_id` fields in Swagger are part of the contract; label breaking changes.
+- After Orval, admin Super Admin types (`adminTenants`, tenant DTOs) must stay in sync.
 
 ## Review rules
-- Contract etkili PR’larda swagger diff incelemesi zorunlu.
-- Breaking change açıkça etiketlenmeli (hangi consumer etkileniyor belirtilmeli).
-- Legacy prefix altına yeni operasyon eklenmesi reddedilmeli (istisna dokümantasyonu yoksa).
+
+- Swagger diff review is required on contract-affecting PRs.
+- Label breaking changes explicitly (which consumer is affected).
+- Adding a new operation under a legacy prefix must be rejected (unless an exception is documented).
 
 ## Admin Orval notes
+
 - Input: `../backend/swagger.json`
 - Config: `frontend-admin/orval.config.ts`
 - Transformer: `frontend-admin/scripts/orval-strip-legacy-paths.cjs`
-- Generated dosyalara elle müdahale edilmez.
+- Do not hand-edit generated files.

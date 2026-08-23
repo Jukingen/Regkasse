@@ -57,13 +57,23 @@ describe('authStorage cookie session (no JWT in localStorage)', () => {
     expect(authStorage.getAccessExpiresAtMs()).toBe(Date.parse('2026-08-23T12:00:00Z'));
   });
 
-  it('removeToken clears edge cookie, legacy keys, and tenant bootstrap', () => {
+  it('removeToken clears edge cookie, legacy keys, tenant, theme, and preferences', () => {
     window.localStorage.setItem('rk_admin_access_token', 'legacy-jwt');
+    window.localStorage.setItem('rk_admin_tenant_id', 'tenant-guid');
+    window.localStorage.setItem('rk_admin_tenant_slug', 'dev');
+    window.localStorage.setItem('regkasse.admin.personalization.v1', '{"themeMode":"dark"}');
+    window.localStorage.setItem('themeMode', 'dark');
+    window.localStorage.setItem('regkasse.admin.formatLocale', 'en-US');
     authStorage.markSession();
     authStorage.removeToken();
 
     expect(authStorage.hasToken()).toBe(false);
     expect(window.localStorage.getItem('rk_admin_access_token')).toBeNull();
+    expect(window.localStorage.getItem('rk_admin_tenant_id')).toBeNull();
+    expect(window.localStorage.getItem('rk_admin_tenant_slug')).toBeNull();
+    expect(window.localStorage.getItem('regkasse.admin.personalization.v1')).toBeNull();
+    expect(window.localStorage.getItem('themeMode')).toBeNull();
+    expect(window.localStorage.getItem('regkasse.admin.formatLocale')).toBeNull();
     expect(document.cookie).not.toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
   });
 });

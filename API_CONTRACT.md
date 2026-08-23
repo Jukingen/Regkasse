@@ -37,8 +37,8 @@ OpenAPI paths under `/api/Auth/*` (case-sensitive controller segment **`Auth`**)
 | `GET` | `/api/Auth/me` | Bearer | Current user + permissions |
 | `POST` | `/api/Auth/refresh` | Anonymous/body | Refresh token rotation |
 | `POST` | `/api/Auth/refresh-session` | Bearer | Session keep-alive |
-| `POST` | `/api/Auth/logout` | Bearer | |
-| `POST` | `/api/Auth/logout-all` | Bearer | All sessions |
+| `POST` | `/api/Auth/logout` | Bearer or cookies | App-scoped session end. Hub: [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md) |
+| `POST` | `/api/Auth/logout-all` | Bearer or cookies | All sessions + both cookie families |
 | `POST` | `/api/Auth/revoke` | Bearer | |
 | `POST` | `/api/Auth/forgot-password` | Anonymous | |
 | `POST` | `/api/Auth/forgot-username` | Anonymous | Admin app; no enumeration |

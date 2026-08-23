@@ -67,7 +67,7 @@ Security-related changes are documented in [`CHANGELOG.md`](CHANGELOG.md) when r
 1. **Secrets** — Never commit real `appsettings.*.json` secrets, `.env`, PEMs, or API keys. Use user secrets / env vars ([`backend/CONFIGURATION.md`](backend/CONFIGURATION.md)). Templates stay as `*.example.json`.
 2. **Tenant isolation** — Cross-tenant access must return **HTTP 404** (not 403). Do not use `IgnoreQueryFilters()` except approved Super Admin paths. Singletons that touch EF must use `IServiceScopeFactory`.
 3. **API boundaries** — POS → `/api/pos/*`; Admin → `/api/admin/*`. Do not cross boundaries or extend legacy `/api/Payment`, `/api/Cart`, `/api/Product` for new features.
-4. **Auth & sessions** — Prefer `loginIdentifier`; invalidate sessions on username/password changes (`SecurityStamp`). SuperAdmin 2FA rules: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md).
+4. **Auth & sessions** — Prefer `loginIdentifier`; invalidate sessions on username/password changes (`SecurityStamp`). SuperAdmin 2FA: [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md). Logout (cookie split, stamp, CSRF): [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md).
 5. **CSRF** — Mutating Admin/browser flows must respect double-submit CSRF when enabled (`Security:Csrf`). Exempt only documented auth/health paths.
 6. **Logging** — Never log passwords, voucher codes, raw card data, or unmasked PEMs/JWTs. Mask payment identifiers.
 7. **Input validation** — Validate on the server; client checks are UX only. Follow username/email/tax-id rules in `AGENTS.md`.
@@ -82,6 +82,8 @@ Security-related changes are documented in [`CHANGELOG.md`](CHANGELOG.md) when r
 | [`AGENTS.md`](AGENTS.md) | Always-on engineering and security rules |
 | [`ai/05_SECURITY_COMPLIANCE.md`](ai/05_SECURITY_COMPLIANCE.md) | Tenancy, compliance posture |
 | [`ai/07_DO_NOT_TOUCH.md`](ai/07_DO_NOT_TOUCH.md) | High-risk surfaces |
+| [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md) | SuperAdmin 2FA |
+| [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md) | Logout security (cookies, stamp, CSRF) |
 | [`docs/MULTI_TENANT.md`](docs/MULTI_TENANT.md) | Tenant model |
 | [`frontend-admin/SECURITY_AUDIT.md`](frontend-admin/SECURITY_AUDIT.md) | FA audit notes / cadence |
 | [`LICENSE`](LICENSE) | Proprietary license |

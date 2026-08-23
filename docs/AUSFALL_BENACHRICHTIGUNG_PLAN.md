@@ -1,276 +1,276 @@
-# Ausfall- / Wiederinbetriebnahme-meldung — Tasarım Planı (P0-3)
+# Ausfall / Wiederinbetriebnahme notification — design plan (P0-3)
 
-**Tarih:** 2026-07-29  
-**Aksiyon:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P0-3** (~12–16 İG)  
-**Bağımlılık:** P0-1 (rkdb SOAP transport reuse) tercih edilir; simülasyon ile paralel geliştirilebilir  
-**İlgili:** [`FINANZONLINE_SOAP_IMPLEMENTATION_PLAN.md`](FINANZONLINE_SOAP_IMPLEMENTATION_PLAN.md), [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md), [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md)
+**Date:** 2026-07-29  
+**Action:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P0-3** (~12–16 person-days)  
+**Dependency:** P0-1 (rkdb SOAP transport reuse) is preferred; can be developed in parallel with simulation  
+**Related:** [`FINANZONLINE_SOAP_IMPLEMENTATION_PLAN.md`](FINANZONLINE_SOAP_IMPLEMENTATION_PLAN.md), [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md), [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md)
 
-> Bu doküman tasarım + operatör runbook taslağıdır. **Yasal tavsiye değildir**; BMF birincil kaynakları çelişirse onlar geçerlidir. Compliance onayı olmadan otomatik FON gönderimi açılmamalıdır.
+> This document is a design plus operator runbook draft. **It is not legal advice**; if BMF primary sources conflict, they win. Do not enable automatic FON submit without Compliance approval.
 
 ---
 
-## 1. Yasal / BMF kanalı (özet)
+## 1. Legal / BMF channel (summary)
 
-### 1.1 Ne bildirilir?
+### 1.1 What is reported?
 
-RKSV / FinanzOnline Registrierkassen-Webservice modeli, güvenlik birimi veya kasa **arıza (Ausfall)** ve **yeniden işletmeye alma (Wiederinbetriebnahme)** ile **kalıcı dışı bırakma (Außerbetriebnahme)** durumlarının BMF’ye iletilmesini destekler.
+The RKSV / FinanzOnline Registrierkassen-Webservice model supports notifying BMF of security-unit or cash-register **failure (Ausfall)**, **return to service (Wiederinbetriebnahme)**, and **permanent decommission (Außerbetriebnahme)**.
 
-Bu, dahili “TSE Offline” logundan farklıdır: **FON’a resmi kayıt** gerekir.
+That is not the same as an internal “TSE Offline” log: a **formal FON record** is required.
 
-### 1.2 Kanal ve form
+### 1.2 Channel and form
 
-| Kanal | Form / operasyon | Not |
-|-------|------------------|-----|
-| **Birincil (otomasyon)** | FinanzOnline **Registrierkassen-Webservice** — SOAP `rkdb` | WSDL: `https://finanzonline.bmf.gv.at/fonws/ws/regKasseService.wsdl` |
-| **Manuel (portal)** | FinanzOnline web UI — Registrierkassen / güvenlik birimi işlemleri | Ops fallback |
-| **Dosya yükleme** | (opsiyonel) asenkron paket / DataBox protokolü | Webservice dışı; bu P0’da ikincil |
+| Channel | Form / operation | Note |
+|---------|------------------|------|
+| **Primary (automation)** | FinanzOnline **Registrierkassen-Webservice** — SOAP `rkdb` | WSDL: `https://finanzonline.bmf.gv.at/fonws/ws/regKasseService.wsdl` |
+| **Manual (portal)** | FinanzOnline web UI — Registrierkassen / security-unit operations | Ops fallback |
+| **File upload** | (optional) async package / DataBox protocol | Outside webservice; secondary in this P0 |
 
-**BMF dokümanları:**
+**BMF documents:**
 
 - [Registrierkassen-Webservice PDF](https://www.bmf.gv.at/dam/jcr:19c193f4-99cd-42ff-9b23-655f2ab5734e/BMF_Registrierkassen_Webservice.pdf)
 - [Handbuch Registrierkassen](https://www.bmf.gv.at/dam/jcr:0af97a40-da60-4c81-8e1e-22c3ecca52a4/BMF_Handbuch_Registrierkassen.pdf)
 - Hub: [`docs/RKSV_OFFICIAL_SOURCES.md`](RKSV_OFFICIAL_SOURCES.md)
 
-### 1.3 `rkdb` içindeki ilgili elementler
+### 1.3 Relevant `rkdb` elements
 
-Bir `rkdb` paketinde **tek işlem türü** (BMF kuralı); Ausfall için tipik seçenekler:
+One `rkdb` package has **one operation type** (BMF rule). Typical Ausfall options:
 
-| Element | Kimlik | İçerik (özet) |
-|---------|--------|----------------|
-| `ausfall_se` | `zertifikatsseriennummer` | `ausfall` **veya** `ausserbetriebnahme` (`begruendung` + `beginn_ausfall`) |
+| Element | Identity | Content (summary) |
+|---------|----------|-------------------|
+| `ausfall_se` | `zertifikatsseriennummer` | `ausfall` **or** `ausserbetriebnahme` (`begruendung` + `beginn_ausfall`) |
 | `wiederinbetriebnahme_se` | `zertifikatsseriennummer` | `ende_ausfall` |
-| `ausfall_kasse` | `kassenidentifikationsnummer` | aynı `ausfall` / `ausserbetriebnahme` |
+| `ausfall_kasse` | `kassenidentifikationsnummer` | same `ausfall` / `ausserbetriebnahme` |
 | `wiederinbetriebnahme_kasse` | `kassenidentifikationsnummer` | `ende_ausfall` |
 
-- `beginn_ausfall` / `ende_ausfall`: xs:dateTime; **gelecekte olmamalı** (Ausfall başlangıcı).  
-- `satznr`, opsiyonel `kundeninfo`, paket `paket_nr` + `ts_erstellung`.  
-- Session: önce Session-Webservice `login`; `rkdbRequest` içinde `tid`, `benid`, `id`, `art_uebermittlung` (`T`/`P`).
+- `beginn_ausfall` / `ende_ausfall`: xs:dateTime; **must not be in the future** (Ausfall start).
+- `satznr`, optional `kundeninfo`, package `paket_nr` + `ts_erstellung`.
+- Session: Session-Webservice `login` first; `rkdbRequest` includes `tid`, `benid`, `id`, `art_uebermittlung` (`T`/`P`).
 
-**Regkasse eşlemesi (öneri):**
+**Regkasse mapping (recommendation):**
 
-| Olay | Varsayılan rkdb türü | Gerekçe |
-|------|----------------------|---------|
-| SCU/TSE cihaz imza veremez, sertifika bilinen | **`ausfall_se`** | Signaturerstellungseinheit |
-| Kasa kimliği düzeyinde kesinti / decommission | **`ausfall_kasse`** / `ausserbetriebnahme` | RegisterNumber = Kassen-ID |
-| Failover sonrası birincil geri geldi | **`wiederinbetriebnahme_se`** (veya kasse) | `ende_ausfall` |
+| Event | Default rkdb type | Rationale |
+|-------|-------------------|-----------|
+| SCU/TSE device cannot sign; certificate known | **`ausfall_se`** | Signaturerstellungseinheit |
+| Interruption / decommission at cash-register id | **`ausfall_kasse`** / `ausserbetriebnahme` | RegisterNumber = Kassen-ID |
+| Primary back after failover | **`wiederinbetriebnahme_se`** (or kasse) | `ende_ausfall` |
 
-Compliance, “kaç dakika Offline = zorunlu Ausfall” eşiğini yazılı onaylamalıdır (aşağıda §3.3).
+Compliance must approve in writing the “how many minutes Offline = mandatory Ausfall” threshold (see §3.3).
 
-### 1.4 Ayrı kavram: fiş üzerindeki Ausnahmezustand
+### 1.4 Separate concept: Ausnahmezustand on the receipt
 
-Beleg machine code / Besonderheit (`see-ausfall` vb.) **fiş içeriği**dir; FON `ausfall_se` kaydının yerine geçmez. İkisi tamamlayıcı olabilir; bu plan **FON rkdb Ausfall/Wiederinbetriebnahme** odaklıdır.
+Beleg machine code / Besonderheit (`see-ausfall` and similar) is **receipt content**; it does not replace a FON `ausfall_se` record. They can complement each other. This plan focuses on **FON rkdb Ausfall/Wiederinbetriebnahme**.
 
 ---
 
-## 2. Mevcut durum (tespit var, FON yok)
+## 2. Current state (detection exists, FON does not)
 
-### 2.1 Tespit ve iç bildirim
+### 2.1 Detection and internal notification
 
-| Bileşen | Ne yapar | FON? |
-|---------|----------|------|
-| `TseHealthCheckService` | Periyodik probe; cached Online/Degraded/Offline | Hayır |
-| `TseFailoverBackgroundService` | Primary’ler için `CheckAndFailoverAsync` + cert expiry | Hayır |
-| `TseFailoverService` | Otomatik/manuel failover, revert | Hayır |
-| `TseFailoverNotificationService` | Activity: `TseFailoverStarted/Activated/Failed/Reverted/…` | Hayır (yalnızca activity/email) |
-| `TseIncidentService` | İç incident CRUD (`/admin/tse/incidents`) | Hayır |
-| FA `/rksv/incident` | Correlation-ID soruşturma (replay + audit + FO **reconciliation** satırları) | Ausfall enqueue yok |
-| FA `/admin/tse/failover` | Failover ops | FON yok |
-| `FinanzOnlineSubmissionKind` | `Register` \| `SignatureUnit` | **Ausfall yok** |
+| Component | What it does | FON? |
+|-----------|--------------|------|
+| `TseHealthCheckService` | Periodic probe; cached Online/Degraded/Offline | No |
+| `TseFailoverBackgroundService` | `CheckAndFailoverAsync` + cert expiry for primaries | No |
+| `TseFailoverService` | Automatic/manual failover, revert | No |
+| `TseFailoverNotificationService` | Activity: `TseFailoverStarted/Activated/Failed/Reverted/…` | No (activity/email only) |
+| `TseIncidentService` | Internal incident CRUD (`/admin/tse/incidents`) | No |
+| FA `/rksv/incident` | Correlation-ID investigation (replay + audit + FO **reconciliation** rows) | No Ausfall enqueue |
+| FA `/admin/tse/failover` | Failover ops | No FON |
+| `FinanzOnlineSubmissionKind` | `Register` \| `SignatureUnit` | **No Ausfall** |
 
-### 2.2 Olay yakalama noktaları (hook’lar)
+### 2.2 Capture points (hooks)
 
-Otomatik enqueue için önerilen **tek yayın yüzeyi**:
+Recommended **single publish surface** for automatic enqueue:
 
 ```text
-ITseAusfallEventPublisher  (yeni, ince)
+ITseAusfallEventPublisher  (new, thin)
   ← TseFailoverNotificationService.NotifyFailoverCompleted / Failed / Reverted
-  ← TseHealthMonitor Offline geçişi (debounce sonrası)
+  ← TseHealthMonitor Offline transition (after debounce)
   ← Manual API (FA “Ausfall melden”)
-  ← Cash register Schlussbeleg / decommission (ausserbetriebnahme — ayrı akış)
+  ← Cash register Schlussbeleg / decommission (ausserbetriebnahme — separate flow)
 ```
 
-**Yakalama stratejisi:**
+**Capture strategy:**
 
-1. **Failover activated** (primary unhealthy → backup): aday `ausfall_se` (eski primary sertifika) + opsiyonel kasa notu.  
-2. **Revert to primary** / primary Online stabil: aday `wiederinbetriebnahme_se`.  
-3. **Offline süresi ≥ eşik, failover yok**: aday Ausfall (Compliance eşiği).  
-4. **Manuel:** operatör FA’dan form + onay.
+1. **Failover activated** (primary unhealthy → backup): candidate `ausfall_se` (old primary certificate) + optional register note.
+2. **Revert to primary** / primary Online stable: candidate `wiederinbetriebnahme_se`.
+3. **Offline duration ≥ threshold, no failover:** candidate Ausfall (Compliance threshold).
+4. **Manual:** operator form + approval from FA.
 
-Mevcut activity event’leri **kaynak sinyal** olarak kalır; FON outbox’a doğrudan Activity’den yazmak yerine merkezi publisher kullanılsın (idempotency + debounce).
+Existing activity events stay as **source signals**. Do not write the FON outbox directly from Activity; use a central publisher (idempotency + debounce).
 
 ---
 
-## 3. Bildirim mekanizması (outbox)
+## 3. Notification mechanism (outbox)
 
-### 3.1 Evet — yeni message type + handler
+### 3.1 Yes — new message type + handler
 
-Mevcut `FinanzOnlineOutbox` altyapısı (retry, dead-letter, idempotency) **yeniden kullanılır**.
+Reuse the existing `FinanzOnlineOutbox` infrastructure (retry, dead-letter, idempotency).
 
-| Parça | Öneri |
-|-------|--------|
-| Message types | `RksvAusfallSeSubmission`, `RksvWiederinbetriebnahmeSeSubmission`, `RksvAusfallKasseSubmission`, `RksvWiederinbetriebnahmeKasseSubmission` (veya tek tip + `Kind` alanı) |
+| Piece | Recommendation |
+|-------|----------------|
+| Message types | `RksvAusfallSeSubmission`, `RksvWiederinbetriebnahmeSeSubmission`, `RksvAusfallKasseSubmission`, `RksvWiederinbetriebnahmeKasseSubmission` (or one type + `Kind`) |
 | Aggregate | `TseDevice` / `CashRegister` + `AusfallEpisodeId` |
-| BusinessKey | `ausfall\|{tenant}\|se\|{certSerial}\|beginn\|{utc:o}` (tekrar gönderimi engeller) |
-| Payload | `zertifikatsseriennummer` veya `kassenidentifikationsnummer`, `begruendung`, `beginn_ausfall` / `ende_ausfall`, `satznr`, mode |
-| XML | Yeni builder: `FinanzOnlineRkdbAusfallXmlBuilder` (belegpruefung builder kalıbı) |
-| Transport | **`SoapFinanzOnlineRegistrierkassenTransport`** + session (P0-1 ile aynı) — yeni SOAP istemcisi yok |
+| BusinessKey | `ausfall\|{tenant}\|se\|{certSerial}\|beginn\|{utc:o}` (blocks duplicate send) |
+| Payload | `zertifikatsseriennummer` or `kassenidentifikationsnummer`, `begruendung`, `beginn_ausfall` / `ende_ausfall`, `satznr`, mode |
+| XML | New builder: `FinanzOnlineRkdbAusfallXmlBuilder` (same pattern as belegpruefung builder) |
+| Transport | **`SoapFinanzOnlineRegistrierkassenTransport`** + session (same as P0-1) — no new SOAP client |
 | Handler | `RksvAusfallFinanzOnlineOutboxHandler` → map → `IFinanzOnlineRegistrierkassenClient.SubmitAsync` |
-| Durum tablosu | `rksv_ausfall_finanz_online_submissions` (Startbeleg FO submission satırına benzer) |
+| Status table | `rksv_ausfall_finanz_online_submissions` (similar to Startbeleg FO submission row) |
 
-### 3.2 Akış
+### 3.2 Flow
 
 ```text
-Tetik (auto/manual)
+Trigger (auto/manual)
   → Debounce / policy gate (Demo/Soft → skip; Production lock OK)
   → Create episode row (Open)
   → Enqueue outbox (Pending)
-  → Worker + session + rkdb ausfall_* 
+  → Worker + session + rkdb ausfall_*
   → Submitted / Verified / Failed / ManualVerificationRequired
   → (recovery) Wiederinbetriebnahme enqueue (ende_ausfall)
   → Episode Closed
 ```
 
-### 3.3 Otomatik vs onaylı otomatik (önerilen politika)
+### 3.3 Automatic vs approved automatic (recommended policy)
 
-| Mod | Davranış |
-|-----|----------|
-| **`Ausfall:AutoEnqueue=false`** (varsayılan ilk sürüm) | Sadece Activity + FA “Bekleyen Ausfall önerisi”; operatör **onaylayınca** enqueue |
-| **`Ausfall:AutoEnqueue=true`** | Eşik aşılınca doğrudan enqueue (Compliance onayı sonrası) |
-| Demo / Soft / `TseMode=Off` | **Asla** FON’a gitme |
+| Mode | Behavior |
+|------|----------|
+| **`Ausfall:AutoEnqueue=false`** (default first release) | Activity + FA “pending Ausfall suggestion” only; enqueue when the operator **approves** |
+| **`Ausfall:AutoEnqueue=true`** | Enqueue directly when the threshold is exceeded (after Compliance approval) |
+| Demo / Soft / `TseMode=Off` | **Never** go to FON |
 
-**Debounce:** örn. Offline ≥ `AusfallGraceMinutes` (default 30, config) ve hâlâ Offline → öneri/enqueue. Kısa glitch’ler bildirilmez.
+**Debounce:** for example Offline ≥ `AusfallGraceMinutes` (default 30, config) and still Offline → suggestion/enqueue. Short glitches are not reported.
 
-**Begründung kodları:** BMF XSD/PDF’deki gerekçe alanına map (Compliance sabit listesi + i18n FA select).
+**Begründung codes:** map to the BMF XSD/PDF reason field (Compliance fixed list + i18n FA select).
 
-### 3.4 P0-1 bağımlılığı
+### 3.4 P0-1 dependency
 
-- Transport iskeletken: outbox + Fake/Simulation ile state machine test edilir; gerçek BMF TEST P0-1 sonrası.  
-- `RKS_SOAP_TRANSPORT_NOT_IMPLEMENTED` → outbox retry/dead-letter (Startbeleg ile aynı sınıflandırma).
+- While transport is a skeleton: test the state machine with outbox + Fake/Simulation; real BMF TEST after P0-1.
+- `RKS_SOAP_TRANSPORT_NOT_IMPLEMENTED` → outbox retry/dead-letter (same classification as Startbeleg).
 
 ---
 
 ## 4. FA UI
 
-### 4.1 Evet — kart + liste eklenmeli
+### 4.1 Yes — add a card + list
 
-| Yer | İçerik |
-|-----|--------|
-| **`/admin/tse/failover`** veya yeni **`/admin/tse/ausfall`** | Episode listesi: cihaz, sertifika, beginn/ende, FON status Tag, outbox link |
-| **`/rksv/finanz-online-outbox`** | MessageType filtresi: Ausfall / Wiederinbetriebnahme |
-| **`/rksv/incident`** | Correlation varsa FO Ausfall satırına link (mevcut FO reconciliation yanına) |
-| **`/admin/tse-management`** | Cihaz detayında “Ausfall melden” / “Wiederinbetriebnahme” aksiyonları |
-| Activity bell | Yeni event: `TseAusfallReported`, `TseWiederinbetriebnahmeReported`, `TseAusfallEnqueueSuggested` |
+| Place | Content |
+|-------|---------|
+| **`/admin/tse/failover`** or new **`/admin/tse/ausfall`** | Episode list: device, certificate, beginn/ende, FON status Tag, outbox link |
+| **`/rksv/finanz-online-outbox`** | MessageType filter: Ausfall / Wiederinbetriebnahme |
+| **`/rksv/incident`** | Link to FO Ausfall row when correlation exists (beside existing FO reconciliation) |
+| **`/admin/tse-management`** | Device detail actions “Ausfall melden” / “Wiederinbetriebnahme” |
+| Activity bell | New events: `TseAusfallReported`, `TseWiederinbetriebnahmeReported`, `TseAusfallEnqueueSuggested` |
 
-### 4.2 Kart alanları (öneri)
+### 4.2 Card fields (recommendation)
 
-- Status: Suggested \| PendingApproval \| Submitted \| Verified \| Failed \| Closed  
-- Scope: SE vs Kasse  
-- `beginn_ausfall` / `ende_ausfall` (Vienna display)  
-- Begründung  
-- OutboxId → `/rksv/finanz-online-outbox?outboxId=`  
-- Actions: Approve & send, Retry, Mark manual (portalda yapıldı), Cancel suggestion  
+- Status: Suggested \| PendingApproval \| Submitted \| Verified \| Failed \| Closed
+- Scope: SE vs Kasse
+- `beginn_ausfall` / `ende_ausfall` (Vienna display)
+- Begründung
+- OutboxId → `/rksv/finanz-online-outbox?outboxId=`
+- Actions: Approve & send, Retry, Mark manual (done in portal), Cancel suggestion
 
-### 4.3 İzinler
+### 4.3 Permissions
 
-- Görüntüleme: `finanzonline.view` veya TSE admin  
-- Gönder / onay: `finanzonline.submit` (+ isteğe bağlı dual Super Admin Production’da)
+- View: `finanzonline.view` or TSE admin
+- Send / approve: `finanzonline.submit` (+ optional dual Super Admin in Production)
 
-i18n: `tseAusfall.*` (de/en/tr). Hardcoded string yok.
+i18n: `tseAusfall.*` (de/en/tr). No hardcoded strings.
 
 ---
 
-## 5. Operatör dokümantasyonu (runbook)
+## 5. Operator documentation (runbook)
 
-### 5.1 Ne zaman FON’a bildirim gerekir?
+### 5.1 When is FON notification required?
 
-Compliance checklist (örnek — **onaylanmalı**):
+Compliance checklist (example — **must be approved**):
 
-1. İmza birimi (SCU) uzun süre imza üretemiyor ve yasal Ausfall süresi aşıldı.  
-2. Planlı bakım / kart değişimi (Ausfall → sonra Wiederinbetriebnahme).  
-3. Kasa kalıcı kapatma → `ausserbetriebnahme` (Schlussbeleg akışından ayrı/ortak netleştirme).  
-4. Kısa ağ kesintisi + offline kuyruk limit içinde → genelde **FON Ausfall yok** (iç incident yeterli).
+1. The signature unit (SCU) cannot produce signatures for a long time and the legal Ausfall duration is exceeded.
+2. Planned maintenance / card swap (Ausfall → then Wiederinbetriebnahme).
+3. Permanent cash-register close → `ausserbetriebnahme` (clarify vs Schlussbeleg flow).
+4. Short network outage + offline queue within limits → usually **no FON Ausfall** (internal incident is enough).
 
-### 5.2 Otomatik öneri görüldüğünde
+### 5.2 When an automatic suggestion appears
 
-1. FA → **TSE Ausfall** listesi (veya Activity “Enqueue suggested”).  
-2. Cihaz, sertifika serisi, `beginn_ausfall` doğru mu kontrol et.  
-3. Begründung seç.  
-4. **Approve & send** → outbox Pending.  
-5. `/rksv/finanz-online-outbox` durumunu izle (retry / dead-letter).  
-6. BMF TEST/PROD return code’u Verified değilse incident aç; portalden manuel düzelt.
+1. FA → **TSE Ausfall** list (or Activity “Enqueue suggested”).
+2. Check device, certificate serial, `beginn_ausfall`.
+3. Select Begründung.
+4. **Approve & send** → outbox Pending.
+5. Watch `/rksv/finanz-online-outbox` (retry / dead-letter).
+6. If the BMF TEST/PROD return code is not Verified, open an incident; correct manually in the portal.
 
-### 5.3 Manuel tetikleme (FA)
+### 5.3 Manual trigger (FA)
 
-1. `/admin/tse-management` → cihaz seç.  
-2. **Ausfall melden** → form: SE/Kasse, Begründung, Beginn (varsayılan: tespit UTC).  
-3. Onay modalı (Production’da güçlü uyarı).  
-4. Gönder → outbox.  
-5. İyileşme sonrası **Wiederinbetriebnahme** → `ende_ausfall` ≥ beginn.
+1. `/admin/tse-management` → pick device.
+2. **Ausfall melden** → form: SE/Kasse, Begründung, Beginn (default: detection UTC).
+3. Confirm modal (strong warning in Production).
+4. Send → outbox.
+5. After recovery **Wiederinbetriebnahme** → `ende_ausfall` ≥ beginn.
 
-### 5.4 Manuel tetikleme (FinanzOnline portal — fallback)
+### 5.4 Manual trigger (FinanzOnline portal — fallback)
 
-1. [FinanzOnline](https://finanzonline.bmf.gv.at/) giriş.  
-2. Registrierkassen / güvenlik birimi menüsü (Handbuch güncel yolu).  
-3. Ausfall / Wiederinbetriebnahme formunu doldur.  
-4. FA’da ilgili episode’u **Mark manual (portal)** ile kapat; kanıt notu + zaman damgası.
+1. Sign in to [FinanzOnline](https://finanzonline.bmf.gv.at/).
+2. Registrierkassen / security-unit menu (current Handbuch path).
+3. Fill the Ausfall / Wiederinbetriebnahme form.
+4. Close the related episode in FA with **Mark manual (portal)**; evidence note + timestamp.
 
-### 5.5 İzleme
+### 5.5 Monitoring
 
-| Soru | Nerede |
-|------|--------|
-| Gönderildi mi? | Outbox + episode status |
+| Question | Where |
+|----------|-------|
+| Sent? | Outbox + episode status |
 | Retry? | Outbox AttemptCount / NextAttemptAt |
-| İç failover oldu mu? | `/admin/tse/failover` + Activity |
-| Correlation soruşturma | `/rksv/incident?correlationId=` |
+| Internal failover? | `/admin/tse/failover` + Activity |
+| Correlation investigation | `/rksv/incident?correlationId=` |
 
-### 5.6 Yapılmaması gerekenler
+### 5.6 Do not
 
-- Demo/Soft ortamda “Verified” sanmak.  
-- Aynı `beginn_ausfall` + sertifika için çift enqueue (BusinessKey).  
-- Wiederinbetriebnahme’yi Ausfall’sız göndermek (FON reddi riski).  
-- Secret/PIN loglamak.
+- Treat Demo/Soft as “Verified”.
+- Double-enqueue the same `beginn_ausfall` + certificate (BusinessKey).
+- Send Wiederinbetriebnahme without Ausfall (FON rejection risk).
+- Log secrets/PINs.
 
 ### 5.7 Rollback
 
-- Yanlış Ausfall: Compliance + BMF süreç; yazılımda “cancel suggested” yalnızca henüz gönderilmemiş kayıtlarda.  
-- Outbox DeadLetter: düzelt payload → manuel re-enqueue (idempotent key dikkat).
+- Wrong Ausfall: Compliance + BMF process; software “cancel suggested” only for records not yet sent.
+- Outbox DeadLetter: fix payload → manual re-enqueue (watch the idempotent key).
 
 ---
 
-## 6. Uygulama kırılımı (P0-3)
+## 6. Implementation breakdown (P0-3)
 
-| Faz | İş | Rol | İG |
-|-----|-----|-----|-----|
-| 0 | Compliance: eşik, Begründung listesi, auto vs approve | Compliance | 1–2 |
+| Phase | Work | Role | Person-days |
+|-------|------|------|-------------|
+| 0 | Compliance: threshold, Begründung list, auto vs approve | Compliance | 1–2 |
 | 1 | Episode entity + migration + DTOs | Backend | 2 |
 | 2 | XML builder + mapper + outbox types + handler | Backend | 3–4 |
 | 3 | Hooks (failover notification + health debounce + manual API) | Backend | 2–3 |
-| 4 | FA liste/kart/aksiyonlar + i18n | Frontend | 3–4 |
-| 5 | Simulation testleri + BMF TEST (P0-1 sonrası) + bu runbook’u ops finalize | Backend / Ops | 2–3 |
+| 4 | FA list/card/actions + i18n | Frontend | 3–4 |
+| 5 | Simulation tests + BMF TEST (after P0-1) + Ops finalize this runbook | Backend / Ops | 2–3 |
 
-**Toplam:** ~12–16 İG.
+**Total:** ~12–16 person-days.
 
-### Kabul kriterleri
+### Acceptance criteria
 
-- [x] En az `ausfall_se` + `wiederinbetriebnahme_se` XML + outbox handler (simulation/unit).  
-- [x] Failover activated → Suggested veya Auto enqueue (config).  
-- [x] Demo/Soft → FON enqueue yok.  
-- [x] FA’da status + manuel tetik + outbox link (`/admin/tse/ausfall`).  
-- [ ] Operatör runbook (§5) Ops tarafından imzalı.  
-- [ ] BMF TEST’te bir Ausfall + Wiederinbetriebnahme round-trip (P0-1 sonrası).
-
----
-
-## 7. Özet kararlar
-
-| Soru | Karar |
-|------|--------|
-| Yasal kanal | FON **rkdb** `ausfall_*` / `wiederinbetriebnahme_*` (+ portal fallback) |
-| Mevcut tespit | Failover/health **yakalanır**; FON’a **bağlı değil** — hook eklenir |
-| Outbox? | **Evet** — yeni message type + handler; transport reuse |
-| FA UI? | **Evet** — TSE Ausfall listesi + outbox + incident link |
-| İlk sürüm auto? | Varsayılan **onaylı öneri**; full auto Compliance sonrası |
+- [x] At least `ausfall_se` + `wiederinbetriebnahme_se` XML + outbox handler (simulation/unit).
+- [x] Failover activated → Suggested or Auto enqueue (config).
+- [x] Demo/Soft → no FON enqueue.
+- [x] FA status + manual trigger + outbox link (`/admin/tse/ausfall`).
+- [ ] Operator runbook (§5) signed by Ops.
+- [ ] BMF TEST Ausfall + Wiederinbetriebnahme round-trip (after P0-1).
 
 ---
 
-**Son güncelleme:** 2026-07-29 — P0-3 **kod tamamlandı** (`rksv_ausfall_episodes`, XML builder, failover hooks, FA). BMF E2E Ops’ta açık.
+## 7. Decision summary
+
+| Question | Decision |
+|----------|----------|
+| Legal channel | FON **rkdb** `ausfall_*` / `wiederinbetriebnahme_*` (+ portal fallback) |
+| Current detection | Failover/health **is captured**; **not** bound to FON — add a hook |
+| Outbox? | **Yes** — new message type + handler; reuse transport |
+| FA UI? | **Yes** — TSE Ausfall list + outbox + incident link |
+| First-release auto? | Default **approved suggestion**; full auto after Compliance |
+
+---
+
+**Last updated:** 2026-07-29 — P0-3 **code complete** (`rksv_ausfall_episodes`, XML builder, failover hooks, FA). BMF E2E still open in Ops.

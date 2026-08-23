@@ -1,30 +1,30 @@
-# Mayıs 2027 Signaturkarte Zorunluluğu — Tasarım Planı (P1-3)
+# May 2027 Signaturkarte mandate — design plan (P1-3)
 
-**Tarih:** 2026-07-29  
-**Aksiyon:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P1-3** (~5–8 İG); runbook örtüşmesi: **P1-4**  
-**İlgili:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md), [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5c, `TseCertificateService`
+**Date:** 2026-07-29  
+**Action:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) → **P1-3** (~5–8 PD); runbook overlap: **P1-4**  
+**Related:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md), [`RKSV_COMPLIANCE_ASSESSMENT.md`](RKSV_COMPLIANCE_ASSESSMENT.md) §5c, `TseCertificateService`
 
-> Bu plan **operasyonel program** tasarımıdır. Kesin yasal metin / BMF duyurusu Compliance tarafından doğrulanmalıdır; tarih config ile ayarlanabilir tutulur. Soft/Demo cihazlar raporlarda “uygunsuz / hariç” olarak işaretlenir.
+> This plan is an **operational program** design. Compliance must confirm the exact legal text / BMF announcement; keep the date configurable. Soft/Demo devices are marked “non-compliant / excluded” in reports.
 >
-> **Durum (2026-07-29):** ✅ Implemented — `SignaturkarteProgram` config, `TseDevices` compliance columns, daily reminder hosted service, FA `/admin/tse/signaturkarte-program` + layout banner (expiry’den ayrı).
+> **Status (2026-07-29):** ✅ Implemented — `SignaturkarteProgram` config, `TseDevices` compliance columns, daily reminder hosted service, FA `/admin/tse/signaturkarte-program` + layout banner (separate from expiry).
 
 ---
 
-## 1. Zorunluluk (expiry’den bağımsız)
+## 1. Mandate (independent of expiry)
 
-### 1.1 İki saat dilimi
+### 1.1 Two clocks
 
-| Saat | Kaynak | Anlam |
-|------|--------|--------|
-| **Sertifika `ExpiresAt`** | X.509 / `TseDevice.ExpiresAt` | Teknik süre dolumu; mevcut `ProcessExpiryWarningsAsync` (30 gün varsayılan) |
-| **Program deadline `Mai2027`** | Operasyonel / düzenleyici hedef | Tüm production Signaturkarte / SCU’ların **yenilenmiş / değiştirilmiş** olması gereken son tarih |
+| Clock | Source | Meaning |
+|-------|--------|---------|
+| **Certificate `ExpiresAt`** | X.509 / `TseDevice.ExpiresAt` | Technical expiry; existing `ProcessExpiryWarningsAsync` (30-day default) |
+| **Program deadline `Mai2027`** | Operational / regulatory target | Last date by which all production Signaturkarte / SCUs must be **renewed / replaced** |
 
-Bunlar **birbirinin yerine geçmez**:
+They do **not** substitute for each other:
 
-- Kart `ExpiresAt` = 2028 olsa bile Mayıs 2027 programı “değiştirildi” kanıtı isteyebilir.  
-- Kart `ExpiresAt` = 2026-12 ise hem expiry hem 2027 programı tetiklenir (önce teknik yenileme).
+- A card with `ExpiresAt` = 2028 can still need May 2027 program “replaced” evidence.
+- A card with `ExpiresAt` = 2026-12 fires both expiry and the 2027 program (technical renewal first).
 
-### 1.2 Sabit (config)
+### 1.2 Constant (config)
 
 ```json
 "SignaturkarteProgram": {
@@ -37,96 +37,95 @@ Bunlar **birbirinin yerine geçmez**:
 }
 ```
 
-- **Deadline:** Varsayılan **2027-05-31** Vienna gün sonu → UTC’ye normalize (Compliance kesin günü onaylar: ay başı / ay sonu).  
-- UI’da “Mai 2027” etiketi; teknik karşılaştırma `DeadlineUtc`.
+- **Deadline:** Default **2027-05-31** Vienna end of day → normalize to UTC (Compliance confirms the exact day: start vs end of month).
+- UI label “Mai 2027”; technical compare uses `DeadlineUtc`.
 
-### 1.3 “Yenilendi / uyumlu” tanımı
+### 1.3 Definition of “renewed / compliant”
 
-Cihaz **program-uyumlu** sayılır (öneri — Compliance onaylar):
+A device is **program-compliant** (recommendation — Compliance approves):
 
-1. `TseDevice` active + Production fiscal path (`TseMode=Device`, `Mode=Real`, Provider ≠ soft/fake), **ve**  
-2. En az biri:  
-   - `SignaturkarteProgramCompliantAtUtc != null` **ve** `>=` program başlangıç kesiti (Ops işaretledi / renew sync sonrası otomatik), **veya**  
-   - Yeni sertifika `IssuedAt >= ProgramEpochUtc` (ör. 2026-06-01’den sonra basılmış kart — politika), **veya**  
-   - Vendor ticket / audit notu ile Super Admin `MarkCompliant`.
+1. `TseDevice` active + Production fiscal path (`TseMode=Device`, `Mode=Real`, Provider ≠ soft/fake), **and**
+2. At least one of:
+   - `SignaturkarteProgramCompliantAtUtc != null` **and** `>=` program start cut (Ops marked / auto after renew sync), **or**
+   - New certificate `IssuedAt >= ProgramEpochUtc` (for example card issued after 2026-06-01 — policy), **or**
+   - Super Admin `MarkCompliant` with vendor ticket / audit note.
 
-İlk sürümde **açık bayrak** (`CompliantAtUtc` + actor) en güvenlisi; otomatik IssuedAt kuralı ikinci faz.
+First release: **explicit flag** (`CompliantAtUtc` + actor) is safest; automatic IssuedAt rule is phase two.
 
-Yeni kolon(lar) (additive migration):
+New column(s) (additive migration):
 
-- `tse_devices.signaturkarte_program_compliant_at_utc` (nullable)  
-- `tse_devices.signaturkarte_program_compliant_by` (nullable string)  
-- opsiyonel: `signaturkarte_program_note`
+- `tse_devices.signaturkarte_program_compliant_at_utc` (nullable)
+- `tse_devices.signaturkarte_program_compliant_by` (nullable string)
+- optional: `signaturkarte_program_note`
 
 ---
 
-## 2. Uyarı sistemi (milestone hatırlatmalar)
+## 2. Warning system (milestone reminders)
 
-### 2.1 Kalıp
+### 2.1 Pattern
 
-License / grace milestone modelini yeniden kullan (`GracePeriodReminderMilestones`, `LicenseReminderHostedService`):
+Reuse the license / grace milestone model (`GracePeriodReminderMilestones`, `LicenseReminderHostedService`):
 
-| Bileşen | Rol |
-|---------|-----|
-| `SignaturkarteProgramMilestones` | `ReminderDaysBefore` → bugün eşleşiyor mu? |
-| `ISignaturkarteProgramReminderService` | Günlük job: due milestone → Activity + email |
-| Hosted service | Mevcut `LicenseReminderHostedService` yanına veya paylaşılan scheduler |
+| Component | Role |
+|-----------|------|
+| `SignaturkarteProgramMilestones` | Does `ReminderDaysBefore` match today? |
+| `ISignaturkarteProgramReminderService` | Daily job: due milestone → Activity + email |
+| Hosted service | Beside existing `LicenseReminderHostedService` or a shared scheduler |
 | Dedup | `signaturkarte-program:{deadline:yyyyMMdd}:{days}:{scope}` |
 
-### 2.2 Milestone’lar (istenen)
+### 2.2 Milestones (desired)
 
-| Kala | Gün (deadline’a) | Severity | Kime |
-|------|------------------|----------|------|
-| 6 ay | 180 | Info / Warning | Super Admin (+ Ops email list) |
-| 3 ay | 90 | Warning | Super Admin + etkilenen Mandanten-Admin |
-| 1 ay | 30 | Warning | Aynı + tenant bazlı sayılar |
-| 1 hafta | 7 | Critical | Aynı; FA banner zorunlu |
+| Horizon | Days (to deadline) | Severity | Who |
+|---------|--------------------|----------|-----|
+| 6 months | 180 | Info / Warning | Super Admin (+ Ops email list) |
+| 3 months | 90 | Warning | Super Admin + affected Mandanten-Admin |
+| 1 month | 30 | Warning | Same + tenant-level counts |
+| 1 week | 7 | Critical | Same; FA banner required |
 
-Ek (opsiyonel): deadline günü `0`, deadline sonrası `Overdue` (Critical, günlük digest).
+Extra (optional): deadline day `0`, after deadline `Overdue` (Critical, daily digest).
 
-### 2.3 Kanallar
+### 2.3 Channels
 
-1. **Activity feed** — yeni tipler:  
-   `SignaturkarteProgramReminder` (170+ aralığında yeni enum değerleri), metadata: `{ deadlineUtc, daysRemaining, nonCompliantDeviceCount, tenantId? }`  
-2. **Email** — Super Admin dağıtım listesi + Mandanten-Admin (tenant’ta non-compliant cihaz varsa); composer: License reminder stili, secret yok.  
-3. **FA banner** — §3.  
+1. **Activity feed** — new types: `SignaturkarteProgramReminder` (new enum values in the 170+ range), metadata: `{ deadlineUtc, daysRemaining, nonCompliantDeviceCount, tenantId? }`
+2. **Email** — Super Admin distribution list + Mandanten-Admin (if the tenant has non-compliant devices); composer: license-reminder style, no secrets.
+3. **FA banner** — §3.
 4. **Audit** — `SIGNATURKARTE_PROGRAM_REMINDER_SENT` (tenant/platform).
 
-### 2.4 Kapsam kuralları
+### 2.4 Scope rules
 
-| Rol | Ne alır? |
-|-----|----------|
-| **Super Admin** | Platform özeti: X tenant / Y cihaz non-compliant |
-| **Mandanten-Admin (`Manager`)** | Yalnızca kendi tenant cihazları |
-| Soft/Demo / `TseMode=Off` | Sayım dışı (`ExcludeDemoAndSoftDevices`) |
+| Role | What they receive |
+|------|-------------------|
+| **Super Admin** | Platform summary: X tenants / Y devices non-compliant |
+| **Mandanten-Admin (`Manager`)** | Own-tenant devices only |
+| Soft/Demo / `TseMode=Off` | Out of count (`ExcludeDemoAndSoftDevices`) |
 
-### 2.5 Sertifika expiry ile ilişki
+### 2.5 Relation to certificate expiry
 
-- `TseCertificateExpiringSoon` **ayrı** kalır (ExpiresAt).  
-- Program reminder metni: *“Mai 2027 Signaturkarte-Pflicht — unabhängig vom Zertifikatsablauf.”*  
-- FA’da iki rozet yan yana karışmasın: `Expires` vs `Program 2027`.
+- `TseCertificateExpiringSoon` stays **separate** (ExpiresAt).
+- Program reminder copy: *“Mai 2027 Signaturkarte-Pflicht — unabhängig vom Zertifikatsablauf.”*
+- In FA, do not mix two badges: `Expires` vs `Program 2027`.
 
 ---
 
-## 3. FA Banner / Widget (önerilen — P1-3’te dahil)
+## 3. FA banner / widget (recommended — included in P1-3)
 
 ### 3.1 Banner (layout / RKSV hub)
 
-Koşul: `Enabled && now < Deadline+grace && NonCompliantCount > 0` (veya Super Admin her zaman özet görür).
+Condition: `Enabled && now < Deadline+grace && NonCompliantCount > 0` (or Super Admin always sees a summary).
 
 | Days remaining | UI |
 |----------------|-----|
-| \> 90 | İnce info Alert (dismissible 7 gün localStorage) |
-| 30–90 | Warning Alert, dismiss yok (session) |
-| ≤ 7 veya overdue | Critical Alert, sticky; link “Compliance report” |
+| \> 90 | Thin info Alert (dismissible 7 days localStorage) |
+| 30–90 | Warning Alert, no dismiss (session) |
+| ≤ 7 or overdue | Critical Alert, sticky; link “Compliance report” |
 
 i18n: `signaturkarteProgram.banner.*` (de/en/tr).
 
-### 3.2 Widget (opsiyonel ama düşük maliyet)
+### 3.2 Widget (optional, low cost)
 
-- **`/admin/tse-management`** üst kart: countdown + non-compliant / total.  
-- Super Admin dashboard mini-stat: `Mai 2027: 12 open`.  
-- Link: `/admin/tse/signaturkarte-program` (rapor sayfası).
+- **`/admin/tse-management`** top card: countdown + non-compliant / total.
+- Super Admin dashboard mini-stat: `Mai 2027: 12 open`.
+- Link: `/admin/tse/signaturkarte-program` (report page).
 
 ### 3.3 API
 
@@ -135,26 +134,26 @@ GET /api/admin/tse/signaturkarte-program/status
 → { deadlineUtc, daysRemaining, totals: { compliant, nonCompliant, excluded }, milestonesNext }
 ```
 
-Permission: Super Admin `system.critical`; Mandanten: kendi tenant özeti (`settings.view` / TSE view).
+Permission: Super Admin `system.critical`; Mandanten: own-tenant summary (`settings.view` / TSE view).
 
 ---
 
-## 4. Raporlama
+## 4. Reporting
 
-### 4.1 Rapor sayfası / export
+### 4.1 Report page / export
 
-**Rota:** `/admin/tse/signaturkarte-program` (Super Admin); Mandanten: `/settings/tse` veya tse-management filtresi.
+**Route:** `/admin/tse/signaturkarte-program` (Super Admin); Mandanten: `/settings/tse` or tse-management filter.
 
-| Kolon | Açıklama |
-|-------|----------|
+| Column | Description |
+|--------|-------------|
 | Tenant | slug / name (SA only) |
-| DeviceId / Serial | TSE cihaz |
+| DeviceId / Serial | TSE device |
 | Provider | fiskaly / … |
-| Certificate thumbprint / serial | kısa |
-| ExpiresAt | teknik expiry |
+| Certificate thumbprint / serial | short |
+| ExpiresAt | technical expiry |
 | ProgramCompliantAt | null → **Open** |
 | Status | Compliant \| Open \| Excluded (Demo/Soft) \| Revoked |
-| Days to deadline | sayı |
+| Days to deadline | number |
 | Actions | Mark compliant, Open renew runbook, Schedule renewal |
 
 ### 4.2 API
@@ -165,102 +164,102 @@ POST /api/admin/tse/signaturkarte-program/devices/{id}/mark-compliant  { note }
 GET /api/admin/tse/signaturkarte-program/export.csv
 ```
 
-CSV/Excel: Ops haftalık review için. Audit her mark-compliant.
+CSV/Excel: for Ops weekly review. Audit every mark-compliant.
 
-### 4.3 Özet metrikler
+### 4.3 Summary metrics
 
-- % compliant (production devices)  
-- Open by tenant (Top N)  
-- Expiring before deadline ∩ Open (çift risk)  
-- Trend: haftalık compliant delta (opsiyonel activity snapshot)
+- % compliant (production devices)
+- Open by tenant (Top N)
+- Expiring before deadline ∩ Open (double risk)
+- Trend: weekly compliant delta (optional activity snapshot)
 
-### 4.4 Mevcut servisle birleşim
+### 4.4 Merge with existing service
 
-`TseCertificateService.GetCertificateInfoAsync` / fleet overview’a `programCompliant` alanı eklenir; ayrı “yenile” hâlâ P1-4 runbook (fiskaly sync).
+Add a `programCompliant` field to `TseCertificateService.GetCertificateInfoAsync` / fleet overview; a separate “renew” remains the P1-4 runbook (Fiskaly sync).
 
 ---
 
-## 5. Operatör runbook / kontrol listesi
+## 5. Operator runbook / checklist
 
-### 5.1 Program sahipliği
+### 5.1 Program ownership
 
-| Rol | Görev |
-|-----|--------|
-| **Compliance** | Deadline tarihi, “compliant” tanımı, zorunluluk metni |
-| **Ops** | Vendor (fiskaly) kart değişim prosedürü, SCU id rotasyonu |
-| **Super Admin** | Platform rapor, hatırlatma alıcıları |
-| **Mandanten-Admin** | Kendi cihazlarını yeniletme / randevu |
+| Role | Task |
+|------|------|
+| **Compliance** | Deadline date, “compliant” definition, mandate text |
+| **Ops** | Vendor (Fiskaly) card-swap procedure, SCU id rotation |
+| **Super Admin** | Platform report, reminder recipients |
+| **Mandanten-Admin** | Renew / appointment for own devices |
 
-### 5.2 Kontrol listesi (tenant başına)
+### 5.2 Checklist (per tenant)
 
-- [ ] Production’da Soft/Demo TSE yok (`TSE_PRODUCTION_CONFIG_LOCK`)  
-- [ ] Her aktif SCU için güncel fiskaly/A-Trust kart siparişi / değişim tarihi  
-- [ ] Yeni sertifika cihaz kaydına sync (`RenewCertificateAsync` / provision)  
-- [ ] FA’da **Mark compliant** + not (ticket no)  
-- [ ] Startbeleg / FON kayıt gerekip gerekmediği (kart değişimi sonrası — Compliance)  
-- [ ] DEP / imza zinciri smoke (1 test beleg)  
-- [ ] Backup / TSE DR notu güncellendi  
+- [ ] No Soft/Demo TSE in Production (`TSE_PRODUCTION_CONFIG_LOCK`)
+- [ ] Current Fiskaly/A-Trust card order / swap date for every active SCU
+- [ ] New certificate synced onto the device record (`RenewCertificateAsync` / provision)
+- [ ] FA **Mark compliant** + note (ticket no)
+- [ ] Whether Startbeleg / FON registration is required after card swap (Compliance)
+- [ ] DEP / signature-chain smoke (1 test beleg)
+- [ ] Backup / TSE DR note updated
 
-### 5.3 Zaman çizelgesi (öneri)
+### 5.3 Timeline (recommendation)
 
-| Dönem | Aksiyon |
-|-------|---------|
-| **≤ 2026-11** (≈ 6 ay kala) | Envanter raporu; vendor kapasite; ilk Super Admin mail |
-| **2027-02** (≈ 3 ay) | Tüm Open tenant’lara Mandanten mail; haftalık SA review |
-| **2027-04** (≈ 1 ay) | Kritik banner; günlük Open listesi; escalation |
-| **2027-05 son hafta** | War room; yalnızca Open kalanlar |
-| **Deadline sonrası** | Overdue Critical; yeni fiscal enablement politikası (opsiyonel gate — Compliance) |
+| Period | Action |
+|--------|--------|
+| **≤ 2026-11** (~6 months left) | Inventory report; vendor capacity; first Super Admin mail |
+| **2027-02** (~3 months) | Mandanten mail to all Open tenants; weekly SA review |
+| **2027-04** (~1 month) | Critical banner; daily Open list; escalation |
+| **Last week of 2027-05** | War room; Open leftovers only |
+| **After deadline** | Overdue Critical; optional new fiscal-enablement policy (Compliance) |
 
-### 5.4 Kart değişimi teknik adımlar (özet — P1-4 ile birleşir)
+### 5.4 Card-swap technical steps (summary — merges with P1-4)
 
-1. Vendor portalda yeni Signaturkarte / SCU.  
-2. Config: yeni `SignatureCreationUnitId` / cert material (secret store).  
-3. FA: Renew / sync metadata → `ExpiresAt` / thumbprint güncel.  
-4. İmza smoke + isteğe bağlı FON güncelleme.  
-5. Mark program-compliant.  
-6. Eski kart güvenli imha / vendor iade.
+1. New Signaturkarte / SCU in the vendor portal.
+2. Config: new `SignatureCreationUnitId` / cert material (secret store).
+3. FA: Renew / sync metadata → `ExpiresAt` / thumbprint current.
+4. Signature smoke + optional FON update.
+5. Mark program-compliant.
+6. Secure destruction / vendor return of the old card.
 
-### 5.5 İletişim şablonu (konu satırı örneği)
+### 5.5 Communication template (subject example)
 
 `[Regkasse] Mai 2027 Signaturkarte — noch {N} Geräte offen (Deadline {date})`
 
-Gövde: sayılar, rapor linki, runbook linki; **secret yok**.
+Body: counts, report link, runbook link; **no secrets**.
 
 ---
 
-## 6. Uygulama kırılımı
+## 6. Implementation breakdown
 
-| Faz | İş | Rol | İG |
-|-----|-----|-----|-----|
+| Phase | Work | Role | PD |
+|-------|------|------|-----|
 | 1 | Config + migration (`CompliantAt`) + status DTO | Backend | 1–1.5 |
 | 2 | Milestone service + hosted job + Activity/email + tests | Backend | 2–2.5 |
 | 3 | Report API + CSV + mark-compliant | Backend | 1 |
-| 4 | Banner + rapor sayfası + i18n | Frontend | 1.5–2 |
-| 5 | Runbook finalize + Compliance tarih onayı | Ops / Compliance | 0.5–1 |
+| 4 | Banner + report page + i18n | Frontend | 1.5–2 |
+| 5 | Runbook finalize + Compliance date approval | Ops / Compliance | 0.5–1 |
 
-**Toplam:** ~5–8 İG (P1-3). P1-4 (vendor runbook detayı + fleet expiry UI) ayrı ~4–6 İG; ortak FA yüzeyleri paylaşılabilir.
+**Total:** ~5–8 PD (P1-3). P1-4 (vendor runbook detail + fleet expiry UI) is a separate ~4–6 PD; shared FA surfaces can be reused.
 
-### Kabul kriterleri
+### Acceptance criteria
 
-- [ ] Deadline config ile okunur; expiry uyarılarından ayrı milestone mail/activity  
-- [ ] Super Admin platform raporu; Mandanten tenant filtresi  
-- [ ] Mark compliant auditle kalıcı  
-- [ ] FA banner milestone’lara göre şiddetlenir  
-- [ ] Demo/Soft hariç  
-- [ ] Bu doküman Ops checklist olarak imzalı  
-
----
-
-## 7. Özet kararlar
-
-| Soru | Karar |
-|------|--------|
-| Expiry’den bağımsız mı? | **Evet** — ayrı program deadline + compliant bayrağı |
-| Hatırlatma | 180 / 90 / 30 / 7 gün — Activity + email (+ overdue) |
-| FA banner? | **Evet** (P1-3 kapsamında) |
-| Rapor | Cihaz listesi + CSV + % compliant |
-| Runbook | §5 checklist + zaman çizelgesi |
+- [ ] Deadline is readable from config; milestone mail/activity is separate from expiry warnings
+- [ ] Super Admin platform report; Mandanten tenant filter
+- [ ] Mark compliant persists with audit
+- [ ] FA banner severity follows milestones
+- [ ] Demo/Soft excluded
+- [ ] This document signed as Ops checklist
 
 ---
 
-**Son güncelleme:** 2026-07-29 — P1-3 Mayıs 2027 Signaturkarte program tasarımı.
+## 7. Decision summary
+
+| Question | Decision |
+|----------|----------|
+| Independent of expiry? | **Yes** — separate program deadline + compliant flag |
+| Reminders | 180 / 90 / 30 / 7 days — Activity + email (+ overdue) |
+| FA banner? | **Yes** (in P1-3) |
+| Report | Device list + CSV + % compliant |
+| Runbook | §5 checklist + timeline |
+
+---
+
+**Last updated:** 2026-07-29 — P1-3 May 2027 Signaturkarte program design.

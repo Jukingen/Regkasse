@@ -25,8 +25,9 @@ Follow these language rules strictly:
 | Database schema | English | users, tenants, payment_details |
 | Git commits | English | "feat: add username login support" |
 | **Explanations in IDE** | **Turkish** | When explaining plans, changes, or reviews |
+| **Repository documentation** | **English (US)** | READMEs, `docs/`, `ai/` — [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md) |
 
-**Do not** translate POS UI text into English or Turkish.
+**Do not** translate POS UI text into English or Turkish. Keep the product name **POS** in docs; use **cash register** for the device/session (Kasse). Do not rewrite `AGENTS.md` into a second copy of the README.
 
 ## Working Style
 - Prefer minimal, targeted changes over broad refactors.
@@ -155,7 +156,7 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 - **Route/body tenant target:** Super Admin ops that touch a specific mandant MUST validate the tenant exists (`GetByIdAsync` / equivalent → HTTP 404). Do not rely on ambient JWT tenant alone for cross-tenant SaaS actions; use the explicit `tenantId` from the route or body.
 - **Impersonation:** issues JWT with target `tenant_id` + `tenant_impersonation=true`; subsequent EF filters bind to the target. Host↔JWT match is skipped for impersonation tokens (`Auth:RequireTenantHostMatch`).
 - **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
-- **Session management:** Super Admin can list/terminate `auth_sessions` and force-logout a user (`/api/admin/sessions`, FA `/admin/sessions` + user detail). Force logout rotates Identity `SecurityStamp` (JWT `sst` claim) and revokes refresh tokens; the next API call fails in JWT `OnTokenValidated`. Platform “terminate all” keeps the caller’s current session.
+- **Session management:** Super Admin can list/terminate `auth_sessions` and force-logout a user (`/api/admin/sessions`, FA `/admin/sessions` + user detail). Force logout rotates Identity `SecurityStamp` (JWT `sst` claim) and revokes refresh tokens; the next API call fails in JWT `OnTokenValidated`. Platform “terminate all” keeps the caller’s current session. User logout (FA/POS cookie split, CSRF, client cleanup): [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md).
 - **Digital services:** create / publish / edit / delete websites and apps; approve digital requests (`/admin/digital`, `/admin/digital/requests`)
 - **Online orders:** full FA control including optional POS cart bridge (`digital.orders.approve`)
 - **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**

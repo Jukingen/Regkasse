@@ -342,6 +342,8 @@ The login field accepts both formats. Usernames are generated automatically when
 3. Backend resolves the user by email, then by username, validates password and POS role policy.
 4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap in **SecureStore** (native) / localStorage (web). Backend also sets HttpOnly `rk_pos_*` cookies (distinct from FA `rk_admin_*`) so a shared browser does not collide.
 
+**Logout:** `POST /api/Auth/logout` with Bearer from SecureStore; backend expires `rk_pos_*` cookies, revokes POS refresh sessions, and rotates `SecurityStamp`. The app then clears SecureStore and offline queues. See [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
+
 **Examples:**
 
 - Username: `cashier1` + password

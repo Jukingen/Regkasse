@@ -65,6 +65,27 @@ public sealed class CsrfTokenServiceTests
         Assert.False(service.ValidateToken(forged, forged));
     }
 
+    [Fact]
+    public void InvalidateToken_RemovesCachedToken()
+    {
+        var service = CreateService();
+        var token = service.GenerateToken();
+        Assert.True(service.ValidateToken(token, token));
+
+        service.InvalidateToken(token);
+
+        Assert.False(service.ValidateToken(token, token));
+    }
+
+    [Fact]
+    public void InvalidateToken_NullOrEmpty_DoesNotThrow()
+    {
+        var service = CreateService();
+        service.InvalidateToken(null);
+        service.InvalidateToken("");
+        service.InvalidateToken("   ");
+    }
+
     private static CsrfTokenService CreateService(IMemoryCache? cache = null, int lifetimeHours = 24)
     {
         var monitor = new OptionsMonitorStub(new CsrfOptions

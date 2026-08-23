@@ -5,6 +5,8 @@ import { apiClient } from './config';
 import { buildLoginPayload, type LoginRequest } from './loginPayload';
 import { normalizeLoginError } from '../../features/auth/authErrors';
 import { sessionManager } from '../session/sessionManager';
+import { getOfflineStorage } from '../offline/offlineStorage';
+import { clearPendingPaymentQueue } from '../payment/pendingPaymentQueue';
 
 export { buildLoginPayload, type LoginRequest } from './loginPayload';
 const isDev = __DEV__;
@@ -110,6 +112,20 @@ export const logout = async (): Promise<void> => {
       console.warn('Backend logout call failed (non-critical):', error);
     }
   } finally {
+    try {
+      await getOfflineStorage().clearAll();
+    } catch (queueError) {
+      if (isDev) {
+        console.warn('Offline order queue clear on logout failed (non-critical):', queueError);
+      }
+    }
+    try {
+      await clearPendingPaymentQueue();
+    } catch (paymentQueueError) {
+      if (isDev) {
+        console.warn('Offline payment queue clear on logout failed (non-critical):', paymentQueueError);
+      }
+    }
     await sessionManager.clearSession();
   }
 };

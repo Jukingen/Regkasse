@@ -328,6 +328,12 @@ Content-Type: application/json
 3. Forced password change → `/force-password-change` when `mustChangePasswordOnNextLogin` (JWT claim and/or `/me`).
 4. **SuperAdmin 2FA** (TOTP) when enabled — see [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md); Dev may bypass.
 
+### Logout
+
+`POST /api/Auth/logout` with cookies (`withCredentials`, `X-App-Context: admin`). HttpOnly JWTs are cleared by the API; `useAuth.logout` then clears Edge session, tenant bootstrap, theme/preferences, React Query, and redirects to `/login`.
+
+Security details (cookie families, SecurityStamp, CSRF): [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
+
 ### Route protection (layers)
 
 See [Auth boundary](#auth-boundary-nextjs-16-proxyts) above. Short version:
