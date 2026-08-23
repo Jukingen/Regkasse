@@ -5,8 +5,10 @@ import {
   VOLUNTARY_CHANGE_PASSWORD_PATH,
 } from '@/features/auth/constants/changePasswordRoute';
 
-/** Same name as client `authStorage.ACCESS_TOKEN_COOKIE_NAME` / localStorage key. */
+/** Same name as backend HttpOnly admin access cookie (`AuthCookies` + FA Edge). */
 export const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
+/** Legacy shared cookie name; still accepted during rollout. */
+export const API_ACCESS_TOKEN_COOKIE = 'access_token';
 /** Compact presence cookie when the JWT cookie is dropped (browser ~4KB limit). */
 export const EDGE_SESSION_COOKIE = 'rk_admin_edge_session';
 
@@ -69,7 +71,9 @@ function getRawToken(request: NextRequest): string | null {
     const t = stripBearer(auth);
     if (t) return t;
   }
-  const fromCookie = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const fromCookie =
+    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ??
+    request.cookies.get(API_ACCESS_TOKEN_COOKIE)?.value;
   if (fromCookie) {
     // Prefer value as returned by Next (already decoded). Fall back if still percent-encoded.
     let t = stripBearer(fromCookie);

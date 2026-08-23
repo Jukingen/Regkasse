@@ -288,7 +288,7 @@ logger.error(err, { code: 'PAYMENT_LIST_FAILED' });
 | Permissions    | `PermissionRouteGuard` + `routePermissions.ts` | Fail-closed permission check; insufficient → inline **403** (`ForbiddenAccessView`).                                                                      |
 
 - **Do not** add `middleware.ts` — Next.js 16 uses `proxy.ts` (named export `proxy`).
-- Access token cookie name must stay aligned: `rk_admin_access_token` (`authStorage` ↔ `proxy.ts`).
+- Access token cookie names: backend HttpOnly `rk_admin_access_token` (readable by Edge when `AuthCookies:Domain` is set), compact `rk_admin_edge_session` (`authStorage` ↔ `proxy.ts`), and legacy `access_token` during rollout. POS uses `rk_pos_*` so sessions do not collide in the same browser.
 - Signature verification remains on the API; the proxy only does optimistic expiry/shape checks.
 
 ### API error messages (user-facing)
@@ -323,8 +323,8 @@ Content-Type: application/json
 
 ### Session after login
 
-1. Tokens stored via `authStorage` (`localStorage` + mirror cookie `rk_admin_access_token` for `proxy.ts`).
-2. Session user/permissions from **`GET /api/Auth/me`** (`useAuth` / `AuthProvider`).
+1. HttpOnly `rk_admin_access_token` / `rk_admin_refresh_token` cookies set by the API; FA marks a compact Edge session cookie (`rk_admin_edge_session`) for `proxy.ts`.
+2. Session user/permissions from **`GET /api/Auth/me`** (`useAuth` / `AuthProvider`) — cookies sent via `withCredentials`.
 3. Forced password change → `/force-password-change` when `mustChangePasswordOnNextLogin` (JWT claim and/or `/me`).
 4. **SuperAdmin 2FA** (TOTP) when enabled — see [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md); Dev may bypass.
 
@@ -713,7 +713,7 @@ npm run test -- src/lib/monitoring/__tests__/webVitalsBudgets.test.ts
 | `/rksv` shows **INVALID** | Value not `TEST`/`PROD` | Fix env and restart/rebuild; production `next build` fails on invalid values. |
 | Env changes ignored | `.env.local` at **repo root** or only runtime env after image build | Place env in **`frontend-admin/.env.local`**; `NEXT_PUBLIC_*` must exist **before** `next build` / `next dev` compile. |
 | **API client out of sync** / Orval types wrong | `swagger.json` or `src/api/generated` drifted | From repo root: `node scripts/generate-backend-openapi.mjs` → `cd frontend-admin && npm run generate:api` → `node scripts/verify-api-client.mjs`. CI: `api-client-alignment.yml`. |
-| Redirect loop / always `/login` | Missing/expired JWT cookie | Clear site data; log in again; confirm `authStorage` writes `rk_admin_access_token` cookie for `proxy.ts`. |
+| Redirect loop / always `/login` | Missing/expired session cookie | Clear site data; log in again; confirm API set HttpOnly `rk_admin_access_token` and FA wrote `rk_admin_edge_session`. |
 | Inline **403** with sidebar visible | Authenticated but missing route permission | Expected (`PermissionRouteGuard`). Check role matrix / `ROUTE_PERMISSIONS`. |
 | Wrong tenant data in **Development** | Stale `dev_tenant_id` / switcher | Use header tenant switcher; confirm `X-Tenant-Id` on requests; backend must be Development. |
 | Production tenant header ignored | `X-Tenant-Id` not used in Production | Correct — use JWT / impersonation. See [`docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md). |

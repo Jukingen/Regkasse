@@ -9,6 +9,14 @@ export const SESSION_KEYS = {
   tokenExpiry: 'tokenExpiry',
 } as const;
 
+/**
+ * POS session source of truth is SecureStore (native) / localStorage fallback (web).
+ * Backend may also set HttpOnly `rk_pos_access_token` / `rk_pos_refresh_token` on login;
+ * those names are distinct from FA `rk_admin_*` so the same browser does not collide.
+ */
+export const POS_ACCESS_TOKEN_COOKIE = 'rk_pos_access_token';
+export const POS_REFRESH_TOKEN_COOKIE = 'rk_pos_refresh_token';
+
 export interface StoredSessionUser {
   id: string;
   username?: string;

@@ -19,7 +19,6 @@ import {
   putApiUserManagementId,
   putApiUserManagementIdResetPassword,
 } from '@/api/generated/user-management/user-management';
-import { authStorage } from '@/features/auth/services/authStorage';
 import { customInstance } from '@/lib/axios';
 
 import {
@@ -115,18 +114,10 @@ export async function updateUser(id: string, data: UpdateUserRequest): Promise<v
   return putApiUserManagementId(id, data);
 }
 
-/** Reset password (admin): ensures Bearer token is sent; fails fast if not authenticated. */
+/** Reset password (admin). Session is the HttpOnly cookie (withCredentials). */
 export async function resetPassword(id: string, data: ResetPasswordRequest): Promise<void> {
-  const token = typeof window !== 'undefined' ? authStorage.getToken() : null;
-  if (!token) {
-    return Promise.reject(
-      Object.assign(new Error('Nicht angemeldet. Bitte erneut anmelden.'), {
-        response: { status: 401, data: { message: 'Nicht angemeldet. Bitte erneut anmelden.' } },
-      })
-    );
-  }
   return putApiUserManagementIdResetPassword(id, data, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 

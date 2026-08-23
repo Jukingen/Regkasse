@@ -339,6 +339,8 @@ internal static class ApplicationHost
                 (opts, env) => env.IsDevelopment() || opts.RequireTenantMembershipForLogin,
                 "Auth:RequireTenantMembershipForLogin must be true when ASPNETCORE_ENVIRONMENT is not Development.")
             .ValidateOnStart();
+        builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection(AuthCookieOptions.SectionName));
+        builder.Services.AddSingleton<IAuthCookieService, AuthCookieService>();
         builder.Services.Configure<SessionPolicyOptions>(builder.Configuration.GetSection(SessionPolicyOptions.SectionName));
         builder.Services.Configure<TemporaryPermissionsOptions>(
             builder.Configuration.GetSection(TemporaryPermissionsOptions.SectionName));
@@ -644,6 +646,23 @@ internal static class ApplicationHost
                         var accessToken = context.Request.Query["access_token"];
                         if (!string.IsNullOrEmpty(accessToken))
                             context.Token = accessToken;
+                    }
+
+                    // Prefer Authorization: Bearer when present (POS / explicit header).
+                    // Browser FA sends HttpOnly rk_admin_access_token via withCredentials.
+                    // POS web may send rk_pos_access_token; X-App-Context / Origin picks the right cookie.
+                    if (string.IsNullOrEmpty(context.Token))
+                    {
+                        var authorization = context.Request.Headers.Authorization.ToString();
+                        if (string.IsNullOrEmpty(authorization)
+                            || !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var cookieAuth = context.HttpContext.RequestServices
+                                .GetService<IAuthCookieService>();
+                            var cookieToken = cookieAuth?.ReadAccessToken(context.HttpContext.Request);
+                            if (!string.IsNullOrEmpty(cookieToken))
+                                context.Token = cookieToken;
+                        }
                     }
 
                     return Task.CompletedTask;

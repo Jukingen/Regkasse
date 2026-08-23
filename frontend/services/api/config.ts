@@ -265,6 +265,7 @@ axiosInstance.interceptors.request.use(
 
     config.headers = config.headers ?? {};
     config.headers['Accept-Language'] = 'de';
+    config.headers['X-App-Context'] = 'pos';
 
     if (requestNeedsCsrf(config.method, config.url)) {
       try {

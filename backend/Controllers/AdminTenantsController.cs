@@ -7,6 +7,7 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.ActivityReports;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
@@ -657,6 +658,19 @@ public sealed class AdminTenantsController : ControllerBase
             return BadRequest(new { message = error });
 
         _logger.LogInformation("Impersonation token issued for tenant {TenantId} by {ActorUserId}", tenantId, actorId);
+
+        var accessExpires = DateTime.UtcNow.AddSeconds(Math.Max(60, result!.ExpiresIn));
+        var cookieAuth = HttpContext.Features
+            .Get<Microsoft.AspNetCore.Http.Features.IServiceProvidersFeature>()
+            ?.RequestServices
+            ?.GetService<IAuthCookieService>();
+        cookieAuth?.AppendAuthCookies(
+            Response,
+            result.Token,
+            result.RefreshToken,
+            accessExpires,
+            result.RefreshTokenExpiresAtUtc,
+            ClientAppPolicy.Admin);
 
         try
         {

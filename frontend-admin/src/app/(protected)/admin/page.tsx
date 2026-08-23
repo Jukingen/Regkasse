@@ -8,7 +8,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { SuperAdminTenantSelector } from '@/features/super-admin/components/SuperAdminTenantSelector';
 import { useSuperAdminTenantMode } from '@/features/tenancy/hooks/useSuperAdminTenantMode';
-import { TenantInfoCard } from '@/features/tenant/components/TenantInfoCard';
+import { TenantHeader } from '@/shared/components/TenantHeader';
 
 /**
  * Platform admin landing (`/admin`). Super Admin on `admin.*` without mandant → tenant hub;
@@ -48,7 +48,7 @@ export default function AdminPlatformPage() {
   if (!requiresTenantSelection) {
     return (
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-        <TenantInfoCard />
+        <TenantHeader />
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
           <Spin />
         </div>
@@ -56,10 +56,5 @@ export default function AdminPlatformPage() {
     );
   }
 
-  return (
-    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <TenantInfoCard />
-      <SuperAdminTenantSelector />
-    </Space>
-  );
+  return <SuperAdminTenantSelector />;
 }

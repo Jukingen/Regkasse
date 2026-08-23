@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ACCESS_TOKEN_COOKIE,
+  API_ACCESS_TOKEN_COOKIE,
   EDGE_SESSION_COOKIE,
   EXP_LEEWAY_SEC,
   isPublicPath,
@@ -113,6 +114,17 @@ describe('proxy auth boundary', () => {
     headers.set('next-router-state-tree', '%5B%22%22%5D');
     const res = proxy(
       new NextRequest(new URL('/login', 'http://admin.regkasse.local:3000'), { headers })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('allows /dashboard when backend HttpOnly access_token cookie is present', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = makeJwt({ exp: now + 3600, sub: 'u1' });
+    const res = proxy(
+      requestFor('/dashboard', {
+        cookie: `${API_ACCESS_TOKEN_COOKIE}=${encodeURIComponent(token)}`,
+      })
     );
     expect(res.status).toBe(200);
   });

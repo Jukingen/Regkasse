@@ -35,6 +35,7 @@ type LoginFormValues = {
 type LoginApiResponse = {
   token?: string;
   refreshToken?: string | null;
+  expiresAt?: string | null;
   requires2FA?: boolean;
   requires2FASetup?: boolean;
   twoFactorToken?: string;
@@ -70,28 +71,25 @@ export const LoginForm: FC = () => {
   ) => {
     const token = loginResponse?.token;
     const refreshToken = loginResponse?.refreshToken;
+    const expiresAt = (loginResponse as LoginApiResponse)?.expiresAt;
 
-    if (token) {
-      await persistLoginTokensAndSettle(token, refreshToken);
-      const loginUser = loginResponse?.user;
-      tenantStorage.persistBootstrap({
-        tenantId: loginUser?.tenantId,
-        tenantSlug: loginUser?.tenantSlug,
-      });
-      // In development, automatically prefer "dev" when login resolved unused legacy `default` / platform slug.
-      // Do not pair legacy JWT tenant id with slug `dev` — HeaderDevTenantSwitch / TenantGuard rebind correctly.
-      if (process.env.NODE_ENV === 'development') {
-        const slug = loginUser?.tenantSlug?.trim().toLowerCase() ?? '';
-        // Silent: must not fire DEV_TENANT_CHANGED_EVENT (that clears JWT via useTenantChangeListener).
-        if (!slug || slug === 'platform' || slug === 'admin') {
-          writeDevTenantSlug('dev', undefined, { silent: true });
-        } else if (slug === 'dev') {
-          writeDevTenantSlug('dev', loginUser?.tenantId, { silent: true });
-        }
-        technicalConsole.devLog(
-          '[LoginForm] JWT token pair saved to local storage (shared across tabs)'
-        );
+    await persistLoginTokensAndSettle(token, refreshToken, expiresAt);
+    const loginUser = loginResponse?.user;
+    tenantStorage.persistBootstrap({
+      tenantId: loginUser?.tenantId,
+      tenantSlug: loginUser?.tenantSlug,
+    });
+    // In development, automatically prefer "dev" when login resolved unused legacy `default` / platform slug.
+    // Do not pair legacy JWT tenant id with slug `dev` — HeaderDevTenantSwitch / TenantGuard rebind correctly.
+    if (process.env.NODE_ENV === 'development') {
+      const slug = loginUser?.tenantSlug?.trim().toLowerCase() ?? '';
+      // Silent: must not fire DEV_TENANT_CHANGED_EVENT (that clears JWT via useTenantChangeListener).
+      if (!slug || slug === 'platform' || slug === 'admin') {
+        writeDevTenantSlug('dev', undefined, { silent: true });
+      } else if (slug === 'dev') {
+        writeDevTenantSlug('dev', loginUser?.tenantId, { silent: true });
       }
+      technicalConsole.devLog('[LoginForm] HttpOnly session cookies set by API; Edge session marked');
     }
 
     message.success(t('common.auth.loginSuccess'));

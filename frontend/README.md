@@ -340,7 +340,7 @@ The login field accepts both formats. Usernames are generated automatically when
 1. Cashier enters email **or** username in the login field (`frontend/app/(auth)/login.tsx`).
 2. App calls `POST /api/Auth/login` with `loginIdentifier` (and legacy `email` for compatibility) plus `clientApp: "pos"` (`frontend/services/api/authService.ts`, `contexts/AuthContext.tsx`).
 3. Backend resolves the user by email, then by username, validates password and POS role policy.
-4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap.
+4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap in **SecureStore** (native) / localStorage (web). Backend also sets HttpOnly `rk_pos_*` cookies (distinct from FA `rk_admin_*`) so a shared browser does not collide.
 
 **Examples:**
 

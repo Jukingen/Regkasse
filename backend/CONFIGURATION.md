@@ -159,6 +159,25 @@ Live hit rates: fill the table in `docs/CACHE_OPTIMIZATION.md` §2 after the obs
 | Refresh token lifetime | `Auth:RefreshTokenLifetimeDays` | `Auth__RefreshTokenLifetimeDays` | Default 14. |
 | Legacy login without clientApp | `Auth:AllowLegacyLoginWithoutClientApp` | `Auth__AllowLegacyLoginWithoutClientApp` | Production/Staging: `false`. |
 
+### Auth cookies (`AuthCookies`)
+
+HttpOnly cookies for **browser** sessions, split by `clientApp` so FA and POS in the same browser do not overwrite each other:
+
+| App | Access cookie | Refresh cookie |
+|-----|---------------|----------------|
+| FA (`admin`) | `rk_admin_access_token` | `rk_admin_refresh_token` |
+| POS (`pos`) | `rk_pos_access_token` | `rk_pos_refresh_token` |
+
+POS/native still uses JSON `token` / `refreshToken` (SecureStore) as the source of truth; Bearer header wins when present. Legacy `access_token` / `refresh_token` are still **read and expired** so leftover shared cookies do not collide. JWT Bearer header wins when present. Cookie pick when both apps are logged in: `X-App-Context` / `RefreshRequest.clientApp` / Origin (`admin.*` vs `pos.*`), else admin then POS.
+
+| Setting | JSON path | Notes |
+|--------|------------|--------|
+| Enabled | `AuthCookies:Enabled` | Default `true`. |
+| Legacy aliases | `AuthCookies:AccessCookieName` / `RefreshCookieName` | Extra names to read/clear (defaults `access_token` / `refresh_token`). Writes always use `rk_admin_*` / `rk_pos_*`. |
+| Domain | `AuthCookies:Domain` | Production: `.regkasse.at` so Edge `proxy.ts` can read the HttpOnly **admin** access cookie (`rk_admin_access_token`). Empty = host-only (API origin). |
+| SameSite | `AuthCookies:SameSite` | Production `Lax` (same-site admin↔api). Development `None` so cross-site `admin.regkasse.local` → `localhost` XHR sends cookies (`Secure` is forced). |
+| Secure | `AuthCookies:Secure` | Default off in Development / on otherwise. `SameSite=None` always forces `Secure=true`. |
+
 ### SuperAdmin two-factor authentication (`TwoFactorAuth`)
 
 Hub: [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md).

@@ -15,7 +15,7 @@ It is the working backlog for FA security improvements until the next quarterly 
 | Area | Result |
 | ---- | ------ |
 | **Critical app bugs (XSS RCE, etc.)** | None found |
-| **Highest app risks** | JWT in `localStorage` + non-HttpOnly cookie; impersonation tokens in URL fragment |
+| **Highest app risks** | Impersonation tokens in URL fragment (FA-SEC-002); JWTs no longer in `localStorage` (FA-SEC-001 mitigated) |
 | **`npm audit` (after safe fix)** | **16** findings (10 critical / 3 high / 3 moderate) — mostly **dev-time Orval** + Next nested PostCSS; **no force-fix applied** (would break Next/Orval) |
 | **Dependabot** | Enabled weekly for `/frontend-admin` (version updates). **Snyk:** not configured in-repo |
 | **SQL / NoSQL injection in FA** | N/A — no DB drivers; API owns queries |
@@ -74,7 +74,7 @@ Status: Open · Planned · Mitigated · Accepted
 
 | ID | Sev | Category | Title | Status | Evidence |
 | -- | --- | -------- | ----- | ------ | -------- |
-| FA-SEC-001 | **High** | Auth / Exposure | JWTs in `localStorage` + JS-readable cookie (no HttpOnly) | Open | `src/features/auth/services/authStorage.ts` |
+| FA-SEC-001 | **High** | Auth / Exposure | JWTs in `localStorage` + JS-readable cookie (no HttpOnly) | Mitigated | HttpOnly `rk_admin_access_token`/`rk_admin_refresh_token` (API); FA only stores Edge presence + tenant metadata |
 | FA-SEC-002 | **High** | Auth / Exposure | Impersonation handoff puts tokens in URL `#fragment` | Open | `impersonationHandoff.ts`, `ImpersonateCallback.tsx` |
 | FA-SEC-003 | Medium | Auth | Edge `proxy.ts` checks JWT shape/`exp` only (no signature) | Accepted* | `src/proxy.ts` (+ tests forge unsigned JWTs) |
 | FA-SEC-004 | Medium | Auth | Edge protect-list incomplete — many routes fail-open at proxy | Open | `PROTECTED_PREFIXES` omit `/backup`, `/payments`, `/products`, … |
@@ -136,7 +136,7 @@ Status: Open · Planned · Mitigated · Accepted
 
 | ID | Action | Effort | Owner hint |
 | -- | ------ | ------ | ---------- |
-| FA-SEC-001 | Migrate session toward **HttpOnly Secure** cookies (BFF or API-issued); shrink/remove `localStorage` tokens | Large | FA + Backend |
+| FA-SEC-001 | ~~Migrate session toward HttpOnly cookies~~ **Done** — API-issued HttpOnly cookies + FA Edge presence cookie | — | FA + Backend |
 | FA-SEC-002 | Replace fragment handoff with one-time code / same-origin session swap; never put refresh token in URL | Large | FA + Backend |
 | FA-DEP-001 | Upgrade Orval to 8.x; regenerate clients; run `verify-api-client` + contract tests | Large | FA |
 | FA-SEC-005 | CSP: nonces for theme bootstrap; remove `'unsafe-eval'` if build allows | Medium | FA |

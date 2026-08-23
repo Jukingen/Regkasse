@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// FA <c>proxy.ts</c> mirrors the access JWT in a non-HttpOnly cookie. Browsers drop cookies above ~4KB.
-/// Keep issued tokens under this budget (aligned with FA <c>MAX_ACCESS_TOKEN_COOKIE_CHARS</c> = 3500).
+/// Access JWT is stored in an HttpOnly cookie (`rk_admin_access_token` for FA). Browsers drop cookies above ~4KB.
+/// Keep issued tokens under this budget (aligned with FA cookie budget = 3500 bytes).
 /// </summary>
 public static class JwtCookieBudget
 {

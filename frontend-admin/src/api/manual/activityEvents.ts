@@ -1,4 +1,3 @@
-import { authStorage } from '@/features/auth/services/authStorage';
 import { resolveTenantSlugForApiRequest } from '@/features/auth/services/devTenant';
 import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
 import { AXIOS_INSTANCE } from '@/lib/axios';
@@ -225,10 +224,6 @@ export async function connectActivityStream(
   const headers: Record<string, string> = {
     Accept: 'text/event-stream',
   };
-  const token = authStorage.getToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
   const tenantSlug = resolveTenantSlugForApiRequest();
   if (tenantSlug) {
     headers[TENANT_HTTP_HEADER] = tenantSlug;
@@ -239,6 +234,7 @@ export async function connectActivityStream(
     response = await fetch(`${API_BASE}/api/admin/activities/stream`, {
       method: 'GET',
       headers,
+      credentials: 'include',
       signal,
     });
   } catch (error) {

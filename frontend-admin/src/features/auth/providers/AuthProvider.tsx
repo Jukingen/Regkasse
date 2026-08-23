@@ -4,7 +4,7 @@
  * Auth session context — bridges React Query `/me` bootstrap to consumers that expect a provider.
  * Permissions come from GET `/api/Auth/me` (not a separate admin permissions API).
  *
- * Login flow remains in `LoginForm` (Orval login + `fetchAuthUser` cache warm).
+ * Login flow remains in `LoginForm` (Orval login + cookie session + `fetchAuthUser` cache warm).
  */
 import { useQueryClient } from '@tanstack/react-query';
 import React, { type ReactNode, createContext, useContext, useMemo } from 'react';

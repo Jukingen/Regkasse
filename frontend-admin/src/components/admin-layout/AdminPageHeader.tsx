@@ -32,8 +32,8 @@ export function AdminPageHeader({
   const right = actions ?? extra;
   return (
     <div style={{ marginBottom: 24 }}>
-      {/* Auto-derive from pathname when pages omit explicit crumbs (platform IA groups included). */}
-      <Breadcrumb items={breadcrumbs} />
+      {/* Below compact TenantHeader (layout / Verwaltung gate). Extra top gap keeps the trail readable. */}
+      <Breadcrumb items={breadcrumbs} style={{ marginTop: 4, marginBottom: 16 }} />
 
       <header>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

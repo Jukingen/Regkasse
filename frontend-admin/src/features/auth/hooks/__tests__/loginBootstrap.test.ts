@@ -18,7 +18,9 @@ vi.mock('@/features/auth/services/authStorage', () => ({
     setToken: vi.fn(),
     setRefreshToken: vi.fn(),
     setTokens: vi.fn(),
-    getToken: vi.fn(() => 'access-abc'),
+    getToken: vi.fn(() => null),
+    hasToken: vi.fn(() => true),
+    markSession: vi.fn(),
   },
 }));
 
@@ -30,7 +32,7 @@ describe('login bootstrap helpers', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
-    vi.mocked(authStorage.getToken).mockReturnValue('access-abc');
+    vi.mocked(authStorage.hasToken).mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -95,7 +97,7 @@ describe('login bootstrap helpers', () => {
   });
 
   it('fetchAuthUserWithRetry does not retry when token was cleared', async () => {
-    vi.mocked(authStorage.getToken).mockReturnValue(null);
+    vi.mocked(authStorage.hasToken).mockReturnValue(false);
     vi.mocked(customInstance).mockRejectedValue({ response: { status: 401 } });
 
     await expect(fetchAuthUserWithRetry(3, 100)).rejects.toMatchObject({

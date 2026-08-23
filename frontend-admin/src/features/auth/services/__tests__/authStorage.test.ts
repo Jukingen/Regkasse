@@ -3,12 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
   EDGE_SESSION_COOKIE_NAME,
-  MAX_ACCESS_TOKEN_COOKIE_CHARS,
   authStorage,
-  readAccessTokenCookie,
 } from '../authStorage';
 
-describe('authStorage cookie + localStorage mirror', () => {
+describe('authStorage cookie session (no JWT in localStorage)', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -24,35 +22,48 @@ describe('authStorage cookie + localStorage mirror', () => {
     authStorage.removeToken();
   });
 
-  it('setToken writes memory, localStorage, and proxy cookie', () => {
-    const jwt = 'header.payload.signature';
+  it('setToken writes edge session cookie and expiry metadata, not the JWT', () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const payload = btoa(JSON.stringify({ exp, tenant_impersonation: false }));
+    const jwt = `header.${payload}.signature`;
     authStorage.setToken(jwt);
 
-    expect(authStorage.getToken()).toBe(jwt);
-    expect(window.localStorage.getItem('rk_admin_access_token')).toBe(jwt);
-    expect(readAccessTokenCookie()).toBe(jwt);
-    expect(document.cookie).toContain(`${ACCESS_TOKEN_COOKIE_NAME}=`);
+    expect(authStorage.getToken()).toBeNull();
+    expect(window.localStorage.getItem('rk_admin_access_token')).toBeNull();
+    expect(document.cookie).not.toContain(jwt);
     expect(document.cookie).toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
+    expect(authStorage.hasToken()).toBe(true);
+    expect(authStorage.getAccessExpiresAtMs()).toBe(exp * 1000);
   });
 
-  it('setTokens writes access cookie and refresh localStorage only', () => {
+  it('setTokens marks impersonation without storing refresh token', () => {
     authStorage.setTokens({
       accessToken: 'aaa.bbb.ccc',
       refreshToken: 'refresh-secret',
+      impersonating: true,
     });
 
-    expect(authStorage.getToken()).toBe('aaa.bbb.ccc');
-    expect(readAccessTokenCookie()).toBe('aaa.bbb.ccc');
-    expect(authStorage.getRefreshToken()).toBe('refresh-secret');
+    expect(authStorage.getRefreshToken()).toBeNull();
+    expect(window.localStorage.getItem('rk_admin_refresh_token')).toBeNull();
     expect(document.cookie).not.toContain('refresh-secret');
+    expect(authStorage.isImpersonating()).toBe(true);
+    expect(authStorage.hasToken()).toBe(true);
   });
 
-  it('skips oversized JWT cookie and still writes compact edge session cookie', () => {
-    const hugeJwt = `hdr.${'a'.repeat(MAX_ACCESS_TOKEN_COOKIE_CHARS)}.sig`;
-    authStorage.setToken(hugeJwt);
-
-    expect(window.localStorage.getItem('rk_admin_access_token')).toBe(hugeJwt);
-    expect(readAccessTokenCookie()).toBeNull();
+  it('markSession writes only the compact edge cookie', () => {
+    authStorage.markSession(new Date('2026-08-23T12:00:00Z'));
     expect(document.cookie).toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
+    expect(document.cookie).not.toContain(`${ACCESS_TOKEN_COOKIE_NAME}=`);
+    expect(authStorage.getAccessExpiresAtMs()).toBe(Date.parse('2026-08-23T12:00:00Z'));
+  });
+
+  it('removeToken clears edge cookie, legacy keys, and tenant bootstrap', () => {
+    window.localStorage.setItem('rk_admin_access_token', 'legacy-jwt');
+    authStorage.markSession();
+    authStorage.removeToken();
+
+    expect(authStorage.hasToken()).toBe(false);
+    expect(window.localStorage.getItem('rk_admin_access_token')).toBeNull();
+    expect(document.cookie).not.toContain(`${EDGE_SESSION_COOKIE_NAME}=1`);
   });
 });

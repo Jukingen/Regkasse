@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  applyImpersonationHandoffFromFragment,
-  buildImpersonationRedirectUrl,
-} from '@/features/auth/lib/tokenHandler';
+import { applyImpersonationHandoffFromFragment, buildImpersonationRedirectUrl } from '@/features/auth/lib/tokenHandler';
+import { authStorage } from '@/features/auth/services/authStorage';
 import type { TenantImpersonationResponse } from '@/features/super-admin/api/adminTenants';
 
 function b64urlJson(value: unknown): string {
@@ -51,7 +49,8 @@ describe('tokenHandler', () => {
     const hash = `#impersonate_token=${encodeURIComponent(token)}&tenant=dev`;
     const result = applyImpersonationHandoffFromFragment(hash, 'dev');
     expect(result.ok).toBe(true);
-    expect(window.localStorage.getItem('rk_admin_access_token')).toBe(token);
+    expect(authStorage.hasToken()).toBe(true);
+    expect(window.localStorage.getItem('rk_admin_access_token')).toBeNull();
     expect(window.history.replaceState).toHaveBeenCalled();
   });
 });

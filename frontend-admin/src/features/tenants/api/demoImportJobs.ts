@@ -7,7 +7,6 @@ import {
 } from '@microsoft/signalr';
 
 import type { DemoImportRequest, DemoProductImportResult } from '@/api/admin/products';
-import { authStorage } from '@/features/auth/services/authStorage';
 import { customInstance } from '@/lib/axios';
 
 export type DemoImportJobStatus = 'Queued' | 'Running' | 'Completed' | 'Failed' | 'Cancelled';
@@ -196,31 +195,28 @@ export async function runDemoImportWithProgress(
 ): Promise<DemoImportProgress> {
   const started = await startDemoImportJob(request, tenantId);
   const jobId = started.jobId;
-  const token = authStorage.getToken();
 
   let connection: HubConnection | null = null;
 
-  if (token) {
-    try {
-      const hubUrl = `${getApiBaseUrl()}/hubs/demo-import-progress`;
-      connection = new HubConnectionBuilder()
-        .withUrl(hubUrl, { accessTokenFactory: () => token })
-        .withAutomaticReconnect(demoImportReconnectPolicy)
-        .configureLogging(LogLevel.Warning)
-        .build();
+  try {
+    const hubUrl = `${getApiBaseUrl()}/hubs/demo-import-progress`;
+    connection = new HubConnectionBuilder()
+      .withUrl(hubUrl, { withCredentials: true })
+      .withAutomaticReconnect(demoImportReconnectPolicy)
+      .configureLogging(LogLevel.Warning)
+      .build();
 
-      await connection.start();
-      await connection.invoke('SubscribeToJob', jobId);
-    } catch {
-      if (connection) {
-        try {
-          await connection.stop();
-        } catch {
-          // ignore
-        }
+    await connection.start();
+    await connection.invoke('SubscribeToJob', jobId);
+  } catch {
+    if (connection) {
+      try {
+        await connection.stop();
+      } catch {
+        // ignore
       }
-      connection = null;
     }
+    connection = null;
   }
 
   try {

@@ -658,6 +658,13 @@ namespace KasseAPI_Final.Controllers
                 description: $"Login success (clientApp={resolvedClientApp ?? "legacy"})",
                 status: AuditLogStatus.Success).ConfigureAwait(false);
 
+            WriteAuthCookies(
+                issuedTokens.AccessToken,
+                issuedTokens.RefreshToken,
+                issuedTokens.AccessTokenExpiresAtUtc,
+                issuedTokens.RefreshTokenExpiresAtUtc,
+                resolvedClientApp);
+
             return Ok(response);
         }
 
@@ -760,6 +767,9 @@ namespace KasseAPI_Final.Controllers
                     "Logout successful for user: {UserEmail} ({UserId})",
                     userLogLabel,
                     userLogId);
+                ClearAuthCookies(
+                    User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
+                    ?? ResolveAuthCookieClientApp(null));
                 return Ok(new { success = true, message = "Logout successful" });
             }
             catch (Exception ex)
@@ -898,26 +908,37 @@ namespace KasseAPI_Final.Controllers
         /// Rotates refresh + access tokens (opaque refresh rotation, reuse detection).
         /// Used by FA silent proactive refresh (~5 min before JWT <c>exp</c>) and 401 recovery.
         /// Optional <see cref="RefreshRequest.TenantId"/> rebinds JWT <c>tenant_id</c>.
+        /// Browser clients may omit the body token — the HttpOnly app-specific refresh cookie is used
+        /// (<c>rk_admin_refresh_token</c> or <c>rk_pos_refresh_token</c>).
         /// </summary>
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest model)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest? model)
         {
             try
             {
                 _logger.LogInformation("Refresh token request received");
 
-                if (string.IsNullOrWhiteSpace(model.RefreshToken))
+                var refreshClientApp = ResolveAuthCookieClientApp(model?.ClientApp);
+                var refreshToken = model?.RefreshToken;
+                if (string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    refreshToken = TryGetAuthCookieService()?.ReadRefreshToken(Request, refreshClientApp);
+                }
+
+                if (string.IsNullOrWhiteSpace(refreshToken))
                 {
                     return BadRequest(new { message = "Refresh token is required" });
                 }
 
                 var refreshCt = HttpContext?.RequestAborted ?? CancellationToken.None;
-                var tenantOverride = model.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
+                var tenantOverride = model?.TenantId is Guid tid && tid != Guid.Empty ? tid : (Guid?)null;
 
                 var result = await _refreshTokenService.RotateAsync(
-                    model.RefreshToken,
+                    refreshToken,
                     async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
                     {
+                        if (!string.IsNullOrWhiteSpace(clientApp))
+                            refreshClientApp = clientApp;
                         var user = await _userManager.FindByIdAsync(tokenUserId);
                         if (user == null)
                             throw new InvalidOperationException("Refresh token user not found");
@@ -948,10 +969,20 @@ namespace KasseAPI_Final.Controllers
                     }
 
                     var code = result.ReuseDetected ? "refresh_token_reuse_detected" : result.ErrorCode;
+                    if (result.ReuseDetected)
+                    {
+                        ClearAuthCookies(refreshClientApp);
+                    }
                     return Unauthorized(new { message = "Refresh failed", code });
                 }
 
                 var accessExpiresAt = result.Tokens.AccessTokenExpiresAtUtc;
+                WriteAuthCookies(
+                    result.Tokens.AccessToken,
+                    result.Tokens.RefreshToken,
+                    accessExpiresAt,
+                    result.Tokens.RefreshTokenExpiresAtUtc,
+                    refreshClientApp);
                 return Ok(new
                 {
                     token = result.Tokens.AccessToken,
@@ -1110,6 +1141,7 @@ namespace KasseAPI_Final.Controllers
 
             await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
             await TryLogLogoutAuditAsync(userId, reason: "logout_all");
+            ClearAuthCookies(clientApp: null);
             return Ok(new { message = "All sessions invalidated" });
         }
 
@@ -1129,12 +1161,19 @@ namespace KasseAPI_Final.Controllers
         private void BlacklistCurrentAccessToken()
         {
             var authHeader = Request.Headers.Authorization.ToString();
-            if (string.IsNullOrWhiteSpace(authHeader))
-                return;
+            string? token = null;
+            if (!string.IsNullOrWhiteSpace(authHeader))
+            {
+                token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                    ? authHeader[7..].Trim()
+                    : authHeader.Trim();
+            }
 
-            var token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                ? authHeader[7..].Trim()
-                : authHeader.Trim();
+            token ??= TryGetAuthCookieService()?.ReadAccessToken(
+                Request,
+                User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value
+                ?? ResolveAuthCookieClientApp(null));
+
             if (string.IsNullOrEmpty(token))
                 return;
 
@@ -1211,6 +1250,35 @@ namespace KasseAPI_Final.Controllers
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = Request.Headers.UserAgent.FirstOrDefault();
             return new SessionClientMetadata(deviceId, ip, userAgent);
+        }
+
+        private void WriteAuthCookies(
+            string accessToken,
+            string refreshToken,
+            DateTime accessExpiresUtc,
+            DateTime refreshExpiresUtc,
+            string? clientApp)
+        {
+            TryGetAuthCookieService()
+                ?.AppendAuthCookies(Response, accessToken, refreshToken, accessExpiresUtc, refreshExpiresUtc, clientApp);
+        }
+
+        private void ClearAuthCookies(string? clientApp = null)
+        {
+            TryGetAuthCookieService()?.ClearAuthCookies(Response, clientApp);
+        }
+
+        private string? ResolveAuthCookieClientApp(string? explicitClientApp)
+        {
+            return AuthCookieService.ResolveClientApp(Request, explicitClientApp);
+        }
+
+        private IAuthCookieService? TryGetAuthCookieService()
+        {
+            var services = HttpContext?.Features
+                .Get<Microsoft.AspNetCore.Http.Features.IServiceProvidersFeature>()
+                ?.RequestServices;
+            return services?.GetService<IAuthCookieService>();
         }
 
         private string GenerateJwtToken(IReadOnlyList<Claim> baseClaims, string jti, Guid sessionId, DateTime expiresAtUtc)
