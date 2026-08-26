@@ -68,6 +68,7 @@ describe('expoAppConstants', () => {
 describe('expoPublicEnv', () => {
   const prevApi = process.env.EXPO_PUBLIC_API_BASE_URL;
   const prevTenant = process.env.EXPO_PUBLIC_DEV_TENANT_ID;
+  const prevGutschein = process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN;
 
   beforeEach(() => {
     jest.resetModules();
@@ -78,6 +79,8 @@ describe('expoPublicEnv', () => {
     else process.env.EXPO_PUBLIC_API_BASE_URL = prevApi;
     if (prevTenant == null) delete process.env.EXPO_PUBLIC_DEV_TENANT_ID;
     else process.env.EXPO_PUBLIC_DEV_TENANT_ID = prevTenant;
+    if (prevGutschein == null) delete process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN;
+    else process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN = prevGutschein;
   });
 
   it('trims and drops empty public env values', () => {
@@ -90,9 +93,11 @@ describe('expoPublicEnv', () => {
 
     process.env.EXPO_PUBLIC_API_BASE_URL = ' http://localhost:5184/api ';
     process.env.EXPO_PUBLIC_DEV_TENANT_ID = 'dev';
+    process.env.EXPO_PUBLIC_ENABLE_OFFLINE_GUTSCHEIN = 'false';
 
     const snap = getExpoPublicEnvSnapshot();
     expect(snap.apiBaseUrl).toBe('http://localhost:5184/api');
     expect(snap.devTenantId).toBe('dev');
+    expect(snap.enableOfflineGutschein).toBe('false');
   });
 });

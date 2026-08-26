@@ -50,6 +50,10 @@ import type {
   AdminOfflineTransactionRetryResponseDto,
   AdminOfflineTransactionsListResponse,
   AdminOfflineTransactionsSummaryDto,
+  AdminOnlinePaymentDto,
+  AdminOnlinePaymentListResponse,
+  AdminOnlinePaymentTestRequest,
+  AdminOnlinePaymentTestResponse,
   AdminOperationsSummaryResponse,
   AdminPaymentDetailDto,
   AdminShiftOverviewDto,
@@ -350,6 +354,7 @@ import type {
   GetApiAdminOfflineTransactionsParams,
   GetApiAdminOnlineOrdersAnalyticsParams,
   GetApiAdminOnlineOrdersParams,
+  GetApiAdminOnlinePaymentsParams,
   GetApiAdminOperationLogsParams,
   GetApiAdminOperationsSummaryParams,
   GetApiAdminPaymentMethodDefinitionsParams,
@@ -15152,6 +15157,168 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminOnlineOrdersIdPaymentIntentMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlinePayments = (
+    params?: GetApiAdminOnlinePaymentsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminOnlinePaymentListResponse>(
+      {url: `/api/admin/online-payments`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOnlinePaymentsQueryKey = (params?: GetApiAdminOnlinePaymentsParams,) => {
+    return [`/api/admin/online-payments`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminOnlinePaymentsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlinePayments>>, TError = unknown>(params?: GetApiAdminOnlinePaymentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePayments>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlinePaymentsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlinePayments>>> = ({ signal }) => getApiAdminOnlinePayments(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePayments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlinePaymentsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlinePayments>>>
+export type GetApiAdminOnlinePaymentsQueryError = unknown
+
+export const useGetApiAdminOnlinePayments = <TData = Awaited<ReturnType<typeof getApiAdminOnlinePayments>>, TError = unknown>(
+ params?: GetApiAdminOnlinePaymentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePayments>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlinePaymentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOnlinePaymentsId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminOnlinePaymentDto>(
+      {url: `/api/admin/online-payments/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOnlinePaymentsIdQueryKey = (id: string,) => {
+    return [`/api/admin/online-payments/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminOnlinePaymentsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlinePaymentsIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>> = ({ signal }) => getApiAdminOnlinePaymentsId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlinePaymentsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>>
+export type GetApiAdminOnlinePaymentsIdQueryError = ProblemDetails
+
+export const useGetApiAdminOnlinePaymentsId = <TData = Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlinePaymentsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlinePaymentsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminOnlinePaymentsTest = (
+    adminOnlinePaymentTestRequest: AdminOnlinePaymentTestRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminOnlinePaymentTestResponse>(
+      {url: `/api/admin/online-payments/test`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminOnlinePaymentTestRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminOnlinePaymentsTestMutationOptions = <TError = AdminOnlinePaymentTestResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>, TError,{data: AdminOnlinePaymentTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>, TError,{data: AdminOnlinePaymentTestRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>, {data: AdminOnlinePaymentTestRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminOnlinePaymentsTest(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOnlinePaymentsTestMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>>
+    export type PostApiAdminOnlinePaymentsTestMutationBody = AdminOnlinePaymentTestRequest
+    export type PostApiAdminOnlinePaymentsTestMutationError = AdminOnlinePaymentTestResponse
+
+    export const usePostApiAdminOnlinePaymentsTest = <TError = AdminOnlinePaymentTestResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>, TError,{data: AdminOnlinePaymentTestRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOnlinePaymentsTest>>,
+        TError,
+        {data: AdminOnlinePaymentTestRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOnlinePaymentsTestMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

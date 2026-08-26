@@ -44,6 +44,7 @@ using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.Metrics;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.OnlinePayments;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Reports;
@@ -1260,6 +1261,7 @@ internal static class ApplicationHost
             builder.Services.AddSingleton<IPaymentGateway, StripeCardGateway>();
         }
         builder.Services.AddScoped<ICardPaymentService, CardPaymentService>();
+        builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
         builder.Services.AddScoped<IAdminCardTransactionListService, AdminCardTransactionListService>();
         builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
@@ -1289,6 +1291,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderTrackingService, OnlineOrderTrackingService>();
         builder.Services.AddScoped<IOnlineOrderStatusService, OnlineOrderStatusService>();
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
+        builder.Services.AddScoped<IOnlinePaymentAdminService, OnlinePaymentAdminService>();
         builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
 
@@ -1472,6 +1475,7 @@ internal static class ApplicationHost
             builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineAlertRules.SectionName));
         builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OrphanIntentCleanupService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();

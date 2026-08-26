@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:contract": "jest __tests__/paymentService.taxTypeNormalization.test.ts __tests__/normalizePosPaymentMethods.test.ts __tests__/phaseDPaymentRequest.test.ts __tests__/posRegisterPaymentGate.test.ts __tests__/integration/api/payment-integration.test.ts",
+    "test:contract": "jest __tests__/paymentService.taxTypeNormalization.test.ts __tests__/normalizePosPaymentMethods.test.ts __tests__/phaseDPaymentRequest.test.ts __tests__/posRegisterPaymentGate.test.ts __tests__/integration/api/payment-integration.test.ts __tests__/contract/pos-payment-contract.test.ts __tests__/paymentService.onlinePayment.test.ts __tests__/parsePaymentResultParams.test.ts __tests__/onlinePaymentStore.test.ts __tests__/onlinePaymentMethods.test.ts __tests__/onlinePaymentService.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:debug": "jest --verbose --detectOpenHandles",

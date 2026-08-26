@@ -42,6 +42,7 @@ import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
+import { DevLoopbackApiBanner } from '../../src/components/dev/DevLoopbackApiBanner';
 import { eventEmitter } from '../../utils/eventEmitter';
 import { formatPrice } from '../../utils/formatPrice';
 import {
@@ -250,6 +251,7 @@ function PosTabsInner({
           </View>
         </View>
         <TimeSyncBanner />
+        <DevLoopbackApiBanner />
         <TseOfflineRestrictionBanner />
         <MonatsbelegSessionBlockModal />
         <StartbelegRequiredBanner />
@@ -340,6 +342,14 @@ function PosTabsInner({
             options={{
               href: null,
               title: 'Admin',
+            }}
+          />
+
+          <Tabs.Screen
+            name="payment"
+            options={{
+              href: null,
+              title: 'Zahlung',
             }}
           />
         </Tabs>

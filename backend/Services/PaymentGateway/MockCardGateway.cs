@@ -52,7 +52,8 @@ public sealed class MockCardGateway : IPaymentGateway
             PaymentIntentId = paymentIntentId.ToString("D"),
             ClientSecret = $"mock_secret_{paymentIntentId:N}",
             Status = PaymentIntentStatus.Created,
-            TransactionId = $"MOCK_TXN_{DateTime.UtcNow:yyyyMMddHHmmss}_{Random.Shared.Next(10000, 99999)}"
+            TransactionId = $"MOCK_TXN_{DateTime.UtcNow:yyyyMMddHHmmss}_{Random.Shared.Next(10000, 99999)}",
+            RedirectUrl = BuildMockRedirectUrl(request.ReturnUrl, paymentIntentId, $"mock_secret_{paymentIntentId:N}")
         };
 
         Intents[paymentIntentId] = new StoredIntent
@@ -227,6 +228,16 @@ public sealed class MockCardGateway : IPaymentGateway
         return Task.FromResult(PaymentIntentStatus.Failed);
     }
 
+    private static string BuildMockRedirectUrl(string? returnUrl, Guid paymentIntentId, string clientSecret)
+    {
+        var checkout = $"https://mock-pay.local/checkout/{paymentIntentId:D}";
+        var query =
+            $"payment_intent={paymentIntentId:D}&payment_intent_client_secret={Uri.EscapeDataString(clientSecret)}&redirect_status=succeeded";
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+            query += $"&return_url={Uri.EscapeDataString(returnUrl.Trim())}";
+        return $"{checkout}?{query}";
+    }
+
     private static bool TryResolveIntentKey(string gatewayPaymentIntentId, out Guid paymentIntentId) =>
         Guid.TryParse(gatewayPaymentIntentId, out paymentIntentId);
 
@@ -271,6 +282,7 @@ public sealed class MockCardGateway : IPaymentGateway
             ErrorMessage = source.ErrorMessage,
             TransactionId = source.TransactionId,
             CardBrand = source.CardBrand,
-            LastFourDigits = source.LastFourDigits
+            LastFourDigits = source.LastFourDigits,
+            RedirectUrl = source.RedirectUrl
         };
 }

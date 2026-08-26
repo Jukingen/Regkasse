@@ -11,7 +11,7 @@ import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../services/api/config';
 import { paymentService } from '../services/api/paymentService';
-import { syncOfflineOrderQueue } from '../services/payment/offlineOrderQueue';
+import { syncOfflineOrderSnapshots } from '../services/offline/offlineOrderManager';
 import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
 import { notifyPosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
 import { sessionManager } from '../services/session/sessionManager';
@@ -162,17 +162,20 @@ export const useApiManager = () => {
             .catch((e) => {
               console.warn('[PaymentQueue] Background sync failed:', e);
             });
-          void syncOfflineOrderQueue()
-            .then(({ uploaded, replayed, failed }) => {
-              if (uploaded > 0 || replayed > 0 || failed > 0) {
+          void syncOfflineOrderSnapshots()
+            .then((result) => {
+              const details = result.details ?? [];
+              const synced = details.filter((d) => d.success).length;
+              const failed = details.filter((d) => !d.success).length;
+              if (synced > 0 || failed > 0) {
                 safeLog(
-                  `[OfflineOrderQueue] uploaded=${uploaded} replayed=${replayed} failed=${failed}`
+                  `[OfflineOrderManager] synced=${synced} failed=${failed} message=${result.message}`
                 );
-                notifyOfflineSyncComplete(replayed, failed);
+                notifyOfflineSyncComplete(synced, failed);
               }
             })
             .catch((e) => {
-              console.warn('[OfflineOrderQueue] Background sync failed:', e);
+              console.warn('[OfflineOrderManager] Background sync failed:', e);
             });
         }
         return ok;

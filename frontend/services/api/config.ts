@@ -17,13 +17,25 @@ import {
 } from '../../config';
 import { applyDevNetworkDelayIfConfigured } from '../../src/config/devFlags';
 import { sessionManager } from '../session/sessionManager';
-import { applyTenantHeader, resolveEffectiveTenantSlug } from '../tenant/devTenant';
+import {
+  applyTenantHeader,
+  appendTenantQueryParam,
+  applyDevTenantAxiosParams,
+  resolveEffectiveTenantSlug,
+} from '../tenant/devTenant';
 import { tenantStorage, TENANT_HTTP_HEADER } from '../tenant/tenantStorage';
+import {
+  logDevLoopbackApiWarningIfNeeded,
+} from '../../utils/devApiHostWarning';
 
 const isDev = __DEV__;
 
 // Platform-aware API URL from main config
 export const API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+if (isDev) {
+  logDevLoopbackApiWarningIfNeeded(API_BASE_URL);
+}
 
 /** Applies tenant-specific API base URL after license activation (no-op when unchanged). */
 export function applyStoredApiBaseUrl(url: string): void {
@@ -45,7 +57,8 @@ export function resetApiBaseUrlToConfigured(): void {
 }
 
 /**
- * Ensures axios base URL has no <c>?tenant=</c> suffix (dev tenant uses {@link TENANT_HTTP_HEADER} per request).
+ * Ensures axios base URL has no <c>?tenant=</c> suffix (dev tenant is sent per request
+ * via {@link TENANT_HTTP_HEADER} and axios <c>params.tenant</c> / {@link appendTenantQueryParam}).
  * Call after dev tenant switch or on auth bootstrap to clear legacy mis-built base URLs.
  */
 export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
@@ -87,6 +100,27 @@ export async function resolveTenantFetchHeaders(
   if (!tenantSlug) return headers;
   return applyTenantHeader(headers, tenantSlug) as Record<string, string>;
 }
+
+/** Development: append <c>?tenant=</c> to a full URL. Production: unchanged. */
+export async function resolveTenantFetchUrl(url: string): Promise<string> {
+  if (!isDev) return url;
+  const tenantSlug = await resolveRequestTenantSlug();
+  if (!tenantSlug) return url;
+  return appendTenantQueryParam(url, tenantSlug);
+}
+
+/** Headers + optional dev tenant query for raw <c>fetch()</c>. */
+export async function resolveTenantFetchRequest(
+  url: string,
+  headers: Record<string, string> = {}
+): Promise<{ url: string; headers: Record<string, string> }> {
+  return {
+    url: await resolveTenantFetchUrl(url),
+    headers: await resolveTenantFetchHeaders(headers),
+  };
+}
+
+export { appendTenantQueryParam, applyDevTenantAxiosParams };
 
 if (isDev) {
   safeLog('🔧 API Services - Using API Base URL:', API_BASE_URL);
@@ -262,6 +296,13 @@ axiosInstance.interceptors.request.use(
     await applyDevNetworkDelayIfConfigured();
 
     await addTenantHeader(config);
+
+    if (isDev) {
+      const tenantSlug = await resolveRequestTenantSlug();
+      if (tenantSlug) {
+        config.params = applyDevTenantAxiosParams(config.params, tenantSlug);
+      }
+    }
 
     config.headers = config.headers ?? {};
     config.headers['Accept-Language'] = 'de';

@@ -76,6 +76,7 @@ jobs:
         working-directory: backend
         run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
 
+      # Includes OnlinePaymentIntegrationTests (state machine + idempotency on PostgreSQL).
       - name: Run PostgreSQL-tagged tests
         working-directory: backend
         run: >-

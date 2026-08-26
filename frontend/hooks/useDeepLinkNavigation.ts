@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import { resolveDeepLink } from '@/services/linking/deepLinking';
+import { isRedirectStatusCancelled, isRedirectStatusFailed } from '@/services/payment/parsePaymentResultParams';
+import { onlinePaymentStoreActions } from '@/stores/onlinePaymentStore';
 
 function isCustomerSurface(): boolean {
   return (process.env.EXPO_PUBLIC_APP_SURFACE ?? '').trim().toLowerCase() === 'customer';
@@ -55,6 +57,18 @@ export function useDeepLinkNavigation(): void {
       case 'login':
         if (!customerSurface) {
           router.replace('/(auth)/login');
+        }
+        break;
+      case 'onlinePaymentCallback':
+        if (isRedirectStatusFailed(intent.gatewayStatus)) {
+          onlinePaymentStoreActions.fail('ONLINE_PAYMENT_FAILED');
+        } else if (isRedirectStatusCancelled(intent.gatewayStatus)) {
+          onlinePaymentStoreActions.cancel();
+        } else {
+          onlinePaymentStoreActions.markCallbackReceived();
+        }
+        if (!customerSurface) {
+          router.replace('/(tabs)/cash-register');
         }
         break;
       default:

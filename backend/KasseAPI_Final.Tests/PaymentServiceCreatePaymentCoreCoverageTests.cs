@@ -131,6 +131,55 @@ public sealed class PaymentServiceCreatePaymentCoreCoverageTests
     }
 
     [Fact]
+    public async Task CreatePayment_Card_WhenMixedVoucher_ValidatesRemainderNotGross()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) =
+            await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx, unitPrice: 10m);
+        await PaymentServiceCoverageHarness.AddVoucherAsync(ctx, "GUT-CARD-REM", 100m);
+        var intentId = Guid.NewGuid();
+        const decimal remainder = 4m;
+        const decimal gross = 10m;
+        var card = new Mock<ICardPaymentService>();
+        card.Setup(c => c.ValidateForFiscalPaymentAsync(
+                intentId, remainder, registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, new CardPaymentTransaction
+            {
+                Id = intentId,
+                TenantId = SystemTenantIds.Platform,
+                Amount = remainder,
+                Currency = "EUR",
+                CashRegisterId = registerId,
+                Status = CardPaymentTransactionStatuses.Succeeded,
+                Gateway = "Mock"
+            }, (string?)null, (string?)null));
+        card.Setup(c => c.LinkToPaymentAsync(intentId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options { Card = card.Object });
+
+        var request = PaymentServiceCoverageHarness.SaleRequest(
+            customerId, productId, registerId, total: gross, method: "card", cardPaymentIntentId: intentId);
+        request.Payment.Amount = remainder;
+        request.Payment.VoucherRedemptions =
+        [
+            new VoucherRedemptionRequestItem { Code = "GUT-CARD-REM", Amount = 6m }
+        ];
+
+        var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        card.Verify(
+            c => c.ValidateForFiscalPaymentAsync(intentId, remainder, registerId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        card.Verify(
+            c => c.ValidateForFiscalPaymentAsync(intentId, gross, registerId, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreatePayment_Card_WhenIntentInvalid_ReturnsCardIntentInvalid()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();

@@ -33,6 +33,7 @@ public class TenantValidationMiddleware
         "/api/csrf",
         "/api/health",
         "/api/public",
+        "/api/webhooks",
         "/health",
         "/metrics",
         "/swagger",

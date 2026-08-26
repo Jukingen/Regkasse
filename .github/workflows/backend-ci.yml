@@ -160,6 +160,18 @@ jobs:
           --filter "Category!=PostgreSql"
           --verbosity minimal
 
+      # PaymentGatewayServiceTests + OnlinePaymentContractTests + OnlinePaymentAdminServiceTests
+      # are included above (not PostgreSql). Re-run the subset so online-payment regressions
+      # surface as a distinct CI step.
+      - name: Online payment unit and OpenAPI contract tests
+        working-directory: backend
+        run: >-
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
+          --filter "FullyQualifiedName~PaymentGatewayServiceTests|FullyQualifiedName~OnlinePaymentContractTests|FullyQualifiedName~OnlinePaymentAdminServiceTests|FullyQualifiedName~OnlinePaymentGapTests"
+          --verbosity minimal
+
       - name: Image metadata
         id: meta
         run: |

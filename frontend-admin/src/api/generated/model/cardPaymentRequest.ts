@@ -10,5 +10,9 @@ export interface CardPaymentRequest {
   amount?: number;
   cashRegisterId?: string;
   /** @nullable */
+  idempotencyKey?: string | null;
+  /** @nullable */
   receiptNumber?: string | null;
+  /** @nullable */
+  returnUrl?: string | null;
 }

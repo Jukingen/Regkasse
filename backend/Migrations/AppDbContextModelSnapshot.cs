@@ -1613,6 +1613,57 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("billing_backup_history", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.GatewayWebhookEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("applied");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid?>("IntentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("intent_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at_utc");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntentId");
+
+                    b.HasIndex("Provider", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gateway_webhook_events_provider_event");
+
+                    b.ToTable("gateway_webhook_events", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.CardPaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1632,6 +1683,18 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("character varying(4)")
                         .HasColumnName("card_last4");
+
+                    b.Property<string>("CaptureMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("automatic")
+                        .HasColumnName("capture_mode");
+
+                    b.Property<Guid?>("CartSnapshotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cart_snapshot_id");
 
                     b.Property<Guid>("CashRegisterId")
                         .HasColumnType("uuid")
@@ -1673,6 +1736,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("text")
                         .HasColumnName("error_message");
 
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
                     b.Property<string>("Gateway")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1689,18 +1756,38 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("gateway_transaction_id");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
+
+                    b.Property<string>("LastWebhookEventId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("last_webhook_event_id");
 
                     b.Property<string>("MetadataJson")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("metadata_json");
 
+                    b.Property<string>("MethodCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("method_code");
+
                     b.Property<Guid?>("PaymentId")
                         .HasColumnType("uuid")
                         .HasColumnName("payment_id");
+
+                    b.Property<string>("RedirectUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("redirect_url");
 
                     b.Property<decimal?>("RefundedAmount")
                         .HasColumnType("decimal(18,2)")
@@ -1709,6 +1796,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("RefundedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("refunded_at_utc");
+
+                    b.Property<string>("ReturnUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("return_url");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1735,13 +1827,20 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("GatewayPaymentIntentId");
+
                     b.HasIndex("PaymentId");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("card_payment_transactions", (string)null);
+                    b.HasIndex("TenantId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gateway_payment_intents_tenant_idempotency")
+                        .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.ToTable("gateway_payment_intents", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Cart", b =>

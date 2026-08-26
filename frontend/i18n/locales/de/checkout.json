@@ -176,7 +176,8 @@
         "coverageMissing": "Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.",
         "voucherInvalid": "Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.",
         "tseNotReady": "TSE nicht verfügbar. Zahlung nicht möglich.",
-        "voucherOffline": "Gutschein ist offline nicht möglich."
+        "voucherOffline": "Gutschein ist offline nicht möglich.",
+        "onlinePaymentOffline": "Online-Zahlung ist offline nicht möglich."
       },
       "tseGate": {
         "disabled": "TSE ist deaktiviert. Zahlungen sind nicht möglich.",
@@ -216,6 +217,18 @@
       },
       "registerAssignA11y": "Kasse {{register}} zuweisen",
       "methodSelectedA11ySuffix": ", ausgewählt",
+      "onlinePayment": {
+        "kreditkarte": "Kreditkarte",
+        "paypal": "PayPal",
+        "offlineDisabled": "Online-Zahlung ist offline nicht möglich.",
+        "offlineAlertTitle": "Offline",
+        "offlineA11ySuffix": ", offline nicht verfügbar",
+        "awaitingGateway": "Zahlung im Browser abschließen…",
+        "failed": "Online-Zahlung fehlgeschlagen.",
+        "cancelled": "Online-Zahlung abgebrochen.",
+        "timeout": "Zeitüberschreitung bei der Online-Zahlung.",
+        "openFailed": "Zahlungsseite konnte nicht geöffnet werden."
+      },
       "offlineQueued": "Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online",
       "tseSimulation": {
         "title": "TSE-Simulation",

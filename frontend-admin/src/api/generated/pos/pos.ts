@@ -57,10 +57,12 @@ import type {
   GetApiPosSearchParams,
   GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
   GetApiPosTseStatusParams,
+  InitiateOnlinePaymentRequest,
   MaintenanceModeStatusDto,
   MaintenanceNotificationDto,
   MergeTableCartsRequest,
   OfflineOrderRequest,
+  OnlinePaymentDto,
   PaymentApiEnvelopeOfPaymentCreateSuccessData,
   PaymentApiErrorBody,
   PaymentHistoryResponse,
@@ -3415,6 +3417,167 @@ export const useGetApiPosOfflineOrdersOfflineOrderIdStatus = <TData = Awaited<Re
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryOptions(offlineOrderId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiPosPaymentInitiate = (
+    initiateOnlinePaymentRequest: InitiateOnlinePaymentRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<OnlinePaymentDto>(
+      {url: `/api/pos/payment/initiate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: initiateOnlinePaymentRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosPaymentInitiateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, TError,{data: InitiateOnlinePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, TError,{data: InitiateOnlinePaymentRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, {data: InitiateOnlinePaymentRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosPaymentInitiate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosPaymentInitiateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>>
+    export type PostApiPosPaymentInitiateMutationBody = InitiateOnlinePaymentRequest
+    export type PostApiPosPaymentInitiateMutationError = ProblemDetails
+
+    export const usePostApiPosPaymentInitiate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, TError,{data: InitiateOnlinePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosPaymentInitiate>>,
+        TError,
+        {data: InitiateOnlinePaymentRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosPaymentInitiateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosPaymentInitiateId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OnlinePaymentDto>(
+      {url: `/api/pos/payment/initiate/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosPaymentInitiateIdQueryKey = (id: string,) => {
+    return [`/api/pos/payment/initiate/${id}`] as const;
+    }
+
+    
+export const getGetApiPosPaymentInitiateIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentInitiateIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>> = ({ signal }) => getApiPosPaymentInitiateId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosPaymentInitiateIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>>
+export type GetApiPosPaymentInitiateIdQueryError = ProblemDetails
+
+export const useGetApiPosPaymentInitiateId = <TData = Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosPaymentInitiateIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosPaymentOnlineId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OnlinePaymentDto>(
+      {url: `/api/pos/payment/online/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosPaymentOnlineIdQueryKey = (id: string,) => {
+    return [`/api/pos/payment/online/${id}`] as const;
+    }
+
+    
+export const getGetApiPosPaymentOnlineIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentOnlineIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>> = ({ signal }) => getApiPosPaymentOnlineId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosPaymentOnlineIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>>
+export type GetApiPosPaymentOnlineIdQueryError = ProblemDetails
+
+export const useGetApiPosPaymentOnlineId = <TData = Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosPaymentOnlineIdQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

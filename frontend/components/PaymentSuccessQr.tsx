@@ -18,7 +18,7 @@ import { View, Text, StyleSheet, Image, ActivityIndicator, Platform } from 'reac
 
 import { API_BASE_URL } from '../config';
 import { RksvQrCodeSvg } from './RksvQrCodeSvg';
-import { resolveTenantFetchHeaders } from '../services/api/config';
+import { resolveTenantFetchRequest } from '../services/api/config';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import { posPaymentQrPngAbsoluteUrl } from '../services/api/posPaymentPaths';
 import { sessionManager } from '../services/session/sessionManager';
@@ -35,10 +35,12 @@ interface PaymentSuccessQrProps {
 
 async function fetchQrPngAsDataUrl(paymentId: string): Promise<string | null> {
   const token = await sessionManager.getAccessToken();
-  const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
-  const res = await fetch(url, {
-    headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
-  });
+  const rawUrl = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
+  const { url, headers } = await resolveTenantFetchRequest(
+    rawUrl,
+    token ? { Authorization: `Bearer ${token}` } : {}
+  );
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     console.warn('[PaymentSuccessQr] QR PNG HTTP error:', res.status, url);
     return null;

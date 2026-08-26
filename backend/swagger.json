@@ -10546,6 +10546,133 @@
         }
       }
     },
+    "/api/admin/online-payments": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOnlinePaymentListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/online-payments/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOnlinePaymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/online-payments/test": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminOnlinePaymentTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOnlinePaymentTestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOnlinePaymentTestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOnlinePaymentTestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/operation-limits/status": {
       "get": {
         "tags": [
@@ -39660,6 +39787,84 @@
         }
       }
     },
+    "/api/webhooks/payment/{provider}": {
+      "post": {
+        "tags": [
+          "PaymentWebhook"
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentWebhookReceivedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/payments/{provider}": {
+      "post": {
+        "tags": [
+          "PaymentWebhook"
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentWebhookReceivedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/card-payment/intent": {
       "post": {
         "tags": [
@@ -40327,6 +40532,144 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pos/payment/initiate": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateOnlinePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlinePaymentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/payment/initiate/{id}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlinePaymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/payment/online/{id}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlinePaymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -47451,6 +47794,158 @@
         },
         "additionalProperties": false
       },
+      "AdminOnlinePaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "onlineOrderId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "orderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSynthetic": {
+            "type": "boolean"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastWebhookEvent": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOnlinePaymentListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOnlinePaymentDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOnlinePaymentTestRequest": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "onlinePaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOnlinePaymentTestResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/AdminOnlinePaymentDto"
+          },
+          "posPayment": {
+            "$ref": "#/components/schemas/OnlinePaymentDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminOperationsSummaryResponse": {
         "type": "object",
         "properties": {
@@ -53108,6 +53603,14 @@
             "format": "uuid"
           },
           "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnUrl": {
             "type": "string",
             "nullable": true
           }
@@ -64112,6 +64615,62 @@
         },
         "additionalProperties": false
       },
+      "InitiateOnlinePaymentRequest": {
+        "required": [
+          "amount",
+          "cashRegisterId",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "maxLength": 3,
+            "type": "string",
+            "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "method": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "returnUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "cancelUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "IntegrityReportDto": {
         "type": "object",
         "properties": {
@@ -70891,6 +71450,74 @@
         },
         "additionalProperties": false
       },
+      "OnlinePaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "method": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "redirectUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentDetailsId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "OpenCashRegisterModel": {
         "required": [
           "openingBalance"
@@ -72449,6 +73076,16 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "onlinePaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "gatewayIntentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72646,6 +73283,24 @@
             "items": {
               "$ref": "#/components/schemas/MonthlyVolumeDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentWebhookReceivedResponse": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "onlinePaymentId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -76812,18 +77467,19 @@
         "additionalProperties": false
       },
       "RefreshRequest": {
-        "required": [
-          "refreshToken"
-        ],
         "type": "object",
         "properties": {
           "refreshToken": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "tenantId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "clientApp": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -97209,6 +97865,9 @@
       "name": "AdminOnlineOrders"
     },
     {
+      "name": "AdminOnlinePayments"
+    },
+    {
       "name": "AdminOperationLimits"
     },
     {
@@ -97575,6 +98234,9 @@
       "name": "PaymentMethodDefinitions"
     },
     {
+      "name": "PaymentWebhook"
+    },
+    {
       "name": "PosCardPayment"
     },
     {
@@ -97594,6 +98256,9 @@
     },
     {
       "name": "PosOfflineOrders"
+    },
+    {
+      "name": "PosOnlinePayment"
     },
     {
       "name": "PosShift"

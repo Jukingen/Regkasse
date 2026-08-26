@@ -62,6 +62,9 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/health")]
     [InlineData("/metrics")]
     [InlineData("/swagger/index.html")]
+    [InlineData("/api/webhooks")]
+    [InlineData("/api/webhooks/stripe")]
+    [InlineData("/api/webhooks/payment/mock")]
     public async Task InvokeAsync_SkipsPublicPaths(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };

@@ -20,6 +20,7 @@ import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator'
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
 import { ShiftManager } from '../../components/ShiftManager';
 import { useAuth } from '../../contexts/AuthContext';
+/** Settings sync uses OfflineOrderManager only (legacy offlineOrderQueue removed). */
 import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';

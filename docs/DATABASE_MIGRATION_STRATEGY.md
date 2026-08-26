@@ -3,7 +3,7 @@
 **Status:** Binding for all schema changes in Regkasse (EF Core 10 + PostgreSQL).  
 **Related:** [`ai/02_DATABASE_CONTRACT.md`](../ai/02_DATABASE_CONTRACT.md) · [`backend/docs/MIGRATION_SQUASH.md`](../backend/docs/MIGRATION_SQUASH.md) · [`DEPLOYMENT.md`](../DEPLOYMENT.md) · AGENTS.md § Database Baseline Rules
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-08-26
 
 ---
 
@@ -19,6 +19,25 @@
 | Prefer expand → migrate data → contract | Use `IgnoreQueryFilters()` casually in data scripts |
 
 Cross-tenant and fiscal rules still apply (`ai/02_DATABASE_CONTRACT.md`, `ai/07_DO_NOT_TOUCH.md`).
+
+### Gateway payment intents (do not create `online_payments`)
+
+POS card/PayPal checkout state lives **only** on `gateway_payment_intents` (EF entity `CardPaymentTransaction`). Webhook idempotency lives on `gateway_webhook_events`.
+
+| Do | Do not |
+|----|--------|
+| Add columns / rename `card_payment_transactions` → `gateway_payment_intents` | Create a parallel `online_payments` table |
+| Map DTO flow statuses (`AWAITING_PAYMENT_GATEWAY`, `GATEWAY_SUCCEEDED`) in code | Persist those long flow strings as the DB `status` (use `Pending` / `Succeeded` / …) |
+| `DROP TABLE IF EXISTS online_payments` as a safety-net migration | Reintroduce `online_payments` in a later `dotnet ef migrations add` |
+
+`online_payments` is **deprecated and must not exist**. A leftover local table is dropped by `20260826180000_DropOnlinePaymentsIfExists`. Do not add an `OnlinePayment` entity or `DbSet<OnlinePayment>`.
+
+Chain (unapplied as of 2026-08-26 local `kasse_db`):
+
+1. `20260826140000_AddCardPaymentGatewayIntentColumns`
+2. `20260826160000_RenameToGatewayPaymentIntents`
+3. `20260826180000_DropOnlinePaymentsIfExists`
+4. `20260826190000_CreateGatewayWebhookEvents`
 
 ---
 

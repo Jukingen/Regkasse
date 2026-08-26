@@ -108,6 +108,8 @@ export const PERMISSIONS = {
   DIGITAL_ORDERS_MANAGE: 'digital.orders.manage',
   /** Approve online orders / POS bridge (Super Admin). Backend: AppPermissions.DigitalOrdersApprove. */
   DIGITAL_ORDERS_APPROVE: 'digital.orders.approve',
+  /** Super Admin online-checkout payment console (list + synthetic webhooks). Backend: AppPermissions.OnlinePaymentsManage. */
+  ONLINE_PAYMENTS_MANAGE: 'online-payments.manage',
   LICENSE_VIEW: AppPermissions.LicenseView,
   /** Mandant (tenant) license view/update for own tenant — align with backend `AppPermissions.LicenseManage`. */
   LICENSE_MANAGE: 'license.manage',

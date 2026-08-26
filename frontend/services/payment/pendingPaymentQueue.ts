@@ -2,6 +2,7 @@
  * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed/Unknown).
  * Invariant: offline entries never contain receipt number / signature, or plaintext Gutschein codes.
  */
+import { isExpoPublicOfflineGutscheinEnabled } from '../../constants/expoPublicEnv';
 import { storage } from '../../utils/storage';
 import { apiClient } from '../api/config';
 
@@ -44,6 +45,19 @@ export function paymentPayloadContainsVoucherSecrets(
   return payment.voucherRedemptions.some(
     (r) => typeof r?.code === 'string' && r.code.trim().length > 0
   );
+}
+
+/**
+ * Whether a payment must not be queued offline.
+ * Plaintext Gutschein codes are always blocked. `method=voucher` is blocked unless
+ * {@link isExpoPublicOfflineGutscheinEnabled} is explicitly true (default false).
+ */
+export function shouldBlockVoucherOfflineQueue(
+  payment: PendingPaymentPayload['payment'] | undefined
+): boolean {
+  if (paymentPayloadContainsVoucherSecrets(payment)) return true;
+  if (isExpoPublicOfflineGutscheinEnabled()) return false;
+  return (payment?.method ?? '').trim().toLowerCase() === 'voucher';
 }
 
 export type OfflineTransactionStatus = 'Pending' | 'Synced' | 'Failed' | 'Unknown';
@@ -227,7 +241,7 @@ async function nextClientSequenceNumber(cashRegisterId: string): Promise<number>
 export async function enqueuePendingPayment(
   paymentRequest: PendingPaymentPayload
 ): Promise<string> {
-  if (paymentPayloadContainsVoucherSecrets(paymentRequest.payment)) {
+  if (shouldBlockVoucherOfflineQueue(paymentRequest.payment)) {
     throw new Error(VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE);
   }
 

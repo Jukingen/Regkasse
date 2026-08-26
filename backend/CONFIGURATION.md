@@ -33,7 +33,7 @@ Load order (ASP.NET Core): base → environment overlay → user secrets (Develo
 | `FinanzOnline` (+ Outbox/RetryJob) | yes | simulation | real | Credentials from DB / secrets, not tracked JSON |
 | `Security:Csrf` | yes | disabled | enabled (startup fail-closed) | |
 | `GoLive` | yes (all false) | inherit | all false until humans attest | Super Admin GO/NO-GO dashboard |
-| `PaymentGateway` | Mock | Mock | **None or Stripe** (Mock rejected at startup) | Card intents; cash-only use `None` |
+| `PaymentGateway` | Mock | Mock | **None or Stripe** (Mock rejected at startup) | Card/PayPal intents; cash-only use `None`. Operator guide: [`docs/ONLINE_PAYMENTS.md`](../docs/ONLINE_PAYMENTS.md) |
 | `JwtSettings` Issuer/Audience | yes | inherit | yes | **SecretKey never in JSON** |
 | `ConnectionStrings` | omit | omit | omit | User secrets / env only |
 ## Required secrets (local, staging, production)

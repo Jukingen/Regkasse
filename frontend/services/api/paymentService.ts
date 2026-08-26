@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 
-import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchRequest } from './config';
 import {
   isRecord,
   normalizeToPosPaymentMethods,
@@ -14,19 +14,25 @@ import {
   POS_VOUCHERS_VALIDATE_PATH,
   posPaymentByIdPath,
   posPaymentQrPngAbsoluteUrl,
+  posPaymentInitiatePath,
+  posPaymentInitiateStatusPath,
 } from './posPaymentPaths';
+import { logger } from '../../lib/logger';
+import { isHostedOnlinePaymentMethod } from '../payment/onlinePaymentMethods';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
 import type { CustomerKind } from '../../types/customerKind';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 import { isPaymentTransportFailure } from '../../utils/isPaymentTransportFailure';
 import { normalizePosPaymentItemsForRequest } from '../../utils/paymentTaxType';
+import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
+import { saveOfflineOrderSnapshot } from '../offline/offlineOrderManager';
 import {
   enqueuePendingPayment,
   syncPendingPaymentQueue as flushPendingPaymentQueue,
   removePendingByIdempotencyKey,
   getPendingPaymentQueue,
-  paymentPayloadContainsVoucherSecrets,
+  shouldBlockVoucherOfflineQueue,
   VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
@@ -82,6 +88,8 @@ export interface PaymentRequest {
     voucherRedemptions?: VoucherRedemptionPayloadItem[];
     /** Confirmed card payment intent when method is card. */
     cardPaymentIntentId?: string;
+    /** Hosted online payment id after gateway success (Kreditkarte / PayPal). */
+    onlinePaymentId?: string;
   };
   tableNumber: number;
   totalAmount: number;
@@ -141,6 +149,46 @@ export interface PaymentResponse {
   invoicePersisted?: boolean;
 }
 
+/** Hosted online payment (POST /api/pos/payment/initiate). Auth: POS JWT (loginIdentifier + clientApp: pos). */
+export type OnlinePaymentStatusCode =
+  | 'pending'
+  | 'awaiting_action'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export type InitiateOnlinePaymentRequest = {
+  cashRegisterId: string;
+  amount: number;
+  method: string;
+  idempotencyKey: string;
+  currency?: string;
+  customerId?: string;
+  tableNumber?: number;
+  returnUrl?: string;
+  cancelUrl?: string;
+};
+
+export type InitiateOnlinePaymentResponse = {
+  onlinePaymentId: string;
+  paymentIntentId?: string;
+  status: OnlinePaymentStatusCode;
+  redirectUrl?: string | null;
+  hostedUrl?: string | null;
+  provider?: string | null;
+  paymentDetailsId?: string | null;
+};
+
+export type OnlinePaymentStatusResponse = {
+  onlinePaymentId: string;
+  status: OnlinePaymentStatusCode;
+  redirectUrl?: string | null;
+  paymentDetailsId?: string | null;
+  paymentId?: string | null;
+  errorCode?: string | null;
+};
+
 export interface Receipt {
   id: string;
   receiptNumber: string;
@@ -165,6 +213,112 @@ function unwrapVoucherValidateBody(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object') return raw;
   const r = raw as Record<string, unknown>;
   return r.data ?? r.value ?? r.Value ?? raw;
+}
+
+const ONLINE_STATUS_CODES: ReadonlySet<string> = new Set([
+  'pending',
+  'awaiting_action',
+  'processing',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+
+/**
+ * Gateway / card intent amount is the remainder after voucher redemption.
+ * When no voucher remainder is supplied, charge the cart gross total.
+ */
+export function resolveGatewayChargeAmount(input: {
+  cartTotal: number;
+  remainderAfterVoucher?: number | null;
+}): number {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  if (
+    typeof input.remainderAfterVoucher === 'number' &&
+    Number.isFinite(input.remainderAfterVoucher)
+  ) {
+    return round2(Math.max(0, input.remainderAfterVoucher));
+  }
+  return round2(input.cartTotal);
+}
+
+function coerceOnlinePaymentStatus(raw: unknown): OnlinePaymentStatusCode {
+  const s = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, '_');
+  if (s === 'awaiting_payment_gateway' || s === 'requires_action' || s === 'initiated') {
+    return 'awaiting_action';
+  }
+  if (s === 'succeeded' || s === 'success' || s === 'paid' || s === 'gateway_succeeded' || s === 'completed') {
+    return 'completed';
+  }
+  if (s === 'canceled') return 'cancelled';
+  if (s === 'error' || s === 'declined') return 'failed';
+  if (ONLINE_STATUS_CODES.has(s)) return s as OnlinePaymentStatusCode;
+  return 'pending';
+}
+
+function unwrapOnlinePaymentPayload(raw: unknown): Record<string, unknown> {
+  const layer = unwrapApiResponseLayer(raw);
+  if (!isRecord(layer)) return {};
+  if (isRecord(layer.data)) return layer.data;
+  if (isRecord(layer.Data)) return layer.Data;
+  return layer;
+}
+
+function pickString(row: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const v = row[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+function parseInitiateOnlinePaymentResponse(raw: unknown): InitiateOnlinePaymentResponse {
+  const row = unwrapOnlinePaymentPayload(raw);
+  const onlinePaymentId =
+    pickString(row, ['onlinePaymentId', 'OnlinePaymentId', 'id', 'Id']) ?? '';
+  const redirectUrl = pickString(row, [
+    'redirectUrl',
+    'RedirectUrl',
+    'hostedUrl',
+    'HostedUrl',
+    'checkoutUrl',
+    'CheckoutUrl',
+  ]);
+  return {
+    onlinePaymentId,
+    paymentIntentId:
+      pickString(row, ['paymentIntentId', 'PaymentIntentId', 'payment_intent']) ?? undefined,
+    status: coerceOnlinePaymentStatus(row.status ?? row.Status),
+    redirectUrl,
+    hostedUrl: pickString(row, ['hostedUrl', 'HostedUrl']),
+    provider: pickString(row, ['provider', 'Provider']),
+    paymentDetailsId: pickString(row, ['paymentDetailsId', 'PaymentDetailsId', 'paymentId', 'PaymentId']),
+  };
+}
+
+function parseOnlinePaymentStatusResponse(
+  raw: unknown,
+  fallbackId: string
+): OnlinePaymentStatusResponse {
+  const row = unwrapOnlinePaymentPayload(raw);
+  return {
+    onlinePaymentId:
+      pickString(row, ['onlinePaymentId', 'OnlinePaymentId', 'id', 'Id']) ?? fallbackId,
+    status: coerceOnlinePaymentStatus(row.status ?? row.Status),
+    redirectUrl: pickString(row, ['redirectUrl', 'RedirectUrl', 'hostedUrl', 'HostedUrl']),
+    paymentDetailsId: pickString(row, ['paymentDetailsId', 'PaymentDetailsId']),
+    paymentId: pickString(row, ['paymentId', 'PaymentId']),
+    errorCode: pickString(row, ['errorCode', 'ErrorCode', 'error', 'Error']),
+  };
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 class PaymentService {
@@ -226,6 +380,93 @@ class PaymentService {
       console.warn('[paymentService] No payment methods parsed from response:', raw);
     }
     return list;
+  }
+
+  /**
+   * Starts a hosted online payment (Kreditkarte / PayPal).
+   * Uses the authenticated POS session (`loginIdentifier` + `clientApp: pos` at login).
+   */
+  async initiateOnlinePayment(
+    request: InitiateOnlinePaymentRequest
+  ): Promise<InitiateOnlinePaymentResponse> {
+    logger.info('online_payment.initiate_request', {
+      method: request.method,
+      cashRegisterId: request.cashRegisterId,
+      hasReturnUrl: Boolean(request.returnUrl),
+    });
+    const raw = await apiClient.post<unknown>(posPaymentInitiatePath(), {
+      cashRegisterId: request.cashRegisterId,
+      amount: request.amount,
+      currency: request.currency ?? 'EUR',
+      method: request.method,
+      idempotencyKey: request.idempotencyKey,
+      customerId: request.customerId,
+      tableNumber: request.tableNumber,
+      returnUrl: request.returnUrl,
+      cancelUrl: request.cancelUrl,
+    });
+    const parsed = parseInitiateOnlinePaymentResponse(raw);
+    if (!parsed.onlinePaymentId) {
+      logger.error('online_payment.initiate_missing_id', { method: request.method });
+      throw new Error('Online-Zahlung konnte nicht gestartet werden.');
+    }
+    logger.info('online_payment.initiate_ok', {
+      method: request.method,
+      onlinePaymentId: parsed.onlinePaymentId,
+      status: parsed.status,
+      hasRedirectUrl: Boolean(parsed.redirectUrl ?? parsed.hostedUrl),
+    });
+    return parsed;
+  }
+
+  async getOnlinePaymentStatus(onlinePaymentId: string): Promise<OnlinePaymentStatusResponse> {
+    const id = onlinePaymentId.trim();
+    const raw = await apiClient.get<unknown>(posPaymentInitiateStatusPath(id));
+    return parseOnlinePaymentStatusResponse(raw, id);
+  }
+
+  async pollOnlinePaymentStatus(
+    onlinePaymentId: string,
+    options?: {
+      intervalMs?: number;
+      timeoutMs?: number;
+      signal?: AbortSignal;
+      onStatus?: (status: OnlinePaymentStatusResponse) => void;
+    }
+  ): Promise<OnlinePaymentStatusResponse> {
+    const intervalMs = options?.intervalMs ?? 2000;
+    const timeoutMs = options?.timeoutMs ?? 180_000;
+    const started = Date.now();
+    let last: OnlinePaymentStatusResponse | null = null;
+
+    while (Date.now() - started < timeoutMs) {
+      if (options?.signal?.aborted) {
+        throw new Error('ONLINE_PAYMENT_ABORTED');
+      }
+      last = await this.getOnlinePaymentStatus(onlinePaymentId);
+      options?.onStatus?.(last);
+      if (
+        last.status === 'completed' ||
+        last.status === 'failed' ||
+        last.status === 'cancelled'
+      ) {
+        logger.info('online_payment.poll_terminal', {
+          onlinePaymentId,
+          status: last.status,
+        });
+        return last;
+      }
+      await sleepMs(intervalMs);
+    }
+
+    logger.warn('online_payment.poll_timeout', { onlinePaymentId });
+    return (
+      last ?? {
+        onlinePaymentId,
+        status: 'failed',
+        errorCode: 'ONLINE_PAYMENT_TIMEOUT',
+      }
+    );
   }
 
   // Payment processing - Backend endpoint compatible
@@ -305,7 +546,7 @@ class PaymentService {
             invoicePersisted: false,
           };
         }
-        if (paymentPayloadContainsVoucherSecrets(req.payment)) {
+        if (shouldBlockVoucherOfflineQueue(req.payment)) {
           debugPosPaymentTrace('payment_api_transport_voucher_not_queued', {});
           return {
             success: false,
@@ -316,6 +557,38 @@ class PaymentService {
             message: VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
             invoicePersisted: false,
           };
+        }
+        if (isHostedOnlinePaymentMethod(req.payment?.method)) {
+          debugPosPaymentTrace('payment_api_transport_online_not_queued', {
+            method: req.payment?.method,
+          });
+          logger.warn('online_payment.not_queued_offline', { method: req.payment?.method });
+          return {
+            success: false,
+            isSynced: false,
+            fiscalStatus: 'FAILED',
+            paymentId: '',
+            error: 'ONLINE_PAYMENT_REQUIRES_ONLINE',
+            message: 'Online-Zahlung ist offline nicht möglich.',
+            invoicePersisted: false,
+          };
+        }
+        // Full cart snapshot on offline_orders (OfflineOrderManager.saveOrder) before
+        // the legacy non-fiscal pending-payment queue. Do not call the React hook here.
+        if (OFFLINE_CONFIG.ENABLE_OFFLINE_ORDERS && (req.items?.length ?? 0) > 0) {
+          try {
+            await saveOfflineOrderSnapshot(
+              {
+                paymentRequest: req,
+                items: req.items,
+                tableNumber: req.tableNumber,
+                notes: req.notes,
+              },
+              req.payment.method
+            );
+          } catch (snapshotError) {
+            console.warn('[paymentService] Offline order snapshot failed:', snapshotError);
+          }
         }
         const payload = req as unknown as PendingPaymentPayload;
         const pendingQueueId = await enqueuePendingPayment(payload);
@@ -530,10 +803,12 @@ class PaymentService {
   async getQrPngAsBase64(paymentId: string): Promise<string | null> {
     try {
       const token = await sessionManager.getAccessToken();
-      const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
-      const res = await fetch(url, {
-        headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
-      });
+      const rawUrl = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
+      const { url, headers } = await resolveTenantFetchRequest(
+        rawUrl,
+        token ? { Authorization: `Bearer ${token}` } : {}
+      );
+      const res = await fetch(url, { headers });
       if (!res.ok) {
         console.warn('[PaymentService] QR fetch failed:', res.status, res.statusText);
         return null;

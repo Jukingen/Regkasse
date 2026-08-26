@@ -707,6 +707,7 @@
       "digital_orders_view": "View online orders",
       "digital_orders_manage": "Manage online orders",
       "digital_orders_approve": "Approve online orders / POS bridge",
+      "online_payments_manage": "Manage and test online payments",
       "digital_web_view": "View web service (legacy)",
       "digital_web_preview": "Website preview (legacy)",
       "digital_web_request": "Website request (legacy)",

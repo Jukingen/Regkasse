@@ -98,7 +98,7 @@ jobs:
           --configuration Release
           --no-build
           --verbosity minimal
-          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests|FullyQualifiedName~OpenApiToolingGenerationTests"
+          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests|FullyQualifiedName~OpenApiToolingGenerationTests|FullyQualifiedName~OnlinePaymentContractTests"
 
       - name: Install frontend-admin dependencies
         if: steps.cache-fa-nm.outputs.cache-hit != 'true'

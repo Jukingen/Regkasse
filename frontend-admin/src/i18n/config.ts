@@ -61,6 +61,7 @@ import deLicense from './locales/de/license.json';
 import deModifierGroups from './locales/de/modifierGroups.json';
 import deNav from './locales/de/nav.json';
 import deOnlineOrders from './locales/de/onlineOrders.json';
+import deOnlinePayments from './locales/de/onlinePayments.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
 import dePayments from './locales/de/payments.json';
 import deProducts from './locales/de/products.json';
@@ -146,6 +147,7 @@ import enLicense from './locales/en/license.json';
 import enModifierGroups from './locales/en/modifierGroups.json';
 import enNav from './locales/en/nav.json';
 import enOnlineOrders from './locales/en/onlineOrders.json';
+import enOnlinePayments from './locales/en/onlinePayments.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enPayments from './locales/en/payments.json';
 import enProducts from './locales/en/products.json';
@@ -231,6 +233,7 @@ import trLicense from './locales/tr/license.json';
 import trModifierGroups from './locales/tr/modifierGroups.json';
 import trNav from './locales/tr/nav.json';
 import trOnlineOrders from './locales/tr/onlineOrders.json';
+import trOnlinePayments from './locales/tr/onlinePayments.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trPayments from './locales/tr/payments.json';
 import trProducts from './locales/tr/products.json';
@@ -349,6 +352,7 @@ const catalogs = {
     suspiciousAlerts: deSuspiciousAlerts,
     quickActions: deQuickActions,
     onlineOrders: deOnlineOrders,
+    onlinePayments: deOnlinePayments,
     digital: deDigital,
     dataManagement: deDataManagement,
     keyboardShortcuts: deKeyboardShortcuts,
@@ -436,6 +440,7 @@ const catalogs = {
     suspiciousAlerts: enSuspiciousAlerts,
     quickActions: enQuickActions,
     onlineOrders: enOnlineOrders,
+    onlinePayments: enOnlinePayments,
     digital: enDigital,
     dataManagement: enDataManagement,
     keyboardShortcuts: enKeyboardShortcuts,
@@ -523,6 +528,7 @@ const catalogs = {
     suspiciousAlerts: trSuspiciousAlerts,
     quickActions: trQuickActions,
     onlineOrders: trOnlineOrders,
+    onlinePayments: trOnlinePayments,
     digital: trDigital,
     dataManagement: trDataManagement,
     keyboardShortcuts: trKeyboardShortcuts,

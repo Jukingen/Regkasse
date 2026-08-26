@@ -20,6 +20,8 @@ public sealed class PosCashierEndpointPermissionContractTests
             ("GET /api/pos/company", AppPermissions.CartView),
             ("GET /api/pos/payment/methods", AppPermissions.PaymentView),
             ("POST /api/pos/payment", AppPermissions.PaymentTake),
+            ("POST /api/pos/payment/initiate", AppPermissions.PaymentTake),
+            ("GET /api/pos/payment/initiate/{id}", AppPermissions.PaymentTake),
             ("GET /api/pos/shift/current", AppPermissions.ShiftView),
             ("POST /api/pos/shift/start", AppPermissions.ShiftOpen),
             ("POST /api/pos/shift/end", AppPermissions.ShiftClose),

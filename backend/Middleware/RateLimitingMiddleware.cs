@@ -94,7 +94,9 @@ public sealed class RateLimitingMiddleware
         return path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase);
+            || path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/api/webhooks", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class RequestCounter

@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
-import { resolveTenantFetchHeaders } from '../services/api/config';
+import { resolveTenantFetchRequest } from '../services/api/config';
 import { normalizeToPosPaymentMethods } from '../services/api/normalizePosPaymentMethods';
 import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 import { isNetworkOnline } from '../utils/isNetworkOnline';
@@ -263,12 +263,14 @@ export function useOptimizedPaymentMethods() {
     if (!user?.token) return null;
 
     try {
-      const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
-        headers: await resolveTenantFetchHeaders({
+      const { url, headers } = await resolveTenantFetchRequest(
+        `${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`,
+        {
           Authorization: `Bearer ${user.token}`,
           'Content-Type': 'application/json',
-        }),
-      });
+        }
+      );
+      const response = await fetch(url, { headers });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -18,6 +18,12 @@ const CRITICAL_PATHS = [
   { path: '/api/pos/payment', methods: ['post'] },
   { path: '/api/pos/payment/methods', methods: ['get'] },
   { path: '/api/pos/payment/{id}', methods: ['get'] },
+  { path: '/api/pos/payment/initiate', methods: ['post'] },
+  { path: '/api/pos/payment/initiate/{id}', methods: ['get'] },
+  { path: '/api/webhooks/payment/{provider}', methods: ['post'] },
+  { path: '/api/admin/online-payments', methods: ['get'] },
+  { path: '/api/admin/online-payments/{id}', methods: ['get'] },
+  { path: '/api/admin/online-payments/test', methods: ['post'] },
   { path: '/api/pos/cart/current', methods: ['get'] },
   { path: '/api/admin/payments', methods: ['get'] },
   { path: '/api/admin/payments/{id}', methods: ['get'] },
@@ -64,6 +70,13 @@ const REQUIRED_SCHEMAS = [
   'ReplayOfflineOrderResult',
   'ReplayOfflineOrdersResult',
   'OfflineOrderRequest',
+  'InitiateOnlinePaymentRequest',
+  'OnlinePaymentDto',
+  'AdminOnlinePaymentDto',
+  'AdminOnlinePaymentListResponse',
+  'AdminOnlinePaymentTestRequest',
+  'AdminOnlinePaymentTestResponse',
+  'PaymentWebhookReceivedResponse',
 ];
 
 /**

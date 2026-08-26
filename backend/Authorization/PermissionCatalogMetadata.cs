@@ -63,6 +63,7 @@ public static class PermissionCatalogMetadata
         ["receipttemplate"] = "Einstellungen",
         // Digitale Dienste / System / Other
         ["digital"] = "Digitale Dienste",
+        ["online-payments"] = "Digitale Dienste",
         ["system"] = "System",
         ["deployment"] = "System",
         ["price"] = "Sonstige",
@@ -187,6 +188,7 @@ public static class PermissionCatalogMetadata
             AppPermissions.DigitalOrdersView => "Online-Bestellungen anzeigen (Website/App; kein POS)",
             AppPermissions.DigitalOrdersManage => "Online-Bestellstatus ändern (Website/App; kein POS/TSE)",
             AppPermissions.DigitalOrdersApprove => "Online-Bestellungen freigeben / POS-Bridge (Super-Admin)",
+            AppPermissions.OnlinePaymentsManage => "Online-Zahlungen verwalten und Test-Webhooks auslösen (Super-Admin; kein POS/TSE)",
             AppPermissions.RksvTestHelper => "RKSV Test-Helfer (Demo-Modus) anzeigen und verwenden",
             AppPermissions.RksvTseSimulation => "TSE-Simulation im RKSV Test-Helfer zurücksetzen",
             AppPermissions.RiskView => "Risiko-Scores und Anomalien anzeigen",

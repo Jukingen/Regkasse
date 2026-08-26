@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView } from 'expo-camera';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
+
+import { PosCameraView } from './camera/PosCameraView';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { POS_PRODUCT_BARCODE_TYPES } from '../constants/posCameraScan';
@@ -99,7 +100,7 @@ export function BarcodeScannerModal({
     if (!visible) return null;
 
     return (
-      <CameraView
+      <PosCameraView
         style={styles.camera}
         facing="back"
         active={visible}

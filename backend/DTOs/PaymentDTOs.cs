@@ -241,6 +241,12 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Confirmed card payment intent id when method is card (Stripe-ready two-step flow).</summary>
         public Guid? CardPaymentIntentId { get; set; }
+
+        /// <summary>POS <c>gateway_payment_intents</c> row id to link after fiscal commit.</summary>
+        public Guid? OnlinePaymentId { get; set; }
+
+        /// <summary>Provider-agnostic alias for the gateway intent id.</summary>
+        public Guid? GatewayIntentId { get; set; }
     }
 
     /// <summary>

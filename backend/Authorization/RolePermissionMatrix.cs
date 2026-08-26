@@ -154,6 +154,7 @@ public static class RolePermissionMatrix
                 AppPermissions.BackupManage,
                 AppPermissions.WebsiteManage,
                 // Online orders: manage implies view — not POS cart bridge (approve).
+                // online-payments.manage stays SuperAdmin-only (synthetic webhook test console).
                 AppPermissions.DigitalOrdersManage,
                 AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,

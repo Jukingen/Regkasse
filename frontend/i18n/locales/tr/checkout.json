@@ -176,7 +176,8 @@
         "coverageMissing": "Yetersiz kapsam: kupon + nakit toplama ulasmiyor.",
         "voucherInvalid": "Gecersiz kupon — lutfen kontrol edin ve dogrulayin.",
         "tseNotReady": "TSE kullanılamıyor. Ödeme mümkün değil.",
-        "voucherOffline": "Kupon cevrimdisi kullanilamaz."
+        "voucherOffline": "Kupon cevrimdisi kullanilamaz.",
+        "onlinePaymentOffline": "Cevrimici odeme cevrimdisi kullanilamaz."
       },
       "tseGate": {
         "disabled": "TSE devre disi. Odeme yapilamaz.",
@@ -216,6 +217,18 @@
       },
       "registerAssignA11y": "Kasa {{register}} ata",
       "methodSelectedA11ySuffix": ", secildi",
+      "onlinePayment": {
+        "kreditkarte": "Kredi karti",
+        "paypal": "PayPal",
+        "offlineDisabled": "Cevrimici odeme cevrimdisi kullanilamaz.",
+        "offlineAlertTitle": "Cevrimdisi",
+        "offlineA11ySuffix": ", cevrimdisi kullanilamaz",
+        "awaitingGateway": "Odemeyi tarayicide tamamlayin…",
+        "failed": "Cevrimici odeme basarisiz.",
+        "cancelled": "Cevrimici odeme iptal edildi.",
+        "timeout": "Cevrimici odeme zaman asimina ugradi.",
+        "openFailed": "Odeme sayfasi acilamadi."
+      },
       "offlineQueued": "Odeme cevrimdisi kaydedildi — TSE tekrar cevrimici oldugunda otomatik imzalanir",
       "tseSimulation": {
         "title": "TSE simulasyonu",

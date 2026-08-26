@@ -213,6 +213,12 @@ public static class AppPermissions
     /// </summary>
     public const string DigitalOrdersApprove = "digital.orders.approve";
 
+    /// <summary>
+    /// Super Admin FA console for website/app online-checkout payments (list + synthetic webhook tests).
+    /// Not fiscal POS. SuperAdmin-only via catalog; never granted to Manager.
+    /// </summary>
+    public const string OnlinePaymentsManage = "online-payments.manage";
+
     public const string LocalizationView = "localization.view";
     public const string LocalizationManage = "localization.manage";
     public const string ReceiptTemplateView = "receipttemplate.view";

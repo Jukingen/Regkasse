@@ -148,6 +148,7 @@ export default function RootLayout() {
                               <Stack.Screen name="customer" />
                               <Stack.Screen name="tenant/[slug]" />
                               <Stack.Screen name="order-tracker" />
+                              <Stack.Screen name="online-payment/callback" />
                             </Stack>
                             <ThemedStatusBar />
                             <ThemedSystemUI />

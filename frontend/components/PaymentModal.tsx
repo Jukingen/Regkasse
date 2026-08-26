@@ -23,6 +23,7 @@ import {
   PaymentRequest,
   PaymentItem,
   type VoucherValidateSuccess,
+  resolveGatewayChargeAmount,
 } from '../services/api/paymentService';
 import {
   isPaymentError,
@@ -44,6 +45,22 @@ import {
   selectSelectedPaymentMethodType,
   usePosCheckoutUiStore,
 } from '../stores/posCheckoutUiStore';
+import {
+  onlinePaymentStoreActions,
+  selectOnlinePaymentPhase,
+  useOnlinePaymentStore,
+} from '../stores/onlinePaymentStore';
+import {
+  isHostedOnlinePaymentMethod,
+  isOnlinePaymentDisabledOffline,
+  mergeHostedOnlinePaymentMethods,
+  type HostedOnlinePaymentCode,
+} from '../services/payment/onlinePaymentMethods';
+import {
+  OnlinePaymentFlowError,
+  runHostedOnlinePayment,
+} from '../services/payment/onlinePaymentFlow';
+import { logger } from '../lib/logger';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { VoucherScanner } from './VoucherScanner';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
@@ -276,6 +293,7 @@ export default function PaymentModal({
   const tseHealth = useTseHealth();
   const tseServerOffline = String(tseHealth.status) === 'Offline';
   const selectedPaymentMethod = usePosCheckoutUiStore(selectSelectedPaymentMethodType);
+  const onlinePaymentPhase = useOnlinePaymentStore(selectOnlinePaymentPhase);
   const paymentMethodSubmitAttempted = usePosCheckoutUiStore(selectPaymentMethodSubmitAttempted);
   const { setSelectedPaymentMethodType, setPaymentMethodSubmitAttempted, resetCheckoutPaymentUi } =
     posCheckoutUiActions;
@@ -298,6 +316,7 @@ export default function PaymentModal({
   const [cardSimVisible, setCardSimVisible] = useState(false);
   const [cardPaymentIntentId, setCardPaymentIntentId] = useState<string | undefined>();
   const [paymentBusy, setPaymentBusy] = useState(false);
+  const onlinePaymentAbortRef = useRef<AbortController | null>(null);
 
   /** RKSV: separate wizard for Storno vs Teilrückerstattung (elevated permissions). */
   const [stornoRefundWizardVisible, setStornoRefundWizardVisible] = useState(false);
@@ -449,7 +468,9 @@ export default function PaymentModal({
   }, [paymentMethods, selectedPaymentMethod]);
 
   const settlementPaymentMethods = useMemo(() => {
-    let list = (paymentMethods ?? []).filter((m) => m.type !== 'voucher');
+    let list = mergeHostedOnlinePaymentMethods(paymentMethods ?? []).filter(
+      (m) => m.type !== 'voucher'
+    );
     if (tseServerOffline) {
       list = list.filter((m) => m.type === 'cash');
     }
@@ -569,6 +590,10 @@ export default function PaymentModal({
 
   const voucherRemainingToPay = Math.max(0, totalAmount - voucherRedeemAmountEffective);
   const settlementAmountDue = voucherEnabled ? voucherRemainingToPay : totalAmount;
+  const gatewayChargeAmount = resolveGatewayChargeAmount({
+    cartTotal: totalAmount,
+    remainderAfterVoucher: voucherEnabled ? settlementAmountDue : undefined,
+  });
   const shouldCollectCashAmount = requiresCashAmount && settlementAmountDue > 0;
   const changeAmount = parseLocaleDecimal(amountReceived) - settlementAmountDue;
 
@@ -639,6 +664,10 @@ export default function PaymentModal({
   const payGateTseBlocked = needFiscalTseForPay && !tseServerOffline && fiscalTseGateOk !== true;
   const offlineBlocksVoucher =
     (!isOnline && voucherEnabled) || (tseServerOffline && voucherEnabled);
+  const offlineBlocksOnlinePayment = isOnlinePaymentDisabledOffline(
+    selectedPaymentMethod,
+    isOnline
+  );
 
   const paymentCoverageOk =
     (totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR && voucherEnabled && voucherSettlementValid) || // FIX: full voucher coverage
@@ -672,7 +701,8 @@ export default function PaymentModal({
     (voucherEnabled && !voucherSettlementValid) ||
     timeSyncCritical ||
     licenseBlocksPaymentUi ||
-    maintenanceBlocksPayment;
+    maintenanceBlocksPayment ||
+    offlineBlocksOnlinePayment;
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
@@ -700,6 +730,8 @@ export default function PaymentModal({
                           ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
                           : offlineBlocksVoucher
                             ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
+                            : offlineBlocksOnlinePayment
+                              ? t('checkout:posFlow.payment.blockedHints.onlinePaymentOffline')
                             : undefined
       : undefined;
 
@@ -1037,6 +1069,15 @@ export default function PaymentModal({
       return;
     }
 
+    if (offlineBlocksOnlinePayment) {
+      logPay('Guard exit: offline blocks online payment');
+      Alert.alert(
+        t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+        t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+      );
+      return;
+    }
+
     if (
       !selectedPaymentMethod ||
       !settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod)
@@ -1177,7 +1218,15 @@ export default function PaymentModal({
     }
 
     const effectiveCardIntentId = confirmedCardIntentId ?? cardPaymentIntentId;
-    if (selectedPaymentMethod === 'card' && !effectiveCardIntentId) {
+    const hostedOnlineSelected = isHostedOnlinePaymentMethod(selectedPaymentMethod);
+    if (hostedOnlineSelected && !isOnline) {
+      Alert.alert(
+        t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+        t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+      );
+      return;
+    }
+    if (!hostedOnlineSelected && selectedPaymentMethod === 'card' && !effectiveCardIntentId) {
       setCardSimVisible(true);
       return;
     }
@@ -1211,6 +1260,49 @@ export default function PaymentModal({
         customerId && customerId !== '00000000-0000-0000-0000-000000000000'
           ? customerId
           : guestCustomerId;
+
+      let hostedOnlinePaymentId: string | undefined;
+      if (hostedOnlineSelected && isHostedOnlinePaymentMethod(selectedPaymentMethod)) {
+        const methodCode = selectedPaymentMethod as HostedOnlinePaymentCode;
+        logger.info('online_payment.modal_flow_start', { method: methodCode });
+        onlinePaymentAbortRef.current?.abort();
+        const abort = new AbortController();
+        onlinePaymentAbortRef.current = abort;
+        try {
+          const gateway = await runHostedOnlinePayment({
+            method: methodCode,
+            cashRegisterId,
+            amount: gatewayChargeAmount,
+            customerId: finalCustomerId,
+            tableNumber: resolvedTableNumber,
+            signal: abort.signal,
+          });
+          hostedOnlinePaymentId = gateway.onlinePaymentId;
+        } catch (gatewayErr) {
+          if (gatewayErr instanceof Error && gatewayErr.message === 'ONLINE_PAYMENT_ABORTED') {
+            logger.info('online_payment.modal_flow_aborted', { method: methodCode });
+            setPurchaseState('input');
+            return;
+          }
+          const code =
+            gatewayErr instanceof OnlinePaymentFlowError
+              ? gatewayErr.code
+              : 'ONLINE_PAYMENT_FAILED';
+          logger.warn('online_payment.modal_flow_failed', { method: methodCode, errorCode: code });
+          const message =
+            code === 'ONLINE_PAYMENT_CANCELLED'
+              ? t('checkout:posFlow.payment.onlinePayment.cancelled')
+              : code === 'ONLINE_PAYMENT_TIMEOUT'
+                ? t('checkout:posFlow.payment.onlinePayment.timeout')
+                : code === 'HOSTED_PAGE_OPEN_FAILED'
+                  ? t('checkout:posFlow.payment.onlinePayment.openFailed')
+                  : t('checkout:posFlow.payment.onlinePayment.failed');
+          Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), message);
+          setPurchaseState('input');
+          onlinePaymentStoreActions.reset();
+          return;
+        }
+      }
 
       // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
       // Guard: flat items only — do not add modifierIds or modifiers (one item per cart line).
@@ -1258,6 +1350,7 @@ export default function PaymentModal({
               }
             : {}),
           ...(effectiveCardIntentId ? { cardPaymentIntentId: effectiveCardIntentId } : {}),
+          ...(hostedOnlinePaymentId ? { onlinePaymentId: hostedOnlinePaymentId } : {}),
         },
         tableNumber: resolvedTableNumber,
         totalAmount,
@@ -1554,6 +1647,9 @@ export default function PaymentModal({
 
   // Modal kapat
   const handleClose = () => {
+    onlinePaymentAbortRef.current?.abort();
+    onlinePaymentAbortRef.current = null;
+    onlinePaymentStoreActions.reset();
     clearError();
     resetVoucherUi();
     setVoucherEnabled(false);
@@ -1784,7 +1880,18 @@ export default function PaymentModal({
                     ) : settlementPaymentMethods && settlementPaymentMethods.length > 0 ? (
                       settlementPaymentMethods.map((method) => {
                         const isSelected = selectedPaymentMethod === method.type;
-                        const methodDisabled = paymentInteractionsLocked;
+                        const onlineOfflineDisabled = isOnlinePaymentDisabledOffline(
+                          method.type,
+                          isOnline
+                        );
+                        const methodDisabled =
+                          paymentInteractionsLocked || onlineOfflineDisabled;
+                        const methodLabel =
+                          method.type === 'credit_card'
+                            ? t('checkout:posFlow.payment.onlinePayment.kreditkarte')
+                            : method.type === 'paypal'
+                              ? t('checkout:posFlow.payment.onlinePayment.paypal')
+                              : method.name;
                         return (
                           <Pressable
                             key={method.id}
@@ -1797,13 +1904,20 @@ export default function PaymentModal({
                             disabled={methodDisabled}
                             onPress={() => {
                               if (paymentInteractionsLocked) return;
+                              if (onlineOfflineDisabled) {
+                                Alert.alert(
+                                  t('checkout:posFlow.payment.onlinePayment.offlineAlertTitle'),
+                                  t('checkout:posFlow.payment.onlinePayment.offlineDisabled')
+                                );
+                                return;
+                              }
                               if (method.type !== selectedPaymentMethod) {
                                 setSelectedPaymentMethodType(method.type);
                               }
                             }}
                             accessibilityRole="button"
                             accessibilityState={{ selected: isSelected, disabled: methodDisabled }}
-                            accessibilityLabel={`${method.name}${isSelected ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}`}>
+                            accessibilityLabel={`${methodLabel}${isSelected ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}${onlineOfflineDisabled ? t('checkout:posFlow.payment.onlinePayment.offlineA11ySuffix') : ''}`}>
                             <Ionicons
                               name={method.icon as any}
                               size={24}
@@ -1814,7 +1928,7 @@ export default function PaymentModal({
                                 styles.paymentMethodText,
                                 isSelected && styles.selectedPaymentMethodText,
                               ]}>
-                              {method.name}
+                              {methodLabel}
                             </Text>
                           </Pressable>
                         );
@@ -2280,7 +2394,9 @@ export default function PaymentModal({
                         <View style={styles.payButtonContent}>
                           <WaveLoader size={18} color={SoftColors.textInverse} />
                           <Text style={styles.payButtonText}>
-                            {t('checkout:posFlow.payment.footer.processing')}
+                            {onlinePaymentPhase === 'awaiting_action'
+                              ? t('checkout:posFlow.payment.onlinePayment.awaitingGateway')
+                              : t('checkout:posFlow.payment.footer.processing')}
                           </Text>
                         </View>
                       ) : (
@@ -2535,7 +2651,7 @@ export default function PaymentModal({
       />
       <CardPaymentModal
         visible={cardSimVisible}
-        amount={settlementAmountDue > 0 ? settlementAmountDue : totalAmount}
+        amount={gatewayChargeAmount}
         cashRegisterId={cashRegisterId ?? ''}
         onClose={() => {
           setCardSimVisible(false);

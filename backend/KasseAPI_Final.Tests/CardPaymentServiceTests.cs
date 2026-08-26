@@ -454,8 +454,101 @@ public sealed class CardPaymentServiceTests
         await sut.LinkToPaymentAsync(Guid.NewGuid(), Guid.NewGuid());
     }
 
+    [Fact]
+    public async Task CreateIntent_SameIdempotencyKey_ReturnsExistingWithoutSecondGatewayCall()
+    {
+        var registerId = Guid.NewGuid();
+        var (sut, gateway, resolution, _) = CreateSut();
+        SetupRegisterOk(resolution, registerId);
+        gateway.Setup(g => g.CreatePaymentIntentAsync(It.IsAny<CreatePaymentIntentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OkIntent("pi_idem", PaymentIntentStatus.Created, clientSecret: "s"));
+
+        var request = new CreateCardPaymentIntentRequest
+        {
+            Amount = 8m,
+            CashRegisterId = registerId,
+            IdempotencyKey = "pos-key-1"
+        };
+
+        var first = await sut.CreateIntentAsync(request, UserId);
+        var second = await sut.CreateIntentAsync(request, UserId);
+
+        Assert.Null(first.ErrorCode);
+        Assert.Null(second.ErrorCode);
+        Assert.Equal(first.Response!.Id, second.Response!.Id);
+        gateway.Verify(
+            g => g.CreatePaymentIntentAsync(It.IsAny<CreatePaymentIntentRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateIntent_RequestIdHeader_IsUsedAsIdempotencyKey()
+    {
+        var registerId = Guid.NewGuid();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Request-Id"] = "req-idem-9";
+        var (sut, gateway, resolution, _) = CreateSut(httpContext: httpContext);
+        SetupRegisterOk(resolution, registerId);
+        gateway.Setup(g => g.CreatePaymentIntentAsync(It.IsAny<CreatePaymentIntentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OkIntent("pi_hdr", PaymentIntentStatus.Created, clientSecret: "s"));
+
+        var request = new CreateCardPaymentIntentRequest
+        {
+            Amount = 8m,
+            CashRegisterId = registerId
+        };
+
+        var first = await sut.CreateIntentAsync(request, UserId);
+        var second = await sut.CreateIntentAsync(request, UserId);
+
+        Assert.Null(first.ErrorCode);
+        Assert.Equal(first.Response!.Id, second.Response!.Id);
+        gateway.Verify(
+            g => g.CreatePaymentIntentAsync(It.IsAny<CreatePaymentIntentRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RefundForFiscalPayment_CallsGatewayRefund()
+    {
+        var (sut, gateway, _, ctx) = CreateSut();
+        var paymentId = Guid.NewGuid();
+        var row = await SeedIntentAsync(ctx, CardPaymentTransactionStatuses.Succeeded, paymentId: paymentId);
+        gateway.Setup(g => g.RefundTransactionAsync(row.GatewayPaymentIntentId!, 10m, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefundResult { Success = true, RefundedAmount = 10m, Status = PaymentIntentStatus.Refunded });
+
+        var (ok, code, _) = await sut.RefundForFiscalPaymentAsync(paymentId, 10m);
+
+        Assert.True(ok);
+        Assert.Null(code);
+        gateway.Verify(
+            g => g.RefundTransactionAsync(row.GatewayPaymentIntentId!, 10m, It.IsAny<CancellationToken>()),
+            Times.Once);
+        ctx.ChangeTracker.Clear();
+        var stored = await ctx.CardPaymentTransactions.AsNoTracking().SingleAsync(c => c.Id == row.Id);
+        Assert.Equal(CardPaymentTransactionStatuses.Refunded, stored.Status);
+    }
+
+    [Fact]
+    public async Task VoidExpiredOrphanIntents_RefundsSucceededUnlinkedOlderThanTtl()
+    {
+        var (sut, gateway, _, ctx) = CreateSut();
+        var orphan = await SeedIntentAsync(ctx, CardPaymentTransactionStatuses.Succeeded);
+        orphan.CreatedAt = DateTime.UtcNow.AddDays(-8);
+        await ctx.SaveChangesAsync();
+        gateway.Setup(g => g.RefundTransactionAsync(orphan.GatewayPaymentIntentId!, orphan.Amount, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefundResult { Success = true, RefundedAmount = orphan.Amount, Status = PaymentIntentStatus.Refunded });
+
+        var voided = await sut.VoidExpiredOrphanIntentsAsync(TimeSpan.FromDays(7));
+
+        Assert.Equal(1, voided);
+        gateway.Verify(
+            g => g.RefundTransactionAsync(orphan.GatewayPaymentIntentId!, orphan.Amount, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static (CardPaymentService Sut, Mock<IPaymentGateway> Gateway, Mock<ICashRegisterResolutionService> Resolution, AppDbContext Ctx)
-        CreateSut(bool requireCardIntent = false)
+        CreateSut(bool requireCardIntent = false, HttpContext? httpContext = null)
     {
         var ctx = PaymentServiceCoverageHarness.CreateContext();
         TenantTestDoubles.EnsurePlatformTenant(ctx);
@@ -466,7 +559,7 @@ public sealed class CardPaymentServiceTests
 
         var resolution = new Mock<ICashRegisterResolutionService>();
         var http = new Mock<IHttpContextAccessor>();
-        http.Setup(h => h.HttpContext).Returns(new DefaultHttpContext());
+        http.Setup(h => h.HttpContext).Returns(httpContext ?? new DefaultHttpContext());
 
         var sut = new CardPaymentService(
             ctx,

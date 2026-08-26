@@ -128,6 +128,7 @@ public static class PermissionCatalog
         AppPermissions.DigitalOrdersView,
         AppPermissions.DigitalOrdersManage,
         AppPermissions.DigitalOrdersApprove,
+        AppPermissions.OnlinePaymentsManage,
         AppPermissions.LocalizationView,
         AppPermissions.LocalizationManage,
         AppPermissions.ReceiptTemplateView,

@@ -37,6 +37,7 @@ describe('expo-router structure contract', () => {
     expect(exists('(screens)/SplitScreen.tsx')).toBe(true);
     expect(exists('(screens)/offline-queue.tsx')).toBe(true);
     expect(exists('(screens)/license-activate.tsx')).toBe(true);
+    expect(exists('online-payment/callback.tsx')).toBe(true);
   });
 
   test('components are not registered as routes under app/', () => {

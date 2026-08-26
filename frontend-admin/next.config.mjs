@@ -116,7 +116,7 @@ function buildSecurityHeaders() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local'],
+  allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local', '127.0.0.1', 'localhost'],
   transpilePackages: [
     'antd',
     '@ant-design/icons',

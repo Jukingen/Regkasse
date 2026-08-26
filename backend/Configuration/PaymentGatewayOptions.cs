@@ -18,6 +18,9 @@ public sealed class PaymentGatewayOptions
     /// <summary>When true, POS card payments must include a confirmed <see cref="DTOs.PaymentMethodRequest.CardPaymentIntentId"/>.</summary>
     public bool RequireCardIntentForPosPayments { get; set; }
 
+    /// <summary>Age after which Succeeded intents with no fiscal PaymentId are voided (days).</summary>
+    public int OrphanIntentTtlDays { get; set; } = 7;
+
     /// <summary>Simulated network delay for Mock gateway (milliseconds).</summary>
     public int SimulateDelayMs { get; set; }
 

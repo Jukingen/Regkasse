@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KasseAPI_Final.Data
 {
-    public class AppDbContext : IdentityDbContext<ApplicationUser>
+    public partial class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         private static readonly ValueConverter<Guid, string> AspNetUserIdConverter = new(
             v => v.ToString("D"),
@@ -110,6 +110,7 @@ namespace KasseAPI_Final.Data
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
         public DbSet<OfflineOrder> OfflineOrders { get; set; }
         public DbSet<CardPaymentTransaction> CardPaymentTransactions { get; set; }
+        public DbSet<GatewayWebhookEvent> GatewayWebhookEvents { get; set; }
         /// <summary>Observability: DeviceId/ClientSequence coverage per replayed offline intent (no domain impact).</summary>
         public DbSet<OfflineIntentCoverageSample> OfflineIntentCoverageSamples { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
@@ -2084,7 +2085,7 @@ namespace KasseAPI_Final.Data
 
             builder.Entity<CardPaymentTransaction>(entity =>
             {
-                entity.ToTable("card_payment_transactions");
+                entity.ToTable("gateway_payment_intents");
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.HasOne(e => e.Tenant)
@@ -2113,10 +2114,42 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.RefundedAmount).HasColumnName("refunded_amount").HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
                 entity.Property(e => e.MetadataJson).HasColumnName("metadata_json").HasColumnType("jsonb");
+                entity.Property(e => e.IdempotencyKey).HasColumnName("idempotency_key").HasMaxLength(64);
+                entity.Property(e => e.RedirectUrl).HasColumnName("redirect_url").HasMaxLength(500);
+                entity.Property(e => e.ReturnUrl).HasColumnName("return_url").HasMaxLength(500);
+                entity.Property(e => e.MethodCode).HasColumnName("method_code").HasMaxLength(32);
+                entity.Property(e => e.LastWebhookEventId).HasColumnName("last_webhook_event_id").HasMaxLength(128);
+                entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc");
+                entity.Property(e => e.CaptureMode).HasColumnName("capture_mode").HasMaxLength(32).HasDefaultValue("automatic");
+                entity.Property(e => e.CartSnapshotId).HasColumnName("cart_snapshot_id");
                 entity.HasIndex(e => e.CashRegisterId);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.PaymentId);
                 entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.GatewayPaymentIntentId);
+                entity.HasIndex(e => new { e.TenantId, e.IdempotencyKey })
+                    .IsUnique()
+                    .HasFilter("idempotency_key IS NOT NULL")
+                    .HasDatabaseName("ux_gateway_payment_intents_tenant_idempotency");
+            });
+
+
+            builder.Entity<GatewayWebhookEvent>(entity =>
+            {
+                entity.ToTable("gateway_webhook_events");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.IntentId).HasColumnName("intent_id");
+                entity.Property(e => e.Provider).HasColumnName("provider").HasMaxLength(32).IsRequired();
+                entity.Property(e => e.EventId).HasColumnName("event_id").HasMaxLength(128).IsRequired();
+                entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(64);
+                entity.Property(e => e.ReceivedAtUtc).HasColumnName("received_at_utc").IsRequired();
+                entity.Property(e => e.Applied).HasColumnName("applied").IsRequired();
+                entity.HasIndex(e => e.IntentId);
+                entity.HasIndex(e => new { e.Provider, e.EventId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_gateway_webhook_events_provider_event");
             });
 
             builder.Entity<OfflineOrder>(entity =>

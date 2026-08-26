@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **POS online payments (Kreditkarte / PayPal):** hosted initiate + poll (`POST/GET /api/pos/payment/initiate`), provider webhooks (`POST /api/webhooks/payment/{provider}`), intents on `gateway_payment_intents`. Webhooks never create TSE/RKSV receipts. Super Admin FA **Online-Zahlungen** (`/admin/online-payments`, `online-payments.manage`) lists intents and runs a non-fiscal test console. Guide: [`docs/ONLINE_PAYMENTS.md`](docs/ONLINE_PAYMENTS.md).
+
 - **Dashboard widget customization (P2):** Manager license / KPI / Monatsbeleg / activity / TSE / offline / license checklist / export quick-actions participate in existing `@dnd-kit` `WidgetGrid` + `GET/POST /api/admin/dashboard/preferences`. Handlungsbedarf (Tagesabschluss + RKSV) remains pinned. Reset layout + i18n for “Widgets anpassen”. See [`docs/RELEASE_NOTES_2026-08-08.md`](docs/RELEASE_NOTES_2026-08-08.md).
 - **DEP export history:** download token / expiry / `download_count` / `is_simulated` migrations; Soft TSE leaf/chain fallback for **demo/simulation only** when historical thumbprint is missing; `DepExportStatus` JSON string enum for FA.
 - **EF snapshot sync migration** `20260808214645_SyncDepExportAndPendingModelSnapshot` (no SQL) so `dotnet ef migrations has-pending-model-changes` is clean.

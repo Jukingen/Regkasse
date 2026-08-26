@@ -242,6 +242,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-payments': PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
+  '/admin/payments/gateway-console': PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
   '/admin/feedback': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/monitoring': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/risk-dashboard': [PERMISSIONS.SYSTEM_CRITICAL],

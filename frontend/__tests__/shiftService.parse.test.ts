@@ -19,6 +19,10 @@ jest.mock('../services/api/config', () => ({
   },
   API_BASE_URL: 'http://test/api',
   resolveTenantFetchHeaders: jest.fn(async (headers: Record<string, string>) => headers),
+  resolveTenantFetchRequest: jest.fn(async (url: string, headers: Record<string, string> = {}) => ({
+    url,
+    headers,
+  })),
 }));
 
 jest.mock('../services/session/sessionManager', () => ({

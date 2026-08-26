@@ -8,6 +8,7 @@ using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -346,6 +347,28 @@ internal static class PaymentServiceCoverageHarness
         var tenant = await context.Tenants.FirstAsync(t => t.Id == SystemTenantIds.Platform);
         tenant.LicenseValidUntilUtc = validUntilUtc;
         await context.SaveChangesAsync();
+    }
+
+    public static async Task<Guid> AddVoucherAsync(AppDbContext context, string code, decimal remaining)
+    {
+        var voucherId = Guid.NewGuid();
+        context.Vouchers.Add(new Voucher
+        {
+            Id = voucherId,
+            TenantId = SystemTenantIds.Platform,
+            CodeHash = VoucherCodeHasher.HashNormalized(VoucherCodeHasher.NormalizeCode(code)),
+            MaskedCode = "****" + code[^3..],
+            InitialAmount = remaining,
+            RemainingAmount = remaining,
+            Currency = "EUR",
+            Status = VoucherStatus.Active,
+            ValidFromUtc = DateTime.UtcNow.AddDays(-2),
+            ExpiresAtUtc = DateTime.UtcNow.AddDays(10),
+            CreatedByUserId = CashierId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        return voucherId;
     }
 
     public static CreatePaymentRequest SaleRequest(

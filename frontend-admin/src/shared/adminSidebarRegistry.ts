@@ -217,6 +217,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'CreditCardOutlined',
     permission: PERMISSIONS.PAYMENT_VIEW,
   },
+  onlinePayments: {
+    id: 'onlinePayments',
+    menuKey: '/admin/online-payments',
+    href: '/admin/online-payments',
+    labelKey: 'nav.onlinePayments',
+    icon: 'CreditCardOutlined',
+    permission: PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
+  },
   vouchers: {
     id: 'vouchers',
     menuKey: '/vouchers',
@@ -1608,6 +1616,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'payments',
           'paymentTrends',
           'cardTransactions',
+          'onlinePayments',
           'stornoRefundAudit',
           'vouchers',
           'invoices',

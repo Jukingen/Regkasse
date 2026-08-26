@@ -12,8 +12,12 @@ export interface PaymentMethodRequest {
   amount?: number | null;
   /** @nullable */
   cardPaymentIntentId?: string | null;
+  /** @nullable */
+  gatewayIntentId?: string | null;
   /** @minLength 1 */
   method: string;
+  /** @nullable */
+  onlinePaymentId?: string | null;
   tseRequired: boolean;
   /**
    * @maxLength 128

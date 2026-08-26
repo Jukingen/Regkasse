@@ -111,6 +111,9 @@ jobs:
       - name: npm run test:coverage
         run: npm run test:coverage
 
+      - name: Online payments UI tests
+        run: npx vitest run src/features/online-payments
+
       - name: i18n validate (strict missing)
         working-directory: ${{ github.workspace }}
         run: >
@@ -194,6 +197,7 @@ jobs:
 
       - name: npm run test:e2e
         run: npm run test:e2e
+        # Includes tests/e2e/online-payment.spec.ts (mock API unless E2E_LIVE=1).
 
       - name: Upload Playwright report
         if: failure()

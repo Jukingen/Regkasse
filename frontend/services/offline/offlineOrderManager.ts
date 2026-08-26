@@ -3,7 +3,7 @@ import { getOfflineStorage } from './offlineStorage';
 import { OfflineSyncHistory } from './offlineSyncHistory';
 import { apiClient } from '../api/config';
 import {
-  paymentPayloadContainsVoucherSecrets,
+  shouldBlockVoucherOfflineQueue,
   VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
@@ -188,12 +188,21 @@ export class OfflineOrderManager {
   /** Persist a full offline order locally (no backend call until sync). */
   async saveOrder(orderData: unknown, paymentMethod: string): Promise<OfflineOrder> {
     const paymentRequest = extractPaymentRequest(orderData);
-    if (paymentPayloadContainsVoucherSecrets(paymentRequest?.payment)) {
+    if (shouldBlockVoucherOfflineQueue(paymentRequest?.payment)) {
       throw new Error(VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE);
     }
 
-    const maxLimit = OFFLINE_CONFIG.MAX_OFFLINE_TRANSACTIONS;
     const pendingBefore = await this.storage.getPendingOrders();
+    const idem = paymentRequest?.idempotencyKey?.trim();
+    if (idem) {
+      const existing = pendingBefore.find((row) => {
+        const existingReq = extractPaymentRequest(row.orderData);
+        return existingReq?.idempotencyKey?.trim() === idem;
+      });
+      if (existing) return existing;
+    }
+
+    const maxLimit = OFFLINE_CONFIG.MAX_OFFLINE_ORDERS;
     if (pendingBefore.length >= maxLimit) {
       eventEmitter.emit('offline:limit-exceeded', {
         pendingCount: pendingBefore.length,
@@ -597,4 +606,17 @@ export function getOfflineOrderManager(options?: OfflineOrderManagerOptions): Of
 export function resetOfflineOrderManagerForTests(): void {
   sharedManager?.destroy();
   sharedManager = null;
+}
+
+/** Persist a checkout snapshot for reconnect replay. */
+export async function saveOfflineOrderSnapshot(
+  orderData: unknown,
+  paymentMethod: string
+): Promise<OfflineOrder> {
+  return await getOfflineOrderManager().saveOrder(orderData, paymentMethod);
+}
+
+/** Replay pending order snapshots against `/pos/offline-orders`. */
+export async function syncOfflineOrderSnapshots(): Promise<SyncResult> {
+  return await getOfflineOrderManager().syncPendingOrders();
 }

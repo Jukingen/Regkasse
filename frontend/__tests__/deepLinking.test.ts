@@ -75,6 +75,33 @@ describe('resolveDeepLink', () => {
     expect(resolveDeepLink('cashregister://login')).toEqual({ type: 'login' });
   });
 
+  it('maps online payment gateway callback', () => {
+    expect(
+      resolveDeepLink('cashregister://online-payment/callback?onlinePaymentId=op-1&status=completed')
+    ).toEqual({
+      type: 'onlinePaymentCallback',
+      onlinePaymentId: 'op-1',
+      gatewayStatus: 'completed',
+    });
+  });
+
+  it('maps payment-result deep links and web return path', () => {
+    expect(
+      resolveDeepLink('regkasse://payment-result?redirect_status=succeeded&payment_intent=pi_1')
+    ).toEqual({
+      type: 'onlinePaymentCallback',
+      onlinePaymentId: 'pi_1',
+      gatewayStatus: 'succeeded',
+    });
+    expect(
+      resolveDeepLink('https://pos.regkasse.at/payment/result?redirect_status=failed')
+    ).toEqual({
+      type: 'onlinePaymentCallback',
+      onlinePaymentId: undefined,
+      gatewayStatus: 'failed',
+    });
+  });
+
   it('returns null for empty', () => {
     expect(resolveDeepLink(null)).toBeNull();
     expect(resolveDeepLink('')).toBeNull();

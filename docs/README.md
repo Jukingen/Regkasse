@@ -60,15 +60,26 @@ Human-facing guides for operators and developers.
 
 ---
 
-## Digital services & online orders
+## Digital services, online orders & online payments
 
 | Doc | Topic |
 |-----|--------|
 | [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) | Website / app generators, requests |
-| [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) | Non-fiscal order inbox & status |
+| [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) | Non-fiscal website/app order inbox & status |
+| [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) | POS Kreditkarte / PayPal intents, Stripe/Mock, FA Online-Zahlungen |
 | [`CHANGELOG.md`](CHANGELOG.md) | Digital / orders feature wave |
 
 Runtime storefront app: [`../frontend-sites/README.md`](../frontend-sites/README.md) (`/[slug]`, public catalog APIs). Custom hosts: verified `TenantDomain` (`website.manage`).
+
+---
+
+## POS hosted online payments (card / PayPal)
+
+Not the same as website **online orders**. Gateway intents live in `gateway_payment_intents` until fiscal `POST /api/pos/payment`.
+
+| Doc | Topic |
+|-----|--------|
+| [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) | Flow, Stripe/Mock config, FA **Online-Zahlungen** console, webhook/orphan troubleshooting |
 
 ---
 

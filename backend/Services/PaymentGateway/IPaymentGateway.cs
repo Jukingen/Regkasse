@@ -22,6 +22,13 @@ public interface IPaymentGateway
         decimal amount,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Acquirer refund for a captured intent. Default aliases <see cref="RefundPaymentAsync"/>.</summary>
+    Task<RefundResult> RefundTransactionAsync(
+        string gatewayPaymentIntentId,
+        decimal amount,
+        CancellationToken cancellationToken = default)
+        => RefundPaymentAsync(gatewayPaymentIntentId, amount, cancellationToken);
+
     Task<PaymentIntentStatus> GetPaymentStatusAsync(
         string gatewayPaymentIntentId,
         CancellationToken cancellationToken = default);
@@ -36,6 +43,8 @@ public sealed class CreatePaymentIntentRequest
     public string? CustomerId { get; set; }
     public string? Description { get; set; }
     public Dictionary<string, string> Metadata { get; set; } = new();
+    /// <summary>Return URL after redirect/3DS (POS deep link or web /payment/result).</summary>
+    public string? ReturnUrl { get; set; }
 }
 
 public sealed class PaymentIntentResult
@@ -48,6 +57,8 @@ public sealed class PaymentIntentResult
     public string? TransactionId { get; set; }
     public string? CardBrand { get; set; }
     public string? LastFourDigits { get; set; }
+    /// <summary>Hosted-checkout URL when the provider uses redirect (PayPal, Mock).</summary>
+    public string? RedirectUrl { get; set; }
 }
 
 public sealed class RefundResult

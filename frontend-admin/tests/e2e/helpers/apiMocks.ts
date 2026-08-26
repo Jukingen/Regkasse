@@ -23,6 +23,7 @@ const SUPER_ADMIN_ME = {
     'report.view',
     'report.export',
     'audit.view',
+    'online-payments.manage',
   ],
   isActive: true,
   mustChangePasswordOnNextLogin: false,

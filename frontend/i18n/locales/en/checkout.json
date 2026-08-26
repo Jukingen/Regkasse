@@ -176,7 +176,8 @@
         "coverageMissing": "Insufficient coverage: voucher + cash do not reach the total.",
         "voucherInvalid": "Invalid voucher — please check and validate.",
         "tseNotReady": "TSE is not available. Payment is not possible.",
-        "voucherOffline": "Voucher is not available offline."
+        "voucherOffline": "Voucher is not available offline.",
+        "onlinePaymentOffline": "Online payment is not available offline."
       },
       "tseGate": {
         "disabled": "TSE is disabled. Payments are not possible.",
@@ -216,6 +217,18 @@
       },
       "registerAssignA11y": "Assign register {{register}}",
       "methodSelectedA11ySuffix": ", selected",
+      "onlinePayment": {
+        "kreditkarte": "Credit card",
+        "paypal": "PayPal",
+        "offlineDisabled": "Online payment is not available offline.",
+        "offlineAlertTitle": "Offline",
+        "offlineA11ySuffix": ", unavailable offline",
+        "awaitingGateway": "Complete payment in the browser…",
+        "failed": "Online payment failed.",
+        "cancelled": "Online payment cancelled.",
+        "timeout": "Online payment timed out.",
+        "openFailed": "Could not open the payment page."
+      },
       "offlineQueued": "Payment saved offline — will be signed automatically when TSE is online again",
       "tseSimulation": {
         "title": "TSE simulation",

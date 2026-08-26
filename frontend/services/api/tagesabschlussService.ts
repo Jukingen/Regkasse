@@ -1,4 +1,4 @@
-import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchRequest } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import { formatUserDate, formatUserDateTime } from '../../utils/dateFormatter';
 import { sessionManager } from '../session/sessionManager';
@@ -247,13 +247,14 @@ export class ClosingReportPdfError extends Error {
 export async function downloadClosingReportPdf(closingId: string, language = 'de'): Promise<Blob> {
   const token = await sessionManager.getAccessToken();
   const lang = encodeURIComponent(language.split('-')[0] || 'de');
-  const response = await fetch(
+  const { url, headers } = await resolveTenantFetchRequest(
     `${API_BASE_URL}/tagesabschluss/closing/${encodeURIComponent(closingId)}/report.pdf?language=${lang}`,
-    {
-      method: 'GET',
-      headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
-    }
+    token ? { Authorization: `Bearer ${token}` } : {}
   );
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+  });
   if (!response.ok) {
     throw new ClosingReportPdfError(
       response.status,

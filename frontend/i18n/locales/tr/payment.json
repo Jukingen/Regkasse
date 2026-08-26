@@ -36,6 +36,8 @@
   "methods": {
     "cash": "Nakit",
     "card": "Kredi Kartı",
+    "credit_card": "Kredi Kartı",
+    "paypal": "PayPal",
     "voucher": "Kupon",
     "transfer": "Havale / EFT",
     "contactless": "Temassız"

@@ -681,6 +681,7 @@ namespace KasseAPI_Final.Services
                 PaymentDetails? committedPayment = null;
                 Invoice? committedInvoice = null;
                 var paymentStockLinesSkipped = 0;
+                Guid? gatewayIntentId = null;
 
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 var timeSyncWarningForPayment = false;
@@ -946,54 +947,10 @@ namespace KasseAPI_Final.Services
                         };
                     }
 
-                    CardPaymentTransaction? validatedCardTransaction = null;
-                    if (IsCardLegacyPayment(methodResolution.LegacyRaw) && _cardPaymentService != null)
-                    {
-                        var cardIntentId = request.Payment.CardPaymentIntentId;
-                        if (cardIntentId.HasValue && cardIntentId.Value != Guid.Empty)
-                        {
-                            var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
-                                .ValidateForFiscalPaymentAsync(cardIntentId.Value, totalAmount, cashRegisterId)
-                                .ConfigureAwait(false);
-                            if (!cardOk)
-                            {
-                                await transaction.RollbackAsync();
-                                _context.ChangeTracker.Clear();
-                                return new PaymentResult
-                                {
-                                    Success = false,
-                                    Message = cardErrMsg ?? "Card payment intent validation failed.",
-                                    Errors = { cardErrMsg ?? "Card payment intent validation failed." },
-                                    IsDeterministicFailure = true,
-                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
-                                };
-                            }
-
-                            validatedCardTransaction = cardTxn;
-                        }
-                        else
-                        {
-                            var (cardOk, _, cardErrCode, cardErrMsg) = await _cardPaymentService
-                                .ValidateForFiscalPaymentAsync(Guid.Empty, totalAmount, cashRegisterId)
-                                .ConfigureAwait(false);
-                            if (!cardOk)
-                            {
-                                await transaction.RollbackAsync();
-                                _context.ChangeTracker.Clear();
-                                return new PaymentResult
-                                {
-                                    Success = false,
-                                    Message = cardErrMsg ?? "Card payment requires a confirmed card payment intent.",
-                                    Errors = { cardErrMsg ?? "Card payment requires a confirmed card payment intent." },
-                                    IsDeterministicFailure = true,
-                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_REQUIRED"
-                                };
-                            }
-                        }
-                    }
-
                     var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
                     var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
+                    // Gateway intents capture the remainder after voucher, never the cart gross.
+                    var expectedGatewayAmount = expectedVoucherTotal;
                     if (!isVoucherMethodResolved && hasVoucherPayload)
                     {
                         if (!request.Payment.Amount.HasValue)
@@ -1043,6 +1000,7 @@ namespace KasseAPI_Final.Services
                         }
 
                         expectedVoucherTotal = decimal.Round(totalAmount - settlementAmount, 2, MidpointRounding.AwayFromZero);
+                        expectedGatewayAmount = settlementAmount;
                         if (expectedVoucherTotal <= 0)
                         {
                             await transaction.RollbackAsync();
@@ -1056,6 +1014,43 @@ namespace KasseAPI_Final.Services
                                 DiagnosticCode = "VOUCHER_MIXED_ZERO_REDEEM"
                             };
                         }
+                    }
+                    else if (request.Payment.Amount.HasValue)
+                    {
+                        expectedGatewayAmount = decimal.Round(
+                            request.Payment.Amount.Value,
+                            2,
+                            MidpointRounding.AwayFromZero);
+                    }
+
+                    CardPaymentTransaction? validatedCardTransaction = null;
+                    gatewayIntentId = request.Payment.CardPaymentIntentId
+                        ?? request.Payment.OnlinePaymentId
+                        ?? request.Payment.GatewayIntentId;
+                    var requiresGatewayIntent = IsCardLegacyPayment(methodResolution.LegacyRaw)
+                        || OnlinePaymentMethods.Normalize(request.Payment.Method) is not null
+                        || gatewayIntentId.HasValue;
+                    if (requiresGatewayIntent && _cardPaymentService != null)
+                    {
+                        var intentToValidate = gatewayIntentId is Guid gid && gid != Guid.Empty ? gid : Guid.Empty;
+                        var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
+                            .ValidateForFiscalPaymentAsync(intentToValidate, expectedGatewayAmount, cashRegisterId)
+                            .ConfigureAwait(false);
+                        if (!cardOk)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = cardErrMsg ?? "Card payment intent validation failed.",
+                                Errors = { cardErrMsg ?? "Card payment intent validation failed." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
+                            };
+                        }
+
+                        validatedCardTransaction = cardTxn;
                     }
 
                     // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
@@ -1427,11 +1422,15 @@ namespace KasseAPI_Final.Services
 
                     await DispatchPostCommitComplianceAsync(createdPayment, createdInvoice, userId, offlineReplayBatchCorrelationId, effectiveTseRequired);
 
-                    if (_cardPaymentService != null
-                        && request.Payment.CardPaymentIntentId is Guid cardIntentId
-                        && cardIntentId != Guid.Empty)
+                    if (_cardPaymentService != null)
                     {
-                        await _cardPaymentService.LinkToPaymentAsync(cardIntentId, createdPayment.Id).ConfigureAwait(false);
+                        var linkedIntentId = request.Payment.CardPaymentIntentId
+                            ?? request.Payment.OnlinePaymentId
+                            ?? request.Payment.GatewayIntentId;
+                        if (linkedIntentId is Guid cardIntentId && cardIntentId != Guid.Empty)
+                        {
+                            await _cardPaymentService.LinkToPaymentAsync(cardIntentId, createdPayment.Id).ConfigureAwait(false);
+                        }
                     }
 
                     var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
@@ -2130,6 +2129,24 @@ namespace KasseAPI_Final.Services
                 };
             }
 
+            if (_cardPaymentService != null)
+            {
+                var (gwOk, gwCode, gwMsg) = await _cardPaymentService
+                    .RefundForFiscalPaymentAsync(paymentId, payment.TotalAmount)
+                    .ConfigureAwait(false);
+                if (!gwOk)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = gwMsg ?? "Gateway refund failed.",
+                        Errors = { gwMsg ?? "Gateway refund failed." },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
+                    };
+                }
+            }
+
             var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
             var stornoItems = originalItems.Select(i => new PaymentItem
             {
@@ -2578,6 +2595,24 @@ namespace KasseAPI_Final.Services
                     .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
                 var originalInvoiceForRefund = await _context.Invoices.AsNoTracking()
                     .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
+
+                if (_cardPaymentService != null)
+                {
+                    var (gwOk, gwCode, gwMsg) = await _cardPaymentService
+                        .RefundForFiscalPaymentAsync(paymentId, amount)
+                        .ConfigureAwait(false);
+                    if (!gwOk)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = gwMsg ?? "Gateway refund failed.",
+                            Errors = { gwMsg ?? "Gateway refund failed." },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
+                        };
+                    }
+                }
 
                 // Build negated PaymentItems so Receipt totals match (full or partial refund)
                 var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();

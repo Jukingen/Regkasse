@@ -42,6 +42,12 @@ public class OpenApiCriticalPathsContractTests
         AssertPathMethod(paths, "/api/pos/payment", "post");
         AssertPathMethod(paths, "/api/pos/payment/methods", "get");
         AssertPathMethod(paths, "/api/pos/payment/{id}", "get");
+        AssertPathMethod(paths, "/api/pos/payment/initiate", "post");
+        AssertPathMethod(paths, "/api/pos/payment/initiate/{id}", "get");
+        AssertPathMethod(paths, "/api/webhooks/payment/{provider}", "post");
+        AssertPathMethod(paths, "/api/admin/online-payments", "get");
+        AssertPathMethod(paths, "/api/admin/online-payments/{id}", "get");
+        AssertPathMethod(paths, "/api/admin/online-payments/test", "post");
         AssertPathMethod(paths, "/api/pos/cart/current", "get");
         AssertPathMethod(paths, "/api/admin/payments", "get");
         AssertPathMethod(paths, "/api/admin/payments/{id}", "get");

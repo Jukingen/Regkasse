@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView } from 'expo-camera';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+
+import { PosCameraView } from './camera/PosCameraView';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { POS_QR_BARCODE_TYPES } from '../constants/posCameraScan';
@@ -132,7 +133,7 @@ export function QrCustomerScanner({
     }
 
     return (
-      <CameraView
+      <PosCameraView
         style={styles.camera}
         facing="back"
         active={scanLive}
@@ -151,7 +152,7 @@ export function QrCustomerScanner({
             </View>
           ) : null}
         </View>
-      </CameraView>
+      </PosCameraView>
     );
   };
 

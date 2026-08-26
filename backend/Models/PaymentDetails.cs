@@ -245,6 +245,7 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Customer? Customer { get; set; }
+
     }
 }
 

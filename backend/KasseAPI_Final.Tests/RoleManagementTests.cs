@@ -399,6 +399,7 @@ public class RoleManagementTests
         Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsBackup));
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalView));
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalOrdersManage));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.OnlinePaymentsManage));
         Assert.Equal("zahlung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.VoucherRead));
         Assert.Equal("einstellungen", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsView));
     }

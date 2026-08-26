@@ -1,4 +1,4 @@
-import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchRequest } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import { sessionManager } from '../session/sessionManager';
 
@@ -144,9 +144,13 @@ export class InvoicePdfHttpError extends Error {
  */
 export async function downloadInvoicePdf(id: string): Promise<Blob> {
   const token = await sessionManager.getAccessToken();
-  const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/pdf`, {
+  const { url, headers } = await resolveTenantFetchRequest(
+    `${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/pdf`,
+    token ? { Authorization: `Bearer ${token}` } : {}
+  );
+  const response = await fetch(url, {
     method: 'GET',
-    headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
+    headers,
   });
   if (!response.ok) {
     throw new InvoicePdfHttpError(response.status, `PDF download failed: ${response.status}`);
@@ -157,9 +161,13 @@ export async function downloadInvoicePdf(id: string): Promise<Blob> {
 /** Browser-embedded preview via api/Invoice/{id}/preview */
 export async function previewInvoicePdf(id: string): Promise<Blob> {
   const token = await sessionManager.getAccessToken();
-  const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/preview`, {
+  const { url, headers } = await resolveTenantFetchRequest(
+    `${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/preview`,
+    token ? { Authorization: `Bearer ${token}` } : {}
+  );
+  const response = await fetch(url, {
     method: 'GET',
-    headers: await resolveTenantFetchHeaders(token ? { Authorization: `Bearer ${token}` } : {}),
+    headers,
   });
   if (!response.ok) {
     throw new InvoicePdfHttpError(response.status, `PDF preview failed: ${response.status}`);
@@ -169,12 +177,16 @@ export async function previewInvoicePdf(id: string): Promise<Blob> {
 
 export async function resendInvoiceEmail(id: string, recipientEmail?: string): Promise<boolean> {
   const token = await sessionManager.getAccessToken();
-  const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/resend`, {
-    method: 'POST',
-    headers: await resolveTenantFetchHeaders({
+  const { url, headers } = await resolveTenantFetchRequest(
+    `${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/resend`,
+    {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    }),
+    }
+  );
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
     body: JSON.stringify(recipientEmail ? { recipientEmail } : {}),
   });
   if (!response.ok) {

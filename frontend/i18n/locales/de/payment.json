@@ -36,6 +36,8 @@
   "methods": {
     "cash": "Bargeld",
     "card": "Kreditkarte",
+    "credit_card": "Kreditkarte",
+    "paypal": "PayPal",
     "voucher": "Gutschein",
     "transfer": "Überweisung",
     "contactless": "Kontaktlos"

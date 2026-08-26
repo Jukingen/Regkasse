@@ -17,6 +17,7 @@ describe('permissionDisplayLabel', () => {
     expect(permissionCodeToLabelLeaf('daily-closing.view')).toBe('daily_closing_view');
     expect(permissionCodeToLabelLeaf('rksv.test-helper')).toBe('rksv_test_helper');
     expect(permissionCodeToLabelLeaf('rksv.tse-simulation')).toBe('rksv_tse_simulation');
+    expect(permissionCodeToLabelLeaf('online-payments.manage')).toBe('online_payments_manage');
   });
 
   it('falls back to raw code when translation is missing', () => {

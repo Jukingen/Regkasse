@@ -15,7 +15,8 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | [`frontend-admin-ci.yml`](frontend-admin-ci.yml) | Admin `lint` / `typecheck` / `test` / `build` + Playwright E2E | `pull_request`, `push` → `main`/`master` (path-filtered) |
 | [`frontend-admin-e2e.yml`](frontend-admin-e2e.yml) | Standalone / reusable Playwright E2E | `workflow_dispatch`, `workflow_call` |
 | [`frontend-admin-deploy.yml`](frontend-admin-deploy.yml) | Build/push admin image + staging/prod hooks | After green Admin CI / `workflow_dispatch` |
-| [`frontend-ci.yml`](frontend-ci.yml) | POS (`frontend`) `lint` / `typecheck` / `test` | `pull_request`, `push` → `main`/`master` (path-filtered) |
+| [`frontend-ci.yml`](frontend-ci.yml) | POS (`frontend`) `lint` / `typecheck` / `test` (includes online-payment store + contract tests) | `pull_request`, `push` → `main`/`master` (path-filtered) |
+| [`frontend-pos-ci.yml`](frontend-pos-ci.yml) | Filename alias that reuses [`frontend-ci.yml`](frontend-ci.yml) (`workflow_call` / dispatch) | `workflow_dispatch`, `workflow_call` |
 | [`frontend-sites-ci.yml`](frontend-sites-ci.yml) | Sites `lint` / `typecheck` / `test` / `build` | `pull_request`, `push` → `main`/`master` (path-filtered) |
 | [`api-client-alignment.yml`](api-client-alignment.yml) | Orval / OpenAPI drift + admin build smoke | `pull_request`, `push` → `main`/`master` |
 | [`api-client-auto-generate.yml`](api-client-auto-generate.yml) | On `swagger.json` push: `generate:api` + commit generated client | `push` → `main`/`master` (`backend/swagger.json`), `workflow_dispatch` |

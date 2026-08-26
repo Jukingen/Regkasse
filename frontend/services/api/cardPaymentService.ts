@@ -27,10 +27,22 @@ export async function createCardPaymentIntent(params: {
   amount: number;
   cashRegisterId: string;
   receiptNumber?: string;
+  returnUrl?: string;
+  idempotencyKey?: string;
 }): Promise<CardPaymentIntentResponse> {
+  const headers: Record<string, string> = {};
+  if (params.idempotencyKey) {
+    headers['Idempotency-Key'] = params.idempotencyKey;
+  }
   return await apiClient.post<CardPaymentIntentResponse>(
     '/api/pos/card-payment/intent',
-    params
+    {
+      amount: params.amount,
+      cashRegisterId: params.cashRegisterId,
+      receiptNumber: params.receiptNumber,
+      returnUrl: params.returnUrl,
+    },
+    Object.keys(headers).length > 0 ? { headers } : undefined
   );
 }
 

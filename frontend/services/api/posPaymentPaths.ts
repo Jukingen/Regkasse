@@ -34,3 +34,16 @@ export function posPaymentQrPngAbsoluteUrl(apiBaseUrl: string, paymentId: string
   const base = apiBaseUrl.replace(/\/+$/, '');
   return `${base}${POS_PAYMENT_API_PREFIX}/${encodeURIComponent(paymentId)}/qr.png`;
 }
+
+/** POST — start hosted online payment (Kreditkarte / PayPal). Relative to `/api`. */
+export const POS_PAYMENT_INITIATE_PATH = `${POS_PAYMENT_API_PREFIX}/initiate` as const;
+
+export function posPaymentInitiatePath(): string {
+  return POS_PAYMENT_INITIATE_PATH;
+}
+
+/** GET — poll hosted online payment status. Relative to `/api`. */
+export function posPaymentInitiateStatusPath(onlinePaymentId: string): string {
+  const id = encodeURIComponent(onlinePaymentId.trim());
+  return `${POS_PAYMENT_INITIATE_PATH}/${id}`;
+}

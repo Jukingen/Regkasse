@@ -373,6 +373,18 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_DoesNotHave_OnlinePaymentsManage()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.OnlinePaymentsManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_OnlinePaymentsManage()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.OnlinePaymentsManage));
+    }
+
+    [Fact]
     public void RoleHasPermission_SuperAdmin_Has_DigitalManage_Pricing_Activate()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalManage));

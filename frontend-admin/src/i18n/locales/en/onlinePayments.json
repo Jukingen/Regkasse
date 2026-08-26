@@ -1,0 +1,84 @@
+{
+  "title": "Online payments",
+  "subtitle": "Review card and PayPal intents and simulate test webhooks. Not a fiscal POS receipt.",
+  "tabs": {
+    "transactions": "Transactions",
+    "testConsole": "Test console"
+  },
+  "empty": "No online payments yet",
+  "loadError": "Online payments could not be loaded.",
+  "forbidden": "You do not have permission to manage online payments.",
+  "actions": {
+    "refresh": "Refresh",
+    "viewDetails": "View details"
+  },
+  "columns": {
+    "createdAt": "Timestamp",
+    "amount": "Amount",
+    "status": "Status",
+    "tenant": "Tenant",
+    "method": "Payment method",
+    "provider": "Provider",
+    "actions": "Action"
+  },
+  "status": {
+    "PENDING": "Pending",
+    "AWAITING_PAYMENT_GATEWAY": "Awaiting gateway",
+    "GATEWAY_SUCCEEDED": "Gateway succeeded",
+    "COMPLETED": "Completed",
+    "FAILED": "Failed",
+    "REFUNDED": "Refunded",
+    "Created": "Created",
+    "Pending": "Pending",
+    "Succeeded": "Succeeded",
+    "Failed": "Failed",
+    "Cancelled": "Cancelled",
+    "Expired": "Expired",
+    "Refunded": "Refunded"
+  },
+  "source": {
+    "synthetic": "Test",
+    "live": "Live"
+  },
+  "drawer": {
+    "title": "Online payment",
+    "id": "ID",
+    "tenant": "Tenant",
+    "amount": "Amount",
+    "status": "Status",
+    "method": "Payment method",
+    "provider": "Provider",
+    "paymentIntentId": "PaymentIntent",
+    "createdAt": "Created",
+    "completedAt": "Completed",
+    "webhookEvent": "Last webhook event",
+    "error": "Error",
+    "synthetic": "Origin"
+  },
+  "console": {
+    "title": "Test console",
+    "intro": "Creates a test online payment and simulates gateway webhooks. No fiscal POS receipt.",
+    "amount": "Amount",
+    "method": "Payment method",
+    "sendPayment": "Send test payment",
+    "webhookSuccess": "Simulate successful webhook",
+    "webhookFailure": "Simulate failed webhook",
+    "webhookExpire": "Simulate expired webhook",
+    "confirmExpireTitle": "Simulate an expired webhook?",
+    "confirmExpireBody": "The selected test payment will be marked expired (synthetic payment_intent.canceled).",
+    "webhookExpireToast": "Expired webhook simulated.",
+    "lastPayment": "Last test payment: {id}",
+    "noPaymentYet": "Send a test payment first.",
+    "confirmSuccessTitle": "Simulate a successful webhook?",
+    "confirmSuccessBody": "The selected test payment will be marked succeeded (synthetic payment_intent.succeeded).",
+    "confirmFailureTitle": "Simulate a failed webhook?",
+    "confirmFailureBody": "The selected test payment will be marked failed (synthetic payment_intent.payment_failed).",
+    "createSuccess": "Test payment created.",
+    "webhookSuccessToast": "Successful webhook simulated.",
+    "webhookFailureToast": "Failed webhook simulated.",
+    "methods": {
+      "card": "Card",
+      "paypal": "PayPal"
+    }
+  }
+}

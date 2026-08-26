@@ -5,8 +5,8 @@ Implication rules: `PermissionImplication` (composites + manage→view + digital
 
 **Source of truth:** `backend/Authorization/AppPermissions.cs`, `RolePermissionMatrix.cs`, `PermissionImplication.cs`  
 **FA mirror:** `frontend-admin/src/shared/auth/permissionImplication.ts` (+ `hasPermission` uses implication)  
-**Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
-**Last updated:** 2026-07-21
+**Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
+**Last updated:** 2026-08-26
 
 Legend: ✅ granted by default · ❌ not granted · *(via implication)* satisfied without an explicit matrix row.
 
@@ -36,6 +36,18 @@ Notes:
 - Explicit Manager matrix rows for `digital.view` / `preview` / `request` / `digital.orders.view` were removed (2026-07-21); authorization still succeeds via implication.
 - Legacy keys (`digital.web.*`, `digital.app.*`) remain in the catalog; prefer the simplified `digital.*` surface. Super Admin gets them via the full catalog / `digital.manage`.
 - **Cashier / Waiter / Kitchen / Accountant / ReportViewer:** no `digital.*` / `digital.orders.*` by default.
+
+---
+
+## Online payments (POS gateway intents)
+
+Not website **online orders**. Super Admin FA console for `gateway_payment_intents` and synthetic test webhooks. See [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md).
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `online-payments.manage` | ✅ | ❌ | ❌ |
+
+POS cashiers use `payment.take` / `payment.view` on `/api/pos/payment/initiate*` — not this admin key.
 
 ---
 

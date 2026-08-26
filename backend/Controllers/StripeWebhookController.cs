@@ -1,5 +1,6 @@
 using System.Text;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +19,18 @@ namespace KasseAPI_Final.Controllers;
 public sealed class StripeWebhookController : ControllerBase
 {
     private readonly IOnlineOrderPaymentService _payments;
+    private readonly IPaymentGatewayService _gatewayPayments;
     private readonly PaymentGatewayOptions _options;
     private readonly ILogger<StripeWebhookController> _logger;
 
     public StripeWebhookController(
         IOnlineOrderPaymentService payments,
+        IPaymentGatewayService gatewayPayments,
         IOptions<PaymentGatewayOptions> options,
         ILogger<StripeWebhookController> logger)
     {
         _payments = payments;
+        _gatewayPayments = gatewayPayments;
         _options = options.Value;
         _logger = logger;
     }
@@ -81,6 +85,18 @@ public sealed class StripeWebhookController : ControllerBase
                             intent.Id,
                             result.Code,
                             result.Error);
+                    }
+                }
+                else
+                {
+                    // POS / hosted checkout: update card_payment_transactions only — never create PaymentDetails.
+                    var applied = await _gatewayPayments.VerifyWebhookAsync("stripe", json, Request.Headers, ct);
+                    if (!applied.SignatureValid)
+                    {
+                        _logger.LogWarning(
+                            "Stripe POS webhook apply rejected for {PaymentIntentId}: {Code}",
+                            intent.Id,
+                            applied.ErrorCode);
                     }
                 }
             }

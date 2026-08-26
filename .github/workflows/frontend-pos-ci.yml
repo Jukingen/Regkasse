@@ -1,0 +1,12 @@
+# POS CI filename alias. The canonical workflow is frontend-ci.yml
+# (display name "Frontend POS CI"). This file exists so references to
+# frontend-pos-ci.yml stay valid; it forwards to the same jobs.
+name: Frontend POS CI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  quality:
+    uses: ./.github/workflows/frontend-ci.yml

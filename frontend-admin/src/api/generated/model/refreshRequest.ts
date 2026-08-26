@@ -7,8 +7,10 @@
  */
 
 export interface RefreshRequest {
-  /** @minLength 1 */
-  refreshToken: string;
+  /** @nullable */
+  clientApp?: string | null;
+  /** @nullable */
+  refreshToken?: string | null;
   /** @nullable */
   tenantId?: string | null;
 }
