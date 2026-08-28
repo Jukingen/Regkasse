@@ -162,13 +162,13 @@ namespace KasseAPI_Final.Controllers
                 var allGroupIds = productToGroupIds.Values.SelectMany(x => x).Distinct().ToList();
                 List<ModifierGroupDto> emptyGroups = new();
 
-                var categoryList = activeProducts
-                    .Where(p => p.CategoryNavigation != null)
-                    .Select(p => p.CategoryNavigation!)
-                    .DistinctBy(c => c.Id)
+                var categoryList = (await _context.Categories
+                    .AsNoTracking()
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
                     .OrderBy(c => c.SortOrder)
                     .ThenBy(c => c.Name)
-                    .Select(c => new CatalogCategoryDto { Id = c.Id, Name = c.Name, VatRate = c.VatRate })
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
                     .ToList();
 
                 if (allGroupIds.Count == 0)
@@ -216,6 +216,17 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        private static CatalogCategoryDto MapToCatalogCategoryDto(Category c) =>
+            new()
+            {
+                Id = c.Id,
+                Name = c.Name,
+                VatRate = c.VatRate,
+                Icon = CategoryAppearance.NormalizeIcon(c.Icon),
+                Color = c.Color,
+                SortOrder = c.SortOrder
+            };
+
         private static CatalogProductDto MapToCatalogProductDto(Product p, List<ModifierGroupDto> modifierGroups)
         {
             return new CatalogProductDto
@@ -236,6 +247,8 @@ namespace KasseAPI_Final.Controllers
                 Unit = p.Unit,
                 ProductCategory = p.Category,
                 CategoryId = p.CategoryId,
+                CategoryIcon = CategoryAppearance.NormalizeIcon(p.CategoryNavigation?.Icon),
+                CategoryColor = p.CategoryNavigation?.Color,
                 TaxType = p.TaxType,
                 TaxRate = p.TaxRate,
                 IsActive = p.IsActive,
@@ -400,7 +413,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm kategorileri getir
+        /// Active POS categories with icon/color (same appearance as admin).
         /// </summary>
         [HttpGet("categories")]
         public async Task<IActionResult> GetAllCategories()
@@ -408,16 +421,16 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var categories = await _context.Products
+                var categories = (await _context.Categories
                     .AsNoTracking()
-                    .Where(p => p.IsActive && p.TenantId == tenantId)
-                    .Select(p => p.Category)
-                    .Distinct()
-                    .OrderBy(c => c)
-                    .ToListAsync();
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
+                    .OrderBy(c => c.SortOrder)
+                    .ThenBy(c => c.Name)
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
+                    .ToList();
 
-                // İngilizce teknik log
-                _logger.LogInformation($"Retrieved {categories.Count} unique categories");
+                _logger.LogInformation("Retrieved {Count} POS categories", categories.Count);
 
                 return SuccessResponse(categories, $"Retrieved {categories.Count} categories");
             }

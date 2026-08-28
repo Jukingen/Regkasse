@@ -3,6 +3,7 @@
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Form, InputNumber, Select, Space, Switch, Typography } from 'antd';
+import Link from 'next/link';
 import React, { useEffect, useMemo } from 'react';
 
 import { FormSkeleton } from '@/components/Skeleton';
@@ -191,6 +192,17 @@ function DevelopmentModeSettingsForm({
         }}
       />
 
+      <Alert
+        type="info"
+        showIcon
+        title={t('developmentMode.page.rksvModeNote')}
+        action={
+          <Link href="/admin/rksv/config">
+            <Button size="small">{t('developmentMode.page.rksvModeLink')}</Button>
+          </Link>
+        }
+      />
+
       <Card>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Typography.Text type="secondary" style={{ display: 'block' }}>
@@ -244,6 +256,7 @@ function DevelopmentModeSettingsForm({
                   label={t('developmentMode.page.toggleBypassTse')}
                   name="bypassTseCheck"
                   valuePropName="checked"
+                  extra={t('developmentMode.page.toggleBypassTseHint')}
                 >
                   <Switch />
                 </Form.Item>

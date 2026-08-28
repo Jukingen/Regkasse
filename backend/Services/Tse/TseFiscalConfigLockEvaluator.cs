@@ -40,10 +40,14 @@ public static class TseFiscalConfigLockEvaluator
         return false;
     }
 
+    /// <summary>Optional RKSV overlay for lock evaluation (DB runtime config wins over appsettings keys).</summary>
+    public readonly record struct RksvLockOverlay(string Mode, string TseMode, bool FinanzOnlineSimulated);
+
     public static Result Evaluate(
         IHostEnvironment environment,
         IConfiguration configuration,
-        TseOptions options)
+        TseOptions options,
+        RksvLockOverlay? rksvOverlay = null)
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -58,7 +62,7 @@ public static class TseFiscalConfigLockEvaluator
                 Reasons: Array.Empty<string>());
         }
 
-        var reasons = CollectViolations(configuration, options);
+        var reasons = CollectViolations(configuration, options, rksvOverlay);
         var escape = options.AllowUnsafeFiscalModesInProduction;
         var safe = reasons.Count == 0;
         return new Result(
@@ -92,7 +96,10 @@ public static class TseFiscalConfigLockEvaluator
         return string.Equals(mode, "Simulation", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static List<string> CollectViolations(IConfiguration configuration, TseOptions options)
+    public static List<string> CollectViolations(
+        IConfiguration configuration,
+        TseOptions options,
+        RksvLockOverlay? rksvOverlay = null)
     {
         var reasons = new List<string>();
 
@@ -117,13 +124,16 @@ public static class TseFiscalConfigLockEvaluator
         if (options.SoftTseEnabled)
             reasons.Add(ReasonSoftTseEnabled);
 
-        if (string.Equals(configuration["RKSV:TseMode"], "Simulation", StringComparison.OrdinalIgnoreCase))
+        var rksvTseMode = rksvOverlay?.TseMode ?? configuration["RKSV:TseMode"];
+        if (string.Equals(rksvTseMode, "Simulation", StringComparison.OrdinalIgnoreCase))
             reasons.Add(ReasonRksvTseSimulation);
 
-        if (!string.Equals(configuration["RKSV:Mode"], "Production", StringComparison.OrdinalIgnoreCase))
+        var rksvMode = rksvOverlay?.Mode ?? configuration["RKSV:Mode"];
+        if (!string.Equals(rksvMode, "Production", StringComparison.OrdinalIgnoreCase))
             reasons.Add(ReasonRksvModeNotProduction);
 
-        if (IsFinanzOnlineSimulated(configuration))
+        var fonSimulated = rksvOverlay?.FinanzOnlineSimulated == true || IsFinanzOnlineSimulated(configuration);
+        if (fonSimulated)
             reasons.Add(ReasonFinanzOnlineSimulation);
 
         return reasons;

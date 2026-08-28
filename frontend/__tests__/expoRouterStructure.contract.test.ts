@@ -28,6 +28,7 @@ describe('expo-router structure contract', () => {
     expect(exists('(auth)/license-expired.tsx')).toBe(true);
     expect(exists('(tabs)/cash-register.tsx')).toBe(true);
     expect(exists('(tabs)/cart.tsx')).toBe(true);
+    expect(exists('(tabs)/receipt-list.tsx')).toBe(true);
     expect(exists('(tabs)/settings.tsx')).toBe(true);
     expect(exists('(tabs)/admin-menu.tsx')).toBe(true);
   });
@@ -55,6 +56,22 @@ describe('expo-router structure contract', () => {
     const settingsSource = fs.readFileSync(path.join(appRoot, '(tabs)/settings.tsx'), 'utf8');
     expect(settingsSource).toContain("router.push('/(tabs)/admin-menu'");
     expect(settingsSource).not.toContain("router.push('/(screens)/admin-menu'");
+  });
+
+  test('Belegliste is hidden from the tab bar and opened from UserMenu', () => {
+    const tabsLayout = fs.readFileSync(path.join(appRoot, '(tabs)/_layout.tsx'), 'utf8');
+    const receiptListBlock = tabsLayout.slice(
+      tabsLayout.indexOf('name="receipt-list"'),
+      tabsLayout.indexOf('name="settings"')
+    );
+    expect(receiptListBlock).toContain('href: null');
+
+    const userMenu = fs.readFileSync(
+      path.join(__dirname, '../components/UserMenu.tsx'),
+      'utf8'
+    );
+    expect(userMenu).toContain("router.push('/(tabs)/receipt-list'");
+    expect(userMenu).toContain("hasPermission(user, 'sale.view')");
   });
 
   test('auth layout redirects authenticated users to cash-register', () => {

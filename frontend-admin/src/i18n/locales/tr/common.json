@@ -441,6 +441,11 @@
       "vatRange": "KDV orani {{min}} ile {{max}} arasinda olmalidir.",
       "vatPlaceholder": "10 veya 20",
       "sortOrderLabel": "Siralama",
+      "iconLabel": "Ikon",
+      "iconPlaceholder": "Orn. 🥗",
+      "iconHelp": "Admin ve POS'ta gosterilen emoji. Bos birakilirsa 📦 kullanilir.",
+      "colorLabel": "Renk",
+      "colorHelp": "Kasadaki kategoriyi gorsel olarak ayirt etmek icin kullanilan renk.",
       "activeLabel": "Aktif"
     },
     "table": {

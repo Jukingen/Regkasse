@@ -152,7 +152,7 @@ Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.m
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
-- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, `/api/admin/sessions`, `/api/admin/limits`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
+- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, `/api/admin/sessions`, `/api/admin/limits`, `/api/admin/rksv/config` (exact overlay API; not `/api/admin/rksv/*` DEP), and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin.
 - **Route/body tenant target:** Super Admin ops that touch a specific mandant MUST validate the tenant exists (`GetByIdAsync` / equivalent → HTTP 404). Do not rely on ambient JWT tenant alone for cross-tenant SaaS actions; use the explicit `tenantId` from the route or body.
 - **Impersonation:** issues JWT with target `tenant_id` + `tenant_impersonation=true`; subsequent EF filters bind to the target. Host↔JWT match is skipped for impersonation tokens (`Auth:RequireTenantHostMatch`).
 - **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
@@ -749,6 +749,7 @@ Use `/ai` docs selectively based on the task:
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
 - **Super Admin TSE ops** (health, failover, healing, scaling, knowledge, … — diagnostic; not DEP rewrite) → `ai/modules/tse_admin_ops.md`, `docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`
+- **RKSV Demo/Production overlay** (receipt DEMO label; `TseMode=Real` also disables Development TSE health bypass) → [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md); API `GET/POST /api/admin/rksv/config`; FA `/admin/rksv/config`. Do **not** treat `/settings/development-mode` `bypassTseCheck` as `RKSV.Mode`. TSE health bypass is opt-in (`DevelopmentOptions:BypassTseInDevelopment`, default `false`).
 - **POS production hosts / Single POS UI** → `docs/POS_PRODUCTION_ARCHITECTURE.md`, `docs/MULTI_TENANT.md`
 - **Tagesabschluss sonrası (ödeme engeli, çift kapanış)** → `docs/RKSV_AFTER_TAGESABSCHLUSS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md` §11
 - **Offline TSE intents (legacy)** → `ai/modules/offline_transactions_legacy.md`
@@ -990,6 +991,7 @@ node scripts/verify-api-client.mjs
 node scripts/validate-critical-openapi-paths.mjs
 node scripts/verify-permission-keys.mjs
 node scripts/verify-menu-permissions.mjs
+node scripts/git-hooks/scan-secrets.mjs --tracked
 node localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error
 node localization/scripts/validate-translations.mjs --app frontend --strictMissing true
 node localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile localization/i18n-ci-budgets.json

@@ -7,7 +7,7 @@ import { safeLog } from '../../utils/loggingUtils';
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
   products: null as Product[] | null,
-  categories: null as string[] | null,
+  categories: null as ProductCategory[] | null,
   lastFetch: null as number | null,
   cacheTimeout: 15 * 60 * 1000, // 15 dakika cache süresi
 
@@ -81,6 +81,8 @@ export interface Product {
   // Backend catalog endpoint'inden gelen ek field'lar
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
+  categoryIcon?: string | null;
+  categoryColor?: string | null;
   /**
    * Modifier groups from catalog. Phase D PR-C: catalog returns groups with empty modifiers; use .products only.
    */
@@ -90,6 +92,10 @@ export interface Product {
 export interface ProductCategory {
   id: string;
   name: string;
+  icon?: string | null;
+  color?: string | null;
+  sortOrder?: number;
+  vatRate?: number;
   description?: string;
   isActive?: boolean;
 }
@@ -144,6 +150,8 @@ const mapProduct = (p: any): Product => ({
   // Backend catalog endpoint'inden gelen field'lar
   productCategory: p.ProductCategory ?? p.productCategory,
   categoryId: p.CategoryId ?? p.categoryId,
+  categoryIcon: p.CategoryIcon ?? p.categoryIcon ?? null,
+  categoryColor: p.CategoryColor ?? p.categoryColor ?? null,
 });
 
 /** Maps API modifier group to DTO. Phase D PR-C: POS endpoints return modifier groups with empty modifiers; use .products only. */
@@ -219,11 +227,26 @@ export const getActiveProductsForHomePage = async (): Promise<
   }
 };
 
+const mapCatalogCategory = (c: unknown): ProductCategory => {
+  if (typeof c === 'string') {
+    return { id: c, name: c };
+  }
+  const row = (c ?? {}) as Record<string, unknown>;
+  return {
+    id: String(row.Id ?? row.id ?? ''),
+    name: String(row.Name ?? row.name ?? ''),
+    icon: (row.Icon ?? row.icon) as string | null | undefined,
+    color: (row.Color ?? row.color) as string | null | undefined,
+    sortOrder: Number(row.SortOrder ?? row.sortOrder ?? 0),
+    vatRate: Number(row.VatRate ?? row.vatRate ?? 0),
+  };
+};
+
 /**
  * Tüm kategorileri getir - Cache ile optimize edilmiş
- * @returns Kategori listesi
+ * @returns Kategori listesi (icon/color included)
  */
-export const getAllCategories = async (): Promise<string[]> => {
+export const getAllCategories = async (): Promise<ProductCategory[]> => {
   try {
     if (productCache.categories && !productCache.isExpired()) {
       safeLog('📦 Returning categories from cache');
@@ -232,7 +255,8 @@ export const getAllCategories = async (): Promise<string[]> => {
 
     safeLog('🔄 Fetching categories from API...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATEGORIES);
-    const categories = unwrapData<string[]>(resp);
+    const raw = unwrapData<unknown[]>(resp);
+    const categories = (Array.isArray(raw) ? raw : []).map(mapCatalogCategory);
 
     productCache.categories = categories;
     productCache.lastFetch = Date.now();
@@ -247,7 +271,7 @@ export const getAllCategories = async (): Promise<string[]> => {
 
 // Katalog endpoint'i: kategorileri ID'lerle ve ürünleri categoryId ile döndürür
 export const getProductCatalog = async (): Promise<{
-  categories: { id: string; name: string }[];
+  categories: ProductCategory[];
   products: (Product & { categoryId?: string })[];
 }> => {
   try {
@@ -268,10 +292,7 @@ export const getProductCatalog = async (): Promise<{
       productsCount: data?.Products?.length || 0,
     });
 
-    const categories = (data?.Categories ?? data?.categories ?? []).map((c: any) => ({
-      id: c.Id ?? c.id,
-      name: c.Name ?? c.name,
-    }));
+    const categories = (data?.Categories ?? data?.categories ?? []).map(mapCatalogCategory);
 
     const productsRaw = data?.Products ?? data?.products ?? [];
     const products = productsRaw.map((p: any) => ({

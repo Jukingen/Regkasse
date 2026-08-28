@@ -290,6 +290,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Singleton (Id=1): persisted development-mode toggles (see migration seed).</summary>
         public DbSet<DevelopmentModeSettings> DevelopmentModeSettings { get; set; }
 
+        /// <summary>Singleton (Id=1): persisted RKSV Demo/Production overlay (see <c>rksv_runtime_config</c>).</summary>
+        public DbSet<RksvRuntimeConfig> RksvRuntimeConfigs { get; set; }
+
         /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
         public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
 
@@ -3353,6 +3356,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CompanyVatNumber).HasMaxLength(20);
                 entity.Property(e => e.CompanyLogo).HasMaxLength(100);
                 entity.Property(e => e.CompanyDescription).HasMaxLength(500);
+                entity.Property(e => e.ThankYouMessage)
+                    .HasColumnName("thank_you_message")
+                    .HasMaxLength(500);
                 entity.Property(e => e.BusinessHours)
                     .HasColumnType("jsonb")
                     .HasConversion(
@@ -4742,7 +4748,7 @@ namespace KasseAPI_Final.Data
                     Enabled = true,
                     BypassLicense = true,
                     BypassNtpCheck = true,
-                    BypassTseCheck = true,
+                    BypassTseCheck = false,
                     SimulateOffline = false,
                     ForceOnline = true,
                     ValidDays = 365,
@@ -4750,6 +4756,18 @@ namespace KasseAPI_Final.Data
                     UpdatedAtUtc = new DateTime(2026, 6, 11, 12, 0, 0, DateTimeKind.Utc),
                     UpdatedByUserId = null,
                 });
+            });
+
+            builder.Entity<RksvRuntimeConfig>(entity =>
+            {
+                entity.ToTable("rksv_runtime_config");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Mode).HasMaxLength(32).IsRequired();
+                entity.Property(e => e.TseMode).HasMaxLength(32).IsRequired();
+                entity.Property(e => e.FinanzOnlineMode).HasMaxLength(32).IsRequired();
+                entity.Property(e => e.ShowDemoLabel).IsRequired();
+                entity.Property(e => e.BypassTseInDevelopment).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
             });
 
             builder.Entity<BackupRun>(entity =>

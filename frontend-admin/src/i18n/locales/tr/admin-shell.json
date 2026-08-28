@@ -7,7 +7,11 @@
   },
   "sidebar": {
     "noAccessibleMenus": "Kullanılabilir menü ögesi yok.",
-    "lockdownFooter": "Kısıtlı mod — lisans süresi doldu"
+    "lockdownFooter": "Kısıtlı mod — lisans süresi doldu",
+    "filterPlaceholder": "Menüyü filtrele…",
+    "filterAria": "Kenar çubuğu menüsünü filtrele",
+    "filterNoResults": "Bu aramayla eşleşen menü öğesi yok.",
+    "recentTitle": "Son kullanılanlar"
   },
   "menuPermission": {
     "popoverTitle": "Bu menüyü hangi izin kontrol eder?",

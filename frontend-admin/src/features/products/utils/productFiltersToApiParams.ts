@@ -45,6 +45,9 @@ export function productFiltersToApiParams(
   }
   if (filters.categoryIds && filters.categoryIds.length > 0) {
     params.categoryIds = filters.categoryIds;
+    if (filters.categoryIds.length === 1) {
+      params.categoryId = filters.categoryIds[0];
+    }
   }
 
   if (filters.status === 'inactive') {

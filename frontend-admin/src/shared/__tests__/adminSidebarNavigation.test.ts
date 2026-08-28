@@ -8,8 +8,10 @@ import {
   RKSV_HUB_MENU_LEAF_KEY,
   RKSV_HUB_PATH,
   type SidebarPermissionContext,
+  collectSubmenuKeysFromMenuItems,
   computeSidebarOpenKeysMerge,
   filterSidebarMenuItems,
+  filterSidebarMenuItemsByQuery,
   getNonRksvSidebarOpenGroupKeys,
   isVerwaltungAdminPath,
   normalizeAdminPathname,
@@ -84,10 +86,13 @@ describe('adminSidebarNavigation', () => {
 
   it('opens Mein Konto when visiting the portal or profile', () => {
     expect(getNonRksvSidebarOpenGroupKeys('/tenant/portal')).toEqual(
-      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.license, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.settings, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/tenant/portal')).not.toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.license
     );
     expect(getNonRksvSidebarOpenGroupKeys('/profile')).toEqual(
-      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.license, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
+      expect.arrayContaining([ADMIN_SIDEBAR_GROUP_KEYS.settings, ADMIN_SIDEBAR_GROUP_KEYS.myAccount])
     );
   });
 
@@ -115,10 +120,22 @@ describe('adminSidebarNavigation', () => {
       ADMIN_SIDEBAR_GROUP_KEYS.operations
     );
     expect(getNonRksvSidebarOpenGroupKeys('/payments')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/payments')).not.toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
     );
     expect(getNonRksvSidebarOpenGroupKeys('/payments/storno-refund-audit')).toContain(
-      ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/vouchers')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.customers
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/reporting')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.finance
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/reporting')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.reports
     );
     expect(getNonRksvSidebarOpenGroupKeys('/products')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.catalog);
     expect(getNonRksvSidebarOpenGroupKeys('/customers')).toContain(
@@ -182,6 +199,9 @@ describe('adminSidebarNavigation', () => {
     expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.securityTse
     );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/rksv/config')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
     expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover
     );
@@ -207,7 +227,16 @@ describe('adminSidebarNavigation', () => {
       ADMIN_SIDEBAR_GROUP_KEYS.license
     );
     expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.admin
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/communication/bulk-email')).toContain(
       ADMIN_SIDEBAR_GROUP_KEYS.communication
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/failover')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.system
+    );
+    expect(getNonRksvSidebarOpenGroupKeys('/admin/monitoring')).toContain(
+      ADMIN_SIDEBAR_GROUP_KEYS.system
     );
   });
 
@@ -394,5 +423,46 @@ describe('computeSidebarOpenKeysMerge', () => {
     expect(next).not.toContain(ADMIN_SIDEBAR_GROUP_KEYS.rksvTools);
     expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
     expect(next).not.toContain('/rksv');
+  });
+});
+
+describe('filterSidebarMenuItemsByQuery', () => {
+  const sampleMenu = [
+    {
+      key: 'grp-operations',
+      title: 'Verkauf',
+      children: [
+        { key: '/receipts', title: 'Belege' },
+        { key: '/payments', title: 'Zahlungen' },
+      ],
+    },
+    {
+      key: 'grp-catalog',
+      title: 'Sortiment',
+      children: [{ key: '/products', title: 'Produkte' }],
+    },
+  ];
+
+  it('returns the original tree for a blank query', () => {
+    expect(filterSidebarMenuItemsByQuery(sampleMenu, '  ')).toEqual(sampleMenu);
+  });
+
+  it('keeps matching leaves and their ancestors', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'zahl');
+    expect(filtered).toHaveLength(1);
+    const group = filtered![0] as { key?: string; children?: { key?: string }[] };
+    expect(group.key).toBe('grp-operations');
+    expect(group.children?.map((c) => c.key)).toEqual(['/payments']);
+  });
+
+  it('keeps all children when the parent title matches', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'verkauf');
+    const group = filtered![0] as { children?: { key?: string }[] };
+    expect(group.children?.map((c) => c.key)).toEqual(['/receipts', '/payments']);
+  });
+
+  it('collects submenu keys for auto-expand while filtering', () => {
+    const filtered = filterSidebarMenuItemsByQuery(sampleMenu, 'prod');
+    expect(collectSubmenuKeysFromMenuItems(filtered)).toEqual(['grp-catalog']);
   });
 });

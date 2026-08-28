@@ -45,10 +45,50 @@ namespace KasseAPI_Final.Tse
             if (!IsUrlSafeBase64(base64Url))
                 throw new TsePipelineException("BASE64URL_PADDING_ERROR", "Invalid Base64URL characters");
 
-            var base64 = base64Url.Replace('-', '+').Replace('_', '/');
-            var padding = 4 - (base64.Length % 4);
-            if (padding != 4)
-                base64 += new string('=', padding);
+            return DecodeBase64Alphabet(base64Url);
+        }
+
+        /// <summary>
+        /// Decodes Base64URL or standard Base64, with or without padding.
+        /// Fiskaly SIGN AT QR <c>Sig-Wert</c> uses standard Base64 (<c>+</c>/<c>/</c>/<c>=</c>);
+        /// compact JWS uses Base64URL without padding.
+        /// </summary>
+        public static byte[] FromBase64UrlOrStd(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return Array.Empty<byte>();
+
+            var trimmed = value.Trim();
+            if (trimmed.Length == 0)
+                return Array.Empty<byte>();
+
+            foreach (var c in trimmed)
+            {
+                if (char.IsLetterOrDigit(c) || c is '-' or '_' or '+' or '/' or '=')
+                    continue;
+                throw new TsePipelineException("BASE64URL_PADDING_ERROR", "Invalid Base64 / Base64URL characters");
+            }
+
+            try
+            {
+                return DecodeBase64Alphabet(trimmed);
+            }
+            catch (FormatException ex)
+            {
+                throw new TsePipelineException("BASE64URL_PADDING_ERROR", "Invalid Base64 / Base64URL payload", ex);
+            }
+        }
+
+        /// <summary>Encode bytes as Base64URL without padding, accepting either alphabet on input.</summary>
+        public static string NormalizeToBase64UrlNoPadding(string value) =>
+            ToBase64UrlNoPadding(FromBase64UrlOrStd(value));
+
+        private static byte[] DecodeBase64Alphabet(string value)
+        {
+            var base64 = value.Replace('-', '+').Replace('_', '/').TrimEnd(PaddingChars);
+            var pad = (4 - (base64.Length % 4)) % 4;
+            if (pad != 0)
+                base64 += new string('=', pad);
 
             return Convert.FromBase64String(base64);
         }

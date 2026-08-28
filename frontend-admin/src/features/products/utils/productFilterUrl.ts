@@ -4,6 +4,11 @@ import type {
   ProductFilters,
   ProductListActiveFilter,
 } from '@/features/products/types/productFilters';
+import {
+  type CategoryFilterOption,
+  resolveProductCategoryIds,
+  resolveShareableCategoryName,
+} from '@/features/products/utils/resolveProductCategoryFilter';
 
 const FILTER_PARAM_KEYS = [
   'searchTerm',
@@ -15,6 +20,8 @@ const FILTER_PARAM_KEYS = [
   'minStock',
   'maxStock',
   'taxTypes',
+  'category',
+  'categoryId',
   'categoryIds',
   'status',
   'isTaxable',
@@ -80,6 +87,11 @@ export function parseProductFiltersFromSearchParams(searchParams: URLSearchParam
       .filter(Boolean);
   }
 
+  const categoryName = searchParams.get('category')?.trim();
+  if (categoryName) {
+    filters.categoryName = categoryName;
+  }
+
   const status = searchParams.get('status');
   if (status === 'all' || status === 'inactive' || status === 'active') {
     filters.status = status as ProductListActiveFilter;
@@ -119,7 +131,8 @@ export function parseProductPaginationFromSearchParams(searchParams: URLSearchPa
 export function buildProductListSearchParams(
   filters: ProductFilters,
   pagination: { page: number; pageSize: number },
-  existing: URLSearchParams
+  existing: URLSearchParams,
+  categories: CategoryFilterOption[] = []
 ): URLSearchParams {
   const next = new URLSearchParams(existing.toString());
 
@@ -151,8 +164,13 @@ export function buildProductListSearchParams(
   if (filters.taxTypes && filters.taxTypes.length > 0) {
     next.set('taxTypes', filters.taxTypes.join(','));
   }
-  if (filters.categoryIds && filters.categoryIds.length > 0) {
-    next.set('categoryIds', filters.categoryIds.join(','));
+
+  const resolvedCategoryIds = resolveProductCategoryIds(filters, categories);
+  const shareableName = resolveShareableCategoryName(filters, categories);
+  if (shareableName && (!resolvedCategoryIds || resolvedCategoryIds.length <= 1)) {
+    next.set('category', shareableName);
+  } else if (resolvedCategoryIds && resolvedCategoryIds.length > 0) {
+    next.set('categoryIds', resolvedCategoryIds.join(','));
   }
 
   if (filters.status) {

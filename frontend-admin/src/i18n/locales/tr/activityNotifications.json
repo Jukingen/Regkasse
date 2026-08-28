@@ -84,6 +84,7 @@
     "SystemPermissionChange": "Sistem izin değişikliği",
     "CriticalActionApprovalRequested": "Kritik işlem onay bekliyor",
     "CriticalActionApprovalApproved": "Kritik işlem onaylandı",
-    "CriticalActionApprovalRejected": "Kritik işlem reddedildi"
+    "CriticalActionApprovalRejected": "Kritik işlem reddedildi",
+    "RksvRuntimeConfigChanged": "RKSV işletim modu değişti"
   }
 }

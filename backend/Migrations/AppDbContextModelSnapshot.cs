@@ -1613,57 +1613,6 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("billing_backup_history", (string)null);
                 });
 
-            modelBuilder.Entity("KasseAPI_Final.Models.GatewayWebhookEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<bool>("Applied")
-                        .HasColumnType("boolean")
-                        .HasColumnName("applied");
-
-                    b.Property<string>("EventId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("event_id");
-
-                    b.Property<string>("EventType")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("event_type");
-
-                    b.Property<Guid?>("IntentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("intent_id");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("provider");
-
-                    b.Property<DateTime>("ReceivedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("received_at_utc");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IntentId");
-
-                    b.HasIndex("Provider", "EventId")
-                        .IsUnique()
-                        .HasDatabaseName("ux_gateway_webhook_events_provider_event");
-
-                    b.ToTable("gateway_webhook_events", (string)null);
-                });
-
             modelBuilder.Entity("KasseAPI_Final.Models.CardPaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1674,6 +1623,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("CaptureMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("automatic")
+                        .HasColumnName("capture_mode");
+
                     b.Property<string>("CardBrand")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1683,14 +1640,6 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("character varying(4)")
                         .HasColumnName("card_last4");
-
-                    b.Property<string>("CaptureMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("automatic")
-                        .HasColumnName("capture_mode");
 
                     b.Property<Guid?>("CartSnapshotId")
                         .HasColumnType("uuid")
@@ -2743,6 +2692,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
+                    b.Property<string>("ThankYouMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("thank_you_message");
+
                     b.Property<string>("TimeFormat")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -3771,7 +3725,7 @@ namespace KasseAPI_Final.Migrations
                             Id = 1,
                             BypassLicense = true,
                             BypassNtpCheck = true,
-                            BypassTseCheck = true,
+                            BypassTseCheck = false,
                             Enabled = true,
                             Features = "[]",
                             ForceOnline = true,
@@ -4323,6 +4277,57 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("FinanzOnlineSubmissions");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GatewayWebhookEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("applied");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid?>("IntentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("intent_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at_utc");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntentId");
+
+                    b.HasIndex("Provider", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gateway_webhook_events_provider_event");
+
+                    b.ToTable("gateway_webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.GeneratedReceipt", b =>
@@ -9905,6 +9910,51 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_rksv_cold_archive_runs_created_at");
 
                     b.ToTable("rksv_cold_archive_runs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RksvRuntimeConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("BypassTseInDevelopment")
+                        .HasColumnType("boolean")
+                        .HasColumnName("bypass_tse_in_development");
+
+                    b.Property<string>("FinanzOnlineMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("finanz_online_mode");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("mode");
+
+                    b.Property<bool>("ShowDemoLabel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_demo_label");
+
+                    b.Property<string>("TseMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tse_mode");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("rksv_runtime_config", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.RksvSpecialReceiptFinanzOnlineSubmission", b =>

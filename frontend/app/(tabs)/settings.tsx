@@ -44,6 +44,17 @@ export default function SettingsScreen() {
   const pendingCount = offlineStatus?.pendingCount ?? 0;
   const syncBusy = isSyncing || Boolean(offlineStatus?.isSyncing);
 
+  const openReceiptList = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [effectiveRegisterId, router, t]);
+
   const openPaymentHistory = useCallback(() => {
     if (!effectiveRegisterId) {
       Alert.alert(
@@ -122,6 +133,9 @@ export default function SettingsScreen() {
       paymentHistoryTitle: t('settings:paymentHistory.title'),
       paymentHistoryDescription: t('settings:paymentHistory.description'),
       paymentHistoryOpen: t('settings:paymentHistory.open'),
+      receiptListTitle: t('settings:receiptList.title'),
+      receiptListDescription: t('settings:receiptList.description'),
+      receiptListOpen: t('settings:receiptList.open'),
       licenseHeading: t('license:settingsSectionTitle'),
       licenseTransferHeading: t('license:transferSectionTitle'),
       adminMenuTitle: t('settings:adminMenu.title'),
@@ -213,6 +227,16 @@ export default function SettingsScreen() {
         <Text style={styles.description}>{translations.paymentHistoryDescription}</Text>
         <TouchableOpacity style={styles.queueLinkButton} onPress={openPaymentHistory}>
           <Text style={styles.queueLinkText}>{translations.paymentHistoryOpen}</Text>
+        </TouchableOpacity>
+        {!effectiveRegisterId ? (
+          <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
+        ) : null}
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.receiptListTitle}</Text>
+        <Text style={styles.description}>{translations.receiptListDescription}</Text>
+        <TouchableOpacity style={styles.queueLinkButton} onPress={openReceiptList}>
+          <Text style={styles.queueLinkText}>{translations.receiptListOpen}</Text>
         </TouchableOpacity>
         {!effectiveRegisterId ? (
           <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useCashRegister } from '../hooks/useCashRegister';
 import { useAdminPermissions } from '../utils/adminPermissions';
+import { hasPermission } from '../utils/posPermissions';
 
 function shortRegisterId(id: string): string {
   const trimmed = id.trim();
@@ -87,12 +88,12 @@ function resolveRoleLabel(role: string | undefined, roles?: string[]): string {
 }
 
 /**
- * POS header user chip: avatar initials + name/role, dropdown with settings/admin + Abmelden.
+ * POS header user chip: avatar initials + name/role, dropdown with Belegliste/settings/admin + Abmelden.
  */
 export function UserMenu() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation(['auth', 'navigation']);
+  const { t } = useTranslation(['auth', 'navigation', 'receipts']);
   const adminPermissions = useAdminPermissions();
   const [showMenu, setShowMenu] = useState(false);
   const { register } = useCashRegister({ enabled: showMenu });
@@ -111,6 +112,7 @@ export function UserMenu() {
     adminPermissions.canViewReports ||
     adminPermissions.canManageRksv ||
     adminPermissions.canManageTenants;
+  const canOpenReceiptList = hasPermission(user, 'sale.view');
 
   if (!user) return null;
 
@@ -122,6 +124,12 @@ export function UserMenu() {
     Vibration.vibrate(10);
     closeMenu();
     void logout();
+  };
+
+  const handleOpenReceiptList = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/receipt-list' as const);
   };
 
   const handleOpenSettings = () => {
@@ -210,6 +218,17 @@ export function UserMenu() {
             ) : null}
 
             <View style={styles.divider} />
+
+            {canOpenReceiptList ? (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={handleOpenReceiptList}
+                accessibilityRole="button"
+                accessibilityLabel={t('receipts:title')}>
+                <Ionicons name="receipt-outline" size={18} color={SoftColors.textPrimary} />
+                <Text style={styles.menuItemText}>{t('receipts:title')}</Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}

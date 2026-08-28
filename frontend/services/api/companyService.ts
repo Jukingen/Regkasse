@@ -12,6 +12,8 @@ export interface PosCompanyInfo {
   companyAddress: string;
   taxNumber: string;
   receiptFooter?: string | null;
+  thankYouMessage?: string | null;
+  companyDescription?: string | null;
   timeZone?: string;
   workingHours?: PosWorkingHoursExtended | null;
 }
@@ -95,6 +97,8 @@ export function parsePosCompanyInfo(raw: unknown): PosCompanyInfo {
     raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
 
   const footer = record.receiptFooter ?? record.ReceiptFooter;
+  const thankYou = record.thankYouMessage ?? record.ThankYouMessage;
+  const description = record.companyDescription ?? record.CompanyDescription;
   const timeZone = readString(record, 'timeZone', 'TimeZone') || 'Europe/Vienna';
 
   return {
@@ -102,6 +106,14 @@ export function parsePosCompanyInfo(raw: unknown): PosCompanyInfo {
     companyAddress: readString(record, 'companyAddress', 'CompanyAddress'),
     taxNumber: readString(record, 'taxNumber', 'TaxNumber'),
     receiptFooter: typeof footer === 'string' ? footer : footer == null ? null : String(footer),
+    thankYouMessage:
+      typeof thankYou === 'string' ? thankYou : thankYou == null ? null : String(thankYou),
+    companyDescription:
+      typeof description === 'string'
+        ? description
+        : description == null
+          ? null
+          : String(description),
     timeZone,
     workingHours: parseWorkingHours(record.workingHours ?? record.WorkingHours),
   };

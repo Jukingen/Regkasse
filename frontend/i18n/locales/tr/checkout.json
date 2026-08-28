@@ -230,11 +230,6 @@
         "openFailed": "Odeme sayfasi acilamadi."
       },
       "offlineQueued": "Odeme cevrimdisi kaydedildi — TSE tekrar cevrimici oldugunda otomatik imzalanir",
-      "tseSimulation": {
-        "title": "TSE simulasyonu",
-        "enabled": "ACIK (bypass)",
-        "disabled": "KAPALI (gercek TSE)"
-      },
       "operatorWarnings": {
         "largeCashTitle": "Uyari",
         "largeCashMessage": "{{threshold}} € ve uzeri nakit — devam etmeden tutari dogrulayin.",

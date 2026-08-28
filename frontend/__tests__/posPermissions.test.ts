@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { resolvePosPermissions } from '../utils/posPermissions';
+import { hasPermission, resolvePosPermissions } from '../utils/posPermissions';
 
 const cashierClaims = [
   'payment.take',
@@ -8,6 +8,7 @@ const cashierClaims = [
   'shift.close',
   'order.view',
   'order.create',
+  'receipt.reprint',
   'rksv.startbeleg.create',
   'rksv.monatsbeleg.create',
   'rksv.jahresbeleg.create',
@@ -35,6 +36,7 @@ describe('resolvePosPermissions', () => {
       canViewOrders: false,
       canTakeOrders: false,
       canCreateSonderbeleg: false,
+      canReprintReceipt: false,
     });
   });
 
@@ -48,6 +50,7 @@ describe('resolvePosPermissions', () => {
       canViewOrders: true,
       canTakeOrders: true,
       canCreateSonderbeleg: true,
+      canReprintReceipt: true,
     });
   });
 
@@ -60,6 +63,7 @@ describe('resolvePosPermissions', () => {
     expect(flags.isCashier).toBe(true);
     expect(flags.canMakePayment).toBe(true);
     expect(flags.canCreateSonderbeleg).toBe(true);
+    expect(flags.canReprintReceipt).toBe(true);
   });
 
   it('grants every flag for compact SuperAdmin JWT (system.critical only)', () => {
@@ -70,6 +74,7 @@ describe('resolvePosPermissions', () => {
     expect(flags.canMakePayment).toBe(true);
     expect(flags.canOpenShift).toBe(true);
     expect(flags.canCreateSonderbeleg).toBe(true);
+    expect(flags.canReprintReceipt).toBe(true);
   });
 
   it('maps typical Cashier claims to payment, shift, orders, and Sonderbeleg', () => {
@@ -82,6 +87,7 @@ describe('resolvePosPermissions', () => {
       canViewOrders: true,
       canTakeOrders: true,
       canCreateSonderbeleg: true,
+      canReprintReceipt: true,
     });
   });
 
@@ -95,6 +101,7 @@ describe('resolvePosPermissions', () => {
       canViewOrders: true,
       canTakeOrders: true,
       canCreateSonderbeleg: false,
+      canReprintReceipt: false,
     });
   });
 
@@ -108,6 +115,7 @@ describe('resolvePosPermissions', () => {
       canViewOrders: false,
       canTakeOrders: false,
       canCreateSonderbeleg: false,
+      canReprintReceipt: false,
     });
   });
 
@@ -145,5 +153,15 @@ describe('resolvePosPermissions', () => {
         permissions: ['rksv.monatsbeleg.view'],
       }).canCreateSonderbeleg
     ).toBe(false);
+  });
+
+  it('hasPermission("receipt.reprint") is true for cashiers with the claim', () => {
+    expect(hasPermission({ role: 'Cashier', permissions: cashierClaims }, 'receipt.reprint')).toBe(
+      true
+    );
+    expect(hasPermission({ role: 'Waiter', permissions: waiterClaims }, 'receipt.reprint')).toBe(
+      false
+    );
+    expect(hasPermission({ role: 'SuperAdmin', permissions: [] }, 'receipt.reprint')).toBe(true);
   });
 });

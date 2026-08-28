@@ -39,6 +39,11 @@
     "noRegisterMessage": "Lütfen önce \"Kasa\" bölümünden bir yazar kasa seçin veya vardiya başlatın.",
     "noRegisterHint": "Önce bir kasa atayın (yukarıdaki \"Kasa\" bölümü)."
   },
+  "receiptList": {
+    "title": "Fis listesi",
+    "description": "Bu kasanin son fislerini goruntuleyin ve yeniden yazdirin.",
+    "open": "Fis listesini ac"
+  },
   "appUpdate": {
     "title": "Uygulama güncellemesi",
     "description": "Regkasse POS uygulamasının yeni bir sürümü olup olmadığını kontrol eder, APK'yı indirir ve yükleyiciyi açar.",

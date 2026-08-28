@@ -31,6 +31,10 @@
   "reorderLevel": "Yeniden Sipariş Seviyesi",
   "currentStock": "Mevcut Stok",
   "a11y": {
-    "selected": "seçili"
-  }
+    "selected": "seçili",
+    "chipView": "Kategoriler liste olarak",
+    "gridView": "Kategoriler kutu olarak"
+  },
+  "viewChips": "Liste",
+  "viewGrid": "Kutular"
 }

@@ -31,6 +31,10 @@
   "reorderLevel": "Nachbestellungsgrenze",
   "currentStock": "Aktueller Bestand",
   "a11y": {
-    "selected": "ausgewählt"
-  }
+    "selected": "ausgewählt",
+    "chipView": "Kategorien als Liste",
+    "gridView": "Kategorien als Kacheln"
+  },
+  "viewChips": "Liste",
+  "viewGrid": "Kacheln"
 }

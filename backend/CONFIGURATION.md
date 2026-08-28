@@ -14,7 +14,7 @@ Technical documentation (English). Do not commit real secrets; `appsettings.json
 
 Also set `RELEASE_STAGE=dev|staging|canary|production` (or `Deployment__ReleaseStage`). Details: [`docs/ENVIRONMENT_CONFIGURATION.md`](../docs/ENVIRONMENT_CONFIGURATION.md).
 
-Load order (ASP.NET Core): base → environment overlay → user secrets (Development) → environment variables.
+Load order (ASP.NET Core): base → environment overlay → user secrets (Development by default; Staging via `ApplicationHost`) → environment variables. Production does not load user secrets.
 
 ### Hosting model (Program / ApplicationHost)
 

@@ -21,6 +21,7 @@
   "demoUserInfo": "Demo User: Only test functions available",
   "cashRegister": "Cash Register",
   "orders": "Orders",
+  "receiptList": "Receipt list",
   "settings": "Settings",
   "offlineQueue": {
     "title": "Offline Queue",

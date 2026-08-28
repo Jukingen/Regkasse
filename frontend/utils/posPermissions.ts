@@ -21,6 +21,7 @@ export type PosPermissions = {
   canViewOrders: boolean;
   canTakeOrders: boolean;
   canCreateSonderbeleg: boolean;
+  canReprintReceipt: boolean;
 };
 
 const SYSTEM_CRITICAL = 'system.critical';
@@ -33,6 +34,8 @@ const RKSV_CREATE_PERMISSIONS = [
   'rksv.schlussbeleg.create',
 ] as const;
 
+const RECEIPT_REPRINT = 'receipt.reprint';
+
 const ALL_DENIED: PosPermissions = {
   isCashier: false,
   isWaiter: false,
@@ -42,6 +45,7 @@ const ALL_DENIED: PosPermissions = {
   canViewOrders: false,
   canTakeOrders: false,
   canCreateSonderbeleg: false,
+  canReprintReceipt: false,
 };
 
 function hasNamedRole(user: PosPermissionUser, role: string): boolean {
@@ -55,6 +59,19 @@ function permissionSet(user: PosPermissionUser): Set<string> {
 
 function hasClaim(granted: Set<string>, permission: string): boolean {
   return granted.has(permission.toLowerCase());
+}
+
+/**
+ * Dotted JWT permission check (`receipt.reprint`). SuperAdmin / `system.critical` is allowed.
+ */
+export function hasPermission(
+  user: PosPermissionUser | null | undefined,
+  permission: string
+): boolean {
+  if (!user || !permission.trim()) return false;
+  const granted = permissionSet(user);
+  if (hasNamedRole(user, 'SuperAdmin') || hasClaim(granted, SYSTEM_CRITICAL)) return true;
+  return hasClaim(granted, permission);
 }
 
 /**
@@ -80,6 +97,7 @@ export function resolvePosPermissions(
       canViewOrders: true,
       canTakeOrders: true,
       canCreateSonderbeleg: true,
+      canReprintReceipt: true,
     };
   }
 
@@ -94,5 +112,6 @@ export function resolvePosPermissions(
     canViewOrders: posFloorStaff && hasClaim(granted, 'order.view'),
     canTakeOrders: posFloorStaff && hasClaim(granted, 'order.create'),
     canCreateSonderbeleg: RKSV_CREATE_PERMISSIONS.some((key) => hasClaim(granted, key)),
+    canReprintReceipt: hasClaim(granted, RECEIPT_REPRINT),
   };
 }

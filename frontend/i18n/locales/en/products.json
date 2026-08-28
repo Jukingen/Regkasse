@@ -31,6 +31,10 @@
   "reorderLevel": "Reorder Level",
   "currentStock": "Current Stock",
   "a11y": {
-    "selected": "selected"
-  }
+    "selected": "selected",
+    "chipView": "Categories as list",
+    "gridView": "Categories as tiles"
+  },
+  "viewChips": "List",
+  "viewGrid": "Tiles"
 }

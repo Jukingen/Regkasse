@@ -10,6 +10,7 @@
  * Escape hatches:
  *   HUSKY=0                         — disable husky entirely
  *   SKIP_PRECOMMIT=1                — skip this whole hook
+ *   SKIP_SECRET_SCAN=1              — skip secret / sensitive-file scan
  *   SKIP_API_CLIENT_VERIFY=1        — skip OpenAPI/Orval check
  *   SKIP_PRECOMMIT_LINT=1           — skip lint
  *   SKIP_PRECOMMIT_TYPECHECK=1      — skip typecheck
@@ -94,6 +95,21 @@ function main() {
       touched.size ? [...touched].join(', ') : '(none / docs-only)'
     }`,
   );
+
+  // --- 0) Secret / sensitive-file scan (fail closed) ---
+  if (process.env.SKIP_SECRET_SCAN !== '1') {
+    console.log('pre-commit: secret-scan …');
+    try {
+      run('node scripts/git-hooks/scan-secrets.mjs');
+    } catch {
+      console.error('\npre-commit blocked: secret scan failed.');
+      console.error('Remove secrets from the commit. See SECURITY.md');
+      console.error('Emergency skip: SKIP_SECRET_SCAN=1 git commit …');
+      process.exit(1);
+    }
+  } else {
+    console.log('pre-commit: SKIP_SECRET_SCAN=1');
+  }
 
   // --- 1) API client sync ---
   if (process.env.SKIP_API_CLIENT_VERIFY !== '1') {

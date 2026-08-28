@@ -328,7 +328,15 @@ function PosTabsInner({
             }}
           />
 
-          {/* Settings & Admin remain routable via UserMenu; hidden from footer */}
+          {/* Belegliste, Settings & Admin remain routable via UserMenu; hidden from footer */}
+          <Tabs.Screen
+            name="receipt-list"
+            options={{
+              href: null,
+              title: t('navigation:receiptList') || 'Belegliste',
+            }}
+          />
+
           <Tabs.Screen
             name="settings"
             options={{

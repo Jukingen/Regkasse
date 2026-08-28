@@ -68,6 +68,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/receipt': PERMISSIONS.SETTINGS_VIEW,
   '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
   '/settings/website': [
     PERMISSIONS.DIGITAL_VIEW,
@@ -116,6 +117,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/backup/config': PERMISSIONS.SETTINGS_VIEW,
   '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
 
   // Backup (legacy redirect)
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,

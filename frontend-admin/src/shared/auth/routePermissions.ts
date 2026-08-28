@@ -117,6 +117,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/receipt': PERMISSIONS.SETTINGS_VIEW,
   '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
@@ -248,6 +249,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/monitoring': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/risk-dashboard': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse-management': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/failover': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/resource-pools': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/incidents': [PERMISSIONS.SYSTEM_CRITICAL],

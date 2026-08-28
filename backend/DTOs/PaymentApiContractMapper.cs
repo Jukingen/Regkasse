@@ -29,7 +29,8 @@ public static class PaymentApiContractMapper
         PaymentResult result,
         object? sanitizedPayment,
         string? correlationId,
-        string? idempotencyKeyEcho)
+        string? idempotencyKeyEcho,
+        bool showDemoLabel = false)
     {
         var data = new PaymentCreateSuccessData
         {
@@ -42,6 +43,7 @@ public static class PaymentApiContractMapper
                 {
                     Provider = result.TseProvider,
                     IsDemoFiscal = result.IsDemoFiscal,
+                    ShowDemoLabel = showDemoLabel,
                     QrPayload = result.QrPayload,
                     ReceiptNumber = result.Payment?.ReceiptNumber
                 },

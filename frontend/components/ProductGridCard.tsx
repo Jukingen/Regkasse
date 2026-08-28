@@ -18,6 +18,7 @@ import {
 import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { Product } from '../services/api/productService';
+import { resolveCategoryIcon, isCategoryColor, categoryColorTint } from '../utils/categoryDisplay';
 import {
   resolveProductDisplayDescription,
   resolveProductDisplayName,
@@ -69,7 +70,7 @@ function ProductGridCardInner({
   onAdd,
   onAddAddOn,
   onOpenAddOnSheet,
-  getCategoryEmoji = () => '📦',
+  getCategoryEmoji,
 }: ProductGridCardProps) {
   const displayLocale = useProductDisplayLocale();
   const displayName = useMemo(
@@ -102,7 +103,13 @@ function ProductGridCardInner({
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={handlePress}>
-      <View style={styles.imageWrapper}>
+      <View
+        style={[
+          styles.imageWrapper,
+          isCategoryColor(product.categoryColor)
+            ? { backgroundColor: categoryColorTint(product.categoryColor, 0.22) }
+            : null,
+        ]}>
         {showHttpsImage && !imageFailed ? (
           <Image
             source={{ uri: trimmedImageUrl }}
@@ -114,12 +121,20 @@ function ProductGridCardInner({
           />
         ) : (
           <Text style={styles.emoji}>
-            {getCategoryEmoji(product.productCategory || product.category)}
+            {getCategoryEmoji
+              ? getCategoryEmoji(product.productCategory || product.category)
+              : resolveCategoryIcon(product.categoryIcon)}
           </Text>
         )}
       </View>
       <View style={styles.content}>
-        <Text style={styles.category}>{product.productCategory || product.category}</Text>
+        <Text
+          style={[
+            styles.category,
+            isCategoryColor(product.categoryColor) ? { color: product.categoryColor } : null,
+          ]}>
+          {product.productCategory || product.category}
+        </Text>
         <Text style={styles.name} numberOfLines={2}>
           {displayName}
         </Text>

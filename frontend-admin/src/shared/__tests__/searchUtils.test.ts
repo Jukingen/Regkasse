@@ -67,6 +67,8 @@ describe('buildMenuSearchIndexSource', () => {
     const t = (key: string) => {
       if (key === 'nav.payments') return 'Zahlungen';
       if (key === 'nav.sales') return 'Verkauf';
+      if (key === 'nav.verkauf') return 'Verkauf';
+      if (key === 'nav.finance') return 'Finanzen';
       if (key === 'nav.operations') return 'Betrieb';
       if (key === 'nav.products') return 'Produkte';
       if (key === 'nav.catalog') return 'Sortiment';
@@ -75,6 +77,7 @@ describe('buildMenuSearchIndexSource', () => {
 
     const source = buildMenuSearchIndexSource(t);
     const payments = source.items.find((item) => item.menuKey === '/payments');
+    expect(payments?.keywords).toContain('Finanzen');
     expect(payments?.keywords).toContain('Verkauf');
     expect(source.groupLabels.length).toBeGreaterThan(0);
   });

@@ -15,6 +15,7 @@ import 'intl-pluralrules';
 import enPayment from './locales/en/payment.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enProducts from './locales/en/products.json';
+import enReceipts from './locales/en/receipts.json';
 import enReports from './locales/en/reports.json';
 import enSettings from './locales/en/settings.json';
 import enShift from './locales/en/shift.json';
@@ -34,6 +35,7 @@ import deOrders from './locales/de/orders.json';
 import dePayment from './locales/de/payment.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
 import deProducts from './locales/de/products.json';
+import deReceipts from './locales/de/receipts.json';
 import deReports from './locales/de/reports.json';
 import deSettings from './locales/de/settings.json';
 import deShift from './locales/de/shift.json';
@@ -62,6 +64,7 @@ import trOrders from './locales/tr/orders.json';
 import trPayment from './locales/tr/payment.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trProducts from './locales/tr/products.json';
+import trReceipts from './locales/tr/receipts.json';
 import trReports from './locales/tr/reports.json';
 import trSettings from './locales/tr/settings.json';
 import trShift from './locales/tr/shift.json';
@@ -97,6 +100,7 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
   'payment',
   'paymentHistory',
   'products',
+  'receipts',
   'reports',
   'settings',
   'shift',
@@ -119,6 +123,7 @@ export const resources = {
     payment: enPayment,
     paymentHistory: enPaymentHistory,
     products: enProducts,
+    receipts: enReceipts,
     reports: enReports,
     settings: enSettings,
     shift: enShift,
@@ -139,6 +144,7 @@ export const resources = {
     payment: dePayment,
     paymentHistory: dePaymentHistory,
     products: deProducts,
+    receipts: deReceipts,
     reports: deReports,
     settings: deSettings,
     shift: deShift,
@@ -159,6 +165,7 @@ export const resources = {
     payment: trPayment,
     paymentHistory: trPaymentHistory,
     products: trProducts,
+    receipts: trReceipts,
     reports: trReports,
     settings: trSettings,
     shift: trShift,

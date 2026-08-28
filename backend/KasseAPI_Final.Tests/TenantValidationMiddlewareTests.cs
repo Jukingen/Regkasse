@@ -99,6 +99,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/limits/dashboard")]
     [InlineData("/api/admin/sessions")]
     [InlineData("/api/admin/sessions/terminate-all")]
+    [InlineData("/api/admin/rksv/config")]
     [InlineData("/api/tenants/switcher")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {

@@ -52,6 +52,13 @@ namespace KasseAPI_Final.Models
         public bool IsOff => string.Equals(TseMode, "Off", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
+        /// POS payments must be TSE-signed. Independent of client <c>TseRequired</c>.
+        /// False only when <see cref="IsOff"/>. Demo still signs (Soft TSE);
+        /// Device signs with the configured provider.
+        /// </summary>
+        public bool RequiresFiscalSignature => !IsOff;
+
+        /// <summary>
         /// Deployment label for vendor APIs (e.g. Production / Test / Sandbox). Informational + Fiskaly base-url hints.
         /// </summary>
         [MaxLength(32)]

@@ -441,6 +441,11 @@
       "vatRange": "MwSt. muss zwischen {{min}} und {{max}} liegen.",
       "vatPlaceholder": "10 oder 20",
       "sortOrderLabel": "Sortierung",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "z. B. 🥗",
+      "iconHelp": "Emoji-Icon, das in Admin und POS angezeigt wird. Leer = 📦.",
+      "colorLabel": "Farbe",
+      "colorHelp": "Farbe zur visuellen Kennzeichnung der Kategorie an der Kasse.",
       "activeLabel": "Aktiv"
     },
     "table": {

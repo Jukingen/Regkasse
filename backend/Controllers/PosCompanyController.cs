@@ -43,16 +43,21 @@ public sealed class PosCompanyController : ControllerBase
             .ConfigureAwait(false);
 
         if (settings == null)
-            return Ok(new PosCompanyInfoDto());
+            return Ok(new PosCompanyInfoDto
+            {
+                ReceiptFooter = ReceiptThankYouMessage.Default,
+                ThankYouMessage = ReceiptThankYouMessage.Default,
+            });
 
+        var thankYou = ReceiptThankYouMessage.Resolve(settings);
         return Ok(new PosCompanyInfoDto
         {
             CompanyName = settings.CompanyName,
             CompanyAddress = settings.CompanyAddress,
             TaxNumber = settings.CompanyTaxNumber,
-            ReceiptFooter = string.IsNullOrWhiteSpace(settings.CompanyDescription)
-                ? null
-                : settings.CompanyDescription,
+            ReceiptFooter = thankYou,
+            ThankYouMessage = thankYou,
+            CompanyDescription = ReceiptThankYouMessage.NormalizeStored(settings.CompanyDescription),
             TimeZone = string.IsNullOrWhiteSpace(settings.TimeZone)
                 ? "Europe/Vienna"
                 : settings.TimeZone,

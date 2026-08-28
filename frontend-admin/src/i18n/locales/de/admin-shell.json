@@ -7,7 +7,11 @@
   },
   "sidebar": {
     "noAccessibleMenus": "Keine Menüpunkte verfügbar.",
-    "lockdownFooter": "Eingeschränkter Modus — Lizenz abgelaufen"
+    "lockdownFooter": "Eingeschränkter Modus — Lizenz abgelaufen",
+    "filterPlaceholder": "Menü filtern…",
+    "filterAria": "Seitenmenü filtern",
+    "filterNoResults": "Keine Menüpunkte zu dieser Suche.",
+    "recentTitle": "Zuletzt verwendet"
   },
   "menuPermission": {
     "popoverTitle": "Welche Berechtigung steuert dieses Menü?",

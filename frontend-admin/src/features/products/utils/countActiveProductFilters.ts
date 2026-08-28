@@ -10,7 +10,12 @@ export function countActiveProductFilters(filters: ProductFilters): number {
   if (filters.minStock != null && Number.isFinite(filters.minStock)) count++;
   if (filters.maxStock != null && Number.isFinite(filters.maxStock)) count++;
   if (filters.taxTypes && filters.taxTypes.length > 0) count++;
-  if (filters.categoryIds && filters.categoryIds.length > 0) count++;
+  if (
+    (filters.categoryIds && filters.categoryIds.length > 0) ||
+    !!filters.categoryName?.trim()
+  ) {
+    count++;
+  }
   if (filters.status && filters.status !== 'active') count++;
   if (filters.isTaxable != null) count++;
   if (filters.createdRange?.[0] && filters.createdRange[1]) count++;

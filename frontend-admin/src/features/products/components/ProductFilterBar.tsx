@@ -37,6 +37,10 @@ import type {
   ProductStockFilterType,
 } from '@/features/products/types/productFilters';
 import { countActiveProductFilters } from '@/features/products/utils/countActiveProductFilters';
+import {
+  findCategoryByName,
+  sortCategoriesForProductFilter,
+} from '@/features/products/utils/resolveProductCategoryFilter';
 import { useI18n } from '@/i18n';
 import { formatDate } from '@/lib/dateUtils';
 
@@ -51,6 +55,7 @@ const STOCK_STATUS_OPTIONS: ProductStockFilterType[] = [
 ];
 
 const DEFAULT_TAX_TYPE_VALUES = [1, 2, 3, 4] as const;
+const ALL_CATEGORIES_VALUE = '__all__';
 
 export type ProductTaxTypeFilterOption = {
   value: number;
@@ -68,6 +73,7 @@ export interface ProductFilterBarProps {
   filters: ProductFilters;
   onFilterChange: (filters: ProductFilters) => void;
   categories: AdminCategory[];
+  categoriesLoading?: boolean;
   taxTypes?: ProductTaxTypeFilterOption[];
   statusCounts?: ProductStatusCountsDisplay;
   filteredResultCount?: number;
@@ -103,6 +109,7 @@ export const ProductFilterBar = memo(function ProductFilterBar({
   filters,
   onFilterChange,
   categories,
+  categoriesLoading = false,
   taxTypes,
   statusCounts,
   filteredResultCount,
@@ -143,11 +150,31 @@ export const ProductFilterBar = memo(function ProductFilterBar({
 
   const categoryOptions = useMemo(
     () =>
-      categories.map((c) => ({
-        value: c.id ?? '',
-        label: c.name?.trim() || c.id || '',
-      })),
+      sortCategoriesForProductFilter(categories)
+        .filter((c) => !!c.id)
+        .map((c) => ({
+          value: c.id ?? '',
+          label: c.name?.trim() || c.id || '',
+        })),
     [categories]
+  );
+
+  const selectedCategoryId = useMemo(() => {
+    if (filters.categoryIds?.length === 1) return filters.categoryIds[0];
+    if (filters.categoryIds && filters.categoryIds.length > 1) return undefined;
+    if (filters.categoryName?.trim()) {
+      return findCategoryByName(categories, filters.categoryName)?.id;
+    }
+    return undefined;
+  }, [categories, filters.categoryIds, filters.categoryName]);
+
+  const hasCategoryFilter =
+    (filters.categoryIds && filters.categoryIds.length > 0) || !!filters.categoryName?.trim();
+  const allCategoriesSelected = !hasCategoryFilter;
+
+  const categoryNameById = useMemo(
+    () => new Map(categoryOptions.map((opt) => [opt.value, opt.label])),
+    [categoryOptions]
   );
 
   const patchFilters = useCallback(
@@ -192,6 +219,21 @@ export const ProductFilterBar = memo(function ProductFilterBar({
     [patchFilters, searchDraft]
   );
 
+  const handleQuickCategoryChange = useCallback(
+    (categoryId: string | undefined) => {
+      if (!categoryId) {
+        patchFilters({ categoryIds: undefined, categoryName: undefined });
+        return;
+      }
+      const name = categoryNameById.get(categoryId);
+      patchFilters({
+        categoryIds: [categoryId],
+        categoryName: name || undefined,
+      });
+    },
+    [categoryNameById, patchFilters]
+  );
+
   const clearAllFilters = useCallback(() => {
     setSearchDraft('');
     onFilterChange({
@@ -232,11 +274,6 @@ export const ProductFilterBar = memo(function ProductFilterBar({
   const taxLabelByValue = useMemo(
     () => new Map(taxTypeOptions.map((opt) => [opt.value, opt.label])),
     [taxTypeOptions]
-  );
-
-  const categoryNameById = useMemo(
-    () => new Map(categoryOptions.map((opt) => [opt.value, opt.label])),
-    [categoryOptions]
   );
 
   const statusSegmentedValue: ProductListActiveFilter = filters.status ?? 'active';
@@ -292,6 +329,32 @@ export const ProductFilterBar = memo(function ProductFilterBar({
               allowClear
               style={{ flex: 1, minWidth: 220, maxWidth: 560 }}
             />
+            <Select
+              showSearch
+              allowClear
+              optionFilterProp="label"
+              placeholder={t('products.filters.allCategories')}
+              aria-label={t('products.filters.categories')}
+              style={{ minWidth: 180, width: 220 }}
+              loading={categoriesLoading}
+              value={
+                selectedCategoryId ??
+                (filters.categoryIds && filters.categoryIds.length > 1
+                  ? undefined
+                  : hasCategoryFilter && filters.categoryName?.trim()
+                    ? filters.categoryName.trim()
+                    : ALL_CATEGORIES_VALUE)
+              }
+              onChange={(value) =>
+                handleQuickCategoryChange(
+                  !value || value === ALL_CATEGORIES_VALUE ? undefined : String(value)
+                )
+              }
+              options={[
+                { value: ALL_CATEGORIES_VALUE, label: t('products.filters.allCategories') },
+                ...categoryOptions,
+              ]}
+            />
             <Badge count={activeFilterCount} offset={[10, 0]}>
               <Button icon={<FilterOutlined />} onClick={() => setDrawerOpen(true)}>
                 {t('products.filters.advanced')}
@@ -303,6 +366,35 @@ export const ProductFilterBar = memo(function ProductFilterBar({
               </Button>
             ) : null}
           </Space>
+          {categoryOptions.length > 0 ? (
+            <div role="group" aria-label={t('products.filters.quickCategoriesAria')}>
+              <Space wrap size={[8, 8]}>
+                <Tag.CheckableTag
+                  checked={allCategoriesSelected}
+                  onChange={() => handleQuickCategoryChange(undefined)}
+                >
+                  {t('products.page.filterAll')}
+                </Tag.CheckableTag>
+                {categoryOptions.map((opt) => (
+                  <Tag.CheckableTag
+                    key={opt.value}
+                    checked={
+                      selectedCategoryId === opt.value ||
+                      (!!filters.categoryIds &&
+                        filters.categoryIds.length > 1 &&
+                        filters.categoryIds.includes(opt.value))
+                    }
+                    onChange={() => {
+                      if (selectedCategoryId === opt.value) return;
+                      handleQuickCategoryChange(opt.value);
+                    }}
+                  >
+                    {opt.label}
+                  </Tag.CheckableTag>
+                ))}
+              </Space>
+            </div>
+          ) : null}
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
             {t('products.page.statusCountsSummary', {
               active: formatCount(counts.active, countsLoading),
@@ -363,7 +455,15 @@ export const ProductFilterBar = memo(function ProductFilterBar({
                   closable
                   onClose={() => {
                     const next = filters.categoryIds?.filter((id) => id !== catId);
-                    handleFilterChange('categoryIds', next?.length ? next : undefined);
+                    if (!next?.length) {
+                      patchFilters({ categoryIds: undefined, categoryName: undefined });
+                      return;
+                    }
+                    patchFilters({
+                      categoryIds: next,
+                      categoryName:
+                        next.length === 1 ? (categoryNameById.get(next[0]) ?? undefined) : undefined,
+                    });
                   }}
                 >
                   {t('products.filters.chipCategory', {
@@ -371,6 +471,16 @@ export const ProductFilterBar = memo(function ProductFilterBar({
                   })}
                 </Tag>
               ))}
+              {!filters.categoryIds?.length && filters.categoryName?.trim() ? (
+                <Tag
+                  closable
+                  onClose={() => patchFilters({ categoryIds: undefined, categoryName: undefined })}
+                >
+                  {t('products.filters.chipCategory', {
+                    value: filters.categoryName?.trim() ?? '',
+                  })}
+                </Tag>
+              ) : null}
 
               {filters.taxTypes?.map((tt) => (
                 <Tag
@@ -587,7 +697,17 @@ export const ProductFilterBar = memo(function ProductFilterBar({
               style={{ width: '100%' }}
               options={categoryOptions}
               value={filters.categoryIds}
-              onChange={(v) => handleFilterChange('categoryIds', v)}
+              onChange={(v) => {
+                if (!v?.length) {
+                  patchFilters({ categoryIds: undefined, categoryName: undefined });
+                  return;
+                }
+                patchFilters({
+                  categoryIds: v,
+                  categoryName:
+                    v.length === 1 ? (categoryNameById.get(v[0]) ?? undefined) : undefined,
+                });
+              }}
             />
           </div>
 

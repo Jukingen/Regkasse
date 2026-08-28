@@ -54,6 +54,7 @@ public class TenantValidationMiddleware
     /// <item><description><c>/api/admin/fiskaly</c> — Super Admin may set a global Fiskaly overlay without ambient tenant. Mandanten-Admin still needs ambient tenant (tenant overlay).</description></item>
     /// <item><description><c>/api/admin/limits</c> — usage is ambient-tenant; dashboard may aggregate all mandants for Super Admin.</description></item>
     /// <item><description><c>/api/admin/sessions</c> — Super Admin force-logout / session list (deployment-wide <c>auth_sessions</c>).</description></item>
+    /// <item><description><c>/api/admin/rksv/config</c> — instance-wide RKSV Demo/Production overlay (exact path; not <c>/api/admin/rksv/*</c> DEP).</description></item>
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
@@ -68,6 +69,7 @@ public class TenantValidationMiddleware
         "/api/admin/fiskaly",
         "/api/admin/limits",
         "/api/admin/sessions",
+        "/api/admin/rksv/config",
     ];
 
     private static readonly string[] SuperAdminExactExemptPaths =

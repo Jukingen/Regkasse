@@ -89,27 +89,58 @@ describe('sidebarRegistryCatalog', () => {
     expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.sidebarHidden).toBeFalsy();
   });
 
-  it('splits platform admin IA into Verwaltung / Sicherheit / Deployment / Monitoring groups', () => {
+  it('groups FA IA by daily workflow: Verkauf, Finanzen, Verwaltung, System', () => {
     const groupIds = SIDEBAR_LAYOUT_ROWS.filter((r) => r.kind === 'group').map((r) => r.group);
-    expect(groupIds).toContain('administration');
-    expect(groupIds).toContain('securityTse');
-    expect(groupIds).toContain('deploymentSystem');
-    expect(groupIds).toContain('monitoringLogs');
+    expect(groupIds).toEqual([
+      'dashboard',
+      'operations',
+      'catalog',
+      'customers',
+      'finance',
+      'rksv',
+      'backup',
+      'settings',
+      'administration',
+      'system',
+    ]);
 
-    const byGroup = Object.fromEntries(
-      SIDEBAR_LAYOUT_ROWS.filter((r) => r.kind === 'group').map((r) => {
-        const ids: string[] = [];
-        for (const block of r.blocks) {
-          if (block.kind === 'leaves' || block.kind === 'nested') {
-            ids.push(...block.catalogIds);
+    const collectIds = (
+      blocks: Extract<(typeof SIDEBAR_LAYOUT_ROWS)[number], { kind: 'group' }>['blocks']
+    ): string[] => {
+      const ids: string[] = [];
+      for (const block of blocks) {
+        if (block.kind === 'leaves' || block.kind === 'nested') {
+          ids.push(...block.catalogIds);
+          if (block.kind === 'nested') {
+            for (const child of block.childGroups ?? []) {
+              ids.push(...child.catalogIds);
+            }
           }
         }
-        return [r.group, ids];
-      })
+      }
+      return ids;
+    };
+
+    const byGroup = Object.fromEntries(
+      SIDEBAR_LAYOUT_ROWS.filter((r) => r.kind === 'group').map((r) => [r.group, collectIds(r.blocks)])
     );
 
+    expect(byGroup.operations).toEqual(
+      expect.arrayContaining(['onlineOrders', 'receipts', 'tagesabschluss', 'tables', 'staffHub'])
+    );
+    expect(byGroup.operations).not.toContain('payments');
+    expect(byGroup.operations).not.toContain('vouchers');
+    expect(byGroup.customers).toEqual(expect.arrayContaining(['customers', 'vouchers']));
+    expect(byGroup.finance).toEqual(
+      expect.arrayContaining(['payments', 'invoices', 'reportCenter', 'stornoRefundAudit'])
+    );
     expect(byGroup.administration).toEqual(
-      expect.arrayContaining(['superAdminTenants', 'superAdminCashRegisters'])
+      expect.arrayContaining([
+        'superAdminTenants',
+        'superAdminCashRegisters',
+        'licenseManagement',
+        'licenseStatusDashboard',
+      ])
     );
     expect(byGroup.administration).not.toContain('superAdminDataManagement');
     expect(byGroup.administration).not.toContain('adminTseManagement');
@@ -118,36 +149,40 @@ describe('sidebarRegistryCatalog', () => {
         'settingsDataManagement',
         'digitalServicesManage',
         'digitalServiceRequests',
+        'tenantPortal',
       ])
     );
-    expect(byGroup.license).not.toContain('digitalServicesManage');
-    expect(byGroup.securityTse).toEqual(
-      expect.arrayContaining(['adminTseManagement', 'superAdminApprovals', 'adminTseLogs'])
-    );
-    expect(byGroup.operations).toEqual(expect.arrayContaining(['onlineOrders']));
-    expect(byGroup.deploymentSystem).toEqual(
+    expect(byGroup.settings).not.toContain('licenseManagement');
+    expect(byGroup.system).toEqual(
       expect.arrayContaining([
+        'adminTseManagement',
+        'adminRksvRuntimeConfig',
+        'superAdminApprovals',
+        'adminTseLogs',
         'superAdminDeployments',
         'superAdminFeatureFlags',
         'superAdminMaintenance',
+        'adminMonitoring',
+        'adminRiskDashboard',
+        'elmahErrors',
+        'limitTest',
       ])
     );
-    expect(byGroup.monitoringLogs).toEqual(
-      expect.arrayContaining(['adminMonitoring', 'adminRiskDashboard', 'elmahErrors'])
-    );
-    expect(byGroup.development).toEqual(expect.arrayContaining(['limitTest']));
     expect(SIDEBAR_NAV_ITEM_CATALOG.limitTest.developmentOnly).toBe(true);
   });
 
-  it('nests TSE leaves under Sicherheit & TSE subgroups', () => {
-    const security = SIDEBAR_LAYOUT_ROWS.find(
-      (r) => r.kind === 'group' && r.group === 'securityTse'
-    );
-    expect(security?.kind).toBe('group');
-    if (security?.kind !== 'group') return;
+  it('nests TSE leaves under System → Sicherheit & TSE subgroups', () => {
+    const system = SIDEBAR_LAYOUT_ROWS.find((r) => r.kind === 'group' && r.group === 'system');
+    expect(system?.kind).toBe('group');
+    if (system?.kind !== 'group') return;
 
-    const nested = security.blocks.filter((b) => b.kind === 'nested');
-    expect(nested.map((b) => (b.kind === 'nested' ? b.menuKey : ''))).toEqual([
+    const security = system.blocks.find(
+      (b) => b.kind === 'nested' && b.menuKey === ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
+    expect(security?.kind).toBe('nested');
+    if (security?.kind !== 'nested') return;
+
+    expect(security.childGroups?.map((c) => c.menuKey)).toEqual([
       ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
       ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover,
       ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring,
@@ -199,7 +234,10 @@ describe('sidebarRegistryCatalog', () => {
     );
     expect(sales?.kind).toBe('nested');
     if (sales?.kind !== 'nested') return;
-    expect(sales.catalogIds).toContain('onlineOrders');
+    expect(sales.catalogIds).toEqual(
+      expect.arrayContaining(['onlineOrders', 'receipts', 'tagesabschluss'])
+    );
+    expect(sales.catalogIds).not.toContain('payments');
   });
 
   it('nests Einstellungen leaves under IA subgroups', () => {
@@ -211,6 +249,7 @@ describe('sidebarRegistryCatalog', () => {
       .filter((b) => b.kind === 'nested')
       .map((b) => (b.kind === 'nested' ? b.menuKey : ''));
     expect(nestedKeys).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.myAccount,
       ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral,
       ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes,
       ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations,

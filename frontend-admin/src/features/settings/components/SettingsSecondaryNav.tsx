@@ -15,6 +15,7 @@ import {
   ExperimentOutlined,
   LaptopOutlined,
   PercentageOutlined,
+  FileTextOutlined,
   HistoryOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -36,6 +37,7 @@ const SETTINGS_TAB_META: Record<SettingsAreaRoutePath, { labelKey: string; Icon:
   {
     '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.settingsHub, Icon: SettingOutlined },
     '/settings/company': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/receipt': { labelKey: ADMIN_NAV_LABEL_KEYS.receiptSettings, Icon: FileTextOutlined },
     '/settings/working-hours': {
       labelKey: ADMIN_NAV_LABEL_KEYS.workingHours,
       Icon: CalendarOutlined,

@@ -441,6 +441,11 @@
       "vatRange": "VAT rate must be between {{min}} and {{max}}.",
       "vatPlaceholder": "10 or 20",
       "sortOrderLabel": "Sort order",
+      "iconLabel": "Icon",
+      "iconPlaceholder": "e.g. 🥗",
+      "iconHelp": "Emoji shown in admin and POS. Empty uses 📦.",
+      "colorLabel": "Color",
+      "colorHelp": "Color used as a visual indicator for this category on the cash register.",
       "activeLabel": "Active"
     },
     "table": {

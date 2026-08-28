@@ -7,5 +7,6 @@ export * from './customerService';
 export * from './normalizePosPaymentMethods';
 export * from './posPaymentPaths';
 export * from './paymentService';
+export * from './receiptService';
 export * from './appVersionService';
 export * from './companyService';

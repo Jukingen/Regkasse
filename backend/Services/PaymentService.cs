@@ -588,7 +588,8 @@ namespace KasseAPI_Final.Services
 
                 // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
 
-                // TSE modu: Off = globally disables signing. Client must not skip DEP for Gutschein by sending TseRequired=false.
+                // TSE signing is server policy: TseMode Off skips; Demo/Device always sign.
+                // Client TseRequired is a hint only — POS __DEV__ toggles must not skip the chain.
                 var requestPaymentMethodCode = string.IsNullOrWhiteSpace(request.Payment.Method)
                     ? null
                     : request.Payment.Method.Trim().ToLowerInvariant();
@@ -611,8 +612,13 @@ namespace KasseAPI_Final.Services
                         IsDeterministicFailure = true
                     };
                 }
-                var effectiveTseRequired =
-                    (request.Payment.TseRequired || voucherLikelyFromClientMethod || hasVoucherPayload) && !_tseOptions.IsOff;
+                var effectiveTseRequired = _tseOptions.RequiresFiscalSignature;
+                if (effectiveTseRequired && !request.Payment.TseRequired)
+                {
+                    _logger.LogWarning(
+                        "Client sent TseRequired=false but TseMode={TseMode}; server requires TSE signature.",
+                        _tseOptions.TseMode);
+                }
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var health = _tseHealthMonitor.Snapshot;
@@ -1056,7 +1062,7 @@ namespace KasseAPI_Final.Services
                     // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
                     if (isVoucherMethodResolved || hasVoucherPayload)
                     {
-                        effectiveTseRequired = !_tseOptions.IsOff;
+                        effectiveTseRequired = _tseOptions.RequiresFiscalSignature;
                         var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
                             effectiveTenantId,
                             cashRegisterId,

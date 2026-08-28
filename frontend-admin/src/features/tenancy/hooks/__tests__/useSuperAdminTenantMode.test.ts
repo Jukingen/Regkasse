@@ -14,6 +14,7 @@ describe('isPathAllowedWithoutTenant', () => {
     expect(isPathAllowedWithoutTenant('/admin/system/time-sync')).toBe(true);
     expect(isPathAllowedWithoutTenant('/admin/digital')).toBe(true);
     expect(isPathAllowedWithoutTenant('/admin/cash-registers')).toBe(true);
+    expect(isPathAllowedWithoutTenant('/admin/rksv/config')).toBe(true);
   });
 
   it('blocks mandant-scoped routes', () => {

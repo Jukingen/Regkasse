@@ -29,6 +29,8 @@ describe('countActiveProductFilters / productFiltersToApiParams', () => {
         isTaxable: true,
       }),
     ).toBe(5);
+    expect(countActiveProductFilters({ categoryName: 'Kebab' })).toBe(1);
+    expect(countActiveProductFilters({ categoryName: 'Kebab', categoryIds: ['cat-1'] })).toBe(1);
   });
 
   it('maps filters to API params with edge cases', () => {
@@ -53,6 +55,13 @@ describe('countActiveProductFilters / productFiltersToApiParams', () => {
 
     const short = productFiltersToApiParams({ searchTerm: 'x' }, { page: 1, pageSize: 10 });
     expect(short.searchTerm).toBeUndefined();
+
+    const byCategory = productFiltersToApiParams(
+      { categoryIds: ['cat-1'] },
+      { page: 1, pageSize: 10 },
+    );
+    expect(byCategory.categoryId).toBe('cat-1');
+    expect(byCategory.categoryIds).toEqual(['cat-1']);
   });
 });
 

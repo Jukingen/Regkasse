@@ -76,6 +76,76 @@ public sealed class PaymentServiceCreatePaymentCoreCoverageTests
     }
 
     [Fact]
+    public async Task CreatePayment_WhenClientSendsTseRequiredFalse_AndTseModeDevice_StillCreatesSignature()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        var tseMock = PaymentServiceCoverageHarness.CreateTseMock();
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                Tse = new TseOptions { TseMode = "Device", Mode = "Real", Provider = "fiskaly" },
+                TseMock = tseMock
+            });
+
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId);
+        request.Payment.TseRequired = false;
+
+        var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.False(string.IsNullOrEmpty(result.Payment!.TseSignature));
+        Assert.Equal("fiskaly-thumb", result.Payment.CertificateThumbprint);
+        tseMock.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDbContextTransaction?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePayment_WhenTseModeOff_DoesNotSign_EvenIfClientRequestsTse()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        var tseMock = PaymentServiceCoverageHarness.CreateTseMock();
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                Tse = new TseOptions { TseMode = "Off" },
+                TseMock = tseMock
+            });
+
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId);
+        request.Payment.TseRequired = true;
+
+        var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.True(string.IsNullOrEmpty(result.Payment!.TseSignature));
+        Assert.Null(result.Payment.CertificateThumbprint);
+        tseMock.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDbContextTransaction?>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreatePayment_WhenIdempotencyKeyReused_ReturnsExistingPayment()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();

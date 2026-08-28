@@ -67,7 +67,7 @@ cp appsettings.Staging.example.json appsettings.Staging.json
 cp appsettings.Production.example.json appsettings.Production.json
 ```
 
-Load order (ASP.NET Core): base → environment overlay → user secrets (Development) → environment variables.
+Load order (ASP.NET Core): base → environment overlay → user secrets (Development by default; Staging via `ApplicationHost`) → environment variables. Production does not load user secrets.
 
 ---
 
@@ -96,6 +96,8 @@ Staging enforces the same TSE lock as Production when `Tse:EnforceProductionLock
 "Tse": { "TseMode": "Demo", "Mode": "Fake", "Provider": "fake" },
 "FinanzOnline": { "Mode": "Simulation", "Session": { "UseSimulation": true } }
 ```
+
+After first Super Admin save (or first `GET /api/admin/rksv/config`), the same values are copied into `rksv_runtime_config` and that row **wins** over the file until the row is removed. See [`RKSV_RUNTIME_CONFIG.md`](RKSV_RUNTIME_CONFIG.md). Overlay `TseMode=Real` disables Development TSE health bypass. FA **Entwicklungsmodus** (`bypassTseCheck`) does not change receipt DEMO labels and is **off by default**.
 
 ### Staging / Production fiscal defaults
 

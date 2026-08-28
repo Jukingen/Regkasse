@@ -39,6 +39,7 @@ import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { AdminCategory } from '@/features/categories/types';
 import { DevCatalogPurgeButton } from '@/features/products/components/DevCatalogPurgeButton';
 import { ProductFilterBar } from '@/features/products/components/ProductFilterBar';
+import { ProductCategoryBadge } from '@/features/products/components/ProductCategoryBadge';
 import ProductForm, {
   type ProductFormSubmitValues,
 } from '@/features/products/components/ProductForm';
@@ -54,6 +55,7 @@ import {
   parseProductPaginationFromSearchParams,
 } from '@/features/products/utils/productFilterUrl';
 import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
+import { resolveProductCategoryIds } from '@/features/products/utils/resolveProductCategoryFilter';
 import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import {
   formatProductUnitLabelForLocale,
@@ -125,12 +127,15 @@ export default function ProductsPage() {
 
   const { useList: useCategoriesList, invalidateList: invalidateCategoriesList } = useCategories();
   const categoriesQuery = useCategoriesList();
-  const categories = categoriesQuery.data ?? [];
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
-  const listParams = useMemo(
-    () => productFiltersToApiParams(filters, pagination),
-    [filters, pagination]
-  );
+  const listParams = useMemo(() => {
+    const categoryIds = resolveProductCategoryIds(filters, categories);
+    return productFiltersToApiParams(
+      categoryIds?.length ? { ...filters, categoryIds } : filters,
+      pagination
+    );
+  }, [categories, filters, pagination]);
 
   const listQuery = useList(listParams, { placeholderData: keepPreviousData });
 
@@ -161,16 +166,25 @@ export default function ProductsPage() {
     }));
   }, [listQuery.data?.availableFilters?.taxTypes, t]);
 
+  const categoryById = useMemo(() => {
+    const map = new Map<string, AdminCategory>();
+    for (const category of categories) {
+      if (category.id) map.set(category.id, category);
+    }
+    return map;
+  }, [categories]);
+
   const applyFiltersAndPagination = useCallback(
     (nextFilters: ProductFilters, nextPagination: { page: number; pageSize: number }) => {
       const params = buildProductListSearchParams(
         nextFilters,
         nextPagination,
-        new URLSearchParams(searchParams.toString())
+        new URLSearchParams(searchParams.toString()),
+        categories
       );
       router.replace(`?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams]
+    [categories, router, searchParams]
   );
 
   const handleFilterChange = useCallback(
@@ -178,6 +192,18 @@ export default function ProductsPage() {
       applyFiltersAndPagination(nextFilters, { page: 1, pageSize: pagination.pageSize });
     },
     [applyFiltersAndPagination, pagination.pageSize]
+  );
+
+  const handleCategoryBadgeClick = useCallback(
+    (categoryId?: string, categoryName?: string) => {
+      if (!categoryId && !categoryName) return;
+      handleFilterChange({
+        ...filters,
+        categoryIds: categoryId ? [categoryId] : undefined,
+        categoryName: categoryName?.trim() || undefined,
+      });
+    },
+    [filters, handleFilterChange]
   );
 
   const createMutation = useCreate();
@@ -535,12 +561,22 @@ export default function ProductsPage() {
     },
   };
 
+  const resolveRowCategory = (record: Product) => {
+    const fromId = record.categoryId ? categoryById.get(record.categoryId) : undefined;
+    const name = fromId?.name?.trim() || record.category?.trim() || '';
+    return {
+      id: fromId?.id ?? record.categoryId,
+      name,
+      color: fromId?.color,
+    };
+  };
+
   const columns: ColumnType<Product>[] = [
     {
       title: t('products.table.product'),
       key: 'product',
       ellipsis: true,
-      width: 260,
+      width: 300,
       render: (_: unknown, record: Product) => {
         const desc = record.description?.trim();
         const bc = record.barcode?.trim();
@@ -553,11 +589,22 @@ export default function ProductsPage() {
           tipLines.length > 0 ? (
             <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
           ) : undefined;
+        const category = resolveRowCategory(record);
         const cell = (
           <Space orientation="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
-            <Typography.Text strong ellipsis style={{ display: 'block' }}>
-              {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
-            </Typography.Text>
+            <Space size={8} align="center" wrap>
+              <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
+              </Typography.Text>
+              {category.name ? (
+                <ProductCategoryBadge
+                  name={category.name}
+                  color={category.color}
+                  title={t('products.table.filterByCategory', { name: category.name })}
+                  onClick={() => handleCategoryBadgeClick(category.id, category.name)}
+                />
+              ) : null}
+            </Space>
             {bc ? (
               <Typography.Text
                 code
@@ -609,11 +656,25 @@ export default function ProductsPage() {
       key: 'category',
       width: 140,
       ellipsis: true,
-      render: (text: string) => (
-        <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-          {text?.trim() ? text : FORMAT_EMPTY_DISPLAY}
-        </Typography.Text>
-      ),
+      render: (_text: string, record: Product) => {
+        const category = resolveRowCategory(record);
+        return (
+          <ProductCategoryBadge
+            name={category.name}
+            color={category.color}
+            title={
+              category.name
+                ? t('products.table.filterByCategory', { name: category.name })
+                : undefined
+            }
+            onClick={
+              category.name
+                ? () => handleCategoryBadgeClick(category.id, category.name)
+                : undefined
+            }
+          />
+        );
+      },
     },
     {
       title: t('products.table.tax'),
@@ -776,7 +837,8 @@ export default function ProductsPage() {
       <ProductFilterBar
         filters={filters}
         onFilterChange={handleFilterChange}
-        categories={filterCategories}
+        categories={categories.length ? categories : filterCategories}
+        categoriesLoading={categoriesQuery.isLoading}
         taxTypes={filterTaxTypes}
         statusCounts={statusCounts}
         filteredResultCount={
@@ -854,7 +916,7 @@ export default function ProductsPage() {
             ...tablePagination,
           }}
           size="middle"
-          scroll={{ x: showProductLagerUi ? 1100 : 980 }}
+          scroll={{ x: showProductLagerUi ? 1180 : 1060 }}
           locale={{
             emptyText: (
               <EmptyState

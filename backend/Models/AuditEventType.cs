@@ -161,5 +161,8 @@ public enum AuditEventType
     /// <summary>Super Admin terminated one or more auth sessions (refresh tokens revoked).</summary>
     UserSessionTerminated = 75,
 
+    /// <summary>Super Admin changed the instance-wide RKSV Demo/Production overlay.</summary>
+    RksvRuntimeConfigChanged = 76,
+
     Other = 99
 }

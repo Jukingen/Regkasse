@@ -35,8 +35,10 @@ import { useI18n } from '@/i18n';
 import {
   type SidebarPermissionContext,
   collectSelectableRouteKeysFromMenuItems,
+  collectSubmenuKeysFromMenuItems,
   computeSidebarOpenKeysMerge,
   filterSidebarMenuItems,
+  filterSidebarMenuItemsByQuery,
   resolveAdminMenuSelectedKeys,
 } from '@/shared/adminSidebarNavigation';
 import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
@@ -50,6 +52,7 @@ import { filterSidebarMenuItemsForLicenseLockdown } from '@/shared/sidebarLicens
 import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
 import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
 import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
+import { AdminSidebarQuickAccess } from '@/components/admin-layout/AdminSidebarQuickAccess';
 import {
   runAndLogMenuPermissionConsistencyCheck,
   shouldRunDailyConsistencyCheck,
@@ -334,34 +337,61 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
   const { isLocked } = useLicenseMenuVisibility();
   const { menuItems, selectableRouteKeys, hasAccessibleMenus, openKeys, setOpenKeys } =
     useAdminSidebarMenu();
+  const [menuQuery, setMenuQuery] = useState('');
+
+  const displayedMenuItems = useMemo(
+    () => filterSidebarMenuItemsByQuery(menuItems, menuQuery) ?? [],
+    [menuItems, menuQuery]
+  );
+  const isFiltering = menuQuery.trim().length > 0;
+  const filterOpenKeys = useMemo(
+    () => (isFiltering ? collectSubmenuKeysFromMenuItems(displayedMenuItems) : null),
+    [isFiltering, displayedMenuItems]
+  );
+  const allowedMenuKeys = useMemo(() => new Set(selectableRouteKeys), [selectableRouteKeys]);
 
   if (!hasAccessibleMenus) {
     return <AdminSidebarEmptyState />;
   }
 
+  const panelOpenKeys = filterOpenKeys ?? openKeys;
+  const hasFilterResults = (displayedMenuItems?.length ?? 0) > 0;
+
   return (
     <>
-      <Suspense
-        fallback={
+      <AdminSidebarQuickAccess
+        query={menuQuery}
+        onQueryChange={setMenuQuery}
+        allowedMenuKeys={allowedMenuKeys}
+        collapsed={props.menuInlineCollapsed}
+      />
+      {!hasFilterResults && isFiltering ? (
+        <div className={sidebarStyles.filterEmpty} role="status">
+          {t('adminShell.sidebar.filterNoResults')}
+        </div>
+      ) : (
+        <Suspense
+          fallback={
+            <AdminSidebarMenuInner
+              {...props}
+              menuItems={displayedMenuItems}
+              selectableRouteKeys={selectableRouteKeys}
+              openKeys={panelOpenKeys}
+              setOpenKeys={setOpenKeys}
+              withSearchParams={false}
+            />
+          }
+        >
           <AdminSidebarMenuInner
             {...props}
-            menuItems={menuItems}
+            menuItems={displayedMenuItems}
             selectableRouteKeys={selectableRouteKeys}
-            openKeys={openKeys}
+            openKeys={panelOpenKeys}
             setOpenKeys={setOpenKeys}
-            withSearchParams={false}
+            withSearchParams
           />
-        }
-      >
-        <AdminSidebarMenuInner
-          {...props}
-          menuItems={menuItems}
-          selectableRouteKeys={selectableRouteKeys}
-          openKeys={openKeys}
-          setOpenKeys={setOpenKeys}
-          withSearchParams
-        />
-      </Suspense>
+        </Suspense>
+      )}
       {isLocked && !props.menuInlineCollapsed ? (
         <div
           className={sidebarStyles.licenseLockdownFooter}

@@ -26,7 +26,7 @@ public sealed class DevelopmentModeSettings
     public bool BypassNtpCheck { get; set; } = true;
 
     [Column("bypass_tse_check")]
-    public bool BypassTseCheck { get; set; } = true;
+    public bool BypassTseCheck { get; set; }
 
     [Column("simulate_offline")]
     public bool SimulateOffline { get; set; } = false;
@@ -54,7 +54,7 @@ public sealed class DevelopmentModeSettings
             Enabled = true,
             BypassLicense = true,
             BypassNtpCheck = true,
-            BypassTseCheck = true,
+            BypassTseCheck = false,
             SimulateOffline = false,
             ForceOnline = true,
             ValidDays = 365,

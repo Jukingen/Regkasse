@@ -1,11 +1,32 @@
 import type { ReceiptDTO } from '../types/ReceiptDTO';
 
+/** Netto = Brutto − MwSt when stored net is missing or zero on a non-zero receipt. */
+export function resolveReceiptNetAmount(input: {
+  netTotal?: number | null;
+  subtotal?: number | null;
+  totalNet?: number | null;
+  grandTotal?: number | null;
+  taxAmount?: number | null;
+}): number {
+  const grand = Number(input.grandTotal ?? 0);
+  const tax = Number(input.taxAmount ?? 0);
+  const derived = grand - tax;
+  const candidates = [input.netTotal, input.totalNet, input.subtotal];
+  for (const value of candidates) {
+    if (value == null || Number.isNaN(Number(value))) continue;
+    const n = Number(value);
+    if (n !== 0 || grand === 0) return n;
+  }
+  return derived;
+}
+
 function normalizeCompany(raw: Record<string, unknown> | undefined | null): ReceiptDTO['company'] {
   const c = (raw?.company ?? raw?.Company ?? {}) as Record<string, unknown>;
   return {
     name: String(c.name ?? c.Name ?? ''),
     address: String(c.address ?? c.Address ?? ''),
     taxNumber: String(c.taxNumber ?? c.TaxNumber ?? ''),
+    description: (c.description ?? c.Description) as string | null | undefined,
   };
 }
 
@@ -61,6 +82,18 @@ export function normalizeReceiptDto(raw: unknown): ReceiptDTO {
     change: (p.change ?? p.Change) as number | undefined,
   }));
 
+  const rawTotals = (r.totals ?? r.Totals) as Record<string, unknown> | undefined;
+  const grandTotal = Number(r.grandTotal ?? r.GrandTotal ?? 0);
+  const taxAmount = Number(r.taxAmount ?? r.TaxAmount ?? 0);
+  const netTotal = resolveReceiptNetAmount({
+    netTotal: (r.netTotal ?? r.NetTotal) as number | undefined,
+    totalNet: (rawTotals?.totalNet ?? rawTotals?.TotalNet) as number | undefined,
+    // ASP.NET camelCase serializes SubTotal as "subTotal" (not "subtotal").
+    subtotal: (r.subtotal ?? r.subTotal ?? r.SubTotal) as number | undefined,
+    grandTotal,
+    taxAmount,
+  });
+
   return {
     receiptId: String(r.receiptId ?? r.ReceiptId ?? ''),
     receiptNumber: String(r.receiptNumber ?? r.ReceiptNumber ?? ''),
@@ -72,15 +105,27 @@ export function normalizeReceiptDto(raw: unknown): ReceiptDTO {
     kassenID: String(
       r.kassenID ?? r.KassenID ?? r.displayRegisterNumber ?? r.DisplayRegisterNumber ?? ''
     ),
+    branchName: (r.branchName ?? r.BranchName) as string | null | undefined,
+    terminalNumber: (r.terminalNumber ?? r.TerminalNumber) as string | null | undefined,
     items,
     taxRates,
-    subtotal: Number(r.subtotal ?? r.SubTotal ?? 0),
-    taxAmount: Number(r.taxAmount ?? r.TaxAmount ?? 0),
-    grandTotal: Number(r.grandTotal ?? r.GrandTotal ?? 0),
-    totals: (r.totals ?? r.Totals) as ReceiptDTO['totals'],
+    subtotal: netTotal,
+    netTotal,
+    taxAmount,
+    grandTotal,
+    totals: {
+      totalNet: netTotal,
+      totalVat: Number(rawTotals?.totalVat ?? rawTotals?.TotalVat ?? taxAmount),
+      totalGross: Number(rawTotals?.totalGross ?? rawTotals?.TotalGross ?? grandTotal),
+    },
     payments,
     footerText: (r.footerText ?? r.FooterText) as string | undefined,
+    thankYouMessage: (r.thankYouMessage ?? r.ThankYouMessage) as string | undefined,
     rksvFooterLabel: (r.rksvFooterLabel ?? r.RksvFooterLabel) as string | undefined,
+    showDemoLabel:
+      typeof (r.showDemoLabel ?? r.ShowDemoLabel) === 'boolean'
+        ? Boolean(r.showDemoLabel ?? r.ShowDemoLabel)
+        : undefined,
     signature: normalizeSignature(r),
     verificationUrl: (r.verificationUrl ?? r.VerificationUrl) as string | undefined,
     fiscalTraceKind: (r.fiscalTraceKind ?? r.FiscalTraceKind ?? null) as string | null,

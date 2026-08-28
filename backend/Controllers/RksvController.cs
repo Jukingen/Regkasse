@@ -24,6 +24,7 @@ public sealed class RksvController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IRksvRuntimeConfigService? _runtimeConfig;
 
     public RksvController(
         IMonatsbelegReminderService monatsbelegReminder,
@@ -32,7 +33,8 @@ public sealed class RksvController : ControllerBase
         IHostEnvironment hostEnvironment,
         IConfiguration configuration,
         IOptionsMonitor<TseOptions> tseOptions,
-        ICurrentTenantAccessor tenantAccessor)
+        ICurrentTenantAccessor tenantAccessor,
+        IRksvRuntimeConfigService? runtimeConfig = null)
     {
         _monatsbelegReminder = monatsbelegReminder;
         _rksvReminder = rksvReminder;
@@ -41,6 +43,7 @@ public sealed class RksvController : ControllerBase
         _configuration = configuration;
         _tseOptions = tseOptions;
         _tenantAccessor = tenantAccessor;
+        _runtimeConfig = runtimeConfig;
     }
 
     /// <summary>RKSV deployment environment (Demo/Production) for POS and Admin badges.</summary>
@@ -48,10 +51,21 @@ public sealed class RksvController : ControllerBase
     [ProducesResponseType(typeof(RksvEnvironmentStatusDto), StatusCodes.Status200OK)]
     public ActionResult<RksvEnvironmentStatusDto> GetEnvironment()
     {
+        TseFiscalConfigLockEvaluator.RksvLockOverlay? overlay = null;
+        var runtime = _runtimeConfig?.GetEffective();
+        if (runtime != null)
+        {
+            overlay = new TseFiscalConfigLockEvaluator.RksvLockOverlay(
+                runtime.Mode,
+                runtime.TseMode,
+                runtime.IsFinanzOnlineSimulation);
+        }
+
         var fiscalLock = TseFiscalConfigLockEvaluator.Evaluate(
             _hostEnvironment,
             _configuration,
-            _tseOptions.CurrentValue);
+            _tseOptions.CurrentValue,
+            overlay);
         return Ok(RksvEnvironmentStatusDto.FromService(
             _rksvEnvironment,
             _hostEnvironment,

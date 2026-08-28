@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
@@ -60,6 +62,13 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Explicit alias for <see cref="KassenID"/> (display register number). Kept alongside legacy <c>kassenID</c> JSON for clarity.</summary>
         public string DisplayRegisterNumber { get; set; } = string.Empty;
 
+        /// <summary>Filiale / branch display when known (cash register <c>Location</c>).</summary>
+        public string? BranchName { get; set; }
+        /// <summary>Optional POS terminal number when stored on the register; omitted from print when empty.</summary>
+        public string? TerminalNumber { get; set; }
+        /// <summary>Resolved Dankesnachricht (same value as <see cref="FooterText"/>).</summary>
+        public string ThankYouMessage { get; set; } = ReceiptThankYouMessage.Default;
+
         public ReceiptCompanyDTO Company { get; set; } = new();
         public ReceiptHeaderDTO Header { get; set; } = new(); // Optional extra header info
 
@@ -67,7 +76,9 @@ namespace KasseAPI_Final.DTOs
         public List<ReceiptItemDTO> Items { get; set; } = new();
 
         // --- Totals ---
-        public decimal SubTotal { get; set; } // Net Total before tax (= TotalNet)
+        public decimal SubTotal { get; set; } // Net Total before tax (= TotalNet / NetTotal)
+        /// <summary>Netto (Brutto − MwSt). Same value as <see cref="SubTotal"/> / <see cref="ReceiptTotalsDTO.TotalNet"/>.</summary>
+        public decimal NetTotal { get; set; }
         public decimal TaxAmount { get; set; } // Total VAT (= TotalVat)
         public decimal GrandTotal { get; set; } // Gross Total (Payable = TotalGross)
         /// <summary>Fiş toplamları (net, vergi, brüt); SubTotal/TaxAmount/GrandTotal ile aynı kaynak.</summary>
@@ -81,9 +92,11 @@ namespace KasseAPI_Final.DTOs
 
         // --- Footer / RKSV ---
         public ReceiptSignatureDTO? Signature { get; set; }
-        public string FooterText { get; set; } = "Vielen Dank für Ihren Besuch!";
+        public string FooterText { get; set; } = ReceiptThankYouMessage.Default;
         /// <summary>Environment-aware RKSV compliance label for printed receipt QR block.</summary>
         public string RksvFooterLabel { get; set; } = string.Empty;
+        /// <summary>True when POS/print should show the DEMO / NICHT FISKAL disclaimer (<c>RKSV:ShowDemoLabel</c>).</summary>
+        public bool ShowDemoLabel { get; set; }
     }
 
     public class ReceiptCompanyDTO
@@ -91,6 +104,8 @@ namespace KasseAPI_Final.DTOs
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string TaxNumber { get; set; } = string.Empty; // UID / Steuernummer
+        /// <summary>Optional company description printed after the Dankesnachricht.</summary>
+        public string? Description { get; set; }
     }
 
     public class ReceiptHeaderDTO

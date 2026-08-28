@@ -47,4 +47,12 @@ export const API_PATHS = {
     /** GET - Live menu for website / customer app */
     MENU: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}/menu`,
   },
+  POS_RECEIPTS: {
+    /** GET - Last receipts for the current cash register */
+    LIST: '/pos/receipts',
+    /** GET - Receipt detail (tenant + register scoped) */
+    BY_ID: (id: string) => `/pos/receipts/${encodeURIComponent(id)}`,
+    /** GET - Nachdruck payload (no new fiscal receipt) */
+    REPRINT: (id: string) => `/pos/receipts/${encodeURIComponent(id)}/reprint`,
+  },
 } as const;

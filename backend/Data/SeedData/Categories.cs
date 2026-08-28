@@ -9,6 +9,7 @@ public sealed class SystemCategory
     public string DisplayName { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? Icon { get; init; }
+    public string? Color { get; init; }
     public decimal DefaultTaxRate { get; init; } = 10m;
     public RksvProductCategory FiscalCategory { get; init; } = RksvProductCategory.Food;
     public int SortOrder { get; init; }
@@ -19,22 +20,22 @@ public static class SystemCategories
 {
     public static readonly IReadOnlyList<SystemCategory> DemoCategories =
     [
-        new() { Key = "salate", DisplayName = "Salate", Description = "Alle Salate werden mit einem Dressing nach Wahl zubereitet.", Icon = "🥗", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 10 },
-        new() { Key = "stangerl", DisplayName = "Stangerl", Description = "Alle Stangerl werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥪", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 20 },
-        new() { Key = "baguettes", DisplayName = "Baguettes", Description = "Alle Baguettes werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥖", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 30 },
-        new() { Key = "calzone", DisplayName = "Calzone", Description = "Alle Calzonen werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥟", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 40 },
-        new() { Key = "pizza-mittel", DisplayName = "Pizza, mittel", Description = "Ø 36cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 50 },
-        new() { Key = "pizza-partner", DisplayName = "Pizza, Partner", Description = "Ø 40cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 60 },
-        new() { Key = "familien-pizza", DisplayName = "Familien-Pizza", Description = "Ø 50cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 70 },
-        new() { Key = "mexikanische-pizza-mittel", DisplayName = "Mexikanische Pizza, mittel", Description = "Ø 36cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", Icon = "🌶️", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 80 },
-        new() { Key = "mexikanische-pizza-partner", DisplayName = "Mexikanische Pizza, Partner", Description = "Ø 40cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", Icon = "🌶️", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 90 },
-        new() { Key = "pasta", DisplayName = "Pasta", Description = "Alle Gerichte werden mit einer Nudelsorte nach Wahl zubereitet.", Icon = "🍝", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 100 },
-        new() { Key = "imbiss", DisplayName = "Imbiss", Description = "Alle Gerichte werden mit einem Dip nach Wahl serviert.", Icon = "🍟", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 110 },
-        new() { Key = "burger", DisplayName = "Burger", Description = "Alle Burger werden mit Pommes frites serviert.", Icon = "🍔", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 120 },
-        new() { Key = "kebap", DisplayName = "Kebap", Description = "Alle Gerichte werden mit Salat, Tomaten, Zwiebeln, Rotkraut und einer Sauce nach Wahl zubereitet.", Icon = "🥙", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 130 },
-        new() { Key = "desserts", DisplayName = "Desserts", Description = "", Icon = "🍰", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 140 },
-        new() { Key = "saucen", DisplayName = "Saucen", Description = "", Icon = "🥫", DefaultTaxRate = 20, FiscalCategory = RksvProductCategory.Food, SortOrder = 150 },
-        new() { Key = "alkoholfreie-getranke", DisplayName = "Alkoholfreie Getränke", Description = "", Icon = "🥤", DefaultTaxRate = 20, FiscalCategory = RksvProductCategory.Beverage, SortOrder = 160 },
+        new() { Key = "salate", DisplayName = "Salate", Description = "Alle Salate werden mit einem Dressing nach Wahl zubereitet.", Icon = "🥗", Color = "#7CB342", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 10 },
+        new() { Key = "stangerl", DisplayName = "Stangerl", Description = "Alle Stangerl werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥪", Color = "#FFB74D", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 20 },
+        new() { Key = "baguettes", DisplayName = "Baguettes", Description = "Alle Baguettes werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥖", Color = "#D4A574", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 30 },
+        new() { Key = "calzone", DisplayName = "Calzone", Description = "Alle Calzonen werden mit Tomaten, Käse und Oregano zubereitet.", Icon = "🥟", Color = "#8D6E63", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 40 },
+        new() { Key = "pizza-mittel", DisplayName = "Pizza, mittel", Description = "Ø 36cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", Color = "#E53935", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 50 },
+        new() { Key = "pizza-partner", DisplayName = "Pizza, Partner", Description = "Ø 40cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", Color = "#C62828", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 60 },
+        new() { Key = "familien-pizza", DisplayName = "Familien-Pizza", Description = "Ø 50cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", Icon = "🍕", Color = "#B71C1C", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 70 },
+        new() { Key = "mexikanische-pizza-mittel", DisplayName = "Mexikanische Pizza, mittel", Description = "Ø 36cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", Icon = "🌶️", Color = "#FF6F00", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 80 },
+        new() { Key = "mexikanische-pizza-partner", DisplayName = "Mexikanische Pizza, Partner", Description = "Ø 40cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", Icon = "🌶️", Color = "#E65100", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 90 },
+        new() { Key = "pasta", DisplayName = "Pasta", Description = "Alle Gerichte werden mit einer Nudelsorte nach Wahl zubereitet.", Icon = "🍝", Color = "#F9A825", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 100 },
+        new() { Key = "imbiss", DisplayName = "Imbiss", Description = "Alle Gerichte werden mit einem Dip nach Wahl serviert.", Icon = "🍟", Color = "#FF8F00", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 110 },
+        new() { Key = "burger", DisplayName = "Burger", Description = "Alle Burger werden mit Pommes frites serviert.", Icon = "🍔", Color = "#6D4C41", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 120 },
+        new() { Key = "kebap", DisplayName = "Kebap", Description = "Alle Gerichte werden mit Salat, Tomaten, Zwiebeln, Rotkraut und einer Sauce nach Wahl zubereitet.", Icon = "🥙", Color = "#8BC34A", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 130 },
+        new() { Key = "desserts", DisplayName = "Desserts", Description = "", Icon = "🍰", Color = "#EC407A", DefaultTaxRate = 10, FiscalCategory = RksvProductCategory.Food, SortOrder = 140 },
+        new() { Key = "saucen", DisplayName = "Saucen", Description = "", Icon = "🥫", Color = "#FF7043", DefaultTaxRate = 20, FiscalCategory = RksvProductCategory.Food, SortOrder = 150 },
+        new() { Key = "alkoholfreie-getranke", DisplayName = "Alkoholfreie Getränke", Description = "", Icon = "🥤", Color = "#29B6F6", DefaultTaxRate = 20, FiscalCategory = RksvProductCategory.Beverage, SortOrder = 160 },
     ];
 
     private static readonly Dictionary<string, SystemCategory> ByKey =
@@ -72,6 +73,7 @@ public static class SystemCategories
             Name = source.DisplayName,
             Description = source.Description,
             Icon = source.Icon,
+            Color = source.Color,
             SortOrder = source.SortOrder,
             VatRate = source.DefaultTaxRate,
             FiscalCategory = source.FiscalCategory,

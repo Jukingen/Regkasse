@@ -1,0 +1,19 @@
+{
+  "title": "Belegliste",
+  "lastReceipts": "Letzte Belege",
+  "reprint": "Nachdruck",
+  "reprintA11y": "Beleg {{number}} nachdrucken",
+  "openA11y": "Beleg {{number}} öffnen",
+  "empty": "Keine Belege für diese Kasse",
+  "loadError": "Belegliste konnte nicht geladen werden",
+  "preparingRegister": "Kasse wird vorbereitet…",
+  "noRegister": "Bitte wählen Sie zuerst eine Registrierkasse aus.",
+  "detailTitle": "Belegdetails",
+  "receiptNumber": "Beleg-Nr.",
+  "issuedAt": "Datum / Uhrzeit",
+  "total": "Betrag",
+  "close": "Schließen",
+  "reprintFailed": "Nachdruck fehlgeschlagen",
+  "reprintNoPermission": "Keine Berechtigung für Nachdruck",
+  "detailLoadError": "Belegdetails konnten nicht geladen werden"
+}

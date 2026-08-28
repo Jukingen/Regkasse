@@ -1,0 +1,19 @@
+{
+  "title": "Fis listesi",
+  "lastReceipts": "Son fisler",
+  "reprint": "Yeniden yazdir",
+  "reprintA11y": "Fis {{number}} yeniden yazdir",
+  "openA11y": "Fis {{number}} ac",
+  "empty": "Bu kasa icin fis yok",
+  "loadError": "Fis listesi yuklenemedi",
+  "preparingRegister": "Kasa hazirlaniyor…",
+  "noRegister": "Lutfen once bir kasa secin.",
+  "detailTitle": "Fis detayi",
+  "receiptNumber": "Fis no.",
+  "issuedAt": "Tarih / saat",
+  "total": "Tutar",
+  "close": "Kapat",
+  "reprintFailed": "Yeniden yazdirma basarisiz",
+  "reprintNoPermission": "Yeniden yazdirma izniniz yok",
+  "detailLoadError": "Fis detayi yuklenemedi"
+}

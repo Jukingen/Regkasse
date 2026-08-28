@@ -10,6 +10,9 @@ public interface IRksvEnvironmentService
 
     bool ShowDemoLabel();
 
+    /// <summary>True when RKSV FinanzOnline overlay is Simulation or FinanzOnline:* simulation is active.</summary>
+    bool IsFinanzOnlineSimulated();
+
     string GetEnvironmentDisplayName();
 
     /// <summary>Long-form TSE status for report detail rows.</summary>
@@ -44,15 +47,24 @@ public sealed class RksvEnvironmentService : IRksvEnvironmentService
 
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
+    private readonly IRksvRuntimeConfigService? _runtimeConfig;
 
-    public RksvEnvironmentService(IConfiguration configuration, IHostEnvironment environment)
+    public RksvEnvironmentService(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        IRksvRuntimeConfigService? runtimeConfig = null)
     {
         _configuration = configuration;
         _environment = environment;
+        _runtimeConfig = runtimeConfig;
     }
 
     public bool IsDemoMode()
     {
+        var overlay = TryOverlay();
+        if (overlay != null)
+            return overlay.IsDemoMode;
+
         return string.Equals(_configuration["RKSV:Mode"], "Demo", StringComparison.OrdinalIgnoreCase)
                || _environment.IsDevelopment()
                || _environment.IsStaging();
@@ -62,11 +74,27 @@ public sealed class RksvEnvironmentService : IRksvEnvironmentService
 
     public bool IsTseSimulated() =>
         IsDemoMode()
+        || (TryOverlay()?.IsTseSimulation ?? false)
         || string.Equals(_configuration["RKSV:TseMode"], "Simulation", StringComparison.OrdinalIgnoreCase);
 
-    public bool ShowDemoLabel() =>
-        IsDemoMode()
-        && _configuration.GetValue("RKSV:ShowDemoLabel", true);
+    public bool ShowDemoLabel()
+    {
+        var overlay = TryOverlay();
+        if (overlay != null)
+            return overlay.ShowDemoLabel;
+
+        return IsDemoMode()
+               && _configuration.GetValue("RKSV:ShowDemoLabel", true);
+    }
+
+    public bool IsFinanzOnlineSimulated()
+    {
+        var overlay = TryOverlay();
+        if (overlay != null && overlay.IsFinanzOnlineSimulation)
+            return true;
+
+        return Tse.TseFiscalConfigLockEvaluator.IsFinanzOnlineSimulated(_configuration);
+    }
 
     public string GetEnvironmentDisplayName() =>
         IsDemoMode() ? "🧪 DEMO / TEST" : "🚀 PRODUCTION";
@@ -82,8 +110,20 @@ public sealed class RksvEnvironmentService : IRksvEnvironmentService
             : "TSE AKTIV";
 
     public string GetRksvFooter() =>
-        FormatFooter(IsDemoMode());
+        FormatFooter(ShowDemoLabel());
 
     internal static string FormatFooter(bool isDemoFiscal) =>
         isDemoFiscal ? DemoFooter.Trim() : ProductionFooter.Trim();
+
+    private RksvRuntimeSnapshot? TryOverlay()
+    {
+        try
+        {
+            return _runtimeConfig?.GetEffective();
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

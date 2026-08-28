@@ -231,9 +231,12 @@ export function CompanySettingsForm() {
           <Input placeholder={c('placeholderWebsite')} />
         </Form.Item>
 
-        <Form.Item name="companyDescription" label={c('receiptFooter')}>
+        <Form.Item name="thankYouMessage" label={c('receiptFooter')}>
           <Input.TextArea rows={2} placeholder={c('placeholderReceiptFooter')} />
         </Form.Item>
+        <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
+          <Link href="/settings/receipt">{c('receiptSettingsLink')}</Link>
+        </Typography.Paragraph>
 
         <Form.Item>
           <Space wrap>

@@ -120,6 +120,8 @@ export interface PaymentRequest {
 export interface PaymentTseInfo {
   qrPayload?: string;
   isDemoFiscal?: boolean;
+  /** True when POS should show the DEMO disclaimer (RKSV:ShowDemoLabel). Independent of isDemoFiscal. */
+  showDemoLabel?: boolean;
   provider?: string;
   receiptNumber?: string;
 }
@@ -692,6 +694,10 @@ class PaymentService {
       ? {
           qrPayload: rawTse.qrPayload ?? rawTse.QrPayload,
           isDemoFiscal: rawTse.isDemoFiscal ?? rawTse.IsDemoFiscal,
+          showDemoLabel:
+            typeof (rawTse.showDemoLabel ?? rawTse.ShowDemoLabel) === 'boolean'
+              ? Boolean(rawTse.showDemoLabel ?? rawTse.ShowDemoLabel)
+              : undefined,
           provider: rawTse.provider ?? rawTse.Provider,
           receiptNumber: rawTse.receiptNumber ?? rawTse.ReceiptNumber,
         }

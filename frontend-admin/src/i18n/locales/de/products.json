@@ -38,6 +38,8 @@
     "taxZero": "0 % (Nullsatz)",
     "categories": "Kategorien",
     "categoriesPlaceholder": "Beliebige Kategorie",
+    "allCategories": "Alle Kategorien",
+    "quickCategoriesAria": "Schnellfilter Kategorien",
     "taxable": "Steuerpflichtig",
     "taxablePlaceholder": "Beliebig",
     "taxableYes": "Steuerpflichtig",
@@ -73,7 +75,8 @@
     "minLabel": "Min.",
     "minReached": "≤ Min",
     "taxExemption": "Steuerbefreiung",
-    "rksvLabel": "RKSV"
+    "rksvLabel": "RKSV",
+    "filterByCategory": "Nach Kategorie filtern: {{name}}"
   },
   "actions": {
     "edit": "Bearbeiten",

@@ -95,6 +95,7 @@ export const ADMIN_NAV_LABEL_KEYS = {
   settingsHub: 'nav.settingsHub',
   /** Firma, FinanzOnline, TSE – Route /settings */
   companySettings: 'nav.companySettings',
+  receiptSettings: 'nav.receiptSettings',
   workingHours: 'nav.workingHours',
   taxGroups: 'nav.taxGroups',
   taxHistory: 'nav.taxHistory',
@@ -107,6 +108,7 @@ export const ADMIN_NAV_LABEL_KEYS = {
   paymentGateway: 'nav.paymentGateway',
   backupDr: 'nav.backupDr',
   developmentMode: 'nav.developmentMode',
+  rksvRuntimeConfig: 'nav.rksvRuntimeConfig',
   timeSync: 'nav.timeSync',
   myProfile: 'nav.myProfile',
   changeUsername: 'nav.changeUsername',
@@ -159,6 +161,7 @@ export const ADMIN_NAV_LABELS = {
   users: 'Benutzer',
   settingsHub: 'Einstellungen',
   companySettings: 'Firma & Fiskal',
+  receiptSettings: 'Belegtext',
   workingHours: 'Öffnungszeiten',
   taxGroups: 'Steuergruppen',
   taxHistory: 'Steueränderungsverlauf',

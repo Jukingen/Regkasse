@@ -6,7 +6,7 @@
  *   npm run install:git-hooks
  *
  * Pre-commit → scripts/git-hooks/pre-commit.mjs
- *   (API verify + staged-package lint/typecheck; tests opt-in)
+ *   (secret scan + API verify + staged-package lint/typecheck; tests opt-in)
  */
 import { execSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -56,5 +56,6 @@ try {
 
 console.log('OK: Husky hooks installed (.husky/pre-commit).');
 console.log('Skip all: SKIP_PRECOMMIT=1 git commit ...');
+console.log('Skip secrets: SKIP_SECRET_SCAN=1 git commit ...');
 console.log('Skip API: SKIP_API_CLIENT_VERIFY=1 git commit ...');
 console.log('Run tests: HUSKY_RUN_TESTS=1 git commit ...');

@@ -45,8 +45,12 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   /** Super Admin: license management + billing sales; tenant license leaf when permitted. */
   license: 'grp-license',
   operations: 'grp-operations',
-  /** Nested under Betrieb: receipts, payments, online orders, … */
+  /** Nested under Verkauf: receipts, online orders, Tagesabschluss */
   salesTransactions: 'grp-sales-transactions',
+  /** Nested under Verkauf: staff + shifts */
+  personnel: 'grp-personnel',
+  /** Payments, invoices, operational reports */
+  finance: 'grp-finance',
   rksv: 'grp-rksv',
   /** Nested under RKSV & FinanzOnline (approved IA) */
   rksvCurrentStatus: 'grp-rksv-current-status',
@@ -83,6 +87,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   deploymentSystem: 'grp-deployment-system',
   /** Monitoring & Logs */
   monitoringLogs: 'grp-monitoring-logs',
+  /** Super Admin shell: TSE platform, deployment, monitoring, development */
+  system: 'grp-system',
   /** Backup & Disaster Recovery */
   backup: 'grp-backup',
   /** Nested under Backup: schedule vs platform settings */
@@ -132,13 +138,6 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/billing/subscription-invoices',
     '/billing/digital',
     '/admin/communication',
-    '/tenant/dashboard',
-    '/tenant/portal',
-    '/tenant/invoices',
-    '/tenant/support',
-    '/tenant/license',
-    '/tenant/profile',
-    '/profile',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.communication]: ['/admin/communication'],
   [ADMIN_SIDEBAR_GROUP_KEYS.myAccount]: [
@@ -160,19 +159,37 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/staff/shifts',
     '/shifts',
     '/tagesabschluss',
+    '/receipts',
+    '/orders',
+    '/orders/online',
+    '/receipt-templates',
+    '/receipt-generate',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
     '/receipts',
     '/orders',
     '/orders/online',
+    '/tagesabschluss',
+    '/receipt-templates',
+    '/receipt-generate',
+  ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.personnel]: ['/staff', '/staff/list', '/staff/performance', '/staff/shifts', '/shifts'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.finance]: [
     '/payments',
     '/payments/trends',
     '/payments/storno-refund-audit',
     '/admin/payments/card-transactions',
-    '/vouchers',
+    '/admin/online-payments',
     '/invoices',
-    '/receipt-templates',
-    '/receipt-generate',
+    '/reporting',
+    '/reporting/report-center',
+    '/reporting/steuerberichte',
+    '/reporting/compliance',
+    '/reporting/staff',
+    '/audit-logs/activity',
+    '/reports/daily-closing',
+    '/admin/reports',
+    '/admin/reports/user-activity',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.rksv]: [
     '/audit-logs',
@@ -224,6 +241,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.customers]: [
     '/customers',
+    '/vouchers',
     '/benefit-definitions',
     '/benefit-assignments',
   ],
@@ -249,10 +267,18 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/digital/customer-portal',
     '/admin/system/time-sync',
     '/admin/tse/signaturkarte-program',
+    '/tenant/dashboard',
+    '/tenant/portal',
+    '/tenant/invoices',
+    '/tenant/support',
+    '/tenant/license',
+    '/tenant/profile',
+    '/profile',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral]: [
     '/settings',
     '/settings/company',
+    '/settings/receipt',
     '/settings/personalization',
     '/settings/preferences',
   ],
@@ -292,6 +318,19 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tenants',
     '/admin/tenants/create',
     '/admin/support',
+    '/license',
+    '/license/dashboard',
+    '/admin/license',
+    '/admin/license-management',
+    '/admin/limits/dashboard',
+    '/admin/license/audit',
+    '/admin/licenses',
+    '/admin/billing',
+    '/admin/billing/sales',
+    '/admin/billing/stats',
+    '/admin/billing/subscription-invoices',
+    '/billing/digital',
+    '/admin/communication',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
     '/admin/access',
@@ -301,6 +340,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.securityTse]: [
     '/admin/approvals',
+    '/admin/rksv/config',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -379,6 +419,47 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/risk-dashboard',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.development]: ['/admin/development'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.system]: [
+    '/admin/approvals',
+    '/admin/rksv/config',
+    '/admin/tse-management',
+    '/admin/tse/failover',
+    '/admin/tse/resource-pools',
+    '/admin/tse/incidents',
+    '/admin/tse/sla',
+    '/admin/tse/capacity',
+    '/admin/tse/cost',
+    '/admin/tse/disaster-recovery',
+    '/admin/tse/logs',
+    '/admin/tse/developer-tools',
+    '/admin/tse/fiskaly',
+    '/admin/tse/compliance',
+    '/admin/tse/ausfall',
+    '/admin/tse/auto-scaling',
+    '/admin/tse/auto-healing',
+    '/admin/tse/knowledge',
+    '/admin/tse/api-gateway',
+    '/admin/tse/anomalies',
+    '/admin/tse/analytics',
+    '/admin/tse/user-analytics',
+    '/admin/tse/recommendations',
+    '/admin/tse/updates',
+    '/admin/tse/sustainability',
+    '/admin/tse/webhooks',
+    '/admin/tse/blockchain',
+    '/admin/tse/training',
+    '/admin/deployments',
+    '/admin/deployments/go-live',
+    '/admin/deployments/tenants',
+    '/admin/deployments/compliance',
+    '/admin/database/migrations',
+    '/admin/feature-flags',
+    '/admin/maintenance',
+    '/admin/errors',
+    '/admin/monitoring',
+    '/admin/risk-dashboard',
+    '/admin/development',
+  ],
 };
 
 /**
@@ -530,6 +611,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
   if (
     p === '/admin/approvals' ||
     p.startsWith('/admin/approvals/') ||
+    p === '/admin/rksv/config' ||
+    p.startsWith('/admin/rksv/config/') ||
     p === '/admin/tse-management' ||
     p.startsWith('/admin/tse-management/') ||
     p === '/admin/tse/failover' ||
@@ -622,7 +705,15 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/billing/digital' ||
     p.startsWith('/billing/digital/') ||
     p === '/admin/communication' ||
-    p.startsWith('/admin/communication/') ||
+    p.startsWith('/admin/communication/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
+    if (p === '/admin/communication' || p.startsWith('/admin/communication/')) {
+      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.communication);
+    }
+  }
+  if (
     p === '/tenant/dashboard' ||
     p.startsWith('/tenant/dashboard/') ||
     p === '/tenant/portal' ||
@@ -638,28 +729,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/profile' ||
     p.startsWith('/profile/')
   ) {
-    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
-    if (p === '/admin/communication' || p.startsWith('/admin/communication/')) {
-      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.communication);
-    }
-    if (
-      p === '/tenant/dashboard' ||
-      p.startsWith('/tenant/dashboard/') ||
-      p === '/tenant/portal' ||
-      p.startsWith('/tenant/portal/') ||
-      p === '/tenant/invoices' ||
-      p.startsWith('/tenant/invoices/') ||
-      p === '/tenant/support' ||
-      p.startsWith('/tenant/support/') ||
-      p === '/tenant/license' ||
-      p.startsWith('/tenant/license/') ||
-      p === '/tenant/profile' ||
-      p.startsWith('/tenant/profile/') ||
-      p === '/profile' ||
-      p.startsWith('/profile/')
-    ) {
-      keys.push(ADMIN_SIDEBAR_GROUP_KEYS.myAccount);
-    }
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.myAccount);
   }
   if (
     p === '/settings/website' ||
@@ -678,20 +749,30 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
   }
   if (p === '/tagesabschluss' || p.startsWith('/tagesabschluss/')) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.operations);
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
   }
   if (
     p === '/receipts' ||
     p.startsWith('/receipts/') ||
     p === '/orders' ||
-    p.startsWith('/orders/') ||
-    p === '/payments' ||
-    p.startsWith('/payments/') ||
-    p === '/vouchers' ||
-    p.startsWith('/vouchers/') ||
-    p === '/invoices' ||
-    p.startsWith('/invoices/')
+    p.startsWith('/orders/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
+  }
+  if (
+    p === '/payments' ||
+    p.startsWith('/payments/') ||
+    p === '/invoices' ||
+    p.startsWith('/invoices/') ||
+    p === '/admin/online-payments' ||
+    p.startsWith('/admin/online-payments/') ||
+    p === '/admin/payments/card-transactions' ||
+    p.startsWith('/admin/payments/')
+  ) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.finance);
+  }
+  if (p === '/vouchers' || p.startsWith('/vouchers/')) {
+    keys.push(ADMIN_SIDEBAR_GROUP_KEYS.customers);
   }
   if (
     p === '/rksv/sb/startbeleg' ||
@@ -811,6 +892,75 @@ export function filterSidebarMenuItems(
   }
 
   return result;
+}
+
+function menuNodeSearchText(node: { key?: string; title?: unknown }): string {
+  const parts: string[] = [];
+  if (typeof node.key === 'string') parts.push(node.key);
+  if (typeof node.title === 'string') parts.push(node.title);
+  return parts.join(' ').toLocaleLowerCase();
+}
+
+/**
+ * Filters the Ant Design menu tree by a free-text query (label `title` + route key).
+ * Matching parents keep all children; matching children keep their ancestors.
+ */
+export function filterSidebarMenuItemsByQuery(
+  items: MenuProps['items'] | undefined,
+  query: string
+): MenuProps['items'] {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q || !items?.length) return items;
+
+  const result: MenuProps['items'] = [];
+
+  for (const it of items) {
+    if (!it || typeof it !== 'object') continue;
+    if ('type' in it && it.type === 'divider') {
+      result.push(it);
+      continue;
+    }
+    const node = it as {
+      key?: string;
+      title?: unknown;
+      children?: MenuProps['items'];
+    };
+    const selfMatch = menuNodeSearchText(node).includes(q);
+
+    if (node.children && node.children.length > 0) {
+      if (selfMatch) {
+        result.push(it);
+        continue;
+      }
+      const filteredChildren = filterSidebarMenuItemsByQuery(node.children, query);
+      if (!filteredChildren?.length) continue;
+      result.push({ ...it, children: filteredChildren } as NonNullable<MenuProps['items']>[number]);
+      continue;
+    }
+
+    if (selfMatch) result.push(it);
+  }
+
+  return result;
+}
+
+/** Collect submenu keys (nodes with children) — used to auto-expand while filtering. */
+export function collectSubmenuKeysFromMenuItems(items: MenuProps['items'] | undefined): string[] {
+  const out: string[] = [];
+  const walk = (list: MenuProps['items']) => {
+    if (!list) return;
+    for (const it of list) {
+      if (!it || typeof it !== 'object') continue;
+      if ('type' in it && it.type === 'divider') continue;
+      const node = it as { key?: string; children?: MenuProps['items'] };
+      if (node.children && node.children.length > 0) {
+        if (node.key && typeof node.key === 'string') out.push(node.key);
+        walk(node.children);
+      }
+    }
+  };
+  walk(items);
+  return out;
 }
 
 export type SidebarOpenKeysMergeParams = {

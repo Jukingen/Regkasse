@@ -38,6 +38,8 @@
     "taxZero": "%0 (sıfır oran)",
     "categories": "Kategoriler",
     "categoriesPlaceholder": "Herhangi bir kategori",
+    "allCategories": "Tüm kategoriler",
+    "quickCategoriesAria": "Kategori hızlı filtreleri",
     "taxable": "Vergiye tabi",
     "taxablePlaceholder": "Hepsi",
     "taxableYes": "Vergiye tabi",
@@ -73,7 +75,8 @@
     "minLabel": "Min",
     "minReached": "<= min",
     "taxExemption": "Vergi muafiyeti",
-    "rksvLabel": "RKSV"
+    "rksvLabel": "RKSV",
+    "filterByCategory": "Kategoriye gore filtrele: {{name}}"
   },
   "actions": {
     "edit": "Duzenle",

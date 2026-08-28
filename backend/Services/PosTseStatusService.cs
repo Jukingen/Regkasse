@@ -19,19 +19,22 @@ public sealed class PosTseStatusService : IPosTseStatusService
     private readonly IWebHostEnvironment _environment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
     private readonly IOptionsMonitor<FiskalyOptions> _fiskaly;
+    private readonly IOptionsMonitor<TseOptions> _tseOptions;
 
     public PosTseStatusService(
         AppDbContext db,
         ITseHealthMonitor health,
         IWebHostEnvironment environment,
         IOptionsMonitor<DevelopmentOptions> developmentOptions,
-        IOptionsMonitor<FiskalyOptions> fiskaly)
+        IOptionsMonitor<FiskalyOptions> fiskaly,
+        IOptionsMonitor<TseOptions> tseOptions)
     {
         _db = db;
         _health = health;
         _environment = environment;
         _developmentOptions = developmentOptions;
         _fiskaly = fiskaly;
+        _tseOptions = tseOptions;
     }
 
     public async Task<PosTseStatusDto> GetStatusAsync(
@@ -52,6 +55,7 @@ public sealed class PosTseStatusService : IPosTseStatusService
                 OperationalHealth = TseOperationalHealth.Offline.ToString(),
                 LastErrorMessageSafe = "Entwicklungssimulation: TSE als nicht verfügbar gemeldet.",
                 Environment = _fiskaly.CurrentValue.ResolveEnvironment(),
+                RequiresFiscalSignature = _tseOptions.CurrentValue.RequiresFiscalSignature,
             };
         }
 
@@ -107,6 +111,7 @@ public sealed class PosTseStatusService : IPosTseStatusService
             EstimatedRecoveryTimeUtc = snap.EstimatedRecoveryTimeUtc,
             LastSuccessfulPingUtc = snap.LastSuccessfulPingUtc,
             Environment = _fiskaly.CurrentValue.ResolveEnvironment(),
+            RequiresFiscalSignature = _tseOptions.CurrentValue.RequiresFiscalSignature,
         };
     }
 

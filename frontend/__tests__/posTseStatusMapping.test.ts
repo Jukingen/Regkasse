@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from '@jest/globals';
 
+import { shouldRequireTseForPosPayment } from '../utils/shouldRequireTseForPosPayment';
 import { shouldShowPosTseTestBadge, toOperationalHealthFromPosTse } from '../utils/posTseStatus';
 
 describe('toOperationalHealthFromPosTse', () => {
@@ -43,5 +44,20 @@ describe('shouldShowPosTseTestBadge', () => {
 
     process.env.EXPO_PUBLIC_ENVIRONMENT = 'TEST';
     expect(shouldShowPosTseTestBadge(undefined)).toBe(true);
+  });
+});
+
+describe('shouldRequireTseForPosPayment', () => {
+  it('requires TSE when backend says so', () => {
+    expect(shouldRequireTseForPosPayment(true)).toBe(true);
+  });
+
+  it('fails closed when status is missing', () => {
+    expect(shouldRequireTseForPosPayment(undefined)).toBe(true);
+    expect(shouldRequireTseForPosPayment(null)).toBe(true);
+  });
+
+  it('skips TSE only when backend explicitly reports Off', () => {
+    expect(shouldRequireTseForPosPayment(false)).toBe(false);
   });
 });

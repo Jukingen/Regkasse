@@ -451,7 +451,8 @@ public sealed class DemoProductImportService : IDemoProductImportService
                     Name = demoCat.Name,
                     OriginalDemoName = demoCat.Name,
                     Description = demoCat.Description,
-                    Icon = demoCat.Icon,
+                    Icon = CategoryAppearance.NormalizeIcon(demoCat.Icon),
+                    Color = demoCat.Color,
                     SortOrder = demoCat.SortOrder,
                     VatRate = demoCat.VatRate,
                     FiscalCategory = demoCat.FiscalCategory == RksvProductCategory.Unspecified
@@ -478,7 +479,10 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 category.IsSystemCategory = true;
 
                 if (string.IsNullOrWhiteSpace(category.Icon) && !string.IsNullOrWhiteSpace(demoCat.Icon))
-                    category.Icon = demoCat.Icon;
+                    category.Icon = CategoryAppearance.NormalizeIcon(demoCat.Icon);
+
+                if (string.IsNullOrWhiteSpace(category.Color) && !string.IsNullOrWhiteSpace(demoCat.Color))
+                    category.Color = demoCat.Color;
 
                 if (category.SortOrder != demoCat.SortOrder
                     || category.Description != demoCat.Description

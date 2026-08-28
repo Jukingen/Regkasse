@@ -71,6 +71,7 @@ import deReceiptTemplates from './locales/de/receiptTemplates.json';
 import deReceipts from './locales/de/receipts.json';
 import deReporting from './locales/de/reporting.json';
 import deRksvHub from './locales/de/rksvHub.json';
+import deRksvRuntimeConfig from './locales/de/rksvRuntimeConfig.json';
 import deSettings from './locales/de/settings.json';
 import deShifts from './locales/de/shifts.json';
 import deStaff from './locales/de/staff.json';
@@ -157,6 +158,7 @@ import enReceiptTemplates from './locales/en/receiptTemplates.json';
 import enReceipts from './locales/en/receipts.json';
 import enReporting from './locales/en/reporting.json';
 import enRksvHub from './locales/en/rksvHub.json';
+import enRksvRuntimeConfig from './locales/en/rksvRuntimeConfig.json';
 import enSettings from './locales/en/settings.json';
 import enShifts from './locales/en/shifts.json';
 import enStaff from './locales/en/staff.json';
@@ -243,6 +245,7 @@ import trReceiptTemplates from './locales/tr/receiptTemplates.json';
 import trReceipts from './locales/tr/receipts.json';
 import trReporting from './locales/tr/reporting.json';
 import trRksvHub from './locales/tr/rksvHub.json';
+import trRksvRuntimeConfig from './locales/tr/rksvRuntimeConfig.json';
 import trSettings from './locales/tr/settings.json';
 import trShifts from './locales/tr/shifts.json';
 import trStaff from './locales/tr/staff.json';
@@ -280,6 +283,7 @@ const catalogs = {
     finanzOnlineOutbox: deFinanzOnlineOutbox,
     finanzOnlineReconciliation: deFinanzOnlineReconciliation,
     rksvHub: deRksvHub,
+    rksvRuntimeConfig: deRksvRuntimeConfig,
     receipts: deReceipts,
     receiptTemplates: deReceiptTemplates,
     payments: dePayments,
@@ -368,6 +372,7 @@ const catalogs = {
     finanzOnlineOutbox: enFinanzOnlineOutbox,
     finanzOnlineReconciliation: enFinanzOnlineReconciliation,
     rksvHub: enRksvHub,
+    rksvRuntimeConfig: enRksvRuntimeConfig,
     receipts: enReceipts,
     receiptTemplates: enReceiptTemplates,
     payments: enPayments,
@@ -456,6 +461,7 @@ const catalogs = {
     finanzOnlineOutbox: trFinanzOnlineOutbox,
     finanzOnlineReconciliation: trFinanzOnlineReconciliation,
     rksvHub: trRksvHub,
+    rksvRuntimeConfig: trRksvRuntimeConfig,
     receipts: trReceipts,
     receiptTemplates: trReceiptTemplates,
     payments: trPayments,

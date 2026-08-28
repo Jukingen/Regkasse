@@ -1,5 +1,26 @@
 # Fixes Log
 
+## 2026-08-27: Elmah `elmah_error."User"` column missing (PostgreSQL)
+
+**Problem:** Staging/Production logs `Npgsql.PostgresException 42703: column "User" of relation "elmah_error" does not exist`. The API still starts; Elmah cannot persist exceptions.
+
+**Root cause:** ElmahCore.Postgresql `PgsqlErrorLog` INSERT quotes the identifier as `"User"` (PascalCase). PostgreSQL treats that as a different column from `"user"`. `Infrastructure/ElmahSchema.sql` previously created `"user"`, and Elmah's `CreateTablesIfNotExist` does not add missing columns when the table already exists.
+
+**Fix:** Idempotent SQL-only migration `20260827170615_AddElmahUserColumn`: create `elmah_error` when missing (ElmahCore-compatible columns), ensure a single nullable `"User"` (rename from `"user"` or add), backfill then drop leftover `"user"` (NOT NULL leftover blocks Elmah inserts). Admin list/export reads `"User"`.
+
+**Apply:** `dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`
+
+**Verify:**
+```sql
+SELECT attname FROM pg_attribute a
+JOIN pg_class c ON c.oid = a.attrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND c.relname = 'elmah_error'
+  AND a.attname = 'User' AND a.attnum > 0 AND NOT a.attisdropped;
+```
+
+---
+
 ## 2026-08-08: EF model snapshot sync (production gate)
 
 **Problem:** `dotnet ef migrations has-pending-model-changes` reported drift because several additive migrations (DEP download token / simulated / download_count, and older catalog/TSE files) were authored without Designer updates, so `AppDbContextModelSnapshot` lagged the runtime model.

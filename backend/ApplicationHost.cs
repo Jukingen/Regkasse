@@ -238,6 +238,16 @@ internal static class ApplicationHost
         }
     }
 
+    /// <summary>
+    /// <see cref="WebApplication.CreateBuilder(string[])"/> already adds user secrets in Development
+    /// (before environment variables). Staging local runs must opt in; Production must not.
+    /// </summary>
+    internal static bool ShouldAddUserSecretsAfterDefaultHostConfig(IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        return environment.IsStaging();
+    }
+
     public static WebApplication CreateWebApplication(string[] args)
     {
         WebApplicationBuilder builder;
@@ -254,6 +264,11 @@ internal static class ApplicationHost
         else
         {
             builder = WebApplication.CreateBuilder(args);
+            // CreateBuilder loads user secrets only when Environment is Development.
+            // Local Staging (launchSettings) still needs ConnectionStrings / JWT from the same store.
+            // Production keeps env-vars / vault; the secrets file is optional and absent on servers.
+            if (ShouldAddUserSecretsAfterDefaultHostConfig(builder.Environment))
+                builder.Configuration.AddUserSecrets(typeof(ApplicationHost).Assembly, optional: true);
         }
 
         var isDevelopment = builder.Environment.IsDevelopment();
@@ -327,6 +342,7 @@ internal static class ApplicationHost
         }
 
         builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));
+        builder.Services.AddSingleton<IRksvRuntimeConfigService, RksvRuntimeConfigService>();
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
@@ -530,7 +546,9 @@ internal static class ApplicationHost
             if (!OpenApiExportMode.IsEnabled)
             {
                 throw new InvalidOperationException(
-                    "ConnectionStrings:DefaultConnection is not configured. Set ConnectionStrings__DefaultConnection or user secrets. See backend/CONFIGURATION.md.");
+                    $"ConnectionStrings:DefaultConnection is not configured (environment: {builder.Environment.EnvironmentName}). " +
+                    "Set ConnectionStrings__DefaultConnection, appsettings.{Environment}.json, or user secrets " +
+                    "(loaded in Development by default and in Staging by ApplicationHost). See backend/CONFIGURATION.md.");
             }
 
             throw new InvalidOperationException(

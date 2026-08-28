@@ -65,7 +65,7 @@ function CategoryTable({
         key: 'icon',
         width: 80,
         render: (icon: string | null | undefined) => (
-          <span style={{ fontSize: 24 }}>{icon?.trim() ? icon : '📁'}</span>
+          <span style={{ fontSize: 24 }}>{icon?.trim() ? icon : '📦'}</span>
         ),
       },
       {
@@ -86,6 +86,20 @@ function CategoryTable({
             disabled={!canManage}
           />
         ),
+      },
+      {
+        title: t('common.categories.table.color'),
+        dataIndex: 'color',
+        key: 'color',
+        width: 120,
+        render: (color: string | null | undefined) =>
+          color ? (
+            <Tag color={color} style={{ marginInlineEnd: 0 }}>
+              {color}
+            </Tag>
+          ) : (
+            '—'
+          ),
       },
       {
         title: t('common.categories.table.vatRate'),

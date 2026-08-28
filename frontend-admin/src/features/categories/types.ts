@@ -46,6 +46,7 @@ export type CreateCategoryFormValues = {
   sortOrder?: number;
   description?: string | null;
   icon?: string | null;
+  color?: string | null;
   isActive?: boolean;
 };
 
@@ -65,8 +66,8 @@ export function buildCategoryUpdatePayload(
   return {
     name: patch.name ?? category.name,
     description: patch.description ?? category.description ?? undefined,
-    icon: patch.icon ?? category.icon ?? undefined,
-    color: patch.color ?? category.color ?? undefined,
+    icon: patch.icon !== undefined ? patch.icon ?? undefined : (category.icon ?? undefined),
+    color: patch.color !== undefined ? patch.color ?? undefined : (category.color ?? undefined),
     sortOrder: patch.sortOrder ?? category.sortOrder ?? 0,
     defaultTaxRate: patch.defaultTaxRate ?? categoryTaxRate(category),
     vatRate: patch.defaultTaxRate ?? categoryTaxRate(category),

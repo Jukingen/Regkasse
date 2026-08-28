@@ -11,9 +11,15 @@ export interface ReceiptDTO {
     name: string;
     address: string;
     taxNumber: string; // UID-Nummer
+    /** Optional company description printed after the thank-you line. */
+    description?: string | null;
   };
 
   kassenID: string; // Kassen-ID (RKSV)
+  /** Filiale / branch name when the cash register has a location. */
+  branchName?: string | null;
+  /** Optional card/POS terminal number when provided by the register. */
+  terminalNumber?: string | null;
 
   // --- Items ---
   items: ReceiptItemDTO[];
@@ -22,7 +28,9 @@ export interface ReceiptDTO {
   taxRates: ReceiptTaxRateDTO[];
 
   // --- Totals ---
-  subtotal: number; // Net total (= totalNet)
+  subtotal: number; // Net total (= totalNet / netTotal)
+  /** Netto (Brutto − MwSt). Same value as subtotal / totals.totalNet when the backend populated it. */
+  netTotal?: number;
   taxAmount: number; // Total VAT
   grandTotal: number; // Brutto total
   /** Backend'den gelen fiş toplamları (net/vat/gross) */
@@ -36,9 +44,12 @@ export interface ReceiptDTO {
   payments: ReceiptPaymentDTO[];
 
   footerText?: string;
+  thankYouMessage?: string;
 
   /** Environment-aware RKSV compliance label (from backend ReceiptService.GetRksvFooter). */
   rksvFooterLabel?: string;
+  /** True when POS/print should show the DEMO disclaimer (backend RKSV:ShowDemoLabel). */
+  showDemoLabel?: boolean;
 
   // --- Signature Block (RKSV) ---
   signature: {

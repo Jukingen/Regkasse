@@ -37,6 +37,8 @@ export interface TseHealthContextValue {
   lastErrorMessageSafe: string | null;
   /** Fiskaly SIGN AT: TEST | LIVE */
   environment: string | null;
+  /** Backend Tse:TseMode is not Off. Fail closed true when status is unknown. */
+  requiresFiscalSignature: boolean;
   loading: boolean;
   refresh: () => Promise<PosTseStatusApiResponse | null>;
 }
@@ -126,6 +128,7 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
         ? 'Entwicklungssimulation: TSE wird als offline behandelt.'
         : (payload?.lastErrorMessageSafe ?? null),
       environment: payload?.environment?.trim() || null,
+      requiresFiscalSignature: payload?.requiresFiscalSignature !== false,
       loading,
       refresh,
     };
@@ -151,6 +154,7 @@ export function useTseHealth(): TseHealthContextValue {
       estimatedRecoveryTimeUtc: null,
       lastErrorMessageSafe: null,
       environment: null,
+      requiresFiscalSignature: true,
       loading: false,
       refresh: async () => null,
     };

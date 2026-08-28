@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     paddingVertical: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.md,
     gap: SoftSpacing.sm,
+    flexWrap: 'wrap',
   },
   headerEmoji: {
     fontSize: 20,

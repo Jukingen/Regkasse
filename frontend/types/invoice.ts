@@ -90,6 +90,11 @@ export interface Invoice {
   footerText?: string;
   cashierName?: string;
   kasseId?: string;
+  branchName?: string;
+  terminalNumber?: string;
+  thankYouMessage?: string;
+  /** Optional company description printed after the thank-you line. */
+  companyDescription?: string;
 
   // Flattened properties used in UI
   customer?: {

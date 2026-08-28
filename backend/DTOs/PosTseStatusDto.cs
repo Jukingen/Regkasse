@@ -45,4 +45,10 @@ public sealed class PosTseStatusDto
 
     /// <summary>Fiskaly SIGN AT environment: TEST or LIVE.</summary>
     public string Environment { get; init; } = "TEST";
+
+    /// <summary>
+    /// True when POS payments must request TSE signing (<c>Tse:TseMode</c> is not Off).
+    /// Independent of cashier health (Active/Inactive) and of RKSV demo labels.
+    /// </summary>
+    public bool RequiresFiscalSignature { get; init; } = true;
 }

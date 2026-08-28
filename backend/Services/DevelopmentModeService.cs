@@ -1,6 +1,10 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Services.Tse;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -15,6 +19,8 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<DevelopmentModeService> _logger;
+    private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
+    private readonly IRksvRuntimeConfigService _runtimeConfig;
     private readonly object _gate = new();
     private readonly Timer _refreshTimer;
 
@@ -25,11 +31,15 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
     public DevelopmentModeService(
         IServiceScopeFactory scopeFactory,
         IHostEnvironment hostEnvironment,
-        ILogger<DevelopmentModeService> logger)
+        ILogger<DevelopmentModeService> logger,
+        IOptionsMonitor<DevelopmentOptions> developmentOptions,
+        IRksvRuntimeConfigService runtimeConfig)
     {
         _scopeFactory = scopeFactory;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
+        _developmentOptions = developmentOptions;
+        _runtimeConfig = runtimeConfig;
 
         _refreshTimer = new Timer(
             _ => _ = OnTimerRefreshAsync(),
@@ -108,8 +118,25 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
         EffectiveDev() && Snapshot.Enabled && Snapshot.BypassNtpCheck;
 
     /// <inheritdoc />
-    public bool ShouldBypassTseCheck() =>
-        EffectiveDev() && Snapshot.Enabled && Snapshot.BypassTseCheck;
+    public bool ShouldBypassTseCheck()
+    {
+        RksvRuntimeSnapshot? overlay = null;
+        try
+        {
+            overlay = _runtimeConfig.GetEffective();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "DevelopmentModeService: RKSV overlay unavailable for TSE bypass evaluation.");
+        }
+
+        return TseDevelopmentBypassEvaluator.ShouldBypassTseHealth(
+            _hostEnvironment,
+            _developmentOptions.CurrentValue,
+            Snapshot.Enabled,
+            Snapshot.BypassTseCheck,
+            overlay);
+    }
 
     /// <inheritdoc />
     public bool ShouldSimulateOffline() =>

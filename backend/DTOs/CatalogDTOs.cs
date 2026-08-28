@@ -1,13 +1,16 @@
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
-    /// Katalog kategori satırı. JSON: camelCase.
+    /// Katalog kategori satırı. JSON: camelCase. Icon is an emoji (FA source of truth).
     /// </summary>
     public class CatalogCategoryDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal VatRate { get; set; }
+        public string? Icon { get; set; }
+        public string? Color { get; set; }
+        public int SortOrder { get; set; }
     }
 
     /// <summary>
@@ -31,6 +34,8 @@ namespace KasseAPI_Final.DTOs
         public string? Unit { get; set; }
         public string? ProductCategory { get; set; }
         public Guid? CategoryId { get; set; }
+        public string? CategoryIcon { get; set; }
+        public string? CategoryColor { get; set; }
         public int TaxType { get; set; }
         public decimal TaxRate { get; set; }
         public bool IsActive { get; set; }

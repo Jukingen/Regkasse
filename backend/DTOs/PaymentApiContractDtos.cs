@@ -81,6 +81,10 @@ public sealed class PaymentCreateTseData
     [JsonPropertyName("isDemoFiscal")]
     public bool IsDemoFiscal { get; set; }
 
+    /// <summary>True when POS should show the DEMO / NICHT FISKAL disclaimer (<c>RKSV:ShowDemoLabel</c>). Independent of <see cref="IsDemoFiscal"/> (TSE simulation).</summary>
+    [JsonPropertyName("showDemoLabel")]
+    public bool ShowDemoLabel { get; set; }
+
     [JsonPropertyName("qrPayload")]
     public string? QrPayload { get; set; }
 

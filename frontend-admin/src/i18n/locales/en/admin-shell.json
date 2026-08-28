@@ -7,7 +7,11 @@
   },
   "sidebar": {
     "noAccessibleMenus": "No menu items available.",
-    "lockdownFooter": "Restricted mode — license expired"
+    "lockdownFooter": "Restricted mode — license expired",
+    "filterPlaceholder": "Filter menu…",
+    "filterAria": "Filter sidebar menu",
+    "filterNoResults": "No menu items match this search.",
+    "recentTitle": "Recently used"
   },
   "menuPermission": {
     "popoverTitle": "What permission controls this menu?",

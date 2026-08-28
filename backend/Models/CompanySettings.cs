@@ -102,6 +102,14 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         public string? CompanyDescription { get; set; }
 
+        /// <summary>
+        /// Custom POS receipt thank-you line (Dankesnachricht). Null/empty uses
+        /// <see cref="ReceiptThankYouMessage.Default"/>. Printed before <see cref="CompanyDescription"/>.
+        /// </summary>
+        [MaxLength(ReceiptThankYouMessage.MaxLength)]
+        [Column("thank_you_message")]
+        public string? ThankYouMessage { get; set; }
+
         [Required]
         [Column(TypeName = "jsonb")]
         public Dictionary<string, string> BusinessHours { get; set; } = new();

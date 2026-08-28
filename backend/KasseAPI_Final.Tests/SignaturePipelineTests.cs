@@ -167,4 +167,38 @@ public class SignaturePipelineTests
         var step5 = steps.First(s => s.StepId == 5);
         Assert.Equal("FAIL", step5.Status);
     }
+
+    [Fact]
+    public void VerifyDiagnostic_FiskalyMachineCodeQr_AllStepsPass()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
+
+        Assert.True(SignaturePipeline.TryGetMachineCodeFromCompactJws(compactJws, out var machineCode));
+        var sigBytes = TseCryptoHelper.FromBase64UrlNoPadding(compactJws.Split('.')[2]);
+        var fiskalyQr = $"{machineCode}_{Convert.ToBase64String(sigBytes)}";
+
+        Assert.DoesNotContain('.', fiskalyQr);
+        Assert.Contains('=', fiskalyQr);
+
+        var steps = pipeline.VerifyDiagnostic(fiskalyQr);
+        Assert.Equal(5, steps.Count);
+        Assert.All(steps, s => Assert.Equal("PASS", s.Status));
+        Assert.Contains("Fiskaly", steps.First(s => s.StepId == 2).Evidence ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.True(pipeline.Verify(fiskalyQr, keyProvider.GetPublicKey()));
+    }
+
+    [Fact]
+    public void VerifyDiagnostic_RksvQrWire_AllStepsPass()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
+        Assert.True(KasseAPI_Final.Rksv.RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(compactJws, out var qr));
+
+        var steps = pipeline.VerifyDiagnostic(qr);
+        Assert.All(steps, s => Assert.Equal("PASS", s.Status));
+        Assert.True(pipeline.Verify(qr, keyProvider.GetPublicKey()));
+    }
 }

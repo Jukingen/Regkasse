@@ -5,9 +5,10 @@
     "rowSystem": "System (global): tax rates, backup, notifications — API `GET/PUT /api/Settings` (SystemSettings). No dedicated admin UI yet.",
     "rowCompany": "Company & fiscal (tenant): master data, FinanzOnline, TSE defaults — `/api/company/settings` (alias: `/api/CompanySettings`).",
     "rowUser": "User: POS / register preferences — `GET/PUT /api/user/settings` (UserSettings), not tenant-wide.",
-    "rowReceipt": "Receipt templates & copy — Kasse & Belege → Receipt templates (`/receipt-templates`).",
+    "rowReceipt": "Receipt thank-you text — `/settings/receipt`. Templates — Kasse & Belege → Receipt templates (`/receipt-templates`).",
     "rowRksv": "RKSV operations (outbox, integrity, diagnostics) — RKSV menu, not under company settings.",
     "linkReceiptTemplates": "Open receipt templates",
+    "linkReceiptSettings": "Open receipt text",
     "linkRksv": "Open RKSV"
   },
   "page": {
@@ -114,10 +115,25 @@
     "placeholderPhone": "+43 123 456789",
     "placeholderEmail": "info@cafe.at",
     "placeholderWebsite": "https://www.cafe.at",
-    "placeholderReceiptFooter": "Thank you for your visit!",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Einkauf!",
+    "receiptSettingsLink": "Edit preview and receipt text under receipt settings",
     "reset": "Reset",
     "advancedHint": "FinanzOnline, TSE, localization, and password settings are on the",
     "advancedLink": "fiscal & integration settings page"
+  },
+  "receiptPage": {
+    "pageTitle": "Receipt text",
+    "cardTitle": "Thank-you message",
+    "saveSuccess": "Thank-you message has been saved.",
+    "infoTitle": "POS receipt footer",
+    "infoDescription": "This text appears at the bottom of each cash-register receipt. Leave empty to use the default line.",
+    "thankYouLabel": "Thank-you message",
+    "thankYouHint": "Empty = default: “Vielen Dank für Ihren Einkauf!”",
+    "thankYouMax": "Maximum 500 characters.",
+    "previewTitle": "Preview",
+    "previewCompany": "Development Company",
+    "previewKassierer": "Cashier: kassier1",
+    "reset": "Reset"
   },
   "taxGroups": {
     "pageTitle": "Tax groups",

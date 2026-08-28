@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
-import { getAllCategories, getProducts, type Product } from '../services/api/productService';
+import { getAllCategories, getProducts, type Product, type ProductCategory } from '../services/api/productService';
+import { resolveCategoryIcon } from '../utils/categoryDisplay';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface ProductSelectionModalProps {
@@ -33,7 +34,7 @@ export default function ProductSelectionModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
@@ -77,7 +78,9 @@ export default function ProductSelectionModal({
 
     // Kategori filtresi
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+      filtered = filtered.filter(
+        (p) => p.category === selectedCategory || p.categoryId === selectedCategory
+      );
     }
 
     // Arama filtresi
@@ -164,26 +167,26 @@ export default function ProductSelectionModal({
   const renderCategoryFilter = () => (
     <FlatList
       horizontal
-      data={['All', ...categories]}
+      data={[{ id: 'All', name: 'All', icon: '📦' } as ProductCategory, ...categories]}
       renderItem={({ item }) => (
         <TouchableOpacity
           style={[
             styles.categoryFilterButton,
-            selectedCategory === item && styles.categoryFilterButtonActive,
+            selectedCategory === item.id && styles.categoryFilterButtonActive,
           ]}
           onPress={() => {
-            setSelectedCategory(item);
+            setSelectedCategory(item.id);
           }}>
           <Text
             style={[
               styles.categoryFilterText,
-              selectedCategory === item && styles.categoryFilterTextActive,
+              selectedCategory === item.id && styles.categoryFilterTextActive,
             ]}>
-            {item}
+            {resolveCategoryIcon(item.icon)} {item.name}
           </Text>
         </TouchableOpacity>
       )}
-      keyExtractor={(item) => item}
+      keyExtractor={(item) => item.id}
       style={styles.categoryFilter}
       showsHorizontalScrollIndicator={false}
     />

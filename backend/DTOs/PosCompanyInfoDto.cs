@@ -14,6 +14,12 @@ public sealed class PosCompanyInfoDto
     public string TaxNumber { get; init; } = string.Empty;
     public string? ReceiptFooter { get; init; }
 
+    /// <summary>Resolved Dankesnachricht for POS print (custom or default).</summary>
+    public string ThankYouMessage { get; init; } = ReceiptThankYouMessage.Default;
+
+    /// <summary>Optional company description printed after the thank-you line.</summary>
+    public string? CompanyDescription { get; init; }
+
     /// <summary>IANA time zone for local closing times (default Europe/Vienna).</summary>
     public string TimeZone { get; init; } = "Europe/Vienna";
 

@@ -51,6 +51,8 @@ public class PosCompanyControllerTests
             var dto = Assert.IsType<PosCompanyInfoDto>(ok.Value);
             Assert.Equal(string.Empty, dto.CompanyName);
             Assert.Equal(string.Empty, dto.TaxNumber);
+            Assert.Equal(ReceiptThankYouMessage.Default, dto.ThankYouMessage);
+            Assert.Equal(ReceiptThankYouMessage.Default, dto.ReceiptFooter);
         }
     }
 
@@ -88,7 +90,9 @@ public class PosCompanyControllerTests
             Assert.Equal("Cafe Wien GmbH", dto.CompanyName);
             Assert.Equal("Hauptstraße 1, 1010 Wien", dto.CompanyAddress);
             Assert.Equal("ATU12345678", dto.TaxNumber);
-            Assert.Equal("Danke für Ihren Besuch!", dto.ReceiptFooter);
+            Assert.Equal(ReceiptThankYouMessage.Default, dto.ReceiptFooter);
+            Assert.Equal(ReceiptThankYouMessage.Default, dto.ThankYouMessage);
+            Assert.Equal("Danke für Ihren Besuch!", dto.CompanyDescription);
             Assert.Equal("Europe/Vienna", dto.TimeZone);
             Assert.Equal(1, dto.WorkingHours.ReminderHoursBeforeClosing);
             Assert.False(dto.WorkingHours.Monday.IsClosed);

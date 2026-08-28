@@ -37,6 +37,9 @@ export function SettingsHubContextPanel() {
                 renderItem={(item) => <List.Item style={{ paddingLeft: 0 }}>{item}</List.Item>}
               />
               <Space wrap>
+                <Link href="/settings/receipt">
+                  <Button size="small">{t('settings.hub.linkReceiptSettings')}</Button>
+                </Link>
                 <Link href="/receipt-templates">
                   <Button size="small">{t('settings.hub.linkReceiptTemplates')}</Button>
                 </Link>

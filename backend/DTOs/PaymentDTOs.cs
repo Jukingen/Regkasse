@@ -227,6 +227,10 @@ namespace KasseAPI_Final.DTOs
         [Required]
         public string Method { get; set; } = "cash"; // cash, card, voucher
 
+        /// <summary>
+        /// Client hint only. Signing is decided by <c>TseOptions.RequiresFiscalSignature</c>
+        /// (<c>Tse:TseMode</c> not Off). A POS client cannot skip TSE by sending false.
+        /// </summary>
         [Required]
         public bool TseRequired { get; set; } = true;
 

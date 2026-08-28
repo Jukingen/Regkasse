@@ -84,4 +84,30 @@ public class RksvSignatureVerifyServiceTests
         Assert.False(result.Valid);
         Assert.Contains("3 parts", result.Details, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task VerifyAsync_FiskalyMachineCodeQr_ReturnsValid()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
+        var payload = BelegdatenPayloadBuilder.Build(
+            "KASSE-001",
+            "AT-KASSE001-20250225-12345678",
+            new DateTime(2025, 2, 25, 13, 30, 0, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 123.45m },
+            12345,
+            null,
+            keyProvider.GetCertificateSerialNumber()!,
+            keyProvider.GetTurnoverCounterAesKeyBytes()!);
+        var compactJws = pipeline.Sign(payload);
+        Assert.True(SignaturePipeline.TryGetMachineCodeFromCompactJws(compactJws, out var machineCode));
+        var sigBytes = TseCryptoHelper.FromBase64UrlNoPadding(compactJws.Split('.')[2]);
+        var fiskalyQr = $"{machineCode}_{Convert.ToBase64String(sigBytes)}";
+
+        var service = CreateService(keyProvider);
+        var result = await service.VerifyAsync(fiskalyQr, certificateThumbprint: null);
+
+        Assert.True(result.Valid);
+        Assert.Contains("succeeded", result.Details, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -229,7 +229,8 @@ namespace KasseAPI_Final.Controllers
                                 result,
                                 sanitizedPayment: null,
                                 correlationId,
-                                request.IdempotencyKey);
+                                request.IdempotencyKey,
+                                showDemoLabel: _rksvEnvironment.ShowDemoLabel());
                             return StatusCode(StatusCodes.Status202Accepted, envelope);
                         }
 
@@ -255,7 +256,8 @@ namespace KasseAPI_Final.Controllers
                             result,
                             paymentSafe!,
                             correlationId,
-                            request.IdempotencyKey);
+                            request.IdempotencyKey,
+                            showDemoLabel: _rksvEnvironment.ShowDemoLabel());
                         return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id }, envelope);
                     }
 
@@ -271,6 +273,7 @@ namespace KasseAPI_Final.Controllers
                         {
                             provider = result.TseProvider,
                             isDemoFiscal = result.IsDemoFiscal,
+                            showDemoLabel = _rksvEnvironment.ShowDemoLabel(),
                             qrPayload = result.QrPayload,
                             receiptNumber = result.Payment?.ReceiptNumber
                         }
@@ -747,8 +750,11 @@ namespace KasseAPI_Final.Controllers
                     _signaturePipeline.VerifyDiagnostic(tseSignature),
                     _rksvEnvironment.IsTseSimulated(),
                     hasSignature: true);
-                // Admin: JWS (compactJws) debug endpoint'te döner
-                return SuccessResponse(new { steps, compactJws = tseSignature }, "Signature diagnostic completed");
+                var compactJws = JwsParser.TryParse(tseSignature, out var parsed) && parsed.Success
+                    ? parsed.CompactJws
+                    : tseSignature;
+                // Admin: JWS (compactJws) debug endpoint'te döner — Fiskaly QR is normalized first
+                return SuccessResponse(new { steps, compactJws }, "Signature diagnostic completed");
             }
             catch (Exception ex)
             {

@@ -17,6 +17,7 @@ import {
 import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { Product } from '../services/api/productService';
+import { resolveCategoryIcon, isCategoryColor, categoryColorTint } from '../utils/categoryDisplay';
 import {
   resolveProductDisplayDescription,
   resolveProductDisplayName,
@@ -73,7 +74,7 @@ function ProductRowInner({
   onAddAddOn,
   onOpenAddOnSheet,
   onLongPressProduct,
-  getCategoryEmoji = () => '📦',
+  getCategoryEmoji,
 }: ProductRowProps) {
   const displayLocale = useProductDisplayLocale();
   const displayName = useMemo(
@@ -118,7 +119,13 @@ function ProductRowInner({
           : undefined
       }>
       <View style={styles.mainRow}>
-        <View style={styles.thumbnail}>
+        <View
+          style={[
+            styles.thumbnail,
+            isCategoryColor(product.categoryColor)
+              ? { backgroundColor: categoryColorTint(product.categoryColor, 0.22) }
+              : null,
+          ]}>
           {showHttpsImage && !imageFailed ? (
             <Image
               source={{ uri: trimmedImageUrl }}
@@ -130,7 +137,9 @@ function ProductRowInner({
             />
           ) : (
             <Text style={styles.emoji}>
-              {getCategoryEmoji(product.productCategory || product.category)}
+              {getCategoryEmoji
+                ? getCategoryEmoji(product.productCategory || product.category)
+                : resolveCategoryIcon(product.categoryIcon)}
             </Text>
           )}
         </View>

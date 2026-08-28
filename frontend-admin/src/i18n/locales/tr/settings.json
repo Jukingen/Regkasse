@@ -5,9 +5,10 @@
     "rowSystem": "Sistem (global): vergi oranlari, yedekleme, bildirimler — API `GET/PUT /api/Settings` (SystemSettings). Ayri admin arayuzu yok.",
     "rowCompany": "Sirket ve mali (tenant): ana veri, FinanzOnline, TSE varsayilanlari — `/api/company/settings` (eski: `/api/CompanySettings`).",
     "rowUser": "Kullanici: POS / kasa tercihleri — `GET/PUT /api/user/settings` (UserSettings), tenant geneli degil.",
-    "rowReceipt": "Fis sablonlari ve metinler — Kasse & Belege → Fis sablonlari (`/receipt-templates`).",
+    "rowReceipt": "Fiş teşekkür metni — `/settings/receipt`. Şablonlar — Kasse & Belege → Fiş şablonları (`/receipt-templates`).",
     "rowRksv": "RKSV operasyonu (outbox, butunluk, tani) — RKSV menusu, sirket ayarlari altinda degil.",
     "linkReceiptTemplates": "Fis sablonlarina git",
+    "linkReceiptSettings": "Fiş metnine git",
     "linkRksv": "RKSV'ye git"
   },
   "page": {
@@ -114,10 +115,25 @@
     "placeholderPhone": "+43 123 456789",
     "placeholderEmail": "info@cafe.at",
     "placeholderWebsite": "https://www.cafe.at",
-    "placeholderReceiptFooter": "Teşekkür ederiz!",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Einkauf!",
+    "receiptSettingsLink": "Önizleme ve fiş metnini fiş ayarlarından düzenleyin",
     "reset": "Sıfırla",
     "advancedHint": "FinanzOnline, TSE, yerelleştirme ve şifre ayarları için",
     "advancedLink": "mali ve entegrasyon ayarları sayfasına gidin"
+  },
+  "receiptPage": {
+    "pageTitle": "Fiş metni",
+    "cardTitle": "Teşekkür mesajı",
+    "saveSuccess": "Teşekkür mesajı kaydedildi.",
+    "infoTitle": "POS fiş alt bilgisi",
+    "infoDescription": "Bu metin her kasa fişinin sonunda görünür. Boş bırakırsanız varsayılan satır kullanılır.",
+    "thankYouLabel": "Teşekkür mesajı",
+    "thankYouHint": "Boş = varsayılan: „Vielen Dank für Ihren Einkauf!“",
+    "thankYouMax": "En fazla 500 karakter.",
+    "previewTitle": "Önizleme",
+    "previewCompany": "Development Company",
+    "previewKassierer": "Kasiyer: kassier1",
+    "reset": "Sıfırla"
   },
   "taxGroups": {
     "pageTitle": "Vergi grupları",

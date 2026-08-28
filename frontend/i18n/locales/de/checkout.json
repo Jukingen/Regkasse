@@ -230,11 +230,6 @@
         "openFailed": "Zahlungsseite konnte nicht geöffnet werden."
       },
       "offlineQueued": "Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online",
-      "tseSimulation": {
-        "title": "TSE-Simulation",
-        "enabled": "EIN (Bypass)",
-        "disabled": "AUS (Echte TSE)"
-      },
       "voucher": {
         "codeLabel": "Gutscheincode",
         "checkButton": "Gutschein prüfen",

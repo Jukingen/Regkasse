@@ -17,6 +17,7 @@ describe('adminPlatformBreadcrumbs', () => {
       'nav.deploymentSystem': 'Deployment & System',
       'nav.monitoringLogs': 'Monitoring & Logs',
       'nav.adminTseManagement': 'TSE-Verwaltung',
+      'nav.rksvRuntimeConfig': 'RKSV-Betriebsmodus',
       'nav.adminTseFailover': 'TSE-Failover',
       'nav.deployments': 'Deployments',
       'nav.deploymentTenants': 'Mandanten-Deployments',
@@ -35,6 +36,7 @@ describe('adminPlatformBreadcrumbs', () => {
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/access')).toBe('administration');
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/tenants')).toBe('administration');
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/tse-management')).toBe('securityTse');
+    expect(resolvePlatformAdminBreadcrumbGroup('/admin/rksv/config')).toBe('securityTse');
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/tse/failover')).toBe('securityTse');
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/approvals')).toBe('securityTse');
     expect(resolvePlatformAdminBreadcrumbGroup('/admin/deployments')).toBe('deploymentSystem');
@@ -57,6 +59,11 @@ describe('adminPlatformBreadcrumbs', () => {
       'Overview',
       'Sicherheit & TSE',
       'TSE-Verwaltung',
+    ]);
+    expect(buildPathBreadcrumbs('/admin/rksv/config', t).map((c) => c.title)).toEqual([
+      'Overview',
+      'Sicherheit & TSE',
+      'RKSV-Betriebsmodus',
     ]);
     expect(buildPathBreadcrumbs('/admin/tse/failover', t).map((c) => c.title)).toEqual([
       'Overview',

@@ -31,7 +31,7 @@ public sealed class ElmahErrorQueryService : IElmahErrorQueryService
         var items = new List<ElmahErrorListItemDto>();
         await using (var command = new NpgsqlCommand(
                          """
-                         SELECT errorid, application, host, type, source, message, "user", statuscode, timeutc, allxml
+                         SELECT errorid, application, host, type, source, message, "User", statuscode, timeutc, allxml
                          FROM elmah_error
                          WHERE application = @application
                          ORDER BY sequence DESC
@@ -92,7 +92,7 @@ public sealed class ElmahErrorQueryService : IElmahErrorQueryService
         var items = new List<ElmahErrorListItemDto>();
         await using var command = new NpgsqlCommand(
             """
-            SELECT errorid, application, host, type, source, message, "user", statuscode, timeutc, allxml
+            SELECT errorid, application, host, type, source, message, "User", statuscode, timeutc, allxml
             FROM elmah_error
             WHERE application = @application
             ORDER BY sequence DESC

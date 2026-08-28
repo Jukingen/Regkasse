@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
   Product,
+  ProductCategory,
   getAllProducts,
   getAllCategories,
   clearProductCache,
@@ -13,10 +14,7 @@ import {
 } from '../services/api/productService';
 import { productMatchesSearchQuery } from '../utils/productLocalization';
 
-export interface CatalogCategory {
-  id: string;
-  name: string;
-}
+export type CatalogCategory = ProductCategory;
 
 interface UseProductsUnifiedState {
   products: Product[];
@@ -107,6 +105,10 @@ class ProductCache {
         const categories: CatalogCategory[] = (catalog.categories ?? []).map((c) => ({
           id: c.id ?? '',
           name: c.name ?? '',
+          icon: c.icon,
+          color: c.color,
+          sortOrder: c.sortOrder,
+          vatRate: c.vatRate,
         }));
 
         safeLog(`📦 Catalog data received:`, {
@@ -145,13 +147,18 @@ class ProductCache {
         ]);
 
         const products = Array.isArray(productsResponse) ? productsResponse : [];
-        const categoryNames = Array.isArray(categoriesResponse)
-          ? categoriesResponse
-          : ([] as string[]);
-        const categories: CatalogCategory[] = categoryNames.map((name, i) => ({
-          id: `fallback-${i}-${name}`,
-          name: name ?? '',
-        }));
+        const rawCategories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+        const categories: CatalogCategory[] = rawCategories.map((c, i) =>
+          typeof c === 'string'
+            ? { id: `fallback-${i}-${c}`, name: c }
+            : {
+                id: c.id || `fallback-${i}-${c.name}`,
+                name: c.name ?? '',
+                icon: c.icon,
+                color: c.color,
+                sortOrder: c.sortOrder,
+              }
+        );
 
         this.updateState({
           products: Array.isArray(products) ? products : [],

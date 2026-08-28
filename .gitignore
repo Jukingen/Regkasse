@@ -134,9 +134,52 @@ Desktop.ini
 !.env.*.example
 .env.test
 
-# Cross-project signing / credential files
+# =============================================================================
+# Secrets / credentials — NEVER commit (use user-secrets, env vars, or vault)
+# Templates stay tracked via *.example / .env.example (see SECURITY.md)
+# =============================================================================
 credentials.json
+**/credentials.json
 **/secrets/
+**/secrets.json
+**/user-secrets.json
+**/.user-secrets.json
+**/*.secret
+**/*.secrets.json
+
+# TLS / crypto material
+*.pem
+*.crt
+*.cer
+*.der
+*.p7b
+*.p7c
+*.snk
+*.ppk
+!*.example.pem
+!**/*.example.pem
+
+# SSH private keys (public *.pub may be committed if intentional)
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+**/id_rsa
+**/id_dsa
+**/id_ecdsa
+**/id_ed25519
+
+# Host credential files (root .npmrc is tracked — never put _authToken there)
+.netrc
+**/.netrc
+auth.json
+**/auth.json
+
+# Frontend Sites — local env (root .env.* rules also apply)
+frontend-sites/.env
+frontend-sites/.env.local
+frontend-sites/.env.development
+frontend-sites/.env.production
 
 # Frontend POS — local env
 frontend/.env

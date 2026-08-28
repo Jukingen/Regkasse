@@ -23,11 +23,13 @@ import {
 } from '../constants/posVoucherOffline';
 import { resolveWalkInCustomerId } from '../constants/walkInCustomer';
 import { useSystem } from '../contexts/SystemContext';
+import { useTseHealth } from '../hooks/useTseHealth';
 import paymentService, { type PaymentRequest } from '../services/api/paymentService';
 import { getUserSettings } from '../services/api/userSettingsService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import { PaymentCancelResponse } from '../types/cart';
 import { normalizeCartLineTaxTypeForPayment } from '../utils/paymentTaxType';
+import { shouldRequireTseForPosPayment } from '../utils/shouldRequireTseForPosPayment';
 
 // Ödeme adımları enum'u
 enum PaymentStep {
@@ -77,6 +79,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
 }) => {
   const { t } = useTranslation(['payment', 'common']);
   const { isOnline } = useSystem();
+  const tseHealth = useTseHealth();
   const [currentStep, setCurrentStep] = useState<PaymentStep>(PaymentStep.CUSTOMER_SELECTION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -229,8 +232,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         payment: {
           method: selectedPaymentMethod!,
           amount: parseFloat(paymentAmount),
-          tseRequired:
-            PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE || false,
+          tseRequired: shouldRequireTseForPosPayment(tseHealth.requiresFiscalSignature),
         },
         customerId: customerId?.trim() ? customerId : await resolveWalkInCustomerId(),
         tableNumber,

@@ -230,11 +230,6 @@
         "openFailed": "Could not open the payment page."
       },
       "offlineQueued": "Payment saved offline — will be signed automatically when TSE is online again",
-      "tseSimulation": {
-        "title": "TSE simulation",
-        "enabled": "ON (bypass)",
-        "disabled": "OFF (real TSE)"
-      },
       "operatorWarnings": {
         "largeCashTitle": "Notice",
         "largeCashMessage": "Cash payment from {{threshold}} € — please verify the amount before continuing.",

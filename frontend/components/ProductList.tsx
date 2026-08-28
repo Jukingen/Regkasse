@@ -27,6 +27,11 @@ import { getContentPaddingHorizontal } from '../constants/breakpoints';
 import { useProductsUnified } from '../hooks/useProductsUnified';
 import { Product } from '../services/api/productService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import {
+  categoryColorTint,
+  isCategoryColor,
+  resolveCategoryIcon,
+} from '../utils/categoryDisplay';
 
 /** Breakpoint: tablet = 768+ for grid columns. */
 const TABLET_MIN_WIDTH = 768;
@@ -178,7 +183,6 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAdd={onAddProduct}
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
-          getCategoryEmoji={getCategoryEmoji}
         />
       );
     }
@@ -188,13 +192,23 @@ export const ProductList: React.FC<ProductListProps> = ({
         onPress={() => {
           handleProductSelect(item);
         }}>
-        <View style={styles.gridImageWrapper}>
-          <Text style={styles.gridImageEmoji}>
-            {getCategoryEmoji(item.productCategory || item.category)}
-          </Text>
+        <View
+          style={[
+            styles.gridImageWrapper,
+            isCategoryColor(item.categoryColor)
+              ? { backgroundColor: categoryColorTint(item.categoryColor, 0.22) }
+              : null,
+          ]}>
+          <Text style={styles.gridImageEmoji}>{resolveCategoryIcon(item.categoryIcon)}</Text>
         </View>
         <View style={styles.gridContent}>
-          <Text style={styles.gridCategory}>{item.productCategory || item.category}</Text>
+          <Text
+            style={[
+              styles.gridCategory,
+              isCategoryColor(item.categoryColor) ? { color: item.categoryColor } : null,
+            ]}>
+            {item.productCategory || item.category}
+          </Text>
           <Text style={styles.gridName} numberOfLines={2}>
             {item.name}
           </Text>
@@ -217,7 +231,6 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
           onLongPressProduct={onLongPressProduct}
-          getCategoryEmoji={getCategoryEmoji}
         />
       );
     }
@@ -227,10 +240,14 @@ export const ProductList: React.FC<ProductListProps> = ({
         onPress={() => {
           handleProductSelect(item);
         }}>
-        <View style={styles.listThumbnail}>
-          <Text style={styles.listEmoji}>
-            {getCategoryEmoji(item.productCategory || item.category)}
-          </Text>
+        <View
+          style={[
+            styles.listThumbnail,
+            isCategoryColor(item.categoryColor)
+              ? { backgroundColor: categoryColorTint(item.categoryColor, 0.22) }
+              : null,
+          ]}>
+          <Text style={styles.listEmoji}>{resolveCategoryIcon(item.categoryIcon)}</Text>
         </View>
         <View style={styles.listInfo}>
           <Text style={styles.listName} numberOfLines={1}>
@@ -375,26 +392,6 @@ export const ProductList: React.FC<ProductListProps> = ({
       />
     </View>
   );
-};
-
-// Helper: category emoji mapping
-const getCategoryEmoji = (category?: string): string => {
-  const map: Record<string, string> = {
-    Getränke: '🍹',
-    Speisen: '🍽️',
-    Desserts: '🍰',
-    Snacks: '🍿',
-    'Kaffee & Tee': '☕',
-    Hauptgerichte: '🍛',
-    'Alkoholische Getränke': '🍷',
-    Suppen: '🥣',
-    Vorspeisen: '🥗',
-    Salate: '🥗',
-    Süßigkeiten: '🍬',
-    Spezialitäten: '⭐',
-    'Brot & Gebäck': '🥐',
-  };
-  return map[category || ''] || '📦';
 };
 
 const styles = StyleSheet.create({

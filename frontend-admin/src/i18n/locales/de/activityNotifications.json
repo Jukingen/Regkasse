@@ -84,6 +84,7 @@
     "SystemPermissionChange": "System-Berechtigungsänderung",
     "CriticalActionApprovalRequested": "Kritische Aktion wartet auf Freigabe",
     "CriticalActionApprovalApproved": "Kritische Aktion freigegeben",
-    "CriticalActionApprovalRejected": "Kritische Aktion abgelehnt"
+    "CriticalActionApprovalRejected": "Kritische Aktion abgelehnt",
+    "RksvRuntimeConfigChanged": "RKSV-Betriebsmodus geändert"
   }
 }

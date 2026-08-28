@@ -5,9 +5,10 @@
     "rowSystem": "System (global): Steuersätze, Backup, Benachrichtigungen — API `GET/PUT /api/Settings` (SystemSettings). Aktuell keine eigene Admin-Oberfläche.",
     "rowCompany": "Firma & Fiskal (Mandant): Stammdaten, FinanzOnline, TSE-Defaults — `/api/company/settings` (Alias: `/api/CompanySettings`).",
     "rowUser": "Benutzer: POS-/Kassen-Präferenzen — `GET/PUT /api/user/settings` (UserSettings), nicht Mandanten-weit.",
-    "rowReceipt": "Belegvorlagen & Texte — Kasse & Belege → Belegvorlagen (`/receipt-templates`).",
+    "rowReceipt": "Belegtext (Dankesnachricht) — `/settings/receipt`. Belegvorlagen — Kasse & Belege → Belegvorlagen (`/receipt-templates`).",
     "rowRksv": "RKSV-Betrieb (Outbox, Integrität, Diagnose) — Menü RKSV, nicht unter Firmeneinstellungen.",
     "linkReceiptTemplates": "Zu Belegvorlagen",
+    "linkReceiptSettings": "Zu Belegtext",
     "linkRksv": "Zu RKSV"
   },
   "page": {
@@ -114,10 +115,25 @@
     "placeholderPhone": "+43 123 456789",
     "placeholderEmail": "info@cafe.at",
     "placeholderWebsite": "https://www.cafe.at",
-    "placeholderReceiptFooter": "Vielen Dank für Ihren Besuch!",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Einkauf!",
+    "receiptSettingsLink": "Vorschau und Belegtext unter Belegeinstellungen bearbeiten",
     "reset": "Zurücksetzen",
     "advancedHint": "FinanzOnline, TSE, Lokalisierung und Passwort finden Sie unter",
     "advancedLink": "Fiskal- & Integrationseinstellungen"
+  },
+  "receiptPage": {
+    "pageTitle": "Belegtext",
+    "cardTitle": "Dankesnachricht",
+    "saveSuccess": "Dankesnachricht wurde gespeichert.",
+    "infoTitle": "POS-Belegfuß",
+    "infoDescription": "Dieser Text erscheint am Ende jedes Kassenbelegs. Leer lassen, um die Standardzeile zu verwenden.",
+    "thankYouLabel": "Dankesnachricht",
+    "thankYouHint": "Leer = Standard: „Vielen Dank für Ihren Einkauf!“",
+    "thankYouMax": "Maximal 500 Zeichen.",
+    "previewTitle": "Vorschau",
+    "previewCompany": "Development Company",
+    "previewKassierer": "Kassierer: kassier1",
+    "reset": "Zurücksetzen"
   },
   "taxGroups": {
     "pageTitle": "Steuergruppen",

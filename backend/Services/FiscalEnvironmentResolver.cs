@@ -1,6 +1,7 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Rksv;
+using Microsoft.Extensions.Configuration;
 
 namespace KasseAPI_Final.Services;
 
@@ -37,18 +38,21 @@ public static class FiscalEnvironmentResolver
                                "Demo",
                                StringComparison.OrdinalIgnoreCase);
 
-        var isDemo = env.IsDevelopment()
-                     || env.IsStaging()
-                     || rksvModeDemo
+        var isDemo = rksvModeDemo
                      || rksvOptions.IsTseSimulation
                      || tseOptions.IsFakeSigningMode
                      || tseOptions.UseSoftTseWhenNoDevice;
 
-        var showDemoLabel = isDemo
-                            && (rksvEnvironment?.ShowDemoLabel() == true
-                                || rksvOptions.ShowDemoLabel
-                                || env.IsDevelopment()
-                                || env.IsStaging());
+        // Visual DEMO disclaimer: runtime overlay / IRksvEnvironmentService.ShowDemoLabel wins.
+        // Host Development is not enough to force the label when ShowDemoLabel is explicitly false.
+        // Host Development is also not enough to force IsDemoFiscal when the RKSV overlay is Production.
+        var explicitShowDemoLabel = configuration?.GetValue<bool?>("RKSV:ShowDemoLabel");
+        var showDemoLabel = rksvEnvironment != null
+            ? rksvEnvironment.ShowDemoLabel()
+            : isDemo && (explicitShowDemoLabel
+                         ?? (rksvOptions.ShowDemoLabel
+                             || env.IsDevelopment()
+                             || env.IsStaging()));
 
         var tseSimulated = isDemo
                            || rksvEnvironment?.IsTseSimulated() == true

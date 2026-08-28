@@ -26,9 +26,13 @@ namespace KasseAPI_Final.Services
         /// </summary>
         Task<ReceiptDTO> GenerateReceiptAsync(PaymentDetails payment);
         Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
-        /// <summary>RKSV receipt footer: shortened TSE compact JWS for thermal/display output.</summary>
+        /// <summary>POS Belegliste: last receipts for one cash register (tenant-scoped). Does not create receipts.</summary>
+        Task<PagedResult<ReceiptListItemDto>> GetRecentReceiptsForCashRegisterAsync(Guid cashRegisterId, int limit = 20);
+        /// <summary>Persisted receipt when it belongs to the given register and effective tenant; otherwise null (404 semantics).</summary>
+        Task<ReceiptDTO?> GetReceiptForCashRegisterAsync(Guid receiptId, Guid cashRegisterId);
+        /// <summary>RKSV receipt footer: full TSE compact JWS for thermal/display output.</summary>
         string GetTseSignatureDisplay(PaymentDetails payment);
-        /// <summary>RKSV compliance label for receipt QR block (Development/Staging vs Production).</summary>
+        /// <summary>RKSV compliance label for receipt QR block. Honors <c>RKSV:ShowDemoLabel</c> even in Development.</summary>
         string GetRksvFooter(IHostEnvironment env);
 
         /// <summary>Unified Cloud POS plain-text RKSV report for thermal reprint.</summary>
@@ -257,9 +261,12 @@ namespace KasseAPI_Final.Services
                 _logger.LogInformation("Phase2.LegacyModifier.ReceiptCreatedFromLegacyModifierSnapshots PaymentId={PaymentId} ReceiptId={ReceiptId} ItemsWithLegacyModifiersCount={ItemsWithLegacyModifiersCount}", paymentId, newReceipt.ReceiptId, legacySnapshotItemCount);
 
             // 7. Totals: satırlardan topla (deterministik; aynı input => aynı output)
-            newReceipt.SubTotal = receiptItems.Sum(x => x.LineNet);
             newReceipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
             newReceipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
+            newReceipt.SubTotal = ResolveNetTotal(
+                receiptItems.Sum(x => x.LineNet),
+                newReceipt.GrandTotal,
+                newReceipt.TaxTotal);
 
             // 8. Tax Lines: tüm satırlardan (ürün + modifier) vergi grubu; RKSV uyumu
             var taxGroups = taxLineInputs
@@ -436,9 +443,12 @@ namespace KasseAPI_Final.Services
             }
 
             receipt.Items = receiptItems;
-            receipt.SubTotal = receiptItems.Sum(x => x.LineNet);
             receipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
             receipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
+            receipt.SubTotal = ResolveNetTotal(
+                receiptItems.Sum(x => x.LineNet),
+                receipt.GrandTotal,
+                receipt.TaxTotal);
 
             receipt.TaxLines = taxLineInputs
                 .GroupBy(x => new { x.TaxType, x.TaxRate })
@@ -472,7 +482,7 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>RKSV §8 company header: payment snapshot first, then tenant <see cref="CompanySettings"/> (no demo defaults).</summary>
-        private async Task<(string Name, string Address, string TaxNumber, string Footer)> ResolveReceiptCompanyContextAsync(
+        private async Task<(string Name, string Address, string TaxNumber, string Footer, string? Description)> ResolveReceiptCompanyContextAsync(
             PaymentDetails? payment)
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
@@ -491,9 +501,10 @@ namespace KasseAPI_Final.Services
             var taxNumber = !string.IsNullOrWhiteSpace(payment?.Steuernummer)
                 ? payment!.Steuernummer!
                 : settings?.CompanyTaxNumber ?? string.Empty;
-            var footer = settings?.CompanyDescription ?? string.Empty;
+            var footer = ReceiptThankYouMessage.Resolve(settings);
+            var description = ReceiptThankYouMessage.NormalizeStored(settings?.CompanyDescription);
 
-            return (companyName, address, taxNumber, footer);
+            return (companyName, address, taxNumber, footer, description);
         }
 
         public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)
@@ -605,6 +616,36 @@ namespace KasseAPI_Final.Services
             };
         }
 
+        /// <inheritdoc />
+        public Task<PagedResult<ReceiptListItemDto>> GetRecentReceiptsForCashRegisterAsync(Guid cashRegisterId, int limit = 20)
+        {
+            if (cashRegisterId == Guid.Empty)
+            {
+                return Task.FromResult(new PagedResult<ReceiptListItemDto>
+                {
+                    Items = new List<ReceiptListItemDto>(),
+                    Page = 1,
+                    PageSize = 0,
+                    TotalCount = 0,
+                    TotalPages = 0
+                });
+            }
+
+            var pageSize = Math.Clamp(limit <= 0 ? 20 : limit, 1, 20);
+            return GetReceiptListAsync(1, pageSize, "issuedAt:desc", null, cashRegisterId.ToString("D"), null, null, null);
+        }
+
+        /// <inheritdoc />
+        public async Task<ReceiptDTO?> GetReceiptForCashRegisterAsync(Guid receiptId, Guid cashRegisterId)
+        {
+            if (cashRegisterId == Guid.Empty)
+                return null;
+            var receipt = await GetReceiptAsync(receiptId);
+            if (receipt == null || receipt.CashRegisterId != cashRegisterId)
+                return null;
+            return receipt;
+        }
+
         private async Task<string> ResolveRegisterNumberAsync(Guid cashRegisterId)
         {
             if (cashRegisterId == Guid.Empty)
@@ -647,11 +688,7 @@ namespace KasseAPI_Final.Services
             if (string.IsNullOrEmpty(signature))
                 return "TSE-Signatur: nicht verfügbar";
 
-            var shortened = signature.Length > 50
-                ? signature[..50] + "..."
-                : signature;
-
-            return $"TSE-Signatur:\n{shortened}";
+            return $"TSE-Signatur:\n{signature}";
         }
 
         /// <inheritdoc />
@@ -717,7 +754,7 @@ namespace KasseAPI_Final.Services
                 cashierDisplay = ResolveCashierDisplayName(appUser);
             }
 
-            var (companyName, companyAddress, companyTaxNumber, footerText) =
+            var (companyName, companyAddress, companyTaxNumber, footerText, companyDescription) =
                 await ResolveReceiptCompanyContextAsync(receipt.Payment).ConfigureAwait(false);
 
             var header = new ReceiptHeaderDTO
@@ -730,7 +767,8 @@ namespace KasseAPI_Final.Services
             {
                 Name = companyName,
                 Address = companyAddress,
-                TaxNumber = companyTaxNumber
+                TaxNumber = companyTaxNumber,
+                Description = companyDescription,
             };
 
             var signature = explicitSig ?? new ReceiptSignatureDTO
@@ -746,10 +784,14 @@ namespace KasseAPI_Final.Services
             var pay = receipt.Payment;
             var traceKind = pay?.IsStorno == true ? "Storno" : pay?.IsRefund == true ? "Refund" : null;
 
-            var registerDisplay = await _context.CashRegisters.AsNoTracking()
+            var registerInfo = await _context.CashRegisters.AsNoTracking()
                 .Where(reg => reg.Id == receipt.CashRegisterId)
-                .Select(reg => reg.RegisterNumber)
-                .FirstOrDefaultAsync().ConfigureAwait(false) ?? receipt.CashRegisterId.ToString();
+                .Select(reg => new { reg.RegisterNumber, reg.Location })
+                .FirstOrDefaultAsync().ConfigureAwait(false);
+            var registerDisplay = registerInfo?.RegisterNumber ?? receipt.CashRegisterId.ToString();
+            var branchName = string.IsNullOrWhiteSpace(registerInfo?.Location)
+                ? null
+                : registerInfo.Location.Trim();
 
             var off = pay?.OfflineTransaction;
 
@@ -783,6 +825,9 @@ namespace KasseAPI_Final.Services
                     receipt.IssuedAt)
                 .ConfigureAwait(false);
 
+            var rksvFooterLabel = GetRksvFooter(_hostEnvironment);
+            var netTotal = ResolveNetTotal(receipt.SubTotal, receipt.GrandTotal, receipt.TaxTotal);
+
             return new ReceiptDTO
             {
                 ReceiptId = receipt.ReceiptId,
@@ -810,6 +855,8 @@ namespace KasseAPI_Final.Services
                 ShiftNumber = RksvShiftNumberFormatter.Format(shiftId),
                 KassenID = registerDisplay,
                 DisplayRegisterNumber = registerDisplay,
+                BranchName = branchName,
+                TerminalNumber = null,
                 TableNumber = receipt.Payment?.TableNumber,
 
                 Company = company,
@@ -832,12 +879,13 @@ namespace KasseAPI_Final.Services
                     IsModifierLine = i.ParentItemId != null
                 }).ToList(),
 
-                SubTotal = receipt.SubTotal,
+                SubTotal = netTotal,
+                NetTotal = netTotal,
                 TaxAmount = receipt.TaxTotal,
                 GrandTotal = receipt.GrandTotal,
                 Totals = new ReceiptTotalsDTO
                 {
-                    TotalNet = receipt.SubTotal,
+                    TotalNet = netTotal,
                     TotalVat = receipt.TaxTotal,
                     TotalGross = receipt.GrandTotal
                 },
@@ -865,7 +913,9 @@ namespace KasseAPI_Final.Services
 
                 Signature = signature,
                 FooterText = footerText,
-                RksvFooterLabel = GetRksvFooter(_hostEnvironment),
+                ThankYouMessage = footerText,
+                RksvFooterLabel = rksvFooterLabel,
+                ShowDemoLabel = string.Equals(rksvFooterLabel, DemoRksvFooterLabel, StringComparison.Ordinal),
             };
         }
 
@@ -887,6 +937,13 @@ namespace KasseAPI_Final.Services
 
             return receipt.QrCodePayload ?? string.Empty;
         }
+
+        /// <summary>
+        /// Netto = stored line-net sum when present; otherwise Brutto − MwSt.
+        /// Covers receipts whose LineNet was not persisted (SubTotal stored as 0).
+        /// </summary>
+        internal static decimal ResolveNetTotal(decimal subTotal, decimal grandTotal, decimal taxTotal)
+            => subTotal != 0m ? subTotal : grandTotal - taxTotal;
 
     }
 }

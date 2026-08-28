@@ -31,18 +31,21 @@ public sealed class PosTseStatusServiceTests
         TseHealthSnapshot snapshot,
         string environmentName = "Production",
         bool simulateUnavailable = false,
-        string fiskalyEnvironment = FiskalyOptions.TestEnvironment)
+        string fiskalyEnvironment = FiskalyOptions.TestEnvironment,
+        TseOptions? tseOptions = null)
     {
         var env = new Mock<IWebHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(environmentName);
         var dev = Options.Create(new DevelopmentOptions { SimulateTseUnavailable = simulateUnavailable });
         var fiskaly = Options.Create(new FiskalyOptions { Environment = fiskalyEnvironment });
+        var tse = Options.Create(tseOptions ?? new TseOptions { TseMode = "Device", Mode = "Real" });
         return new PosTseStatusService(
             db,
             new FixedTseHealthMonitor(snapshot),
             env.Object,
             dev.ToMonitor(),
-            fiskaly.ToMonitor());
+            fiskaly.ToMonitor(),
+            tse.ToMonitor());
     }
 
     [Fact]
@@ -104,7 +107,23 @@ public sealed class PosTseStatusServiceTests
         Assert.False(dto.Cached);
         Assert.Equal("Online", dto.OperationalHealth);
         Assert.Equal(FiskalyOptions.TestEnvironment, dto.Environment);
+        Assert.True(dto.RequiresFiscalSignature);
         Assert.NotNull(dto.CertificateValidUntil);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_WhenTseModeOff_RequiresFiscalSignatureFalse()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var svc = CreateService(
+            db,
+            new TseHealthSnapshot { Status = TseOperationalHealth.Online },
+            tseOptions: new TseOptions { TseMode = "Off" });
+
+        var dto = await svc.GetStatusAsync(tenantId, null);
+
+        Assert.False(dto.RequiresFiscalSignature);
     }
 
     [Fact]

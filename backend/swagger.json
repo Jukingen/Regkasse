@@ -13899,6 +13899,81 @@
         }
       }
     },
+    "/api/admin/settings/receipt": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptSettingsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateReceiptSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/report-pdfs/closing/{closingId}": {
       "get": {
         "tags": [
@@ -16349,6 +16424,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PriceHistoryReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/config": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRksvRuntimeConfigResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRksvRuntimeConfigPostRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRksvRuntimeConfigResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -40674,6 +40814,187 @@
         }
       }
     },
+    "/api/pos/receipts": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfReceiptListItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/receipts/{receiptId}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/receipts/{receiptId}/reprint": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reasonCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/shift/current": {
       "get": {
         "tags": [
@@ -48305,6 +48626,130 @@
         },
         "additionalProperties": false
       },
+      "AdminRksvRuntimeConfigPostRequestDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
+          "bypassTseInDevelopment": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminRksvRuntimeConfigResponseDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
+          "bypassTseInDevelopment": {
+            "type": "boolean"
+          },
+          "tseHealthBypassEffective": {
+            "type": "boolean"
+          },
+          "tseHealthBypassBlockedByRealTseMode": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "overlayPersisted": {
+            "type": "boolean"
+          },
+          "hostEnvironment": {
+            "type": "string",
+            "nullable": true
+          },
+          "productionLockApplies": {
+            "type": "boolean"
+          },
+          "productionLockOk": {
+            "type": "boolean"
+          },
+          "productionLockReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "restartRequired": {
+            "type": "boolean"
+          },
+          "canSetDemoOnThisHost": {
+            "type": "boolean"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "appsettingsFallback": {
+            "$ref": "#/components/schemas/AdminRksvRuntimeConfigValuesDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminRksvRuntimeConfigValuesDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
+          "bypassTseInDevelopment": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminShiftOverviewDto": {
         "type": "object",
         "properties": {
@@ -49941,6 +50386,7 @@
           73,
           74,
           75,
+          76,
           99
         ],
         "type": "integer",
@@ -55010,6 +55456,11 @@
             "nullable": true
           },
           "companyDescription": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "thankYouMessage": {
             "maxLength": 500,
             "type": "string",
             "nullable": true
@@ -70076,6 +70527,9 @@
               },
               "LimitExceeded": {
                 "type": "boolean"
+              },
+              "RksvRuntimeConfigChanged": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -70379,6 +70833,9 @@
                 "type": "string"
               },
               "LimitExceeded": {
+                "type": "string"
+              },
+              "RksvRuntimeConfigChanged": {
                 "type": "string"
               }
             },
@@ -72530,6 +72987,9 @@
           "isDemoFiscal": {
             "type": "boolean"
           },
+          "showDemoLabel": {
+            "type": "boolean"
+          },
           "qrPayload": {
             "type": "string",
             "nullable": true
@@ -74478,6 +74938,14 @@
             "type": "string",
             "nullable": true
           },
+          "thankYouMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "companyDescription": {
+            "type": "string",
+            "nullable": true
+          },
           "timeZone": {
             "type": "string",
             "nullable": true
@@ -74916,6 +75384,9 @@
           "environment": {
             "type": "string",
             "nullable": true
+          },
+          "requiresFiscalSignature": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -76760,6 +77231,10 @@
           "taxNumber": {
             "type": "string",
             "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -76872,6 +77347,18 @@
             "type": "string",
             "nullable": true
           },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "terminalNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "thankYouMessage": {
+            "type": "string",
+            "nullable": true
+          },
           "company": {
             "$ref": "#/components/schemas/ReceiptCompanyDTO"
           },
@@ -76924,6 +77411,9 @@
           "rksvFooterLabel": {
             "type": "string",
             "nullable": true
+          },
+          "showDemoLabel": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -77220,6 +77710,28 @@
           },
           "routing": {
             "$ref": "#/components/schemas/PrintRoutingContext"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptSettingsDto": {
+        "type": "object",
+        "properties": {
+          "thankYouMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "effectiveThankYouMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultThankYouMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "companyDescription": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -94575,6 +95087,11 @@
             "type": "string",
             "nullable": true
           },
+          "thankYouMessage": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
           "businessHours": {
             "type": "object",
             "additionalProperties": {
@@ -95349,6 +95866,17 @@
           },
           "phoneNumber": {
             "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateReceiptSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "thankYouMessage": {
+            "maxLength": 500,
             "type": "string",
             "nullable": true
           }
@@ -97907,6 +98435,9 @@
       "name": "AdminProducts"
     },
     {
+      "name": "AdminReceiptSettings"
+    },
+    {
       "name": "AdminReportPdf"
     },
     {
@@ -97929,6 +98460,9 @@
     },
     {
       "name": "AdminRksvReporting"
+    },
+    {
+      "name": "AdminRksvRuntimeConfig"
     },
     {
       "name": "AdminRksvSignature"
@@ -98259,6 +98793,9 @@
     },
     {
       "name": "PosOnlinePayment"
+    },
+    {
+      "name": "PosReceipts"
     },
     {
       "name": "PosShift"

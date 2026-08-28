@@ -21,6 +21,7 @@
   "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar",
   "cashRegister": "Kassa",
   "orders": "Bestellungen",
+  "receiptList": "Belegliste",
   "settings": "Einstellungen",
   "offlineQueue": {
     "title": "Offline-Warteschlange",

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
@@ -324,5 +325,110 @@ public class CatalogStructureTests
         Assert.Single(roundTrip.ModifierGroups);
         Assert.Single(roundTrip.ModifierGroups[0].Products);
         Assert.Equal("Extra Käse", roundTrip.ModifierGroups[0].Products[0].ProductName);
+    }
+
+    [Fact]
+    public async Task GetCatalog_ReturnsCategoryIconAndColor()
+    {
+        await using var context = CreateContext();
+        var categoryId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = categoryId,
+            Name = "Salate",
+            Icon = "🥗",
+            Color = "#7CB342",
+            SortOrder = 10,
+            VatRate = 10m,
+            IsActive = true
+        });
+        context.Products.Add(new Product
+        {
+            Id = productId,
+            TenantId = SystemTenantIds.Platform,
+            Name = "Gemischter Salat",
+            Price = 8.90m,
+            CategoryId = categoryId,
+            Category = "Salate",
+            StockQuantity = 10,
+            MinStockLevel = 0,
+            Unit = "Stk",
+            TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
+        SetAuth(controller);
+
+        var result = await controller.GetCatalog();
+        var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        var data = GetCatalogDataFromResponse(ok.Value) as CatalogResponseDto;
+        Assert.NotNull(data);
+
+        var category = Assert.Single(data.Categories);
+        Assert.Equal(categoryId, category.Id);
+        Assert.Equal("🥗", category.Icon);
+        Assert.Equal("#7CB342", category.Color);
+        Assert.Equal(10, category.SortOrder);
+
+        var product = Assert.Single(data.Products);
+        Assert.Equal("🥗", product.CategoryIcon);
+        Assert.Equal("#7CB342", product.CategoryColor);
+    }
+
+    [Fact]
+    public async Task GetAllCategories_ReturnsIconAndColorFromCategoriesTable()
+    {
+        await using var context = CreateContext();
+        var categoryId = Guid.NewGuid();
+
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = categoryId,
+            Name = "Pizza, mittel",
+            Icon = "wine",
+            Color = "#e53935",
+            SortOrder = 50,
+            VatRate = 10m,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
+        SetAuth(controller);
+
+        var result = await controller.GetAllCategories();
+        var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+
+        CatalogCategoryDto? mapped = null;
+        foreach (var prop in ok.Value!.GetType().GetProperties())
+        {
+            if (prop.GetValue(ok.Value) is IEnumerable<CatalogCategoryDto> list)
+            {
+                mapped = Assert.Single(list);
+                break;
+            }
+        }
+
+        Assert.NotNull(mapped);
+        Assert.Equal(categoryId, mapped.Id);
+        Assert.Equal("🍷", mapped.Icon);
+        Assert.Equal("#e53935", mapped.Color);
+        Assert.Equal("Pizza, mittel", mapped.Name);
     }
 }

@@ -1,0 +1,19 @@
+{
+  "title": "Receipt list",
+  "lastReceipts": "Recent receipts",
+  "reprint": "Reprint",
+  "reprintA11y": "Reprint receipt {{number}}",
+  "openA11y": "Open receipt {{number}}",
+  "empty": "No receipts for this cash register",
+  "loadError": "Receipt list could not be loaded",
+  "preparingRegister": "Preparing cash register…",
+  "noRegister": "Please select a cash register first.",
+  "detailTitle": "Receipt details",
+  "receiptNumber": "Receipt no.",
+  "issuedAt": "Date / time",
+  "total": "Amount",
+  "close": "Close",
+  "reprintFailed": "Reprint failed",
+  "reprintNoPermission": "You do not have permission to reprint",
+  "detailLoadError": "Receipt details could not be loaded"
+}

@@ -215,4 +215,7 @@ public enum ActivityEventType
     LimitApproaching = 240,
     /// <summary>A tenant operational cap is at or above 100% of the configured limit.</summary>
     LimitExceeded = 241,
+
+    /// <summary>Super Admin changed instance-wide RKSV Demo/Production overlay.</summary>
+    RksvRuntimeConfigChanged = 250,
 }

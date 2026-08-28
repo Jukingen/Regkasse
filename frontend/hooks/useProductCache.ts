@@ -85,7 +85,7 @@ export const useProductCache = () => {
       updateGlobalCache();
 
       const fetchedCategories = await getAllCategories();
-      globalCategories = fetchedCategories;
+      globalCategories = fetchedCategories.map((c) => c.name);
 
       safeLog(`📂 Loaded ${fetchedCategories.length} categories via global cache hook`);
     } catch (err) {

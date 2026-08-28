@@ -173,6 +173,8 @@ export default function CategoriesPage() {
           sortOrder: values.sortOrder ?? 0,
           defaultTaxRate: taxRate,
           vatRate: taxRate,
+          icon: values.icon ?? undefined,
+          color: values.color ?? undefined,
         },
       });
       message.success(t('common.categories.messages.created'));
@@ -193,6 +195,8 @@ export default function CategoriesPage() {
           name: values.name,
           sortOrder: values.sortOrder ?? 0,
           defaultTaxRate: taxRate,
+          icon: values.icon,
+          color: values.color,
         }),
       });
       message.success(t('common.categories.messages.updated'));

@@ -39,6 +39,11 @@
     "noRegisterMessage": "Please select a cash register under \"Register\" first or start a shift.",
     "noRegisterHint": "Assign a register first (\"Register\" section above)."
   },
+  "receiptList": {
+    "title": "Receipt list",
+    "description": "View recent receipts for this cash register and reprint them.",
+    "open": "Open receipt list"
+  },
   "appUpdate": {
     "title": "App update",
     "description": "Checks whether a newer version of the Regkasse POS app is available, downloads the APK and opens the system installer.",

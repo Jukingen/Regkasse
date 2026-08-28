@@ -54,6 +54,8 @@
     "test:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/test-scripts.ps1",
     "validate:scripts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/lib/validate-scripts.ps1",
     "precommit": "node scripts/git-hooks/pre-commit.mjs",
+    "verify:secrets": "node scripts/git-hooks/scan-secrets.mjs --tracked",
+    "test:secrets": "node --test scripts/git-hooks/scan-secrets.test.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "install:git-hooks": "node scripts/install-git-hooks.mjs",
     "generate:api": "npm run generate:api -w registrierkasse-admin",

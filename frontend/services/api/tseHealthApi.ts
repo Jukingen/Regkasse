@@ -36,6 +36,8 @@ export interface PosTseStatusApiResponse {
   estimatedRecoveryTimeUtc?: string | null;
   lastSuccessfulPingUtc?: string | null;
   environment?: string | null;
+  /** Backend Tse:TseMode is not Off. Omitted on older APIs → treat as true. */
+  requiresFiscalSignature?: boolean;
 }
 
 function cashRegisterQuery(cashRegisterId?: string | null): string {

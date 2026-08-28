@@ -39,6 +39,11 @@
     "noRegisterMessage": "Bitte wählen Sie zuerst unter „Kasse“ eine Registrierkasse aus oder starten Sie eine Schicht.",
     "noRegisterHint": "Zuerst eine Kasse zuweisen (Abschnitt „Kasse“ oben)."
   },
+  "receiptList": {
+    "title": "Belegliste",
+    "description": "Letzte Belege dieser Kasse anzeigen und Nachdruck auslösen.",
+    "open": "Belegliste öffnen"
+  },
   "appUpdate": {
     "title": "App-Aktualisierung",
     "description": "Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.",

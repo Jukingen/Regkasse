@@ -101,6 +101,8 @@ namespace KasseAPI_Final.Controllers
                 settings.CompanyVatNumber = request.CompanyVatNumber;
                 settings.CompanyLogo = request.CompanyLogo;
                 settings.CompanyDescription = request.CompanyDescription;
+                if (request.ThankYouMessage != null)
+                    settings.ThankYouMessage = ReceiptThankYouMessage.NormalizeStored(request.ThankYouMessage);
                 settings.BusinessHours = request.BusinessHours;
                 settings.ContactPerson = request.ContactPerson;
                 settings.ContactPhone = request.ContactPhone;
@@ -583,6 +585,9 @@ namespace KasseAPI_Final.Controllers
 
         [MaxLength(500)]
         public string? CompanyDescription { get; set; }
+
+        [MaxLength(500)]
+        public string? ThankYouMessage { get; set; }
 
         [Required]
         public Dictionary<string, string> BusinessHours { get; set; } = new();

@@ -44,7 +44,7 @@ These are **string** fields; there is no separate C# `enum TseMode`. Comparison 
 - `RKSV:Mode` (Demo / Production)
 - `RKSV:TseMode` (`Simulation` → `IsTseSimulated() == true`)
 
-DEP / FA “DEMO” labels come from here. **The Production lock must apply not only to `Tse:*` but also to `RKSV:TseMode=Simulation` and `RKSV:Mode=Demo`.**
+DEP / FA “DEMO” labels come from here. **The Production lock must apply not only to `Tse:*` but also to `RKSV:TseMode=Simulation` and `RKSV:Mode=Demo`.** Runtime overlay (database `rksv_runtime_config`, FA `/admin/rksv/config`) is evaluated with the same lock — Demo/Simulation on Production/Staging → HTTP 409 unless the escape hatch is on. See [`RKSV_RUNTIME_CONFIG.md`](RKSV_RUNTIME_CONFIG.md).
 
 ### 1.4 Runtime behavior
 

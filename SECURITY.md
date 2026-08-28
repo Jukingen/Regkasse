@@ -53,6 +53,64 @@ Security-related changes are documented in [`CHANGELOG.md`](CHANGELOG.md) when r
 
 ---
 
+## Secrets that must never be committed
+
+Regkasse handles fiscal/RKSV material, payment credentials, and tenant isolation. **Real secrets belong in user secrets, environment variables, or a vault — never in git.**
+
+### Files that must stay out of the repository
+
+| Pattern / file | Why |
+|----------------|-----|
+| `backend/appsettings.json`, `appsettings.Development.json`, `appsettings.Staging.json`, `appsettings.Production.json` | May contain DB passwords, JWT keys, Fiskaly/Stripe/SMTP secrets |
+| `.env`, `.env.local`, `.env.production`, `.env.*` (except `*.example`) | Compose and frontend runtime secrets |
+| `**/user-secrets.json`, `**/secrets.json`, `credentials.json` | Copied .NET user-secrets or local login dumps |
+| `*.pem`, `*.key`, `*.pfx`, `*.p12`, `*.crt`, `*.cer` | TLS and license signing private keys |
+| `backend/App_Data/**` (except already-tracked demo product images) | License PEMs, dev-mail capture, local fiscal material |
+| `id_rsa`, `id_ed25519`, `.netrc`, `auth.json` | SSH and registry credentials |
+
+Tracked **templates only**:
+
+- `backend/appsettings.example.json`, `appsettings.*.example.json`
+- `.env.example`, `.env.*.example`, `frontend/.env.example`, `frontend-admin/.env.example`, `frontend-sites/.env.example`
+
+Example files MUST use placeholders such as `YOUR_API_KEY_HERE`, `CHANGE_ME_…`, or empty strings — never live Fiskaly, Stripe, JWT, or database values.
+
+### How to store secrets locally
+
+**Backend (Development / local Staging):** [.NET user secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) (loaded by `ApplicationHost` in Development and Staging):
+
+```bash
+cd backend
+copy appsettings.example.json appsettings.json
+copy appsettings.Development.example.json appsettings.Development.json
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=YOUR_PASSWORD"
+dotnet user-secrets set "JwtSettings:SecretKey" "YOUR_RANDOM_KEY_AT_LEAST_32_CHARS"
+dotnet user-secrets set "Fiskaly:ApiKey" "YOUR_FISKALY_API_KEY_HERE"
+dotnet user-secrets set "Fiskaly:ApiSecret" "YOUR_FISKALY_API_SECRET_HERE"
+dotnet user-secrets set "Tse:Providers:fiskaly:ApiKey" "YOUR_FISKALY_API_KEY_HERE"
+dotnet user-secrets set "Tse:Providers:fiskaly:ApiSecret" "YOUR_FISKALY_API_SECRET_HERE"
+dotnet user-secrets set "PaymentGateway:Stripe:ApiKey" "YOUR_STRIPE_API_KEY_HERE"
+dotnet user-secrets set "PaymentGateway:Stripe:WebhookSecret" "YOUR_STRIPE_WEBHOOK_SECRET_HERE"
+```
+
+License PEMs: put files under gitignored `backend/App_Data/` (or set `License:PrivateKeyPath`) — do not paste PEM bodies into JSON.
+
+**Environment variables** (Docker / CI / Production): double-underscore keys, e.g. `ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, `Fiskaly__ApiKey`. Copy `.env.example` → `.env` (gitignored). See [`backend/CONFIGURATION.md`](backend/CONFIGURATION.md) and [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md).
+
+**Frontends:** `frontend-admin/.env.local`, `frontend/.env`, `frontend-sites/.env.local` from each package’s `.env.example`. Do not put API keys that must stay server-side into `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*`.
+
+### Developer checklist
+
+1. Copy `*.example` templates once; fill secrets via user-secrets or env — not by editing tracked examples.
+2. Run `npm run verify:secrets` before a large commit; Husky runs the same scanner on every commit.
+3. If a secret is committed or pasted into a ticket: **rotate it** (JWT, DB password, Fiskaly, Stripe, SMTP, license keys), invalidate sessions if JWT leaked, and treat git history as untrusted until rotated.
+4. Never log passwords, voucher codes, raw PEMs, or unmasked JWTs.
+5. Do not use `git commit --no-verify` / `SKIP_SECRET_SCAN=1` except a documented emergency; fix the files instead.
+
+Documented **Development seed** passwords (`Admin123!` SuperAdmin, `DemoTenant1!` demo tenant admins) are local-only and must never be used in Production. Local Manager/Cashier passwords belong in `SMOKE_MANAGER_PASSWORD` / `SMOKE_CASHIER_PASSWORD`, not in scripts.
+
+---
+
 ## Security Best Practices
 
 ### For reporters and operators
@@ -86,6 +144,8 @@ Security-related changes are documented in [`CHANGELOG.md`](CHANGELOG.md) when r
 | [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md) | Logout security (cookies, stamp, CSRF) |
 | [`docs/MULTI_TENANT.md`](docs/MULTI_TENANT.md) | Tenant model |
 | [`frontend-admin/SECURITY_AUDIT.md`](frontend-admin/SECURITY_AUDIT.md) | FA audit notes / cadence |
+| [`backend/CONFIGURATION.md`](backend/CONFIGURATION.md) | User secrets / env keys |
+| [`scripts/git-hooks/scan-secrets.mjs`](scripts/git-hooks/scan-secrets.mjs) | Pre-commit + CI secret scanner |
 | [`LICENSE`](LICENSE) | Proprietary license |
 
 ---
