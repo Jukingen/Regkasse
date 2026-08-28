@@ -11,7 +11,16 @@
     "filterPlaceholder": "Filter menu…",
     "filterAria": "Filter sidebar menu",
     "filterNoResults": "No menu items match this search.",
-    "recentTitle": "Recently used"
+    "recentTitle": "Recently used",
+    "favorites": {
+      "title": "Favorites",
+      "empty": "No favorite menus yet. Click the star next to a menu item to add it.",
+      "maxReached": "You can add at most 7 favorites.",
+      "pin": "Add to favorites",
+      "unpin": "Remove from favorites",
+      "remove": "Remove",
+      "reorderHandle": "Reorder favorite"
+    }
   },
   "menuPermission": {
     "popoverTitle": "What permission controls this menu?",

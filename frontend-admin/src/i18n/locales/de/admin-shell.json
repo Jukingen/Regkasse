@@ -11,7 +11,16 @@
     "filterPlaceholder": "Menü filtern…",
     "filterAria": "Seitenmenü filtern",
     "filterNoResults": "Keine Menüpunkte zu dieser Suche.",
-    "recentTitle": "Zuletzt verwendet"
+    "recentTitle": "Zuletzt verwendet",
+    "favorites": {
+      "title": "Favoriten",
+      "empty": "Noch keine Favoriten. Klicken Sie auf den Stern neben einem Menüpunkt, um ihn hinzuzufügen.",
+      "maxReached": "Sie können höchstens 7 Favoriten hinzufügen.",
+      "pin": "Zu Favoriten hinzufügen",
+      "unpin": "Aus Favoriten entfernen",
+      "remove": "Entfernen",
+      "reorderHandle": "Favorit verschieben"
+    }
   },
   "menuPermission": {
     "popoverTitle": "Welche Berechtigung steuert dieses Menü?",

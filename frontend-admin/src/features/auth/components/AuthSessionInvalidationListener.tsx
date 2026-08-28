@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 
 import { AUTH_KEYS } from '@/features/auth/hooks/useAuth';
 import { AUTH_SESSION_CLEARED_EVENT } from '@/features/auth/services/authStorage';
+import { useFavoritesStore } from '@/features/menu/favoritesStore';
 import { useUiPreferencesStore } from '@/stores/uiPreferencesStore';
 
 /**
@@ -17,6 +18,7 @@ export function AuthSessionInvalidationListener() {
     const onCleared = () => {
       queryClient.setQueryData(AUTH_KEYS.user, null);
       useUiPreferencesStore.getState().resetToDefaultsOnLogout();
+      useFavoritesStore.getState().resetSession();
     };
     window.addEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
     return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);

@@ -53,6 +53,9 @@ import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
 import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
 import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
 import { AdminSidebarQuickAccess } from '@/components/admin-layout/AdminSidebarQuickAccess';
+import { injectSidebarFavoriteStars } from '@/features/menu/injectSidebarFavoriteStars';
+import { collectAllMenuKeys } from '@/features/menu/sidebarFavoritesLogic';
+import { useFavorites } from '@/features/menu/useFavorites';
 import {
   runAndLogMenuPermissionConsistencyCheck,
   shouldRunDailyConsistencyCheck,
@@ -349,6 +352,20 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
     [isFiltering, displayedMenuItems]
   );
   const allowedMenuKeys = useMemo(() => new Set(selectableRouteKeys), [selectableRouteKeys]);
+  const visibleMenuKeys = useMemo(
+    () => new Set(collectAllMenuKeys(menuItems)),
+    [menuItems]
+  );
+  const { isFavorite, toggleFavorite } = useFavorites({ visibleMenuKeys });
+  const starredMenuItems = useMemo(
+    () =>
+      injectSidebarFavoriteStars(displayedMenuItems, {
+        isFavorite,
+        onToggle: toggleFavorite,
+        collapsed: props.menuInlineCollapsed,
+      }) ?? [],
+    [displayedMenuItems, isFavorite, toggleFavorite, props.menuInlineCollapsed]
+  );
 
   if (!hasAccessibleMenus) {
     return <AdminSidebarEmptyState />;
@@ -363,7 +380,9 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
         query={menuQuery}
         onQueryChange={setMenuQuery}
         allowedMenuKeys={allowedMenuKeys}
+        visibleMenuKeys={visibleMenuKeys}
         collapsed={props.menuInlineCollapsed}
+        onNavigate={props.onNavigate}
       />
       {!hasFilterResults && isFiltering ? (
         <div className={sidebarStyles.filterEmpty} role="status">
@@ -374,7 +393,7 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
           fallback={
             <AdminSidebarMenuInner
               {...props}
-              menuItems={displayedMenuItems}
+              menuItems={starredMenuItems}
               selectableRouteKeys={selectableRouteKeys}
               openKeys={panelOpenKeys}
               setOpenKeys={setOpenKeys}
@@ -384,7 +403,7 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
         >
           <AdminSidebarMenuInner
             {...props}
-            menuItems={displayedMenuItems}
+            menuItems={starredMenuItems}
             selectableRouteKeys={selectableRouteKeys}
             openKeys={panelOpenKeys}
             setOpenKeys={setOpenKeys}

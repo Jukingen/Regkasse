@@ -119,6 +119,134 @@
   background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
 }
 
+.favorites {
+  margin-top: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.favoritesTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  margin-bottom: 4px;
+}
+
+.favoritesEmpty {
+  margin: 0;
+  padding: 4px 6px 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.favorites ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.favoriteItem {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.favoriteDragHandle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25));
+}
+
+.favoriteLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 4px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.favoriteLink:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.favoriteItemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.favoriteItemLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favoriteUnpin {
+  flex-shrink: 0;
+}
+
+.favoriteRemove {
+  flex-shrink: 0;
+  opacity: 0;
+  font-size: 12px;
+  padding-inline: 6px;
+}
+
+.favoriteItem:hover .favoriteRemove,
+.favoriteItem:focus-within .favoriteRemove {
+  opacity: 1;
+}
+
+.favoriteLabelRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.favoriteLabelMain {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.favoriteStar {
+  flex-shrink: 0;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.favoriteStarPinned {
+  opacity: 1;
+}
+
+.siderMenu :global(.ant-menu-item:hover) .favoriteStar,
+.siderMenu :global(.ant-menu-submenu-title:hover) .favoriteStar,
+.siderMenu :global(.ant-menu-item-active) .favoriteStar,
+.siderMenu :global(.ant-menu-submenu-title:active) .favoriteStar {
+  opacity: 1;
+}
+
 .filterEmpty {
   padding: 8px 16px 16px;
   font-size: 12px;

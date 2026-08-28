@@ -11,7 +11,16 @@
     "filterPlaceholder": "Menüyü filtrele…",
     "filterAria": "Kenar çubuğu menüsünü filtrele",
     "filterNoResults": "Bu aramayla eşleşen menü öğesi yok.",
-    "recentTitle": "Son kullanılanlar"
+    "recentTitle": "Son kullanılanlar",
+    "favorites": {
+      "title": "Sık Kullanılanlar",
+      "empty": "Henüz favori menü yok. Menü öğelerinin yanındaki yıldıza tıklayarak ekleyin.",
+      "maxReached": "En fazla 7 favori ekleyebilirsiniz.",
+      "pin": "Favorilere ekle",
+      "unpin": "Favorilerden kaldır",
+      "remove": "Kaldır",
+      "reorderHandle": "Favoriyi taşı"
+    }
   },
   "menuPermission": {
     "popoverTitle": "Bu menüyü hangi izin kontrol eder?",
