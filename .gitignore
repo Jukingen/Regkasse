@@ -237,6 +237,15 @@ backend/**/AzureKeyVault.json
 # Repo-root build / verify pipeline outputs (not source; keep out of commits)
 /artifacts/
 
+# Local machine / IDE / agent scratch (never commit — also untrack if already indexed)
+.codegraph/
+.dotnet_home/
+.local/
+/tmp-pdf-verify/
+/tmp-*
+/tmp_*
+/tsc-errors.txt
+
 # Backend - MSBuild / test / OpenAPI verify outputs (never commit)
 backend/_build_out/
 backend/_test_build_out/
@@ -291,6 +300,8 @@ backend/**/swagger.json
 backend/swagger-old.json
 # Accidental nested dotnet/ef output (causes MSB3030 staticwebassets copy errors)
 backend/_ef_build/
+backend/.ef-build/
+**/.ef-build/
 backend/**/.vs/
 backend/**/*.user
 backend/**/*.userosscache
