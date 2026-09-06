@@ -40,7 +40,9 @@ export default function FiskalySignTestPage() {
       {isReady ? (
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Card size="small">
-            <Link href="/admin/tse/fiskaly/setup">{t('tseFiskaly.test.backToSetup')}</Link>
+            <Space>
+              <Link href="/admin/tse/fiskaly/setup">{t('tseFiskaly.test.backToSetup')}</Link>
+            </Space>
           </Card>
           <FiskalySignTestPanel />
         </Space>

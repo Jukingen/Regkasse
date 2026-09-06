@@ -54,7 +54,8 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         BackupStrategyKind? strategy = null,
         bool deploymentWide = false,
         CancellationToken cancellationToken = default,
-        DateTime? incrementalSinceUtc = null)
+        DateTime? incrementalSinceUtc = null,
+        string? requestedFromIp = null)
     {
         var normalizedIdempotency = deploymentWide
             ? (string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim())
@@ -196,6 +197,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
                 : runTenantId,
             Strategy = resolvedStrategy,
             RequestedByUserId = requestedByUserId,
+            RequestedFromIp = string.IsNullOrWhiteSpace(requestedFromIp) ? null : requestedFromIp.Trim(),
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
             CorrelationId = correlationId,
@@ -245,6 +247,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             requestData: new { run.Id, run.IdempotencyKey, correlationId, strategy = run.Strategy.ToString() },
             responseData: new { run.Status },
             correlationIdOverride: correlationId,
+            actionType: AuditEventType.BackupCreated,
             entityId: run.Id,
             tenantId: auditTenantId);
 

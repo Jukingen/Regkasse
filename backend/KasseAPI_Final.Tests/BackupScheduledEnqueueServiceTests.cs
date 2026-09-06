@@ -1,6 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -74,6 +75,7 @@ public sealed class BackupScheduledEnqueueServiceTests
             OptionsMonitor(backupOptions),
             readiness ?? HealthyReadiness(),
             time,
+            Mock.Of<IAuditLogService>(),
             NullLogger<BackupScheduledEnqueueService>.Instance);
 
     [Fact]

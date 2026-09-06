@@ -125,6 +125,56 @@ function mapApiCodeToFailure(
 const downloadPath = (runId: string, artifactId: string) =>
   `/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`;
 
+const downloadRunPath = (runId: string) => `/api/admin/backup/runs/${runId}/download`;
+
+/** Convenience download of the primary artifact (`GET .../runs/{id}/download`). */
+export async function downloadBackupRunFile(
+  runId: string,
+  fallbackFilename: string,
+  progress?: BackupArtifactDownloadProgressOptions,
+  security?: BackupArtifactDownloadSecurityOptions
+): Promise<void> {
+  const url = downloadRunPath(runId);
+  const securityHeaders = security?.headers;
+
+  if (progress) {
+    try {
+      const result = await fetchBlobProgressive({
+        url,
+        fileName: fallbackFilename,
+        label: progress.label,
+        expectedTotalBytes: progress.expectedSizeBytes,
+        session: progress.session,
+        onProgress: progress.onProgress,
+        axiosConfig: securityHeaders ? { headers: securityHeaders } : undefined,
+      });
+      const ct = String(result.headers['content-type'] ?? result.headers['Content-Type'] ?? '');
+      await assertDownloadBlob(result.blob, ct);
+      triggerBlobDownload(result.blob, result.fileName);
+      return;
+    } catch (err) {
+      await mapAxiosDownloadErrorAsync(err);
+    }
+  }
+
+  try {
+    const res = await AXIOS_INSTANCE.get(url, {
+      responseType: 'blob',
+      headers: securityHeaders,
+    });
+    const blob = res.data as Blob;
+    await assertDownloadBlob(blob, res.headers['content-type'] as string | undefined);
+    const name = parseFilenameFromContentDisposition(
+      res.headers['content-disposition'] as string | undefined,
+      fallbackFilename
+    );
+    triggerBlobDownload(blob, name);
+  } catch (err) {
+    if (err instanceof BackupArtifactDownloadError) throw err;
+    await mapAxiosDownloadErrorAsync(err);
+  }
+}
+
 async function assertDownloadBlob(blob: Blob, contentType: string | undefined): Promise<void> {
   const ct = (contentType ?? '').toLowerCase();
   if (ct.includes('application/json')) {

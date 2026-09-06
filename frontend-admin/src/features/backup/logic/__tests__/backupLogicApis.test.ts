@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  getBackupManualVerifyPath,
   getBackupVerifyChecksumQueryKey,
+  verifyBackup,
   verifyBackupChecksum,
 } from '@/features/backup/logic/backupChecksumVerifyApi';
 import {
@@ -84,6 +86,16 @@ describe('backup logic API clients', () => {
     });
   });
 
+  it('verifyBackup POSTs /api/admin/backup/{id}/verify', async () => {
+    const payload = { backupId: 'r1', isValid: true };
+    mockCustomInstance.mockResolvedValue(payload);
+    await expect(verifyBackup('r1')).resolves.toEqual(payload);
+    expect(mockCustomInstance).toHaveBeenCalledWith({
+      url: getBackupManualVerifyPath('r1'),
+      method: 'POST',
+    });
+  });
+
   it('getBackupContentValidation GETs content-validation', async () => {
     mockCustomInstance.mockResolvedValue({ runId: 'r1', overallStatus: 'Passed' });
     await getBackupContentValidation('r1');
@@ -126,6 +138,44 @@ describe('backup logic API clients', () => {
     await validatePitrRestorePoint({ targetTimeUtc: '2026-08-01T00:00:00Z' });
     expect(mockCustomInstance).toHaveBeenCalledWith({
       url: '/api/admin/backup/pitr/validate',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { targetTimeUtc: '2026-08-01T00:00:00Z' },
+    });
+  });
+
+  it('PITR wal, chain, pre-restore and dry-run call expected paths', async () => {
+    const { getWalArchiveStatus, getBackupChain, validatePitrPreRestore, requestPitrDryRun } =
+      await import('@/features/backup/logic/backupPitrApi');
+
+    mockCustomInstance.mockResolvedValueOnce({ enabled: false, fileCount: 0 });
+    await getWalArchiveStatus();
+    expect(mockCustomInstance).toHaveBeenCalledWith({
+      url: '/api/admin/backup/pitr/wal',
+      method: 'GET',
+    });
+
+    mockCustomInstance.mockResolvedValueOnce({ incrementals: [] });
+    await getBackupChain('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+    expect(mockCustomInstance).toHaveBeenCalledWith({
+      url: '/api/admin/backup/pitr/chain',
+      method: 'GET',
+      params: { tenantId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+    });
+
+    mockCustomInstance.mockResolvedValueOnce({ passed: true });
+    await validatePitrPreRestore({ targetTimeUtc: '2026-08-01T00:00:00Z' });
+    expect(mockCustomInstance).toHaveBeenCalledWith({
+      url: '/api/admin/backup/pitr/pre-restore-validate',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { targetTimeUtc: '2026-08-01T00:00:00Z' },
+    });
+
+    mockCustomInstance.mockResolvedValueOnce({ accepted: true });
+    await requestPitrDryRun({ targetTimeUtc: '2026-08-01T00:00:00Z' });
+    expect(mockCustomInstance).toHaveBeenCalledWith({
+      url: '/api/admin/backup/pitr/dry-run',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       data: { targetTimeUtc: '2026-08-01T00:00:00Z' },

@@ -367,6 +367,9 @@ scripts/dev-purge-tenant-catalog.*
 # Dangerous / environment-specific SQL (prefer EF migrations + user-secrets)
 scripts/**/*.sql
 scripts/sql/
+# Read-only fiscal go-live checks — CI and restore drills require this file in git
+!scripts/sql/
+!scripts/sql/fiscal_go_live_validation.sql
 backend/Scripts/
 
 # Legacy one-off DB scripts (use EF migrations + user-secrets instead)

@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
@@ -49,7 +50,7 @@ public sealed class SessionManagementServiceTests
         var sut = CreateSut(db, audit.Object);
         var ok = await sut.TerminateSessionAsync(session.Id, "sa-1", Roles.SuperAdmin);
 
-        Assert.True(ok);
+        Assert.True(ok.Success);
         Assert.NotNull((await db.AuthSessions.SingleAsync(s => s.Id == session.Id)).RevokedAtUtc);
         Assert.NotNull((await db.RefreshTokens.SingleAsync()).RevokedAtUtc);
         audit.Verify(
@@ -73,7 +74,7 @@ public sealed class SessionManagementServiceTests
     {
         await using var db = CreateDb();
         var sut = CreateSut(db);
-        Assert.False(await sut.TerminateSessionAsync(Guid.NewGuid(), "sa-1", Roles.SuperAdmin));
+        Assert.False((await sut.TerminateSessionAsync(Guid.NewGuid(), "sa-1", Roles.SuperAdmin)).Success);
     }
 
     [Fact]
@@ -164,6 +165,144 @@ public sealed class SessionManagementServiceTests
     }
 
     [Fact]
+    public async Task ListSessionsAsync_Manager_SeesOnlyOwnTenant_IncludingPos()
+    {
+        await using var db = CreateDb();
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        db.Tenants.Add(new Tenant { Id = tenantA, Name = "Cafe A", Slug = "cafe-a" });
+        db.Tenants.Add(new Tenant { Id = tenantB, Name = "Cafe B", Slug = "cafe-b" });
+        var user = await SeedUserAsync(db, "u1", "cashier1");
+        var own = AddSession(db, user.Id, "pos", tenantId: tenantA, userAgent: "okhttp Expo Android");
+        AddSession(db, user.Id, "admin", tenantId: tenantB);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var list = await sut.ListSessionsAsync(
+            new SessionManagementAccess
+            {
+                ActorUserId = "mgr-1",
+                ActorRole = Roles.Manager,
+                ScopedTenantId = tenantA,
+            });
+
+        var row = Assert.Single(list);
+        Assert.Equal(own.Id, row.Id);
+        Assert.Equal("POS (Android)", row.PlatformLabel);
+        Assert.Equal("Cafe A", row.TenantName);
+    }
+
+    [Fact]
+    public async Task TerminateSessionAsync_CurrentSession_IsRejected()
+    {
+        await using var db = CreateDb();
+        var session = AddSession(db, "sa-1", "admin");
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.TerminateSessionAsync(
+            session.Id,
+            "sa-1",
+            Roles.SuperAdmin,
+            currentSessionId: session.Id);
+
+        Assert.True(result.IsCurrentSession);
+        Assert.False(result.Success);
+        Assert.Null((await db.AuthSessions.SingleAsync()).RevokedAtUtc);
+    }
+
+    [Fact]
+    public async Task TerminateSessionAsync_OutOfTenantScope_ReturnsNotFound()
+    {
+        await using var db = CreateDb();
+        var otherTenant = Guid.NewGuid();
+        var session = AddSession(db, "u1", "pos", tenantId: otherTenant);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.TerminateSessionAsync(
+            session.Id,
+            "mgr-1",
+            Roles.Manager,
+            scopedTenantId: Guid.NewGuid());
+
+        Assert.False(result.Success);
+        Assert.False(result.IsCurrentSession);
+        Assert.Null((await db.AuthSessions.SingleAsync()).RevokedAtUtc);
+    }
+
+    [Fact]
+    public async Task TerminateBulkAsync_SkipsCurrentAndOutOfScope()
+    {
+        await using var db = CreateDb();
+        var tenant = Guid.NewGuid();
+        var keep = AddSession(db, "mgr-1", "admin", tenantId: tenant);
+        var own = AddSession(db, "u2", "pos", tenantId: tenant);
+        var foreign = AddSession(db, "u3", "admin", tenantId: Guid.NewGuid());
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var count = await sut.TerminateBulkAsync(
+            [keep.Id, own.Id, foreign.Id],
+            "mgr-1",
+            Roles.Manager,
+            exceptSessionId: keep.Id,
+            scopedTenantId: tenant);
+
+        Assert.Equal(1, count);
+        Assert.Null((await db.AuthSessions.SingleAsync(s => s.Id == keep.Id)).RevokedAtUtc);
+        Assert.NotNull((await db.AuthSessions.SingleAsync(s => s.Id == own.Id)).RevokedAtUtc);
+        Assert.Null((await db.AuthSessions.SingleAsync(s => s.Id == foreign.Id)).RevokedAtUtc);
+    }
+
+    [Fact]
+    public async Task TerminateAllSessionsAsync_Manager_OnlyOwnTenant()
+    {
+        await using var db = CreateDb();
+        var tenant = Guid.NewGuid();
+        var keep = AddSession(db, "mgr-1", "admin", tenantId: tenant);
+        AddSession(db, "u2", "pos", tenantId: tenant);
+        AddSession(db, "u3", "admin", tenantId: Guid.NewGuid());
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var count = await sut.TerminateAllSessionsAsync(
+            "mgr-1",
+            Roles.Manager,
+            keep.Id,
+            scopedTenantId: tenant);
+
+        Assert.Equal(1, count);
+        Assert.Null((await db.AuthSessions.SingleAsync(s => s.Id == keep.Id)).RevokedAtUtc);
+        Assert.Equal(1, await db.AuthSessions.CountAsync(s => s.RevokedAtUtc != null));
+        Assert.Equal(2, await db.AuthSessions.CountAsync(s => s.RevokedAtUtc == null));
+    }
+
+    [Fact]
+    public async Task ListSessionsAsync_ExpiredFilter_IncludesRevoked()
+    {
+        await using var db = CreateDb();
+        var user = await SeedUserAsync(db, "u1", "cashier1");
+        AddSession(db, user.Id, "admin");
+        var revoked = AddSession(db, user.Id, "pos", revoked: true);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var list = await sut.ListSessionsAsync(
+            new SessionManagementAccess
+            {
+                ActorUserId = "sa-1",
+                ActorRole = Roles.SuperAdmin,
+                IsSuperAdmin = true,
+            },
+            new AdminSessionListFilter { Status = AdminSessionListFilter.StatusExpired });
+
+        var row = Assert.Single(list);
+        Assert.Equal(revoked.Id, row.Id);
+        Assert.False(row.IsActive);
+    }
+
+    [Fact]
     public async Task IsSessionValidAsync_WithoutSessionId_AllowsActiveUserWhenStampMatches()
     {
         await using var db = CreateDb();
@@ -245,17 +384,24 @@ public sealed class SessionManagementServiceTests
         return user;
     }
 
-    private static AuthSession AddSession(AppDbContext db, string userId, string clientApp, bool revoked = false)
+    private static AuthSession AddSession(
+        AppDbContext db,
+        string userId,
+        string clientApp,
+        bool revoked = false,
+        Guid? tenantId = null,
+        string? userAgent = null)
     {
         var session = new AuthSession
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             ClientApp = clientApp,
+            TenantId = tenantId,
             CreatedAtUtc = DateTime.UtcNow.AddMinutes(-10),
             LastActivityAtUtc = DateTime.UtcNow.AddMinutes(-1),
             RevokedAtUtc = revoked ? DateTime.UtcNow.AddMinutes(-2) : null,
-            UserAgent = "Mozilla/5.0 Chrome/120.0 Windows",
+            UserAgent = userAgent ?? "Mozilla/5.0 Chrome/120.0 Windows",
             IpAddress = "127.0.0.1",
         };
         db.AuthSessions.Add(session);

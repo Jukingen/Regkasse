@@ -225,7 +225,9 @@ public sealed class RestoreDrillAliasTests
             Mock.Of<IBackupRunTenantAccessService>(),
             Mock.Of<IBackupArtifactImportService>(),
             Mock.Of<IBackupTimeEstimator>(),
-            Mock.Of<IDownloadSecurityService>());
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var http = new DefaultHttpContext
         {

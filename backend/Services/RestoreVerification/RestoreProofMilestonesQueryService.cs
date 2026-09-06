@@ -1,8 +1,8 @@
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
@@ -10,7 +10,7 @@ namespace KasseAPI_Final.Services.RestoreVerification;
 public sealed class RestoreProofMilestonesQueryService : IRestoreProofMilestonesQueryService
 {
     private readonly AppDbContext _db;
-    private static readonly string PgDumpAdapter = nameof(BackupExecutionAdapterKind.PgDump);
+    private static readonly string[] LogicalDumpAdapterKinds = BackupLogicalDumpAdapterKinds.SqlComparableKinds;
 
     public RestoreProofMilestonesQueryService(AppDbContext db)
     {
@@ -24,14 +24,14 @@ public sealed class RestoreProofMilestonesQueryService : IRestoreProofMilestones
             .FirstOrDefaultAsync(cancellationToken);
 
         var latestPgDumpOk = await _db.BackupRuns.AsNoTracking()
-            .Where(r => r.Status == BackupRunStatus.Succeeded && r.AdapterKind == PgDumpAdapter)
+            .Where(r => r.Status == BackupRunStatus.Succeeded && LogicalDumpAdapterKinds.Contains(r.AdapterKind))
             .OrderByDescending(r => r.CompletedAt ?? r.RequestedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
         var latestArtifact = await (
             from a in _db.BackupArtifacts.AsNoTracking()
             join br in _db.BackupRuns.AsNoTracking() on a.BackupRunId equals br.Id
-            where br.Status == BackupRunStatus.Succeeded && br.AdapterKind == PgDumpAdapter
+            where br.Status == BackupRunStatus.Succeeded && LogicalDumpAdapterKinds.Contains(br.AdapterKind)
             orderby a.CreatedAt descending
             select a).FirstOrDefaultAsync(cancellationToken);
 

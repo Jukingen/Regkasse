@@ -92,7 +92,43 @@ public sealed class FiskalySignTestServiceTests
             actorIsSuperAdmin: true);
 
         Assert.False(result.Success);
-        Assert.Contains("automatically", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FiskalyReceiptService", result.Message, StringComparison.OrdinalIgnoreCase);
+        client.Verify(
+            c => c.SignReceiptAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Sign_Tagesabschluss_Returns400WithoutHttp()
+    {
+        var registerId = Guid.NewGuid();
+        var client = new Mock<IFiskalyClient>();
+        client
+            .Setup(c => c.GetCashRegisterAsync(registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalyCashRegisterInfo(registerId.ToString("D"), FiskalyResourceStates.Initialized));
+
+        var cashRegisters = new Mock<ICashRegisterManagementService>();
+        cashRegisters
+            .Setup(c => c.GetByIdAsync(registerId, It.IsAny<Guid?>(), true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CashRegisterDto { Id = registerId, RegisterNumber = "K1" });
+
+        var svc = CreateService(EnabledTestOptions(), client.Object, cashRegisters.Object);
+
+        var result = await svc.SignAsync(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = registerId,
+                Scenario = FiskalySignTestScenarioIds.Tagesabschluss
+            },
+            "sa-1",
+            actorIsSuperAdmin: true);
+
+        Assert.False(result.Success);
+        Assert.Contains("FiskalyReceiptService", result.Message, StringComparison.OrdinalIgnoreCase);
         client.Verify(
             c => c.SignReceiptAsync(
                 It.IsAny<Guid>(),
@@ -184,8 +220,9 @@ public sealed class FiskalySignTestServiceTests
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.MixedVat && s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.ZeroAmount && s.CanSign);
         Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.Raw && s.CanSign);
-        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.MonthlyClose && !s.CanSign);
-        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.YearlyClose && !s.CanSign);
+        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.MonthlyClose && s.CanSign);
+        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.YearlyClose && s.CanSign);
+        Assert.Contains(scenarios, s => s.Id == FiskalySignTestScenarioIds.Tagesabschluss && s.CanSign);
     }
 
     private static FiskalyOptions EnabledTestOptions() =>

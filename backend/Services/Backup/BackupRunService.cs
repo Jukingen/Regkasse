@@ -47,6 +47,7 @@ public sealed class BackupRunService : IBackupRunService
             return null;
 
         var estimatedOriginalBytes = await EstimateOriginalDumpSizeAsync(run, cancellationToken);
+        var display = await BackupRunDisplayLookup.LoadAsync(_db, [run], cancellationToken).ConfigureAwait(false);
 
         return BackupRunMapper.ToDto(
             run,
@@ -55,7 +56,8 @@ public sealed class BackupRunService : IBackupRunService
             materializedChildren: true,
             automaticRetryMaxAttemptsBudget: mappingOptions.AutomaticRetryMaxAttemptsBudget,
             downloadEnrichment: mappingOptions.DownloadEnrichment,
-            estimatedOriginalDatabaseBytes: estimatedOriginalBytes > 0 ? estimatedOriginalBytes : null);
+            estimatedOriginalDatabaseBytes: estimatedOriginalBytes > 0 ? estimatedOriginalBytes : null,
+            display: display);
     }
 
     public async Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(

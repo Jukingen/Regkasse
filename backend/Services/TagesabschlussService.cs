@@ -66,6 +66,7 @@ namespace KasseAPI_Final.Services
         private readonly IReportPdfStorageService _reportPdfStorage;
         private readonly IAuditLogService? _auditLogService;
         private readonly ActivityEventRecorder? _activityEvents;
+        private readonly IFiskalyReceiptService? _fiskalyReceipts;
 
         public TagesabschlussService(
             AppDbContext context,
@@ -80,7 +81,8 @@ namespace KasseAPI_Final.Services
             IReportPdfStorageService reportPdfStorage,
             IDevelopmentModeService? developmentModeService = null,
             IAuditLogService? auditLogService = null,
-            ActivityEventRecorder? activityEvents = null)
+            ActivityEventRecorder? activityEvents = null,
+            IFiskalyReceiptService? fiskalyReceipts = null)
         {
             _context = context;
             _tseService = tseService;
@@ -95,6 +97,7 @@ namespace KasseAPI_Final.Services
             _developmentModeService = developmentModeService;
             _auditLogService = auditLogService;
             _activityEvents = activityEvents;
+            _fiskalyReceipts = fiskalyReceipts;
         }
 
         /// <summary>
@@ -398,6 +401,8 @@ namespace KasseAPI_Final.Services
 
                 await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, userId);
 
+                await TrySubmitFiskalyAfterClosingAsync(dailyClosing, userId);
+
                 string? warning = null;
                 if (isEmpty && isBackdated)
                 {
@@ -427,6 +432,9 @@ namespace KasseAPI_Final.Services
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
                     FinanzOnlineStatus = dailyClosing.FinanzOnlineStatus,
+                    FiskalyStatus = dailyClosing.FiskalyStatus,
+                    FiskalyReceiptId = dailyClosing.FiskalyReceiptId,
+                    FiskalyError = dailyClosing.FiskalyError,
                     PaymentsWithoutInvoiceCount = 0,
                     IsBackdated = isBackdated,
                     LateCreationReason = isBackdated ? lateReason : null,
@@ -875,6 +883,9 @@ namespace KasseAPI_Final.Services
                     TseSignature = c.TseSignature,
                     Status = c.Status,
                     FinanzOnlineStatus = c.FinanzOnlineStatus,
+                    FiskalyStatus = c.FiskalyStatus,
+                    FiskalyReceiptId = c.FiskalyReceiptId,
+                    FiskalyError = c.FiskalyError,
                     HasStoredPdf = hasStoredPdf,
                     IsBackdated = c.IsBackdated || IsLateCreatedDailyClosing(c),
                     LateCreationReason = c.LateCreationReason,
@@ -1153,6 +1164,45 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Best-effort Fiskaly SIGN AT marker receipt after the local closing is committed.
+        /// Failure is logged and stamped on the row; the RKSV closing and TSE JWS stay intact.
+        /// </summary>
+        private async Task TrySubmitFiskalyAfterClosingAsync(DailyClosing dailyClosing, string userId)
+        {
+            if (_fiskalyReceipts is null)
+                return;
+
+            try
+            {
+                var fiskaly = await _fiskalyReceipts
+                    .CreateTagesabschlussAsync(
+                        dailyClosing.Id,
+                        userId,
+                        actorIsSuperAdmin: false,
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+
+                await _context.Entry(dailyClosing).ReloadAsync().ConfigureAwait(false);
+
+                if (!fiskaly.Success)
+                {
+                    _logger.LogWarning(
+                        "Fiskaly Tagesabschluss submit failed after closing {ClosingId}: {Code} {Message}",
+                        dailyClosing.Id,
+                        fiskaly.Error?.Code,
+                        fiskaly.Error?.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Fiskaly Tagesabschluss submit threw after closing {ClosingId}; local closing was kept",
+                    dailyClosing.Id);
+            }
+        }
+
         /// <summary>Trimmed reason for late daily closings; null when empty. Max 500 chars.</summary>
         private static string? NormalizeLateCreationReason(string? reason)
         {
@@ -1204,6 +1254,11 @@ namespace KasseAPI_Final.Services
         public string? TseSignature { get; set; }
         public string? Status { get; set; }
         public string? FinanzOnlineStatus { get; set; }
+        /// <summary>Fiskaly SIGN AT marker-receipt status for this closing (<see cref="DailyClosingFiskalyStatuses"/>).</summary>
+        public string? FiskalyStatus { get; set; }
+        /// <summary>Fiskaly SIGN AT receipt UUID when submitted.</summary>
+        public string? FiskalyReceiptId { get; set; }
+        public string? FiskalyError { get; set; }
         /// <summary>When Success is false due to Sprint 4 enforcement: count of payments without Invoice that blocked closing. On success, 0.</summary>
         [Required]
         public int PaymentsWithoutInvoiceCount { get; set; }

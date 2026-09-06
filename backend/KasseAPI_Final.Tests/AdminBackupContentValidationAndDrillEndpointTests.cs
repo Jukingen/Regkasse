@@ -283,7 +283,9 @@ public sealed class AdminBackupContentValidationAndDrillEndpointTests
             new BackupRunTenantAccessService(db),
             Mock.Of<IBackupArtifactImportService>(),
             Mock.Of<IBackupTimeEstimator>(),
-            Mock.Of<IDownloadSecurityService>());
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var claims = new List<Claim>
         {

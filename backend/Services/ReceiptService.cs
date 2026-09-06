@@ -582,6 +582,13 @@ namespace KasseAPI_Final.Services
                     TaxTotal = r.TaxTotal,
                     GrandTotal = r.GrandTotal,
                     CreatedAt = r.CreatedAt,
+                    Status = r.Payment != null && !string.IsNullOrEmpty(r.Payment.RksvSpecialReceiptKind)
+                        ? r.Payment.RksvSpecialReceiptKind
+                        : r.Payment != null && r.Payment.IsStorno
+                            ? ReceiptListStatuses.Storno
+                            : r.Payment != null && r.Payment.IsRefund
+                                ? ReceiptListStatuses.Refund
+                                : ReceiptListStatuses.Paid,
                     RksvSpecialReceiptKind = r.Payment != null ? r.Payment.RksvSpecialReceiptKind : null,
                     RksvSpecialReceiptYear = r.Payment != null ? r.Payment.RksvSpecialReceiptYear : null,
                     RksvSpecialReceiptMonth = r.Payment != null ? r.Payment.RksvSpecialReceiptMonth : null,
@@ -594,6 +601,9 @@ namespace KasseAPI_Final.Services
                     IntendedPeriodDate = r.Payment != null ? r.Payment.IntendedPeriodDate : null,
                 })
                 .ToListAsync();
+
+            if (items.Count > 0)
+                await ApplyExistingStornoChildStatusAsync(items).ConfigureAwait(false);
 
             if (_reportPdfStorage != null && items.Count > 0)
             {
@@ -677,6 +687,38 @@ namespace KasseAPI_Final.Services
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
             return last?.SignatureValue ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Original sale rows stay <c>IsStorno=false</c>; a child reversal marks the list item as Storno
+        /// so POS Belegliste can hide the cancel button.
+        /// </summary>
+        private async Task ApplyExistingStornoChildStatusAsync(List<ReceiptListItemDto> items)
+        {
+            var saleIds = items
+                .Where(i => i.Status == ReceiptListStatuses.Paid)
+                .Select(i => i.PaymentId)
+                .Distinct()
+                .ToList();
+            if (saleIds.Count == 0)
+                return;
+
+            var cancelled = await _context.PaymentDetails.AsNoTracking()
+                .Where(p => p.OriginalPaymentId != null
+                    && saleIds.Contains(p.OriginalPaymentId.Value)
+                    && p.IsStorno)
+                .Select(p => p.OriginalPaymentId!.Value)
+                .ToListAsync()
+                .ConfigureAwait(false);
+            if (cancelled.Count == 0)
+                return;
+
+            var set = cancelled.ToHashSet();
+            foreach (var item in items)
+            {
+                if (set.Contains(item.PaymentId) && item.Status == ReceiptListStatuses.Paid)
+                    item.Status = ReceiptListStatuses.Storno;
+            }
         }
 
         /// <inheritdoc />

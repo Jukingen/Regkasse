@@ -165,6 +165,74 @@ public sealed class IncrementalBackupServiceTests
     }
 
     [Fact]
+    public async Task PlanRestoreFromIncrementalAsync_lists_full_plus_later_incrementals()
+    {
+        var tenantId = Guid.NewGuid();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"incr_plan_{Guid.NewGuid():N}")
+            .Options;
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "T",
+            Slug = "t",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddDays(-2)
+        });
+        var fullAt = new DateTime(2026, 9, 1, 2, 0, 0, DateTimeKind.Utc);
+        var incrAt = new DateTime(2026, 9, 2, 3, 0, 0, DateTimeKind.Utc);
+        var full = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Strategy = BackupStrategyKind.Tenant,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            RequestedAt = fullAt,
+            CompletedAt = fullAt,
+            ConfigSnapshotJson = """{"packageKind":"full"}"""
+        };
+        var incr = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Strategy = BackupStrategyKind.Tenant,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            RequestedAt = incrAt,
+            CompletedAt = incrAt,
+            ConfigSnapshotJson = BackupIncrementalPackageMetadata.MergeIntoConfigSnapshot("{}", fullAt)
+        };
+        var system = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            Strategy = BackupStrategyKind.System,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = "Fake",
+            RequestedAt = fullAt,
+            CompletedAt = fullAt.AddMinutes(10)
+        };
+        db.BackupRuns.AddRange(full, incr, system);
+        await db.SaveChangesAsync();
+
+        var sut = new IncrementalBackupService(
+            db,
+            Mock.Of<IBackupManualTriggerService>(),
+            Mock.Of<IBackupStagingDiskMonitor>(),
+            OptionsMonitor(new BackupOptions()),
+            NullLogger<IncrementalBackupService>.Instance);
+
+        var plan = await sut.PlanRestoreFromIncrementalAsync(tenantId, incrAt.AddHours(1));
+        Assert.Equal(full.Id, plan.FullBackupId);
+        Assert.Equal(new[] { incr.Id }, plan.IncrementalBackupIds);
+        Assert.Equal(system.Id, plan.NearestSystemDumpId);
+    }
+
+    [Fact]
     public void MergeAndRead_incremental_metadata_round_trips()
     {
         var since = new DateTime(2026, 7, 1, 2, 0, 0, DateTimeKind.Utc);

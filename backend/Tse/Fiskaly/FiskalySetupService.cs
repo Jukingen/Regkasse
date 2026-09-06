@@ -41,13 +41,28 @@ public sealed class FiskalySetupOperationResult<T>
 
     public string Message { get; init; } = string.Empty;
 
+    public string? Code { get; init; }
+
+    public string? Details { get; init; }
+
     public T? Data { get; init; }
 
     public static FiskalySetupOperationResult<T> Ok(T data) =>
         new() { Success = true, StatusCode = 200, Data = data };
 
-    public static FiskalySetupOperationResult<T> Fail(int statusCode, string message) =>
-        new() { Success = false, StatusCode = statusCode, Message = message };
+    public static FiskalySetupOperationResult<T> Fail(
+        int statusCode,
+        string message,
+        string? code = null,
+        string? details = null) =>
+        new()
+        {
+            Success = false,
+            StatusCode = statusCode,
+            Message = message,
+            Code = code,
+            Details = details
+        };
 }
 
 public sealed class FiskalySetupService : IFiskalySetupService

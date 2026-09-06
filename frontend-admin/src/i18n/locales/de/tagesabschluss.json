@@ -120,6 +120,7 @@
     "colStatus": "Status",
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
+    "colFiskaly": "Fiskaly",
     "closingTypes": {
       "Daily": "Täglich",
       "Monthly": "Monatlich",
@@ -154,6 +155,21 @@
     "warningYearlyAlreadyClosed": "Jahresabschluss für {{dateTime}} bereits durchgeführt.",
     "pdfUnavailable": "Für diesen Eintrag ist kein PDF verfügbar.",
     "pdfAutoDownloadFailed": "Abschluss erfolgreich, aber PDF konnte nicht heruntergeladen werden."
+  },
+  "fiskaly": {
+    "colStatus": "Fiskaly",
+    "send": "An Fiskaly senden",
+    "sendSuccess": "Tagesabschluss an Fiskaly übermittelt.",
+    "sendFailed": "Übermittlung an Fiskaly fehlgeschlagen.",
+    "notSent": "Noch nicht gesendet",
+    "receiptId": "Fiskaly-Beleg-ID",
+    "hint": "SIGN AT hat keinen eigenen Tagesabschluss-Typ. Der Abschluss wird als 0,00-€-Beleg mit dem Text „Tagesabschluss“ übermittelt. Die lokale TSE-Signatur bleibt unverändert.",
+    "status": {
+      "Submitted": "Übermittelt",
+      "Failed": "Fehlgeschlagen",
+      "Pending": "Ausstehend",
+      "Skipped": "Übersprungen"
+    }
   },
   "errors": {
     "unknown": "Unbekannter Fehler",

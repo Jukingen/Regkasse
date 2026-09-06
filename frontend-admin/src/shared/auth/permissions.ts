@@ -162,6 +162,23 @@ export const PERMISSIONS = {
   RKSV_TEST_HELPER: 'rksv.test-helper',
   /** Reset TSE simulation from the RKSV demo helper; align with AppPermissions.RksvTseSimulation. */
   RKSV_TSE_SIMULATION: 'rksv.tse-simulation',
+  /** View Fiskaly receipt/batch operations. Backend: AppPermissions.FiskalyOperationsView. */
+  FISKALY_OPERATIONS_VIEW: 'fiskaly.operations.view',
+  FISKALY_OPERATIONS_NORMAL: 'fiskaly.operations.normal',
+  FISKALY_OPERATIONS_CANCEL: 'fiskaly.operations.cancel',
+  FISKALY_OPERATIONS_NULLBELEG: 'fiskaly.operations.nullbeleg',
+  FISKALY_OPERATIONS_STARTBELEG: 'fiskaly.operations.startbeleg',
+  FISKALY_OPERATIONS_MONATSBELEG: 'fiskaly.operations.monatsbeleg',
+  FISKALY_OPERATIONS_JAHRESBELEG: 'fiskaly.operations.jahresbeleg',
+  FISKALY_OPERATIONS_SCHLUSSBELEG: 'fiskaly.operations.schlussbeleg',
+  FISKALY_OPERATIONS_TAGESABSCHLUSS: 'fiskaly.operations.tagesabschluss',
+  FISKALY_OPERATIONS_DEP_EXPORT: 'fiskaly.operations.dep-export',
+  /** FON/SCU/cash-register initialize. SuperAdmin-only. Backend: AppPermissions.FiskalyOperationsConfig. */
+  FISKALY_OPERATIONS_CONFIG: 'fiskaly.operations.config',
+  /** View Fiskaly operation history. Backend: AppPermissions.FiskalyHistoryView. */
+  FISKALY_HISTORY_VIEW: 'fiskaly.history.view',
+  /** Retry failed Fiskaly operations. Backend: AppPermissions.FiskalyHistoryRetry. */
+  FISKALY_HISTORY_RETRY: 'fiskaly.history.retry',
   BENEFIT_VIEW: 'benefit.view',
   BENEFIT_MANAGE: 'benefit.manage',
   VOUCHER_READ: 'voucher.read',

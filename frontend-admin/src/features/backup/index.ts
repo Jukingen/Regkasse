@@ -30,6 +30,8 @@ export { BackupSchedulePlanner } from '@/features/backup/components/BackupSchedu
 export { BackupSettings } from '@/features/backup/components/BackupSettings';
 export { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
 export { ConfigurationHealthCard } from '@/features/backup/components/ConfigurationHealthCard';
+export { BackupChain } from '@/features/backup/BackupChain';
+export { PitrRestore } from '@/features/backup/PitrRestore';
 export {
   PitrRestoreModal,
   type PitrRestorePayload,

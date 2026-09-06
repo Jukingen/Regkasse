@@ -17,6 +17,7 @@ export interface AdminActiveSessionDto {
   deviceName?: string | null;
   /** @nullable */
   displayName?: string | null;
+  durationSeconds?: number;
   /** @nullable */
   email?: string | null;
   /** @nullable */
@@ -30,10 +31,14 @@ export interface AdminActiveSessionDto {
   /** @nullable */
   os?: string | null;
   /** @nullable */
+  platformLabel?: string | null;
+  /** @nullable */
   role?: string | null;
   startedAtUtc?: string;
   /** @nullable */
   tenantId?: string | null;
+  /** @nullable */
+  tenantName?: string | null;
   /** @nullable */
   userAgent?: string | null;
   /** @nullable */

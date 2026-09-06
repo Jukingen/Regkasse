@@ -14,6 +14,7 @@ Hub for **how sessions end** after login. Related: [`AUTH_TWO_FACTOR.md`](AUTH_T
 | **POS** (`clientApp=pos`) | `POST /api/Auth/logout` with **`Authorization: Bearer`** (SecureStore / native). Web POS may also present `rk_pos_*` cookies. | `rk_pos_access_token`, `rk_pos_refresh_token`, plus legacy names | Current `sid` + all **pos** sessions for that user | Rotated |
 | **Logout-all** | `POST /api/Auth/logout-all` (authenticated) | **Both** apps + legacy | **All** sessions for that user | Rotated |
 | **Force logout** (Super Admin) | `/api/admin/sessions` | Not a browser logout; tokens fail on next request | All sessions (`LogoutAllAsync`) | Rotated (`ISessionManagementService.ForceLogoutAsync`) |
+| **Admin session page** (Super Admin + Manager) | `GET/POST /api/admin/sessions` | Not a browser logout; next API call fails (`sid` revoked) | Selected / all-except-current sessions (Manager: ambient tenant only; includes POS) | Not rotated (use force-logout for stamp rotation) |
 
 **Cookie split:** FA and POS use **different HttpOnly cookie names** so two users (or the same user) can hold sessions in one browser without overwriting each other. Logout of one app must not expire the other app’s cookies.
 
@@ -123,7 +124,7 @@ Native POS source of truth remains **SecureStore + Bearer**, not cookies.
 | Refresh sessions | This `clientApp` only | All | All |
 | Cookies | This app + legacy | Both apps | N/A (other devices drop on next API call) |
 | `SecurityStamp` | Yes | Yes | Yes |
-| Typical UI | FA / POS logout button | Account “sign out everywhere” | `/admin/sessions`, user detail |
+| Typical UI | FA / POS logout button | Account “sign out everywhere” | `/admin/sessions` (user.view / user.manage), user detail force-logout |
 
 Username change and password reset also rotate `SecurityStamp` and revoke sessions (see `AGENTS.md` § Session Management).
 

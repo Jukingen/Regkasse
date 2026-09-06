@@ -55,10 +55,10 @@ PDF bytes under `report-pdfs/` (and similar ContentRoot paths) are **not** copie
 |------|---------|--------|
 | Cron | `0 2 * * *` (02:00 UTC daily) | System strategy; off-peak; FA planner can set weekly/monthly |
 | Retention Tenant | **30** days | Admin API + FA: **7–90** days |
-| Retention System | **90** days | Strategy policy default |
+| Retention System | **90** days operational / **7 years** legal | Strategy policy default + BAO §132 Legal Hold |
 | Auto-delete | After each succeeded run + optional daily | `BackupSucceededRunRetentionCleaner`; `AutomaticCleanupService` when `Backup:AutomaticCleanupEnabled` |
 | Smart retention (opt-in) | GFS: 7 daily / 4 weekly / 12 monthly / 7 yearly | `Backup:SmartRetentionEnabled=true` → `SmartRetentionService` (replaces flat 30/90 cutoff) |
-| Storage tiers (opt-in) | Hot ≤7d / Warm ≤30d / Cold &gt;30d | `Backup:StorageTierManagementEnabled=true` → `StorageTierService` (tags artifacts; Cold prefers `ExternalArchiveRoot`) |
+| Storage tiers (opt-in) | Hot ≤30d / Warm ≤90d / Cold &gt;90d | `Backup:StorageTierManagementEnabled=true` → `StorageTierService` (configurable via FA `/backup/retention`). Cold upload: `ICloudStorageService` (Filesystem WORM, S3 Glacier, Azure Archive, GCS Coldline) |
 | Storage cost dashboard | Indicative EUR Hot/Warm/Cold | `GET /api/admin/backup/storage-costs` + FA `/backup/costs` |
 | Compression | `-Fc -Z6` + content-aware ZIP | System dump zlib; tenant/system ZIP via `CompressionService` (JSON Optimal; nested `.zip`/`.dump` NoCompression) |
 | Staging disk alert | **80%** used | `Backup:StagingDiskUsageAlertPercent`; FA dashboard + `StorageAlertService` (every 6h) |

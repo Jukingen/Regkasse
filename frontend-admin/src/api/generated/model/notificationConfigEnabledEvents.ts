@@ -51,6 +51,7 @@ export type NotificationConfigEnabledEvents = {
   RestoreDrillSucceeded?: boolean;
   RiskAnomalyDetected?: boolean;
   RiskScoreResolved?: boolean;
+  RksvRuntimeConfigChanged?: boolean;
   RoleCreated?: boolean;
   RoleDeleted?: boolean;
   RolePermissionsUpdated?: boolean;

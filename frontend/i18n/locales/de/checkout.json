@@ -147,7 +147,10 @@
         "receivedLabel": "Erhaltener Betrag",
         "receivedA11y": "Erhaltener Betrag in Euro",
         "changeLabel": "Rückgeld",
-        "placeholder": "0,00"
+        "placeholder": "0,00",
+        "optionalHint": "Optional – leer lassen für passenden Betrag",
+        "belowTotalTitle": "Betrag zu niedrig",
+        "belowTotalMessage": "Erhaltener Betrag muss mindestens {{amount}} betragen."
       },
       "remainingAmount": "Restbetrag",
       "notes": {

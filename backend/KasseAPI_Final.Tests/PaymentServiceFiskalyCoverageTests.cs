@@ -96,7 +96,8 @@ public sealed class PaymentServiceFiskalyCoverageTests
         IHostEnvironment? hostEnvironment = null,
         Mock<IReceiptSequenceService>? receiptSeqMock = null,
         bool demoUser = false,
-        ITenantLimitGuard? tenantLimitGuard = null)
+        ITenantLimitGuard? tenantLimitGuard = null,
+        Mock<IAuditLogService>? auditMock = null)
     {
         var paymentRepo = new GenericRepository<PaymentDetails>(context, Mock.Of<ILogger<GenericRepository<PaymentDetails>>>());
         var productRepo = new GenericRepository<Product>(context, Mock.Of<ILogger<GenericRepository<Product>>>());
@@ -175,7 +176,7 @@ public sealed class PaymentServiceFiskalyCoverageTests
             new NoOpProductModifierValidationService(),
             receiptSeqMock.Object,
             receiptService,
-            CreateAuditMock().Object,
+            (auditMock ?? CreateAuditMock()).Object,
             TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions ?? new TseOptions { TseMode = "Demo" }),
             Options.Create(new InventoryOptions { EnforceStockOnSales = false }),
@@ -528,7 +529,8 @@ public sealed class PaymentServiceFiskalyCoverageTests
         await using var ctx = CreateContext();
         var (customerId, productId, registerId) = await SeedCatalogAsync(ctx);
         var tse = CreateFiskalyTseMock();
-        var sut = CreatePaymentService(ctx, tse);
+        var audit = CreateAuditMock();
+        var sut = CreatePaymentService(ctx, tse, auditMock: audit);
 
         var sale = await sut.CreatePaymentAsync(CashSaleRequest(customerId, productId, registerId), CashierId);
         Assert.True(sale.Success, sale.Message);
@@ -557,6 +559,10 @@ public sealed class PaymentServiceFiskalyCoverageTests
                 It.IsAny<string?>(),
                 It.IsAny<IDbContextTransaction?>()),
             Times.Once);
+        Assert.Contains(
+            audit.Invocations,
+            i => i.Method.Name == nameof(IAuditLogService.LogSystemOperationAsync)
+                 && Equals(i.Arguments[0], AuditLogActions.FISKALY_CANCELLATION_RECEIPT_SIGNED));
     }
 
     [Fact]

@@ -4,6 +4,8 @@
     "intro": "Benutzer, Rollen und Berechtigungen zentral verwalten. Systemrollen sind schreibgeschützt; benutzerdefinierte Rollen können im Berechtigungskatalog angepasst werden.",
     "cardUsersTitle": "Benutzer",
     "cardUsersDescription": "Benutzer anlegen, Rollen zuweisen, Passwort zurücksetzen und Konten deaktivieren.",
+    "cardSessionsTitle": "Sitzungen",
+    "cardSessionsDescription": "Aktive Admin- und POS-Sitzungen anzeigen und abmelden.",
     "cardRolesTitle": "Rollen & Berechtigungen",
     "cardRolesDescription": "Custom-Rollen erstellen und Berechtigungen pro Rolle pflegen.",
     "cardMatrixTitle": "Berechtigungsübersicht",

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import {
+  canShowManualVerifyAction,
   isVerificationFailed,
   isVerificationPassed,
   resolveLatestVerification,
@@ -28,5 +29,12 @@ describe('backupVerificationPresentation', () => {
     expect(isVerificationPassed(2)).toBe(false);
     expect(isVerificationFailed(2)).toBe(true);
     expect(isVerificationFailed(undefined)).toBe(false);
+  });
+
+  it('shows manual Verify only for Succeeded runs when settings.manage', () => {
+    expect(canShowManualVerifyAction({ id: 'r1', status: 3 }, true)).toBe(true);
+    expect(canShowManualVerifyAction({ id: 'r1', status: 3 }, false)).toBe(false);
+    expect(canShowManualVerifyAction({ id: 'r1', status: 4 }, true)).toBe(false);
+    expect(canShowManualVerifyAction({ status: 3 }, true)).toBe(false);
   });
 });

@@ -17,6 +17,7 @@ interface CashRegisterHeaderProps {
   /** 503/TABLE_ORDERS_MISSING durumunda gösterilecek bilgi mesajı */
   provisioningMessage?: string | null;
   onOpenPaymentHistory?: () => void;
+  onOpenReceiptList?: () => void;
 }
 
 export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
@@ -24,8 +25,9 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   recoveryLoading,
   provisioningMessage,
   onOpenPaymentHistory,
+  onOpenReceiptList,
 }) => {
-  const { t } = useTranslation(['checkout', 'common', 'paymentHistory']);
+  const { t } = useTranslation(['checkout', 'common', 'paymentHistory', 'receipts']);
 
   return (
     <View
@@ -58,6 +60,19 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
             </Text>
           </View>
         )}
+        {onOpenReceiptList ? (
+          <Pressable
+            onPress={onOpenReceiptList}
+            style={({ pressed }) => [styles.historyButton, pressed && styles.historyButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('receipts:title')}
+            hitSlop={6}>
+            <Text style={styles.historyButtonEmoji} accessibilityElementsHidden>
+              🧾
+            </Text>
+            <Text style={styles.historyButtonText}>{t('receipts:quickAccess')}</Text>
+          </Pressable>
+        ) : null}
         {onOpenPaymentHistory ? (
           <Pressable
             onPress={onOpenPaymentHistory}

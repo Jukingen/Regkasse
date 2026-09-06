@@ -142,6 +142,29 @@ public sealed class PosStornoControllerTests
     }
 
     [Fact]
+    public async Task StornoPayment_OtherCashiersReceipt_ReturnsNotOwner()
+    {
+        await using var ctx = CreateContext();
+        var paymentId = Guid.NewGuid();
+        var payment = SalePayment(paymentId, DateTime.UtcNow.AddHours(-1));
+        payment.CashierId = "other-cashier";
+        var paymentMock = new Mock<IPaymentService>();
+        paymentMock.Setup(x => x.GetPaymentAsync(paymentId)).ReturnsAsync(payment);
+
+        var controller = CreateController(ctx, paymentMock);
+        var result = await controller.StornoPayment(new StornoRequest
+        {
+            PaymentId = paymentId,
+            Reason = "Customer changed mind",
+            ReasonCode = "CUSTOMER_REQUEST",
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<StornoResponse>(bad.Value);
+        Assert.Equal(PosReceiptStornoEligibility.NotOwnerErrorKey, body.ErrorKey);
+    }
+
+    [Fact]
     public async Task StornoPayment_Success_ReturnsStornoPaymentId()
     {
         await using var ctx = CreateContext();

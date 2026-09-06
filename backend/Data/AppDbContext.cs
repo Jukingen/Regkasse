@@ -199,6 +199,7 @@ namespace KasseAPI_Final.Data
         public DbSet<AuditReportSchedule> AuditReportSchedules { get; set; }
         public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
         public DbSet<DepExportHistory> DepExportHistories { get; set; }
+        public DbSet<FiskalyOperationHistory> FiskalyOperationHistories { get; set; }
         public DbSet<DepExportSchedule> DepExportSchedules { get; set; }
         public DbSet<DepExportCompliancePeriod> DepExportCompliancePeriods { get; set; }
         public DbSet<DepExportComplianceScoreSnapshot> DepExportComplianceScores { get; set; }
@@ -283,6 +284,9 @@ namespace KasseAPI_Final.Data
 
         /// <summary>Singleton (Id=1): scheduled backup UTC cron + retention (see migration seed).</summary>
         public DbSet<BackupSettings> BackupSettings { get; set; }
+
+        /// <summary>Singleton (Id=1): Super Admin Hot/Warm/Cold legal retention policy.</summary>
+        public DbSet<BackupRetentionPolicySettings> BackupRetentionPolicySettings { get; set; }
 
         /// <summary>Per-tenant backup automation schedule (UTC cron + retention).</summary>
         public DbSet<BackupScheduleConfiguration> BackupScheduleConfigurations { get; set; }
@@ -3980,6 +3984,18 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(20);
                 entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
                 entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
+                entity.Property(e => e.FiskalyReceiptId)
+                    .HasMaxLength(80)
+                    .HasColumnName("fiskaly_receipt_id");
+                entity.Property(e => e.FiskalyStatus)
+                    .HasMaxLength(20)
+                    .HasColumnName("fiskaly_status");
+                entity.Property(e => e.FiskalyError)
+                    .HasMaxLength(500)
+                    .HasColumnName("fiskaly_error");
+                entity.Property(e => e.FiskalySubmittedAtUtc).HasColumnName("fiskaly_submitted_at_utc");
+                entity.HasIndex(e => new { e.TenantId, e.FiskalyStatus })
+                    .HasDatabaseName("IX_DailyClosings_tenant_id_fiskaly_status");
                 // Tenant-scoped closing history / range queries by register and date.
                 entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ClosingDate })
                     .HasDatabaseName("idx_daily_closings_tenant_register_date");
@@ -4600,6 +4616,37 @@ namespace KasseAPI_Final.Data
                     .HasFilter("\"retention_until\" IS NOT NULL AND \"purged_at\" IS NULL");
             });
 
+            builder.Entity<FiskalyOperationHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.TenantName).HasMaxLength(200);
+                entity.Property(e => e.OperationType).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.CashRegisterName).HasMaxLength(160);
+                entity.Property(e => e.ReceiptNumber).HasMaxLength(64);
+                entity.Property(e => e.ReceiptId).HasMaxLength(80);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.UserDisplayName).HasMaxLength(200);
+                entity.Property(e => e.RequestPayloadJson).HasColumnType("jsonb");
+                entity.Property(e => e.ResponsePayloadJson).HasColumnType("jsonb");
+                entity.Property(e => e.ErrorCode).HasMaxLength(64);
+                entity.Property(e => e.RetryCount).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.Property(e => e.ErrorReviewStatus).IsRequired().HasMaxLength(16).HasDefaultValue(FiskalyErrorReviewStatuses.Open);
+                entity.Property(e => e.ErrorReviewedByUserId).HasMaxLength(450);
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAtUtc });
+                entity.HasIndex(e => new { e.TenantId, e.OperationType, e.CreatedAtUtc });
+                entity.HasIndex(e => new { e.TenantId, e.Status, e.CreatedAtUtc });
+                entity.HasIndex(e => new { e.TenantId, e.ErrorReviewStatus, e.CreatedAtUtc });
+                entity.HasIndex(e => e.ReceiptNumber);
+                entity.HasOne<FiskalyOperationHistory>()
+                    .WithMany()
+                    .HasForeignKey(e => e.RetriedFromId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
             builder.Entity<ReportPdf>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -4710,6 +4757,20 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
             });
 
+            builder.Entity<BackupRetentionPolicySettings>(entity =>
+            {
+                entity.ToTable("backup_retention_policy_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.HotRetentionDays).IsRequired();
+                entity.Property(e => e.WarmRetentionDays).IsRequired();
+                entity.Property(e => e.ColdRetentionYears).IsRequired();
+                entity.Property(e => e.ColdStorageEnabled).IsRequired();
+                entity.Property(e => e.LegalRetentionEnforced).IsRequired();
+                entity.Property(e => e.CloudProvider).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
+            });
+
             builder.Entity<BackupScheduleConfiguration>(entity =>
             {
                 entity.ToTable("backup_schedule_configurations");
@@ -4781,6 +4842,11 @@ namespace KasseAPI_Final.Data
                     .HasFilter("tenant_id IS NOT NULL");
                 entity.HasIndex(e => e.Strategy)
                     .HasDatabaseName("ix_backup_runs_strategy");
+                entity.Property(e => e.RequestedFromIp).HasMaxLength(128);
+                entity.Property(e => e.DownloadCount).HasDefaultValue(0);
+                entity.HasIndex(e => e.LegalHold)
+                    .HasDatabaseName("ix_backup_runs_legal_hold")
+                    .HasFilter("legal_hold = TRUE");
                 entity.HasIndex(e => e.NextRetryAtUtc)
                     .HasDatabaseName("ix_backup_runs_next_retry_at")
                     .HasFilter("next_retry_at_utc IS NOT NULL");
@@ -4811,6 +4877,11 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.BackupRunId);
                 entity.HasIndex(e => e.StorageTier)
                     .HasDatabaseName("ix_backup_artifacts_storage_tier");
+                entity.Property(e => e.CloudLocator).HasMaxLength(512);
+                entity.Property(e => e.CloudProvider).HasMaxLength(32);
+                entity.HasIndex(e => e.ContentHashSha256)
+                    .HasDatabaseName("ix_backup_artifacts_content_hash")
+                    .HasFilter("content_hash_sha256 IS NOT NULL");
             });
 
             builder.Entity<BackupVerification>(entity =>

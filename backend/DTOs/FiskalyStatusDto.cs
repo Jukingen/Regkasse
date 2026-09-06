@@ -127,6 +127,21 @@ public sealed class FiskalySignTestRequest
 
     /// <summary>normal, cancellation, training, mixed_vat, zero_amount, raw.</summary>
     public string Scenario { get; set; } = FiskalySignTestScenarioIds.Normal;
+
+    /// <summary>Optional override for the scenario amount (EUR). Cancellation amounts are negated when positive.</summary>
+    public decimal? Amount { get; set; }
+
+    /// <summary>Optional VAT rate override (STANDARD, REDUCED_1, REDUCED_2, SPECIAL, ZERO, NULL).</summary>
+    public string? VatRate { get; set; }
+
+    /// <summary>Vienna business day for <see cref="FiskalySignTestScenarioIds.Tagesabschluss"/>. Null = today.</summary>
+    public DateTime? ClosingDate { get; set; }
+
+    /// <summary>Vienna calendar year for Monatsbeleg / Jahresbeleg. Null = year of <see cref="ClosingDate"/> or now.</summary>
+    public int? Year { get; set; }
+
+    /// <summary>Vienna calendar month (1–12) for Monatsbeleg. Null = month of <see cref="ClosingDate"/> or now.</summary>
+    public int? Month { get; set; }
 }
 
 public sealed class FiskalyVerifyTestRequest
@@ -147,6 +162,7 @@ public static class FiskalySignTestScenarioIds
     public const string Raw = "raw";
     public const string MonthlyClose = "monthly_close";
     public const string YearlyClose = "yearly_close";
+    public const string Tagesabschluss = "tagesabschluss";
 }
 
 public sealed class FiskalySignTestScenarioDto

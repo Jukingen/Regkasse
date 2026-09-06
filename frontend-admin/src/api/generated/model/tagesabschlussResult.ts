@@ -19,6 +19,12 @@ export interface TagesabschlussResult {
   errorMessage?: string | null;
   /** @nullable */
   finanzOnlineStatus?: string | null;
+  /** @nullable */
+  fiskalyError?: string | null;
+  /** @nullable */
+  fiskalyReceiptId?: string | null;
+  /** @nullable */
+  fiskalyStatus?: string | null;
   hasStoredPdf?: boolean;
   isBackdated: boolean;
   isEmpty: boolean;

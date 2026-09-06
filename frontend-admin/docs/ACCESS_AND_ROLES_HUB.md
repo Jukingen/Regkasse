@@ -13,6 +13,7 @@ Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Z
 | ---------------------- | --------------------------------------------------- | ----------------------------------- |
 | `/admin/access`        | Hub landing (overview cards)                        | `USER_VIEW`                         |
 | `/admin/users`         | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW`                         |
+| `/admin/sessions`      | Active Admin + POS sessions; logout (not current)   | `USER_VIEW` (logout: `USER_MANAGE`) |
 | `/admin/access/roles`  | Role CRUD + permission editor (full page)           | `ROLE_MANAGE`                       |
 | `/admin/access/matrix` | Read-only role ↔ permission matrix summary          | `ROLE_VIEW`                         |
 
@@ -29,6 +30,7 @@ Sidebar registry (`src/shared/adminSidebarRegistry.ts`):
 - **Verwaltung** group contains nested **`grp-access`** (Zugriff & Rollen):
   - Overview → `/admin/access`
   - Benutzer → `/admin/users`
+  - Sitzungen → `/admin/sessions`
   - Rollen & Berechtigungen → `/admin/access/roles`
   - Berechtigungsübersicht → `/admin/access/matrix`
 

@@ -693,6 +693,12 @@ namespace KasseAPI_Final.Services
                 AuditEventType.DeploymentRollback => AuditLogActions.DEPLOYMENT_ROLLBACK,
                 AuditEventType.DeploymentComplianceApproved => AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED,
                 AuditEventType.SystemCacheCleared => AuditLogActions.SYSTEM_CACHE_CLEARED,
+                AuditEventType.FiskalyCancellationReceiptSigned => AuditLogActions.FISKALY_CANCELLATION_RECEIPT_SIGNED,
+                AuditEventType.FiskalyReceiptOperationFailed => AuditLogActions.FISKALY_RECEIPT_OPERATION_FAILED,
+                AuditEventType.FiskalyReceiptSigned => AuditLogActions.FISKALY_RECEIPT_SIGNED,
+                AuditEventType.FiskalyOperationRetried => AuditLogActions.FISKALY_OPERATION_RETRIED,
+                AuditEventType.FiskalyBatchCompleted => AuditLogActions.FISKALY_BATCH_COMPLETED,
+                AuditEventType.FiskalyErrorReviewUpdated => AuditLogActions.FISKALY_ERROR_REVIEWED,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -754,6 +760,12 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.DEPLOYMENT_ROLLBACK => AuditEventType.DeploymentRollback,
                 AuditLogActions.DEPLOYMENT_COMPLIANCE_APPROVED => AuditEventType.DeploymentComplianceApproved,
                 AuditLogActions.SYSTEM_CACHE_CLEARED => AuditEventType.SystemCacheCleared,
+                AuditLogActions.FISKALY_CANCELLATION_RECEIPT_SIGNED => AuditEventType.FiskalyCancellationReceiptSigned,
+                AuditLogActions.FISKALY_RECEIPT_OPERATION_FAILED => AuditEventType.FiskalyReceiptOperationFailed,
+                AuditLogActions.FISKALY_RECEIPT_SIGNED => AuditEventType.FiskalyReceiptSigned,
+                AuditLogActions.FISKALY_OPERATION_RETRIED => AuditEventType.FiskalyOperationRetried,
+                AuditLogActions.FISKALY_BATCH_COMPLETED => AuditEventType.FiskalyBatchCompleted,
+                AuditLogActions.FISKALY_ERROR_REVIEWED => AuditEventType.FiskalyErrorReviewUpdated,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,

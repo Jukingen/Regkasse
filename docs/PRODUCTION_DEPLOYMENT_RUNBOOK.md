@@ -157,6 +157,87 @@ curl -fsS -H "Authorization: Bearer $TOKEN" \
 
 Trigger a **System** backup from FA (`/backup`) or admin API and confirm the artifact manifest is **not** Fake / `"no real pg_dump"`.
 
+### 4.1 Production System Backup cutover (P0)
+
+Workstation isolated restore is already **Passed**. Do this **on the Production host** before ticking remaining GO_LIVE §1.1 backup boxes. **Status 2026-09-06: not executed** (no Production host from engineering workstation). Do not invent a Passed row.
+
+Template: [`backend/appsettings.Production.example.json`](../backend/appsettings.Production.example.json). Never commit Production secrets.
+
+#### Backup configuration
+
+- [ ] `Backup:ExecutionAdapterKind=PgDump` (startup fail-closed if Fake)
+- [ ] `Backup:PgDumpExecutablePath` — Linux `/usr/bin/pg_dump`; Windows `C:\Program Files\PostgreSQL\18\bin\pg_dump.exe`
+- [ ] `Backup:ArtifactStagingRoot` — e.g. `/var/backups/regkasse/staging` (fast disk, API writable)
+- [ ] `Backup:ExternalArchiveRoot` — **different disk/volume**, e.g. `/var/backups/regkasse/archive`
+- [ ] `Backup:ExternalArchiveMutableTargetAccepted=true` (until WORM — P2)
+- [ ] `Backup:ScheduledBackupEnabled=true` + `ScheduledBackupCron=0 2 * * *` + `WorkerEnabled=true`
+- [ ] `Backup:EncryptionEnabled=true` **and** `Backup:EncryptionKeyBase64` = 32-byte key (secret store). Without the key, encryption is a no-op. Encrypted files start with `RKBAK1`, not `PGDMP` — decrypt before `pg_restore`.
+- [ ] `Backup:FailureAlertEmailRecipients=ops@regkasse.at`
+- [ ] `Email:Smtp` Host + From (and credentials) set; `Email:DevCapture:Enabled=false`
+- [ ] `BackupReVerification:Enabled=true`
+
+#### Restore configuration (isolated clone only)
+
+- [ ] `RestoreVerification:IsolatedPgRestoreEnabled=true`
+- [ ] `RestoreVerification:IsolatedRestoreAdminConnectionStringName=RestoreAdmin`
+- [ ] `ConnectionStrings:RestoreAdmin` → **postgres maintenance DB** with `CREATEDB` — **not** Production `DefaultConnection`
+- [ ] `RestoreVerification:PgRestoreExecutablePath` — Linux `/usr/bin/pg_restore`; Windows `pg_restore.exe`
+- [ ] `RestoreVerification:ScheduledWeeklyDrillEnabled=true`
+- [ ] `RestoreVerification:AllowNonPgDumpBackupSource=false` (`SystemComposite` is already PgDump-equivalent)
+- [ ] `RestoreVerification:IncludeLiveIntegrityChecks=false` unless Production live integrity is clean
+- [ ] `RestoreVerification:FiscalValidationConnectionStringName` **unset** (run fiscal SQL on the clone, never on live)
+
+#### Test steps (commands)
+
+```bash
+export API_BASE=https://api.regkasse.at
+# Super Admin JWT. Ambient tenant is OK — Super Admin still enqueues System.
+export SUPERADMIN_JWT=…
+
+# 1) Trigger System backup (same path as scheduled cron)
+curl -fsS -X POST "$API_BASE/api/settings/backup/now" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT"
+# Response includes run id. Status Succeeded = 3.
+
+# 2) Poll run
+RUN_ID=<uuid>
+curl -fsS -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  "$API_BASE/api/admin/backup/runs/$RUN_ID"
+
+# 3) Dump magic (unencrypted: PGDMP). Encrypted: first 6 bytes ASCII RKBAK1.
+DUMP=/var/backups/regkasse/staging/backup_deployment_system_*.dump
+head -c 5 "$DUMP" | xxd
+# Expect 50 47 44 4d 50  = PGDMP   OR   52 4b 42 41 4b  = RKBAK
+
+# 4) Archive copy (run id without dashes)
+ls -la /var/backups/regkasse/archive/${RUN_ID//-/}/
+# Expect .dump + .system.zip + _manifest.json
+
+# 5) Isolated restore drill — enqueue only; worker picks latest eligible System dump.
+# Body may be empty or {"idempotencyKey":"…"}. Do not pass backupRunId (not accepted).
+# Never restore onto kasse_prod / DefaultConnection.
+curl -fsS -X POST "$API_BASE/api/admin/restore-verification/trigger" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+# Poll GET /api/admin/restore-verification/runs/{id} until Succeeded.
+# Confirm L4 passed. Fiscal SQL: scripts/sql/fiscal_go_live_validation.sql on the clone only.
+
+# 6) FA Verify (settings.manage): https://admin.regkasse.at/backup/runs → Details → Verifizierung → Prüfen
+curl -fsS -X POST "$API_BASE/api/admin/backup/$RUN_ID/verify" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT"
+```
+
+Confirm the restore-verification trigger path in [`restore-verification-drill-runbook.md`](restore-verification-drill-runbook.md) if the FA button is used instead of curl.
+
+#### Alert testing
+
+- [ ] Activity feed: `BackupSucceeded` after the run; `BackupFailed` on a **staging** failure (not Production data)
+- [ ] Email: `EmailBackupAlertPublisher` sends only on **Failed / VerificationFailed / RpoOverdue** (not success). Confirm inbox `ops@regkasse.at`
+- [ ] Webhook (optional): `OperationalDr:Alerts:WebhookEnabled=true` + `WebhookUrl`. Payload `kind`, `backupRunId`, `message` (camelCase)
+
+To exercise failure mail/webhook without touching Production data: use a staging host, or temporarily point `WebhookUrl` at a request bin and trigger a **non-destructive** failure (e.g. stop `pg_dump` path). Do **not** restore onto Production `DefaultConnection`.
+
 Full smoke (login + optional DEP):
 
 ```bash

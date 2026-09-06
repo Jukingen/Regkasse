@@ -150,6 +150,20 @@ public sealed class FiskalyTseService : IFiskalyTseService
         }
     }
 
+    public Task<FiskalySignedReceipt> CancelReceiptAsync(
+        string tssId,
+        string txId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return SignTransactionAsync(
+            tssId,
+            txId,
+            data.WithReceiptType(FiskalyReceiptSchemaMapper.ReceiptTypeCancellation),
+            cancellationToken);
+    }
+
     public async Task<FiskalyScuInfo?> GetScuAsync(
         string? signatureCreationUnitId = null,
         CancellationToken cancellationToken = default)

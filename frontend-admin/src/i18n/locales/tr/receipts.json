@@ -48,7 +48,8 @@
     "downloadFailed": "Toplu indirme basarisiz.",
     "allFailed": "Hicbir PDF indirilemedi.",
     "tooLarge": "Cok fazla dosya (maksimum {{max}}).",
-    "cancelled": "Indirme iptal edildi."
+    "cancelled": "Indirme iptal edildi.",
+    "selectedSummaryStorno": "{{total}} secildi · PDF: {{pdf}} · storno: {{storno}}"
   },
   "filters": {
     "placeholderReceiptNumber": "Fis numarasi",

@@ -556,7 +556,7 @@ Hub: [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md). Always-applied: [`AGENTS.
 - Storage usage alerts at **80%** staging disk (`Backup:StagingDiskUsageAlertPercent`); FA dashboard warning + periodic `StorageAlertService` (default every 6h).
 - Automatic cleanup of expired succeeded backups (`BackupSucceededRunRetentionCleaner`).
 - Optional smart GFS retention (`Backup:SmartRetentionEnabled` → `SmartRetentionService`: 7 daily / 4 weekly / 12 monthly / 7 yearly).
-- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤7d / Warm ≤30d / Cold &gt;30d; Cold prefers `ExternalArchiveRoot`).
+- Optional storage tiers (`Backup:StorageTierManagementEnabled` → `StorageTierService`: Hot ≤30d / Warm ≤90d / Cold &gt;90d; Super Admin FA `/backup/retention`; Cold upload via `ICloudStorageService`). System backups keep a 7-year Legal Hold (BAO §132).
 - Enqueue storage budget guard (~**10 GB** summed succeeded dumps via `BackupService.MaxStorageBytes`); `StorageAlertService` also alerts at **80%** of that budget.
 
 ### FA (role-aware)

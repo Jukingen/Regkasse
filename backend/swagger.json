@@ -16549,6 +16549,44 @@
         "tags": [
           "Admin"
         ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -16559,6 +16597,16 @@
                   "items": {
                     "$ref": "#/components/schemas/AdminActiveSessionDto"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -16594,6 +16642,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -16621,6 +16679,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TerminateSessionResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/{sessionId}/logout": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -16718,6 +16836,93 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TerminateSessionsCountDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/logout-all": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionsCountDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sessions/logout-bulk": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutBulkSessionsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminateSessionsCountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -40814,6 +41019,63 @@
         }
       }
     },
+    "/api/pos/receipts/recent": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfReceiptListItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/receipts": {
       "get": {
         "tags": [
@@ -40835,6 +41097,15 @@
               "type": "integer",
               "format": "int32",
               "default": 20
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
             }
           }
         ],
@@ -40988,6 +41259,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/receipts/{receiptId}/cancel": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PosReceiptCancelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StornoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StornoResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StornoResponse"
                 }
               }
             }
@@ -44887,6 +45235,106 @@
         }
       }
     },
+    "/api/Tagesabschluss/{id}/submit-fiskaly": {
+      "post": {
+        "tags": [
+          "Tagesabschluss"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Tagesabschluss/{id}/submit-finanzonline": {
+      "post": {
+        "tags": [
+          "Tagesabschluss"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiskalyReceiptEnvelopeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Tagesabschluss/closing/{closingId}/report.pdf": {
       "get": {
         "tags": [
@@ -47309,6 +47757,10 @@
             "type": "string",
             "nullable": true
           },
+          "platformLabel": {
+            "type": "string",
+            "nullable": true
+          },
           "ipAddress": {
             "type": "string",
             "nullable": true
@@ -47320,6 +47772,10 @@
           "tenantId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "tenantName": {
+            "type": "string",
             "nullable": true
           },
           "startedAtUtc": {
@@ -47334,6 +47790,10 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
           },
           "isActive": {
             "type": "boolean"
@@ -50387,6 +50847,12 @@
           74,
           75,
           76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
           99
         ],
         "type": "integer",
@@ -56351,6 +56817,7 @@
           },
           "color": {
             "maxLength": 20,
+            "pattern": "^$|^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
             "type": "string",
             "nullable": true
           },
@@ -63933,6 +64400,66 @@
         },
         "additionalProperties": false
       },
+      "FiskalyReceiptDataDto": {
+        "type": "object",
+        "properties": {
+          "receiptId": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "signature": {
+            "type": "string",
+            "nullable": true
+          },
+          "qrCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalyReceiptEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FiskalyReceiptDataDto"
+          },
+          "error": {
+            "$ref": "#/components/schemas/FiskalyReceiptErrorDto"
+          },
+          "historyId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiskalyReceiptErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FiskalyScuSetupDto": {
         "type": "object",
         "properties": {
@@ -68943,6 +69470,24 @@
             "type": "string",
             "nullable": true,
             "deprecated": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LogoutBulkSessionsRequestDto": {
+        "required": [
+          "sessionIds"
+        ],
+        "type": "object",
+        "properties": {
+          "sessionIds": {
+            "maxItems": 200,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
         "additionalProperties": false
@@ -75238,6 +75783,17 @@
         },
         "additionalProperties": false
       },
+      "PosReceiptCancelRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PosSelectableListResult": {
         "type": "object",
         "properties": {
@@ -77376,6 +77932,10 @@
             "type": "number",
             "format": "double"
           },
+          "netTotal": {
+            "type": "number",
+            "format": "double"
+          },
           "taxAmount": {
             "type": "number",
             "format": "double"
@@ -77563,6 +78123,10 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
           },
           "rksvSpecialReceiptKind": {
             "type": "string",
@@ -83975,6 +84539,18 @@
             "nullable": true
           },
           "finanzOnlineStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiskalyStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiskalyReceiptId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiskalyError": {
             "type": "string",
             "nullable": true
           },
@@ -94993,6 +95569,7 @@
           },
           "color": {
             "maxLength": 20,
+            "pattern": "^$|^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
             "type": "string",
             "nullable": true
           },

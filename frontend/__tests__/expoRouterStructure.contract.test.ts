@@ -31,6 +31,7 @@ describe('expo-router structure contract', () => {
     expect(exists('(tabs)/receipt-list.tsx')).toBe(true);
     expect(exists('(tabs)/settings.tsx')).toBe(true);
     expect(exists('(tabs)/admin-menu.tsx')).toBe(true);
+    expect(exists('(tabs)/fiskaly-operations.tsx')).toBe(true);
   });
 
   test('payment / operational stack screens exist', () => {
@@ -58,7 +59,7 @@ describe('expo-router structure contract', () => {
     expect(settingsSource).not.toContain("router.push('/(screens)/admin-menu'");
   });
 
-  test('Belegliste is hidden from the tab bar and opened from UserMenu', () => {
+  test('Belegliste is hidden from the tab bar and opened from UserMenu and cash register', () => {
     const tabsLayout = fs.readFileSync(path.join(appRoot, '(tabs)/_layout.tsx'), 'utf8');
     const receiptListBlock = tabsLayout.slice(
       tabsLayout.indexOf('name="receipt-list"'),
@@ -72,6 +73,20 @@ describe('expo-router structure contract', () => {
     );
     expect(userMenu).toContain("router.push('/(tabs)/receipt-list'");
     expect(userMenu).toContain("hasPermission(user, 'sale.view')");
+
+    const cashRegister = fs.readFileSync(path.join(appRoot, '(tabs)/cash-register.tsx'), 'utf8');
+    expect(cashRegister).toContain("router.push('/(tabs)/receipt-list'");
+    expect(cashRegister).toContain('onOpenReceiptList');
+    expect(cashRegister).toContain("hasPermission(user, 'sale.view')");
+  });
+
+  test('Fiskaly operations tab is hidden from the tab bar', () => {
+    const tabsLayout = fs.readFileSync(path.join(appRoot, '(tabs)/_layout.tsx'), 'utf8');
+    const block = tabsLayout.slice(
+      tabsLayout.indexOf('name="fiskaly-operations"'),
+      tabsLayout.indexOf('name="payment"')
+    );
+    expect(block).toContain('href: null');
   });
 
   test('auth layout redirects authenticated users to cash-register', () => {

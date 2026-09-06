@@ -157,5 +157,64 @@ public sealed class TseServiceFiskalySigningTests
                     && d.AmountsPerVatRate.Count > 0),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+        fiskaly.Verify(
+            s => s.CancelReceiptAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateInvoiceSignature_NegativeAmount_SignsCancellationReceipt()
+    {
+        await using var db = CreateDb();
+        var registerId = Guid.NewGuid();
+        var fiskaly = new Mock<IFiskalyTseService>();
+        fiskaly.Setup(s => s.IsReadyToSignAsync(registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        fiskaly.Setup(s => s.CancelReceiptAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalySignedReceipt(
+                Guid.NewGuid().ToString("D"),
+                registerId.ToString("D"),
+                "SIGNED",
+                "_R1-AT1_KASSE-1_2_2026-08-16T12:00:00_-10,00_0,00_0,00_0,00_0,00_abc_123_0_sig",
+                "2",
+                "TEST",
+                TimeSignature: 2,
+                Signed: true,
+                CashRegisterSerialNumber: "KASSE-1",
+                ReceiptType: "CANCELLATION"));
+
+        var svc = CreateService(
+            db,
+            fiskaly.Object,
+            new FiskalyOptions { Enabled = true, ApiKey = "k", ApiSecret = "s" },
+            Environments.Production);
+
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            svc.CreateInvoiceSignatureAsync(registerId, "AT-2", -10m, "KASSE-1"));
+
+        fiskaly.Verify(
+            s => s.CancelReceiptAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.Is<FiskalyTransactionData>(d =>
+                    d.ReceiptType == "CANCELLATION"
+                    && d.TotalAmount < 0m),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        fiskaly.Verify(
+            s => s.SignTransactionAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

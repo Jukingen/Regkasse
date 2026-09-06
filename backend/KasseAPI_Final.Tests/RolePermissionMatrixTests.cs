@@ -157,6 +157,39 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_FiskalyOperations_OwnTenant_NotConfig()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsNormal));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsCancel));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsNullbeleg));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsStartbeleg));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsMonatsbeleg));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsJahresbeleg));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsSchlussbeleg));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsTagesabschluss));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsDepExport));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyHistoryView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyHistoryRetry));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsConfig));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_FiskalyOperationsView()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.FiskalyOperationsView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.FiskalyHistoryView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.FiskalyOperationsConfig));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_FiskalyOperationsConfig()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.FiskalyOperationsView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.FiskalyOperationsConfig));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_Has_RksvStartbelegCreate()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvStartbelegCreate));

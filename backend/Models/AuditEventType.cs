@@ -164,5 +164,41 @@ public enum AuditEventType
     /// <summary>Super Admin changed the instance-wide RKSV Demo/Production overlay.</summary>
     RksvRuntimeConfigChanged = 76,
 
+    /// <summary>POS/FA storno signed at fiskaly SIGN AT as receipt_type=CANCELLATION.</summary>
+    FiskalyCancellationReceiptSigned = 77,
+
+    /// <summary>SuperAdmin Fiskaly/RKSV receipt operation failed (structured error envelope).</summary>
+    FiskalyReceiptOperationFailed = 78,
+
+    /// <summary>SuperAdmin Fiskaly/RKSV receipt operation succeeded (normal, storno, or Sonderbeleg).</summary>
+    FiskalyReceiptSigned = 79,
+
+    /// <summary>Failed Fiskaly operation retried from FA history.</summary>
+    FiskalyOperationRetried = 80,
+
+    /// <summary>FA batch Fiskaly storno, Sonderbelege, or SuperAdmin DEP export finished (summary).</summary>
+    FiskalyBatchCompleted = 81,
+
+    /// <summary>Failed Fiskaly history row marked resolved / known issue / reopened.</summary>
+    FiskalyErrorReviewUpdated = 82,
+
+    /// <summary>Super Admin changed backup Hot/Warm/Cold legal retention policy.</summary>
+    BackupRetentionPolicyUpdated = 83,
+
+    /// <summary>Backup artifacts moved to Cold / WORM archive.</summary>
+    BackupMovedToColdStorage = 84,
+
+    /// <summary>Legal hold set or cleared on a backup run.</summary>
+    BackupLegalHoldChanged = 85,
+
+    /// <summary>Backup run enqueued (manual, scheduled cron, or operator API).</summary>
+    BackupCreated = 86,
+
+    /// <summary>Backup artifact downloaded to an operator workstation.</summary>
+    BackupDownloaded = 87,
+
+    /// <summary>Backup checksum / content verification completed.</summary>
+    BackupVerified = 88,
+
     Other = 99
 }

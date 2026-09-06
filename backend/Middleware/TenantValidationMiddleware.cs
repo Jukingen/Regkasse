@@ -53,8 +53,12 @@ public class TenantValidationMiddleware
     /// <item><description><c>/api/admin/trials</c> — SaaS trial dashboard / conversion (SystemCritical).</description></item>
     /// <item><description><c>/api/admin/fiskaly</c> — Super Admin may set a global Fiskaly overlay without ambient tenant. Mandanten-Admin still needs ambient tenant (tenant overlay).</description></item>
     /// <item><description><c>/api/admin/limits</c> — usage is ambient-tenant; dashboard may aggregate all mandants for Super Admin.</description></item>
-    /// <item><description><c>/api/admin/sessions</c> — Super Admin force-logout / session list (deployment-wide <c>auth_sessions</c>).</description></item>
+    /// <item><description><c>/api/admin/sessions</c> — Super Admin may list/terminate deployment-wide <c>auth_sessions</c> without ambient tenant. Mandanten-Admin still needs ambient tenant (own-tenant sessions only).</description></item>
     /// <item><description><c>/api/admin/rksv/config</c> — instance-wide RKSV Demo/Production overlay (exact path; not <c>/api/admin/rksv/*</c> DEP).</description></item>
+    /// <item><description><c>/api/admin/backup</c> — System dump trigger/list/download (deployment-wide).</description></item>
+    /// <item><description><c>/api/admin/restore-verification</c> — restore drills (isolated DB, not mandant data).</description></item>
+    /// <item><description><c>/api/admin/restore</c> — Super Admin validation-only restore (segment-safe; not <c>restore-verification</c>).</description></item>
+    /// <item><description><c>/api/settings/backup</c> — legacy System enqueue (<c>/now</c>) and backup settings.</description></item>
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
@@ -70,6 +74,10 @@ public class TenantValidationMiddleware
         "/api/admin/limits",
         "/api/admin/sessions",
         "/api/admin/rksv/config",
+        "/api/admin/backup",
+        "/api/admin/restore-verification",
+        "/api/admin/restore",
+        "/api/settings/backup",
     ];
 
     private static readonly string[] SuperAdminExactExemptPaths =

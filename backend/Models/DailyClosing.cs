@@ -141,6 +141,23 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? FinanzOnlineReferenceId { get; set; }
 
+        /// <summary>Fiskaly SIGN AT receipt UUID for this closing (PUT /receipt). Does not replace <see cref="TseSignature"/>.</summary>
+        [MaxLength(80)]
+        [Column("fiskaly_receipt_id")]
+        public string? FiskalyReceiptId { get; set; }
+
+        /// <summary><see cref="DailyClosingFiskalyStatuses"/> — Pending, Submitted, Failed, or Skipped.</summary>
+        [MaxLength(20)]
+        [Column("fiskaly_status")]
+        public string? FiskalyStatus { get; set; }
+
+        [MaxLength(500)]
+        [Column("fiskaly_error")]
+        public string? FiskalyError { get; set; }
+
+        [Column("fiskaly_submitted_at_utc")]
+        public DateTime? FiskalySubmittedAtUtc { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -151,5 +168,17 @@ namespace KasseAPI_Final.Models
 
         [ForeignKey("CashRegisterId")]
         public virtual CashRegister? CashRegister { get; set; }
+    }
+
+    /// <summary>Fiskaly SIGN AT submission state for a persisted <see cref="DailyClosing"/>.</summary>
+    public static class DailyClosingFiskalyStatuses
+    {
+        public const string Pending = "Pending";
+        public const string Submitted = "Submitted";
+        public const string Failed = "Failed";
+        public const string Skipped = "Skipped";
+
+        public static bool IsSubmitted(string? status) =>
+            string.Equals(status, Submitted, StringComparison.OrdinalIgnoreCase);
     }
 }

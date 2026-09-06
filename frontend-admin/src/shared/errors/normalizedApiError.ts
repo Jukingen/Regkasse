@@ -14,6 +14,8 @@ export type NormalizedApiError = {
   code: string | undefined;
   /** Single-line server/error text (for copyable raw block) */
   rawMessage: string | undefined;
+  /** Nested Fiskaly/RKSV `error.details` (or non-code `details` string). */
+  details: string | undefined;
   /** ModelState / validation: field → message list */
   fieldErrors: Record<string, string[]> | undefined;
   severity: ApiErrorSeverity | undefined;
@@ -132,6 +134,7 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
       httpStatus: undefined,
       code: undefined,
       rawMessage: undefined,
+      details: undefined,
       fieldErrors: undefined,
       severity: undefined,
       retryable: undefined,
@@ -153,6 +156,7 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
 
   const data = e.response?.data;
   const d = isRecord(data) ? data : undefined;
+  const nestedError = isRecord(d?.error) ? d.error : undefined;
 
   const normalizedMsg = e.normalized?.message;
   const normalizedTrimmed =
@@ -161,7 +165,17 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
   const fieldErrors = d && d.errors != null ? collectFieldErrors(d.errors) : undefined;
   const validationFirst = d?.errors != null ? firstValidationMessage(d.errors) : undefined;
 
+  const nestedDetails =
+    typeof nestedError?.details === 'string' && nestedError.details.trim()
+      ? nestedError.details.trim()
+      : undefined;
+  const topDetails =
+    typeof d?.details === 'string' && d.details.trim() && !isMachineErrorCode(d.details.trim())
+      ? d.details.trim()
+      : undefined;
+
   const rawMessage =
+    (typeof nestedError?.message === 'string' && nestedError.message.trim()) ||
     (typeof d?.message === 'string' && d.message.trim()) ||
     validationFirst ||
     (typeof d?.title === 'string' && d.title.trim()) ||
@@ -175,12 +189,13 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
 
   return {
     httpStatus,
-    code: pickBackendCode(d),
+    code: pickBackendCode(d) ?? pickBackendCode(nestedError),
     rawMessage: rawMessage || undefined,
+    details: nestedDetails ?? topDetails,
     fieldErrors,
-    severity: pickSeverity(d),
-    retryable: pickRetryable(d),
-    remediationHint: pickRemediation(d),
-    traceId: pickTraceId(d),
+    severity: pickSeverity(d) ?? pickSeverity(nestedError),
+    retryable: pickRetryable(d) ?? pickRetryable(nestedError),
+    remediationHint: pickRemediation(d) ?? pickRemediation(nestedError),
+    traceId: pickTraceId(d) ?? pickTraceId(nestedError),
   };
 }

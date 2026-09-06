@@ -147,7 +147,10 @@
         "receivedLabel": "Amount received",
         "receivedA11y": "Amount received in euros",
         "changeLabel": "Change",
-        "placeholder": "0.00"
+        "placeholder": "0.00",
+        "optionalHint": "Optional — leave empty for exact payment",
+        "belowTotalTitle": "Amount too low",
+        "belowTotalMessage": "Amount received must be at least {{amount}}."
       },
       "remainingAmount": "Remaining amount",
       "notes": {

@@ -6,9 +6,35 @@ Implication rules: `PermissionImplication` (composites + manage→view + digital
 **Source of truth:** `backend/Authorization/AppPermissions.cs`, `RolePermissionMatrix.cs`, `PermissionImplication.cs`  
 **FA mirror:** `frontend-admin/src/shared/auth/permissionImplication.ts` (+ `hasPermission` uses implication)  
 **Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
-**Last updated:** 2026-08-26
+**Last updated:** 2026-08-28
 
 Legend: ✅ granted by default · ❌ not granted · *(via implication)* satisfied without an explicit matrix row.
+
+---
+
+## Fiskaly operations
+
+FA signing test UI: `/admin/tse/fiskaly/test` (`system.critical`). Receipt/batch APIs: `POST /api/admin/fiskaly/receipt/*`. Tenant isolation: Manager uses ambient JWT tenant (other tenant’s cash register → HTTP **404**). Missing permission → HTTP **403**. SuperAdmin compact JWT (`system.critical`) satisfies every key.
+
+FON/SCU/cash-register **initialize** stays SuperAdmin (`fiskaly.operations.config`). The tenant Fiskaly enable overlay (`POST /api/admin/fiskaly/settings`) remains `cash_register.manage`.
+
+No EF migration: keys are catalog/JWT (`RolePermissionMatrix`). Existing sessions pick up new Manager claims on the next login.
+
+| Permission | SuperAdmin | Manager | Cashier |
+|------------|------------|---------|---------|
+| `fiskaly.operations.view` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.normal` | ✅ | ✅ (own tenant; TEST only) | ❌ |
+| `fiskaly.operations.cancel` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.nullbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.startbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.monatsbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.jahresbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.schlussbeleg` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.tagesabschluss` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.dep-export` | ✅ | ✅ (own tenant) | ❌ |
+| `fiskaly.operations.config` | ✅ | ❌ | ❌ |
+
+Each operation key (and `dep-export` / `config`) implies `fiskaly.operations.view`.
 
 ---
 

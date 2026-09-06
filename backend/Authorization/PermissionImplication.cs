@@ -271,6 +271,17 @@ public static class PermissionImplication
                 AppPermissions.DigitalOrdersManage,
             ],
             [AppPermissions.DailyClosingExecute] = [AppPermissions.DailyClosingView],
+            [AppPermissions.FiskalyOperationsNormal] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsCancel] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsNullbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsStartbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsMonatsbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsJahresbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsSchlussbeleg] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsTagesabschluss] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsDepExport] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyOperationsConfig] = [AppPermissions.FiskalyOperationsView],
+            [AppPermissions.FiskalyHistoryRetry] = [AppPermissions.FiskalyHistoryView],
         };
 
         return map.ToFrozenDictionary(

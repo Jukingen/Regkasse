@@ -270,6 +270,11 @@ const nextConfig = {
         destination: '/rksv/sonderbelege?focus=test-helper',
         permanent: false,
       },
+      {
+        source: '/admin/fiskaly/operations',
+        destination: '/admin/tse/fiskaly/test',
+        permanent: false,
+      },
     ];
   },
 };

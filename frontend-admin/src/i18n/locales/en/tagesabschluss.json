@@ -120,6 +120,7 @@
     "colStatus": "Status",
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
+    "colFiskaly": "Fiskaly",
     "closingTypes": {
       "Daily": "Daily",
       "Monthly": "Monthly",
@@ -154,6 +155,21 @@
     "historyBackdatedTag": "Late",
     "pdfUnavailable": "No PDF is available for this entry.",
     "pdfAutoDownloadFailed": "Closing succeeded, but the PDF could not be downloaded."
+  },
+  "fiskaly": {
+    "colStatus": "Fiskaly",
+    "send": "Send to Fiskaly",
+    "sendSuccess": "Daily closing submitted to Fiskaly.",
+    "sendFailed": "Fiskaly submission failed.",
+    "notSent": "Not sent yet",
+    "receiptId": "Fiskaly receipt ID",
+    "hint": "SIGN AT has no daily-close type. The closing is sent as a €0.00 receipt labeled Tagesabschluss. The local TSE signature is not replaced.",
+    "status": {
+      "Submitted": "Submitted",
+      "Failed": "Failed",
+      "Pending": "Pending",
+      "Skipped": "Skipped"
+    }
   },
   "errors": {
     "unknown": "Unknown error",

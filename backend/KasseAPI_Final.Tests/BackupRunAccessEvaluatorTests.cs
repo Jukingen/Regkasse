@@ -71,6 +71,24 @@ public sealed class BackupRunAccessEvaluatorTests
     }
 
     [Fact]
+    public void IsRunAccessible_super_admin_with_ambient_tenant_sees_system_run()
+    {
+        var run = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            Status = BackupRunStatus.Succeeded,
+            Strategy = BackupStrategyKind.System,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = BackupLogicalDumpAdapterKinds.SystemComposite,
+            TenantId = null,
+        };
+
+        var scope = new BackupRunAccessScope(IsSuperAdmin: true, TenantA, "sa-1");
+        Assert.True(scope.IsDeploymentWide);
+        Assert.True(BackupRunAccessEvaluator.IsRunAccessible(run, scope));
+    }
+
+    [Fact]
     public void IsRunAccessible_denies_scheduled_system_run_for_manager()
     {
         var run = new BackupRun

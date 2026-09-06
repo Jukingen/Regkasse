@@ -1,6 +1,7 @@
 using Cronos;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
 using Microsoft.EntityFrameworkCore;
@@ -17,17 +18,20 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupOperationalReadiness _readiness;
     private readonly TimeProvider _timeProvider;
+    private readonly IAuditLogService _audit;
     private readonly ILogger<BackupScheduledEnqueueService> _logger;
 
     public BackupScheduledEnqueueService(
         IOptionsMonitor<BackupOptions> options,
         IBackupOperationalReadiness readiness,
         TimeProvider timeProvider,
+        IAuditLogService audit,
         ILogger<BackupScheduledEnqueueService> logger)
     {
         _options = options;
         _readiness = readiness;
         _timeProvider = timeProvider;
+        _audit = audit;
         _logger = logger;
     }
 
@@ -172,6 +176,24 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
             adapterKind,
             useTenantSchedules ? "tenant_schedules" : useDbSchedule ? "database" : "configuration",
             dueTenantConfigs.Count);
+
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action: "BACKUP_CREATED",
+                entityType: "BackupRun",
+                userId: "system",
+                userRole: "System",
+                description: $"Scheduled backup run {run.Id} enqueued (adapter={adapterKind}).",
+                status: AuditLogStatus.Success,
+                requestData: new { run.Id, adapterKind, trigger = "Scheduled" },
+                actionType: AuditEventType.BackupCreated,
+                entityId: run.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to audit scheduled backup enqueue for run {RunId}", run.Id);
+        }
 
         return true;
     }

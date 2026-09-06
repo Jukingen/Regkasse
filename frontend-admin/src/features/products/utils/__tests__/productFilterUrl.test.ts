@@ -6,6 +6,7 @@ import {
 } from '../productFilterUrl';
 import {
   findCategoryByName,
+  resolveProductCategoryDisplay,
   resolveProductCategoryIds,
   resolveShareableCategoryName,
 } from '../resolveProductCategoryFilter';
@@ -19,6 +20,22 @@ describe('resolveProductCategoryFilter', () => {
   it('matches category names case-insensitively', () => {
     expect(findCategoryByName(CATEGORIES, 'kebab')?.id).toBe('cat-kebab');
     expect(findCategoryByName(CATEGORIES, '  Kebab ' )?.name).toBe('Kebab');
+  });
+
+  it('matches category slug keys like döner-box to the display name', () => {
+    const catalog = [
+      { id: 'cat-kebab', name: 'Kebab', key: 'döner-box', sortOrder: 1 },
+    ];
+    expect(findCategoryByName(catalog, 'döner-box')?.name).toBe('Kebab');
+    expect(resolveProductCategoryIds({ categoryName: 'döner-box' }, catalog)).toEqual(['cat-kebab']);
+    expect(
+      resolveProductCategoryDisplay({ category: 'döner-box' }, catalog)
+    ).toEqual({
+      id: 'cat-kebab',
+      name: 'Kebab',
+      color: undefined,
+    });
+    expect(resolveShareableCategoryName({ categoryName: 'döner-box' }, catalog)).toBe('Kebab');
   });
 
   it('resolves shareable ?category=Name to a single id', () => {

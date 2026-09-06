@@ -204,6 +204,11 @@ export interface CompanySettings {
   tenant?: Tenant;
   tenantId: string;
   /**
+   * @maxLength 500
+   * @nullable
+   */
+  thankYouMessage?: string | null;
+  /**
    * @minLength 1
    * @maxLength 20
    */

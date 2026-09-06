@@ -16,6 +16,32 @@ public sealed class BackupRunTenantAccessServiceTests
             .Options);
 
     [Fact]
+    public async Task SuperAdmin_with_ambient_tenant_sees_system_run()
+    {
+        await using var db = CreateDb();
+        var runId = Guid.NewGuid();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = BackupLogicalDumpAdapterKinds.SystemComposite,
+            Strategy = BackupStrategyKind.System,
+            TenantId = null,
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new BackupRunTenantAccessService(db);
+        var run = await svc.TryGetAccessibleRunAsync(
+            runId,
+            isSuperAdmin: true,
+            callerTenantId: Guid.Parse("b0000001-0001-4001-8001-000000000001"),
+            cancellationToken: CancellationToken.None);
+        Assert.NotNull(run);
+        Assert.Equal(runId, run!.Id);
+    }
+
+    [Fact]
     public async Task SuperAdmin_without_tenant_sees_any_run()
     {
         await using var db = CreateDb();

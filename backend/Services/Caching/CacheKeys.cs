@@ -96,6 +96,15 @@ public static class CacheKeys
     public const string PaymentVolumeAnalytics = "admin_payment_volume_analytics_{0}_{1}_{2}";
 
     /// <summary>
+    /// Fiskaly error analysis stats snapshot.
+    /// Format: <c>fiskaly_error_stats_{scope}_{from}_{to}_{op}_{tenant}</c>.
+    /// </summary>
+    public const string FiskalyErrorStats = "fiskaly_error_stats_{0}_{1}_{2}_{3}_{4}";
+
+    /// <summary>Prefix shared by Fiskaly error stats keys (invalidate on review).</summary>
+    public const string FiskalyErrorStatsPrefix = "fiskaly_error_stats_";
+
+    /// <summary>
     /// Formats a template from this class (e.g. <see cref="LicenseStatus"/>) with the given arguments.
     /// </summary>
     public static string Format(string key, params object[] args) =>

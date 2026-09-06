@@ -32,4 +32,7 @@ public enum BackupAlertKind
     /// (see <c>BackupRpoOverdueAlertService</c>).
     /// </summary>
     RpoOverdue = 10,
+
+    /// <summary>Indicative monthly storage cost exceeded <c>Backup:StorageCostAlertEurPerMonth</c>.</summary>
+    StorageCostHigh = 11,
 }

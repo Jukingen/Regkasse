@@ -9,7 +9,7 @@
 | **Target go-live date** | [YYYY-MM-DD] |
 | **Programme owner** | [Name] |
 | **ComplianceOfficer** | [Name] |
-| **Last updated** | 2026-08-17 |
+| **Last updated** | 2026-09-06 |
 
 **Production hosts**
 
@@ -37,7 +37,8 @@ Code can fail closed and document gates. It cannot replace DNS, vendor keys, a r
 | `/metrics` | IP allowlist (not JWT) | Scrape from private CIDR; `AllowedCidrs` if Prometheus is public |
 | POS `console.log` | Gated via `safeLog` / `__DEV__` | — |
 | Alertmanager | Example: Slack + email `ops@regkasse.at` + optional PagerDuty; tracked file still **null**; `scripts/ops/test-alertmanager-routing.ps1` | Render + mount on host; AM was not running on the workstation (127.0.0.1:9093) |
-| Backup restore drill | Postgres 18 up locally; **no System dump** — [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) | Isolated `pg_restore` of a Succeeded dump |
+| Backup restore drill | Local System dump + isolated `pg_restore` **Passed** 2026-09-06 14:16 UTC (drill `67edd366-…`) — [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) | Repeat on the **Production** host; dual Super Admin approval still required there |
+| Production System Backup | Template + operator checklist ready — [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.1 (`PgDump`, archive, encryption+key, `ops@regkasse.at`, isolated weekly drill) | **Not executed** 2026-09-06 — no Production host. First Succeeded dump + archive + alerts still required |
 | TSE / FON Production | [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md); startup lock if misconfigured | LIVE SCU + FON Real credentials; cutover checklists |
 | §8 sign-off | Packet ready — [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) | Named humans sign after host evidence |
 
@@ -47,7 +48,7 @@ Code can fail closed and document gates. It cannot replace DNS, vendor keys, a r
 
 1. **TSE Production Configuration** (P0)  
 2. **FinanzOnline Production Configuration** (P0)  
-3. **Backup Strategy** (P1)  
+3. **Production System Backup** (P0 remaining) — PgDump on the Production host, first Succeeded dump + archive, email/webhook alerts. Workstation isolated restore drill is **Passed**. Tenant Validation Restore is **postponed to P2**.  
 4. **Monitoring Setup** (P1)  
 5. **Customer Onboarding Process** (P2)
 
@@ -88,14 +89,15 @@ Maps to readiness Weeks **1–4** (DNS/TLS, TSE/FON, backup, monitoring).
   - [ ] `ASPNETCORE_ENVIRONMENT=Production` confirmed on API
 
 - [ ] **Backup strategy**
-  - [ ] Automated System backup schedule (cron) enabled
-  - [ ] Tenant backup available to Mandanten-Admin (`backup.manage`)
+  - [ ] Automated System backup schedule (cron) enabled **on Production** (`Backup:ScheduledBackupEnabled` + `ScheduledBackupCron`)
+  - [ ] Tenant backup available to Mandanten-Admin (`backup.manage`) — Tenant **validation restore** (Manager self-service) is **P2 / postponed**
   - [ ] Retention: Tenant **~30d**, System **~90d** (or documented policy)
-  - [ ] Restore **validation** on isolated DB tested (dual Super Admin approval understood) — evidence: [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) (**not executed** as of 2026-08-17)
+  - [x] Restore **validation** on isolated DB tested (dual Super Admin approval understood) — evidence: [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md) (**PASSED** 2026-09-06 workstation, latest drill `67edd366-9bce-498b-91c9-5e7174b977ac` on System dump `329398a6-4264-48d9-9e02-98387f522bca`; L4 passed; fiscal SQL `RESULT: OK` on clone. Production host drill still required.)
   - [ ] **No** automatic restore to production
   - [ ] Mandanten-Admin can list/download **own** tenant packages; cannot see System dumps
-  - [ ] Backup failure alerts configured (activity + Slack/on-call)
+  - [ ] Backup failure alerts configured (activity + email `Backup:FailureAlertEmailRecipients` / webhook `OperationalDr:Alerts`) — **Production host evidence required**
   - [ ] Disk usage alert ~**80%** on backup staging + export volumes
+  - [ ] First Production System backup Succeeded + archive copy verified — cutover: [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.1
 
 **Refs:** [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md)
 

@@ -1,7 +1,10 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -21,19 +24,22 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
     private readonly IBackupStagingDiskMonitor _diskMonitor;
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly ILogger<IncrementalBackupService> _logger;
+    private readonly IRestoreVerificationManualTriggerService? _drill;
 
     public IncrementalBackupService(
         AppDbContext db,
         IBackupManualTriggerService manualTrigger,
         IBackupStagingDiskMonitor diskMonitor,
         IOptionsMonitor<BackupOptions> options,
-        ILogger<IncrementalBackupService> logger)
+        ILogger<IncrementalBackupService> logger,
+        IRestoreVerificationManualTriggerService? drill = null)
     {
         _db = db;
         _manualTrigger = manualTrigger;
         _diskMonitor = diskMonitor;
         _options = options;
         _logger = logger;
+        _drill = drill;
     }
 
     public async Task<IncrementalChangeSummary> GetChangesSinceAsync(
@@ -62,6 +68,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
             return BackupResult.Fail(TenantNotFoundCode, "Tenant id is required.");
 
         var tenant = await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
             .ConfigureAwait(false);
         if (tenant == null)
@@ -81,20 +88,26 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
         if (budget != null)
             return budget;
 
-        var changes = await GetChangesSinceAsync(tenantId, since, ct).ConfigureAwait(false);
-        if (changes.TotalChangedRows == 0)
+        IncrementalChangeSummary? changes = null;
+        if (userId != Guid.Empty)
         {
-            return BackupResult.Fail(
-                NoChangesCode,
-                $"No tenant data changes since {since:O}; incremental package not enqueued.");
+            changes = await GetChangesSinceAsync(tenantId, since, ct).ConfigureAwait(false);
+            if (changes.TotalChangedRows == 0)
+            {
+                return BackupResult.Fail(
+                    NoChangesCode,
+                    $"No tenant data changes since {since:O}; incremental package not enqueued.");
+            }
         }
 
         // ✅ Only enqueue — worker exports changed rows since watermark (much smaller than full ZIP).
         var idempotencyKey =
             $"manual-tenant-incr-{tenantId:D}-{since:yyyyMMddHHmmss}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+        var actor = userId == Guid.Empty ? "system" : userId.ToString();
+        var role = userId == Guid.Empty ? "System" : Roles.Manager;
         var outcome = await _manualTrigger.RequestManualBackupAsync(
-                userId.ToString(),
-                Roles.Manager,
+                actor,
+                role,
                 idempotencyKey,
                 correlationId: $"backup-tenant-incr-{Guid.NewGuid():N}",
                 strategy: BackupStrategyKind.Tenant,
@@ -110,7 +123,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
             userId,
             outcome.Run.Id,
             since,
-            changes.TotalChangedRows,
+            changes?.TotalChangedRows,
             outcome.Kind);
 
         return BackupResult.Success(outcome.Run.Id, outcome.Kind);
@@ -146,6 +159,174 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
 
         return null;
     }
+
+    public async Task<IncrementalRestorePlanDto> PlanRestoreFromIncrementalAsync(
+        Guid tenantId,
+        DateTime? targetUtc = null,
+        CancellationToken ct = default)
+    {
+        var tenant = await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
+            .ConfigureAwait(false);
+        if (tenant == null)
+        {
+            return new IncrementalRestorePlanDto
+            {
+                TenantId = tenantId,
+                Message = "Tenant not found."
+            };
+        }
+
+        var cutoff = targetUtc.HasValue
+            ? NormalizeUtc(targetUtc.Value)
+            : DateTime.UtcNow;
+
+        var tenantRuns = await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.TenantId == tenantId
+                        && r.Strategy == BackupStrategyKind.Tenant
+                        && r.Status == BackupRunStatus.Succeeded
+                        && r.CompletedAt != null
+                        && r.CompletedAt <= cutoff)
+            .OrderBy(r => r.CompletedAt)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        BackupRun? full = null;
+        foreach (var run in tenantRuns)
+        {
+            if (!BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(run.ConfigSnapshotJson, out _))
+                full = run;
+        }
+
+        var incrementals = new List<Guid>();
+        if (full != null)
+        {
+            foreach (var run in tenantRuns.Where(r => r.CompletedAt >= full.CompletedAt && r.Id != full.Id))
+            {
+                if (BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(run.ConfigSnapshotJson, out _))
+                    incrementals.Add(run.Id);
+            }
+        }
+
+        var systemDump = await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Strategy == BackupStrategyKind.System
+                        && r.Status == BackupRunStatus.Succeeded
+                        && r.CompletedAt != null
+                        && r.CompletedAt <= cutoff)
+            .OrderByDescending(r => r.CompletedAt)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return new IncrementalRestorePlanDto
+        {
+            TenantId = tenantId,
+            FullBackupId = full?.Id,
+            FullBackupCompletedAtUtc = full?.CompletedAt,
+            IncrementalBackupIds = incrementals,
+            NearestSystemDumpId = systemDump?.Id,
+            Message = full == null
+                ? "No succeeded full Tenant backup found before the target time."
+                : "Restore plan is full Tenant ZIP plus later incrementals. Isolated rehearsal uses the nearest System dump; tenant packages are not pg_restore input."
+        };
+    }
+
+    public async Task<IncrementalRestoreResultDto> RestoreFromIncrementalAsync(
+        Guid tenantId,
+        DateTime targetUtc,
+        string actorUserId,
+        CancellationToken ct = default)
+    {
+        var plan = await PlanRestoreFromIncrementalAsync(tenantId, targetUtc, ct).ConfigureAwait(false);
+        if (plan.NearestSystemDumpId is not Guid dumpId)
+        {
+            return new IncrementalRestoreResultDto
+            {
+                Plan = plan,
+                Message = "No succeeded System dump is available for isolated restore. Tenant incremental ZIP cannot be applied with pg_restore."
+            };
+        }
+
+        if (_drill == null)
+        {
+            return new IncrementalRestoreResultDto
+            {
+                Plan = plan,
+                Message = plan.Message
+            };
+        }
+
+        var drill = await _drill.EnqueueManualAsync(
+                actorUserId,
+                $"pitr-incr-{Guid.NewGuid():N}",
+                $"pitr-incr-{tenantId:N}-{dumpId:N}",
+                dumpId,
+                ct)
+            .ConfigureAwait(false);
+
+        return new IncrementalRestoreResultDto
+        {
+            Plan = plan,
+            IsolatedDryRunEnqueued = true,
+            DrillRunId = drill.Run.Id,
+            Message = "Isolated restore drill enqueued for the nearest System dump. Tenant incrementals remain evidence packages, not pg_restore input. Production is not modified."
+        };
+    }
+
+    public async Task<int> EnqueueDueDailyIncrementalsAsync(CancellationToken ct = default)
+    {
+        if (!_options.CurrentValue.IncrementalBackupEnabled)
+            return 0;
+
+        var tenants = await _db.Tenants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(t => t.IsActive)
+            .Select(t => t.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var enqueued = 0;
+        foreach (var tenantId in tenants)
+        {
+            var lastFull = await _db.BackupRuns.AsNoTracking()
+                .Where(r => r.TenantId == tenantId
+                            && r.Strategy == BackupStrategyKind.Tenant
+                            && r.Status == BackupRunStatus.Succeeded
+                            && r.CompletedAt != null)
+                .OrderByDescending(r => r.CompletedAt)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            var full = lastFull.FirstOrDefault(r =>
+                !BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(r.ConfigSnapshotJson, out _));
+            if (full?.CompletedAt == null)
+                continue;
+
+            var lastIncremental = lastFull.FirstOrDefault(r =>
+                BackupIncrementalPackageMetadata.TryReadIncrementalSinceUtc(r.ConfigSnapshotJson, out _)
+                && r.CompletedAt >= full.CompletedAt);
+            if (lastIncremental?.CompletedAt != null
+                && lastIncremental.CompletedAt.Value > DateTime.UtcNow.AddHours(-20))
+            {
+                continue;
+            }
+
+            var result = await CreateIncrementalBackupAsync(tenantId, Guid.Empty, full.CompletedAt.Value, ct)
+                .ConfigureAwait(false);
+            if (result.Succeeded)
+                enqueued++;
+        }
+
+        return enqueued;
+    }
+
+    private static DateTime NormalizeUtc(DateTime value) =>
+        value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     internal static DateTime NormalizeSinceUtc(DateTime lastFullBackupUtc)
     {

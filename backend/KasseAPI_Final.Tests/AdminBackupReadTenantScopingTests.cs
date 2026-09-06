@@ -47,7 +47,8 @@ public sealed class AdminBackupReadTenantScopingTests
         Guid? tenantId,
         IBackupRunTenantAccessService tenantAccess,
         IBackupRunQueryService? query = null,
-        IBackupChecksumVerificationService? checksumVerification = null)
+        IBackupChecksumVerificationService? checksumVerification = null,
+        IBackupVerificationReportService? verificationReport = null)
     {
         var host = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development);
         var policy = BackupArtifactPipelinePolicyEvaluator.Evaluate(new BackupOptions(), host);
@@ -76,7 +77,7 @@ public sealed class AdminBackupReadTenantScopingTests
             Mock.Of<IBackupComplianceStatusService>(),
             Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
-            Mock.Of<IBackupVerificationReportService>(),
+            verificationReport ?? Mock.Of<IBackupVerificationReportService>(),
             checksumVerification ?? Mock.Of<IBackupChecksumVerificationService>(),
             Mock.Of<IBackupContentValidationService>(),
             Mock.Of<IRestoreVerificationManualTriggerService>(),
@@ -84,7 +85,9 @@ public sealed class AdminBackupReadTenantScopingTests
             tenantAccess,
             Mock.Of<IBackupArtifactImportService>(),
             Mock.Of<IBackupTimeEstimator>(),
-            Mock.Of<IDownloadSecurityService>());
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var claims = new List<Claim>
         {
@@ -136,7 +139,7 @@ public sealed class AdminBackupReadTenantScopingTests
         await using var db = CreateDb();
         var controller = CreateController(db, Roles.Manager, tenantId: null, new BackupRunTenantAccessService(db));
 
-        var result = await controller.GetHistory(1, 20, CancellationToken.None);
+        var result = await controller.GetHistory(1, 20, cancellationToken: CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
@@ -148,7 +151,7 @@ public sealed class AdminBackupReadTenantScopingTests
         await SeedRunsAsync(db);
         var controller = CreateController(db, Roles.Manager, TenantA, new BackupRunTenantAccessService(db));
 
-        var result = await controller.GetHistory(1, 20, CancellationToken.None);
+        var result = await controller.GetHistory(1, 20, cancellationToken: CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var body = Assert.IsType<BackupHistoryResponseDto>(ok.Value);
@@ -209,6 +212,29 @@ public sealed class AdminBackupReadTenantScopingTests
         var result = await controller.GetRunById(scheduledId, CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetRunById_SuperAdmin_WithAmbientTenant_CanReadSystemRun()
+    {
+        await using var db = CreateDb();
+        var scheduledId = Guid.NewGuid();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = scheduledId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = BackupLogicalDumpAdapterKinds.SystemComposite,
+            Strategy = BackupStrategyKind.System,
+            TenantId = null,
+            RequestedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db, Roles.SuperAdmin, TenantA, new BackupRunTenantAccessService(db));
+        var result = await controller.GetRunById(scheduledId, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result.Result);
     }
 
     [Fact]
@@ -336,6 +362,168 @@ public sealed class AdminBackupReadTenantScopingTests
         var dto = Assert.IsType<BackupChecksumVerifyResponseDto>(ok.Value);
         Assert.True(dto.IsValid);
         Assert.Equal(ownRunId, dto.RunId);
+    }
+
+    [Fact]
+    public async Task VerifyBackup_Manager_CrossTenant_Returns404()
+    {
+        await using var db = CreateDb();
+        await SeedRunsAsync(db);
+        var otherRunId = await db.BackupRuns
+            .Where(r => r.IdempotencyKey!.Contains(TenantB.ToString("D")))
+            .Select(r => r.Id)
+            .FirstAsync();
+
+        var checksum = new Mock<IBackupChecksumVerificationService>(MockBehavior.Strict);
+        var controller = CreateController(
+            db,
+            Roles.Manager,
+            TenantA,
+            new BackupRunTenantAccessService(db),
+            checksumVerification: checksum.Object);
+
+        var result = await controller.VerifyBackup(otherRunId, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
+        checksum.Verify(
+            c => c.VerifyChecksumAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyBackup_SuperAdmin_WithAmbientTenant_ReturnsChecksumAndTables()
+    {
+        await using var db = CreateDb();
+        await SeedRunsAsync(db);
+        var systemRun = new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = BackupLogicalDumpAdapterKinds.SystemComposite,
+            Strategy = BackupStrategyKind.System,
+            TenantId = null,
+            RequestedAt = DateTime.UtcNow,
+        };
+        db.BackupRuns.Add(systemRun);
+        await db.SaveChangesAsync();
+
+        var checksum = new Mock<IBackupChecksumVerificationService>();
+        checksum
+            .Setup(c => c.VerifyChecksumAsync(systemRun.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BackupChecksumVerifyResponseDto
+            {
+                RunId = systemRun.Id,
+                IsValid = true,
+                VerifiedAtUtc = DateTime.UtcNow,
+                VerifierSource = IBackupChecksumVerificationService.VerifierSourceOnDemandHttp,
+                Artifacts =
+                [
+                    new BackupChecksumArtifactResultDto
+                    {
+                        ArtifactType = "LogicalDump",
+                        StoredChecksum = "aa",
+                        ComputedChecksum = "aa",
+                        Status = "passed",
+                    }
+                ],
+            });
+        var report = new Mock<IBackupVerificationReportService>();
+        report
+            .Setup(r => r.GenerateReportAsync(systemRun.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BackupVerificationReportDto
+            {
+                BackupRunId = systemRun.Id,
+                GeneratedAtUtc = DateTime.UtcNow,
+                Status = "Verified",
+                TableStatistics =
+                [
+                    new BackupTableStatisticsDto
+                    {
+                        TableName = "payment_details",
+                        RowCount = 132,
+                        IsVerified = true,
+                    }
+                ],
+            });
+
+        var controller = CreateController(
+            db,
+            Roles.SuperAdmin,
+            TenantA,
+            new BackupRunTenantAccessService(db),
+            checksumVerification: checksum.Object,
+            verificationReport: report.Object);
+
+        var result = await controller.VerifyBackup(systemRun.Id, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupManualVerifyResponseDto>(ok.Value);
+        Assert.True(dto.IsValid);
+        Assert.Equal(systemRun.Id, dto.BackupId);
+        Assert.Equal("aa", dto.Artifacts[0].StoredChecksum);
+        Assert.NotNull(dto.TableReport);
+        Assert.Equal("payment_details", dto.TableReport.TableStatistics[0].TableName);
+        Assert.Equal(132, dto.TableReport.TableStatistics[0].RowCount);
+    }
+
+    [Fact]
+    public async Task VerifyBackup_SuperAdmin_ReturnsChecksumWhenTableReportThrows()
+    {
+        await using var db = CreateDb();
+        var systemRun = new BackupRun
+        {
+            Id = Guid.Parse("bba522a5-3a51-463c-8757-77a413e923ef"),
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = BackupLogicalDumpAdapterKinds.SystemComposite,
+            Strategy = BackupStrategyKind.System,
+            TenantId = null,
+            RequestedAt = DateTime.UtcNow,
+        };
+        db.BackupRuns.Add(systemRun);
+        await db.SaveChangesAsync();
+
+        var checksum = new Mock<IBackupChecksumVerificationService>();
+        checksum
+            .Setup(c => c.VerifyChecksumAsync(systemRun.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BackupChecksumVerifyResponseDto
+            {
+                RunId = systemRun.Id,
+                IsValid = true,
+                VerifiedAtUtc = DateTime.UtcNow,
+                VerifierSource = IBackupChecksumVerificationService.VerifierSourceOnDemandHttp,
+                Artifacts =
+                [
+                    new BackupChecksumArtifactResultDto
+                    {
+                        ArtifactType = "LogicalDump",
+                        StoredChecksum = "aa",
+                        ComputedChecksum = "aa",
+                        Status = "passed",
+                    }
+                ],
+            });
+        var report = new Mock<IBackupVerificationReportService>();
+        report
+            .Setup(r => r.GenerateReportAsync(systemRun.Id, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ObjectDisposedException("Npgsql.NpgsqlConnection"));
+
+        var controller = CreateController(
+            db,
+            Roles.SuperAdmin,
+            TenantA,
+            new BackupRunTenantAccessService(db),
+            checksumVerification: checksum.Object,
+            verificationReport: report.Object);
+
+        var result = await controller.VerifyBackup(systemRun.Id, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupManualVerifyResponseDto>(ok.Value);
+        Assert.True(dto.IsValid);
+        Assert.Equal("aa", dto.Artifacts[0].StoredChecksum);
+        Assert.Null(dto.TableReport);
     }
 
     [Fact]

@@ -51,6 +51,7 @@ export type NotificationConfigSeverityThreshold = {
   RestoreDrillSucceeded?: string;
   RiskAnomalyDetected?: string;
   RiskScoreResolved?: string;
+  RksvRuntimeConfigChanged?: string;
   RoleCreated?: string;
   RoleDeleted?: string;
   RolePermissionsUpdated?: string;

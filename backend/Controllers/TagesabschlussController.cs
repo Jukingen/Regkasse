@@ -22,6 +22,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IMonatsbelegClosingService _monatsbelegClosingService;
         private readonly IDailyClosingReportService _dailyClosingReportService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IFiskalyReceiptService _fiskalyReceipts;
         private readonly AppDbContext _db;
         private readonly ILogger<TagesabschlussController> _logger;
 
@@ -30,6 +31,7 @@ namespace KasseAPI_Final.Controllers
             IMonatsbelegClosingService monatsbelegClosingService,
             IDailyClosingReportService dailyClosingReportService,
             ISettingsTenantResolver settingsTenantResolver,
+            IFiskalyReceiptService fiskalyReceipts,
             AppDbContext db,
             ILogger<TagesabschlussController> logger)
         {
@@ -37,6 +39,7 @@ namespace KasseAPI_Final.Controllers
             _monatsbelegClosingService = monatsbelegClosingService;
             _dailyClosingReportService = dailyClosingReportService;
             _settingsTenantResolver = settingsTenantResolver;
+            _fiskalyReceipts = fiskalyReceipts;
             _db = db;
             _logger = logger;
         }
@@ -186,6 +189,47 @@ namespace KasseAPI_Final.Controllers
             {
                 return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Submit an existing Daily closing to Fiskaly SIGN AT (0.00 NORMAL marker).
+        /// Does not change the local TSE signature. Cross-tenant / missing id → HTTP 404.
+        /// </summary>
+        [HttpPost("{id:guid}/submit-fiskaly")]
+        [HttpPost("{id:guid}/submit-finanzonline")]
+        [HasPermission(AppPermissions.FiskalyOperationsTagesabschluss)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(FiskalyReceiptEnvelopeDto), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<FiskalyReceiptEnvelopeDto>> SubmitFiskaly(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _fiskalyReceipts
+                .CreateTagesabschlussAsync(
+                    id,
+                    User.GetActorUserId() ?? User.Identity?.Name ?? "unknown",
+                    User.IsInRole(Roles.SuperAdmin),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            var body = new FiskalyReceiptEnvelopeDto
+            {
+                Success = result.Success,
+                Data = result.Data,
+                Error = result.Error,
+                HistoryId = result.HistoryId
+            };
+
+            if (result.Success)
+                return Ok(body);
+
+            return result.StatusCode switch
+            {
+                StatusCodes.Status404NotFound => NotFound(body),
+                StatusCodes.Status409Conflict => Conflict(body),
+                _ => BadRequest(body)
+            };
         }
 
         /// <summary>Localized PDF report for a completed RKSV closing (Daily/Monthly/Yearly).</summary>

@@ -16,6 +16,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 using Xunit;
@@ -313,7 +314,7 @@ public sealed class AdminFiskalyControllerTests
     }
 
     [Fact]
-    public void SetupEndpoints_RequireSystemCritical()
+    public void SetupGet_RequiresFiskalyOperationsView_MutationsRequireConfig()
     {
         var setup = typeof(AdminFiskalyController).GetMethod(nameof(AdminFiskalyController.GetSetup));
         var fon = typeof(AdminFiskalyController).GetMethod(nameof(AdminFiskalyController.AuthenticateFon));
@@ -323,12 +324,21 @@ public sealed class AdminFiskalyControllerTests
         Assert.NotNull(fon);
         Assert.NotNull(scu);
         Assert.NotNull(cr);
-        Assert.Contains(AppPermissions.SystemCritical, setup!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
-        Assert.Contains(AppPermissions.SystemCritical, fon!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
-        Assert.Contains(AppPermissions.SystemCritical, scu!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
-        Assert.Contains(AppPermissions.SystemCritical, cr!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.SystemCritical));
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.SystemCritical));
+        Assert.Contains(
+            AppPermissions.FiskalyOperationsView,
+            setup!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
+        Assert.Contains(
+            AppPermissions.FiskalyOperationsConfig,
+            fon!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
+        Assert.Contains(
+            AppPermissions.FiskalyOperationsConfig,
+            scu!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
+        Assert.Contains(
+            AppPermissions.FiskalyOperationsConfig,
+            cr!.GetCustomAttributes<HasPermissionAttribute>().Select(a => a.Permission));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FiskalyOperationsConfig));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.FiskalyOperationsConfig));
     }
 
     [Fact]

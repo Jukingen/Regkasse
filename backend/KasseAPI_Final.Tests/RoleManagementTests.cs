@@ -401,6 +401,9 @@ public class RoleManagementTests
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalOrdersManage));
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.OnlinePaymentsManage));
         Assert.Equal("zahlung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.VoucherRead));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsView));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsConfig));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyHistoryView));
         Assert.Equal("einstellungen", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsView));
     }
 

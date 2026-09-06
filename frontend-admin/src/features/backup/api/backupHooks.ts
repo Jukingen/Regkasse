@@ -11,9 +11,7 @@ import { useMemo } from 'react';
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   getGetApiAdminBackupRunsIdQueryKey,
-  getGetApiAdminBackupRunsQueryKey,
   getGetApiAdminBackupStatusLatestQueryKey,
-  useGetApiAdminBackupRuns,
   useGetApiAdminBackupRunsId,
   useGetApiAdminBackupStatusLatest,
   usePostApiAdminBackupTrigger,
@@ -24,7 +22,11 @@ import type {
   BackupTriggerRequestDto,
 } from '@/api/generated/model';
 import type { BackupConfigurationHealthResponseDto } from '@/api/generated/model/backupConfigurationHealthResponseDto';
-import type { GetApiAdminBackupRunsParams } from '@/api/generated/model/getApiAdminBackupRunsParams';
+import {
+  getBackupRunsList,
+  getBackupRunsListQueryKey,
+  type BackupRunsListParams,
+} from '@/features/backup/logic/backupRunDownloadApi';
 import { usePollRunDetailDashboardInterval } from '@/features/backup-dr/logic/backupDashboardQueryTiming';
 import {
   type BackupSettingsPutRequestDto,
@@ -41,21 +43,12 @@ import {
 import { useCurrentTenant } from '@/hooks/useCurrentTenant';
 
 /** List/query params for GET /api/admin/backup/runs */
-export type BackupRunsParams = GetApiAdminBackupRunsParams & {
-  /**
-   * Super Admin optional filter (query param when supported).
-   * Runs are deployment-scoped; UI may client-filter by idempotency key until per-tenant runs ship.
-   */
-  tenantId?: string;
-};
+export type BackupRunsParams = BackupRunsListParams;
 
-function toRunsQueryParams(
-  params?: BackupRunsParams
-): GetApiAdminBackupRunsParams & { tenantId?: string } {
+function toRunsQueryParams(params?: BackupRunsParams): BackupRunsListParams {
   if (!params) return {};
-  const { tenantId, ...rest } = params;
-  const trimmed = tenantId?.trim();
-  return trimmed ? { ...rest, tenantId: trimmed } : rest;
+  const trimmed = params.tenantId?.trim();
+  return trimmed ? { ...params, tenantId: trimmed } : { ...params, tenantId: undefined };
 }
 
 export type BackupSettings = BackupSettingsResponseDto;
@@ -67,8 +60,7 @@ export type BackupConfigurationHealthView = BackupConfigurationHealthResponseDto
 /** Stable query keys (Orval-aligned for cache sharing with generated hooks). */
 export const backupQueryKeys = {
   all: ['/api/admin/backup'] as const,
-  runs: (params?: BackupRunsParams) =>
-    getGetApiAdminBackupRunsQueryKey(toRunsQueryParams(params) as GetApiAdminBackupRunsParams),
+  runs: (params?: BackupRunsParams) => getBackupRunsListQueryKey(toRunsQueryParams(params)),
   run: (id: string) => getGetApiAdminBackupRunsIdQueryKey(id),
   settings: () => getBackupScheduleSettingsQueryKey(),
   scheduleStatus: () => getBackupScheduleStatusQueryKey(),
@@ -95,13 +87,13 @@ export type UseBackupRunsOptions = {
 /** GET /api/admin/backup/runs */
 export function useBackupRuns(params?: BackupRunsParams, options?: UseBackupRunsOptions) {
   const apiParams = toRunsQueryParams(params);
-  return useGetApiAdminBackupRuns(apiParams as GetApiAdminBackupRunsParams, {
-    query: {
-      enabled: options?.enabled,
-      refetchInterval: options?.refetchInterval,
-      staleTime: options?.staleTime ?? 15_000,
-      refetchOnWindowFocus: true,
-    },
+  return useQuery({
+    queryKey: getBackupRunsListQueryKey(apiParams),
+    queryFn: () => getBackupRunsList(apiParams),
+    enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
+    staleTime: options?.staleTime ?? 15_000,
+    refetchOnWindowFocus: true,
   });
 }
 

@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   DailyClosingRequest,
+  FiskalyReceiptEnvelopeDto,
   GetApiTagesabschlussCanCloseCashRegisterIdParams,
   GetApiTagesabschlussClosingClosingIdReportPdfParams,
   GetApiTagesabschlussHistoryParams,
@@ -186,6 +187,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiTagesabschlussYearlyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiTagesabschlussIdSubmitFiskaly = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<FiskalyReceiptEnvelopeDto>(
+      {url: `/api/Tagesabschluss/${id}/submit-fiskaly`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiTagesabschlussIdSubmitFiskalyMutationOptions = <TError = FiskalyReceiptEnvelopeDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiTagesabschlussIdSubmitFiskaly(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiTagesabschlussIdSubmitFiskalyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>>
+    
+    export type PostApiTagesabschlussIdSubmitFiskalyMutationError = FiskalyReceiptEnvelopeDto
+
+    export const usePostApiTagesabschlussIdSubmitFiskaly = <TError = FiskalyReceiptEnvelopeDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiTagesabschlussIdSubmitFiskalyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiTagesabschlussIdSubmitFinanzonline = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<FiskalyReceiptEnvelopeDto>(
+      {url: `/api/Tagesabschluss/${id}/submit-finanzonline`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiTagesabschlussIdSubmitFinanzonlineMutationOptions = <TError = FiskalyReceiptEnvelopeDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiTagesabschlussIdSubmitFinanzonline(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiTagesabschlussIdSubmitFinanzonlineMutationResult = NonNullable<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>>
+    
+    export type PostApiTagesabschlussIdSubmitFinanzonlineMutationError = FiskalyReceiptEnvelopeDto
+
+    export const usePostApiTagesabschlussIdSubmitFinanzonline = <TError = FiskalyReceiptEnvelopeDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiTagesabschlussIdSubmitFinanzonlineMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

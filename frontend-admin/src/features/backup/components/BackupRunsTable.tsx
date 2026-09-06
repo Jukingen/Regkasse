@@ -4,19 +4,23 @@
  * Paginated backup runs table (GET /api/admin/backup/runs) with operator columns.
  */
 import { useQueryClient } from '@tanstack/react-query';
+import { DownloadOutlined } from '@ant-design/icons';
 import {
   Alert,
   Badge,
   Button,
+  DatePicker,
   Modal,
   Popconfirm,
   Progress,
   Select,
   Space,
   Table,
+  Tag,
   Tooltip,
   Typography,
 } from 'antd';
+import type { Dayjs } from 'dayjs';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import React, { useCallback, useMemo, useState } from 'react';
 
@@ -24,6 +28,7 @@ import { dateColumnRender } from '@/components/DateColumn';
 import { useGetApiAdminBackupStatusLatest } from '@/api/generated/admin-backup/admin-backup';
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { BackupStrategyKind } from '@/api/generated/model/backupStrategyKind';
 import {
   BACKUP_RECENT_RUNS_PAGE_SIZE,
   usePollAlignedWithLatestDashboardBackup,
@@ -33,6 +38,14 @@ import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNo
 import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
 import { triggerErrorMessageBackupDashboard } from '@/features/backup-dr/logic/backupManualTriggerMessaging';
 import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import { downloadBackupRunFile } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import { isSystemBackupStrategy } from '@/features/backup/logic/backupStrategyKind';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { DownloadProgressModal } from '@/components/ui/DownloadProgressModal';
+import { useProgressiveDownload } from '@/hooks/useProgressiveDownload';
+import { useSensitiveExportGate } from '@/hooks/useSensitiveExportGate';
+import { SENSITIVE_EXPORT_KINDS } from '@/lib/download/sensitiveExportSecurity';
 import {
   backupQueryKeys,
   useBackupRuns,
@@ -46,8 +59,9 @@ import {
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
 import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
+import { useMoveBackupRunToCold } from '@/features/backup/hooks/useBackupRetentionPolicy';
 import { useTenants } from '@/features/backup/hooks/useTenants';
-import { verifyBackupChecksum } from '@/features/backup/logic/backupChecksumVerifyApi';
+import { verifyBackup } from '@/features/backup/logic/backupChecksumVerifyApi';
 import {
   getBackupContentValidation,
   normalizeContentValidationStatus,
@@ -57,6 +71,10 @@ import { resolveContentValidationBadgeStatus } from '@/features/backup/logic/bac
 import { runRestoreDrill } from '@/features/backup/logic/backupDrillApi';
 import { isBackupRunSucceeded } from '@/features/backup/logic/backupRunDetailPresentation';
 import {
+  asBackupRunDisplay,
+  isScheduledBackupActor,
+} from '@/features/backup/logic/backupRunDisplay';
+import {
   compareBackupRunsByRequestedAtDesc,
   filterBackupRunsByTenantIdempotency,
   isBackupRunFailed,
@@ -65,6 +83,7 @@ import {
   resolveBackupRunTotalBytes,
 } from '@/features/backup/logic/backupRunTablePresentation';
 import {
+  canShowManualVerifyAction,
   isVerificationFailed,
   isVerificationPassed,
   resolveLatestVerification,
@@ -90,9 +109,17 @@ export function BackupRunsTable({
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
   const permissions = useBackupPermissions();
-  const { canTrigger, canFilterRunsByTenant, isSuperAdmin, canRestore } = permissions;
+  const { canTrigger, canFilterRunsByTenant, isSuperAdmin: isSuperAdminRole, canRestore, canConfigure, canDownloadBackup } =
+    permissions;
+  const { user } = useAuth();
+  const progressiveDownload = useProgressiveDownload();
+  const sensitiveGate = useSensitiveExportGate();
   const [page, setPage] = useState(1);
   const [selectedTenantId, setSelectedTenantId] = useState<string | undefined>();
+  const [strategyFilter, setStrategyFilter] = useState<number | undefined>();
+  const [createdByFilter, setCreatedByFilter] = useState<string | undefined>();
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [downloadingRunId, setDownloadingRunId] = useState<string | null>(null);
   const [detailRunId, setDetailRunId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [verificationReportRunId, setVerificationReportRunId] = useState<string | null>(null);
@@ -109,6 +136,7 @@ export function BackupRunsTable({
   });
 
   const triggerBackup = useTriggerBackup();
+  const moveToCold = useMoveBackupRunToCold();
 
   const handleRetrySuccess = useCallback(
     async (res: Awaited<ReturnType<typeof triggerBackup.mutateAsync>>) => {
@@ -139,6 +167,10 @@ export function BackupRunsTable({
       page,
       pageSize: BACKUP_RECENT_RUNS_PAGE_SIZE,
       tenantId: canFilterRunsByTenant ? selectedTenantId : undefined,
+      strategy: strategyFilter,
+      createdBy: createdByFilter,
+      fromUtc: dateRange?.[0]?.toISOString(),
+      toUtc: dateRange?.[1]?.endOf('day').toISOString(),
     },
     { refetchInterval: pollAlignedRuns }
   );
@@ -175,28 +207,79 @@ export function BackupRunsTable({
     [onViewDetails]
   );
 
-  const handleVerifyChecksum = useCallback(
+  const handleDownloadRun = useCallback(
+    async (record: BackupRunResponseDto) => {
+      if (!record.id || !canDownloadBackup) return;
+      const row = asBackupRunDisplay(record);
+      const fallback = row.primaryDownloadFileName || `backup-${record.id}`;
+      setDownloadingRunId(record.id);
+      try {
+        const execute = async (headers?: Record<string, string>) => {
+          const label = t('common.downloadProgress.labelBackup');
+          await progressiveDownload.runCustom({
+            fileName: fallback,
+            label,
+            expectedTotalBytes: row.totalSizeBytes ?? null,
+            execute: async ({ session, onProgress }) => {
+              await downloadBackupRunFile(
+                record.id!,
+                fallback,
+                {
+                  session,
+                  onProgress,
+                  label,
+                  expectedSizeBytes: row.totalSizeBytes,
+                },
+                headers ? { headers } : undefined
+              );
+            },
+          });
+        };
+        if (isSystemBackupStrategy(record.strategy)) {
+          sensitiveGate.run({
+            kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
+            resourceId: record.id,
+            isSuperAdmin: isSuperAdmin(user?.role),
+            execute,
+          });
+        } else {
+          await execute();
+        }
+      } catch (err) {
+        notify.apiError(err, {
+          logContext: 'BackupRunsTable.download',
+          fallbackKey: 'backupDr.runsTable.downloadFailed',
+        });
+      } finally {
+        setDownloadingRunId(null);
+      }
+    },
+    [canDownloadBackup, notify, progressiveDownload, sensitiveGate, t, user?.role]
+  );
+
+  const handleVerify = useCallback(
     async (runId: string) => {
       setVerifyingRunId(runId);
       try {
-        const result = await verifyBackupChecksum(runId);
+        const result = await verifyBackup(runId);
         if (result.isValid) {
-          notify.successKey('backupDr.checksumVerify.checksumPassed');
+          notify.successKey('backupDr.checksumVerify.verifyPassed');
         } else if (
           result.artifacts?.some((a) => a.status === 'missing_hash') &&
           !result.artifacts.some((a) => a.status === 'failed' || a.status === 'missing_file')
         ) {
           notify.warning('backupDr.checksumVerify.checksumNotAvailable');
         } else {
-          notify.error('backupDr.checksumVerify.checksumFailed', {
+          notify.error('backupDr.checksumVerify.verifyFailed', {
             description: result.failureReason ?? undefined,
           });
         }
         await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.run(runId) });
       } catch (err) {
         notify.apiError(err, {
-          logContext: 'BackupRunsTable.verifyChecksum',
-          fallbackKey: 'backupDr.checksumVerify.checksumFailed',
+          logContext: 'BackupRunsTable.verify',
+          fallbackKey: 'backupDr.checksumVerify.verifyFailed',
         });
       } finally {
         setVerifyingRunId(null);
@@ -281,6 +364,17 @@ export function BackupRunsTable({
         defaultSortOrder: 'descend',
       },
       {
+        title: t('backupDr.runsTable.createdBy'),
+        key: 'createdBy',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const row = asBackupRunDisplay(record);
+          if (isScheduledBackupActor(row)) {
+            return t('backupDr.runsTable.createdBySystemCron');
+          }
+          return row.requestedByLabel || row.requestedByDisplayName || row.requestedByUserId || '—';
+        },
+      },
+      {
         title: t('backupDr.runsTable.statusColumn'),
         dataIndex: 'status',
         key: 'status',
@@ -296,6 +390,28 @@ export function BackupRunsTable({
           { text: t('backupDr.runsTable.statusLabels.queued'), value: BackupRunStatus.NUMBER_0 },
         ],
         onFilter: (value, record) => record.status === value,
+      },
+      {
+        title: t('backupDr.runsTable.retention'),
+        key: 'retention',
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const row = record as BackupRunResponseDto & {
+            retentionStatus?: string;
+            legalHold?: boolean;
+            storageTier?: number | string;
+            inColdStorage?: boolean;
+          };
+          if (row.legalHold) {
+            return <Tag color="purple">{t('backupDr.retention.statusLegalHold')}</Tag>;
+          }
+          if (row.inColdStorage || row.retentionStatus === 'cold') {
+            return <Tag color="blue">{t('backupDr.retention.statusCold')}</Tag>;
+          }
+          if (row.retentionStatus === 'warm') {
+            return <Tag color="gold">{t('backupDr.retention.statusWarm')}</Tag>;
+          }
+          return <Tag>{t('backupDr.retention.statusHot')}</Tag>;
+        },
       },
       {
         title: t('backupDr.runsTable.duration'),
@@ -465,7 +581,19 @@ export function BackupRunsTable({
             <Button type="link" size="small" onClick={() => viewDetails(record)}>
               {t('backupDr.runsTable.details')}
             </Button>
-            {record.id && isBackupRunSucceeded(record.status) ? (
+            {record.id && isBackupRunSucceeded(record.status) && canDownloadBackup ? (
+              <Button
+                type="link"
+                size="small"
+                icon={<DownloadOutlined />}
+                loading={downloadingRunId === record.id}
+                disabled={downloadingRunId != null}
+                onClick={() => void handleDownloadRun(record)}
+              >
+                {t('backupDr.runsTable.download')}
+              </Button>
+            ) : null}
+            {canShowManualVerifyAction(record, canConfigure) ? (
               <Button
                 type="link"
                 size="small"
@@ -475,9 +603,9 @@ export function BackupRunsTable({
                   contentValidatingRunId != null ||
                   drillingRunId != null
                 }
-                onClick={() => void handleVerifyChecksum(record.id!)}
+                onClick={() => void handleVerify(record.id!)}
               >
-                {t('backupDr.runsTable.verifyChecksum')}
+                {t('backupDr.runsTable.verify')}
               </Button>
             ) : null}
             {record.id && isBackupRunSucceeded(record.status) ? (
@@ -547,7 +675,44 @@ export function BackupRunsTable({
                 </Button>
               </Popconfirm>
             ) : null}
-            {isSuperAdmin ? (
+            {isSuperAdminRole &&
+            record.id &&
+            isBackupRunSucceeded(record.status) &&
+            !(record as BackupRunResponseDto & { inColdStorage?: boolean }).inColdStorage ? (
+              <Popconfirm
+                title={t('backupDr.runsTable.moveToColdConfirmTitle')}
+                description={t('backupDr.runsTable.moveToColdConfirmDescription')}
+                okText={t('backupDr.manual.confirmBackupOk')}
+                cancelText={t('backupDr.manual.confirmBackupCancel')}
+                onConfirm={() =>
+                  void moveToCold
+                    .mutateAsync(record.id!)
+                    .then((res) => {
+                      if (res.success) {
+                        notify.successKey('backupDr.runsTable.moveToColdSuccess');
+                      } else {
+                        notify.error(res.message || t('backupDr.runsTable.moveToColdFailed'));
+                      }
+                    })
+                    .catch((err: unknown) =>
+                      notify.apiError(err, {
+                        logContext: 'BackupRunsTable.moveToCold',
+                        fallbackKey: 'backupDr.runsTable.moveToColdFailed',
+                      })
+                    )
+                }
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  loading={moveToCold.isPending && moveToCold.variables === record.id}
+                  disabled={moveToCold.isPending}
+                >
+                  {t('backupDr.runsTable.moveToCold')}
+                </Button>
+              </Popconfirm>
+            ) : null}
+            {isSuperAdminRole ? (
               <Tooltip title={t('backupDr.runsTable.deleteUnavailable')}>
                 <Button type="link" size="small" danger disabled>
                   {t('backupDr.runsTable.delete')}
@@ -560,6 +725,10 @@ export function BackupRunsTable({
     ],
     [
       artifactTypeLabel,
+      canConfigure,
+      canDownloadBackup,
+      downloadingRunId,
+      handleDownloadRun,
       canRestore,
       canTrigger,
       contentStatusByRunId,
@@ -570,8 +739,9 @@ export function BackupRunsTable({
       handleRetrySuccess,
       handleRunDrill,
       handleValidateContent,
-      handleVerifyChecksum,
-      isSuperAdmin,
+      handleVerify,
+      isSuperAdminRole,
+      moveToCold,
       notify,
       selectedTenantId,
       t,
@@ -580,6 +750,20 @@ export function BackupRunsTable({
       viewDetails,
     ]
   );
+
+  const creatorOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of runsQuery.data?.items ?? []) {
+      const row = asBackupRunDisplay(item);
+      if (isScheduledBackupActor(row) || !row.requestedByUserId) continue;
+      if (seen.has(row.requestedByUserId)) continue;
+      seen.set(
+        row.requestedByUserId,
+        row.requestedByLabel || row.requestedByDisplayName || row.requestedByUserId
+      );
+    }
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [runsQuery.data?.items]);
 
   const tenantOptions = useMemo(
     () =>
@@ -647,27 +831,69 @@ export function BackupRunsTable({
         title={t('backupDr.runsTable.instanceScopeTitle')}
         description={t('backupDr.runsTable.instanceScopeDescription')}
       />
-      {canFilterRunsByTenant ? (
-        <Space style={{ marginBottom: 12 }} wrap>
-          <Typography.Text type="secondary">
-            {t('backupDr.runsTable.tenantFilterLabel')}
-          </Typography.Text>
-          <Select
-            allowClear
-            showSearch
-            style={{ minWidth: 280 }}
-            placeholder={t('backupDr.runsTable.tenantFilterPlaceholder')}
-            value={selectedTenantId}
-            onChange={(v) => {
-              setSelectedTenantId(v);
-              setPage(1);
-            }}
-            loading={tenantsLoading}
-            options={tenantOptions}
-            optionFilterProp="label"
-          />
-        </Space>
-      ) : null}
+      <Space style={{ marginBottom: 12 }} wrap>
+        <Typography.Text type="secondary">{t('backupDr.runsTable.filterType')}</Typography.Text>
+        <Select
+          allowClear
+          style={{ minWidth: 160 }}
+          placeholder={t('backupDr.runsTable.filterTypePlaceholder')}
+          value={strategyFilter}
+          onChange={(v) => {
+            setStrategyFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: BackupStrategyKind.NUMBER_0, label: t('backupDr.runsTable.strategyTenant') },
+            { value: BackupStrategyKind.NUMBER_1, label: t('backupDr.runsTable.strategySystem') },
+          ]}
+        />
+        <Typography.Text type="secondary">{t('backupDr.runsTable.createdBy')}</Typography.Text>
+        <Select
+          allowClear
+          showSearch
+          style={{ minWidth: 220 }}
+          placeholder={t('backupDr.runsTable.filterCreatedByPlaceholder')}
+          value={createdByFilter}
+          onChange={(v) => {
+            setCreatedByFilter(v);
+            setPage(1);
+          }}
+          optionFilterProp="label"
+          options={[
+            { value: 'system', label: t('backupDr.runsTable.createdBySystemCron') },
+            ...creatorOptions,
+          ]}
+        />
+        <Typography.Text type="secondary">{t('backupDr.runsTable.filterDate')}</Typography.Text>
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={(v) => {
+            setDateRange(v);
+            setPage(1);
+          }}
+        />
+        {canFilterRunsByTenant ? (
+          <>
+            <Typography.Text type="secondary">
+              {t('backupDr.runsTable.tenantFilterLabel')}
+            </Typography.Text>
+            <Select
+              allowClear
+              showSearch
+              style={{ minWidth: 280 }}
+              placeholder={t('backupDr.runsTable.tenantFilterPlaceholder')}
+              value={selectedTenantId}
+              onChange={(v) => {
+                setSelectedTenantId(v);
+                setPage(1);
+              }}
+              loading={tenantsLoading}
+              options={tenantOptions}
+              optionFilterProp="label"
+            />
+          </>
+        ) : null}
+      </Space>
       <Table<BackupRunResponseDto> {...tableProps} />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
         {t('backupDr.runs.statusHint')}
@@ -701,6 +927,8 @@ export function BackupRunsTable({
       >
         {contentReport ? <BackupContentValidationReport report={contentReport} /> : null}
       </Modal>
+      <DownloadProgressModal {...progressiveDownload.modalProps} />
+      {sensitiveGate.modals}
     </>
   );
 }

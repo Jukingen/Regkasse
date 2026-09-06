@@ -56,6 +56,8 @@ import type {
   AdminOnlinePaymentTestResponse,
   AdminOperationsSummaryResponse,
   AdminPaymentDetailDto,
+  AdminRksvRuntimeConfigPostRequestDto,
+  AdminRksvRuntimeConfigResponseDto,
   AdminShiftOverviewDto,
   AdminTenantCashRegisterDto,
   AdminTenantDetailDto,
@@ -407,6 +409,7 @@ import type {
   GetApiAdminRksvDepExportStatisticsTrendParams,
   GetApiAdminRksvDepExportStatusParams,
   GetApiAdminRksvDepExportTestMaterialParams,
+  GetApiAdminSessionsParams,
   GetApiAdminShiftsOverviewParams,
   GetApiAdminSupportAdminTicketsParams,
   GetApiAdminSupportTicketsAllParams,
@@ -530,6 +533,7 @@ import type {
   LicenseTestTenantRequest,
   LicenseTransferRequestInfoResponse,
   LimitDashboardDto,
+  LogoutBulkSessionsRequestDto,
   MaintenanceModeStatusDto,
   MaintenanceNotificationDto,
   MaintenanceNotificationListResponseDto,
@@ -642,6 +646,7 @@ import type {
   PutApiAdminTseAutoScalingPolicyParams,
   ReceiptReprintRequest,
   ReceiptReprintResponse,
+  ReceiptSettingsDto,
   RecordDownloadHistoryRequest,
   RefundPaymentRequest,
   RefundResponse,
@@ -924,6 +929,7 @@ import type {
   UpdatePaymentGatewaySettingsRequestDto,
   UpdatePaymentMethodDefinitionRequest,
   UpdatePricingRuleRequest,
+  UpdateReceiptSettingsRequest,
   UpdateStockRequest,
   UpdateSupportTicketStatusRequest,
   UpdateTenantDigitalServicePriceRequestDto,
@@ -19676,6 +19682,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminSettingsReceipt = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReceiptSettingsDto>(
+      {url: `/api/admin/settings/receipt`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminSettingsReceiptQueryKey = () => {
+    return [`/api/admin/settings/receipt`] as const;
+    }
+
+    
+export const getGetApiAdminSettingsReceiptQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminSettingsReceiptQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>> = ({ signal }) => getApiAdminSettingsReceipt(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminSettingsReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>>
+export type GetApiAdminSettingsReceiptQueryError = ProblemDetails
+
+export const useGetApiAdminSettingsReceipt = <TData = Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSettingsReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminSettingsReceiptQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminSettingsReceipt = (
+    updateReceiptSettingsRequest: UpdateReceiptSettingsRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ReceiptSettingsDto>(
+      {url: `/api/admin/settings/receipt`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: updateReceiptSettingsRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminSettingsReceiptMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>, TError,{data: UpdateReceiptSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>, TError,{data: UpdateReceiptSettingsRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>, {data: UpdateReceiptSettingsRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminSettingsReceipt(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminSettingsReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>>
+    export type PostApiAdminSettingsReceiptMutationBody = UpdateReceiptSettingsRequest
+    export type PostApiAdminSettingsReceiptMutationError = ProblemDetails
+
+    export const usePostApiAdminSettingsReceipt = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>, TError,{data: UpdateReceiptSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminSettingsReceipt>>,
+        TError,
+        {data: UpdateReceiptSettingsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminSettingsReceiptMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminReportPdfsClosingClosingId = (
     closingId: string,
     params?: GetApiAdminReportPdfsClosingClosingIdParams,
@@ -23101,7 +23213,113 @@ export const useGetApiAdminReportsRksvPriceHistoryProductId = <TData = Awaited<R
 
 
 
-export const postApiAdminRksvSignatureVerify = (
+export const getApiAdminRksvConfig = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminRksvRuntimeConfigResponseDto>(
+      {url: `/api/admin/rksv/config`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRksvConfigQueryKey = () => {
+    return [`/api/admin/rksv/config`] as const;
+    }
+
+    
+export const getGetApiAdminRksvConfigQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRksvConfig>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRksvConfigQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRksvConfig>>> = ({ signal }) => getApiAdminRksvConfig(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRksvConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvConfig>>>
+export type GetApiAdminRksvConfigQueryError = unknown
+
+export const useGetApiAdminRksvConfig = <TData = Awaited<ReturnType<typeof getApiAdminRksvConfig>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRksvConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminRksvConfig = (
+    adminRksvRuntimeConfigPostRequestDto: AdminRksvRuntimeConfigPostRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminRksvRuntimeConfigResponseDto>(
+      {url: `/api/admin/rksv/config`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adminRksvRuntimeConfigPostRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminRksvConfigMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvConfig>>, TError,{data: AdminRksvRuntimeConfigPostRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvConfig>>, TError,{data: AdminRksvRuntimeConfigPostRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRksvConfig>>, {data: AdminRksvRuntimeConfigPostRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminRksvConfig(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminRksvConfigMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRksvConfig>>>
+    export type PostApiAdminRksvConfigMutationBody = AdminRksvRuntimeConfigPostRequestDto
+    export type PostApiAdminRksvConfigMutationError = ProblemDetails
+
+    export const usePostApiAdminRksvConfig = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRksvConfig>>, TError,{data: AdminRksvRuntimeConfigPostRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminRksvConfig>>,
+        TError,
+        {data: AdminRksvRuntimeConfigPostRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminRksvConfigMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminRksvSignatureVerify = (
     rksvSignatureVerifyRequest: RksvSignatureVerifyRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -23153,33 +23371,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiAdminSessions = (
-    
+    params?: GetApiAdminSessionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<AdminActiveSessionDto[]>(
-      {url: `/api/admin/sessions`, method: 'GET', signal
+      {url: `/api/admin/sessions`, method: 'GET',
+        params, signal
     },
       options);
     }
   
 
-export const getGetApiAdminSessionsQueryKey = () => {
-    return [`/api/admin/sessions`] as const;
+export const getGetApiAdminSessionsQueryKey = (params?: GetApiAdminSessionsParams,) => {
+    return [`/api/admin/sessions`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetApiAdminSessionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminSessions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiAdminSessionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminSessions>>, TError = ProblemDetails>(params?: GetApiAdminSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminSessionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminSessionsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminSessions>>> = ({ signal }) => getApiAdminSessions(requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminSessions>>> = ({ signal }) => getApiAdminSessions(params, requestOptions, signal);
 
       
 
@@ -23189,14 +23408,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiAdminSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSessions>>>
-export type GetApiAdminSessionsQueryError = unknown
+export type GetApiAdminSessionsQueryError = ProblemDetails
 
-export const useGetApiAdminSessions = <TData = Awaited<ReturnType<typeof getApiAdminSessions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const useGetApiAdminSessions = <TData = Awaited<ReturnType<typeof getApiAdminSessions>>, TError = ProblemDetails>(
+ params?: GetApiAdminSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiAdminSessionsQueryOptions(options)
+  const queryOptions = getGetApiAdminSessionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -23225,7 +23444,7 @@ export const getGetApiAdminSessionsUserUserIdQueryKey = (userId: string,) => {
     }
 
     
-export const getGetApiAdminSessionsUserUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError = unknown>(userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiAdminSessionsUserUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError = ProblemDetails>(userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -23244,9 +23463,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiAdminSessionsUserUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>>
-export type GetApiAdminSessionsUserUserIdQueryError = unknown
+export type GetApiAdminSessionsUserUserIdQueryError = ProblemDetails
 
-export const useGetApiAdminSessionsUserUserId = <TData = Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError = unknown>(
+export const useGetApiAdminSessionsUserUserId = <TData = Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError = ProblemDetails>(
  userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminSessionsUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -23308,6 +23527,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminSessionsSessionIdTerminateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminSessionsSessionIdLogout = (
+    sessionId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<TerminateSessionResultDto>(
+      {url: `/api/admin/sessions/${sessionId}/logout`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminSessionsSessionIdLogoutMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>, TError,{sessionId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>, TError,{sessionId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>, {sessionId: string}> = (props) => {
+          const {sessionId} = props ?? {};
+
+          return  postApiAdminSessionsSessionIdLogout(sessionId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminSessionsSessionIdLogoutMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>>
+    
+    export type PostApiAdminSessionsSessionIdLogoutMutationError = ProblemDetails
+
+    export const usePostApiAdminSessionsSessionIdLogout = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>, TError,{sessionId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminSessionsSessionIdLogout>>,
+        TError,
+        {sessionId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminSessionsSessionIdLogoutMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -23422,7 +23690,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   
 
 
-export const getPostApiAdminSessionsTerminateAllMutationOptions = <TError = unknown,
+export const getPostApiAdminSessionsTerminateAllMutationOptions = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -23443,9 +23711,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminSessionsTerminateAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>>
     
-    export type PostApiAdminSessionsTerminateAllMutationError = unknown
+    export type PostApiAdminSessionsTerminateAllMutationError = ProblemDetails
 
-    export const usePostApiAdminSessionsTerminateAll = <TError = unknown,
+    export const usePostApiAdminSessionsTerminateAll = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminSessionsTerminateAll>>,
@@ -23455,6 +23723,106 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminSessionsTerminateAllMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminSessionsLogoutAll = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<TerminateSessionsCountDto>(
+      {url: `/api/admin/sessions/logout-all`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminSessionsLogoutAllMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>, void> = () => {
+          
+
+          return  postApiAdminSessionsLogoutAll(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminSessionsLogoutAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>>
+    
+    export type PostApiAdminSessionsLogoutAllMutationError = ProblemDetails
+
+    export const usePostApiAdminSessionsLogoutAll = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminSessionsLogoutAll>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminSessionsLogoutAllMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminSessionsLogoutBulk = (
+    logoutBulkSessionsRequestDto: LogoutBulkSessionsRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<TerminateSessionsCountDto>(
+      {url: `/api/admin/sessions/logout-bulk`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: logoutBulkSessionsRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminSessionsLogoutBulkMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>, TError,{data: LogoutBulkSessionsRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>, TError,{data: LogoutBulkSessionsRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>, {data: LogoutBulkSessionsRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminSessionsLogoutBulk(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminSessionsLogoutBulkMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>>
+    export type PostApiAdminSessionsLogoutBulkMutationBody = LogoutBulkSessionsRequestDto
+    export type PostApiAdminSessionsLogoutBulkMutationError = ProblemDetails
+
+    export const usePostApiAdminSessionsLogoutBulk = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>, TError,{data: LogoutBulkSessionsRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminSessionsLogoutBulk>>,
+        TError,
+        {data: LogoutBulkSessionsRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminSessionsLogoutBulkMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

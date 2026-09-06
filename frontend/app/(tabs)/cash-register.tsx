@@ -30,6 +30,7 @@ import { ModifierSelectionBottomSheet } from '../../components/ModifierSelection
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
+import { useAuth } from '../../contexts/AuthContext';
 import { usePosPermissions } from '../../hooks/usePosPermissions';
 import {
   SoftColors,
@@ -54,6 +55,7 @@ import { Product } from '../../services/api/productService';
 import { formatPrice } from '../../utils/formatPrice';
 import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
+import { hasPermission } from '../../utils/posPermissions';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessOpenRegisterGateActive,
@@ -321,7 +323,7 @@ function usePOSOrderFlow(
  * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
  */
 export default function CashRegisterScreen() {
-  const { t } = useTranslation(['checkout', 'common']);
+  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings']);
   const router = useRouter();
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
@@ -366,7 +368,9 @@ export default function CashRegisterScreen() {
   } = useCart();
 
   const posReadiness = usePosRegisterReadiness();
+  const { user } = useAuth();
   const { canTakeOrders } = usePosPermissions();
+  const canOpenReceiptList = hasPermission(user, 'sale.view');
 
   useFocusEffect(
     useCallback(() => {
@@ -402,6 +406,18 @@ export default function CashRegisterScreen() {
     }
     router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [posReadiness.data?.effectiveRegisterId, router]);
+
+  const handleOpenReceiptList = useCallback(() => {
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!isValidPosCashRegisterId(registerId)) {
+      Alert.alert(
+        t('receipts:noRegister'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/receipt-list' as const);
+  }, [posReadiness.data?.effectiveRegisterId, router, t]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {
@@ -770,6 +786,7 @@ export default function CashRegisterScreen() {
         recoveryLoading={recoveryLoading}
         provisioningMessage={recoveryProvisioningMessage}
         onOpenPaymentHistory={handleOpenPaymentHistory}
+        onOpenReceiptList={canOpenReceiptList ? handleOpenReceiptList : undefined}
       />
 
       {/* Root List - ProductList acts as the main scrollable container */}

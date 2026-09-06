@@ -137,7 +137,7 @@ export const PERMISSION_GROUPS = {
     icon: 'SafetyCertificateOutlined',
     menuKeys: ['rksv', 'finanzOnline'],
     sidebarGroupIds: ['rksv'],
-    resourcePrefixes: ['finanzonline', 'tse', 'rksv'],
+    resourcePrefixes: ['finanzonline', 'tse', 'rksv', 'fiskaly'],
     permissions: [
       PERMISSIONS.FINANZONLINE_VIEW,
       PERMISSIONS.FINANZONLINE_MANAGE,

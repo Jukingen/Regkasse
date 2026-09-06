@@ -59,16 +59,26 @@ public static class FiskalySignTestScenarios
         new()
         {
             Id = FiskalySignTestScenarioIds.MonthlyClose,
-            ReceiptType = "MONTHLY_CLOSE",
-            CanSign = false,
-            Description = "MONTHLY_CLOSE is created automatically by fiskaly when the month changes; it cannot be signed manually."
+            ReceiptType = "NORMAL",
+            CanSign = true,
+            Description = "RKSV Monatsbeleg for the Vienna calendar month. Requires Startbeleg; duplicate month is rejected.",
+            Amounts = [Row("NULL", 0.00m)]
         },
         new()
         {
             Id = FiskalySignTestScenarioIds.YearlyClose,
-            ReceiptType = "YEARLY_CLOSE",
-            CanSign = false,
-            Description = "YEARLY_CLOSE is created automatically by fiskaly when the year changes; it cannot be signed manually."
+            ReceiptType = "NORMAL",
+            CanSign = true,
+            Description = "RKSV Jahresbeleg for the Vienna calendar year. Requires Startbeleg; duplicate year is rejected.",
+            Amounts = [Row("NULL", 0.00m)]
+        },
+        new()
+        {
+            Id = FiskalySignTestScenarioIds.Tagesabschluss,
+            ReceiptType = "NORMAL",
+            CanSign = true,
+            Description = "Tagesabschluss: submits the existing TSE-signed Daily closing as a 0.00 NORMAL marker receipt.",
+            Amounts = [Row("NULL", 0.00m)]
         }
     ];
 

@@ -61,6 +61,25 @@ public static partial class BackupArtifactFileNameBuilder
         return $"backup_{slug}_{strategyLabel}_{stamp}{sizePart}.{ext}";
     }
 
+    /// <summary>
+    /// Operator workstation name: <c>backup_{type}_{tenant}_{yyyyMMdd}.{ext}</c>
+    /// (e.g. <c>backup_tenant_cafe_20260906.zip</c>, <c>backup_system_system_20260906.dump</c>).
+    /// </summary>
+    public static string BuildOperatorDownloadFileName(
+        BackupStrategyKind strategy,
+        string? tenantSlug,
+        DateTime timestampUtc,
+        string extension)
+    {
+        var type = StrategyLabel(strategy);
+        var tenant = strategy == BackupStrategyKind.System
+            ? "system"
+            : SanitizeSlug(tenantSlug);
+        var date = timestampUtc.ToUniversalTime().ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var ext = NormalizeExtension(extension);
+        return $"backup_{type}_{tenant}_{date}.{ext}";
+    }
+
     public static string BuildLogicalDumpFileName(
         string tenantSlug,
         DateTime timestampUtc,

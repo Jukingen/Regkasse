@@ -3,9 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  type AdminSessionListParams,
   fetchAdminSessions,
   fetchAdminUserSessions,
   forceLogoutUser,
+  logoutBulkAdminSessions,
   terminateAdminSession,
   terminateAllAdminSessions,
   terminateAllUserSessions,
@@ -13,16 +15,20 @@ import {
 
 export const adminSessionsQueryKey = ['admin', 'sessions'] as const;
 
+export function adminSessionsListQueryKey(params: AdminSessionListParams) {
+  return [...adminSessionsQueryKey, 'list', params] as const;
+}
+
 export function adminUserSessionsQueryKey(userId: string) {
   return ['admin', 'sessions', 'user', userId] as const;
 }
 
-export function useAdminSessions(enabled: boolean) {
+export function useAdminSessions(enabled: boolean, params: AdminSessionListParams = {}) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: adminSessionsQueryKey,
-    queryFn: ({ signal }) => fetchAdminSessions(signal),
+    queryKey: adminSessionsListQueryKey(params),
+    queryFn: ({ signal }) => fetchAdminSessions(params, signal),
     enabled,
   });
 
@@ -40,6 +46,11 @@ export function useAdminSessions(enabled: boolean) {
     onSuccess: invalidate,
   });
 
+  const terminateBulk = useMutation({
+    mutationFn: (sessionIds: string[]) => logoutBulkAdminSessions(sessionIds),
+    onSuccess: invalidate,
+  });
+
   return {
     sessions: query.data ?? [],
     isLoading: query.isLoading,
@@ -49,6 +60,7 @@ export function useAdminSessions(enabled: boolean) {
     refetch: query.refetch,
     terminateOne,
     terminateAll,
+    terminateBulk,
   };
 }
 

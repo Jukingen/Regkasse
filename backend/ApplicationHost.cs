@@ -350,6 +350,14 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFiskalySettingsService, FiskalySettingsService>();
         builder.Services.AddScoped<IFiskalySetupService, FiskalySetupService>();
         builder.Services.AddScoped<IFiskalySignTestService, FiskalySignTestService>();
+        builder.Services.AddScoped<IFiskalyReceiptService, FiskalyReceiptService>();
+        builder.Services.AddScoped<FiskalyOperationHistoryWriteScope>();
+        builder.Services.AddSingleton<IFiskalyOperationStatusBroadcaster, FiskalyOperationStatusBroadcaster>();
+        builder.Services.AddScoped<IFiskalyOperationHistoryRecorder, FiskalyOperationHistoryRecorder>();
+        builder.Services.AddScoped<IFiskalyOperationHistoryService, FiskalyOperationHistoryService>();
+        builder.Services.AddScoped<IFiskalyStatisticsService, FiskalyStatisticsService>();
+        builder.Services.AddScoped<IFiskalyErrorService, FiskalyErrorService>();
+        builder.Services.AddScoped<IFiskalyBatchService, FiskalyBatchService>();
         builder.Services.AddOptions<AuthOptions>()
             .Bind(builder.Configuration.GetSection(AuthOptions.SectionName))
             .Validate<IHostEnvironment>(
@@ -660,7 +668,7 @@ internal static class ApplicationHost
                 OnMessageReceived = context =>
                 {
                     var path = context.HttpContext.Request.Path;
-                    if (path.StartsWithSegments("/hubs/demo-import-progress"))
+                    if (path.StartsWithSegments("/hubs"))
                     {
                         var accessToken = context.Request.Query["access_token"];
                         if (!string.IsNullOrEmpty(accessToken))
@@ -955,7 +963,12 @@ internal static class ApplicationHost
                     policy.SetIsOriginAllowed(IsTrustedDevelopmentCorsOrigin)
                           .AllowAnyMethod()
                           .AllowAnyHeader()
-                          .AllowCredentials();
+                          .AllowCredentials()
+                          .WithExposedHeaders(
+                              "Content-Disposition",
+                              "X-Regkasse-Batch-Success",
+                              "X-Regkasse-Batch-Failed",
+                              "X-Regkasse-Batch-Id");
                     return;
                 }
 
@@ -969,7 +982,12 @@ internal static class ApplicationHost
                 policy.SetIsOriginAllowed(origin => IsTrustedProductionCorsOrigin(origin, allowed))
                       .AllowAnyMethod()
                       .AllowAnyHeader()
-                      .AllowCredentials();
+                      .AllowCredentials()
+                      .WithExposedHeaders(
+                          "Content-Disposition",
+                          "X-Regkasse-Batch-Success",
+                          "X-Regkasse-Batch-Failed",
+                          "X-Regkasse-Batch-Id");
             });
         });
 
@@ -1408,8 +1426,22 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IBackupTimeEstimator, BackupTimeEstimator>();
         builder.Services.AddSingleton<ISmartRetentionService, SmartRetentionService>();
         builder.Services.AddSingleton<IStorageTierService, StorageTierService>();
-        // IBackupService / IIncrementalBackupService: kept as types for unit tests; production uses
-        // IBackupManualTriggerService + orchestrator / run pipeline (see docs/BACKUP_SYSTEM.md).
+        builder.Services
+            .AddHttpClient(CloudStorageService.HttpClientName)
+            .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromMinutes(10));
+        builder.Services.AddSingleton<FilesystemWormCloudStorageProvider>();
+        builder.Services.AddSingleton<AzureArchiveCloudStorageProvider>(sp =>
+            new AzureArchiveCloudStorageProvider(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(CloudStorageService.HttpClientName),
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<BackupOptions>>()));
+        builder.Services.AddSingleton<ICloudStorageService, CloudStorageService>();
+        builder.Services.AddScoped<IBackupRetentionPolicyService, BackupRetentionPolicyService>();
+        builder.Services.AddScoped<IBackupColdArchiveService, BackupColdArchiveService>();
+        // IBackupService remains a test-only facade. Incremental enqueue is registered for daily
+        // tenant deltas + PITR planning; worker still exports via IBackupManualTriggerService.
+        builder.Services.AddScoped<IIncrementalBackupService, IncrementalBackupService>();
+        builder.Services.AddSingleton<IWalArchiveService, WalArchiveService>();
+        builder.Services.AddScoped<IBackupChainService, BackupChainService>();
         builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
@@ -1444,6 +1476,8 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<BackupReVerificationHostedService>();
         builder.Services.AddHostedService<BackupRpoOverdueAlertService>();
         builder.Services.AddHostedService<AutomaticCleanupService>();
+        builder.Services.AddHostedService<WalArchiveRetentionHostedService>();
+        builder.Services.AddHostedService<IncrementalBackupScheduledEnqueueService>();
 
         builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
         builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
@@ -1555,6 +1589,7 @@ internal static class ApplicationHost
         builder.Services.Configure<DownloadHistoryOptions>(
             builder.Configuration.GetSection(DownloadHistoryOptions.SectionName));
         builder.Services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
+        builder.Services.AddScoped<IBackupDownloadTracker, BackupDownloadTracker>();
         builder.Services.AddHostedService<DownloadHistoryCleanupHostedService>();
         builder.Services.Configure<ExportEmailOptions>(
             builder.Configuration.GetSection(ExportEmailOptions.SectionName));
@@ -1807,11 +1842,13 @@ internal static class ApplicationHost
         {
             // CreateWebApplication (OpenAPI / integration-test host) already mapped controllers, metrics, and liveness probes.
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+            app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
         }
         else
         {
             app.MapControllers();
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+            app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
 
             // Prometheus /metrics endpoint for scraping (Grafana dashboards)
             if (prometheusEnabled)

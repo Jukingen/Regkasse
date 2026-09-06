@@ -289,10 +289,14 @@ namespace KasseAPI_Final.Services
             if (tseMode == TseSigningMode.Fiskaly)
             {
                 phase = "fiskaly_sign_receipt";
+                // SIGN AT has no cancel-receipt endpoint. Storno/refund (negative gross) must be
+                // PUT /receipt with receipt_type=CANCELLATION so Fiskaly dashboard shows a Stornobeleg.
+                var fiskalyReceiptType = FiskalyReceiptSchemaMapper.MapReceiptType(
+                    totalAmount < 0m || taxSets.TotalGross < 0m);
                 fiskalyQr = await SignInvoiceWithFiskalyAsync(
                     cashRegisterId,
                     taxSets,
-                    receiptType: null,
+                    receiptType: fiskalyReceiptType,
                     paymentType: null,
                     correlationId).ConfigureAwait(false);
                 signingProvider = "fiskaly";
@@ -482,12 +486,16 @@ namespace KasseAPI_Final.Services
             FiskalySignedReceipt signed;
             try
             {
-                signed = await _fiskalyTse
-                    .SignTransactionAsync(
-                        _fiskalyOptions?.CurrentValue.SignatureCreationUnitId ?? string.Empty,
-                        Guid.NewGuid().ToString("D"),
-                        data)
-                    .ConfigureAwait(false);
+                var tssId = _fiskalyOptions?.CurrentValue.SignatureCreationUnitId ?? string.Empty;
+                var txId = Guid.NewGuid().ToString("D");
+                var isCancellation = string.Equals(
+                    data.ReceiptType,
+                    FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+                    StringComparison.OrdinalIgnoreCase);
+
+                signed = isCancellation
+                    ? await _fiskalyTse.CancelReceiptAsync(tssId, txId, data).ConfigureAwait(false)
+                    : await _fiskalyTse.SignTransactionAsync(tssId, txId, data).ConfigureAwait(false);
             }
             catch (FiskalyApiException ex)
             {
@@ -512,9 +520,10 @@ namespace KasseAPI_Final.Services
             }
 
             _logger.LogInformation(
-                "Fiskaly receipt signed. correlationId={CorrelationId} receiptNumber={ReceiptNumber} signed={Signed}",
+                "Fiskaly receipt signed. correlationId={CorrelationId} receiptNumber={ReceiptNumber} receiptType={ReceiptType} signed={Signed}",
                 correlationId,
                 signed.ReceiptNumber,
+                data.ReceiptType,
                 signed.Signed);
             return signed.QrCodeData;
         }

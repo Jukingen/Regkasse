@@ -48,7 +48,8 @@
     "downloadFailed": "Batch download failed.",
     "allFailed": "No PDF file could be downloaded.",
     "tooLarge": "Too many files (maximum {{max}}).",
-    "cancelled": "Download cancelled."
+    "cancelled": "Download cancelled.",
+    "selectedSummaryStorno": "{{total}} selected · PDF: {{pdf}} · storno: {{storno}}"
   },
   "filters": {
     "placeholderReceiptNumber": "Receipt number",

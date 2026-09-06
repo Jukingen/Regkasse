@@ -53,4 +53,16 @@ public sealed class FiskalyOptionsTests
         Assert.True(opts.HasActiveCredentials(true));
         Assert.False(opts.HasActiveCredentials(false));
     }
+
+    [Fact]
+    public void ResolveBatchMaxItems_ClampsToFifty()
+    {
+        Assert.Equal(50, new FiskalyOptions().ResolveBatchMaxItems());
+        Assert.Equal(50, new FiskalyOptions { BatchMaxItems = 200 }.ResolveBatchMaxItems());
+        Assert.Equal(50, new FiskalyOptions { BatchMaxItems = 0 }.ResolveBatchMaxItems());
+        Assert.Equal(1, new FiskalyOptions { BatchMaxItems = 1 }.ResolveBatchMaxItems());
+        Assert.Equal(10, new FiskalyOptions().ResolveBatchWarnAtItems());
+        Assert.Equal(50, new FiskalyOptions { BatchWarnAtItems = 100 }.ResolveBatchWarnAtItems());
+        Assert.Equal(5, new FiskalyOptions { BatchMaxItems = 5, BatchWarnAtItems = 10 }.ResolveBatchWarnAtItems());
+    }
 }

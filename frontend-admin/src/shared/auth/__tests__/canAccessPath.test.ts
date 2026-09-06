@@ -10,8 +10,12 @@ import { canAccessPath } from '@/shared/auth/canAccessPath';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 describe('canAccessPath', () => {
-  it('allows Manager with finanzonline.manage to open Sonderbelege', () => {
-    expect(canAccessPath('/rksv/sonderbelege', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  it('allows Manager Fiskaly history/statistics/errors and denies SuperAdmin Fiskaly TSE pages', () => {
+    expect(canAccessPath('/admin/fiskaly/history', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/fiskaly/statistics', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/fiskaly/errors', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/tse/fiskaly', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+    expect(canAccessPath('/admin/tse/fiskaly/setup', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
   });
 
   it('denies Cashier without finanzonline.manage', () => {

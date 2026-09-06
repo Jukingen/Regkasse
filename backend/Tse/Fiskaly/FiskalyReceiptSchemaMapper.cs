@@ -63,6 +63,42 @@ public static class FiskalyReceiptSchemaMapper
     public static string MapReceiptType(bool isCancellation) =>
         isCancellation ? ReceiptTypeCancellation : ReceiptTypeNormal;
 
+    /// <summary>
+    /// SIGN AT has no DAILY_CLOSE type (MONTHLY_CLOSE / YEARLY_CLOSE are automatic and not signable).
+    /// Tagesabschluss is sent as a 0.00 NORMAL marker (Nullbeleg-style) so it appears in the Fiskaly
+    /// dashboard without double-counting turnover or reversing the day's sales (CANCELLATION).
+    /// Closing totals stay in the line-item text; the local TSE JWS is not replaced.
+    /// </summary>
+    public static FiskalyTransactionData BuildTagesabschlussTransaction(
+        Guid cashRegisterId,
+        DateTime closingDate,
+        decimal totalAmount,
+        int transactionCount)
+    {
+        var day = closingDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var totals = FormatAmount(totalAmount);
+        return new FiskalyTransactionData
+        {
+            CashRegisterId = cashRegisterId.ToString("D"),
+            ReceiptType = ReceiptTypeNormal,
+            PaymentType = "CASH",
+            CurrencyCode = DefaultCurrency,
+            SchemaKind = FiskalyReceiptSchemaKinds.StandardV1,
+            TotalAmount = 0m,
+            VatRate = "NULL",
+            AmountsPerVatRate = [new FiskalyVatAmount { VatRate = "NULL", Amount = 0m }],
+            LineItems =
+            [
+                new FiskalyLineItem
+                {
+                    Quantity = "1",
+                    Text = $"Tagesabschluss {day} | Summe {totals} EUR | Belege {transactionCount}",
+                    PricePerUnit = FormatAmount(0m)
+                }
+            ]
+        };
+    }
+
     public static bool IsRawSchema(string? schemaKind) =>
         string.Equals(schemaKind?.Trim(), FiskalyReceiptSchemaKinds.Raw, StringComparison.OrdinalIgnoreCase);
 

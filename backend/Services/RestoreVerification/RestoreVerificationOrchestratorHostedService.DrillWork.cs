@@ -78,7 +78,7 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
         {
             await FailRunAsync(db, run, evidenceBuilder, details, RestoreVerificationStatus.Failed,
                 "NO_ELIGIBLE_BACKUP_RUN",
-                $"No succeeded {nameof(BackupExecutionAdapterKind.PgDump)} backup runs in the last {fallbackDepth} attempts; widen DumpFallbackDepth or run a real pg_dump backup.",
+                $"No succeeded PgDump/SystemComposite backup runs in the last {fallbackDepth} attempts; widen DumpFallbackDepth or run a real pg_dump backup.",
                 RestoreDrillFailureMapper.CategoryFromFailureCode("NO_ELIGIBLE_BACKUP_RUN"),
                 RestoreDrillStage.None,
                 BuildBands(artifactResolved: false), null, null, null, null, null, null, null, ct);

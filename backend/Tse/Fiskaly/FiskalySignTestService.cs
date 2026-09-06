@@ -74,11 +74,24 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         var scenario = FiskalySignTestScenarios.Find(request.Scenario);
         if (scenario is null)
             return Fail<FiskalySignTestResultDto>(400, "Unknown signing scenario.");
+        if (string.Equals(scenario.Id, FiskalySignTestScenarioIds.Tagesabschluss, StringComparison.OrdinalIgnoreCase))
+            return Fail<FiskalySignTestResultDto>(
+                400,
+                "Tagesabschluss must be submitted from the existing TSE-signed DailyClosing via FiskalyReceiptService.");
+        if (string.Equals(scenario.Id, FiskalySignTestScenarioIds.MonthlyClose, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scenario.Id, FiskalySignTestScenarioIds.YearlyClose, StringComparison.OrdinalIgnoreCase))
+            return Fail<FiskalySignTestResultDto>(
+                400,
+                "Monatsbeleg and Jahresbeleg must be created via FiskalyReceiptService (RKSV special receipts).",
+                FiskalyReceiptErrorCodes.ValidationError);
         if (!scenario.CanSign)
             return Fail<FiskalySignTestResultDto>(400, scenario.Description);
 
         var receiptId = Guid.NewGuid();
-        var data = FiskalySignTestScenarios.ToTransactionData(scenario, request.CashRegisterId);
+        var data = ApplyAmountOverride(
+            FiskalySignTestScenarios.ToTransactionData(scenario, request.CashRegisterId),
+            request,
+            scenario);
 
         _logger.LogInformation(
             "Signing fiskaly test receipt. Scenario={Scenario} Register={CashRegisterId} Receipt={ReceiptId}",
@@ -96,7 +109,8 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         catch (FiskalyApiException ex)
         {
             _logger.LogWarning(ex, "Fiskaly test signing failed for register {CashRegisterId}", request.CashRegisterId);
-            return Fail<FiskalySignTestResultDto>(400, ex.Message);
+            var mapped = FiskalyReceiptErrorMapper.FromException(ex);
+            return Fail<FiskalySignTestResultDto>(400, mapped.Message, mapped.Code, mapped.Details);
         }
 
         var qr = FiskalyQrCodeValidator.Validate(signed.QrCodeData);
@@ -151,7 +165,11 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         var gate = await GateAsync(request.CashRegisterId, actorIsSuperAdmin, cancellationToken)
             .ConfigureAwait(false);
         if (gate.Error is not null)
-            return Fail<FiskalyVerifyTestResultDto>(gate.Error.StatusCode, gate.Error.Message);
+            return Fail<FiskalyVerifyTestResultDto>(
+                gate.Error.StatusCode,
+                gate.Error.Message,
+                gate.Error.Code,
+                gate.Error.Details);
 
         FiskalySignedReceipt receipt;
         try
@@ -163,7 +181,8 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         catch (FiskalyApiException ex)
         {
             _logger.LogWarning(ex, "Fiskaly test verify failed for register {CashRegisterId}", request.CashRegisterId);
-            return Fail<FiskalyVerifyTestResultDto>(400, ex.Message);
+            var mapped = FiskalyReceiptErrorMapper.FromException(ex);
+            return Fail<FiskalyVerifyTestResultDto>(400, mapped.Message, mapped.Code, mapped.Details);
         }
 
         var qr = FiskalyQrCodeValidator.Validate(receipt.QrCodeData);
@@ -191,26 +210,27 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
     {
         var opts = _options.CurrentValue;
         if (!opts.IsEffectivelyEnabled(_enabledCache.OverrideEnabled))
-            return (Fail<FiskalySignTestResultDto>(400, "Fiskaly is disabled."), cashRegisterId);
+            return (Fail<FiskalySignTestResultDto>(400, "Fiskaly is disabled.", FiskalyReceiptErrorCodes.FiskalyDisabled), cashRegisterId);
 
         if (!opts.HasApiCredentials)
-            return (Fail<FiskalySignTestResultDto>(400, "Fiskaly API credentials are not configured."), cashRegisterId);
+            return (Fail<FiskalySignTestResultDto>(400, "Fiskaly API credentials are not configured.", FiskalyReceiptErrorCodes.FiskalyNotConfigured), cashRegisterId);
 
         if (string.Equals(opts.ResolveEnvironment(), FiskalyOptions.LiveEnvironment, StringComparison.OrdinalIgnoreCase))
         {
             return (Fail<FiskalySignTestResultDto>(
                 400,
-                "Test signing is not allowed against LIVE fiskaly."), cashRegisterId);
+                "Test signing is not allowed against LIVE fiskaly.",
+                FiskalyReceiptErrorCodes.FiskalyLiveBlocked), cashRegisterId);
         }
 
         if (cashRegisterId == Guid.Empty)
-            return (Fail<FiskalySignTestResultDto>(400, "Cash register id is required."), cashRegisterId);
+            return (Fail<FiskalySignTestResultDto>(400, "Cash register id is required.", FiskalyReceiptErrorCodes.CashRegisterIdRequired), cashRegisterId);
 
         var register = await _cashRegisters
             .GetByIdAsync(cashRegisterId, _tenantAccessor?.TenantId, actorIsSuperAdmin, cancellationToken)
             .ConfigureAwait(false);
         if (register is null)
-            return (Fail<FiskalySignTestResultDto>(404, "Cash register not found."), cashRegisterId);
+            return (Fail<FiskalySignTestResultDto>(404, "Cash register not found.", FiskalyReceiptErrorCodes.CashRegisterNotFound), cashRegisterId);
 
         FiskalyCashRegisterInfo? remote;
         try
@@ -219,17 +239,19 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         }
         catch (FiskalyApiException ex)
         {
-            return (Fail<FiskalySignTestResultDto>(400, ex.Message), cashRegisterId);
+            var mapped = FiskalyReceiptErrorMapper.FromException(ex);
+            return (Fail<FiskalySignTestResultDto>(400, mapped.Message, mapped.Code, mapped.Details), cashRegisterId);
         }
 
         if (remote is null)
-            return (Fail<FiskalySignTestResultDto>(400, "Cash register is not registered at fiskaly."), cashRegisterId);
+            return (Fail<FiskalySignTestResultDto>(400, "Cash register is not registered at fiskaly.", FiskalyReceiptErrorCodes.FiskalyRegisterNotFound), cashRegisterId);
 
         if (!string.Equals(remote.State, FiskalyResourceStates.Initialized, StringComparison.OrdinalIgnoreCase))
         {
             return (Fail<FiskalySignTestResultDto>(
                 400,
-                $"Cash register is not INITIALIZED (current state: {remote.State})."), cashRegisterId);
+                $"Cash register is not INITIALIZED (current state: {remote.State}).",
+                FiskalyReceiptErrorCodes.FiskalyRegisterNotInitialized), cashRegisterId);
         }
 
         return (null, cashRegisterId);
@@ -253,6 +275,48 @@ public sealed class FiskalySignTestService : IFiskalySignTestService
         };
     }
 
-    private static FiskalySetupOperationResult<T> Fail<T>(int statusCode, string message) =>
-        FiskalySetupOperationResult<T>.Fail(statusCode, message);
+    private static FiskalyTransactionData ApplyAmountOverride(
+        FiskalyTransactionData data,
+        FiskalySignTestRequest request,
+        FiskalySignTestScenarioDto scenario)
+    {
+        if (request.Amount is null)
+            return data;
+
+        var amount = request.Amount.Value;
+        if (string.Equals(scenario.ReceiptType, "CANCELLATION", StringComparison.OrdinalIgnoreCase) && amount > 0)
+            amount = -amount;
+
+        var vat = string.IsNullOrWhiteSpace(request.VatRate)
+            ? data.VatRate
+            : request.VatRate.Trim().ToUpperInvariant();
+
+        return new FiskalyTransactionData
+        {
+            CashRegisterId = data.CashRegisterId,
+            ReceiptType = data.ReceiptType,
+            PaymentType = data.PaymentType,
+            CurrencyCode = data.CurrencyCode,
+            SchemaKind = data.SchemaKind,
+            TotalAmount = amount,
+            VatRate = vat,
+            AmountsPerVatRate = [new FiskalyVatAmount { VatRate = vat, Amount = amount }],
+            LineItems =
+            [
+                new FiskalyLineItem
+                {
+                    Quantity = "1",
+                    Text = "Test Produkt",
+                    PricePerUnit = FiskalyReceiptSchemaMapper.FormatAmount(amount)
+                }
+            ]
+        };
+    }
+
+    private static FiskalySetupOperationResult<T> Fail<T>(
+        int statusCode,
+        string message,
+        string? code = null,
+        string? details = null) =>
+        FiskalySetupOperationResult<T>.Fail(statusCode, message, code, details);
 }

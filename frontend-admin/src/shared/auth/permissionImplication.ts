@@ -154,6 +154,17 @@ export const HOLDER_TO_IMPLIED_READS: Readonly<Record<string, readonly string[]>
   'digital.orders.manage': ['digital.orders.view'],
   'digital.orders.approve': ['digital.orders.view', 'digital.orders.manage'],
   'daily-closing.execute': ['daily-closing.view'],
+  'fiskaly.operations.normal': ['fiskaly.operations.view'],
+  'fiskaly.operations.cancel': ['fiskaly.operations.view'],
+  'fiskaly.operations.nullbeleg': ['fiskaly.operations.view'],
+  'fiskaly.operations.startbeleg': ['fiskaly.operations.view'],
+  'fiskaly.operations.monatsbeleg': ['fiskaly.operations.view'],
+  'fiskaly.operations.jahresbeleg': ['fiskaly.operations.view'],
+  'fiskaly.operations.schlussbeleg': ['fiskaly.operations.view'],
+  'fiskaly.operations.tagesabschluss': ['fiskaly.operations.view'],
+  'fiskaly.operations.dep-export': ['fiskaly.operations.view'],
+  'fiskaly.operations.config': ['fiskaly.operations.view'],
+  'fiskaly.history.retry': ['fiskaly.history.view'],
 };
 
 const CHILD_TO_PARENT: Readonly<Record<string, string>> = Object.entries(PARENT_TO_CHILDREN).reduce(

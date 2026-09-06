@@ -3,7 +3,8 @@
 **Audience:** Backend/FA maintainers, operators, AI agents.  
 **Status:** Implemented (Tenant vs System strategies, role-aware FA, validation-only restore).  
 **Always-applied rules:** [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery.  
-**Full system guide:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md).
+**Full system guide:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md).  
+**Current focus (2026-09-06):** System Backup reliability (Production PgDump + archive + alerts). Isolated workstation restore drill **Passed**. **Legal retention:** System backups are held for 7 years (BAO §132) via Legal Hold + optional Cold/WORM archive (`ICloudStorageService`). **Still P2:** Tenant Validation Restore (Manager self-service). Incremental Tenant ZIP + WAL inventory/PITR planning are available; production WAL replay remains a DBA procedure ([`PITR_RESTORE.md`](PITR_RESTORE.md)).
 
 ---
 
@@ -15,7 +16,7 @@
 | Strategy | `BackupStrategyKind.Tenant` | `BackupStrategyKind.System` |
 | Artifact | `*.tenant.zip` (JSON tables) | `pg_dump -Fc` + `*.system.zip` |
 | Identity | Excluded | Included |
-| Retention default | 30 days | 90 days |
+| Retention default | 30 days (operational) | 90 days operational + **7 years legal** (BAO §132) |
 | Facade | `CreateTenantBackupAsync` | `CreateSystemBackupAsync` |
 | Scheduled cron | — | Yes (`BackupScheduledEnqueueService`) |
 | List / download (Manager) | Own tenant only | Never |
@@ -71,7 +72,9 @@ Backup artifact downloads are gated by JWT authentication, role / permission che
 | `/backup/performance` | Duration / ETA metrics |
 | `/backup/compliance` | RKSV product-gate readiness |
 | `/backup/costs` | Indicative Hot/Warm/Cold storage costs |
-| `/backup/runs` | Run list / metrics |
+| `/backup/retention` | Super Admin Hot/Warm/Cold + 7-year legal policy (`/settings/backup-retention` redirects here) |
+| `/backup/pitr` | Point-in-time planning, backup chain, WAL status, isolated dry-run (Super Admin) |
+| `/backup/runs` | Run list (created-by, type/date filters, download) + detail metadata / download history |
 | `/backup/configuration` | Schedule + platform execution mode (gated) |
 | `/backup/audit` | Activity + audit |
 
@@ -88,7 +91,8 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 | Access filter | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | Tenant export | `TenantScopedLogicalBackupExecutionAdapter`, `TenantScopedBackupExporter` |
 | System export | `CompositeSystemBackupExecutionAdapter`, `SystemScopedBackupExporter` |
-| API | `AdminBackupController`, `AdminRestoreController` |
+| API | `AdminBackupController`, `AdminBackupPitrController`, `AdminRestoreController` |
+| PITR / incremental / WAL | `PitrService`, `IncrementalBackupService`, `WalArchiveService`, `BackupChainService` |
 | FA hub | `frontend-admin/src/app/(protected)/backup/page.tsx` |
 
 ---
@@ -96,5 +100,6 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 ## Related runbooks
 
 - Phase 1 orchestration: [`backup-phase1-runbook.md`](backup-phase1-runbook.md)
+- PITR + incremental + WAL archive: [`PITR_RESTORE.md`](PITR_RESTORE.md)
 - Phase 2 `pg_dump`: [`backup-phase2-runbook.md`](backup-phase2-runbook.md)
 - Distributed lock (restore verification): [`restore-verification-distributed-lock.md`](restore-verification-distributed-lock.md)

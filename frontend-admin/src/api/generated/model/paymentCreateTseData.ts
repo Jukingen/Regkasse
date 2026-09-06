@@ -14,4 +14,5 @@ export interface PaymentCreateTseData {
   qrPayload?: string | null;
   /** @nullable */
   receiptNumber?: string | null;
+  showDemoLabel?: boolean;
 }

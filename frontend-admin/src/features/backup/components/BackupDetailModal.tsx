@@ -20,8 +20,8 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import React, { useCallback, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type {
   BackupArtifactResponseDto,
@@ -33,7 +33,19 @@ import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupD
 import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
 import { resolveBackupPipelineStepsForUi } from '@/features/backup-dr/logic/backupPipelineDerived';
 import { isBackupPipelineClientFallbackEnabled } from '@/features/backup-dr/logic/backupPipelineEnv';
-import { downloadBackupArtifactFile } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import {
+  downloadBackupArtifactFile,
+  downloadBackupRunFile,
+} from '@/features/backup-dr/logic/downloadBackupArtifactFile';
+import {
+  asBackupRunDisplay,
+  isScheduledBackupActor,
+} from '@/features/backup/logic/backupRunDisplay';
+import {
+  getBackupDownloadHistory,
+  getBackupDownloadHistoryQueryKey,
+} from '@/features/backup/logic/backupRunDownloadApi';
+import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
 import {
   BackupContentValidationReport,
@@ -43,7 +55,10 @@ import { BackupVerificationReportPanel } from '@/features/backup/components/Back
 import { backupQueryKeys } from '@/features/backup/api/backupHooks';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import { useBackupRun } from '@/features/backup/hooks/useBackupRun';
-import { verifyBackupChecksum } from '@/features/backup/logic/backupChecksumVerifyApi';
+import {
+  verifyBackup,
+  type BackupManualVerifyResponse,
+} from '@/features/backup/logic/backupChecksumVerifyApi';
 import {
   getBackupContentValidation,
   normalizeContentValidationStatus,
@@ -69,6 +84,7 @@ import {
   resolveBackupRunTotalBytes,
 } from '@/features/backup/logic/backupRunTablePresentation';
 import {
+  canShowManualVerifyAction,
   isVerificationFailed,
   isVerificationPassed,
   resolveLatestVerification,
@@ -87,15 +103,20 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   const { t, formatLocale } = useI18n();
   const notify = useNotify();
   const queryClient = useQueryClient();
-  const { canDownloadBackup, canRestore } = useBackupPermissions();
+  const { canDownloadBackup, canRestore, canConfigure } = useBackupPermissions();
   const [downloading, setDownloading] = useState(false);
   const [verifyingChecksum, setVerifyingChecksum] = useState(false);
+  const [lastVerify, setLastVerify] = useState<BackupManualVerifyResponse | null>(null);
   const [validatingContent, setValidatingContent] = useState(false);
   const [contentReport, setContentReport] = useState<BackupContentValidationDto | null>(null);
   const [drilling, setDrilling] = useState(false);
   const progressiveDownload = useProgressiveDownload();
   const sensitiveGate = useSensitiveExportGate();
   const { user } = useAuth();
+
+  useEffect(() => {
+    setLastVerify(null);
+  }, [runId]);
 
   const {
     data: run,
@@ -105,6 +126,17 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     refetch,
   } = useBackupRun(runId, {
     enabled: open,
+  });
+
+  const displayRun = asBackupRunDisplay(run);
+  const { data: verificationReport } = useBackupVerificationReport(
+    runId,
+    open && Boolean(runId) && isBackupRunSucceeded(run?.status)
+  );
+  const downloadHistoryQuery = useQuery({
+    queryKey: runId ? getBackupDownloadHistoryQueryKey(runId) : ['backup-download-history', 'idle'],
+    queryFn: () => getBackupDownloadHistory(runId!),
+    enabled: open && Boolean(runId),
   });
 
   const isSystemBackup = isSystemBackupStrategy(run?.strategy);
@@ -166,22 +198,39 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   );
 
   const handleDownloadPrimary = useCallback(async () => {
-    if (!run?.id || !primaryDownloadArtifact?.id) return;
+    if (!run?.id) return;
     setDownloading(true);
-    const fallback = `backup-${run.id}-${primaryDownloadArtifact.id}`;
+    const fallback = displayRun.primaryDownloadFileName || `backup-${run.id}`;
     try {
       const doDownload = async (headers?: Record<string, string>) => {
-        await executeBackupDownload(
-          primaryDownloadArtifact.id!,
-          fallback,
-          primaryDownloadArtifact.byteSize,
-          headers
-        );
+        const label = t('common.downloadProgress.labelBackup');
+        await progressiveDownload.runCustom({
+          fileName: fallback,
+          label,
+          expectedTotalBytes: displayRun.totalSizeBytes ?? primaryDownloadArtifact?.byteSize,
+          execute: async ({ session, onProgress }) => {
+            await downloadBackupRunFile(
+              run.id!,
+              fallback,
+              {
+                session,
+                onProgress,
+                label,
+                expectedSizeBytes: displayRun.totalSizeBytes ?? primaryDownloadArtifact?.byteSize,
+              },
+              headers ? { headers } : undefined
+            );
+          },
+        });
+        await queryClient.invalidateQueries({
+          queryKey: getBackupDownloadHistoryQueryKey(run.id!),
+        });
+        await queryClient.invalidateQueries({ queryKey: backupQueryKeys.run(run.id!) });
       };
       if (isSystemBackup) {
         sensitiveGate.run({
           kind: SENSITIVE_EXPORT_KINDS.SystemBackup,
-          resourceId: `${run.id}:${primaryDownloadArtifact.id}`,
+          resourceId: run.id,
           isSuperAdmin: isSuperAdmin(user?.role),
           execute: async (headers) => {
             await doDownload(headers);
@@ -194,11 +243,15 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       setDownloading(false);
     }
   }, [
-    executeBackupDownload,
+    displayRun.primaryDownloadFileName,
+    displayRun.totalSizeBytes,
     isSystemBackup,
-    primaryDownloadArtifact,
+    primaryDownloadArtifact?.byteSize,
+    progressiveDownload,
+    queryClient,
     run?.id,
     sensitiveGate,
+    t,
     user?.role,
   ]);
 
@@ -248,6 +301,19 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           const key = `backupDr.lifecycle.${v}`;
           const label = t(key);
           return label === key ? String(v) : label;
+        },
+      },
+      {
+        title: t('backupDr.detailModal.artifacts.hash'),
+        key: 'hash',
+        render: (_: unknown, row: BackupArtifactResponseDto) => {
+          const hash = row.contentHashSha256?.trim();
+          if (!hash) return '—';
+          return (
+            <Typography.Text copyable style={{ fontSize: 11, fontFamily: 'monospace' }}>
+              {hash}
+            </Typography.Text>
+          );
         },
       },
       {
@@ -324,6 +390,30 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         <Descriptions.Item label={t('backupDr.detailModal.triggerLabel')}>
           {t(backupTriggerSourceLabelKey(run.triggerSource))}
         </Descriptions.Item>
+        <Descriptions.Item label={t('backupDr.runsTable.createdBy')}>
+          {isScheduledBackupActor(displayRun)
+            ? t('backupDr.runsTable.createdBySystemCron')
+            : displayRun.requestedByDisplayName ||
+              displayRun.requestedByLabel ||
+              displayRun.requestedByUserId ||
+              '—'}
+        </Descriptions.Item>
+        <Descriptions.Item label={t('backupDr.detailModal.createdByEmail')}>
+          {displayRun.requestedByEmail || '—'}
+        </Descriptions.Item>
+        <Descriptions.Item label={t('backupDr.detailModal.createdFromIp')}>
+          {displayRun.requestedFromIp || '—'}
+        </Descriptions.Item>
+        {displayRun.tenantId ? (
+          <Descriptions.Item label={t('backupDr.detailModal.tenant')}>
+            {displayRun.tenantName
+              ? `${displayRun.tenantName}${displayRun.tenantSlug ? ` (${displayRun.tenantSlug})` : ''}`
+              : displayRun.tenantSlug || displayRun.tenantId}
+          </Descriptions.Item>
+        ) : null}
+        <Descriptions.Item label={t('backupDr.detailModal.downloadCount')}>
+          {displayRun.downloadCount ?? 0}
+        </Descriptions.Item>
         <Descriptions.Item label={t('backupDr.detailModal.startedAt')}>
           {formatDateTime(run.startedAt)}
         </Descriptions.Item>
@@ -369,7 +459,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         ) : null}
       </Descriptions>
     );
-  }, [formatDateTime, formatLocale, run, t]);
+  }, [displayRun, formatDateTime, formatLocale, run, t]);
 
   const renderArtifactsBreakdown = useCallback(() => {
     if (!run) return null;
@@ -393,20 +483,21 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
 
   const latestVerification = useMemo(() => resolveLatestVerification(run), [run]);
 
-  const handleVerifyChecksum = useCallback(async () => {
+  const handleVerify = useCallback(async () => {
     if (!run?.id) return;
     setVerifyingChecksum(true);
     try {
-      const result = await verifyBackupChecksum(run.id);
+      const result = await verifyBackup(run.id);
+      setLastVerify(result);
       if (result.isValid) {
-        notify.successKey('backupDr.checksumVerify.checksumPassed');
+        notify.successKey('backupDr.checksumVerify.verifyPassed');
       } else if (
         result.artifacts?.some((a) => a.status === 'missing_hash') &&
         !result.artifacts.some((a) => a.status === 'failed' || a.status === 'missing_file')
       ) {
         notify.warning('backupDr.checksumVerify.checksumNotAvailable');
       } else {
-        notify.error('backupDr.checksumVerify.checksumFailed', {
+        notify.error('backupDr.checksumVerify.verifyFailed', {
           description: result.failureReason ?? undefined,
         });
       }
@@ -415,8 +506,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       await refetch();
     } catch (err) {
       notify.apiError(err, {
-        logContext: 'BackupDetailModal.verifyChecksum',
-        fallbackKey: 'backupDr.checksumVerify.checksumFailed',
+        logContext: 'BackupDetailModal.verify',
+        fallbackKey: 'backupDr.checksumVerify.verifyFailed',
       });
     } finally {
       setVerifyingChecksum(false);
@@ -555,8 +646,70 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
               />
             ) : null}
             {renderOverviewMetrics()}
+            {verificationReport?.tableStatistics?.length ? (
+              <>
+                <Divider titlePlacement="left">{t('backupDr.detailModal.tablesSection')}</Divider>
+                <Table
+                  size="small"
+                  pagination={{ pageSize: 8, hideOnSinglePage: true }}
+                  rowKey={(r) => `${r.schemaName ?? 'public'}.${r.tableName}`}
+                  dataSource={verificationReport.tableStatistics}
+                  columns={[
+                    {
+                      title: t('backupDr.verificationReport.tableName'),
+                      dataIndex: 'tableName',
+                      key: 'tableName',
+                    },
+                    {
+                      title: t('backupDr.verificationReport.backupRows'),
+                      dataIndex: 'rowCount',
+                      key: 'rowCount',
+                      render: (n: number) => n.toLocaleString(formatLocale),
+                    },
+                  ]}
+                />
+              </>
+            ) : null}
             {renderArtifactsBreakdown()}
           </>
+        ),
+      },
+      {
+        key: 'downloadHistory',
+        label: t('backupDr.detailModal.tabs.downloadHistory'),
+        children: (
+          <Table
+            size="small"
+            loading={downloadHistoryQuery.isFetching}
+            rowKey={(r) => r.id}
+            dataSource={downloadHistoryQuery.data?.items ?? []}
+            locale={{ emptyText: t('backupDr.detailModal.downloadHistoryEmpty') }}
+            columns={[
+              {
+                title: t('backupDr.runsTable.createdBy'),
+                key: 'who',
+                render: (_: unknown, row) =>
+                  [row.userDisplayName, row.userEmail].filter(Boolean).join(' · ') || row.userId,
+              },
+              {
+                title: t('backupDr.detailModal.downloadedAt'),
+                dataIndex: 'downloadedAt',
+                key: 'downloadedAt',
+                render: dateColumnRender('datetime'),
+              },
+              {
+                title: t('backupDr.detailModal.createdFromIp'),
+                dataIndex: 'ipAddress',
+                key: 'ip',
+                render: (v: string | null | undefined) => v || '—',
+              },
+              {
+                title: t('backupDr.detailModal.fileName'),
+                dataIndex: 'fileName',
+                key: 'fileName',
+              },
+            ]}
+          />
         ),
       },
       {
@@ -595,13 +748,14 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                   {formatDateTime(latestVerification.completedAt ?? latestVerification.startedAt)}
                 </Typography.Text>
               ) : null}
-              {run.id && isBackupRunSucceeded(run.status) ? (
+              {canShowManualVerifyAction(run, canConfigure) ? (
                 <Button
                   size="small"
+                  type="primary"
                   loading={verifyingChecksum}
-                  onClick={() => void handleVerifyChecksum()}
+                  onClick={() => void handleVerify()}
                 >
-                  {t('backupDr.checksumVerify.verifyChecksum')}
+                  {t('backupDr.checksumVerify.verify')}
                 </Button>
               ) : null}
               {run.id && isBackupRunSucceeded(run.status) ? (
@@ -625,6 +779,82 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
             </Space>
             {contentReport ? (
               <ContentValidationStatusBadge status={contentReport.overallStatus} />
+            ) : null}
+            {lastVerify ? (
+              <>
+                <Divider titlePlacement="left">
+                  {t('backupDr.detailModal.verification.lastResult')}
+                </Divider>
+                <Table
+                  size="small"
+                  pagination={false}
+                  rowKey={(r) => `${r.artifactType}-${r.storedChecksum ?? ''}`}
+                  dataSource={lastVerify.artifacts ?? []}
+                  columns={[
+                    {
+                      title: t('backupDr.detailModal.artifacts.type'),
+                      dataIndex: 'artifactType',
+                      key: 'artifactType',
+                    },
+                    {
+                      title: t('backupDr.detailModal.verification.storedHash'),
+                      dataIndex: 'storedChecksum',
+                      key: 'stored',
+                      render: (v: string | null) => (
+                        <Typography.Text style={{ fontSize: 11, fontFamily: 'monospace' }}>
+                          {v ?? '—'}
+                        </Typography.Text>
+                      ),
+                    },
+                    {
+                      title: t('backupDr.detailModal.verification.computedHash'),
+                      dataIndex: 'computedChecksum',
+                      key: 'computed',
+                      render: (v: string | null) => (
+                        <Typography.Text style={{ fontSize: 11, fontFamily: 'monospace' }}>
+                          {v ?? '—'}
+                        </Typography.Text>
+                      ),
+                    },
+                    {
+                      title: t('backupDr.runsTable.statusColumn'),
+                      dataIndex: 'status',
+                      key: 'status',
+                    },
+                  ]}
+                />
+                {lastVerify.tableReport?.tableStatistics?.length ? (
+                  <Table
+                    size="small"
+                    pagination={false}
+                    style={{ marginTop: 12 }}
+                    rowKey={(r) => `${r.schemaName ?? 'public'}.${r.tableName}`}
+                    dataSource={lastVerify.tableReport.tableStatistics}
+                    columns={[
+                      {
+                        title: t('backupDr.verificationReport.tableName'),
+                        dataIndex: 'tableName',
+                        key: 'tableName',
+                      },
+                      {
+                        title: t('backupDr.verificationReport.backupRows'),
+                        dataIndex: 'rowCount',
+                        key: 'rowCount',
+                        render: (n: number) => n.toLocaleString(formatLocale),
+                      },
+                      {
+                        title: t('backupDr.verificationReport.verified'),
+                        dataIndex: 'isVerified',
+                        key: 'isVerified',
+                        render: (ok: boolean | undefined) =>
+                          ok
+                            ? t('backupDr.verificationReport.rowVerified')
+                            : t('backupDr.verificationReport.rowNotVerified'),
+                      },
+                    ]}
+                  />
+                ) : null}
+              </>
             ) : null}
             {verificationItems}
             {run.id && isBackupRunSucceeded(run.status) ? (
@@ -723,17 +953,23 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       },
     ];
   }, [
+    canConfigure,
     canDownloadBackup,
+    downloadHistoryQuery.data?.items,
+    downloadHistoryQuery.isFetching,
+    verificationReport,
     canRestore,
     checksumBadge,
     contentReport,
     drilling,
     formatDateTime,
+    formatLocale,
     handleRunDrill,
     handleValidateContent,
-    handleVerifyChecksum,
+    handleVerify,
     isFetching,
     isSystemBackup,
+    lastVerify,
     latestVerification,
     open,
     pipelineResolved.steps,
@@ -748,8 +984,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   ]);
 
   const showDownloadFooter =
-    isBackupRunSucceeded(run?.status) &&
-    Boolean(run?.id && primaryDownloadArtifact?.id && canDownloadBackup);
+    isBackupRunSucceeded(run?.status) && Boolean(run?.id && canDownloadBackup);
 
   return (
     <>

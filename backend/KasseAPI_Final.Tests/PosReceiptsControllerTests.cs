@@ -138,6 +138,7 @@ public class PosReceiptsControllerTests
         Assert.Equal("R-A", listed.Items[0].ReceiptNumber);
         Assert.Equal(registerA, listed.Items[0].CashRegisterEntityId);
         Assert.Equal(12.5m, listed.Items[0].GrandTotal);
+        Assert.Equal(ReceiptListStatuses.Paid, listed.Items[0].Status);
 
         var other = await service.GetReceiptForCashRegisterAsync(listed.Items[0].ReceiptId, registerB);
         Assert.Null(other);
@@ -188,9 +189,226 @@ public class PosReceiptsControllerTests
         Assert.Equal("OWN-1", listed.Items[0].ReceiptNumber);
     }
 
-    private static PosReceiptsController CreateController(IReceiptService receipts, IPaymentService payments)
+    [Fact]
+    public async Task GetRecent_PrefersLimitOverPageSize_AndClampsToMax()
     {
-        var controller = new PosReceiptsController(receipts, payments, NullLogger<PosReceiptsController>.Instance);
+        var receipts = new Mock<IReceiptService>();
+        receipts.Setup(x => x.GetRecentReceiptsForCashRegisterAsync(It.IsAny<Guid>(), It.IsAny<int>()))
+            .ReturnsAsync(new PagedResult<ReceiptListItemDto>
+            {
+                Items = new List<ReceiptListItemDto>(),
+                Page = 1,
+                PageSize = 20,
+                TotalCount = 0,
+            });
+
+        var registerId = Guid.NewGuid();
+        var controller = CreateController(receipts.Object, Mock.Of<IPaymentService>());
+        await controller.GetRecent(registerId, pageSize: 8, limit: 50);
+        receipts.Verify(x => x.GetRecentReceiptsForCashRegisterAsync(registerId, 20), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetRecentReceiptsForCashRegister_MapsStornoAndRefundStatus()
+    {
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"PosReceiptStatus_{Guid.NewGuid()}")
+            .Options;
+        await using var db = new AppDbContext(options, tenantAccessor);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+
+        var registerId = Guid.NewGuid();
+        SeedRegister(db, registerId, "K-S");
+        var paid = SeedPayment(db, registerId, "R-PAID");
+        var storno = SeedPayment(db, registerId, "R-STO");
+        storno.IsStorno = true;
+        var refund = SeedPayment(db, registerId, "R-REF");
+        refund.IsRefund = true;
+        SeedReceipt(db, paid, registerId, "R-PAID", 10m, SystemTenantIds.Platform);
+        SeedReceipt(db, storno, registerId, "R-STO", -10m, SystemTenantIds.Platform);
+        SeedReceipt(db, refund, registerId, "R-REF", -4m, SystemTenantIds.Platform);
+        await db.SaveChangesAsync();
+
+        var service = CreateReceiptService(db);
+        var listed = await service.GetRecentReceiptsForCashRegisterAsync(registerId, 20);
+        Assert.Equal(3, listed.Items.Count);
+        Assert.Equal(ReceiptListStatuses.Storno, listed.Items.Single(i => i.ReceiptNumber == "R-STO").Status);
+        Assert.Equal(ReceiptListStatuses.Refund, listed.Items.Single(i => i.ReceiptNumber == "R-REF").Status);
+        Assert.Equal(ReceiptListStatuses.Paid, listed.Items.Single(i => i.ReceiptNumber == "R-PAID").Status);
+    }
+
+    [Fact]
+    public async Task GetRecentReceiptsForCashRegister_MarksOriginalAsStornoWhenChildExists()
+    {
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"PosReceiptChildStorno_{Guid.NewGuid()}")
+            .Options;
+        await using var db = new AppDbContext(options, tenantAccessor);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+
+        var registerId = Guid.NewGuid();
+        SeedRegister(db, registerId, "K-C");
+        var original = SeedPayment(db, registerId, "R-ORIG");
+        var child = SeedPayment(db, registerId, "R-STO-C");
+        child.IsStorno = true;
+        child.OriginalPaymentId = original.Id;
+        SeedReceipt(db, original, registerId, "R-ORIG", 18m, SystemTenantIds.Platform);
+        SeedReceipt(db, child, registerId, "R-STO-C", -18m, SystemTenantIds.Platform);
+        await db.SaveChangesAsync();
+
+        var service = CreateReceiptService(db);
+        var listed = await service.GetRecentReceiptsForCashRegisterAsync(registerId, 20);
+        Assert.Equal(ReceiptListStatuses.Storno, listed.Items.Single(i => i.ReceiptNumber == "R-ORIG").Status);
+        Assert.Equal(ReceiptListStatuses.Storno, listed.Items.Single(i => i.ReceiptNumber == "R-STO-C").Status);
+    }
+
+    [Fact]
+    public async Task Cancel_WrongRegister_ReturnsNotFound_AndDoesNotCallFiskaly()
+    {
+        var receiptId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var receipts = new Mock<IReceiptService>();
+        receipts.Setup(x => x.GetReceiptForCashRegisterAsync(receiptId, registerId))
+            .ReturnsAsync((ReceiptDTO?)null);
+        var fiskaly = new Mock<IFiskalyReceiptService>(MockBehavior.Strict);
+
+        var controller = CreateController(receipts.Object, Mock.Of<IPaymentService>(), fiskaly.Object);
+        var result = await controller.Cancel(receiptId, registerId, new PosReceiptCancelRequest());
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        fiskaly.Verify(
+            x => x.CancelReceiptAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Cancel_OtherCashiersReceipt_ReturnsNotOwner()
+    {
+        var receiptId = Guid.NewGuid();
+        var paymentId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var receipts = new Mock<IReceiptService>();
+        receipts.Setup(x => x.GetReceiptForCashRegisterAsync(receiptId, registerId))
+            .ReturnsAsync(new ReceiptDTO
+            {
+                ReceiptId = receiptId,
+                PaymentId = paymentId,
+                CashRegisterId = registerId,
+                CashierId = "other-cashier",
+                Date = DateTime.UtcNow,
+                GrandTotal = 12m,
+            });
+        var payments = new Mock<IPaymentService>();
+        payments.Setup(x => x.GetPaymentAsync(paymentId))
+            .ReturnsAsync(new PaymentDetails
+            {
+                Id = paymentId,
+                CashierId = "other-cashier",
+                TotalAmount = 12m,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            });
+        var fiskaly = new Mock<IFiskalyReceiptService>(MockBehavior.Strict);
+
+        var controller = CreateController(receipts.Object, payments.Object, fiskaly.Object);
+        var result = await controller.Cancel(receiptId, registerId, new PosReceiptCancelRequest());
+        var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<StornoResponse>(bad.Value);
+        Assert.Equal(PosReceiptStornoEligibility.NotOwnerErrorKey, body.ErrorKey);
+    }
+
+    [Fact]
+    public async Task Cancel_OwnReceiptToday_DelegatesToFiskalyCancel()
+    {
+        var receiptId = Guid.NewGuid();
+        var paymentId = Guid.NewGuid();
+        var stornoId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var receipts = new Mock<IReceiptService>();
+        receipts.Setup(x => x.GetReceiptForCashRegisterAsync(receiptId, registerId))
+            .ReturnsAsync(new ReceiptDTO
+            {
+                ReceiptId = receiptId,
+                PaymentId = paymentId,
+                CashRegisterId = registerId,
+                CashierId = "cashier-1",
+                Date = DateTime.UtcNow,
+                GrandTotal = 12m,
+                ReceiptNumber = "AT-1",
+            });
+        var payments = new Mock<IPaymentService>();
+        payments.Setup(x => x.GetPaymentAsync(paymentId))
+            .ReturnsAsync(new PaymentDetails
+            {
+                Id = paymentId,
+                CashierId = "cashier-1",
+                TotalAmount = 12m,
+                ReceiptNumber = "AT-1",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            });
+        var fiskaly = new Mock<IFiskalyReceiptService>();
+        fiskaly.Setup(x => x.CancelReceiptAsync(
+                registerId,
+                paymentId,
+                PosReceiptStornoEligibility.DefaultReason,
+                "cashier-1",
+                false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Ok(new FiskalyReceiptDataDto
+            {
+                ReceiptId = stornoId.ToString("D"),
+                ReceiptNumber = "AT-2",
+            }));
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(x => x.LogPaymentOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<double?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var controller = CreateController(receipts.Object, payments.Object, fiskaly.Object, audit.Object);
+        var result = await controller.Cancel(receiptId, registerId, new PosReceiptCancelRequest());
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<StornoResponse>(ok.Value);
+        Assert.True(body.Success);
+        Assert.Equal(stornoId, body.StornoPaymentId);
+    }
+
+    private static PosReceiptsController CreateController(
+        IReceiptService receipts,
+        IPaymentService payments,
+        IFiskalyReceiptService? fiskaly = null,
+        IAuditLogService? audit = null)
+    {
+        var controller = new PosReceiptsController(
+            receipts,
+            payments,
+            fiskaly ?? Mock.Of<IFiskalyReceiptService>(),
+            Mock.Of<IUserService>(),
+            audit ?? Mock.Of<IAuditLogService>(),
+            NullLogger<PosReceiptsController>.Instance);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, "cashier-1"),

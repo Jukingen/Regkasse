@@ -24,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useOfflineOrderManager } from '../../hooks/useOfflineOrderManager';
 import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { formatUserDateTime } from '../../utils/dateFormatter';
 
 function formatDeDateTime(iso: string | null | undefined): string {
@@ -38,6 +39,7 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
   const { effectiveRegisterId } = usePosRegisterSelection();
+  const { canCreateSonderbeleg } = usePosPermissions();
   const { status: offlineStatus, syncNow } = useOfflineOrderManager();
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -53,6 +55,17 @@ export default function SettingsScreen() {
       return;
     }
     router.push('/(tabs)/receipt-list' as const);
+  }, [effectiveRegisterId, router, t]);
+
+  const openFiskalyOps = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(tabs)/fiskaly-operations' as const);
   }, [effectiveRegisterId, router, t]);
 
   const openPaymentHistory = useCallback(() => {
@@ -136,6 +149,9 @@ export default function SettingsScreen() {
       receiptListTitle: t('settings:receiptList.title'),
       receiptListDescription: t('settings:receiptList.description'),
       receiptListOpen: t('settings:receiptList.open'),
+      fiskalyOpsTitle: t('settings:fiskalyOps.title'),
+      fiskalyOpsDescription: t('settings:fiskalyOps.description'),
+      fiskalyOpsOpen: t('settings:fiskalyOps.open'),
       licenseHeading: t('license:settingsSectionTitle'),
       licenseTransferHeading: t('license:transferSectionTitle'),
       adminMenuTitle: t('settings:adminMenu.title'),
@@ -242,6 +258,15 @@ export default function SettingsScreen() {
           <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
         ) : null}
       </View>
+      {canCreateSonderbeleg ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{translations.fiskalyOpsTitle}</Text>
+          <Text style={styles.description}>{translations.fiskalyOpsDescription}</Text>
+          <TouchableOpacity style={styles.queueLinkButton} onPress={openFiskalyOps}>
+            <Text style={styles.queueLinkText}>{translations.fiskalyOpsOpen}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineSyncTitle}</Text>
         <Text style={styles.description}>{translations.offlineSyncDescription}</Text>

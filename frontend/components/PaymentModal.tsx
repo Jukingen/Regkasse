@@ -37,8 +37,14 @@ import {
 } from '../services/api/customerService';
 import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { validateAmount } from '../utils/validation';
+import {
+  PAYMENT_COVERAGE_TOLERANCE_EUR,
+  computeVoucherPlusCashCoversTotal,
+  resolveOptionalCashTender,
+} from '../utils/posPaymentCoverage';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import {
+  DEFAULT_POS_PAYMENT_METHOD,
   posCheckoutUiActions,
   selectPaymentMethodSubmitAttempted,
   selectSelectedPaymentMethodType,
@@ -183,42 +189,6 @@ function computeVoucherMaxForSale(
   return Math.max(0, Math.min(totalAmount, cap));
 }
 
-/** Cart gross tolerance for voucher + cash coverage (aligned with backend money rules). */
-const PAYMENT_COVERAGE_TOLERANCE_EUR = 0.02;
-
-/**
- * Whether applied voucher EUR plus cash tender covers cart gross total (German decimal input).
- * When settlement Restbetrag is ~0, only the voucher portion must cover the cart total.
- */
-function computeVoucherPlusCashCoversTotal(input: {
-  voucherEnabled: boolean;
-  appliedVoucherAmount: number;
-  totalCartAmount: number;
-  settlementAmountDue: number;
-  requiresCashAmount: boolean;
-  amountReceivedStr: string;
-}): { sumPaid: number; coversTotal: boolean } {
-  const v = input.voucherEnabled ? Math.max(0, input.appliedVoucherAmount) : 0;
-  const cashParsed = parseLocaleDecimal(input.amountReceivedStr);
-  const cashReceived = Number.isFinite(cashParsed) ? Math.max(0, cashParsed) : 0;
-
-  let sumPaid: number;
-  if (!input.voucherEnabled) {
-    sumPaid = input.requiresCashAmount ? cashReceived : input.totalCartAmount;
-  } else if (input.settlementAmountDue <= PAYMENT_COVERAGE_TOLERANCE_EUR) {
-    sumPaid = v;
-  } else if (input.requiresCashAmount) {
-    sumPaid = v + cashReceived;
-  } else {
-    // Card/transfer: cover Restbetrag without using cash TextInput.
-    sumPaid = v + Math.max(0, input.settlementAmountDue);
-  }
-
-  return {
-    sumPaid,
-    coversTotal: sumPaid >= input.totalCartAmount - PAYMENT_COVERAGE_TOLERANCE_EUR,
-  };
-}
 
 /** ReceiptDTO veya payment response'taki receipt ? ReceiptSummary format?. */
 function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | null {
@@ -307,7 +277,7 @@ export default function PaymentModal({
   const { setSelectedPaymentMethodType, setPaymentMethodSubmitAttempted, resetCheckoutPaymentUi } =
     posCheckoutUiActions;
   const [amountReceived, setAmountReceived] = useState<string>('');
-  /** Cash (Bar): true when operator entered or preset-selected amount &gt; 0 (drives inline ?? hint). */
+  /** Cash (Bar): false only when a typed tender is present and below the rest amount. */
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [notes, setNotes] = useState<string>('');
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
@@ -495,15 +465,6 @@ export default function PaymentModal({
   );
 
   useEffect(() => {
-    if (!requiresCashAmount) {
-      setIsAmountValid(true);
-      return;
-    }
-    const r = parseLocaleDecimal(amountReceived);
-    setIsAmountValid(Number.isFinite(r) && r > 0);
-  }, [amountReceived, requiresCashAmount]);
-
-  useEffect(() => {
     if (!voucherEnabled) {
       setIsVoucherCodeValid(true);
       return;
@@ -599,7 +560,21 @@ export default function PaymentModal({
     remainderAfterVoucher: voucherEnabled ? settlementAmountDue : undefined,
   });
   const shouldCollectCashAmount = requiresCashAmount && settlementAmountDue > 0;
-  const changeAmount = parseLocaleDecimal(amountReceived) - settlementAmountDue;
+  const cashTender = resolveOptionalCashTender(amountReceived, settlementAmountDue);
+  const changeAmount = cashTender.fieldEmpty ? null : cashTender.parsed - settlementAmountDue;
+  const showCashChange = changeAmount != null && Number.isFinite(changeAmount) && changeAmount >= 0;
+
+  useEffect(() => {
+    if (!requiresCashAmount) {
+      setIsAmountValid(true);
+      return;
+    }
+    if (cashTender.fieldEmpty) {
+      setIsAmountValid(true);
+      return;
+    }
+    setIsAmountValid(!cashTender.isInsufficient);
+  }, [requiresCashAmount, cashTender.fieldEmpty, cashTender.isInsufficient]);
 
   const insets = useSafeAreaInsets();
 
@@ -807,6 +782,19 @@ export default function PaymentModal({
       setVoucherEnabled(false);
     }
   }, [visible, resetCheckoutPaymentUi]);
+
+  useEffect(() => {
+    if (!visible || settlementPaymentMethods.length === 0) return;
+    const selectedIsAvailable =
+      !!selectedPaymentMethod &&
+      settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod);
+    if (selectedIsAvailable) return;
+    const cash = settlementPaymentMethods.find((m) => m.type === DEFAULT_POS_PAYMENT_METHOD);
+    const catalogDefault = settlementPaymentMethods.find((m) => m.isDefault);
+    setSelectedPaymentMethodType(
+      cash?.type ?? catalogDefault?.type ?? settlementPaymentMethods[0].type
+    );
+  }, [visible, settlementPaymentMethods, selectedPaymentMethod, setSelectedPaymentMethodType]);
 
   useEffect(() => {
     if (selectedPaymentMethod === 'voucher') {
@@ -1064,23 +1052,19 @@ export default function PaymentModal({
       return;
     }
 
-    if (shouldCollectCashAmount) {
-      const received = parseLocaleDecimal(amountReceived);
-      if (!Number.isFinite(received) || received <= 0) {
-        debugPosPaymentTrace('submit_blocked_cash_amount_empty', { received, settlementAmountDue });
-        logPay('Guard exit: cash amount empty');
-        Alert.alert('Debug Error', 'Failed at: Barbetrag fehlt oder ung�ltig');
-        return;
-      }
-      if (received + 0.001 < settlementAmountDue) {
-        debugPosPaymentTrace('submit_blocked_cash_amount', { received, settlementAmountDue });
-        logPay('Guard exit: cash below Restbetrag');
-        Alert.alert(
-          'Debug Error',
-          `Failed at: zu wenig Bargeld (Restbetrag ${settlementAmountDue.toFixed(2)} �, erhalten ${received.toFixed(2)} �)`
-        );
-        return;
-      }
+    if (shouldCollectCashAmount && !cashTender.fieldEmpty && cashTender.isInsufficient) {
+      debugPosPaymentTrace('submit_blocked_cash_amount', {
+        received: cashTender.parsed,
+        settlementAmountDue,
+      });
+      logPay('Guard exit: cash below Restbetrag');
+      Alert.alert(
+        t('checkout:posFlow.payment.cash.belowTotalTitle'),
+        t('checkout:posFlow.payment.cash.belowTotalMessage', {
+          amount: formatPrice(settlementAmountDue),
+        })
+      );
+      return;
     }
 
     if (!hasValidCashRegisterId || !cashRegisterId) {
@@ -1251,7 +1235,7 @@ export default function PaymentModal({
       const settlementPaymentAmountNumeric = voucherEnabled
         ? settlementAmountDue
         : requiresCashAmount
-          ? parseLocaleDecimal(amountReceived)
+          ? cashTender.effectiveTender
           : undefined;
 
       const paymentRequest: PaymentRequest = {
@@ -1931,8 +1915,8 @@ export default function PaymentModal({
                         <Text
                           style={styles.cashAmountWarnIcon}
                           accessibilityRole="image"
-                          accessibilityLabel="?">
-                          ??
+                          accessibilityLabel="!">
+                          !
                         </Text>
                       ) : null}
                     </View>
@@ -1944,17 +1928,27 @@ export default function PaymentModal({
                       keyboardType="decimal-pad"
                       editable={!paymentInteractionsLocked}
                       accessibilityLabel={t('checkout:posFlow.payment.cash.receivedA11y')}
-                      accessibilityHint="Mindestens den zu zahlenden Betrag eingeben"
+                      accessibilityHint={t('checkout:posFlow.payment.cash.optionalHint')}
                     />
                   </View>
-                  {parseLocaleDecimal(amountReceived) >= settlementAmountDue && (
+                  <Text style={styles.cashOptionalHint}>
+                    {t('checkout:posFlow.payment.cash.optionalHint')}
+                  </Text>
+                  {!cashTender.fieldEmpty && cashTender.isInsufficient ? (
+                    <Text style={styles.cashBelowTotalHint} accessibilityRole="alert">
+                      {t('checkout:posFlow.payment.cash.belowTotalMessage', {
+                        amount: formatPrice(settlementAmountDue),
+                      })}
+                    </Text>
+                  ) : null}
+                  {showCashChange && changeAmount != null ? (
                     <View style={styles.changeRow}>
                       <Text style={styles.changeLabel}>
                         {t('checkout:posFlow.payment.cash.changeLabel')}
                       </Text>
                       <Text style={styles.changeAmount}>{formatPrice(changeAmount)}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               )}
 
@@ -2814,6 +2808,16 @@ const styles = StyleSheet.create({
   cashAmountWarnIcon: {
     fontSize: 14,
     lineHeight: 18,
+  },
+  cashOptionalHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    marginTop: 4,
+  },
+  cashBelowTotalHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.error,
+    marginTop: 4,
   },
   label: {
     ...SoftTypography.label,

@@ -19,6 +19,15 @@ const sessionsQuery = vi.hoisted(() => ({
     refetch: vi.fn(),
     terminateOne: { isPending: false, mutateAsync: vi.fn() },
     terminateAll: { isPending: false, mutateAsync: vi.fn() },
+    terminateBulk: { isPending: false, mutateAsync: vi.fn() },
+  },
+}));
+
+const permissions = vi.hoisted(() => ({
+  current: {
+    isSuperAdmin: true,
+    isManager: false,
+    hasPermission: (_key: string) => true,
   },
 }));
 
@@ -27,7 +36,11 @@ vi.mock('@/features/sessions/hooks/useAdminSessions', () => ({
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({ isSuperAdmin: true }),
+  usePermissions: () => permissions.current,
+}));
+
+vi.mock('@/features/tenancy/hooks/useTenantList', () => ({
+  useTenantList: () => ({ tenants: [], isLoading: false }),
 }));
 
 vi.mock('@/hooks/useNotify', () => ({
@@ -45,8 +58,7 @@ vi.mock('@/i18n', () => ({
 }));
 
 vi.mock('@/lib/dayjs', () => {
-  const fromNow = () => '1 minute ago';
-  const dayjs = () => ({ fromNow });
+  const dayjs = () => ({ format: () => '10:25' });
   return { default: dayjs };
 });
 
@@ -60,6 +72,10 @@ vi.mock('@/components/admin-layout/AdminPageHeader', () => ({
 
 vi.mock('@/components/admin-layout/AdminPageShell', () => ({
   AdminPageShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@/features/access/components/AccessSecondaryNav', () => ({
+  AccessSecondaryNav: () => <nav data-testid="access-secondary-nav" />,
 }));
 
 vi.mock('@/components/ConfirmDialog', () => ({
@@ -84,27 +100,51 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-const sampleSession: AdminActiveSession = {
+const posSession: AdminActiveSession = {
   id: 'sess-1',
   userId: 'u1',
   userName: 'cashier1',
   displayName: 'Anna Kassier',
   role: 'Cashier',
-  clientApp: 'POS',
+  clientApp: 'pos',
   deviceName: 'iPad',
-  browser: 'Safari',
-  os: 'iOS',
-  ipAddress: '192.168.1.10',
+  platformLabel: 'POS (Android)',
+  browser: 'Mobile App',
+  os: 'Android',
+  ipAddress: '192.168.1.2',
   startedAtUtc: '2026-08-22T08:00:00.000Z',
-  lastActivityAtUtc: '2026-08-22T08:01:00.000Z',
+  lastActivityAtUtc: '2026-08-22T08:25:00.000Z',
+  durationSeconds: 5,
   isActive: true,
   isCurrent: false,
 };
 
+const currentAdminSession: AdminActiveSession = {
+  id: 'sess-admin',
+  userId: 'sa-1',
+  userName: 'admin',
+  role: 'SuperAdmin',
+  clientApp: 'admin',
+  platformLabel: 'Admin',
+  browser: 'Chrome',
+  os: 'Windows',
+  ipAddress: '84.112.81.99',
+  startedAtUtc: '2026-08-22T08:00:00.000Z',
+  lastActivityAtUtc: '2026-08-22T08:30:00.000Z',
+  durationSeconds: 2,
+  isActive: true,
+  isCurrent: true,
+};
+
 describe('AdminSessionsPage', () => {
   beforeEach(() => {
+    permissions.current = {
+      isSuperAdmin: true,
+      isManager: false,
+      hasPermission: () => true,
+    };
     sessionsQuery.current = {
-      sessions: [sampleSession],
+      sessions: [currentAdminSession, posSession],
       isLoading: false,
       isFetching: false,
       isError: false,
@@ -112,16 +152,28 @@ describe('AdminSessionsPage', () => {
       refetch: vi.fn(),
       terminateOne: { isPending: false, mutateAsync: vi.fn() },
       terminateAll: { isPending: false, mutateAsync: vi.fn() },
+      terminateBulk: { isPending: false, mutateAsync: vi.fn() },
     };
   });
 
-  it('shows browser and OS columns from the session DTO', () => {
+  it('matches the expected session table layout', () => {
     render(<AdminSessionsPage />);
 
-    expect(screen.getByText('users.sessions.colBrowser')).toBeTruthy();
-    expect(screen.getByText('users.sessions.colOs')).toBeTruthy();
-    expect(screen.getByText('Safari')).toBeTruthy();
-    expect(screen.getByText('iOS')).toBeTruthy();
+    expect(screen.getByText('users.sessions.filterUser')).toBeTruthy();
+    expect(screen.getByText('users.sessions.filterRole')).toBeTruthy();
+    expect(screen.getByText('users.sessions.filterTenant')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'users.sessions.searchButton' })).toBeTruthy();
+
+    expect(screen.getByText('admin')).toBeTruthy();
+    expect(screen.getByText('Windows - Chrome')).toBeTruthy();
+    expect(screen.getByText('cashier1')).toBeTruthy();
+    expect(screen.getByText('POS (Android)')).toBeTruthy();
+    expect(screen.getByText('2s')).toBeTruthy();
+    expect(screen.getByText('5s')).toBeTruthy();
+    expect(screen.getByText('users.sessions.thisDevice')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'users.sessions.logout' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'users.sessions.logoutBulk' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'users.sessions.logoutAllOthers' })).toBeTruthy();
   });
 
   it('shows an error alert with retry instead of an empty table', () => {
@@ -138,8 +190,35 @@ describe('AdminSessionsPage', () => {
 
     expect(screen.getByText('users.sessions.loadFailed')).toBeTruthy();
     expect(screen.getByText('users.sessions.loadFailedHint')).toBeTruthy();
-    expect(screen.queryByText('Safari')).toBeNull();
+    expect(screen.queryByText('POS (Android)')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'common.buttons.retry' }));
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides logout actions when the caller only has user.view', () => {
+    permissions.current = {
+      isSuperAdmin: false,
+      isManager: true,
+      hasPermission: (key: string) => key === 'user.view',
+    };
+
+    render(<AdminSessionsPage />);
+
+    expect(screen.getByText('POS (Android)')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'users.sessions.logout' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'users.sessions.logoutAllOthers' })).toBeNull();
+  });
+
+  it('blocks cashiers without user.view', () => {
+    permissions.current = {
+      isSuperAdmin: false,
+      isManager: false,
+      hasPermission: () => false,
+    };
+
+    render(<AdminSessionsPage />);
+
+    expect(screen.getByText('users.sessions.accessDeniedDescription')).toBeTruthy();
+    expect(screen.queryByText('POS (Android)')).toBeNull();
   });
 });

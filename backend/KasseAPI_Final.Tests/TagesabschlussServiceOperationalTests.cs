@@ -1,4 +1,5 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Time;
@@ -243,6 +244,85 @@ public sealed class TagesabschlussServiceOperationalTests
 
         Assert.True(result.Success, result.ErrorMessage);
         Assert.Equal(1, result.TransactionCount);
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenFiskalyFails_KeepsLocalClosing()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-fiskaly", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(s => s.GetTseStatusAsync()).ReturnsAsync(new TseStatus
+        {
+            IsConnected = false,
+            Status = "Disconnected",
+            ErrorMessage = "TSE device is not connected",
+        });
+        tseMock
+            .Setup(s => s.CreateDailyClosingSignatureAsync(
+                registerId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<decimal>(),
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
+            .ReturnsAsync("dev-daily-closing-jws");
+
+        var fiskaly = new Mock<IFiskalyReceiptService>();
+        fiskaly
+            .Setup(f => f.CreateTagesabschlussAsync(
+                It.IsAny<Guid>(),
+                userId,
+                false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Fail(
+                400,
+                FiskalyReceiptErrorCodes.FiskalyApiError,
+                "Fiskaly unavailable"));
+
+        var sut = new TagesabschlussService(
+            ctx,
+            tseMock.Object,
+            new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
+            Mock.Of<IFinanzOnlineService>(f => f.IsEnabledAsync() == Task.FromResult(false)),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true),
+            fiskalyReceipts: fiskaly.Object);
+
+        var result = await sut.PerformDailyClosingAsync(userId, registerId);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal("dev-daily-closing-jws", result.TseSignature);
+        fiskaly.Verify(
+            f => f.CreateTagesabschlussAsync(
+                result.ClosingId!.Value,
+                userId,
+                false,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

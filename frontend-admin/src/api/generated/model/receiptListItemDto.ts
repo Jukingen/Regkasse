@@ -35,6 +35,8 @@ export interface ReceiptListItemDto {
   rksvSpecialReceiptMonth?: number | null;
   /** @nullable */
   rksvSpecialReceiptYear?: number | null;
+  /** @nullable */
+  status?: string | null;
   subTotal?: number;
   taxTotal?: number;
 }

@@ -212,6 +212,9 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/rksv/sb/schlussbeleg',
     '/rksv/sb/test-helper',
     '/rksv/sonderbelege',
+    '/admin/fiskaly/history',
+    '/admin/fiskaly/statistics',
+    '/admin/fiskaly/errors',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts]: [
     '/rksv/sb/startbeleg',
@@ -221,6 +224,9 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/rksv/sb/schlussbeleg',
     '/rksv/sb/test-helper',
     '/rksv/sonderbelege',
+    '/admin/fiskaly/history',
+    '/admin/fiskaly/statistics',
+    '/admin/fiskaly/errors',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline]: [
     '/rksv/finanz-online-outbox',
@@ -335,6 +341,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
     '/admin/access',
     '/admin/users',
+    '/admin/sessions',
     '/admin/access/roles',
     '/admin/access/matrix',
   ],
@@ -604,7 +611,9 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/admin/access' ||
     p.startsWith('/admin/access/') ||
     p === '/admin/users' ||
-    p.startsWith('/admin/users/')
+    p.startsWith('/admin/users/') ||
+    p === '/admin/sessions' ||
+    p.startsWith('/admin/sessions/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
   }
@@ -782,7 +791,13 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p === '/rksv/sb/schlussbeleg' ||
     p === '/rksv/sb/test-helper' ||
     p === '/rksv/sonderbelege' ||
-    p.startsWith('/rksv/sonderbelege/')
+    p.startsWith('/rksv/sonderbelege/') ||
+    p === '/admin/fiskaly/history' ||
+    p.startsWith('/admin/fiskaly/history/') ||
+    p === '/admin/fiskaly/statistics' ||
+    p.startsWith('/admin/fiskaly/statistics/') ||
+    p === '/admin/fiskaly/errors' ||
+    p.startsWith('/admin/fiskaly/errors/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport);
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
@@ -831,7 +846,6 @@ export function filterSidebarMenuItems(
     '/admin/errors',
     '/admin/licenses',
     '/admin/cash-registers',
-    '/admin/sessions',
   ]);
 
   const leafAllowed = (key: string): boolean => {

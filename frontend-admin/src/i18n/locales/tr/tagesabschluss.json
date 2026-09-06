@@ -120,6 +120,7 @@
     "colStatus": "Durum",
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
+    "colFiskaly": "Fiskaly",
     "closingTypes": {
       "Daily": "Gunluk",
       "Monthly": "Aylik",
@@ -154,6 +155,21 @@
     "warningYearlyAlreadyClosed": "{{dateTime}} icin yillik kapanis zaten yapildi.",
     "pdfUnavailable": "Bu kayit icin PDF yok.",
     "pdfAutoDownloadFailed": "Kapanis basarili, ancak PDF indirilemedi."
+  },
+  "fiskaly": {
+    "colStatus": "Fiskaly",
+    "send": "Fiskaly'ye Gönder",
+    "sendSuccess": "Gün sonu Fiskaly'ye gönderildi.",
+    "sendFailed": "Fiskaly gönderimi başarısız.",
+    "notSent": "Henüz gönderilmedi",
+    "receiptId": "Fiskaly fiş kimliği",
+    "hint": "SIGN AT'te ayrı bir günlük kapanış tipi yoktur. Kapanış, Tagesabschluss metinli 0,00 € fiş olarak gönderilir. Yerel TSE imzası değiştirilmez.",
+    "status": {
+      "Submitted": "Gönderildi",
+      "Failed": "Başarısız",
+      "Pending": "Beklemede",
+      "Skipped": "Atlandı"
+    }
   },
   "errors": {
     "unknown": "Bilinmeyen hata",

@@ -193,13 +193,41 @@ public sealed class BackupOptions
 
     /// <summary>
     /// Operator-declared WAL archiving for PITR planning UI (not continuously verified by the worker).
+    /// Prefer a real <see cref="WalArchiveDirectory"/> populated by PostgreSQL <c>archive_command</c>.
     /// </summary>
     public bool PitrWalArchivingDeclaredEnabled { get; set; }
 
     /// <summary>
     /// Declared lag between last archived WAL and database "now" for PITR upper bound (minutes).
+    /// When WAL archiving is enabled and this is null, the planner uses 5 minutes
+    /// (matches recommended <c>archive_timeout</c>).
     /// </summary>
     public int? PitrWalArchiveDeclaredLagMinutes { get; set; }
+
+    /// <summary>
+    /// Host directory that PostgreSQL <c>archive_command</c> writes WAL segments into.
+    /// When unset, defaults to <c>{ContentRoot}/App_Data/wal-archive</c>.
+    /// The API never enables <c>archive_mode</c> itself — ops must configure PostgreSQL.
+    /// </summary>
+    public string? WalArchiveDirectory { get; set; }
+
+    /// <summary>How long archived WAL files are kept on disk. Default 7 days.</summary>
+    public int WalArchiveRetentionDays { get; set; } = 7;
+
+    /// <summary>
+    /// Recommended PostgreSQL <c>archive_timeout</c> in minutes (documentation + planner lag default).
+    /// The API cannot force WAL switches without a superuser SQL session.
+    /// </summary>
+    public int WalArchiveSwitchIntervalMinutes { get; set; } = 5;
+
+    /// <summary>
+    /// When true, enqueue a daily Tenant incremental ZIP after the last succeeded full Tenant backup
+    /// (per active mandant). Default false — operators opt in after WAL / staging capacity is ready.
+    /// </summary>
+    public bool IncrementalBackupEnabled { get; set; }
+
+    /// <summary>UTC cron for daily tenant incrementals. Default 03:00 UTC (after typical 02:00 System full).</summary>
+    public string IncrementalBackupCron { get; set; } = "0 3 * * *";
 
     /// <summary>
     /// <c>pg_dump -Fc</c> compression level (<c>-Z</c>, 0–9). Default 6 balances size vs CPU (cost optimization).
@@ -241,10 +269,19 @@ public sealed class BackupOptions
 
     /// <summary>
     /// When true, post-success retention pass also reclassifies succeeded artifacts into
-    /// Hot (≤7d) / Warm (≤30d) / Cold (&gt;30d) via <see cref="Services.Backup.StorageTierService"/>.
-    /// Cold is a preference for external archive — not an automatic Glacier/S3 move.
+    /// Hot (≤30d) / Warm (≤90d) / Cold (&gt;90d) via <see cref="Services.Backup.StorageTierService"/>.
+    /// Cold tags prefer external / cloud archive; actual upload is <see cref="Services.Backup.ICloudStorageService"/>.
     /// </summary>
     public bool StorageTierManagementEnabled { get; set; }
+
+    /// <summary>Cloud / WORM cold archive (S3 Glacier, Azure Archive, GCS Coldline, or filesystem).</summary>
+    public CloudStorageOptions CloudStorage { get; set; } = new();
+
+    /// <summary>
+    /// When set, <c>StorageAlertService</c> raises <c>StorageCostHigh</c> if the indicative
+    /// all-Hot monthly EUR estimate meets or exceeds this value.
+    /// </summary>
+    public decimal? StorageCostAlertEurPerMonth { get; set; } = 25m;
 
     /// <summary>Indicative EUR/GiB-month for Hot (fast staging). Ops estimate only.</summary>
     public decimal StorageCostHotEurPerGbMonth { get; set; } = 0.023m;

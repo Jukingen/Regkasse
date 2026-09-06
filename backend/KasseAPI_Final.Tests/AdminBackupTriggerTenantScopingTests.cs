@@ -101,7 +101,9 @@ public sealed class AdminBackupTriggerTenantScopingTests
             Mock.Of<IBackupRunTenantAccessService>(),
             Mock.Of<IBackupArtifactImportService>(),
             Mock.Of<IBackupTimeEstimator>(),
-            Mock.Of<IDownloadSecurityService>());
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var http = new DefaultHttpContext
         {
@@ -175,8 +177,29 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
-                It.IsAny<BackupStrategyKind?>(),
-                It.IsAny<bool>(),
+                BackupStrategyKind.System,
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Trigger_SuperAdmin_WithAmbientTenant_EnqueuesSystem()
+    {
+        await using var db = CreateDb();
+        var (controller, trigger) = CreateController(db, Roles.SuperAdmin, tenantId: Guid.NewGuid());
+
+        var result = await controller.TriggerManual(null, CancellationToken.None);
+
+        Assert.IsType<AcceptedAtActionResult>(result.Result);
+        trigger.Verify(
+            t => t.RequestManualBackupAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                BackupStrategyKind.System,
+                true,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

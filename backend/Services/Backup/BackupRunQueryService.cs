@@ -1,4 +1,3 @@
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +40,7 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         int page,
         int pageSize,
         BackupRunAccessScope? accessScope = null,
+        BackupRunHistoryFilter? filter = null,
         CancellationToken cancellationToken = default)
     {
         page = Math.Max(1, page);
@@ -48,6 +48,7 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         var q = _db.BackupRuns.AsNoTracking();
         if (accessScope != null)
             q = BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+        q = ApplyHistoryFilter(q, filter);
 
         q = q.OrderByDescending(r => r.RequestedAt);
         var total = await q.CountAsync(cancellationToken);
@@ -57,6 +58,41 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
         return (items, total);
+    }
+
+    private static IQueryable<BackupRun> ApplyHistoryFilter(
+        IQueryable<BackupRun> query,
+        BackupRunHistoryFilter? filter)
+    {
+        if (filter == null)
+            return query;
+
+        if (filter.Strategy is BackupStrategyKind strategy)
+            query = query.Where(r => r.Strategy == strategy);
+
+        if (filter.FromUtc is DateTime from)
+            query = query.Where(r => r.RequestedAt >= from);
+        if (filter.ToUtc is DateTime to)
+            query = query.Where(r => r.RequestedAt <= to);
+
+        var createdBy = filter.CreatedBy?.Trim();
+        if (!string.IsNullOrWhiteSpace(createdBy))
+        {
+            if (string.Equals(createdBy, "system", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(createdBy, "cron", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r =>
+                    r.TriggerSource == BackupTriggerSource.Scheduled
+                    || r.RequestedByUserId == null
+                    || r.RequestedByUserId == string.Empty);
+            }
+            else
+            {
+                query = query.Where(r => r.RequestedByUserId == createdBy);
+            }
+        }
+
+        return query;
     }
 
     public async Task<BackupVerification?> GetLatestVerificationAsync(
@@ -88,9 +124,9 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
     public async Task<IReadOnlyList<Guid>> GetRecentSucceededPgDumpRunIdsAsync(int maxCount, CancellationToken cancellationToken = default)
     {
         maxCount = Math.Clamp(maxCount, 1, 100);
-        var pgDump = nameof(BackupExecutionAdapterKind.PgDump);
+        var kinds = BackupLogicalDumpAdapterKinds.SqlComparableKinds;
         return await _db.BackupRuns.AsNoTracking()
-            .Where(r => r.Status == BackupRunStatus.Succeeded && r.AdapterKind == pgDump)
+            .Where(r => r.Status == BackupRunStatus.Succeeded && kinds.Contains(r.AdapterKind))
             .OrderByDescending(r => r.RequestedAt)
             .Take(maxCount)
             .Select(r => r.Id)

@@ -16,6 +16,7 @@ using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -2192,6 +2193,7 @@ namespace KasseAPI_Final.Services
             var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             string stornoBelegNr = string.Empty;
             Guid stornoInvoiceId = Guid.Empty;
+            string signingProvider = "local";
 
             await using var dbTx = await _context.Database.BeginTransactionAsync();
             try
@@ -2230,6 +2232,8 @@ namespace KasseAPI_Final.Services
                 };
                 CompanyProfileMapper.CopySnapshotFromOriginal(storno, payment, companyProfile);
 
+                // Fiskaly SIGN AT: negative storno amount is signed as receipt_type=CANCELLATION
+                // (PUT /cash-register/{id}/receipt/{id}) via TseService — same endpoint as the Fiskaly test page.
                 TseSignatureResult sigResult;
                 try
                 {
@@ -2242,6 +2246,7 @@ namespace KasseAPI_Final.Services
                             registerNumber,
                             TaxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails),
                             DbTransaction: dbTx));
+                    signingProvider = sigResult.SigningProvider;
                 }
                 catch (Exception ex)
                 {
@@ -2404,8 +2409,16 @@ namespace KasseAPI_Final.Services
                     stornoRow.OriginalPaymentId,
                     stornoRow.OriginalReceiptId,
                     stornoRow.CancellationReason,
-                    CreatedAt = stornoRow.CreatedAt
+                    CreatedAt = stornoRow.CreatedAt,
+                    FiskalyReceiptType = FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+                    SigningProvider = signingProvider
                 });
+
+            await LogFiskalyCancellationAuditAsync(
+                stornoRow,
+                userId,
+                signingProvider,
+                reason);
 
             return new PaymentResult
             {
@@ -3394,6 +3407,50 @@ namespace KasseAPI_Final.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Audit log write failed for action {Action} EntityType={EntityType} EntityId={EntityId}; payment operation already committed.", action, entityType, entityId);
+            }
+        }
+
+        /// <summary>
+        /// Dedicated Fiskaly SIGN AT cancellation audit (receipt_type=CANCELLATION).
+        /// Soft TSE / local signing does not create a Fiskaly dashboard receipt — skip this event then.
+        /// </summary>
+        private async Task LogFiskalyCancellationAuditAsync(
+            PaymentDetails storno,
+            string userId,
+            string signingProvider,
+            string reason)
+        {
+            if (!string.Equals(signingProvider, "fiskaly", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            try
+            {
+                var userRole = await GetUserRoleAsync(userId);
+                await _auditLogService.LogSystemOperationAsync(
+                    action: AuditLogActions.FISKALY_CANCELLATION_RECEIPT_SIGNED,
+                    entityType: "FiskalyReceipt",
+                    userId: userId,
+                    userRole: userRole,
+                    description: "Fiskaly SIGN AT cancellation receipt signed for payment storno.",
+                    status: AuditLogStatus.Success,
+                    actionType: AuditEventType.FiskalyCancellationReceiptSigned,
+                    entityId: storno.Id,
+                    newValues: new
+                    {
+                        storno.Id,
+                        storno.ReceiptNumber,
+                        storno.OriginalPaymentId,
+                        storno.OriginalReceiptId,
+                        FiskalyReceiptType = FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+                        Reason = reason
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Fiskaly cancellation audit log write failed for storno {StornoId}; payment operation already committed.",
+                    storno.Id);
             }
         }
 

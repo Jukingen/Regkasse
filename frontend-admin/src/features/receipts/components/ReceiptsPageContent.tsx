@@ -6,10 +6,26 @@ import type { MenuProps } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import React, { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { recordDownloadHistory } from '@/features/download-history/api/downloadHistoryApi';
+import {
+  clampFiskalyBatchLimits,
+  createFiskalyBatchId,
+  DEFAULT_FISKALY_BATCH_LIMITS,
+  getFiskalyBatchLimits,
+  isFiskalyStornoEligible,
+  parseFiskalyBatchError,
+  postFiskalyBatchStorno,
+  toFiskalyBatchStornoItems,
+  type FiskalyBatchItemResult,
+  type FiskalyBatchProgressEvent,
+} from '@/features/fiskaly/api/fiskalyBatch';
+import { FiskalyBatchProgressModal } from '@/features/fiskaly/components/FiskalyBatchProgressModal';
+import { FiskalyBatchStornoModal } from '@/features/fiskaly/components/FiskalyBatchStornoModal';
+import { useFiskalyOperationStatusLive } from '@/features/fiskaly/hooks/useFiskalyOperationStatusLive';
 import { BatchDownloadProgressModal } from '@/features/receipts/components/BatchDownloadProgressModal';
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
 import ReceiptsTable from '@/features/receipts/components/ReceiptsTable';
@@ -50,6 +66,8 @@ function ReceiptsPageContent() {
   const { hasPermission } = usePermissions();
   const canBatchPdf =
     hasPermission(PERMISSIONS.REPORT_VIEW) || hasPermission(PERMISSIONS.RECEIPT_REPRINT);
+  const canBatchStorno = hasPermission(PERMISSIONS.FISKALY_OPERATIONS_CANCEL);
+  const canSelectRows = canBatchPdf || canBatchStorno;
   const { getShortcutLabel } = useKeyboardShortcutLabels();
 
   const { params, setParams, resetFilters } = useReceiptSearchParams();
@@ -60,6 +78,13 @@ function ReceiptsPageContent() {
   const [selectedRowsById, setSelectedRowsById] = useState<Record<string, ReceiptListItemDto>>({});
   const [batchProgress, setBatchProgress] = useState<BatchDownloadProgress | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [stornoConfirmOpen, setStornoConfirmOpen] = useState(false);
+  const [stornoProgressOpen, setStornoProgressOpen] = useState(false);
+  const [stornoBatchId, setStornoBatchId] = useState<string | null>(null);
+  const [stornoProgress, setStornoProgress] = useState<FiskalyBatchProgressEvent | null>(null);
+  const [stornoResults, setStornoResults] = useState<FiskalyBatchItemResult[]>([]);
+  const [stornoError, setStornoError] = useState<string | null>(null);
+  const [stornoBusy, setStornoBusy] = useState(false);
   const [selectingAll, setSelectingAll] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -81,6 +106,26 @@ function ReceiptsPageContent() {
     () => selectedRows.filter((r) => Boolean(r.paymentId?.trim())),
     [selectedRows]
   );
+  const selectedStornoEligible = useMemo(
+    () => selectedRows.filter((r) => isFiskalyStornoEligible(r)),
+    [selectedRows]
+  );
+
+  const limitsQuery = useQuery({
+    queryKey: ['admin', 'fiskaly', 'batch', 'limits'],
+    queryFn: ({ signal }) => getFiskalyBatchLimits(signal),
+    enabled: canBatchStorno,
+    staleTime: 60_000,
+  });
+  const stornoLimits = clampFiskalyBatchLimits(limitsQuery.data ?? DEFAULT_FISKALY_BATCH_LIMITS);
+
+  useFiskalyOperationStatusLive({
+    enabled: stornoProgressOpen,
+    onBatchProgress: (evt) => {
+      if (!stornoBatchId || evt.batchId !== stornoBatchId) return;
+      setStornoProgress(evt);
+    },
+  });
 
   const clearSelection = useCallback(() => {
     setSelectedRowKeys([]);
@@ -240,6 +285,70 @@ function ReceiptsPageContent() {
     }
   };
 
+  const runBatchStorno = async (reason: string) => {
+    const items = toFiskalyBatchStornoItems(selectedStornoEligible);
+    if (items.length === 0) {
+      notify.warning(t('tseFiskaly.batch.noneEligibleStorno'));
+      return;
+    }
+    if (items.length > stornoLimits.maxItems) {
+      notify.error(t('tseFiskaly.batch.tooLarge', { max: stornoLimits.maxItems }));
+      return;
+    }
+    setStornoConfirmOpen(false);
+    const id = createFiskalyBatchId();
+    setStornoBatchId(id);
+    setStornoResults([]);
+    setStornoError(null);
+    setStornoProgress({
+      batchId: id,
+      kind: 'storno',
+      current: 0,
+      total: items.length,
+      successCount: 0,
+      failedCount: 0,
+      done: false,
+    });
+    setStornoProgressOpen(true);
+    setStornoBusy(true);
+    try {
+      const result = await postFiskalyBatchStorno({ batchId: id, items, reason });
+      setStornoResults(result.results);
+      setStornoProgress({
+        batchId: result.batchId,
+        kind: 'storno',
+        current: result.total,
+        total: result.total,
+        successCount: result.successCount,
+        failedCount: result.failedCount,
+        done: true,
+      });
+      notify.success(
+        t('tseFiskaly.batch.summary', {
+          ok: result.successCount,
+          fail: result.failedCount,
+          total: result.total,
+        })
+      );
+      clearSelection();
+    } catch (err) {
+      const parsed = parseFiskalyBatchError(err);
+      const message =
+        parsed?.code === 'BATCH_TOO_LARGE'
+          ? t('tseFiskaly.batch.tooLarge', { max: parsed.maxItems ?? stornoLimits.maxItems })
+          : parsed?.message || t('tseFiskaly.batch.failed');
+      setStornoError(message);
+      setStornoProgress((prev) =>
+        prev
+          ? { ...prev, done: true }
+          : { batchId: id, kind: 'storno', current: 0, total: items.length, successCount: 0, failedCount: 0, done: true }
+      );
+      notify.error(message);
+    } finally {
+      setStornoBusy(false);
+    }
+  };
+
   useExportDownloadShortcutHandlers(
     {
       onOpenBatchDownload: () => {
@@ -260,6 +369,27 @@ function ReceiptsPageContent() {
   const downloadShortcutTitle = t('keyboardShortcuts.downloadExportWithShortcut', {
     shortcut: getShortcutLabel('downloadExport'),
   });
+
+  const batchActionItems: MenuProps['items'] = [
+    canBatchPdf
+      ? {
+          key: 'pdf',
+          label: t('receipts.batch.downloadSelected'),
+          icon: <DownloadOutlined />,
+          disabled: selectedEligible.length === 0 || batchOpen || stornoBusy,
+          onClick: () => void runBatchDownload(),
+        }
+      : null,
+    canBatchStorno
+      ? {
+          key: 'storno',
+          danger: true,
+          label: t('tseFiskaly.batch.stornoAction'),
+          disabled: selectedStornoEligible.length === 0 || batchOpen || stornoBusy,
+          onClick: () => setStornoConfirmOpen(true),
+        }
+      : null,
+  ].filter((item) => item != null);
 
   const selectMenuItems: MenuProps['items'] = [
     {
@@ -376,31 +506,43 @@ function ReceiptsPageContent() {
         </Typography.Paragraph>
       ) : null}
 
-      {canBatchPdf && !isError ? (
+      {canSelectRows && !isError ? (
         <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space wrap>
             <Dropdown menu={{ items: selectMenuItems }} trigger={['click']}>
               <Button loading={selectingAll}>{t('receipts.batch.selectMenu')}</Button>
             </Dropdown>
-            <Tooltip title={batchShortcutTitle}>
-              <Button
-                type="primary"
-                icon={<DownloadOutlined />}
-                disabled={selectedEligible.length === 0 || batchOpen}
-                onClick={() => void runBatchDownload()}
-                title={downloadShortcutTitle}
-              >
-                {t('receipts.batch.downloadSelected')}
+            <Dropdown menu={{ items: batchActionItems }} trigger={['click']}>
+              <Button type="primary" disabled={selectedRowKeys.length === 0 || batchOpen || stornoBusy}>
+                {t('tseFiskaly.batch.actionsMenu')}
               </Button>
-            </Tooltip>
+            </Dropdown>
+            {canBatchPdf ? (
+              <Tooltip title={batchShortcutTitle}>
+                <Button
+                  icon={<DownloadOutlined />}
+                  disabled={selectedEligible.length === 0 || batchOpen || stornoBusy}
+                  onClick={() => void runBatchDownload()}
+                  title={downloadShortcutTitle}
+                >
+                  {t('receipts.batch.downloadSelected')}
+                </Button>
+              </Tooltip>
+            ) : null}
           </Space>
           <Typography.Text type="secondary">
             {selectedRowKeys.length === 0
               ? t('receipts.batch.noneSelected')
-              : t('receipts.batch.selectedSummary', {
-                  count: selectedEligible.length,
-                  total: selectedRowKeys.length,
-                })}
+              : canBatchStorno
+                ? t('receipts.batch.selectedSummaryStorno', {
+                    pdf: selectedEligible.length,
+                    storno: selectedStornoEligible.length,
+                    total: selectedRowKeys.length,
+                  })
+                : t('receipts.batch.selectedSummary', {
+                    count: selectedEligible.length,
+                    total: selectedRowKeys.length,
+                  })}
           </Typography.Text>
         </Space>
       ) : null}
@@ -422,7 +564,7 @@ function ReceiptsPageContent() {
           showPaymentPdfReprint
           showStoredPdfDownload
           rowSelection={
-            canBatchPdf
+            canSelectRows
               ? {
                   selectedRowKeys,
                   onChange: (keys, rows) => {
@@ -441,7 +583,10 @@ function ReceiptsPageContent() {
                     });
                   },
                   getCheckboxProps: (row) => ({
-                    disabled: !row.paymentId?.trim(),
+                    disabled: !(
+                      (canBatchPdf && Boolean(row.paymentId?.trim())) ||
+                      (canBatchStorno && isFiskalyStornoEligible(row))
+                    ),
                   }),
                 }
               : undefined
@@ -459,6 +604,26 @@ function ReceiptsPageContent() {
             return;
           }
           abortRef.current?.abort();
+        }}
+      />
+      <FiskalyBatchStornoModal
+        open={stornoConfirmOpen}
+        receipts={selectedStornoEligible}
+        maxItems={stornoLimits.maxItems}
+        warnAtItems={stornoLimits.warnAtItems}
+        confirmLoading={stornoBusy}
+        onCancel={() => setStornoConfirmOpen(false)}
+        onConfirm={(reason) => void runBatchStorno(reason)}
+      />
+      <FiskalyBatchProgressModal
+        open={stornoProgressOpen}
+        kind="storno"
+        progress={stornoProgress}
+        results={stornoResults}
+        errorMessage={stornoError}
+        onClose={() => {
+          if (!stornoProgress?.done && !stornoError) return;
+          setStornoProgressOpen(false);
         }}
       />
     </Space>

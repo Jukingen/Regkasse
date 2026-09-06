@@ -122,6 +122,27 @@ public static class AdminAppPermissionProfile
     ];
 
     /// <summary>
+    /// Manager FA Fiskaly operations keys that must survive <see cref="Filter"/> (not POS-terminal strip).
+    /// Does <b>not</b> include <see cref="AppPermissions.FiskalyOperationsConfig"/> (SuperAdmin-only).
+    /// Contract-tested; mirror in <c>frontend-admin</c> <c>MANAGER_ADMIN_PERMISSIONS</c>.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ManagerFiskalyOperationsPermissions =
+    [
+        AppPermissions.FiskalyOperationsView,
+        AppPermissions.FiskalyOperationsNormal,
+        AppPermissions.FiskalyOperationsCancel,
+        AppPermissions.FiskalyOperationsNullbeleg,
+        AppPermissions.FiskalyOperationsStartbeleg,
+        AppPermissions.FiskalyOperationsMonatsbeleg,
+        AppPermissions.FiskalyOperationsJahresbeleg,
+        AppPermissions.FiskalyOperationsSchlussbeleg,
+        AppPermissions.FiskalyOperationsTagesabschluss,
+        AppPermissions.FiskalyOperationsDepExport,
+        AppPermissions.FiskalyHistoryView,
+        AppPermissions.FiskalyHistoryRetry,
+    ];
+
+    /// <summary>
     /// Applies admin-app scoping. POS Cashier sessions always embed the full <see cref="CashierPosPermissions"/> set.
     /// Other POS / legacy (null) contexts return <paramref name="effectivePermissions"/> unchanged.
     /// </summary>

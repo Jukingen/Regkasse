@@ -354,6 +354,14 @@ function PosTabsInner({
           />
 
           <Tabs.Screen
+            name="fiskaly-operations"
+            options={{
+              href: null,
+              title: 'Fiskaly',
+            }}
+          />
+
+          <Tabs.Screen
             name="payment"
             options={{
               href: null,

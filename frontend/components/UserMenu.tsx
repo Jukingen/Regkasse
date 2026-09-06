@@ -13,6 +13,7 @@ import {
 } from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useCashRegister } from '../hooks/useCashRegister';
+import { usePosPermissions } from '../hooks/usePosPermissions';
 import { useAdminPermissions } from '../utils/adminPermissions';
 import { hasPermission } from '../utils/posPermissions';
 
@@ -113,6 +114,7 @@ export function UserMenu() {
     adminPermissions.canManageRksv ||
     adminPermissions.canManageTenants;
   const canOpenReceiptList = hasPermission(user, 'sale.view');
+  const { canCreateSonderbeleg } = usePosPermissions();
 
   if (!user) return null;
 
@@ -130,6 +132,12 @@ export function UserMenu() {
     Vibration.vibrate(10);
     closeMenu();
     router.push('/(tabs)/receipt-list' as const);
+  };
+
+  const handleOpenFiskalyOps = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/fiskaly-operations' as const);
   };
 
   const handleOpenSettings = () => {
@@ -227,6 +235,17 @@ export function UserMenu() {
                 accessibilityLabel={t('receipts:title')}>
                 <Ionicons name="receipt-outline" size={18} color={SoftColors.textPrimary} />
                 <Text style={styles.menuItemText}>{t('receipts:title')}</Text>
+              </Pressable>
+            ) : null}
+
+            {canCreateSonderbeleg ? (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={handleOpenFiskalyOps}
+                accessibilityRole="button"
+                accessibilityLabel={t('receipts:fiskalyOps.title')}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={SoftColors.textPrimary} />
+                <Text style={styles.menuItemText}>{t('receipts:fiskalyOps.title')}</Text>
               </Pressable>
             ) : null}
 

@@ -72,6 +72,16 @@ public sealed class BackupRunResponseDto
     public string AdapterKind { get; init; } = string.Empty;
     public string? IdempotencyKey { get; init; }
     public string? RequestedByUserId { get; init; }
+    public string? RequestedByDisplayName { get; init; }
+    public string? RequestedByEmail { get; init; }
+    public string RequestedByLabel { get; init; } = string.Empty;
+    public string? RequestedFromIp { get; init; }
+    public Guid? TenantId { get; init; }
+    public string? TenantName { get; init; }
+    public string? TenantSlug { get; init; }
+    public int DownloadCount { get; init; }
+    public Guid? PrimaryArtifactId { get; init; }
+    public string? PrimaryDownloadFileName { get; init; }
     public DateTime RequestedAt { get; init; }
     public DateTime? StartedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
@@ -137,6 +147,14 @@ public sealed class BackupRunResponseDto
     /// </summary>
     public double? CompressionRatio { get; init; }
 
+    public BackupStorageTier? StorageTier { get; init; }
+    public bool LegalHold { get; init; }
+    public DateTime? LegalHoldUntilUtc { get; init; }
+    public string? LegalHoldReason { get; init; }
+    public DateTime? RetentionExpiresAtUtc { get; init; }
+    public string? RetentionStatus { get; init; }
+    public bool InColdStorage { get; init; }
+
     public IReadOnlyList<BackupArtifactResponseDto>? Artifacts { get; init; }
     public IReadOnlyList<BackupVerificationResponseDto>? Verifications { get; init; }
 }
@@ -170,6 +188,11 @@ public sealed class BackupArtifactResponseDto
 
     /// <summary>Redacted external key after successful archive copy (e.g. archive/runId/file).</summary>
     public string? ExternalRedactedLocator { get; init; }
+
+    public BackupStorageTier StorageTier { get; init; }
+    public string? CloudLocator { get; init; }
+    public DateTime? MovedToColdAtUtc { get; init; }
+    public bool LegalHoldProtected { get; init; }
 
     /// <summary>
     /// When <see cref="BackupDownloadEnrichment"/> was applied for this response: true if a file exists at the resolved path (same check as download).
@@ -721,12 +744,28 @@ public static class BackupRunMapper
         bool materializedChildren = false,
         int? automaticRetryMaxAttemptsBudget = null,
         BackupDownloadEnrichment? downloadEnrichment = null,
-        long? estimatedOriginalDatabaseBytes = null)
+        long? estimatedOriginalDatabaseBytes = null,
+        BackupRunDisplayLookup? display = null)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
             && BackupCompletenessSuccessPolicy.CompletenessRequiredForSucceededRun(adapterKind);
         var durationSeconds = BackupRunMetricsFormatter.ComputeDurationSeconds(run.StartedAt, run.CompletedAt);
+        var retention = BackupRetentionStatusEvaluator.FromRun(run);
+        var userInfo = display?.UserFor(run.RequestedByUserId) ?? (null, null);
+        var tenantInfo = display?.TenantFor(run.TenantId) ?? (null, null);
+        var primaryArtifact = run.Artifacts
+            .OrderBy(a => a.ArtifactType == BackupArtifactType.LogicalDump ? 0 : 1)
+            .ThenBy(a => a.CreatedAt)
+            .FirstOrDefault();
+        var downloadExt = Path.GetExtension(primaryArtifact?.StorageDescriptor ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(downloadExt))
+            downloadExt = run.Strategy == BackupStrategyKind.Tenant ? ".zip" : ".dump";
+        var operatorFileName = BackupArtifactFileNameBuilder.BuildOperatorDownloadFileName(
+            run.Strategy,
+            tenantInfo.Slug,
+            run.CompletedAt ?? run.RequestedAt,
+            downloadExt.TrimStart('.'));
         long? totalSizeBytes = null;
         double? compressionRatio = null;
         if (run.Artifacts.Count > 0)
@@ -753,6 +792,19 @@ public static class BackupRunMapper
             AdapterKind = run.AdapterKind,
             IdempotencyKey = run.IdempotencyKey,
             RequestedByUserId = run.RequestedByUserId,
+            RequestedByDisplayName = userInfo.Name,
+            RequestedByEmail = userInfo.Email,
+            RequestedByLabel = BackupRunActorLabels.Resolve(
+                run.TriggerSource,
+                userInfo.Name,
+                run.RequestedByUserId),
+            RequestedFromIp = run.RequestedFromIp,
+            TenantId = run.TenantId,
+            TenantName = tenantInfo.Name,
+            TenantSlug = tenantInfo.Slug,
+            DownloadCount = run.DownloadCount,
+            PrimaryArtifactId = primaryArtifact?.Id,
+            PrimaryDownloadFileName = operatorFileName,
             RequestedAt = run.RequestedAt,
             StartedAt = run.StartedAt,
             CompletedAt = run.CompletedAt,
@@ -776,6 +828,13 @@ public static class BackupRunMapper
             DurationSeconds = durationSeconds,
             DurationFormatted = BackupRunMetricsFormatter.FormatDuration(durationSeconds),
             CompressionRatio = compressionRatio,
+            StorageTier = retention.StorageTier,
+            LegalHold = run.LegalHold,
+            LegalHoldUntilUtc = run.LegalHoldUntilUtc,
+            LegalHoldReason = run.LegalHoldReason,
+            RetentionExpiresAtUtc = retention.RetentionExpiresAtUtc,
+            RetentionStatus = retention.Status,
+            InColdStorage = retention.InColdStorage,
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
                 {
@@ -790,6 +849,10 @@ public static class BackupRunMapper
                     ContentHashSha256 = a.ContentHashSha256,
                     LifecycleState = a.LifecycleState,
                     ExternalRedactedLocator = a.ExternalRedactedLocator,
+                    StorageTier = a.StorageTier,
+                    CloudLocator = a.CloudLocator,
+                    MovedToColdAtUtc = a.MovedToColdAtUtc,
+                    LegalHoldProtected = run.LegalHold,
                     IsFilePresentForDownload = ComputeArtifactFilePresentForDownload(
                         run,
                         a,

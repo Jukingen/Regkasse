@@ -65,9 +65,9 @@ public sealed class AdminFiskalyController : ControllerBase
         return Ok(updated);
     }
 
-    /// <summary>FON / SCU / cash-register initialization snapshot (no PIN).</summary>
+    /// <summary>FON / SCU / cash-register initialization snapshot (no PIN). Manager: own tenant registers.</summary>
     [HttpGet("setup")]
-    [HasPermission(AppPermissions.SystemCritical)]
+    [HasPermission(AppPermissions.FiskalyOperationsView)]
     [ProducesResponseType(typeof(FiskalySetupStatusDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<FiskalySetupStatusDto>> GetSetup(CancellationToken cancellationToken)
     {
@@ -79,7 +79,7 @@ public sealed class AdminFiskalyController : ControllerBase
 
     /// <summary>PUT fiskaly /fon/auth. PIN is never stored or logged.</summary>
     [HttpPost("fon/authenticate")]
-    [HasPermission(AppPermissions.SystemCritical)]
+    [HasPermission(AppPermissions.FiskalyOperationsConfig)]
     [ProducesResponseType(typeof(FiskalyFonAuthDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<FiskalyFonAuthDto>> AuthenticateFon(
@@ -104,7 +104,7 @@ public sealed class AdminFiskalyController : ControllerBase
 
     /// <summary>Create SCU if needed, then PATCH state INITIALIZED (registers SCU with FinanzOnline).</summary>
     [HttpPost("scu/initialize")]
-    [HasPermission(AppPermissions.SystemCritical)]
+    [HasPermission(AppPermissions.FiskalyOperationsConfig)]
     [ProducesResponseType(typeof(FiskalyScuSetupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<FiskalyScuSetupDto>> InitializeScu(CancellationToken cancellationToken)
@@ -127,7 +127,7 @@ public sealed class AdminFiskalyController : ControllerBase
     /// SIGN AT cash_register_id is the local cash register UUID.
     /// </summary>
     [HttpPost("cash-register/{id:guid}/initialize")]
-    [HasPermission(AppPermissions.SystemCritical)]
+    [HasPermission(AppPermissions.FiskalyOperationsConfig)]
     [ProducesResponseType(typeof(FiskalyCashRegisterSetupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

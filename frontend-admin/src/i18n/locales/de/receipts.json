@@ -48,7 +48,8 @@
     "downloadFailed": "Batch-Download fehlgeschlagen.",
     "allFailed": "Keine PDF-Datei konnte geladen werden.",
     "tooLarge": "Zu viele Dateien (Maximum {{max}}).",
-    "cancelled": "Download abgebrochen."
+    "cancelled": "Download abgebrochen.",
+    "selectedSummaryStorno": "{{total}} ausgewählt · PDF: {{pdf}} · Storno: {{storno}}"
   },
   "filters": {
     "placeholderReceiptNumber": "Belegnummer",

@@ -18,6 +18,14 @@ public sealed class PitrAvailabilityResponseDto
     public bool WalArchivingEnabled { get; init; }
 
     public int? WalArchiveLagMinutes { get; init; }
+
+    public int WalFileCount { get; init; }
+
+    public int WalRetentionDays { get; init; }
+
+    public DateTime? WalCoverageStartUtc { get; init; }
+
+    public DateTime? WalCoverageEndUtc { get; init; }
 }
 
 public sealed class ValidatePitrRestorePointRequestDto
@@ -45,6 +53,10 @@ public sealed class RestorePointValidationResultDto
 
     public int EstimatedDataLossSeconds { get; init; }
 
-    /// <summary><c>PITR</c> or <c>FullBackupOnly</c>.</summary>
+    /// <summary><c>PITR</c>, <c>FullPlusIncremental</c>, or <c>FullBackupOnly</c>.</summary>
     public string RecoveryMethod { get; init; } = string.Empty;
+
+    public Guid? FullBackupId { get; init; }
+
+    public IReadOnlyList<Guid> IncrementalBackupIds { get; init; } = Array.Empty<Guid>();
 }

@@ -2,6 +2,8 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -78,6 +80,215 @@ public sealed class FiskalySignTestControllerTests
         var dto = Assert.IsType<FiskalySignTestResultDto>(ok.Value);
         Assert.True(dto.Success);
         Assert.Equal("42", dto.ReceiptNumber);
+    }
+
+    [Fact]
+    public async Task SignTest_Tagesabschluss_DelegatesToReceiptService()
+    {
+        var registerId = Guid.NewGuid();
+        var signTest = new Mock<IFiskalySignTestService>(MockBehavior.Strict);
+        var receipts = new Mock<IFiskalyReceiptService>();
+        receipts
+            .Setup(s => s.CreateTagesabschlussAsync(
+                registerId,
+                It.IsAny<DateTime?>(),
+                "sa-1",
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Ok(new FiskalyReceiptDataDto
+            {
+                ReceiptId = "fiskaly-ta",
+                ReceiptNumber = "TA-20260829",
+                QrCode = "R1-AT3_ta"
+            }));
+
+        var controller = new FiskalySignTestController(
+            new FakeWebHostEnvironment(Environments.Development),
+            signTest.Object,
+            receipts.Object);
+        AttachSuperAdmin(controller);
+
+        var result = await controller.SignTest(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = registerId,
+                Scenario = FiskalySignTestScenarioIds.Tagesabschluss
+            },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<FiskalySignTestResultDto>(ok.Value);
+        Assert.True(dto.Success);
+        Assert.Equal(FiskalySignTestScenarioIds.Tagesabschluss, dto.Scenario);
+        Assert.Equal("fiskaly-ta", dto.ReceiptId);
+        Assert.Equal("NORMAL", dto.ReceiptType);
+        signTest.Verify(
+            s => s.SignAsync(
+                It.IsAny<FiskalySignTestRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SignTest_Tagesabschluss_MissingClosing_ReturnsNotFound()
+    {
+        var signTest = new Mock<IFiskalySignTestService>(MockBehavior.Strict);
+        var receipts = new Mock<IFiskalyReceiptService>();
+        receipts
+            .Setup(s => s.CreateTagesabschlussAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Fail(
+                404,
+                FiskalyReceiptErrorCodes.ClosingNotFound,
+                "Daily closing not found."));
+
+        var controller = new FiskalySignTestController(
+            new FakeWebHostEnvironment(Environments.Development),
+            signTest.Object,
+            receipts.Object);
+        AttachSuperAdmin(controller);
+
+        var result = await controller.SignTest(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = Guid.NewGuid(),
+                Scenario = FiskalySignTestScenarioIds.Tagesabschluss
+            },
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task SignTest_MonthlyClose_DelegatesToReceiptService()
+    {
+        var registerId = Guid.NewGuid();
+        var signTest = new Mock<IFiskalySignTestService>(MockBehavior.Strict);
+        var receipts = new Mock<IFiskalyReceiptService>();
+        receipts
+            .Setup(s => s.CreateMonatsbelegAsync(
+                registerId,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                "sa-1",
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Ok(new FiskalyReceiptDataDto
+            {
+                ReceiptId = "mb-1",
+                ReceiptNumber = "AT-MB-1",
+                QrCode = "R1-AT3_mb"
+            }));
+
+        var controller = new FiskalySignTestController(
+            new FakeWebHostEnvironment(Environments.Development),
+            signTest.Object,
+            receipts.Object);
+        AttachSuperAdmin(controller);
+
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
+        var result = await controller.SignTest(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = registerId,
+                Scenario = FiskalySignTestScenarioIds.MonthlyClose,
+                Year = year,
+                Month = month
+            },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<FiskalySignTestResultDto>(ok.Value);
+        Assert.True(dto.Success);
+        Assert.Equal("mb-1", dto.ReceiptId);
+        signTest.Verify(
+            s => s.SignAsync(
+                It.IsAny<FiskalySignTestRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SignTest_MonthlyClose_MissingStartbeleg_ReturnsBadRequestEnvelope()
+    {
+        var receipts = new Mock<IFiskalyReceiptService>();
+        receipts
+            .Setup(s => s.CreateMonatsbelegAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(FiskalyReceiptOperationResult.Fail(
+                400,
+                FiskalyReceiptErrorCodes.StartbelegRequired,
+                "Startbeleg is required before creating Monatsbeleg or Jahresbeleg."));
+
+        var controller = new FiskalySignTestController(
+            new FakeWebHostEnvironment(Environments.Development),
+            new Mock<IFiskalySignTestService>(MockBehavior.Strict).Object,
+            receipts.Object);
+        AttachSuperAdmin(controller);
+
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
+        var result = await controller.SignTest(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = Guid.NewGuid(),
+                Scenario = FiskalySignTestScenarioIds.MonthlyClose,
+                Year = year,
+                Month = month
+            },
+            CancellationToken.None);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(bad.Value);
+    }
+
+    [Fact]
+    public async Task SignTest_MonthlyClose_CurrentMonth_ReturnsPeriodNotCompleted()
+    {
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var receipts = new Mock<IFiskalyReceiptService>(MockBehavior.Strict);
+        var controller = new FiskalySignTestController(
+            new FakeWebHostEnvironment(Environments.Development),
+            new Mock<IFiskalySignTestService>(MockBehavior.Strict).Object,
+            receipts.Object);
+        AttachSuperAdmin(controller);
+
+        var result = await controller.SignTest(
+            new FiskalySignTestRequest
+            {
+                CashRegisterId = Guid.NewGuid(),
+                Scenario = FiskalySignTestScenarioIds.MonthlyClose,
+                Year = year,
+                Month = month
+            },
+            CancellationToken.None);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(bad.Value);
+        receipts.Verify(
+            s => s.CreateMonatsbelegAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

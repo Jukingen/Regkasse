@@ -6,6 +6,8 @@ using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace KasseAPI_Final.Controllers;
@@ -87,6 +89,50 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             or RksvGuardErrorCodes.DuplicateSchlussbeleg
             or RksvGuardErrorCodes.RegisterAlreadyDecommissioned;
 
+    /// <summary>
+    /// Maps Fiskaly/TSE failures to a structured body so FA/POS can show <c>code</c>, <c>message</c>, and <c>details</c>.
+    /// <see cref="FiskalyApiException"/> extends <see cref="InvalidOperationException"/> — catch it first.
+    /// </summary>
+    private async Task<ActionResult> MapFiscalFailureAsync(
+        Exception ex,
+        string userId,
+        Guid cashRegisterId,
+        string receiptKind,
+        CancellationToken cancellationToken)
+    {
+        if (ex is FiskalyApiException fiskaly)
+        {
+            var err = FiskalyReceiptErrorMapper.FromException(fiskaly);
+            await AuditSpecialFailedAsync(userId, cashRegisterId, receiptKind, err.Code, cancellationToken);
+            _logger.LogWarning(fiskaly, "{Kind} Fiskaly API error", receiptKind);
+            return BadRequest(new
+            {
+                success = false,
+                message = err.Message,
+                code = err.Code,
+                details = err.Details,
+                error = err
+            });
+        }
+
+        if (ex is TseUnavailableException tse)
+        {
+            var err = FiskalyReceiptErrorMapper.FromTseUnavailable(tse);
+            await AuditSpecialFailedAsync(userId, cashRegisterId, receiptKind, err.Code, cancellationToken);
+            _logger.LogWarning(tse, "{Kind} TSE unavailable", receiptKind);
+            return BadRequest(new
+            {
+                success = false,
+                message = err.Message,
+                code = err.Code,
+                details = err.Details,
+                error = err
+            });
+        }
+
+        throw new InvalidOperationException("Expected FiskalyApiException or TseUnavailableException.", ex);
+    }
+
     /// <summary>Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence) for year and optional month (defaults to current Vienna month).</summary>
     [HttpPost("nullbeleg")]
     [HasPermission(AppPermissions.RksvNullbelegCreate)]
@@ -122,6 +168,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Nullbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "nullbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -171,6 +221,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Startbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "startbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -289,6 +343,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             _logger.LogWarning(ex, "Monatsbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
         }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "monatsbeleg", cancellationToken);
+        }
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
@@ -359,6 +417,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             _logger.LogWarning(ex, "Jahresbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
         }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "jahresbeleg", cancellationToken);
+        }
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
@@ -407,6 +469,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Schlussbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "schlussbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {

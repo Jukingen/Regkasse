@@ -11,11 +11,15 @@ export interface PosCompanyInfoDto {
   /** @nullable */
   companyAddress?: string | null;
   /** @nullable */
+  companyDescription?: string | null;
+  /** @nullable */
   companyName?: string | null;
   /** @nullable */
   receiptFooter?: string | null;
   /** @nullable */
   taxNumber?: string | null;
+  /** @nullable */
+  thankYouMessage?: string | null;
   /** @nullable */
   timeZone?: string | null;
   workingHours?: WorkingHoursDto;

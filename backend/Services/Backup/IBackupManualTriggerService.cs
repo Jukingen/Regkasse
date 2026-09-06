@@ -23,5 +23,6 @@ public interface IBackupManualTriggerService
         BackupStrategyKind? strategy = null,
         bool deploymentWide = false,
         CancellationToken cancellationToken = default,
-        DateTime? incrementalSinceUtc = null);
+        DateTime? incrementalSinceUtc = null,
+        string? requestedFromIp = null);
 }

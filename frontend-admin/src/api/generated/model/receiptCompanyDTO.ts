@@ -10,6 +10,8 @@ export interface ReceiptCompanyDTO {
   /** @nullable */
   address?: string | null;
   /** @nullable */
+  description?: string | null;
+  /** @nullable */
   name?: string | null;
   /** @nullable */
   taxNumber?: string | null;

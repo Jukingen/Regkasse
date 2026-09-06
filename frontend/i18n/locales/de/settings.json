@@ -44,6 +44,11 @@
     "description": "Letzte Belege dieser Kasse anzeigen und Nachdruck auslösen.",
     "open": "Belegliste öffnen"
   },
+  "fiskalyOps": {
+    "title": "Fiskaly / Sonderbelege",
+    "description": "Startbeleg, Nullbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg und Storno.",
+    "open": "Operationen öffnen"
+  },
   "appUpdate": {
     "title": "App-Aktualisierung",
     "description": "Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.",

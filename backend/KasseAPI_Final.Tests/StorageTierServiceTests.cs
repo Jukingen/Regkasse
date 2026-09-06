@@ -17,10 +17,10 @@ public sealed class StorageTierServiceTests
 
     [Theory]
     [InlineData(0, BackupStorageTier.Hot)]
-    [InlineData(7, BackupStorageTier.Hot)]
-    [InlineData(8, BackupStorageTier.Warm)]
-    [InlineData(30, BackupStorageTier.Warm)]
-    [InlineData(31, BackupStorageTier.Cold)]
+    [InlineData(30, BackupStorageTier.Hot)]
+    [InlineData(31, BackupStorageTier.Warm)]
+    [InlineData(90, BackupStorageTier.Warm)]
+    [InlineData(91, BackupStorageTier.Cold)]
     public void CalculateOptimalTier_classifies_by_age(int daysAgo, BackupStorageTier expected)
     {
         var tier = _sut.CalculateOptimalTier(Now.AddDays(-daysAgo), Now);
@@ -39,8 +39,8 @@ public sealed class StorageTierServiceTests
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             Strategy = BackupStrategyKind.System,
-            RequestedAt = Now.AddDays(-10),
-            CompletedAt = Now.AddDays(-10),
+            RequestedAt = Now.AddDays(-45),
+            CompletedAt = Now.AddDays(-45),
         };
         db.BackupRuns.Add(run);
         db.BackupArtifacts.Add(new BackupArtifact
@@ -51,7 +51,7 @@ public sealed class StorageTierServiceTests
             StorageDescriptor = "dump.dump",
             LifecycleState = BackupArtifactLifecycleState.StagingVerified,
             StorageTier = BackupStorageTier.Hot,
-            CreatedAt = Now.AddDays(-10),
+            CreatedAt = Now.AddDays(-45),
         });
         await db.SaveChangesAsync();
 
@@ -78,8 +78,8 @@ public sealed class StorageTierServiceTests
             TriggerSource = BackupTriggerSource.Scheduled,
             AdapterKind = "Fake",
             Strategy = BackupStrategyKind.System,
-            RequestedAt = Now.AddDays(-45),
-            CompletedAt = Now.AddDays(-45),
+            RequestedAt = Now.AddDays(-100),
+            CompletedAt = Now.AddDays(-100),
         };
         db.BackupRuns.Add(run);
         await db.SaveChangesAsync();
@@ -116,8 +116,8 @@ public sealed class StorageTierServiceTests
                 TriggerSource = BackupTriggerSource.Manual,
                 AdapterKind = "Fake",
                 Strategy = BackupStrategyKind.System,
-                RequestedAt = Now.AddDays(-40),
-                CompletedAt = Now.AddDays(-40),
+                RequestedAt = Now.AddDays(-100),
+                CompletedAt = Now.AddDays(-100),
             });
         db.BackupArtifacts.AddRange(
             new BackupArtifact
@@ -136,7 +136,7 @@ public sealed class StorageTierServiceTests
                 ArtifactType = BackupArtifactType.LogicalDump,
                 StorageDescriptor = "b.dump",
                 StorageTier = BackupStorageTier.Hot, // wrong — should become Cold
-                CreatedAt = Now.AddDays(-40),
+                CreatedAt = Now.AddDays(-100),
             });
         await db.SaveChangesAsync();
 

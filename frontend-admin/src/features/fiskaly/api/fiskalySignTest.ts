@@ -62,15 +62,24 @@ export async function getFiskalySignScenarios(
   });
 }
 
+export type FiskalySignTestRequestBody = {
+  cashRegisterId: string;
+  scenario: string;
+  year?: number;
+  month?: number;
+  closingDate?: string;
+};
+
 export async function signFiskalyTestReceipt(
   cashRegisterId: string,
   scenario: string,
+  extras?: Omit<FiskalySignTestRequestBody, 'cashRegisterId' | 'scenario'>,
   signal?: AbortSignal
 ): Promise<FiskalySignTestResult> {
   return customInstance<FiskalySignTestResult>({
     url: `${BASE}/sign-test`,
     method: 'POST',
-    data: { cashRegisterId, scenario },
+    data: { cashRegisterId, scenario, ...extras },
     signal,
   });
 }

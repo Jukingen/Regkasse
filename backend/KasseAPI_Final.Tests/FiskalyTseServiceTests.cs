@@ -102,6 +102,49 @@ public sealed class FiskalyTseServiceTests
         client.Verify(c => c.GetCashRegisterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task CancelReceiptAsync_ForcesCancellationReceiptType()
+    {
+        var registerId = Guid.NewGuid();
+        var receiptId = Guid.NewGuid();
+        var client = new Mock<IFiskalyClient>();
+        client.Setup(c => c.SignReceiptAsync(
+                registerId,
+                receiptId,
+                It.Is<FiskalyTransactionData>(d => d.ReceiptType == "CANCELLATION" && d.TotalAmount == -10m),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalySignedReceipt(
+                receiptId.ToString("D"),
+                registerId.ToString("D"),
+                "SIGNED",
+                "_R1-AT1_KASSE-1_2_2026-08-16T12:00:00_-10,00_0,00_0,00_0,00_0,00_abc_123_0_sig",
+                "2",
+                "TEST",
+                Signed: true,
+                ReceiptType: "CANCELLATION"));
+
+        var svc = CreateService(EnabledOptions(), client.Object);
+        var signed = await svc.CancelReceiptAsync(
+            Guid.NewGuid().ToString("D"),
+            receiptId.ToString("D"),
+            new FiskalyTransactionData
+            {
+                CashRegisterId = registerId.ToString("D"),
+                ReceiptType = "NORMAL",
+                TotalAmount = -10m
+            });
+
+        Assert.True(signed.Signed);
+        Assert.Equal("CANCELLATION", signed.ReceiptType);
+        client.Verify(
+            c => c.SignReceiptAsync(
+                registerId,
+                receiptId,
+                It.Is<FiskalyTransactionData>(d => d.ReceiptType == "CANCELLATION"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static FiskalyOptions EnabledOptions() => new()
     {
         Enabled = true,

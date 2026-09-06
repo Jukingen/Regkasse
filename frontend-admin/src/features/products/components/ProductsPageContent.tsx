@@ -55,7 +55,11 @@ import {
   parseProductPaginationFromSearchParams,
 } from '@/features/products/utils/productFilterUrl';
 import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
-import { resolveProductCategoryIds } from '@/features/products/utils/resolveProductCategoryFilter';
+import {
+  mergeCategoriesForProductFilter,
+  resolveProductCategoryDisplay,
+  resolveProductCategoryIds,
+} from '@/features/products/utils/resolveProductCategoryFilter';
 import { buildProductExportFileName } from '@/features/products/utils/productExportFileName';
 import {
   formatProductUnitLabelForLocale,
@@ -127,29 +131,31 @@ export default function ProductsPage() {
 
   const { useList: useCategoriesList, invalidateList: invalidateCategoriesList } = useCategories();
   const categoriesQuery = useCategoriesList();
-  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const catalogCategories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+
+  const filterCategories = useMemo(
+    (): AdminCategory[] => mergeCategoriesForProductFilter(catalogCategories, undefined),
+    [catalogCategories]
+  );
 
   const listParams = useMemo(() => {
-    const categoryIds = resolveProductCategoryIds(filters, categories);
+    const categoryIds = resolveProductCategoryIds(filters, filterCategories);
     return productFiltersToApiParams(
       categoryIds?.length ? { ...filters, categoryIds } : filters,
       pagination
     );
-  }, [categories, filters, pagination]);
+  }, [filterCategories, filters, pagination]);
 
   const listQuery = useList(listParams, { placeholderData: keepPreviousData });
 
-  const filterCategories = useMemo((): AdminCategory[] => {
-    const fromApi = listQuery.data?.availableFilters?.categories;
-    if (fromApi?.length) {
-      return fromApi.map((c) => ({
-        id: c.id,
-        key: c.id,
-        name: c.name,
-      }));
-    }
-    return categories;
-  }, [listQuery.data?.availableFilters?.categories, categories]);
+  const categories = useMemo(
+    (): AdminCategory[] =>
+      mergeCategoriesForProductFilter(
+        catalogCategories,
+        listQuery.data?.availableFilters?.categories
+      ),
+    [catalogCategories, listQuery.data?.availableFilters?.categories]
+  );
 
   const filterTaxTypes = useMemo(() => {
     const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4, 5];
@@ -165,14 +171,6 @@ export default function ProductsPage() {
               : t('products.filters.taxZero'),
     }));
   }, [listQuery.data?.availableFilters?.taxTypes, t]);
-
-  const categoryById = useMemo(() => {
-    const map = new Map<string, AdminCategory>();
-    for (const category of categories) {
-      if (category.id) map.set(category.id, category);
-    }
-    return map;
-  }, [categories]);
 
   const applyFiltersAndPagination = useCallback(
     (nextFilters: ProductFilters, nextPagination: { page: number; pageSize: number }) => {
@@ -561,15 +559,8 @@ export default function ProductsPage() {
     },
   };
 
-  const resolveRowCategory = (record: Product) => {
-    const fromId = record.categoryId ? categoryById.get(record.categoryId) : undefined;
-    const name = fromId?.name?.trim() || record.category?.trim() || '';
-    return {
-      id: fromId?.id ?? record.categoryId,
-      name,
-      color: fromId?.color,
-    };
-  };
+  const resolveRowCategory = (record: Product) =>
+    resolveProductCategoryDisplay(record, categories);
 
   const columns: ColumnType<Product>[] = [
     {

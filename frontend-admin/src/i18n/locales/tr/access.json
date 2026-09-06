@@ -4,6 +4,8 @@
     "intro": "Kullanıcı, rol ve izinleri tek yerden yönetin. Sistem rolleri salt okunurdur; özel roller izin kataloğunda düzenlenebilir.",
     "cardUsersTitle": "Kullanıcılar",
     "cardUsersDescription": "Kullanıcı oluşturma, rol atama, şifre sıfırlama ve hesap devre dışı bırakma.",
+    "cardSessionsTitle": "Oturumlar",
+    "cardSessionsDescription": "Aktif Admin ve POS oturumlarını görüntüleyin ve oturumu kapatın.",
     "cardRolesTitle": "Roller ve izinler",
     "cardRolesDescription": "Özel rol oluşturma ve rol başına izin yönetimi.",
     "cardMatrixTitle": "İzin özeti",

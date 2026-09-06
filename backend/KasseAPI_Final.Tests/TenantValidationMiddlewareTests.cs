@@ -100,6 +100,14 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/sessions")]
     [InlineData("/api/admin/sessions/terminate-all")]
     [InlineData("/api/admin/rksv/config")]
+    [InlineData("/api/admin/backup")]
+    [InlineData("/api/admin/backup/trigger")]
+    [InlineData("/api/admin/backup/runs/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")]
+    [InlineData("/api/admin/restore-verification")]
+    [InlineData("/api/admin/restore-verification/trigger")]
+    [InlineData("/api/admin/restore/request")]
+    [InlineData("/api/settings/backup")]
+    [InlineData("/api/settings/backup/now")]
     [InlineData("/api/tenants/switcher")]
     public async Task SuperAdmin_CanAccessPlatformPaths_WithoutAmbientTenant(string path)
     {
@@ -231,6 +239,8 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/tenants", "/api/admin/tenants", true)]
     [InlineData("/api/admin/tenants/x", "/api/admin/tenants", true)]
     [InlineData("/api/admin/tenantsfoo", "/api/admin/tenants", false)]
+    [InlineData("/api/admin/restore-verification/trigger", "/api/admin/restore", false)]
+    [InlineData("/api/admin/restore/request", "/api/admin/restore", true)]
     public void MatchesPathPrefix_IsSegmentSafe(string path, string prefix, bool expected)
     {
         Assert.Equal(expected, TenantValidationMiddleware.MatchesPathPrefix(path, prefix));

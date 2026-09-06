@@ -66,6 +66,8 @@ import {
 import { summarizeCalendarMonth } from '@/features/tagesabschluss/calendarStatus';
 import { DailyClosingCalendar } from '@/features/tagesabschluss/components/DailyClosingCalendar';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
+import { TagesabschlussDetail } from '@/features/tagesabschluss/TagesabschlussDetail';
+import { fiskalyStatusColor, readTagesabschlussFiskalyFields } from '@/features/tagesabschluss/fiskalyFields';
 import {
   filterHistoryByDayKind,
   isEmptyDailyClosing,
@@ -721,6 +723,20 @@ export default function TagesabschlussPage() {
         key: 'fo',
         width: 140,
         render: (v: string | null | undefined) => historyFinanzOnlineStatusLabel(v),
+      },
+      {
+        title: t('tagesabschluss.fiskaly.colStatus'),
+        key: 'fiskaly',
+        width: 140,
+        render: (_: unknown, row: TagesabschlussResult) => {
+          const fields = readTagesabschlussFiskalyFields(row);
+          if (!fields.fiskalyStatus) return FORMAT_EMPTY_DISPLAY;
+          return (
+            <Tag color={fiskalyStatusColor(fields.fiskalyStatus)} variant="filled">
+              {fields.fiskalyStatus}
+            </Tag>
+          );
+        },
       },
       {
         title: t('tagesabschluss.history.colPdf'),
@@ -1426,21 +1442,19 @@ export default function TagesabschlussPage() {
         }
       >
         {detailDay ? (
-          <Descriptions bordered size="small" column={1}>
-            <Descriptions.Item label={t('tagesabschluss.history.colDate')}>
-              {formatDateTime(detailDay.date, formatLocale, { dateStyle: 'short' })}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('tagesabschluss.type')}>
-              {detailDay.dayKind === 'empty' || detailDay.closingType === 'empty'
+          <TagesabschlussDetail
+            closingId={detailDay.closingId}
+            dateLabel={formatDateTime(detailDay.date, formatLocale, { dateStyle: 'short' })}
+            typeLabel={
+              detailDay.dayKind === 'empty' || detailDay.closingType === 'empty'
                 ? t('tagesabschluss.typeEmpty')
-                : t('tagesabschluss.typeNormal')}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('tagesabschluss.history.colTransactions')}>
-              {formatNumber(detailDay.transactionCount ?? 0, formatLocale, {
-                maximumFractionDigits: 0,
-              })}
-            </Descriptions.Item>
-          </Descriptions>
+                : t('tagesabschluss.typeNormal')
+            }
+            transactionLabel={formatNumber(detailDay.transactionCount ?? 0, formatLocale, {
+              maximumFractionDigits: 0,
+            })}
+            historyRow={historyRows.find((row) => row.closingId === detailDay.closingId)}
+          />
         ) : null}
       </Modal>
     </AdminPageShell>

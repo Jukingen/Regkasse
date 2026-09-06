@@ -324,6 +324,24 @@ namespace KasseAPI_Final.Models
         public const string DEPLOYMENT_FAILED = "DEPLOYMENT_FAILED";
         public const string DEPLOYMENT_ROLLBACK = "DEPLOYMENT_ROLLBACK";
         public const string DEPLOYMENT_COMPLIANCE_APPROVED = "DEPLOYMENT_COMPLIANCE_APPROVED";
+
+        /// <summary>POS/FA storno signed at fiskaly SIGN AT as CANCELLATION.</summary>
+        public const string FISKALY_CANCELLATION_RECEIPT_SIGNED = "FISKALY_CANCELLATION_RECEIPT_SIGNED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation failed.</summary>
+        public const string FISKALY_RECEIPT_OPERATION_FAILED = "FISKALY_RECEIPT_OPERATION_FAILED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation succeeded.</summary>
+        public const string FISKALY_RECEIPT_SIGNED = "FISKALY_RECEIPT_SIGNED";
+
+        /// <summary>Failed Fiskaly operation retried from FA history.</summary>
+        public const string FISKALY_OPERATION_RETRIED = "FISKALY_OPERATION_RETRIED";
+
+        /// <summary>FA Fiskaly batch (storno / Sonderbelege / DEP ZIP) completed.</summary>
+        public const string FISKALY_BATCH_COMPLETED = "FISKALY_BATCH_COMPLETED";
+
+        /// <summary>Failed Fiskaly error marked resolved / known issue / reopened.</summary>
+        public const string FISKALY_ERROR_REVIEWED = "FISKALY_ERROR_REVIEWED";
     }
 
     // Entity types for audit logging

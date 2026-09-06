@@ -29,6 +29,16 @@ public interface IFiskalyTseService
         FiskalyTransactionData data,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Signs a Fiskaly SIGN AT <c>CANCELLATION</c> receipt (Stornobeleg). There is no dedicated cancel endpoint;
+    /// Fiskaly requires a new PUT /receipt with <c>receipt_type=CANCELLATION</c> and negative amounts.
+    /// </summary>
+    Task<FiskalySignedReceipt> CancelReceiptAsync(
+        string tssId,
+        string txId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default);
+
     Task<FiskalyScuInfo?> GetScuAsync(
         string? signatureCreationUnitId = null,
         CancellationToken cancellationToken = default);

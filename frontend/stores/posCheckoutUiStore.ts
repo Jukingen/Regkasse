@@ -18,8 +18,10 @@ type PosCheckoutUiState = {
   resetCheckoutPaymentUi: () => void;
 };
 
+export const DEFAULT_POS_PAYMENT_METHOD = 'cash';
+
 export const usePosCheckoutUiStore = create<PosCheckoutUiState>((set) => ({
-  selectedPaymentMethodType: null,
+  selectedPaymentMethodType: DEFAULT_POS_PAYMENT_METHOD,
   paymentMethodSubmitAttempted: false,
   setSelectedPaymentMethodType: (type) => {
     set({ selectedPaymentMethodType: type, paymentMethodSubmitAttempted: false });
@@ -28,7 +30,10 @@ export const usePosCheckoutUiStore = create<PosCheckoutUiState>((set) => ({
     set({ paymentMethodSubmitAttempted: value });
   },
   resetCheckoutPaymentUi: () => {
-    set({ selectedPaymentMethodType: null, paymentMethodSubmitAttempted: false });
+    set({
+      selectedPaymentMethodType: DEFAULT_POS_PAYMENT_METHOD,
+      paymentMethodSubmitAttempted: false,
+    });
   },
 }));
 

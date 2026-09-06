@@ -26,6 +26,7 @@ export interface PosTseStatusDto {
   nonFiscalPendingQueueCount?: number | null;
   /** @nullable */
   operationalHealth?: string | null;
+  requiresFiscalSignature?: boolean;
   /** @nullable */
   scuId?: string | null;
   /** @nullable */

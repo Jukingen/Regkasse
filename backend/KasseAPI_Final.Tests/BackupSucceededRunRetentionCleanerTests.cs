@@ -165,4 +165,49 @@ public sealed class BackupSucceededRunRetentionCleanerTests
         Assert.NotNull(await db.BackupRuns.FindAsync(tenantRunId));
         Assert.NotNull(await db.BackupRuns.FindAsync(systemRunId));
     }
+
+    [Fact]
+    public async Task Legal_policy_keeps_system_runs_inside_7_year_window()
+    {
+        await using var db = CreateDb(nameof(Legal_policy_keeps_system_runs_inside_7_year_window));
+        var systemId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid();
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Id = systemId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Scheduled,
+                AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.System,
+                RequestedAt = DateTime.UtcNow.AddDays(-120),
+                CompletedAt = DateTime.UtcNow.AddDays(-120),
+            },
+            new BackupRun
+            {
+                Id = tenantId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                Strategy = BackupStrategyKind.Tenant,
+                TenantId = Guid.NewGuid(),
+                RequestedAt = DateTime.UtcNow.AddDays(-40),
+                CompletedAt = DateTime.UtcNow.AddDays(-40),
+            });
+        await db.SaveChangesAsync();
+
+        var removed = await BackupSucceededRunRetentionCleaner.DeleteExpiredSucceededRunsAsync(
+            db,
+            new BackupOptions { SmartRetentionEnabled = false },
+            new TestHostEnvironment(),
+            NullLogger.Instance,
+            tenantRetentionDays: 30,
+            systemRetentionDays: 90,
+            legalPolicy: BackupRetentionPolicySnapshot.Defaults);
+
+        Assert.Equal(1, removed);
+        await db.SaveChangesAsync();
+        Assert.NotNull(await db.BackupRuns.FindAsync(systemId));
+        Assert.Null(await db.BackupRuns.FindAsync(tenantId));
+    }
 }

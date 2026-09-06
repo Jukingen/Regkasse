@@ -12,13 +12,20 @@ import {
   View,
 } from 'react-native';
 
+import { StornoModal } from './StornoModal';
 import {
   POS_RECEIPT_REPRINT_REASONS,
+  cancelReceipt,
   fetchReceiptById,
   reprintReceipt,
   type PosReceiptListItem,
 } from '../services/api/receiptService';
+import { readPosApiErrorMessage } from '../utils/readPosApiErrorMessage';
 import { receiptPrinter } from '../services/receiptPrinter';
+import {
+  canShowReceiptStornoButton,
+  type PosReceiptStornoActor,
+} from '../utils/posReceiptStorno';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   SoftColors,
@@ -32,6 +39,19 @@ import { isPrintCancelled } from '../utils/expoPrintShare';
 import { formatPrice } from '../utils/formatPrice';
 import { normalizeReceiptDto } from '../utils/normalizeReceiptDto';
 
+function receiptStatusLabel(status: string, t: (key: string) => string): string {
+  switch (status) {
+    case 'Storno':
+      return t('receipts:statusStorno');
+    case 'Refund':
+      return t('receipts:statusRefund');
+    case 'Paid':
+      return t('receipts:statusPaid');
+    default:
+      return status || t('receipts:statusPaid');
+  }
+}
+
 export type ReceiptListProps = {
   receipts: PosReceiptListItem[];
   cashRegisterId: string;
@@ -39,6 +59,8 @@ export type ReceiptListProps = {
   refreshing: boolean;
   onRefresh: () => void;
   canReprint: boolean;
+  canStorno?: boolean;
+  stornoActor?: PosReceiptStornoActor | null;
   formatLocale: string;
   emptyMessage: string;
 };
@@ -50,6 +72,8 @@ export function ReceiptList({
   refreshing,
   onRefresh,
   canReprint,
+  canStorno = false,
+  stornoActor = null,
   formatLocale,
   emptyMessage,
 }: ReceiptListProps) {
@@ -59,6 +83,46 @@ export function ReceiptList({
   const [selected, setSelected] = useState<PosReceiptListItem | null>(null);
   const [detail, setDetail] = useState<ReceiptDTO | null>(null);
   const [reprintingId, setReprintingId] = useState<string | null>(null);
+  const [stornoTarget, setStornoTarget] = useState<PosReceiptListItem | null>(null);
+  const [stornoSubmitting, setStornoSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  const rowAllowsStorno = useCallback(
+    (row: PosReceiptListItem) =>
+      canStorno &&
+      canShowReceiptStornoButton(row, stornoActor),
+    [canStorno, stornoActor]
+  );
+
+  const stornoErrorMessage = useCallback(
+    (errorKey?: string | null, diagnostic?: string | null, fallbackErr?: unknown) => {
+      switch (errorKey) {
+        case 'errors.alreadyCancelled':
+        case 'errors.specialReceiptNotStornoable':
+          return t('receipts:stornoNotAvailable');
+        case 'errors.stornoNotOwnReceipt':
+          return t('receipts:stornoNotOwnReceipt');
+        case 'errors.stornoTimeLimitExceeded':
+          return t('receipts:stornoNotToday');
+        case 'errors.approvalRequired':
+          return t('receipts:stornoApprovalRequired');
+        case 'errors.reasonRequired':
+          return t('receipts:stornoReasonTooShort');
+        default:
+          break;
+      }
+      const raw = fallbackErr
+        ? readPosApiErrorMessage(fallbackErr, diagnostic || t('receipts:stornoFailed'))
+        : diagnostic || t('receipts:stornoFailed');
+      return t('receipts:stornoFailedWithError', { error: raw });
+    },
+    [t]
+  );
 
   const closeDetail = useCallback(() => {
     setDetailVisible(false);
@@ -112,9 +176,56 @@ export function ReceiptList({
     [canReprint, cashRegisterId, t]
   );
 
+  const openStorno = useCallback(
+    (row: PosReceiptListItem) => {
+      if (!canStorno) {
+        Alert.alert(t('common:error'), t('receipts:stornoNoPermission'));
+        return;
+      }
+      if (!rowAllowsStorno(row)) {
+        Alert.alert(t('common:error'), t('receipts:stornoNotAvailable'));
+        return;
+      }
+      setStornoTarget(row);
+    },
+    [canStorno, rowAllowsStorno, t]
+  );
+
+  const submitStorno = useCallback(
+    async (reason: string) => {
+      if (!stornoTarget) return;
+      const trimmed = reason.trim();
+      if (trimmed.length > 0 && trimmed.length < 5) {
+        showToast('error', t('receipts:stornoReasonTooShort'));
+        return;
+      }
+      setStornoSubmitting(true);
+      try {
+        const result = await cancelReceipt({
+          receiptId: stornoTarget.receiptId,
+          cashRegisterId,
+          reason,
+        });
+        if (!result.success) {
+          showToast('error', stornoErrorMessage(result.errorKey, result.diagnosticCode));
+          return;
+        }
+        setStornoTarget(null);
+        showToast('success', t('receipts:stornoSuccess'));
+        onRefresh();
+      } catch (err) {
+        showToast('error', stornoErrorMessage(null, null, err));
+      } finally {
+        setStornoSubmitting(false);
+      }
+    },
+    [cashRegisterId, onRefresh, showToast, stornoErrorMessage, stornoTarget, t]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: PosReceiptListItem }) => {
-      const busy = reprintingId === item.receiptId;
+      const busy = reprintingId === item.receiptId || stornoTarget?.receiptId === item.receiptId;
+      const canStornoRow = rowAllowsStorno(item);
       return (
         <View style={styles.row}>
           <Pressable
@@ -124,11 +235,20 @@ export function ReceiptList({
             }}
             accessibilityRole="button"
             accessibilityLabel={t('receipts:openA11y', { number: item.receiptNumber })}>
-            <Text style={styles.receiptNumber}>{item.receiptNumber}</Text>
-            <Text style={styles.meta}>{formatUserDateTime(item.issuedAt) || '—'}</Text>
+            <Text style={[styles.receiptNumber, styles.colNumber]} numberOfLines={1}>
+              {item.receiptNumber}
+            </Text>
+            <Text style={[styles.meta, styles.colDate]} numberOfLines={1}>
+              {formatUserDateTime(item.issuedAt) || '—'}
+            </Text>
+            <Text style={[styles.amount, styles.colAmount]} numberOfLines={1}>
+              {formatPrice(item.grandTotal, formatLocale)}
+            </Text>
+            <Text style={[styles.status, styles.colStatus]} numberOfLines={1}>
+              {receiptStatusLabel(item.status, (key) => t(key))}
+            </Text>
           </Pressable>
-          <View style={styles.rowRight}>
-            <Text style={styles.amount}>{formatPrice(item.grandTotal, formatLocale)}</Text>
+          <View style={styles.colAction}>
             {canReprint ? (
               <Pressable
                 style={[styles.reprintButton, busy && styles.reprintButtonDisabled]}
@@ -138,10 +258,24 @@ export function ReceiptList({
                 disabled={busy}
                 accessibilityRole="button"
                 accessibilityLabel={t('receipts:reprintA11y', { number: item.receiptNumber })}>
-                {busy ? (
+                {busy && reprintingId === item.receiptId ? (
                   <ActivityIndicator size="small" color={SoftColors.textInverse} />
                 ) : (
                   <Text style={styles.reprintButtonText}>{t('receipts:reprint')}</Text>
+                )}
+              </Pressable>
+            ) : null}
+            {canStornoRow ? (
+              <Pressable
+                style={[styles.stornoButton, busy && styles.reprintButtonDisabled]}
+                onPress={() => openStorno(item)}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={t('receipts:stornoA11y', { number: item.receiptNumber })}>
+                {busy && stornoTarget?.receiptId === item.receiptId ? (
+                  <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                ) : (
+                  <Text style={styles.stornoButtonText}>{t('receipts:storno')}</Text>
                 )}
               </Pressable>
             ) : null}
@@ -149,7 +283,7 @@ export function ReceiptList({
         </View>
       );
     },
-    [canReprint, formatLocale, handleReprint, openDetail, reprintingId, t]
+    [canReprint, formatLocale, handleReprint, openDetail, openStorno, reprintingId, rowAllowsStorno, stornoTarget, t]
   );
 
   if (loading && receipts.length === 0) {
@@ -161,7 +295,7 @@ export function ReceiptList({
   }
 
   return (
-    <>
+    <View style={styles.root}>
       <FlatList
         data={receipts}
         keyExtractor={(item) => item.receiptId}
@@ -174,6 +308,17 @@ export function ReceiptList({
           />
         }
         contentContainerStyle={receipts.length === 0 ? styles.emptyList : styles.listContent}
+        ListHeaderComponent={
+          receipts.length === 0 ? null : (
+            <View style={styles.columnHeader} accessibilityRole="header">
+              <Text style={[styles.columnHeaderText, styles.colNumber]}>{t('receipts:receiptNumber')}</Text>
+              <Text style={[styles.columnHeaderText, styles.colDate]}>{t('receipts:issuedAt')}</Text>
+              <Text style={[styles.columnHeaderText, styles.colAmount]}>{t('receipts:total')}</Text>
+              <Text style={[styles.columnHeaderText, styles.colStatus]}>{t('receipts:status')}</Text>
+              <View style={styles.colAction} />
+            </View>
+          )
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>{emptyMessage}</Text>
@@ -200,6 +345,10 @@ export function ReceiptList({
                 <Text style={styles.modalLabel}>{t('receipts:total')}</Text>
                 <Text style={styles.modalValue}>
                   {formatPrice(detail?.grandTotal ?? selected?.grandTotal ?? 0, formatLocale)}
+                </Text>
+                <Text style={styles.modalLabel}>{t('receipts:status')}</Text>
+                <Text style={styles.modalValue}>
+                  {receiptStatusLabel(selected?.status ?? 'Paid', (key) => t(key))}
                 </Text>
                 {detail?.items?.length ? (
                   <View style={styles.itemsBlock}>
@@ -229,15 +378,48 @@ export function ReceiptList({
                   <Text style={styles.reprintButtonText}>{t('receipts:reprint')}</Text>
                 </Pressable>
               ) : null}
+              {selected && rowAllowsStorno(selected) ? (
+                <Pressable
+                  style={styles.stornoButton}
+                  onPress={() => openStorno(selected)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('receipts:stornoA11y', { number: selected.receiptNumber })}>
+                  <Text style={styles.stornoButtonText}>{t('receipts:storno')}</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>
       </Modal>
-    </>
+
+      <StornoModal
+        key={stornoTarget?.receiptId ?? 'storno-idle'}
+        visible={stornoTarget != null}
+        receiptNumber={stornoTarget?.receiptNumber ?? ''}
+        submitting={stornoSubmitting}
+        onCancel={() => {
+          if (!stornoSubmitting) setStornoTarget(null);
+        }}
+        onConfirm={(reason) => {
+          void submitStorno(reason);
+        }}
+      />
+
+      {toast ? (
+        <View
+          style={[styles.toast, toast.type === 'error' ? styles.toastError : styles.toastSuccess]}
+          accessibilityLiveRegion="polite">
+          <Text style={styles.toastText}>{toast.message}</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: SoftSpacing.md,
     paddingBottom: SoftSpacing.lg,
@@ -272,6 +454,9 @@ const styles = StyleSheet.create({
   rowMain: {
     flex: 1,
     minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.sm,
   },
   receiptNumber: {
     ...SoftTypography.label,
@@ -281,16 +466,52 @@ const styles = StyleSheet.create({
   meta: {
     ...SoftTypography.caption,
     color: SoftColors.textMuted,
-    marginTop: 2,
-  },
-  rowRight: {
-    alignItems: 'flex-end',
-    gap: 6,
   },
   amount: {
     ...SoftTypography.label,
     fontWeight: '700',
     color: SoftColors.textPrimary,
+    textAlign: 'right',
+  },
+  status: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    fontWeight: '600',
+  },
+  columnHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    paddingBottom: SoftSpacing.xs,
+    marginBottom: SoftSpacing.xs,
+  },
+  columnHeaderText: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize: 11,
+  },
+  colNumber: {
+    flex: 1.1,
+    minWidth: 72,
+  },
+  colDate: {
+    flex: 1.4,
+    minWidth: 96,
+  },
+  colAmount: {
+    width: 80,
+    textAlign: 'right',
+  },
+  colStatus: {
+    width: 84,
+  },
+  colAction: {
+    minWidth: 88,
+    alignItems: 'flex-end',
+    gap: 6,
   },
   reprintButton: {
     backgroundColor: SoftColors.accent,
@@ -306,6 +527,22 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   reprintButtonText: {
+    ...SoftTypography.label,
+    fontSize: 12,
+    fontWeight: '700',
+    color: SoftColors.textInverse,
+  },
+  stornoButton: {
+    backgroundColor: SoftColors.error,
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: 6,
+    borderRadius: SoftRadius.full,
+    minHeight: 32,
+    minWidth: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stornoButtonText: {
     ...SoftTypography.label,
     fontSize: 12,
     fontWeight: '700',
@@ -361,5 +598,26 @@ const styles = StyleSheet.create({
   modalSecondaryText: {
     ...SoftTypography.label,
     color: SoftColors.textMuted,
+  },
+  toast: {
+    position: 'absolute',
+    left: SoftSpacing.md,
+    right: SoftSpacing.md,
+    bottom: SoftSpacing.lg,
+    borderRadius: SoftRadius.md,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
+  },
+  toastSuccess: {
+    backgroundColor: SoftColors.success,
+  },
+  toastError: {
+    backgroundColor: SoftColors.error,
+  },
+  toastText: {
+    ...SoftTypography.label,
+    color: SoftColors.textInverse,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

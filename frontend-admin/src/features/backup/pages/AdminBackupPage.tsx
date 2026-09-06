@@ -22,7 +22,7 @@ import {
 import { buildBackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import { useBackupManagementAccess } from '@/features/backup-management/hooks/useBackupManagementAccess';
 import { BackupHistoryChart } from '@/features/backup/components/BackupHistoryChart';
-import { BackupList } from '@/features/backup/components/BackupList';
+import { BackupRunsTable } from '@/features/backup/components/BackupRunsTable';
 import { BackupSettings } from '@/features/backup/components/BackupSettings';
 import { MetricCard } from '@/features/backup/components/MetricCard';
 import { PitrRestoreWorkflow } from '@/features/backup/components/PitrRestoreWorkflow';
@@ -255,7 +255,7 @@ export function AdminBackupPage() {
         />
 
         <Card title={t('backupDr.adminBackup.recentBackupsTitle')} size="small">
-          <BackupList onRetryInvalidate={invalidateAll} />
+          <BackupRunsTable hideTitle onRetryInvalidate={invalidateAll} />
         </Card>
 
         <Collapse items={collapseItems} defaultActiveKey={[]} />

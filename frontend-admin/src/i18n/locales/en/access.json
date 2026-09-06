@@ -4,6 +4,8 @@
     "intro": "Manage users, roles, and permissions in one place. System roles are read-only; custom roles can be edited in the permission catalog.",
     "cardUsersTitle": "Users",
     "cardUsersDescription": "Create users, assign roles, reset passwords, and deactivate accounts.",
+    "cardSessionsTitle": "Sessions",
+    "cardSessionsDescription": "View and sign out active Admin and POS sessions.",
     "cardRolesTitle": "Roles & permissions",
     "cardRolesDescription": "Create custom roles and maintain permissions per role.",
     "cardMatrixTitle": "Permission overview",

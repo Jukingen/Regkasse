@@ -54,6 +54,10 @@ import type {
   GetApiPosPaymentMethodPaymentMethodParams,
   GetApiPosPaymentMethodsParams,
   GetApiPosPaymentStatisticsParams,
+  GetApiPosReceiptsParams,
+  GetApiPosReceiptsReceiptIdParams,
+  GetApiPosReceiptsReceiptIdReprintParams,
+  GetApiPosReceiptsRecentParams,
   GetApiPosSearchParams,
   GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
   GetApiPosTseStatusParams,
@@ -63,6 +67,7 @@ import type {
   MergeTableCartsRequest,
   OfflineOrderRequest,
   OnlinePaymentDto,
+  PagedResultOfReceiptListItemDto,
   PaymentApiEnvelopeOfPaymentCreateSuccessData,
   PaymentApiErrorBody,
   PaymentHistoryResponse,
@@ -72,13 +77,17 @@ import type {
   PosDailyClosingRequest,
   PosDailyClosingResult,
   PosDailyClosingStatusDto,
+  PosReceiptCancelRequest,
   PosSelectableListResult,
   PosStatusOverviewDto,
   PosTseStatusDto,
   PostApiPosCartClearParams,
   PostApiPosOfflineOrdersReplayParams,
+  PostApiPosReceiptsReceiptIdCancelParams,
   ProblemDetails,
   Product,
+  ReceiptDTO,
+  ReceiptReprintResponse,
   RefundPaymentRequest,
   ReorderFavoritesRequest,
   ResetCartAfterPaymentRequest,
@@ -3588,7 +3597,293 @@ export const useGetApiPosPaymentOnlineId = <TData = Awaited<ReturnType<typeof ge
 
 
 
-export const getApiPosShiftCurrent = (
+export const getApiPosReceiptsRecent = (
+    params?: GetApiPosReceiptsRecentParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PagedResultOfReceiptListItemDto>(
+      {url: `/api/pos/receipts/recent`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosReceiptsRecentQueryKey = (params?: GetApiPosReceiptsRecentParams,) => {
+    return [`/api/pos/receipts/recent`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosReceiptsRecentQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError = ProblemDetails>(params?: GetApiPosReceiptsRecentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsRecentQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>> = ({ signal }) => getApiPosReceiptsRecent(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosReceiptsRecentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>>
+export type GetApiPosReceiptsRecentQueryError = ProblemDetails
+
+export const useGetApiPosReceiptsRecent = <TData = Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError = ProblemDetails>(
+ params?: GetApiPosReceiptsRecentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosReceiptsRecentQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosReceipts = (
+    params?: GetApiPosReceiptsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PagedResultOfReceiptListItemDto>(
+      {url: `/api/pos/receipts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosReceiptsQueryKey = (params?: GetApiPosReceiptsParams,) => {
+    return [`/api/pos/receipts`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosReceiptsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceipts>>, TError = ProblemDetails>(params?: GetApiPosReceiptsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceipts>>> = ({ signal }) => getApiPosReceipts(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosReceiptsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceipts>>>
+export type GetApiPosReceiptsQueryError = ProblemDetails
+
+export const useGetApiPosReceipts = <TData = Awaited<ReturnType<typeof getApiPosReceipts>>, TError = ProblemDetails>(
+ params?: GetApiPosReceiptsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosReceiptsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosReceiptsReceiptId = (
+    receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReceiptDTO>(
+      {url: `/api/pos/receipts/${receiptId}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosReceiptsReceiptIdQueryKey = (receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdParams,) => {
+    return [`/api/pos/receipts/${receiptId}`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosReceiptsReceiptIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError = ProblemDetails>(receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsReceiptIdQueryKey(receiptId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>> = ({ signal }) => getApiPosReceiptsReceiptId(receiptId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(receiptId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosReceiptsReceiptIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>>
+export type GetApiPosReceiptsReceiptIdQueryError = ProblemDetails
+
+export const useGetApiPosReceiptsReceiptId = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError = ProblemDetails>(
+ receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosReceiptsReceiptIdQueryOptions(receiptId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosReceiptsReceiptIdReprint = (
+    receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdReprintParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReceiptReprintResponse>(
+      {url: `/api/pos/receipts/${receiptId}/reprint`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosReceiptsReceiptIdReprintQueryKey = (receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdReprintParams,) => {
+    return [`/api/pos/receipts/${receiptId}/reprint`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosReceiptsReceiptIdReprintQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError = ReceiptReprintResponse | ProblemDetails>(receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdReprintParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsReceiptIdReprintQueryKey(receiptId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>> = ({ signal }) => getApiPosReceiptsReceiptIdReprint(receiptId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(receiptId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosReceiptsReceiptIdReprintQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>>
+export type GetApiPosReceiptsReceiptIdReprintQueryError = ReceiptReprintResponse | ProblemDetails
+
+export const useGetApiPosReceiptsReceiptIdReprint = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError = ReceiptReprintResponse | ProblemDetails>(
+ receiptId: string,
+    params?: GetApiPosReceiptsReceiptIdReprintParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosReceiptsReceiptIdReprintQueryOptions(receiptId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiPosReceiptsReceiptIdCancel = (
+    receiptId: string,
+    posReceiptCancelRequest: PosReceiptCancelRequest,
+    params?: PostApiPosReceiptsReceiptIdCancelParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<StornoResponse>(
+      {url: `/api/pos/receipts/${receiptId}/cancel`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: posReceiptCancelRequest,
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosReceiptsReceiptIdCancelMutationOptions = <TError = StornoResponse | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, TError,{receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, TError,{receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, {receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}> = (props) => {
+          const {receiptId,data,params} = props ?? {};
+
+          return  postApiPosReceiptsReceiptIdCancel(receiptId,data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosReceiptsReceiptIdCancelMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>>
+    export type PostApiPosReceiptsReceiptIdCancelMutationBody = PosReceiptCancelRequest
+    export type PostApiPosReceiptsReceiptIdCancelMutationError = StornoResponse | ProblemDetails
+
+    export const usePostApiPosReceiptsReceiptIdCancel = <TError = StornoResponse | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, TError,{receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>,
+        TError,
+        {receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosReceiptsReceiptIdCancelMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosShiftCurrent = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

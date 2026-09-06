@@ -12,17 +12,10 @@ import {
   type StornoResponsePayload,
 } from '../services/api/paymentHistoryService';
 import { paymentService } from '../services/api/paymentService';
+import { readPosApiErrorMessage } from '../utils/readPosApiErrorMessage';
 
 function readApiErrorMessage(error: unknown): string {
-  const e = error as { response?: { data?: unknown }; message?: string } | null;
-  const data = e?.response?.data;
-  if (data && typeof data === 'object' && data !== null) {
-    const record = data as Record<string, unknown>;
-    if (typeof record.message === 'string' && record.message) return record.message;
-    if (typeof record.error === 'string' && record.error) return record.error;
-  }
-  if (typeof e?.message === 'string' && e.message) return e.message;
-  return 'Zahlungshistorie konnte nicht geladen werden';
+  return readPosApiErrorMessage(error, 'Zahlungshistorie konnte nicht geladen werden');
 }
 
 function isPaymentHistoryNoRegisterError(error: unknown): boolean {

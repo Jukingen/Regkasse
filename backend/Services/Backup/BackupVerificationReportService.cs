@@ -184,26 +184,34 @@ public sealed class BackupVerificationReportService : IBackupVerificationReportS
     {
         var analyzedAt = _timeProvider.GetUtcNow().UtcDateTime;
         var tables = new List<BackupTableRowCountDto>();
-        var existing = await ListExistingPublicTablesAsync(cancellationToken);
-        var namesToScan = PgRestoreListTableDataParser.PreferredMonitoredTableNames
-            .Where(existing.Contains)
-            .ToList();
 
-        await using var conn = (NpgsqlConnection)_db.Database.GetDbConnection();
-        if (conn.State != ConnectionState.Open)
-            await conn.OpenAsync(cancellationToken);
-
-        foreach (var tableName in namesToScan)
+        // EF owns this connection — never dispose it (`await using GetDbConnection()` closed the
+        // NpgsqlConnection and the next OpenAsync threw ObjectDisposedException).
+        await _db.Database.OpenConnectionAsync(cancellationToken);
+        try
         {
-            var (rowCount, sizeBytes, exists) = await ReadTableMetricsAsync(conn, tableName, cancellationToken);
-            tables.Add(new BackupTableRowCountDto
+            var conn = (NpgsqlConnection)_db.Database.GetDbConnection();
+            var existing = await ListExistingPublicTablesAsync(conn, cancellationToken);
+            var namesToScan = PgRestoreListTableDataParser.PreferredMonitoredTableNames
+                .Where(existing.Contains)
+                .ToList();
+
+            foreach (var tableName in namesToScan)
             {
-                SchemaName = "public",
-                TableName = tableName,
-                RowCount = rowCount,
-                EstimatedSizeBytes = sizeBytes,
-                TableExists = exists,
-            });
+                var (rowCount, sizeBytes, exists) = await ReadTableMetricsAsync(conn, tableName, cancellationToken);
+                tables.Add(new BackupTableRowCountDto
+                {
+                    SchemaName = "public",
+                    TableName = tableName,
+                    RowCount = rowCount,
+                    EstimatedSizeBytes = sizeBytes,
+                    TableExists = exists,
+                });
+            }
+        }
+        finally
+        {
+            await _db.Database.CloseConnectionAsync();
         }
 
         return new BackupSourceDatabaseStatisticsDto
@@ -214,17 +222,15 @@ public sealed class BackupVerificationReportService : IBackupVerificationReportS
         };
     }
 
-    private async Task<HashSet<string>> ListExistingPublicTablesAsync(CancellationToken cancellationToken)
+    private static async Task<HashSet<string>> ListExistingPublicTablesAsync(
+        NpgsqlConnection conn,
+        CancellationToken cancellationToken)
     {
         const string sql = """
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
             """;
-
-        await using var conn = (NpgsqlConnection)_db.Database.GetDbConnection();
-        if (conn.State != ConnectionState.Open)
-            await conn.OpenAsync(cancellationToken);
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);

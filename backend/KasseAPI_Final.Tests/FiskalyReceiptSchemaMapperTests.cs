@@ -48,10 +48,63 @@ public sealed class FiskalyReceiptSchemaMapperTests
     }
 
     [Fact]
+    public void BuildTagesabschlussTransaction_IsZeroAmountNormalMarker()
+    {
+        var registerId = Guid.NewGuid();
+        var closingDate = new DateTime(2026, 8, 29, 0, 0, 0, DateTimeKind.Utc);
+        var data = FiskalyReceiptSchemaMapper.BuildTagesabschlussTransaction(
+            registerId,
+            closingDate,
+            1234.50m,
+            12);
+
+        Assert.Equal("NORMAL", data.ReceiptType);
+        Assert.Equal(0m, data.TotalAmount);
+        Assert.Equal("NULL", data.VatRate);
+        Assert.Equal(registerId.ToString("D"), data.CashRegisterId);
+        var vat = Assert.Single(data.AmountsPerVatRate!);
+        Assert.Equal("NULL", vat.VatRate);
+        Assert.Equal(0m, vat.Amount);
+        var line = Assert.Single(data.LineItems!);
+        Assert.Equal("0.00", line.PricePerUnit);
+        Assert.Contains("Tagesabschluss 2026-08-29", line.Text, StringComparison.Ordinal);
+        Assert.Contains("1234.50", line.Text, StringComparison.Ordinal);
+        Assert.Contains("12", line.Text, StringComparison.Ordinal);
+
+        var request = FiskalyReceiptSchemaMapper.BuildSignRequest(data);
+        Assert.Equal("NORMAL", request.ReceiptType);
+        var payment = Assert.Single(request.Schema.StandardV1!.AmountsPerPaymentType);
+        Assert.Equal("0.00", payment.Amount);
+    }
+
+    [Fact]
     public void MapReceiptType_Cancellation()
     {
         Assert.Equal("CANCELLATION", FiskalyReceiptSchemaMapper.MapReceiptType(true));
         Assert.Equal("NORMAL", FiskalyReceiptSchemaMapper.MapReceiptType(false));
+    }
+
+    [Fact]
+    public void BuildSignRequest_Cancellation_UsesNegativeAmounts()
+    {
+        var request = FiskalyReceiptSchemaMapper.BuildSignRequest(new FiskalyTransactionData
+        {
+            ReceiptType = FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+            PaymentType = "CASH",
+            AmountsPerVatRate =
+            [
+                new FiskalyVatAmount { VatRate = "STANDARD", Amount = -10.00m }
+            ]
+        });
+
+        Assert.Equal("CANCELLATION", request.ReceiptType);
+        var vat = Assert.Single(request.Schema.StandardV1!.AmountsPerVatRate);
+        Assert.Equal("STANDARD", vat.VatRate);
+        Assert.Equal("-10.00", vat.Amount);
+        var payment = Assert.Single(request.Schema.StandardV1.AmountsPerPaymentType);
+        Assert.Equal("-10.00", payment.Amount);
+        var line = Assert.Single(request.Schema.StandardV1.LineItems);
+        Assert.Equal("-10.00", line.PricePerUnit);
     }
 
     [Fact]

@@ -117,6 +117,29 @@ public sealed class EffectivePermissionResolverTests
 public sealed class PermissionImplicationTests
 {
     [Fact]
+    public void FiskalyOperationsNullbeleg_Satisfies_FiskalyOperationsView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.FiskalyOperationsNullbeleg,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.FiskalyOperationsView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.FiskalyOperationsConfig, effective));
+    }
+
+    [Fact]
+    public void FiskalyHistoryRetry_Satisfies_FiskalyHistoryView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.FiskalyHistoryRetry,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.FiskalyHistoryView, effective));
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.FiskalyHistoryRetry,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.FiskalyHistoryView }));
+    }
+
+    [Fact]
     public void UserManage_Satisfies_UserView_ResetPassword_And_UserDelete()
     {
         var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AppPermissions.UserManage };

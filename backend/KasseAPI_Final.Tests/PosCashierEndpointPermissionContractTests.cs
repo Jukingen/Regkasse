@@ -28,6 +28,7 @@ public sealed class PosCashierEndpointPermissionContractTests
             ("GET /api/pos/customers", AppPermissions.CustomerView),
             ("POST /api/pos/vouchers/validate", AppPermissions.PaymentTake),
             ("POST /api/pos/storno", AppPermissions.PaymentCancel),
+            ("POST /api/pos/receipts/{receiptId}/cancel", AppPermissions.PaymentCancel),
             ("GET /api/license/status", AppPermissions.LicenseView),
         }.Select(c => new object[] { c.Route, c.Permission });
 

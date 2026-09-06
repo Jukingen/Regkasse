@@ -44,6 +44,11 @@
     "description": "View recent receipts for this cash register and reprint them.",
     "open": "Open receipt list"
   },
+  "fiskalyOps": {
+    "title": "Fiskaly / special receipts",
+    "description": "Startbeleg, Nullbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg and cancellation.",
+    "open": "Open operations"
+  },
   "appUpdate": {
     "title": "App update",
     "description": "Checks whether a newer version of the Regkasse POS app is available, downloads the APK and opens the system installer.",

@@ -51,8 +51,10 @@ const CRITICAL_PATHS = [
   { path: '/api/pos/offline-orders/replay', methods: ['post'] },
   { path: '/api/pos/offline-orders/{offlineOrderId}/status', methods: ['get'] },
   { path: '/api/pos/receipts', methods: ['get'] },
+  { path: '/api/pos/receipts/recent', methods: ['get'] },
   { path: '/api/pos/receipts/{receiptId}', methods: ['get'] },
   { path: '/api/pos/receipts/{receiptId}/reprint', methods: ['get'] },
+  { path: '/api/pos/receipts/{receiptId}/cancel', methods: ['post'] },
 ];
 
 const REQUIRED_SCHEMAS = [

@@ -6,6 +6,7 @@ import {
   CloudUploadOutlined,
   FileSearchOutlined,
   HistoryOutlined,
+  LaptopOutlined,
   PieChartOutlined,
   SafetyOutlined,
   TeamOutlined,
@@ -43,6 +44,13 @@ export default function AccessHubPage() {
       descriptionKey: 'access.hub.cardUsersDescription',
       href: '/admin/users',
       icon: <TeamOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
+      permission: PERMISSIONS.USER_VIEW,
+    },
+    {
+      titleKey: 'access.hub.cardSessionsTitle',
+      descriptionKey: 'access.hub.cardSessionsDescription',
+      href: '/admin/sessions',
+      icon: <LaptopOutlined style={{ fontSize: 28, color: '#1677ff' }} />,
       permission: PERMISSIONS.USER_VIEW,
     },
     {

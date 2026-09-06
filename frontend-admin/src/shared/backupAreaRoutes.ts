@@ -14,6 +14,8 @@ export const BACKUP_DASHBOARD_PATH = '/backup/dashboard' as const;
 export const BACKUP_PERFORMANCE_PATH = '/backup/performance' as const;
 export const BACKUP_COMPLIANCE_PATH = '/backup/compliance' as const;
 export const BACKUP_COSTS_PATH = '/backup/costs' as const;
+export const BACKUP_RETENTION_PATH = '/backup/retention' as const;
+export const BACKUP_PITR_PATH = '/backup/pitr' as const;
 export const BACKUP_RESTORE_HISTORY_PATH = '/backup/restore-history' as const;
 export const BACKUP_RUNS_PATH = '/backup/runs' as const;
 export const BACKUP_CONFIGURATION_PATH = '/backup/configuration' as const;
@@ -28,6 +30,8 @@ export const BACKUP_AREA_ROUTE_PATHS = [
   BACKUP_PERFORMANCE_PATH,
   BACKUP_COMPLIANCE_PATH,
   BACKUP_COSTS_PATH,
+  BACKUP_RETENTION_PATH,
+  BACKUP_PITR_PATH,
   BACKUP_RESTORE_HISTORY_PATH,
   BACKUP_RUNS_PATH,
   BACKUP_CONFIGURATION_PATH,
@@ -39,6 +43,7 @@ export const BACKUP_AREA_ROUTE_PATHS = [
   '/backup/config',
   '/backup/logs',
   '/settings/backup',
+  '/settings/backup-retention',
   '/settings/backup-dr',
   '/admin/backup',
 ] as const;
@@ -77,6 +82,18 @@ export const BACKUP_SECONDARY_NAV_ITEMS = [
     labelKey: 'nav.backupCosts',
   },
   {
+    id: 'retention',
+    menuKey: BACKUP_RETENTION_PATH,
+    href: BACKUP_RETENTION_PATH,
+    labelKey: 'nav.backupRetention',
+  },
+  {
+    id: 'pitr',
+    menuKey: BACKUP_PITR_PATH,
+    href: BACKUP_PITR_PATH,
+    labelKey: 'nav.backupPitr',
+  },
+  {
     id: 'restoreHistory',
     menuKey: BACKUP_RESTORE_HISTORY_PATH,
     href: BACKUP_RESTORE_HISTORY_PATH,
@@ -109,6 +126,7 @@ export function isBackupAreaPath(pathname: string | null | undefined): boolean {
     p === '/settings/backup-dr' ||
     p.startsWith('/settings/backup-dr/') ||
     p === '/settings/backup' ||
+    p === '/settings/backup-retention' ||
     p === '/admin/backup' ||
     p.startsWith('/admin/backup/')
   );
@@ -134,6 +152,8 @@ export function backupPathFromPathname(pathname: string | null | undefined): str
   if (p === BACKUP_PERFORMANCE_PATH) return BACKUP_PERFORMANCE_PATH;
   if (p === BACKUP_COMPLIANCE_PATH) return BACKUP_COMPLIANCE_PATH;
   if (p === BACKUP_COSTS_PATH) return BACKUP_COSTS_PATH;
+  if (p === BACKUP_RETENTION_PATH || p === '/settings/backup-retention') return BACKUP_RETENTION_PATH;
+  if (p === BACKUP_PITR_PATH) return BACKUP_PITR_PATH;
   if (p === BACKUP_RESTORE_HISTORY_PATH) return BACKUP_RESTORE_HISTORY_PATH;
   if (p === BACKUP_RUNS_PATH) return BACKUP_RUNS_PATH;
   if (

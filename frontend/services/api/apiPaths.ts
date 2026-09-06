@@ -48,11 +48,15 @@ export const API_PATHS = {
     MENU: (slug: string) => `/public/tenants/${encodeURIComponent(slug)}/menu`,
   },
   POS_RECEIPTS: {
-    /** GET - Last receipts for the current cash register */
+    /** GET - Last receipts for the current cash register (alias) */
     LIST: '/pos/receipts',
+    /** GET - Last receipts for the current cash register */
+    RECENT: '/pos/receipts/recent',
     /** GET - Receipt detail (tenant + register scoped) */
     BY_ID: (id: string) => `/pos/receipts/${encodeURIComponent(id)}`,
     /** GET - Nachdruck payload (no new fiscal receipt) */
     REPRINT: (id: string) => `/pos/receipts/${encodeURIComponent(id)}/reprint`,
+    /** POST - Belegliste storno (Fiskaly CANCELLATION) */
+    CANCEL: (id: string) => `/pos/receipts/${encodeURIComponent(id)}/cancel`,
   },
 } as const;

@@ -73,6 +73,23 @@ public sealed class FiskalyTransactionData
 
     /// <summary>Optional <c>standard_v1.line_items</c>. A single summary line is synthesized when empty.</summary>
     public IReadOnlyList<FiskalyLineItem>? LineItems { get; init; }
+
+    public FiskalyTransactionData WithReceiptType(string receiptType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(receiptType);
+        return new FiskalyTransactionData
+        {
+            CashRegisterId = CashRegisterId,
+            ReceiptType = receiptType.Trim().ToUpperInvariant(),
+            TotalAmount = TotalAmount,
+            VatRate = VatRate,
+            PaymentType = PaymentType,
+            CurrencyCode = CurrencyCode,
+            SchemaKind = SchemaKind,
+            AmountsPerVatRate = AmountsPerVatRate,
+            LineItems = LineItems
+        };
+    }
 }
 
 public sealed class FiskalyResourceEnsureResult

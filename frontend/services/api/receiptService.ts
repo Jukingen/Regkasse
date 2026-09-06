@@ -20,6 +20,17 @@ export type PosReceiptListItem = {
   issuedAt: string;
   grandTotal: number;
   cashRegisterId: string;
+  cashierId?: string;
+  status: string;
+};
+
+export type PosReceiptCancelResult = {
+  success: boolean;
+  errorKey?: string | null;
+  messageKey?: string | null;
+  stornoPaymentId?: string | null;
+  diagnosticCode?: string | null;
+  requiresApproval?: boolean;
 };
 
 export type PosReceiptReprintResult = {
@@ -50,6 +61,8 @@ export function parsePosReceiptListItem(raw: unknown): PosReceiptListItem | null
   const cashRegisterId = coerceUuid(
     raw.cashRegisterEntityId ?? raw.CashRegisterEntityId ?? raw.cashRegisterId ?? raw.CashRegisterId
   );
+  const status = String(raw.status ?? raw.Status ?? '').trim() || 'Paid';
+  const cashierId = String(raw.cashierId ?? raw.CashierId ?? '').trim();
   if (!receiptId || !paymentId || !receiptNumber) return null;
   return {
     receiptId,
@@ -58,6 +71,8 @@ export function parsePosReceiptListItem(raw: unknown): PosReceiptListItem | null
     issuedAt,
     grandTotal: Number.isFinite(grandTotal) ? grandTotal : 0,
     cashRegisterId,
+    cashierId: cashierId || undefined,
+    status,
   };
 }
 
@@ -75,7 +90,7 @@ export function parsePosReceiptList(raw: unknown): PosReceiptListItem[] {
 }
 
 function posReceiptsPath(receiptId?: string, reprint = false): string {
-  if (!receiptId) return API_PATHS.POS_RECEIPTS.LIST;
+  if (!receiptId) return API_PATHS.POS_RECEIPTS.RECENT;
   return reprint ? API_PATHS.POS_RECEIPTS.REPRINT(receiptId) : API_PATHS.POS_RECEIPTS.BY_ID(receiptId);
 }
 
@@ -83,14 +98,14 @@ export async function fetchRecentReceipts(params: {
   cashRegisterId: string;
   pageSize?: number;
 }): Promise<PosReceiptListItem[]> {
-  const pageSize = Math.min(
+  const limit = Math.min(
     Math.max(params.pageSize ?? POS_RECEIPTS_RECENT_LIMIT, 1),
     POS_RECEIPTS_RECENT_LIMIT
   );
   const raw = await apiClient.get<unknown>(posReceiptsPath(), {
     params: {
       cashRegisterId: params.cashRegisterId,
-      pageSize,
+      limit,
     },
   });
   return parsePosReceiptList(raw);
@@ -150,4 +165,47 @@ export async function reprintReceipt(params: {
     throw new Error('Reprint did not return a payment id');
   }
   return parsed;
+}
+
+function parsePosReceiptCancel(raw: unknown): PosReceiptCancelResult {
+  const layer = unwrapApiResponseLayer(raw);
+  const body = isRecord(layer) ? layer : isRecord(raw) ? raw : {};
+  return {
+    success: Boolean(body.success ?? body.Success),
+    errorKey: typeof (body.errorKey ?? body.ErrorKey) === 'string' ? String(body.errorKey ?? body.ErrorKey) : null,
+    messageKey:
+      typeof (body.messageKey ?? body.MessageKey) === 'string' ? String(body.messageKey ?? body.MessageKey) : null,
+    stornoPaymentId: coerceUuid(body.stornoPaymentId ?? body.StornoPaymentId) || null,
+    diagnosticCode:
+      typeof (body.diagnosticCode ?? body.DiagnosticCode) === 'string'
+        ? String(body.diagnosticCode ?? body.DiagnosticCode)
+        : null,
+    requiresApproval: Boolean(body.requiresApproval ?? body.RequiresApproval),
+  };
+}
+
+/**
+ * POST /api/pos/receipts/{receiptId}/cancel — full fiscal storno (Fiskaly CANCELLATION).
+ */
+export async function cancelReceipt(params: {
+  receiptId: string;
+  cashRegisterId: string;
+  reason?: string;
+}): Promise<PosReceiptCancelResult> {
+  try {
+    const raw = await apiClient.post<unknown>(API_PATHS.POS_RECEIPTS.CANCEL(params.receiptId), {
+      reason: params.reason?.trim() || undefined,
+    }, {
+      params: { cashRegisterId: params.cashRegisterId },
+    });
+    return parsePosReceiptCancel(raw);
+  } catch (err) {
+    const record = isRecord(err) ? err : null;
+    const data = record?.data ?? (isRecord(record?.response) ? record.response.data : undefined);
+    if (data) {
+      const parsed = parsePosReceiptCancel(data);
+      if (parsed.errorKey || parsed.diagnosticCode) return parsed;
+    }
+    throw err;
+  }
 }

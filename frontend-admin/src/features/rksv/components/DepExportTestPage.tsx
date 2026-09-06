@@ -79,7 +79,9 @@ import {
   computeDepExportStats,
 } from '@/features/rksv/types/depExport';
 import { buildDepExportFileName } from '@/features/rksv/utils/depExportFileName';
+import { DepExportBatchCard } from '@/features/fiskaly/components/DepExportBatchCard';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
   EXPORT_TEMPLATE_QUERY_KEY,
@@ -1218,6 +1220,14 @@ export function DepExportTestPage() {
           {tp('subtitle')}
         </Typography.Paragraph>
       </AdminPageHeader>
+
+      {isSuperAdmin(user?.role) ? (
+        <DepExportBatchCard
+          dateRange={dateRange}
+          includeSpecialReceipts={includeSpecialReceipts}
+          includeDailyClosings={includeDailyClosings}
+        />
+      ) : null}
 
       {templateAppliedHint ? (
         <Alert

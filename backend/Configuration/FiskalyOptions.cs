@@ -151,4 +151,19 @@ public sealed class FiskalyOptions
 
     public TimeSpan ResolveRetryDelay() =>
         TimeSpan.FromSeconds(Math.Clamp(RetryDelaySeconds, 1, 30));
+
+    /// <summary>Max receipts / registers / tenant-register exports in one Fiskaly batch (clamped 1–50).</summary>
+    public int BatchMaxItems { get; set; } = 50;
+
+    /// <summary>FA should warn when a batch is at least this large (clamped 1–<see cref="BatchMaxItems"/>).</summary>
+    public int BatchWarnAtItems { get; set; } = 10;
+
+    public int ResolveBatchMaxItems() => Math.Clamp(BatchMaxItems <= 0 ? 50 : BatchMaxItems, 1, 50);
+
+    public int ResolveBatchWarnAtItems()
+    {
+        var max = ResolveBatchMaxItems();
+        var warn = BatchWarnAtItems <= 0 ? 10 : BatchWarnAtItems;
+        return Math.Clamp(warn, 1, max);
+    }
 }

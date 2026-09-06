@@ -337,6 +337,7 @@ export const ProductFilterBar = memo(function ProductFilterBar({
               aria-label={t('products.filters.categories')}
               style={{ minWidth: 180, width: 220 }}
               loading={categoriesLoading}
+              popupRender={(menu) => menu}
               value={
                 selectedCategoryId ??
                 (filters.categoryIds && filters.categoryIds.length > 1
@@ -384,8 +385,11 @@ export const ProductFilterBar = memo(function ProductFilterBar({
                         filters.categoryIds.length > 1 &&
                         filters.categoryIds.includes(opt.value))
                     }
-                    onChange={() => {
-                      if (selectedCategoryId === opt.value) return;
+                    onChange={(checked) => {
+                      if (!checked || selectedCategoryId === opt.value) {
+                        handleQuickCategoryChange(undefined);
+                        return;
+                      }
                       handleQuickCategoryChange(opt.value);
                     }}
                   >

@@ -16,6 +16,8 @@ import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 
 export interface ReceiptDTO {
   /** @nullable */
+  branchName?: string | null;
+  /** @nullable */
   cashierDisplayName?: string | null;
   /** @nullable */
   cashierId?: string | null;
@@ -38,6 +40,7 @@ export interface ReceiptDTO {
   items?: ReceiptItemDTO[] | null;
   /** @nullable */
   kassenID?: string | null;
+  netTotal?: number;
   /** @nullable */
   offlineCreatedAtUtc?: string | null;
   /** @nullable */
@@ -65,6 +68,7 @@ export interface ReceiptDTO {
   shiftId?: string | null;
   /** @nullable */
   shiftNumber?: string | null;
+  showDemoLabel?: boolean;
   signature?: ReceiptSignatureDTO;
   subTotal?: number;
   /** @nullable */
@@ -72,5 +76,9 @@ export interface ReceiptDTO {
   taxAmount?: number;
   /** @nullable */
   taxRates?: ReceiptTaxLineDTO[] | null;
+  /** @nullable */
+  terminalNumber?: string | null;
+  /** @nullable */
+  thankYouMessage?: string | null;
   totals?: ReceiptTotalsDTO;
 }

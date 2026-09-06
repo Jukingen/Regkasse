@@ -179,6 +179,11 @@ export interface UpdateCompanySettingsRequest {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  thankYouMessage?: string | null;
   /** @nullable */
   tseAutoConnect?: boolean | null;
   /** @nullable */

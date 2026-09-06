@@ -8,5 +8,9 @@ public sealed record BackupRunAccessScope(
     Guid? CallerTenantId,
     string? CallerUserId)
 {
-    public bool IsDeploymentWide => IsSuperAdmin && !CallerTenantId.HasValue;
+    /// <summary>
+    /// Super Admin always sees deployment-wide runs (including System dumps),
+    /// even when the JWT carries an ambient tenant (FA default <c>dev</c>).
+    /// </summary>
+    public bool IsDeploymentWide => IsSuperAdmin;
 }

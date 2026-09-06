@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import {
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
 import { hasPermission } from '../../utils/posPermissions';
+import { hasPosReceiptStornoPermission } from '../../utils/posReceiptStorno';
 
 function resolveEffectiveRegisterId(
   readinessId?: string | null,
@@ -34,6 +35,7 @@ export default function ReceiptListScreen() {
   const { t, i18n } = useTranslation(['receipts', 'common']);
   const { user } = useAuth();
   const canReprint = hasPermission(user, 'receipt.reprint');
+  const canStorno = hasPosReceiptStornoPermission(user);
   const {
     data: registerData,
     loading: registerLoading,
@@ -42,16 +44,19 @@ export default function ReceiptListScreen() {
   const { cashRegister: overviewRegister } = usePosStatusOverview();
   const [registerId, setRegisterId] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<PosReceiptListItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
   useEffect(() => {
-    setRegisterId(
-      resolveEffectiveRegisterId(
-        registerData?.effectiveRegisterId,
-        overviewRegister?.effectiveRegisterId
-      )
+    const next = resolveEffectiveRegisterId(
+      registerData?.effectiveRegisterId,
+      overviewRegister?.effectiveRegisterId
     );
+    setRegisterId((prev) => {
+      if (prev !== next) hasLoadedOnce.current = false;
+      return next;
+    });
   }, [registerData?.effectiveRegisterId, overviewRegister?.effectiveRegisterId]);
 
   const formatLocale = useMemo(
@@ -69,6 +74,7 @@ export default function ReceiptListScreen() {
           pageSize: POS_RECEIPTS_RECENT_LIMIT,
         });
         setReceipts(rows);
+        hasLoadedOnce.current = true;
       } catch {
         if (!opts?.silent) {
           Alert.alert(t('common:error'), t('receipts:loadError'));
@@ -84,7 +90,7 @@ export default function ReceiptListScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!registerId) return undefined;
-      void loadReceipts({ silent: true });
+      void loadReceipts({ silent: hasLoadedOnce.current });
       return undefined;
     }, [registerId, loadReceipts])
   );
@@ -141,6 +147,8 @@ export default function ReceiptListScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         canReprint={canReprint}
+        canStorno={canStorno}
+        stornoActor={user}
         formatLocale={formatLocale}
         emptyMessage={t('receipts:empty')}
       />

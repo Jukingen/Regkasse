@@ -56,6 +56,8 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IBackupArtifactImportService _artifactImport;
     private readonly IBackupTimeEstimator _timeEstimator;
     private readonly IDownloadSecurityService _downloadSecurity;
+    private readonly IBackupDownloadTracker _downloadTracker;
+    private readonly IDownloadHistoryService _downloadHistory;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -83,7 +85,9 @@ public sealed class AdminBackupController : ControllerBase
         IBackupRunTenantAccessService backupTenantAccess,
         IBackupArtifactImportService artifactImport,
         IBackupTimeEstimator timeEstimator,
-        IDownloadSecurityService downloadSecurity)
+        IDownloadSecurityService downloadSecurity,
+        IBackupDownloadTracker downloadTracker,
+        IDownloadHistoryService downloadHistory)
     {
         _trigger = trigger;
         _query = query;
@@ -111,6 +115,8 @@ public sealed class AdminBackupController : ControllerBase
         _artifactImport = artifactImport;
         _timeEstimator = timeEstimator;
         _downloadSecurity = downloadSecurity;
+        _downloadTracker = downloadTracker;
+        _downloadHistory = downloadHistory;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -150,11 +156,12 @@ public sealed class AdminBackupController : ControllerBase
                 role,
                 body?.IdempotencyKey,
                 correlationId,
-                strategy: isSuperAdmin && !_tenantAccessor.TenantId.HasValue
+                strategy: isSuperAdmin
                     ? BackupStrategyKind.System
                     : BackupStrategyKind.Tenant,
-                deploymentWide: isSuperAdmin && !_tenantAccessor.TenantId.HasValue,
-                cancellationToken: cancellationToken);
+                deploymentWide: isSuperAdmin,
+                cancellationToken: cancellationToken,
+                requestedFromIp: ResolveClientIp());
         }
         catch (LimitExceededException ex)
         {
@@ -529,21 +536,21 @@ public sealed class AdminBackupController : ControllerBase
                 correlationId,
                 cancellationToken).ConfigureAwait(false);
 
-            await _audit.LogSystemOperationAsync(
-                action: "BACKUP_ARTIFACT_DOWNLOAD",
-                entityType: "BackupArtifact",
-                userId: userId,
-                userRole: role,
-                description: $"Backup artifact download (run={runId}, artifact={artifactId}).",
-                notes: null,
-                status: AuditLogStatus.Success,
-                errorDetails: null,
-                requestData: new { backupRunId = runId, artifactId, strategy = accessibleRun.Strategy.ToString() },
-                responseData: new { downloadFileName = prepare.DownloadFileName },
-                correlationIdOverride: correlationId,
-                actionType: isSystemBackup ? AuditEventType.SystemBackupDownloaded : AuditEventType.FileDownloaded,
-                entityId: artifactId,
-                tenantId: auditTenantId);
+            await _downloadTracker.TrackAsync(
+                new BackupDownloadTrackRequest
+                {
+                    Run = accessibleRun,
+                    ArtifactId = artifactId,
+                    FileName = prepare.DownloadFileName ?? "backup.bin",
+                    FileSizeBytes = fileSizeBytes,
+                    UserId = userId,
+                    UserRole = role,
+                    AuditTenantId = auditTenantId,
+                    CorrelationId = correlationId,
+                    IpAddress = ResolveClientIp(),
+                    UserAgent = Request.Headers.UserAgent.ToString()
+                },
+                cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -558,6 +565,150 @@ public sealed class AdminBackupController : ControllerBase
             EnableRangeProcessing = true
         };
         return file;
+    }
+
+    /// <summary>
+    /// Downloads the primary artifact of a succeeded run (logical dump preferred).
+    /// Streamed via <see cref="PhysicalFileResult.EnableRangeProcessing"/>.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/download")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [Produces("application/octet-stream", "application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadRun(Guid id, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        if (!isSuperAdmin && !_tenantAccessor.TenantId.HasValue)
+        {
+            return BadRequest(new
+            {
+                code = "TENANT_CONTEXT_REQUIRED",
+                message = "Tenant context is required to download backup artifacts."
+            });
+        }
+
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+        {
+            return NotFound(new
+            {
+                code = "BACKUP_RUN_NOT_FOUND",
+                message = "Backup run does not exist."
+            });
+        }
+
+        var artifacts = accessibleRun.Artifacts.Count > 0
+            ? accessibleRun.Artifacts
+            : await _db.BackupArtifacts.Where(a => a.BackupRunId == id).ToListAsync(cancellationToken);
+        var primary = artifacts
+            .OrderBy(a => a.ArtifactType == BackupArtifactType.LogicalDump ? 0 : 1)
+            .ThenBy(a => a.CreatedAt)
+            .FirstOrDefault();
+        if (primary == null)
+        {
+            return NotFound(new
+            {
+                code = "BACKUP_ARTIFACT_NOT_FOUND",
+                message = "No downloadable artifact exists for this backup run."
+            });
+        }
+
+        var result = await DownloadArtifact(id, primary.Id, cancellationToken);
+        if (result is PhysicalFileResult file)
+        {
+            var display = await BackupRunDisplayLookup.LoadAsync(_db, [accessibleRun], cancellationToken);
+            var slug = display.TenantFor(accessibleRun.TenantId).Slug;
+            var ext = Path.GetExtension(file.FileDownloadName ?? primary.StorageDescriptor ?? ".bin");
+            file.FileDownloadName = BackupArtifactFileNameBuilder.BuildOperatorDownloadFileName(
+                accessibleRun.Strategy,
+                slug,
+                accessibleRun.CompletedAt ?? accessibleRun.RequestedAt,
+                string.IsNullOrWhiteSpace(ext) ? "bin" : ext.TrimStart('.'));
+        }
+
+        return result;
+    }
+
+    /// <summary>Who downloaded this run and when (tenant-scoped; Super Admin may see system rows).</summary>
+    [HttpGet("runs/{id:guid}/download-history")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupDownloadHistoryResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BackupDownloadHistoryResponseDto>> GetDownloadHistory(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
+        var history = await _downloadHistory.ListBySourceAsync(
+            BackupDownloadTracker.SourceKind,
+            id,
+            ignoreTenantFilter: isSuperAdmin,
+            ambientTenantId: _tenantAccessor.TenantId ?? accessibleRun.TenantId,
+            page,
+            pageSize,
+            cancellationToken);
+
+        var userIds = history.Items.Select(i => i.UserId).Where(u => !string.IsNullOrWhiteSpace(u)).Distinct().ToList();
+        Dictionary<string, (string? Name, string? Email)> users = new(StringComparer.Ordinal);
+        if (userIds.Count > 0)
+        {
+            var rows = await _db.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName, u.Email })
+                .ToListAsync(cancellationToken);
+            foreach (var u in rows)
+            {
+                var name = $"{u.FirstName} {u.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(name))
+                    name = u.UserName;
+                users[u.Id] = (name, u.Email);
+            }
+        }
+
+        return Ok(new BackupDownloadHistoryResponseDto
+        {
+            RunId = id,
+            DownloadCount = accessibleRun.DownloadCount,
+            TotalCount = history.TotalCount,
+            Page = history.Page,
+            PageSize = history.PageSize,
+            Items = history.Items.Select(i =>
+            {
+                users.TryGetValue(i.UserId, out var u);
+                return new BackupDownloadHistoryItemDto
+                {
+                    Id = i.Id,
+                    UserId = i.UserId,
+                    UserDisplayName = u.Name,
+                    UserEmail = u.Email,
+                    DownloadedAt = i.DownloadedAt,
+                    FileName = i.FileName,
+                    FileSize = i.FileSize,
+                    IpAddress = i.IpAddress
+                };
+            }).ToList()
+        });
     }
 
     /// <summary>
@@ -686,10 +837,10 @@ public sealed class AdminBackupController : ControllerBase
         CancellationToken cancellationToken)
     {
         var tenantId = _tenantAccessor.TenantId;
-        if (!tenantId.HasValue)
+        if (!tenantId.HasValue && !User.IsInRole(Roles.SuperAdmin))
             return BadRequest(new { message = "Tenant context is required.", code = "TENANT_REQUIRED" });
 
-        var dto = await _pitr.GetPitrAvailabilityAsync(tenantId.Value, cancellationToken);
+        var dto = await _pitr.GetPitrAvailabilityAsync(tenantId, cancellationToken);
         return Ok(dto);
     }
 
@@ -703,14 +854,14 @@ public sealed class AdminBackupController : ControllerBase
         CancellationToken cancellationToken)
     {
         var tenantId = _tenantAccessor.TenantId;
-        if (!tenantId.HasValue)
+        if (!tenantId.HasValue && !User.IsInRole(Roles.SuperAdmin))
             return BadRequest(new { message = "Tenant context is required.", code = "TENANT_REQUIRED" });
 
         if (body == null)
             return BadRequest(new { message = "Request body is required." });
 
         var dto = await _pitr.ValidateRestorePointAsync(
-            tenantId.Value,
+            tenantId,
             body.TargetTimeUtc,
             cancellationToken);
         return Ok(dto);
@@ -744,6 +895,10 @@ public sealed class AdminBackupController : ControllerBase
     public async Task<ActionResult<BackupHistoryResponseDto>> GetHistory(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] BackupStrategyKind? strategy = null,
+        [FromQuery] string? createdBy = null,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
         CancellationToken cancellationToken = default)
     {
         var tenantGuard = ValidateScopedReadTenantContext();
@@ -751,9 +906,17 @@ public sealed class AdminBackupController : ControllerBase
             return tenantGuard;
 
         var accessScope = BuildRunAccessScope();
-        var (items, total) = await _query.GetHistoryAsync(page, pageSize, accessScope, cancellationToken);
+        var filter = new BackupRunHistoryFilter
+        {
+            Strategy = strategy,
+            CreatedBy = createdBy,
+            FromUtc = fromUtc,
+            ToUtc = toUtc
+        };
+        var (items, total) = await _query.GetHistoryAsync(page, pageSize, accessScope, filter, cancellationToken);
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         var downloadEnrichment = CreateDownloadEnrichment(CanCallerDownloadArtifacts());
+        var display = await BackupRunDisplayLookup.LoadAsync(_db, items, cancellationToken);
         return Ok(new BackupHistoryResponseDto
         {
             Items = items.Select(r => BackupRunMapper.ToDto(
@@ -762,7 +925,8 @@ public sealed class AdminBackupController : ControllerBase
                     pipelinePolicy: artifactPolicy,
                     materializedChildren: false,
                     automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
-                    downloadEnrichment: downloadEnrichment))
+                    downloadEnrichment: downloadEnrichment,
+                    display: display))
                 .ToList(),
             Page = page,
             PageSize = pageSize,
@@ -865,7 +1029,100 @@ public sealed class AdminBackupController : ControllerBase
             return NotFound();
 
         var result = await _checksumVerification.VerifyChecksumAsync(id, cancellationToken);
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action: "BACKUP_VERIFIED",
+                entityType: "BackupRun",
+                userId: User.GetActorUserId() ?? "unknown",
+                userRole: User.GetActorRole() ?? "Unknown",
+                description: result.IsValid
+                    ? $"Backup checksum verified (run={id})."
+                    : $"Backup checksum verification failed (run={id}).",
+                status: result.IsValid ? AuditLogStatus.Success : AuditLogStatus.Failed,
+                requestData: new { backupRunId = id, result.VerificationId, result.IsValid },
+                actionType: AuditEventType.BackupVerified,
+                entityId: id,
+                tenantId: accessibleRun.TenantId ?? _tenantAccessor.TenantId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to audit backup verification for run {RunId}", id);
+        }
+
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Manual verify: same SHA-256 re-hash as automatic / 24h re-verification, plus table TOC row counts.
+    /// Writes a <c>backup_verifications</c> row (<c>on_demand_http</c>). Not restore proof.
+    /// </summary>
+    [HttpPost("{backupId:guid}/verify")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(typeof(BackupManualVerifyResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BackupManualVerifyResponseDto>> VerifyBackup(
+        Guid backupId,
+        CancellationToken cancellationToken)
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            backupId,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
+        var checksum = await _checksumVerification.VerifyChecksumAsync(backupId, cancellationToken);
+        BackupVerificationReportDto? tableReport = null;
+        try
+        {
+            tableReport = await _verificationReport.GenerateReportAsync(backupId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Checksum evidence is the SoT for this action; TOC report is supplementary.
+            _logger.LogWarning(ex, "Manual backup verify TOC report failed for {BackupId}", backupId);
+        }
+
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action: "BACKUP_VERIFIED",
+                entityType: "BackupRun",
+                userId: User.GetActorUserId() ?? "unknown",
+                userRole: User.GetActorRole() ?? "Unknown",
+                description: checksum.IsValid
+                    ? $"Backup verified (run={backupId})."
+                    : $"Backup verification failed (run={backupId}).",
+                status: checksum.IsValid ? AuditLogStatus.Success : AuditLogStatus.Failed,
+                requestData: new { backupRunId = backupId, checksum.VerificationId, checksum.IsValid },
+                actionType: AuditEventType.BackupVerified,
+                entityId: backupId,
+                tenantId: accessibleRun.TenantId ?? _tenantAccessor.TenantId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to audit backup verification for run {RunId}", backupId);
+        }
+
+        return Ok(new BackupManualVerifyResponseDto
+        {
+            BackupId = checksum.RunId,
+            IsValid = checksum.IsValid,
+            VerifiedAtUtc = checksum.VerifiedAtUtc,
+            VerifierSource = checksum.VerifierSource,
+            VerificationId = checksum.VerificationId,
+            FailureReason = checksum.FailureReason,
+            Artifacts = checksum.Artifacts,
+            TableReport = tableReport,
+        });
     }
 
     /// <summary>
@@ -1157,4 +1414,17 @@ public sealed class AdminBackupController : ControllerBase
             _hostEnvironment,
             _logger,
             callerMayDownloadArtifacts);
+
+    private string? ResolveClientIp()
+    {
+        var forwarded = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwarded))
+        {
+            var first = forwarded.Split(',')[0].Trim();
+            if (first.Length > 0)
+                return first.Length <= 128 ? first : first[..128];
+        }
+
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
+    }
 }
