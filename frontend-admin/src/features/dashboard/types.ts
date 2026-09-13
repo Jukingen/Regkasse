@@ -26,6 +26,7 @@ export const DASHBOARD_WIDGET_IDS = {
   topSellingProducts: 'top-selling-products',
   paymentTrends: 'payment-trends',
   systemMetrics: 'system-metrics',
+  preorderStatus: 'preorder-status',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];

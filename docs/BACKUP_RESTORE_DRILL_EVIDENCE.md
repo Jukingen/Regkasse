@@ -12,7 +12,7 @@
 | Production System Backup (PgDump, archive, alerts) | P0 | **Not executed** — operator checklist + commands: [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.1 |
 | FA manual Verify (hash + table counts) | P0 | **Passed** 2026-09-06 16:18 local — SuperAdmin `/backup/runs` → Details → Verifizierung → Prüfen on System run `329398a6-4264-48d9-9e02-98387f522bca`. Toast **Verifizierung bestanden**; Checksum OK; 3 artifacts `passed` (stored = computed); table counts include `payment_details`/`receipts`/`invoices` = 132. |
 | Tenant Validation Restore (Manager self-service) | **P2** (was P1) | **Postponed** |
-| Incremental restore | P2 | Postponed |
+| Incremental restore | P2 | Code ready; Production incremental cron opt-in after WAL `fileCount>0` |
 | Cloud / WORM archive | P2 | Postponed |
 
 Agents must not invent table counts, fiscal checksums, or a passing smoke test. Fill a new row only after a human operator (or CI against an isolated Postgres) has run the procedure.
@@ -148,6 +148,25 @@ Then fill the log row (table count vs source, fiscal SQL, smoke **against the cl
 Append a row above, attach outputs (redact connection strings), and only then tick GO_LIVE §1.1 “Restore validation on isolated DB tested”.
 
 Workstation §1.1 restore box is ticked from the 14:16 **PASSED** row (prior 12:58 also Passed). Add a **new** row when a Production host drill completes — do not overwrite the workstation result.
+
+## Production evidence row (paste after host run)
+
+Fill from `scripts/ops/production-backup-pitr-golive.sh` output. Leave Result empty until L4 + fiscal are known.
+
+| Date (UTC) | Operator | Source backup run id | Isolated DB | Tables restored | Count match | Fiscal SQL | App smoke | Result | Notes |
+|------------|----------|----------------------|-------------|-----------------|-------------|------------|-----------|--------|-------|
+| YYYY-MM-DD HH:MM | | `……………………` | `rv_v_…` | TOC / PGDMP | | | skipped | | Production host. WAL `fileCount=`. Drill `……………………`. PITR dry-run. DefaultConnection not restored onto. |
+
+## Production WAL / PITR (not run from this workstation)
+
+Do **not** mark GO_LIVE WAL/PITR boxes Passed without host evidence. Commands: [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.2 and [`PITR_RESTORE.md`](PITR_RESTORE.md).
+
+Expected Production artifacts when done:
+
+- `SHOW archive_mode` = `on`; files in `/var/lib/postgresql/wal-archive`
+- `GET /api/admin/backup/pitr/wal` → `fileCount > 0`
+- Isolated PITR dry-run drill **Succeeded** (L4 on clone)
+- Optional DBA `recovery_target_time` on a **clone**, never on live `DefaultConnection`
 
 ## Production System Backup (not run from this workstation)
 

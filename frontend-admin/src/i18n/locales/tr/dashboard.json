@@ -151,7 +151,22 @@
     "content_validation": "İçerik doğrulama",
     "health_healthy": "Sağlıklı",
     "health_warning": "Uyarı",
-    "health_critical": "Kritik"
+    "health_critical": "Kritik",
+    "next_scheduled": "Sonraki zamanlanmış yedek",
+    "no_scheduled": "Zamanlama bildirilmedi",
+    "pending_runs": "{{count}} yedek koşusu hâlâ kuyrukta veya çalışıyor",
+    "alert_last_failed": "Son yedek başarısız — nedeni Backup & DR’de açın.",
+    "alert_rpo_critical": "RPO kritik — son başarılı yedek çok eski.",
+    "alert_rpo_warning": "RPO risk altında — son başarılı yedek yaşlanıyor.",
+    "alert_drill_failed": "Son restore tatbikatı başarısız — kurtarılabilirlik kanıtlanmadı."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Bekliyor",
+    "ready": "Hazir",
+    "collected": "Teslim alindi",
+    "openList": "On siparisleri ac",
+    "loadFailed": "On siparisler yuklenemedi."
   },
   "metricsWidget": {
     "operational": "Çalışıyor",

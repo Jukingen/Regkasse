@@ -870,7 +870,7 @@ namespace KasseAPI_Final.Services
             var rksvFooterLabel = GetRksvFooter(_hostEnvironment);
             var netTotal = ResolveNetTotal(receipt.SubTotal, receipt.GrandTotal, receipt.TaxTotal);
 
-            return new ReceiptDTO
+            var dto = new ReceiptDTO
             {
                 ReceiptId = receipt.ReceiptId,
                 PaymentId = receipt.PaymentId,
@@ -959,6 +959,32 @@ namespace KasseAPI_Final.Services
                 RksvFooterLabel = rksvFooterLabel,
                 ShowDemoLabel = string.Equals(rksvFooterLabel, DemoRksvFooterLabel, StringComparison.Ordinal),
             };
+
+            if (pay != null)
+            {
+                var preorder = await _context.Orders.AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        o => o.IsPreorder && (o.SourcePaymentId == pay.Id || o.LastPreorderPaymentId == pay.Id))
+                    .ConfigureAwait(false);
+                if (preorder != null)
+                {
+                    var policy = await _context.CompanySettings.AsNoTracking()
+                        .Where(s => s.TenantId == preorder.TenantId)
+                        .Select(s => s.PreorderCancellationPolicyText)
+                        .FirstOrDefaultAsync()
+                        .ConfigureAwait(false);
+                    dto.IsPreorder = true;
+                    dto.PreorderNumber = preorder.PreorderNumber;
+                    dto.PreorderPaidAmount = preorder.PreorderPaidAmount;
+                    dto.PreorderRemainingAmount = preorder.PreorderRemainingAmount;
+                    dto.PreorderPickupWeeks = preorder.PreorderPickupWeeks > 0
+                        ? preorder.PreorderPickupWeeks
+                        : PreorderPolicyDefaults.PickupDeadlineWeeks;
+                    dto.PreorderPolicyText = PreorderPolicyDefaults.NormalizePolicy(policy);
+                }
+            }
+
+            return dto;
         }
 
         /// <summary>

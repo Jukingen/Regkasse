@@ -158,6 +158,17 @@
         "placeholder": "Optionale Notizen…",
         "a11y": "Optionale Notizen zur Zahlung"
       },
+      "preorder": {
+        "checkbox": "Vorbestellung (Abholung später)",
+        "hint": "Kunde zahlt jetzt. Die Abholung erzeugt keinen zweiten Kassenbeleg. Ein offener Betrag wird später als eigener Beleg bezahlt.",
+        "remainingLabel": "Offener Betrag (optional)",
+        "remainingHint": "0,00 = vollständig bezahlt. Jeder offene Betrag wird später fiskalisch als eigener Beleg erfasst.",
+        "balanceLabel": "Restzahlung zum Besorgerzettel",
+        "balancePlaceholder": "BS-Nummer oder Belegnummer",
+        "balanceFound": "{{number}} — offen {{amount}}",
+        "balanceNotFound": "Vorbestellung nicht gefunden.",
+        "balanceZero": "Kein offener Betrag mehr."
+      },
       "benefits": {
         "previewTitle": "Vorteile (Vorschau)",
         "possibleSavings": "Möglicher Vorteil: ca. {{amount}}",

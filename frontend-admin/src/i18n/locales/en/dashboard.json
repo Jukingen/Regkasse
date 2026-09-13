@@ -151,7 +151,22 @@
     "content_validation": "Content validation",
     "health_healthy": "Healthy",
     "health_warning": "Warning",
-    "health_critical": "Critical"
+    "health_critical": "Critical",
+    "next_scheduled": "Next scheduled backup",
+    "no_scheduled": "No schedule reported",
+    "pending_runs": "{{count}} backup run(s) still queued or running",
+    "alert_last_failed": "Last backup failed — open Backup & DR for the failure reason.",
+    "alert_rpo_critical": "RPO is critical — last successful backup is too old.",
+    "alert_rpo_warning": "RPO is at risk — last successful backup is aging.",
+    "alert_drill_failed": "Latest restore drill failed — recoverability is not proven."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Pending",
+    "ready": "Ready",
+    "collected": "Collected",
+    "openList": "Open Vorbestellungen",
+    "loadFailed": "Vorbestellungen could not be loaded."
   },
   "metricsWidget": {
     "operational": "Operational",

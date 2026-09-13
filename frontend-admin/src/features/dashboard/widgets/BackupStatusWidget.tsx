@@ -7,6 +7,7 @@ import Link from 'next/link';
 import React, { useMemo } from 'react';
 
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import { buildBackupHealthWidgetAlerts } from '@/features/backup/logic/backupHealthWidgetAlerts';
 import {
   getBackupDashboardHealth,
   getBackupDashboardHealthQueryKey,
@@ -128,8 +129,10 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
     : t('dashboard.backupStatusWidget.no_backup');
 
   const storagePercent = stats?.stagingDiskUsedPercent ?? null;
-  const storageAlert =
-    stats?.stagingDiskAlert === true || (storagePercent != null && storagePercent >= 80);
+  const alerts = buildBackupHealthWidgetAlerts(stats);
+  const nextScheduled = stats?.nextScheduledBackupAtUtc
+    ? dayjs(stats.nextScheduledBackupAtUtc).fromNow()
+    : t('dashboard.backupStatusWidget.no_scheduled');
 
   return (
     <WidgetShell
@@ -203,13 +206,21 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
           </div>
         </div>
 
-        {storageAlert ? (
+        <div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {t('dashboard.backupStatusWidget.next_scheduled')}
+          </Typography.Text>
+          <div style={{ fontWeight: 600 }}>{nextScheduled}</div>
+        </div>
+
+        {alerts.map((alert) => (
           <Alert
-            type="warning"
+            key={alert.key}
+            type={alert.type}
             showIcon
-            title={t('dashboard.backupStatusWidget.storage_alert')}
+            title={t(alert.key, alert.values)}
           />
-        ) : null}
+        ))}
 
         {stats?.configurationHealth?.level ? (
           <div style={{ fontSize: 12, color: '#64748b' }}>

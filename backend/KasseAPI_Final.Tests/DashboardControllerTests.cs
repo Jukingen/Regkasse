@@ -185,6 +185,7 @@ public sealed class DashboardControllerTests
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerLicenseStatus);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerKpiStrip);
         Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.ManagerActivity);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.PreorderStatus);
         Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.SystemMetrics);
     }
 

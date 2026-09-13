@@ -11,6 +11,7 @@ import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShe
 import { DASHBOARD_WIDGET_IDS } from '@/features/dashboard/types';
 import { ActiveCashRegistersWidget } from '@/features/dashboard/widgets/ActiveCashRegistersWidget';
 import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWidget';
+import { PreorderStatusWidget } from '@/features/dashboard/widgets/PreorderStatusWidget';
 import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
 import { FiskalyStatusWidget } from '@/features/dashboard/widgets/FiskalyStatusWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
@@ -108,6 +109,8 @@ export function renderDashboardWidget(
       return <OfflineStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.backupStatus:
       return <BackupStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.preorderStatus:
+      return <PreorderStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.dataRetention:
       return <DataRetentionWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.topSellingProducts: {

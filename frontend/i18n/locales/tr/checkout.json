@@ -158,6 +158,17 @@
         "placeholder": "Istege bagli notlar…",
         "a11y": "Istege bagli odeme notlari"
       },
+      "preorder": {
+        "checkbox": "On siparis (sonra teslim)",
+        "hint": "Musteri simdi oder. Teslim ikinci fis olusturmaz. Acik tutar sonra ayri mali fisle odenir.",
+        "remainingLabel": "Acik tutar (istege bagli)",
+        "remainingHint": "0,00 = tam odeme. Acik tutar sonra ayri mali fis olarak odenir.",
+        "balanceLabel": "Kalan odeme (Besorgerzettel)",
+        "balancePlaceholder": "BS numarasi veya fis numarasi",
+        "balanceFound": "{{number}} — acik {{amount}}",
+        "balanceNotFound": "On siparis bulunamadi.",
+        "balanceZero": "Acik tutar kalmadi."
+      },
       "benefits": {
         "previewTitle": "Avantajlar (onizleme)",
         "possibleSavings": "Olası avantaj: yakl. {{amount}}",

@@ -44,6 +44,7 @@ using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.Metrics;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.Preorder;
 using KasseAPI_Final.Services.OnlinePayments;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Services.Pricing;
@@ -1319,6 +1320,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IQrImageService, QrImageService>();
         // TableOrderService: constructed in tests; POS cart recovery uses IPosCartTableOpsService / CartController.
         builder.Services.AddScoped<IOrderIntegrationService, OrderIntegrationService>();
+        builder.Services.AddScoped<IPreorderService, PreorderService>();
         builder.Services.AddScoped<IOnlineOrderQueryService, OnlineOrderQueryService>();
         builder.Services.AddScoped<IOnlineOrderNotificationService, OnlineOrderNotificationService>();
         builder.Services.AddScoped<IOnlineOrderPushSender, LoggingOnlineOrderPushSender>();
@@ -1511,6 +1513,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IValidationRestoreExecutionService, ValidationRestoreExecutionService>();
         builder.Services.AddScoped<IRestoreVerificationSchedulingQueryService, RestoreVerificationSchedulingQueryService>();
         builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
+        builder.Services.AddScoped<IRestoreVerificationReportService, RestoreVerificationReportService>();
         builder.Services.AddScoped<IRestoreProofMilestonesQueryService, RestoreProofMilestonesQueryService>();
         builder.Services.AddHostedService<RestoreVerificationOrchestratorHostedService>();
         builder.Services.AddHostedService<StaleRunReaperHostedService>();

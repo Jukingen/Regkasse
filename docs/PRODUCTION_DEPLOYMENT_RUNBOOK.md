@@ -159,7 +159,7 @@ Trigger a **System** backup from FA (`/backup`) or admin API and confirm the art
 
 ### 4.1 Production System Backup cutover (P0)
 
-Workstation isolated restore is already **Passed**. Do this **on the Production host** before ticking remaining GO_LIVE §1.1 backup boxes. **Status 2026-09-06: not executed** (no Production host from engineering workstation). Do not invent a Passed row.
+Workstation isolated restore is already **Passed**. Do this **on the Production host** before ticking remaining GO_LIVE §1.1 backup boxes. **Status 2026-09-10: Production host steps still operator-run** — use [`scripts/ops/production-backup-pitr-golive.sh`](../scripts/ops/production-backup-pitr-golive.sh). Do not invent a Passed row.
 
 Template: [`backend/appsettings.Production.example.json`](../backend/appsettings.Production.example.json). Never commit Production secrets.
 
@@ -229,6 +229,114 @@ curl -fsS -X POST "$API_BASE/api/admin/backup/$RUN_ID/verify" \
 ```
 
 Confirm the restore-verification trigger path in [`restore-verification-drill-runbook.md`](restore-verification-drill-runbook.md) if the FA button is used instead of curl.
+
+### 4.2 Production WAL / PITR / incremental cutover
+
+Code is complete (`PitrService`, `WalArchiveService`, `IncrementalBackupService`). **None of this is Production-proven until a host operator runs the steps below.** Do not tick GO_LIVE §1.1 WAL/PITR boxes or mark GO_LIVE **PASSED** from a workstation.
+
+Procedure hub: [`PITR_RESTORE.md`](PITR_RESTORE.md). The API **never** restores onto Production `DefaultConnection` and **never** applies WAL replay to the live database.
+
+#### PostgreSQL (DB host, Linux)
+
+```bash
+# 1) Durable archive dir (same volume the API will read)
+sudo mkdir -p /var/lib/postgresql/wal-archive
+sudo chown postgres:postgres /var/lib/postgresql/wal-archive
+sudo chmod 750 /var/lib/postgresql/wal-archive
+
+# 2) postgresql.conf (or ALTER SYSTEM)
+# wal_level = replica
+# archive_mode = on
+# archive_timeout = 300
+# archive_command = 'test ! -f /var/lib/postgresql/wal-archive/%f && cp %p /var/lib/postgresql/wal-archive/%f'
+
+sudo -u postgres psql -c "ALTER SYSTEM SET wal_level = 'replica';"
+sudo -u postgres psql -c "ALTER SYSTEM SET archive_mode = 'on';"
+sudo -u postgres psql -c "ALTER SYSTEM SET archive_timeout = 300;"
+sudo -u postgres psql -c "ALTER SYSTEM SET archive_command = 'test ! -f /var/lib/postgresql/wal-archive/%f && cp %p /var/lib/postgresql/wal-archive/%f';"
+
+# archive_mode / wal_level require a restart (reload is not enough)
+sudo systemctl restart postgresql
+
+# 3) Verify
+sudo -u postgres psql -c "SHOW wal_level; SHOW archive_mode; SHOW archive_timeout; SHOW archive_command;"
+sudo -u postgres psql -c "SELECT pg_switch_wal();"
+sleep 5
+ls -la /var/lib/postgresql/wal-archive | head
+# Expect 24-char hex WAL segment names within archive_timeout (5 min)
+```
+
+Windows Production (if used): point `archive_command` at a local copy that does not overwrite existing `%f`, then set `Backup__WalArchiveDirectory` to that folder.
+
+#### API configuration (secret store / env)
+
+```text
+Backup__WalArchiveDirectory=/var/lib/postgresql/wal-archive
+Backup__WalArchiveRetentionDays=7
+Backup__WalArchiveSwitchIntervalMinutes=5
+Backup__PitrWalArchivingDeclaredEnabled=true
+Backup__IncrementalBackupEnabled=true
+Backup__IncrementalBackupCron=0 3 * * *
+```
+
+Enable incrementals **only after** WAL files appear (`fileCount > 0`). The API process user must be able to **read** (and for retention, **delete expired**) files in `WalArchiveDirectory`.
+
+Restart the API, then:
+
+```bash
+export API_BASE=https://api.regkasse.at
+export SUPERADMIN_JWT=…
+
+curl -fsS -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  "$API_BASE/api/admin/backup/pitr/wal"
+# Expect: enabled=true, directoryExists=true, fileCount>=1
+
+curl -fsS -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  "$API_BASE/api/admin/backup/pitr/availability"
+
+curl -fsS -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  "$API_BASE/api/admin/backup/pitr/chain"
+```
+
+#### PITR planning + isolated dry-run (not live WAL replay)
+
+```bash
+# Pick a UTC time after the last Succeeded System dump
+TARGET=2026-09-06T14:30:00Z
+
+curl -fsS -X POST "$API_BASE/api/admin/backup/pitr/validate" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d "{\"targetTimeUtc\":\"$TARGET\"}"
+
+curl -fsS -X POST "$API_BASE/api/admin/backup/pitr/pre-restore-validate" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d "{\"targetTimeUtc\":\"$TARGET\"}"
+# Expect hash/schema/TSE checks; do not proceed if hash failed
+
+curl -fsS -X POST "$API_BASE/api/admin/backup/pitr/dry-run" \
+  -H "Authorization: Bearer $SUPERADMIN_JWT" \
+  -H "Content-Type: application/json" \
+  -d "{\"targetTimeUtc\":\"$TARGET\"}"
+# Enqueues isolated restore drill of the nearest System dump. Production is unchanged.
+```
+
+FA: `https://admin.regkasse.at/backup/pitr`
+
+#### Host WAL replay (DBA only — isolated clone)
+
+True `recovery_target_time` is **not** an API action. After a successful isolated `pg_restore` of a **physical** base backup (`pg_basebackup`) plus WAL files:
+
+```text
+restore_command = 'cp /var/lib/postgresql/wal-archive/%f %p'
+recovery_target_time = '2026-09-06 14:30:00+00'
+recovery_target_action = 'promote'
+```
+
+Logical `pg_dump` + incrementals **cannot** WAL-replay. If Production only has System `pg_dump`, PITR RPO is “nearest dump (+ incrementals as evidence)”, not second-level WAL replay. Plan a `pg_basebackup` slot before claiming second-level RPO.
+
+Append Production evidence to [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md). Then humans sign [`GO_LIVE_CHECKLIST.md`](GO_LIVE_CHECKLIST.md) §8 — agents must not mark GO_LIVE PASSED.
 
 #### Alert testing
 

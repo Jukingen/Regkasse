@@ -55,8 +55,11 @@ Base route: `api/admin/restore-verification`
 |--------|------|------------|
 | POST | `trigger` | SettingsManage |
 | GET | `runs/latest` | SettingsView |
-| GET | `runs` | SettingsView |
+| GET | `runs` | SettingsView. Optional filters: `status`, `triggerSource`, `fromUtc`, `toUtc`, `sourceBackupRunId` |
 | GET | `runs/{id}` | SettingsView |
+| GET | `runs/{id}/report` | SettingsView. `format=json` (default), `csv`, or `pdf` |
+
+FA: `/admin/restore-verification` (list) and `/admin/restore-verification/{id}` (checks, row counts, fiscal SQL, export). Super Admin sees all drills. Mandanten-Admin (`Manager`) sees only Tenant-strategy runs for the ambient tenant; System dump drills return HTTP 404.
 
 Response DTO highlights: `DumpInspectionPassed`, `RestoreAttemptExecuted` / `RestoreAttemptPassed`, `FiscalSql*`, `IntegrityChecksPassed`, `DetailsJson` (outbox/TSE/interpretation).
 

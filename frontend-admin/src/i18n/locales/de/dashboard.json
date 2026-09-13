@@ -151,7 +151,22 @@
     "content_validation": "Inhaltsprüfung",
     "health_healthy": "Gesund",
     "health_warning": "Warnung",
-    "health_critical": "Kritisch"
+    "health_critical": "Kritisch",
+    "next_scheduled": "Nächstes geplantes Backup",
+    "no_scheduled": "Kein Zeitplan gemeldet",
+    "pending_runs": "{{count}} Backup-Lauf/Läufe noch in Warteschlange oder laufend",
+    "alert_last_failed": "Letztes Backup fehlgeschlagen — Fehlergrund unter Backup & DR prüfen.",
+    "alert_rpo_critical": "RPO ist kritisch — letztes erfolgreiches Backup ist zu alt.",
+    "alert_rpo_warning": "RPO ist gefährdet — letztes erfolgreiches Backup altert.",
+    "alert_drill_failed": "Letzter Restore-Drill fehlgeschlagen — Wiederherstellbarkeit ist nicht bewiesen."
+  },
+  "preorderWidget": {
+    "title": "Vorbestellungen",
+    "pending": "Ausstehend",
+    "ready": "Bereit",
+    "collected": "Abgeholt",
+    "openList": "Vorbestellungen öffnen",
+    "loadFailed": "Vorbestellungen konnten nicht geladen werden."
   },
   "metricsWidget": {
     "operational": "Betriebsbereit",

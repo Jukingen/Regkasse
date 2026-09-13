@@ -48,7 +48,7 @@ Code can fail closed and document gates. It cannot replace DNS, vendor keys, a r
 
 1. **TSE Production Configuration** (P0)  
 2. **FinanzOnline Production Configuration** (P0)  
-3. **Production System Backup** (P0 remaining) — PgDump on the Production host, first Succeeded dump + archive, email/webhook alerts. Workstation isolated restore drill is **Passed**. Tenant Validation Restore is **postponed to P2**.  
+3. **Production System Backup + WAL/PITR** (P0 remaining) — PgDump on the Production host, first Succeeded dump + archive, email/webhook alerts, then WAL `archive_command` + isolated drill + PITR dry-run. Workstation isolated restore drill is **Passed**. **Do not mark GO_LIVE PASSED** until Production host rows exist and §8 is signed. Tenant Validation Restore is **postponed to P2**.  
 4. **Monitoring Setup** (P1)  
 5. **Customer Onboarding Process** (P2)
 
@@ -98,8 +98,13 @@ Maps to readiness Weeks **1–4** (DNS/TLS, TSE/FON, backup, monitoring).
   - [ ] Backup failure alerts configured (activity + email `Backup:FailureAlertEmailRecipients` / webhook `OperationalDr:Alerts`) — **Production host evidence required**
   - [ ] Disk usage alert ~**80%** on backup staging + export volumes
   - [ ] First Production System backup Succeeded + archive copy verified — cutover: [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.1
+  - [ ] PostgreSQL WAL archiving on the **Production** DB host (`wal_level=replica`, `archive_mode=on`, `archive_timeout=300`, `archive_command` writing to a durable volume). **Not executed** 2026-09-06 — no Production host from engineering.
+  - [ ] `Backup:WalArchiveDirectory` matches `archive_command`; `WalArchiveRetentionDays=7`; `GET /api/admin/backup/pitr/wal` shows `fileCount > 0`
+  - [ ] `Backup:IncrementalBackupEnabled=true` only **after** WAL files appear (daily Tenant incrementals at `IncrementalBackupCron`)
+  - [ ] Production isolated restore drill **Passed** (L4 + fiscal SQL on clone) — append a row to [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md). Workstation 14:16 is **not** Production evidence.
+  - [ ] PITR planning dry-run on Production (`POST /api/admin/backup/pitr/dry-run` or FA `/backup/pitr`) — isolated clone only. Host WAL replay (`recovery_target_time`) is a DBA procedure, not an API production restore.
 
-**Refs:** [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md)
+**Refs:** [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · [`PITR_RESTORE.md`](PITR_RESTORE.md) · [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md)
 
 ### 1.2 TSE & FinanzOnline setup
 

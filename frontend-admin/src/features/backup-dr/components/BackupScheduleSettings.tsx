@@ -30,6 +30,7 @@ import {
   putBackupScheduleSettings,
 } from '@/features/backup-dr/logic/backupScheduleSettingsApi';
 import { BackupSchedulePlanner } from '@/features/backup/components/BackupSchedulePlanner';
+import { ScheduledBackupRunsTable } from '@/features/backup/components/ScheduledBackupRunsTable';
 import {
   type BackupSchedulePlannerState,
   apiScheduleToPlannerState,
@@ -283,6 +284,8 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
               )}
             </Descriptions.Item>
           </Descriptions>
+
+          <ScheduledBackupRunsTable />
         </Space>
       )}
     </Card>

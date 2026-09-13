@@ -158,6 +158,17 @@
         "placeholder": "Optional notes…",
         "a11y": "Optional payment notes"
       },
+      "preorder": {
+        "checkbox": "Vorbestellung (pickup later)",
+        "hint": "Customer pays now. Pickup does not create a second Beleg. Any open amount is paid later as its own fiscal receipt.",
+        "remainingLabel": "Open amount (optional)",
+        "remainingHint": "0.00 = paid in full. Any open amount is recorded later as a separate fiscal Beleg.",
+        "balanceLabel": "Pay remaining amount (Besorgerzettel)",
+        "balancePlaceholder": "BS number or Beleg number",
+        "balanceFound": "{{number}} — open {{amount}}",
+        "balanceNotFound": "Vorbestellung not found.",
+        "balanceZero": "No open amount left."
+      },
       "benefits": {
         "previewTitle": "Benefits (preview)",
         "possibleSavings": "Possible benefit: approx. {{amount}}",

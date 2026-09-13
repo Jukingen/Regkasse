@@ -26,6 +26,8 @@ import {
   downloadBackupArtifactFile,
 } from '@/features/backup-dr/logic/downloadBackupArtifactFile';
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import trafficLight from '@/features/backup/backupRunTrafficLight.module.css';
+import { backupRunTrafficLightRowClass } from '@/features/backup/logic/backupRunTrafficLight';
 import { RestoreModal, type RestoreModalBackup } from '@/features/backup/components/RestoreModal';
 import {
   type BackupListItemResponseDto,
@@ -644,6 +646,7 @@ export function BackupList({
         loading={listQuery.isFetching}
         dataSource={rows}
         columns={columns}
+        rowClassName={(row) => backupRunTrafficLightRowClass(row.status, trafficLight)}
         expandable={
           compact
             ? undefined

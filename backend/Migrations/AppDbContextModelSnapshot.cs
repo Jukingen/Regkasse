@@ -2786,6 +2786,17 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("PreorderCancellationPolicyText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("preorder_cancellation_policy_text");
+
+                    b.Property<int>("PreorderPickupDeadlineWeeks")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4)
+                        .HasColumnName("preorder_pickup_deadline_weeks");
+
                     b.Property<int?>("PendingInvoices")
                         .HasColumnType("integer");
 
@@ -7160,6 +7171,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsPreorder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_preorder");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -7172,6 +7189,57 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("LastPreorderPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_preorder_payment_id");
+
+                    b.Property<DateTime?>("PreorderCollectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_collected_at");
+
+                    b.Property<string>("PreorderCustomerNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("preorder_customer_notes");
+
+                    b.Property<string>("PreorderNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("preorder_number");
+
+                    b.Property<decimal>("PreorderPaidAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("preorder_paid_amount");
+
+                    b.Property<DateTime?>("PreorderPickupDeadline")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_pickup_deadline");
+
+                    b.Property<int>("PreorderPickupWeeks")
+                        .HasColumnType("integer")
+                        .HasColumnName("preorder_pickup_weeks");
+
+                    b.Property<DateTime?>("PreorderReadyAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_ready_at");
+
+                    b.Property<decimal>("PreorderRemainingAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("preorder_remaining_amount");
+
+                    b.Property<string>("PreorderStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("preorder_status");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("receipt_number");
+
+                    b.Property<Guid?>("SourcePaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_payment_id");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -7183,6 +7251,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<decimal>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -7209,6 +7281,19 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
                         .HasFilter("\"idempotency_key\" IS NOT NULL");
+
+                    b.HasIndex("SourcePaymentId")
+                        .IsUnique()
+                        .HasFilter("\"source_payment_id\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "IsPreorder", "PreorderStatus");
+
+                    b.HasIndex("TenantId", "ReceiptNumber")
+                        .HasFilter("\"is_preorder\" = TRUE AND \"receipt_number\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "PreorderNumber")
+                        .IsUnique()
+                        .HasFilter("\"is_preorder\" = TRUE AND \"preorder_number\" IS NOT NULL");
 
                     b.ToTable("orders");
                 });

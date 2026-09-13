@@ -67,13 +67,14 @@ Backup artifact downloads are gated by JWT authentication, role / permission che
 
 | Path | Purpose |
 |------|---------|
-| `/backup` | Role-aware hub (`TenantBackupView` / `SystemBackupView`) |
+| `/dashboard` | Home widget `BackupStatusWidget` — last backup, RPO, staging storage, next schedule, health alerts |
 | `/backup/dashboard` | DR operator dashboard |
 | `/backup/performance` | Duration / ETA metrics |
 | `/backup/compliance` | RKSV product-gate readiness |
 | `/backup/costs` | Indicative Hot/Warm/Cold storage costs |
 | `/backup/retention` | Super Admin Hot/Warm/Cold + 7-year legal policy (`/settings/backup-retention` redirects here) |
 | `/backup/pitr` | Point-in-time planning, backup chain, WAL status, isolated dry-run (Super Admin) |
+| `/admin/restore-verification` | Restore-drill PASS/FAIL list + detail + PDF/CSV (`/backup/restore-verification` redirects here) |
 | `/backup/runs` | Run list (created-by, type/date filters, download) + detail metadata / download history |
 | `/backup/configuration` | Schedule + platform execution mode (gated) |
 | `/backup/audit` | Activity + audit |

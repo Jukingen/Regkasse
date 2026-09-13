@@ -67,4 +67,18 @@ public sealed class DashboardWidgetCatalogTests
         var filtered = DashboardWidgetCatalog.FilterByPermissions([AppPermissions.ReportView]);
         Assert.DoesNotContain(filtered, w => w.WidgetId == DashboardWidgetCatalog.DailyClosing);
     }
+
+    [Fact]
+    public void FilterByPermissions_OrderView_IncludesPreorderStatus()
+    {
+        var filtered = DashboardWidgetCatalog.FilterByPermissions([AppPermissions.OrderView]);
+        Assert.Contains(filtered, w => w.WidgetId == DashboardWidgetCatalog.PreorderStatus);
+    }
+
+    [Fact]
+    public void FilterByPermissions_ReportViewOnly_ExcludesPreorderStatus()
+    {
+        var filtered = DashboardWidgetCatalog.FilterByPermissions([AppPermissions.ReportView]);
+        Assert.DoesNotContain(filtered, w => w.WidgetId == DashboardWidgetCatalog.PreorderStatus);
+    }
 }

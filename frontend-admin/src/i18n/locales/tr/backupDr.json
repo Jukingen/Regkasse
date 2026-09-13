@@ -893,6 +893,16 @@
     "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok.",
     "etaDemotedLead": "Kaba süre ipucu (taahhüt değil):"
   },
+  "restoreProgress": {
+    "cardTitle": "Restore tatbikatı ilerlemesi",
+    "idle": "Çalışan restore tatbikatı yok.",
+    "titleQueued": "Restore tatbikatı kuyrukta",
+    "titleRunning": "Restore tatbikatı çalışıyor",
+    "titleSucceeded": "Restore tatbikatı bitti",
+    "titleFailed": "Restore tatbikatı başarısız",
+    "estimatedRemaining": "Tahmini kalan süre: {{time}}",
+    "noEta": "Henüz süre tahmini yok (önceki başarılı tatbikat süresi yok)."
+  },
   "download": {
     "titleLatestSuccess": "Artefakt indir (son çalıştırma — API başarı durumu)",
     "titleLatestSuccessFake": "Son çalıştırmadan test dosyaları (üretim yedeği değil)",
@@ -2155,10 +2165,96 @@
     "lastRunStored": "Son başarılı otomasyon (saklı)",
     "lastScheduledRunLabel": "Son zamanlanmış yedek koşusu",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Son 5 zamanlanmış yedek koşusu",
+    "recentScheduledWhen": "İstek zamanı",
+    "recentScheduledStatus": "Durum",
+    "failureReason": "Hata nedeni",
     "runStatusSuffix": "(durum {{status}})",
     "save": "Kaydet",
     "saveSuccess": "Ayarlar kaydedildi.",
     "saveError": "Ayarlar kaydedilemedi.",
     "loadError": "Zamanlama ayarları yüklenemedi."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Geri yükleme doğrulama",
+    "detailTitle": "Geri yükleme doğrulama ayrıntısı",
+    "pageSubtitle": "İzole restore tatbikatları için PASS/FAIL. Üretim üzerine yazılmaz. Sistem dökümleri yalnızca Super Admin; Mandanten-Admin yalnız kendi kiracı koşularını görür.",
+    "empty": "Bu kapsamda geri yükleme doğrulama kaydı yok.",
+    "loadError": "Geri yükleme doğrulama kayıtları yüklenemedi.",
+    "openDetail": "Aç",
+    "backToList": "Listeye dön",
+    "verifiedAt": "Doğrulama zamanı",
+    "failedChecks": "Başarısız kontroller: {{checks}}",
+    "columns": {
+      "date": "Tarih",
+      "backupId": "Yedek kimliği",
+      "type": "Tür",
+      "status": "Durum",
+      "verdict": "PASS/FAIL",
+      "actions": "İşlemler"
+    },
+    "filters": {
+      "type": "Tür",
+      "status": "Durum",
+      "backupId": "Yedek kimliği ara",
+      "apply": "Uygula"
+    },
+    "status": {
+      "queued": "Kuyrukta",
+      "running": "Çalışıyor",
+      "succeeded": "Başarılı",
+      "failed": "Başarısız",
+      "unknown": "Bilinmiyor"
+    },
+    "type": {
+      "manual": "Manuel",
+      "scheduled": "Zamanlanmış"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash doğrulama",
+      "schema": "Şema doğrulama",
+      "data": "Veri doğrulama",
+      "tse": "TSE zincir doğrulama",
+      "fiscal": "Fiscal SQL",
+      "unknown": "Kontrol"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Atlandı",
+      "unavailable": "Yok"
+    },
+    "detail": {
+      "summary": "Koşu özeti",
+      "checksTitle": "Doğrulama kontrolleri",
+      "check": "Kontrol",
+      "result": "Sonuç",
+      "detail": "Ayrıntı"
+    },
+    "rowCounts": {
+      "title": "Tablo satır sayıları",
+      "id": "Kontrol kimliği",
+      "name": "Ad",
+      "category": "Kategori",
+      "measured": "Ölçülen",
+      "expected": "Min",
+      "status": "Durum",
+      "empty": "Bu tatbikat için klon satır sayıları kaydedilmedi."
+    },
+    "fiscal": {
+      "title": "Fiscal SQL sonucu",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "PDF indir",
+      "csv": "CSV indir",
+      "ready": "Rapor indirildi.",
+      "failed": "Doğrulama raporu indirilemedi."
+    }
   }
 }

@@ -78,6 +78,13 @@ describe('renderDashboardWidget', () => {
     expect(node).not.toBeNull();
   });
 
+  it('renders preorder-status widget', () => {
+    const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.preorderStatus, {
+      title: 'Vorbestellungen',
+    });
+    expect(node).not.toBeNull();
+  });
+
   it('renders manager-export-quick-actions widget', () => {
     const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.managerExportQuickActions, {
       title: 'Export-Schnellaktionen',

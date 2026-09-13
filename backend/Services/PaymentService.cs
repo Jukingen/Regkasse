@@ -14,6 +14,7 @@ using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.Preorder;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse.Fiskaly;
@@ -68,6 +69,7 @@ namespace KasseAPI_Final.Services
         private readonly ICardPaymentService? _cardPaymentService;
         private readonly FeatureFlags.IFeatureFlagService? _featureFlags;
         private readonly ITenantLimitGuard? _tenantLimitGuard;
+        private readonly IPreorderService? _preorderService;
 
         public PaymentService(
             AppDbContext context,
@@ -106,7 +108,8 @@ namespace KasseAPI_Final.Services
             IPaymentReversalApprovalService? reversalApproval = null,
             ICardPaymentService? cardPaymentService = null,
             FeatureFlags.IFeatureFlagService? featureFlags = null,
-            ITenantLimitGuard? tenantLimitGuard = null)
+            ITenantLimitGuard? tenantLimitGuard = null,
+            IPreorderService? preorderService = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -145,6 +148,7 @@ namespace KasseAPI_Final.Services
             _cardPaymentService = cardPaymentService;
             _featureFlags = featureFlags;
             _tenantLimitGuard = tenantLimitGuard;
+            _preorderService = preorderService;
         }
 
         /// <summary>
@@ -159,6 +163,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var result = await CreatePaymentCoreAsync(request, userId, offlineTransactionId, offlineReplayBatchCorrelationId);
+                await TryAttachPreorderAfterSaleAsync(request, result, userId);
+                await TryApplyPreorderBalanceAfterSaleAsync(request, result);
                 await _posCriticalAudit.LogPaymentOutcomeAsync(userId, request, result);
                 return result;
             }
@@ -898,6 +904,52 @@ namespace KasseAPI_Final.Services
                             Message = "Total amount mismatch between client and server calculation.",
                             Errors = { "Total amount mismatch between client and server calculation." }
                         };
+                    }
+
+                    if (request.PreorderBalanceOrderId is Guid preorderBalanceId && preorderBalanceId != Guid.Empty)
+                    {
+                        if (_preorderService is null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Pre-order balance payment is not available.",
+                                Errors = { "Pre-order balance payment is not available." },
+                                DiagnosticCode = "PREORDER_UNAVAILABLE"
+                            };
+                        }
+
+                        if (request.IsPreorder)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Pre-order create and balance payment cannot be combined.",
+                                Errors = { "IsPreorder and PreorderBalanceOrderId cannot both be set." },
+                                DiagnosticCode = "PREORDER_BALANCE_EXCLUSIVE"
+                            };
+                        }
+
+                        var balanceGuard = await _preorderService.ValidateBalancePaymentAsync(
+                            preorderBalanceId,
+                            totalAmount,
+                            licenseCheckCancellation).ConfigureAwait(false);
+                        if (!balanceGuard.Ok)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = balanceGuard.Message ?? "Pre-order balance payment is not allowed.",
+                                Errors = { balanceGuard.Message ?? "Pre-order balance payment is not allowed." },
+                                DiagnosticCode = balanceGuard.Code
+                            };
+                        }
                     }
 
                     var limitRejection = await TryRejectSaleForTenantLimitsAsync(
@@ -1799,6 +1851,62 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        private async Task TryAttachPreorderAfterSaleAsync(
+            CreatePaymentRequest request,
+            PaymentResult result,
+            string userId)
+        {
+            if (_preorderService is null || !result.Success || result.Payment is null)
+                return;
+            if (!request.IsPreorder || request.IsStorno || request.IsRefund)
+                return;
+
+            try
+            {
+                await _preorderService.TryCreateFromSuccessfulPaymentAsync(result.Payment, request, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder create failed after fiscal payment {PaymentId}", result.Payment.Id);
+            }
+        }
+
+        private async Task TryApplyPreorderBalanceAfterSaleAsync(
+            CreatePaymentRequest request,
+            PaymentResult result)
+        {
+            if (_preorderService is null || !result.Success || result.Payment is null)
+                return;
+            if (request.PreorderBalanceOrderId is not Guid orderId || orderId == Guid.Empty)
+                return;
+            if (request.IsStorno || request.IsRefund || request.IsPreorder)
+                return;
+
+            try
+            {
+                await _preorderService.ApplyBalancePaymentAsync(orderId, result.Payment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder balance apply failed after fiscal payment {PaymentId}", result.Payment.Id);
+            }
+        }
+
+        private async Task TryMarkPreorderCancelledAsync(Guid sourcePaymentId)
+        {
+            if (_preorderService is null || sourcePaymentId == Guid.Empty)
+                return;
+
+            try
+            {
+                await _preorderService.MarkCancelledForPaymentAsync(sourcePaymentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder cancel mark failed for payment {PaymentId}", sourcePaymentId);
+            }
+        }
+
         /// <summary>
         /// Cancel payment via fiscal storno (reversal). Original payment is NEVER modified; a reversal record is created with TSE signature and credit note.
         /// Sprint 6: optional idempotencyKey — retries with same key return existing storno.
@@ -1858,6 +1966,7 @@ namespace KasseAPI_Final.Services
                             };
                         }
                         _logger.LogInformation("Idempotent cancel: returning existing storno {StornoId} for payment {PaymentId} key {Key}", existingStorno.Id, paymentId, key);
+                        await TryMarkPreorderCancelledAsync(paymentId);
                         return new PaymentResult
                         {
                             Success = true,
@@ -2047,6 +2156,7 @@ namespace KasseAPI_Final.Services
                             existingByKey.Id,
                             paymentId,
                             key);
+                        await TryMarkPreorderCancelledAsync(paymentId);
                         return new PaymentResult
                         {
                             Success = true,
@@ -2369,6 +2479,7 @@ namespace KasseAPI_Final.Services
                             };
                         }
                         _logger.LogInformation("Idempotent cancel (race): returning existing storno {StornoId} for key {Key}", existing.Id, cancelIdempotencyKey);
+                        await TryMarkPreorderCancelledAsync(paymentId);
                         return new PaymentResult
                         {
                             Success = true,
@@ -2420,6 +2531,7 @@ namespace KasseAPI_Final.Services
                 signingProvider,
                 reason);
 
+            await TryMarkPreorderCancelledAsync(paymentId);
             return new PaymentResult
             {
                 Success = true,

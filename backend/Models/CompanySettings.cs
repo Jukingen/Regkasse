@@ -237,5 +237,15 @@ namespace KasseAPI_Final.Models
         /// </summary>
         [Column("use_december_monatsbeleg_as_jahresbeleg")]
         public bool UseDecemberMonatsbelegAsJahresbeleg { get; set; } = true;
+
+        /// <summary>Printed pickup window on Vorbestellung / Besorgerzettel receipts.</summary>
+        [Range(PreorderPolicyDefaults.MinPickupDeadlineWeeks, PreorderPolicyDefaults.MaxPickupDeadlineWeeks)]
+        [Column("preorder_pickup_deadline_weeks")]
+        public int PreorderPickupDeadlineWeeks { get; set; } = PreorderPolicyDefaults.PickupDeadlineWeeks;
+
+        /// <summary>Printed cancellation / return policy line on Besorgerzettel receipts.</summary>
+        [MaxLength(500)]
+        [Column("preorder_cancellation_policy_text")]
+        public string? PreorderCancellationPolicyText { get; set; }
     }
 }

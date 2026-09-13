@@ -893,6 +893,16 @@
     "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer.",
     "etaDemotedLead": "Grober Zeit-Hinweis (keine Zusage):"
   },
+  "restoreProgress": {
+    "cardTitle": "Restore-Drill Fortschritt",
+    "idle": "Kein Restore-Drill läuft.",
+    "titleQueued": "Restore-Drill in der Warteschlange",
+    "titleRunning": "Restore-Drill läuft",
+    "titleSucceeded": "Restore-Drill abgeschlossen",
+    "titleFailed": "Restore-Drill fehlgeschlagen",
+    "estimatedRemaining": "Geschätzte Restzeit: {{time}}",
+    "noEta": "Noch keine Zeitschätzung (keine vorherige erfolgreiche Drill-Dauer)."
+  },
   "download": {
     "titleLatestSuccess": "Artefakte herunterladen (letzter Lauf — API-Erfolgsstatus)",
     "titleLatestSuccessFake": "Testdateien vom letzten Lauf (kein Produktions-Backup)",
@@ -2155,10 +2165,96 @@
     "lastRunStored": "Letzter erfolgreicher Lauf (Zeitpunkt)",
     "lastScheduledRunLabel": "Letzter geplanter Backup-Lauf",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Letzte 5 geplante Backup-Läufe",
+    "recentScheduledWhen": "Angefordert",
+    "recentScheduledStatus": "Status",
+    "failureReason": "Fehlergrund",
     "runStatusSuffix": "(Status {{status}})",
     "save": "Speichern",
     "saveSuccess": "Einstellungen gespeichert.",
     "saveError": "Speichern fehlgeschlagen.",
     "loadError": "Zeitplaneinstellungen konnten nicht geladen werden."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Restore-Prüfung",
+    "detailTitle": "Restore-Prüfung Detail",
+    "pageSubtitle": "PASS/FAIL für isolierte Restore-Drills. Produktion wird nicht überschrieben. System-Dumps nur für Super-Admin; Mandanten-Admin sieht nur eigene Tenant-Läufe.",
+    "empty": "Keine Restore-Prüfungen in diesem Bereich.",
+    "loadError": "Restore-Prüfungen konnten nicht geladen werden.",
+    "openDetail": "Öffnen",
+    "backToList": "Zurück zur Liste",
+    "verifiedAt": "Geprüft am",
+    "failedChecks": "Fehlgeschlagene Prüfungen: {{checks}}",
+    "columns": {
+      "date": "Datum",
+      "backupId": "Backup-ID",
+      "type": "Typ",
+      "status": "Status",
+      "verdict": "PASS/FAIL",
+      "actions": "Aktionen"
+    },
+    "filters": {
+      "type": "Typ",
+      "status": "Status",
+      "backupId": "Backup-ID suchen",
+      "apply": "Anwenden"
+    },
+    "status": {
+      "queued": "In Warteschlange",
+      "running": "Läuft",
+      "succeeded": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "unknown": "Unbekannt"
+    },
+    "type": {
+      "manual": "Manuell",
+      "scheduled": "Geplant"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash-Prüfung",
+      "schema": "Schema-Prüfung",
+      "data": "Datenprüfung",
+      "tse": "TSE-Kettenprüfung",
+      "fiscal": "Fiscal-SQL",
+      "unknown": "Prüfung"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Übersprungen",
+      "unavailable": "Nicht verfügbar"
+    },
+    "detail": {
+      "summary": "Laufübersicht",
+      "checksTitle": "Prüfungen",
+      "check": "Prüfung",
+      "result": "Ergebnis",
+      "detail": "Detail"
+    },
+    "rowCounts": {
+      "title": "Tabellen-Zeilenzahlen",
+      "id": "Prüf-ID",
+      "name": "Name",
+      "category": "Kategorie",
+      "measured": "Gemessen",
+      "expected": "Min",
+      "status": "Status",
+      "empty": "Für diesen Drill wurden keine Klon-Zeilenzahlen gespeichert."
+    },
+    "fiscal": {
+      "title": "Fiscal-SQL-Ergebnis",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "PDF herunterladen",
+      "csv": "CSV herunterladen",
+      "ready": "Bericht heruntergeladen.",
+      "failed": "Der Prüfbericht konnte nicht heruntergeladen werden."
+    }
   }
 }

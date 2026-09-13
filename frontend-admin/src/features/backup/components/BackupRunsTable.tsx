@@ -57,6 +57,8 @@ import {
   ContentValidationStatusBadge,
 } from '@/features/backup/components/BackupContentValidationReport';
 import { BackupStatusBadge } from '@/features/backup/components/BackupStatusBadge';
+import trafficLight from '@/features/backup/backupRunTrafficLight.module.css';
+import { backupRunTrafficLightRowClass } from '@/features/backup/logic/backupRunTrafficLight';
 import { BackupVerificationReport } from '@/features/backup/components/BackupVerificationReport';
 import { useBackupPermissions } from '@/features/backup/hooks/useBackupPermissions';
 import { useMoveBackupRunToCold } from '@/features/backup/hooks/useBackupRetentionPolicy';
@@ -798,6 +800,7 @@ export function BackupRunsTable({
       showSizeChanger: false,
       onChange: (p) => setPage(p),
     },
+    rowClassName: (record) => backupRunTrafficLightRowClass(record.status, trafficLight),
     onRow: (record) => ({
       onClick: () => viewDetails(record),
       style: { cursor: 'pointer' },

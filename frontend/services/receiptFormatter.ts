@@ -217,6 +217,26 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
       : data.fiscalTraceKind === 'Refund'
         ? '<div class="reversal-banner" style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:8px;color:#e65100;">ERSTATTUNGSBELEG</div>'
         : '';
+  const paidAmount = data.preorderPaidAmount ?? grandTotalGross;
+  const remainingAmount = data.preorderRemainingAmount ?? 0;
+  const pickupWeeks = data.preorderPickupWeeks && data.preorderPickupWeeks > 0 ? data.preorderPickupWeeks : 4;
+  const policyText = data.preorderPolicyText?.trim() || 'Keine Rücknahme von Artikeln!';
+  const preorderBanner = data.isPreorder
+    ? `<div class="preorder-banner" style="text-align:center;font-weight:bold;font-size:13px;margin:8px 0;">VORBESTELLUNG / BESORGERZETTEL${
+        data.preorderNumber?.trim()
+          ? `<br/><span style="font-size:14px;">${escapeHtml(data.preorderNumber.trim())}</span>`
+          : ''
+      }</div>`
+    : '';
+  const preorderTotals = data.isPreorder
+    ? `<div class="totals" style="margin:6px 0;">
+          <div class="total-row"><span>Anzahlungsbetrag:</span><span class="total-value">EUR ${safeCurrency(paidAmount)}</span></div>
+          <div class="total-row"><span>Offener Betrag:</span><span class="total-value">EUR ${safeCurrency(remainingAmount)}</span></div>
+        </div>`
+    : '';
+  const preorderFooter = data.isPreorder
+    ? `<div class="preorder-footer" style="text-align:center;font-weight:bold;font-size:11px;margin:8px 0;">*** Besorger innerhalb von ${pickupWeeks} Wochen abholen! ***<br/>*** ${escapeHtml(policyText)} ***</div>`
+    : '';
 
   const demoLabel = isDemoFooter
     ? `<div class="qr-demo-label">${escapeHtml(rksvFooterLabel)}</div>`
@@ -290,6 +310,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           ${data.terminalNumber?.trim() ? `<div>Terminal: ${escapeHtml(data.terminalNumber.trim())}</div>` : ''}
           <div>Kassierer: ${escapeHtml(data.cashierDisplayName?.trim() || (data.cashierId && data.cashierId.trim()) || '—')}</div>
         </div>
+        ${preorderBanner}
         ${sepSingle}
         <table class="items">
           <thead>
@@ -317,6 +338,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
             <span class="total-value">EUR ${safeCurrency(grandTotalGross)}</span>
           </div>
         </div>
+        ${preorderTotals}
         ${sepSingle}
         <table class="mwst-table">
           <thead>
@@ -340,6 +362,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         </div>
         ${sepSingle}
         <div class="footer">
+          ${preorderFooter}
           <div>${escapeHtml(thankYouMessage)}</div>
           ${companyDescriptionHtml}
         </div>

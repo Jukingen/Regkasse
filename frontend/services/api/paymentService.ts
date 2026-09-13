@@ -114,6 +114,13 @@ export interface PaymentRequest {
   originalReceiptNumber?: string;
   /** RKSV Storno reason when `isStorno`. */
   stornoReason?: 'FalscherBetrag' | 'KundeStorniert' | 'TechnischerFehler' | 'Anderes';
+  /** Paid now, pickup later. Fiscal receipt is still created at payment time. */
+  isPreorder?: boolean;
+  preorderCustomerNotes?: string;
+  /** Operational remaining amount due later (separate fiscal sale). */
+  preorderRemainingAmount?: number;
+  /** Existing Vorbestellung to apply this sale as Restzahlung. */
+  preorderBalanceOrderId?: string;
 }
 
 /** Backend'den gelen TSE/QR bilgisi - payment.tse */

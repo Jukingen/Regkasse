@@ -13,6 +13,7 @@ import {
   TextInput,
   Pressable,
   Platform,
+  Switch,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ import {
   getPaymentResponseFailureMessage,
 } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
+import { getPreorderByReceipt } from '../services/api/preorderService';
 import {
   customerService,
   isWalkInCustomerId,
@@ -280,6 +282,15 @@ export default function PaymentModal({
   /** Cash (Bar): false only when a typed tender is present and below the rest amount. */
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [notes, setNotes] = useState<string>('');
+  const [isPreorder, setIsPreorder] = useState(false);
+  const [preorderRemainingText, setPreorderRemainingText] = useState('');
+  const [balanceQuery, setBalanceQuery] = useState('');
+  const [balanceOrder, setBalanceOrder] = useState<{
+    id: string;
+    preorderNumber?: string | null;
+    remainingAmount?: number;
+  } | null>(null);
+  const [balanceLookupError, setBalanceLookupError] = useState<string | null>(null);
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
   // State for Purchase Flow
   type PurchaseState = 'input' | 'processing' | 'printing' | 'completed' | 'print_error';
@@ -1264,6 +1275,13 @@ export default function PaymentModal({
         cashRegisterId,
         notes: notes || `Tisch ${resolvedTableNumber} - ${formatUserDateTime(new Date())}`,
         idempotencyKey,
+        isPreorder,
+        preorderCustomerNotes: isPreorder ? notes || undefined : undefined,
+        preorderRemainingAmount: isPreorder
+          ? Number(preorderRemainingText.replace(',', '.')) || 0
+          : undefined,
+        preorderBalanceOrderId:
+          !isPreorder && balanceOrder?.id ? balanceOrder.id : undefined,
       };
 
       logPay('Step 4b: Payment payload fields', {
@@ -1570,6 +1588,7 @@ export default function PaymentModal({
     resetCheckoutPaymentUi();
     setAmountReceived('');
     setNotes('');
+    setIsPreorder(false);
     setPurchaseState('input');
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
@@ -2165,6 +2184,93 @@ export default function PaymentModal({
                   ) : null}
                 </View>
               )}
+
+              <View style={styles.section}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <View style={{ flex: 1, paddingRight: 12 }}>
+                    <Text style={styles.sectionTitle}>
+                      {t('checkout:posFlow.payment.preorder.checkbox')}
+                    </Text>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.hint')}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={isPreorder}
+                    onValueChange={(value) => {
+                      setIsPreorder(value);
+                      if (value) {
+                        setBalanceOrder(null);
+                        setBalanceQuery('');
+                        setBalanceLookupError(null);
+                      }
+                    }}
+                    accessibilityLabel={t('checkout:posFlow.payment.preorder.checkbox')}
+                  />
+                </View>
+                {isPreorder ? (
+                  <View>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.remainingLabel')}
+                    </Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      value={preorderRemainingText}
+                      onChangeText={setPreorderRemainingText}
+                      keyboardType="decimal-pad"
+                      placeholder="0,00"
+                      accessibilityLabel={t('checkout:posFlow.payment.preorder.remainingLabel')}
+                    />
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.remainingHint')}
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.preorder.balanceLabel')}
+                    </Text>
+                    <TextInput
+                      style={styles.notesInput}
+                      value={balanceQuery}
+                      onChangeText={(value) => {
+                        setBalanceQuery(value);
+                        setBalanceOrder(null);
+                        setBalanceLookupError(null);
+                      }}
+                      onBlur={() => {
+                        const key = balanceQuery.trim();
+                        if (!key) return;
+                        void (async () => {
+                          try {
+                            const found = await getPreorderByReceipt(key);
+                            if ((found.remainingAmount ?? 0) <= 0.01) {
+                              setBalanceLookupError(t('checkout:posFlow.payment.preorder.balanceZero'));
+                              return;
+                            }
+                            setBalanceOrder(found);
+                          } catch {
+                            setBalanceLookupError(t('checkout:posFlow.payment.preorder.balanceNotFound'));
+                          }
+                        })();
+                      }}
+                      placeholder={t('checkout:posFlow.payment.preorder.balancePlaceholder')}
+                      autoCapitalize="characters"
+                    />
+                    {balanceOrder ? (
+                      <Text style={styles.voucherMuted}>
+                        {t('checkout:posFlow.payment.preorder.balanceFound', {
+                          number: balanceOrder.preorderNumber ?? '',
+                          amount: formatPrice(balanceOrder.remainingAmount ?? 0),
+                        })}
+                      </Text>
+                    ) : null}
+                    {balanceLookupError ? (
+                      <Text style={styles.voucherInlineError}>{balanceLookupError}</Text>
+                    ) : null}
+                  </View>
+                )}
+              </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.notes.title')}</Text>

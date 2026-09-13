@@ -65,6 +65,14 @@ export interface ReceiptDTO {
 
   /** null = normal sale; Storno | Refund reversal trace from backend. */
   fiscalTraceKind?: string | null;
+  /** Paid Vorbestellung — pickup later; no second fiscal receipt. */
+  isPreorder?: boolean;
+  /** Besorgerzettel number (BS…), not the fiscal Belegnummer. */
+  preorderNumber?: string | null;
+  preorderPaidAmount?: number | null;
+  preorderRemainingAmount?: number | null;
+  preorderPickupWeeks?: number | null;
+  preorderPolicyText?: string | null;
   originalPaymentId?: string | null;
   originalSaleReceiptId?: string | null;
 }

@@ -1,8 +1,10 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.RestoreVerification;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -23,17 +25,23 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     private readonly IRestoreVerificationRunQueryService _query;
     private readonly IRestoreVerificationOperationalReadiness _readiness;
     private readonly IRestoreProofMilestonesQueryService _milestones;
+    private readonly IRestoreVerificationReportService _reports;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
 
     public AdminRestoreVerificationController(
         IRestoreVerificationManualTriggerService trigger,
         IRestoreVerificationRunQueryService query,
         IRestoreVerificationOperationalReadiness readiness,
-        IRestoreProofMilestonesQueryService milestones)
+        IRestoreProofMilestonesQueryService milestones,
+        IRestoreVerificationReportService reports,
+        ICurrentTenantAccessor tenantAccessor)
     {
         _trigger = trigger;
         _query = query;
         _readiness = readiness;
         _milestones = milestones;
+        _reports = reports;
+        _tenantAccessor = tenantAccessor;
     }
 
     /// <summary>Worker / dağıtık kilit yapılandırma özeti (backup artifact health değil).</summary>
@@ -99,7 +107,9 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<RestoreVerificationRunResponseDto?>> GetLatest(CancellationToken cancellationToken)
     {
-        var run = await _query.GetLatestAsync(cancellationToken);
+        if (ManagerMissingTenant())
+            return NotFound();
+        var run = await _query.GetLatestAsync(BuildAccess(), cancellationToken);
         return run == null ? Ok(null) : Ok(RestoreVerificationRunMapper.ToDto(run));
     }
 
@@ -108,9 +118,26 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     public async Task<ActionResult<RestoreVerificationHistoryResponseDto>> GetHistory(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] RestoreVerificationStatus? status = null,
+        [FromQuery] RestoreVerificationTriggerSource? triggerSource = null,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        [FromQuery] string? sourceBackupRunId = null,
         CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _query.GetHistoryAsync(page, pageSize, cancellationToken);
+        if (ManagerMissingTenant())
+            return NotFound();
+
+        var filter = new RestoreVerificationHistoryFilter
+        {
+            Status = status,
+            TriggerSource = triggerSource,
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            SourceBackupRunIdSearch = sourceBackupRunId
+        };
+
+        var (items, total) = await _query.GetHistoryAsync(page, pageSize, filter, BuildAccess(), cancellationToken);
         return Ok(new RestoreVerificationHistoryResponseDto
         {
             Items = items.Select(RestoreVerificationRunMapper.ToDto).ToList(),
@@ -124,10 +151,47 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<RestoreVerificationRunResponseDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var run = await _query.GetByIdAsync(id, cancellationToken);
+        if (ManagerMissingTenant())
+            return NotFound();
+        var run = await _query.GetByIdAsync(id, BuildAccess(), cancellationToken);
         if (run == null)
             return NotFound();
         return Ok(RestoreVerificationRunMapper.ToDto(run));
+    }
+
+    /// <summary>
+    /// Audit export: <c>format=json</c> (default), <c>csv</c>, or <c>pdf</c>.
+    /// System dump drills stay Super Admin only (Manager → 404).
+    /// </summary>
+    [HttpGet("runs/{id:guid}/report")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [Produces("application/json", "text/csv", "application/pdf")]
+    public async Task<IActionResult> GetReport(
+        Guid id,
+        [FromQuery] string format = "json",
+        CancellationToken cancellationToken = default)
+    {
+        if (ManagerMissingTenant())
+            return NotFound();
+
+        var report = await _reports.GetReportAsync(id, BuildAccess(), cancellationToken);
+        if (report is null)
+            return NotFound();
+
+        var kind = (format ?? "json").Trim().ToLowerInvariant();
+        if (kind is "csv")
+        {
+            var bytes = _reports.ToCsv(report);
+            return File(bytes, "text/csv; charset=utf-8", $"restore-verification-{id:D}.csv");
+        }
+
+        if (kind is "pdf")
+        {
+            var bytes = _reports.ToPdf(report);
+            return File(bytes, "application/pdf", $"restore-verification-{id:D}.pdf");
+        }
+
+        return Ok(report);
     }
 
     /// <summary>
@@ -137,11 +201,19 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<IActionResult> GetEvidenceJson(Guid id, CancellationToken cancellationToken)
     {
-        var run = await _query.GetByIdAsync(id, cancellationToken);
+        if (ManagerMissingTenant())
+            return NotFound();
+        var run = await _query.GetByIdAsync(id, BuildAccess(), cancellationToken);
         if (run == null)
             return NotFound();
         if (string.IsNullOrEmpty(run.EvidenceJson))
             return Content("{}", "application/json");
         return Content(run.EvidenceJson, "application/json");
     }
+
+    private RestoreVerificationAccessScope BuildAccess() =>
+        new(User.IsInRole(Roles.SuperAdmin), _tenantAccessor.TenantId);
+
+    private bool ManagerMissingTenant() =>
+        !User.IsInRole(Roles.SuperAdmin) && !_tenantAccessor.TenantId.HasValue;
 }

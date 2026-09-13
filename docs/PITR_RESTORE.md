@@ -74,3 +74,9 @@ dotnet test backend/KasseAPI_Final.sln --filter "PitrServiceTests|WalArchiveServ
 ```
 
 Schedule a Super Admin dry-run after each successful System backup in Staging. Confirm WAL files appear in the archive directory within `archive_timeout`.
+
+## Production cutover (operator)
+
+Full command list: [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) §4.1 (System dump + drill) and **§4.2** (WAL / PITR / incrementals).
+
+**Status 2026-09-06:** workstation restore drill **Passed**; Production WAL + System backup + Production drill **not executed**. Do not mark [`GO_LIVE_CHECKLIST.md`](GO_LIVE_CHECKLIST.md) PASSED until host evidence rows exist and §8 is signed.

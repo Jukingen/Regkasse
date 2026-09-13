@@ -97,6 +97,22 @@ namespace KasseAPI_Final.DTOs
         public string RksvFooterLabel { get; set; } = string.Empty;
         /// <summary>True when POS/print should show the DEMO / NICHT FISKAL disclaimer (<c>RKSV:ShowDemoLabel</c>).</summary>
         public bool ShowDemoLabel { get; set; }
+
+        /// <summary>True when the sale was marked Vorbestellung (pickup later). Fiscal receipt already exists.</summary>
+        public bool IsPreorder { get; set; }
+
+        /// <summary>Besorgerzettel number (BS…). Not the fiscal Belegnummer.</summary>
+        public string? PreorderNumber { get; set; }
+
+        /// <summary>Amount already paid (this and prior fiscal payments on the pre-order).</summary>
+        public decimal? PreorderPaidAmount { get; set; }
+
+        /// <summary>Operational remaining amount; paid later as a separate fiscal sale.</summary>
+        public decimal? PreorderRemainingAmount { get; set; }
+
+        public int? PreorderPickupWeeks { get; set; }
+
+        public string? PreorderPolicyText { get; set; }
     }
 
     public class ReceiptCompanyDTO

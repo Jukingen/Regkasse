@@ -129,6 +129,21 @@ export function normalizeReceiptDto(raw: unknown): ReceiptDTO {
     signature: normalizeSignature(r),
     verificationUrl: (r.verificationUrl ?? r.VerificationUrl) as string | undefined,
     fiscalTraceKind: (r.fiscalTraceKind ?? r.FiscalTraceKind ?? null) as string | null,
+    isPreorder: Boolean(r.isPreorder ?? r.IsPreorder),
+    preorderNumber: (r.preorderNumber ?? r.PreorderNumber ?? null) as string | null,
+    preorderPaidAmount:
+      r.preorderPaidAmount != null || r.PreorderPaidAmount != null
+        ? Number(r.preorderPaidAmount ?? r.PreorderPaidAmount)
+        : null,
+    preorderRemainingAmount:
+      r.preorderRemainingAmount != null || r.PreorderRemainingAmount != null
+        ? Number(r.preorderRemainingAmount ?? r.PreorderRemainingAmount)
+        : null,
+    preorderPickupWeeks:
+      r.preorderPickupWeeks != null || r.PreorderPickupWeeks != null
+        ? Number(r.preorderPickupWeeks ?? r.PreorderPickupWeeks)
+        : null,
+    preorderPolicyText: (r.preorderPolicyText ?? r.PreorderPolicyText ?? null) as string | null,
     originalPaymentId: (r.originalPaymentId ?? r.OriginalPaymentId ?? null) as string | null,
     originalSaleReceiptId: (r.originalSaleReceiptId ?? r.OriginalSaleReceiptId ?? null) as
       string | null,

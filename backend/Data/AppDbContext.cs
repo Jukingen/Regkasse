@@ -3395,6 +3395,12 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.InvoiceNumbering).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.ReceiptNumbering).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.DefaultPaymentMethod).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PreorderPickupDeadlineWeeks)
+                    .HasColumnName("preorder_pickup_deadline_weeks")
+                    .HasDefaultValue(4);
+                entity.Property(e => e.PreorderCancellationPolicyText)
+                    .HasColumnName("preorder_cancellation_policy_text")
+                    .HasMaxLength(500);
 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
                 entity.HasIndex(e => new { e.TenantId, e.CompanyRegistrationNumber }).IsUnique();
@@ -4392,7 +4398,30 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CustomerId);
                 entity.Property(e => e.IdempotencyKey).HasMaxLength(64);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.IsPreorder).HasColumnName("is_preorder").HasDefaultValue(false);
+                entity.Property(e => e.PreorderStatus).HasColumnName("preorder_status").HasMaxLength(20);
+                entity.Property(e => e.PreorderNumber).HasColumnName("preorder_number").HasMaxLength(20);
+                entity.Property(e => e.PreorderPaidAmount).HasColumnName("preorder_paid_amount").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PreorderRemainingAmount).HasColumnName("preorder_remaining_amount").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PreorderPickupDeadline).HasColumnName("preorder_pickup_deadline");
+                entity.Property(e => e.PreorderPickupWeeks).HasColumnName("preorder_pickup_weeks");
+                entity.Property(e => e.PreorderReadyAt).HasColumnName("preorder_ready_at");
+                entity.Property(e => e.PreorderCollectedAt).HasColumnName("preorder_collected_at");
+                entity.Property(e => e.PreorderCustomerNotes).HasColumnName("preorder_customer_notes");
+                entity.Property(e => e.SourcePaymentId).HasColumnName("source_payment_id");
+                entity.Property(e => e.LastPreorderPaymentId).HasColumnName("last_preorder_payment_id");
+                entity.Property(e => e.ReceiptNumber).HasColumnName("receipt_number").HasMaxLength(256);
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
+                entity.HasIndex(e => e.SourcePaymentId)
+                    .IsUnique()
+                    .HasFilter("\"source_payment_id\" IS NOT NULL");
+                entity.HasIndex(e => new { e.TenantId, e.IsPreorder, e.PreorderStatus });
+                entity.HasIndex(e => new { e.TenantId, e.ReceiptNumber })
+                    .HasFilter("\"is_preorder\" = TRUE AND \"receipt_number\" IS NOT NULL");
+                entity.HasIndex(e => new { e.TenantId, e.PreorderNumber })
+                    .IsUnique()
+                    .HasFilter("\"is_preorder\" = TRUE AND \"preorder_number\" IS NOT NULL");
             });
 
             // OrderItem configuration

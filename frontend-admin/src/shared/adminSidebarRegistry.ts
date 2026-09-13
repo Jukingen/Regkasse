@@ -251,6 +251,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'ShoppingOutlined',
     permission: [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   },
+  preorders: {
+    id: 'preorders',
+    menuKey: '/orders/preorders',
+    href: '/orders/preorders',
+    labelKey: 'nav.preorders',
+    icon: 'InboxOutlined',
+    permission: PERMISSIONS.ORDER_VIEW,
+  },
   receiptTemplates: {
     id: 'receiptTemplates',
     menuKey: '/receipt-templates',
@@ -742,6 +750,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/backup/pitr',
     labelKey: 'nav.backupPitr',
     icon: 'CalendarOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
+  },
+  backupRestoreVerification: {
+    id: 'backupRestoreVerification',
+    menuKey: '/backup/restore-verification',
+    href: '/admin/restore-verification',
+    labelKey: 'nav.backupRestoreVerification',
+    icon: 'SafetyCertificateOutlined',
     permission: PERMISSIONS.SETTINGS_VIEW,
   },
   backupSchedule: {
@@ -1621,7 +1637,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
         labelKey: 'nav.receiptsOrders',
         icon: 'ShoppingCartOutlined',
-        catalogIds: ['receipts', 'onlineOrders', 'tagesabschluss'],
+        catalogIds: ['receipts', 'onlineOrders', 'preorders', 'tagesabschluss'],
       },
       {
         kind: 'leaves',
@@ -1745,7 +1761,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     kind: 'group',
     group: 'backup',
     blocks: [
-      { kind: 'leaves', catalogIds: ['backupDr', 'backupRuns', 'backupPitr'] },
+      { kind: 'leaves', catalogIds: ['backupDr', 'backupRuns', 'backupPitr', 'backupRestoreVerification'] },
       {
         kind: 'nested',
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,

@@ -367,4 +367,26 @@ describe('receiptPrinter', () => {
     expect(html).toContain('Rückgeld:');
     expect(html).toContain('5,00');
   });
+
+  it('prints Vorbestellung banners when isPreorder is true', () => {
+    const html = formatReceiptHtml(
+      baseReceipt({
+        grandTotal: 7.55,
+        isPreorder: true,
+        preorderNumber: 'BS2609201',
+        preorderPaidAmount: 7.55,
+        preorderRemainingAmount: 0,
+        preorderPickupWeeks: 4,
+        preorderPolicyText: 'Keine Rücknahme von Artikeln!',
+      })
+    );
+    expect(html).toContain('VORBESTELLUNG / BESORGERZETTEL');
+    expect(html).toContain('BS2609201');
+    expect(html).toContain('Anzahlungsbetrag:');
+    expect(html).toContain('EUR 7,55');
+    expect(html).toContain('Offener Betrag:');
+    expect(html).toContain('EUR 0,00');
+    expect(html).toContain('Besorger innerhalb von 4 Wochen abholen!');
+    expect(html).toContain('Keine Rücknahme von Artikeln!');
+  });
 });

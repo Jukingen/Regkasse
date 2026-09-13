@@ -67,6 +67,28 @@ namespace KasseAPI_Final.DTOs
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public StornoReason? StornoReason { get; set; }
 
+        /// <summary>
+        /// When true on a normal sale, a Vorbestellung row is created after the fiscal receipt.
+        /// Ignored for storno/refund. Does not change TSE signing.
+        /// </summary>
+        public bool IsPreorder { get; set; }
+
+        [MaxLength(2000)]
+        public string? PreorderCustomerNotes { get; set; }
+
+        /// <summary>
+        /// Operational remaining amount due later (not part of this TSE total).
+        /// This sale still fiscalizes <see cref="TotalAmount"/> / catalog lines.
+        /// </summary>
+        [Range(0, 999999)]
+        public decimal PreorderRemainingAmount { get; set; }
+
+        /// <summary>
+        /// When set, this sale pays remaining balance on an existing Vorbestellung.
+        /// Creates a new fiscal receipt; mutually exclusive with <see cref="IsPreorder"/>.
+        /// </summary>
+        public Guid? PreorderBalanceOrderId { get; set; }
+
         /// <inheritdoc />
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
@@ -117,6 +139,20 @@ namespace KasseAPI_Final.DTOs
             {
                 if (TotalAmount < 0.01m)
                     yield return new ValidationResult("TotalAmount must be greater than zero for storno parity.", [nameof(TotalAmount)]);
+            }
+
+            if (IsPreorder && PreorderBalanceOrderId is Guid balanceId && balanceId != Guid.Empty)
+            {
+                yield return new ValidationResult(
+                    "IsPreorder and PreorderBalanceOrderId cannot both be set.",
+                    [nameof(IsPreorder), nameof(PreorderBalanceOrderId)]);
+            }
+
+            if (PreorderRemainingAmount < 0)
+            {
+                yield return new ValidationResult(
+                    "PreorderRemainingAmount cannot be negative.",
+                    [nameof(PreorderRemainingAmount)]);
             }
         }
     }

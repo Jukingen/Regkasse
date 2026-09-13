@@ -17,6 +17,8 @@ export const BACKUP_COSTS_PATH = '/backup/costs' as const;
 export const BACKUP_RETENTION_PATH = '/backup/retention' as const;
 export const BACKUP_PITR_PATH = '/backup/pitr' as const;
 export const BACKUP_RESTORE_HISTORY_PATH = '/backup/restore-history' as const;
+export const BACKUP_RESTORE_VERIFICATION_PATH = '/backup/restore-verification' as const;
+export const ADMIN_RESTORE_VERIFICATION_PATH = '/admin/restore-verification' as const;
 export const BACKUP_RUNS_PATH = '/backup/runs' as const;
 export const BACKUP_CONFIGURATION_PATH = '/backup/configuration' as const;
 export const BACKUP_AUDIT_PATH = '/backup/audit' as const;
@@ -33,6 +35,8 @@ export const BACKUP_AREA_ROUTE_PATHS = [
   BACKUP_RETENTION_PATH,
   BACKUP_PITR_PATH,
   BACKUP_RESTORE_HISTORY_PATH,
+  BACKUP_RESTORE_VERIFICATION_PATH,
+  ADMIN_RESTORE_VERIFICATION_PATH,
   BACKUP_RUNS_PATH,
   BACKUP_CONFIGURATION_PATH,
   BACKUP_AUDIT_PATH,
@@ -100,6 +104,12 @@ export const BACKUP_SECONDARY_NAV_ITEMS = [
     labelKey: 'nav.backupRestoreHistory',
   },
   {
+    id: 'restoreVerification',
+    menuKey: BACKUP_RESTORE_VERIFICATION_PATH,
+    href: ADMIN_RESTORE_VERIFICATION_PATH,
+    labelKey: 'nav.backupRestoreVerification',
+  },
+  {
     id: 'runs',
     menuKey: BACKUP_RUNS_PATH,
     href: BACKUP_RUNS_PATH,
@@ -128,8 +138,18 @@ export function isBackupAreaPath(pathname: string | null | undefined): boolean {
     p === '/settings/backup' ||
     p === '/settings/backup-retention' ||
     p === '/admin/backup' ||
-    p.startsWith('/admin/backup/')
+    p.startsWith('/admin/backup/') ||
+    p === ADMIN_RESTORE_VERIFICATION_PATH ||
+    p.startsWith(`${ADMIN_RESTORE_VERIFICATION_PATH}/`)
   );
+}
+
+export function restoreVerificationDetailPath(
+  id: string,
+  base: typeof ADMIN_RESTORE_VERIFICATION_PATH | typeof BACKUP_RESTORE_VERIFICATION_PATH =
+    ADMIN_RESTORE_VERIFICATION_PATH
+): string {
+  return `${base}/${id}`;
 }
 
 /** @deprecated Prefer route pathname; kept for legacy `?tab=` deep links during redirect. */
@@ -155,6 +175,14 @@ export function backupPathFromPathname(pathname: string | null | undefined): str
   if (p === BACKUP_RETENTION_PATH || p === '/settings/backup-retention') return BACKUP_RETENTION_PATH;
   if (p === BACKUP_PITR_PATH) return BACKUP_PITR_PATH;
   if (p === BACKUP_RESTORE_HISTORY_PATH) return BACKUP_RESTORE_HISTORY_PATH;
+  if (
+    p === BACKUP_RESTORE_VERIFICATION_PATH ||
+    p.startsWith(`${BACKUP_RESTORE_VERIFICATION_PATH}/`) ||
+    p === ADMIN_RESTORE_VERIFICATION_PATH ||
+    p.startsWith(`${ADMIN_RESTORE_VERIFICATION_PATH}/`)
+  ) {
+    return BACKUP_RESTORE_VERIFICATION_PATH;
+  }
   if (p === BACKUP_RUNS_PATH) return BACKUP_RUNS_PATH;
   if (
     p === BACKUP_CONFIGURATION_PATH ||

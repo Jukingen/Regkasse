@@ -37,6 +37,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/invoices': PERMISSIONS.INVOICE_VIEW,
   '/orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   '/orders/online': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
+  '/orders/preorders': PERMISSIONS.ORDER_VIEW,
   /** Legacy alias → `/orders/online` */
   '/online-orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   '/payments': PERMISSIONS.PAYMENT_VIEW,
@@ -169,6 +170,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/backup/pitr': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-retention': PERMISSIONS.SETTINGS_VIEW,
   '/backup/restore-history': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/restore-verification': PERMISSIONS.SETTINGS_VIEW,
+  '/admin/restore-verification': PERMISSIONS.SETTINGS_VIEW,
   '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,

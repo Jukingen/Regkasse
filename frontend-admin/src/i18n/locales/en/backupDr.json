@@ -893,6 +893,16 @@
     "noEta": "No time estimate: no successful runs with measurable duration yet.",
     "etaDemotedLead": "Rough timing hint (not a promise):"
   },
+  "restoreProgress": {
+    "cardTitle": "Restore drill progress",
+    "idle": "No restore drill is running.",
+    "titleQueued": "Restore drill queued",
+    "titleRunning": "Restore drill in progress",
+    "titleSucceeded": "Restore drill finished",
+    "titleFailed": "Restore drill failed",
+    "estimatedRemaining": "Estimated time remaining: {{time}}",
+    "noEta": "No time estimate yet (no prior successful drill duration)."
+  },
   "download": {
     "titleLatestSuccess": "Download artifacts (latest run — API success status)",
     "titleLatestSuccessFake": "Test files from latest run (not a production backup)",
@@ -2155,10 +2165,96 @@
     "lastRunStored": "Last successful automation run (stored)",
     "lastScheduledRunLabel": "Latest scheduled backup run",
     "noRunsYet": "—",
+    "recentScheduledTitle": "Last 5 scheduled backup runs",
+    "recentScheduledWhen": "Requested",
+    "recentScheduledStatus": "Status",
+    "failureReason": "Failure reason",
     "runStatusSuffix": "(status {{status}})",
     "save": "Save",
     "saveSuccess": "Settings saved.",
     "saveError": "Could not save settings.",
     "loadError": "Could not load schedule settings."
+  },
+  "restoreVerificationPage": {
+    "pageTitle": "Restore verification",
+    "detailTitle": "Restore verification detail",
+    "pageSubtitle": "PASS/FAIL for isolated restore drills. Production is never overwritten. System dump drills are Super Admin only; Mandanten-Admin sees own tenant-strategy runs only.",
+    "empty": "No restore verification runs in this scope.",
+    "loadError": "Could not load restore verification runs.",
+    "openDetail": "Open",
+    "backToList": "Back to list",
+    "verifiedAt": "Verified at",
+    "failedChecks": "Failed checks: {{checks}}",
+    "columns": {
+      "date": "Date",
+      "backupId": "Backup ID",
+      "type": "Type",
+      "status": "Status",
+      "verdict": "PASS/FAIL",
+      "actions": "Actions"
+    },
+    "filters": {
+      "type": "Type",
+      "status": "Status",
+      "backupId": "Search backup ID",
+      "apply": "Apply"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "unknown": "Unknown"
+    },
+    "type": {
+      "manual": "Manual",
+      "scheduled": "Scheduled"
+    },
+    "verdict": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "pending": "PENDING"
+    },
+    "checks": {
+      "hash": "Hash verification",
+      "schema": "Schema verification",
+      "data": "Data verification",
+      "tse": "TSE chain verification",
+      "fiscal": "Fiscal SQL",
+      "unknown": "Check"
+    },
+    "checkResult": {
+      "passed": "PASSED",
+      "failed": "FAILED",
+      "skipped": "Skipped",
+      "unavailable": "Unavailable"
+    },
+    "detail": {
+      "summary": "Run summary",
+      "checksTitle": "Verification checks",
+      "check": "Check",
+      "result": "Result",
+      "detail": "Detail"
+    },
+    "rowCounts": {
+      "title": "Table row counts",
+      "id": "Check id",
+      "name": "Name",
+      "category": "Category",
+      "measured": "Measured",
+      "expected": "Min",
+      "status": "Status",
+      "empty": "No clone row counts were persisted for this drill."
+    },
+    "fiscal": {
+      "title": "Fiscal SQL result",
+      "unavailable": "RESULT UNAVAILABLE"
+    },
+    "export": {
+      "pdf": "Download PDF",
+      "csv": "Download CSV",
+      "ready": "Report downloaded.",
+      "failed": "Could not download the verification report."
+    }
   }
 }
