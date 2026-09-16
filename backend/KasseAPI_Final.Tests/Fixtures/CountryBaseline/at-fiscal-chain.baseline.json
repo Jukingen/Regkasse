@@ -1,0 +1,496 @@
+{
+  "schemaVersion": "regkasse.at-fiscal-chain-baseline.v1",
+  "description": "Austrian fiscal chain baseline captured before the country/tax/invoice layer exists. ES256 signature segments are masked because .NET ECDSA is non-deterministic; they are verified cryptographically instead of byte-compared.",
+  "fixedInputs": {
+    "kassenId": "KASSE-BASELINE-01",
+    "registerNumber": "KASSE-BASELINE-01",
+    "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+    "businessDayUtc": "2026-01-12",
+    "rksvSuiteId": "R1-AT1"
+  },
+  "vatCalculation": [
+    {
+      "case": "standard-20-single",
+      "unitGross": "2.50",
+      "quantity": 1,
+      "vatRatePercent": "20",
+      "lineNet": "2.08",
+      "lineTax": "0.42",
+      "lineGross": "2.50",
+      "receiptTotalNet": "2.08",
+      "receiptTotalVat": "0.42",
+      "receiptTotalGross": "2.50",
+      "breakdown": [
+        {
+          "vatRatePercent": "20.0",
+          "netAmount": "2.08",
+          "vatAmount": "0.42",
+          "grossAmount": "2.50"
+        }
+      ]
+    },
+    {
+      "case": "standard-20-qty3",
+      "unitGross": "2.50",
+      "quantity": 3,
+      "vatRatePercent": "20",
+      "lineNet": "6.25",
+      "lineTax": "1.25",
+      "lineGross": "7.50",
+      "receiptTotalNet": "6.25",
+      "receiptTotalVat": "1.25",
+      "receiptTotalGross": "7.50",
+      "breakdown": [
+        {
+          "vatRatePercent": "20.0",
+          "netAmount": "6.25",
+          "vatAmount": "1.25",
+          "grossAmount": "7.50"
+        }
+      ]
+    },
+    {
+      "case": "reduced-10-single",
+      "unitGross": "6.90",
+      "quantity": 1,
+      "vatRatePercent": "10",
+      "lineNet": "6.27",
+      "lineTax": "0.63",
+      "lineGross": "6.90",
+      "receiptTotalNet": "6.27",
+      "receiptTotalVat": "0.63",
+      "receiptTotalGross": "6.90",
+      "breakdown": [
+        {
+          "vatRatePercent": "10.0",
+          "netAmount": "6.27",
+          "vatAmount": "0.63",
+          "grossAmount": "6.90"
+        }
+      ]
+    },
+    {
+      "case": "reduced-10-qty2",
+      "unitGross": "6.90",
+      "quantity": 2,
+      "vatRatePercent": "10",
+      "lineNet": "12.55",
+      "lineTax": "1.25",
+      "lineGross": "13.80",
+      "receiptTotalNet": "12.55",
+      "receiptTotalVat": "1.25",
+      "receiptTotalGross": "13.80",
+      "breakdown": [
+        {
+          "vatRatePercent": "10.0",
+          "netAmount": "12.55",
+          "vatAmount": "1.25",
+          "grossAmount": "13.80"
+        }
+      ]
+    },
+    {
+      "case": "special-13-single",
+      "unitGross": "113.00",
+      "quantity": 1,
+      "vatRatePercent": "13",
+      "lineNet": "100",
+      "lineTax": "13.00",
+      "lineGross": "113.00",
+      "receiptTotalNet": "100",
+      "receiptTotalVat": "13.00",
+      "receiptTotalGross": "113.00",
+      "breakdown": [
+        {
+          "vatRatePercent": "13.0",
+          "netAmount": "100",
+          "vatAmount": "13.00",
+          "grossAmount": "113.00"
+        }
+      ]
+    },
+    {
+      "case": "zero-rate-single",
+      "unitGross": "4.00",
+      "quantity": 1,
+      "vatRatePercent": "0",
+      "lineNet": "4.00",
+      "lineTax": "0.00",
+      "lineGross": "4.00",
+      "receiptTotalNet": "4.00",
+      "receiptTotalVat": "0.00",
+      "receiptTotalGross": "4.00",
+      "breakdown": [
+        {
+          "vatRatePercent": "0.0",
+          "netAmount": "4.00",
+          "vatAmount": "0.00",
+          "grossAmount": "4.00"
+        }
+      ]
+    },
+    {
+      "case": "rounding-edge-099-qty3",
+      "unitGross": "0.99",
+      "quantity": 3,
+      "vatRatePercent": "20",
+      "lineNet": "2.48",
+      "lineTax": "0.49",
+      "lineGross": "2.97",
+      "receiptTotalNet": "2.48",
+      "receiptTotalVat": "0.49",
+      "receiptTotalGross": "2.97",
+      "breakdown": [
+        {
+          "vatRatePercent": "20.0",
+          "netAmount": "2.48",
+          "vatAmount": "0.49",
+          "grossAmount": "2.97"
+        }
+      ]
+    },
+    {
+      "case": "rounding-edge-001",
+      "unitGross": "0.01",
+      "quantity": 1,
+      "vatRatePercent": "20",
+      "lineNet": "0.01",
+      "lineTax": "0.00",
+      "lineGross": "0.01",
+      "receiptTotalNet": "0.01",
+      "receiptTotalVat": "0.00",
+      "receiptTotalGross": "0.01",
+      "breakdown": [
+        {
+          "vatRatePercent": "20.0",
+          "netAmount": "0.01",
+          "vatAmount": "0.00",
+          "grossAmount": "0.01"
+        }
+      ]
+    },
+    {
+      "case": "mixed-basket-20-10-13-0",
+      "receiptTotalNet": "114.44",
+      "receiptTotalVat": "14.46",
+      "receiptTotalGross": "128.90",
+      "breakdown": [
+        {
+          "vatRatePercent": "20.0",
+          "netAmount": "4.17",
+          "vatAmount": "0.83",
+          "grossAmount": "5.00"
+        },
+        {
+          "vatRatePercent": "10.0",
+          "netAmount": "6.27",
+          "vatAmount": "0.63",
+          "grossAmount": "6.90"
+        },
+        {
+          "vatRatePercent": "13.0",
+          "netAmount": "100",
+          "vatAmount": "13.00",
+          "grossAmount": "113.00"
+        },
+        {
+          "vatRatePercent": "0.0",
+          "netAmount": "4.00",
+          "vatAmount": "0.00",
+          "grossAmount": "4.00"
+        }
+      ]
+    }
+  ],
+  "rksvTaxSetMapping": [
+    {
+      "case": "standard-only",
+      "taxDetailsJson": "{\u00221\u0022:5.00}",
+      "totalAmount": "30.00",
+      "normal20": "30.00",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "30.00",
+      "totalGrossCents": 3000
+    },
+    {
+      "case": "reduced-only",
+      "taxDetailsJson": "{\u00222\u0022:0.63}",
+      "totalAmount": "6.90",
+      "normal20": "0",
+      "ermaessigt1_10": "6.93",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "6.93",
+      "totalGrossCents": 693
+    },
+    {
+      "case": "special-only",
+      "taxDetailsJson": "{\u00223\u0022:13.00}",
+      "totalAmount": "113.00",
+      "normal20": "0",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "113.00",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "113.00",
+      "totalGrossCents": 11300
+    },
+    {
+      "case": "zero-rate-only",
+      "taxDetailsJson": "{\u00224\u0022:0.00}",
+      "totalAmount": "4.00",
+      "normal20": "0",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "0",
+      "totalGrossCents": 0
+    },
+    {
+      "case": "reduced-new-4_9",
+      "taxDetailsJson": "{\u00225\u0022:0.49}",
+      "totalAmount": "10.49",
+      "normal20": "0",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "10.49",
+      "totalGross": "10.49",
+      "totalGrossCents": 1049
+    },
+    {
+      "case": "mixed-standard-reduced",
+      "taxDetailsJson": "{\u00221\u0022:5.00,\u00222\u0022:0.63}",
+      "totalAmount": "36.90",
+      "normal20": "30.00",
+      "ermaessigt1_10": "6.93",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "36.93",
+      "totalGrossCents": 3693
+    },
+    {
+      "case": "empty-object-falls-back-to-normal",
+      "taxDetailsJson": "{}",
+      "totalAmount": "42.00",
+      "normal20": "42.00",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "42.00",
+      "totalGrossCents": 4200
+    },
+    {
+      "case": "null-json-falls-back-to-normal",
+      "taxDetailsJson": null,
+      "totalAmount": "42.00",
+      "normal20": "42.00",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "42.00",
+      "totalGrossCents": 4200
+    },
+    {
+      "case": "malformed-json-falls-back-to-normal",
+      "taxDetailsJson": "not-json",
+      "totalAmount": "42.00",
+      "normal20": "42.00",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "42.00",
+      "totalGrossCents": 4200
+    },
+    {
+      "case": "zero-total-stays-zero",
+      "taxDetailsJson": "{}",
+      "totalAmount": "0.00",
+      "normal20": "0",
+      "ermaessigt1_10": "0",
+      "ermaessigt2_13": "0",
+      "null0": "0",
+      "besonders": "0",
+      "totalGross": "0",
+      "totalGrossCents": 0
+    }
+  ],
+  "fiscalNumbering": [
+    {
+      "registerNumber": "KASSE-BASELINE-01",
+      "sequenceDate": "2026-01-12",
+      "sequence": 1,
+      "belegNr": "AT-KASSE-BASELINE-01-20260112-1"
+    },
+    {
+      "registerNumber": "KASSE-BASELINE-01",
+      "sequenceDate": "2026-01-12",
+      "sequence": 42,
+      "belegNr": "AT-KASSE-BASELINE-01-20260112-42"
+    },
+    {
+      "registerNumber": "KASSE-BASELINE-01",
+      "sequenceDate": "2026-01-12",
+      "sequence": 9999,
+      "belegNr": "AT-KASSE-BASELINE-01-20260112-9999"
+    },
+    {
+      "registerNumber": "KASSE-01",
+      "sequenceDate": "2026-12-31",
+      "sequence": 1,
+      "belegNr": "AT-KASSE-01-20261231-1"
+    },
+    {
+      "registerNumber": "KASSE-01",
+      "sequenceDate": "2027-01-01",
+      "sequence": 1,
+      "belegNr": "AT-KASSE-01-20270101-1"
+    }
+  ],
+  "billingNumbering": [
+    {
+      "year": 2026,
+      "month": 1,
+      "sequence": 1,
+      "prefix": "RE202601",
+      "invoiceNumber": "RE2026011"
+    },
+    {
+      "year": 2026,
+      "month": 8,
+      "sequence": 41,
+      "prefix": "RE202608",
+      "invoiceNumber": "RE20260841"
+    },
+    {
+      "year": 2026,
+      "month": 12,
+      "sequence": 999,
+      "prefix": "RE202612",
+      "invoiceNumber": "RE202612999"
+    },
+    {
+      "year": 2027,
+      "month": 1,
+      "sequence": 1,
+      "prefix": "RE202701",
+      "invoiceNumber": "RE2027011"
+    }
+  ],
+  "signatureChain": [
+    {
+      "step": "Startbeleg",
+      "belegnummer": "AT-KASSE-BASELINE-01-20260112-1",
+      "belegDatumUhrzeitLocal": "2026-01-12T08:00:00",
+      "taxSets": {
+        "normal20": "0",
+        "ermaessigt1_10": "0",
+        "ermaessigt2_13": "0",
+        "null0": "0",
+        "besonders": "0"
+      },
+      "turnoverCounterCents": 0,
+      "encryptedTurnoverCounterAes256Icm": "7oEfCPylFyc=",
+      "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+      "frozenPredecessorJws": null,
+      "sigVorigerBeleg": "Y9TTmPj\u002BsHs=",
+      "machineCode": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-1_2026-01-12T08:00:00_0,00_0,00_0,00_0,00_0,00_7oEfCPylFyc=_BASELINE-AT-CERT-0001_Y9TTmPj\u002BsHs=",
+      "jwsSigningInput": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0xXzIwMjYtMDEtMTJUMDg6MDA6MDBfMCwwMF8wLDAwXzAsMDBfMCwwMF8wLDAwXzdvRWZDUHlsRnljPV9CQVNFTElORS1BVC1DRVJULTAwMDFfWTlUVG1QaitzSHM9",
+      "qrWireFormat": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-1_2026-01-12T08:00:00_0,00_0,00_0,00_0,00_0,00_7oEfCPylFyc=_BASELINE-AT-CERT-0001_Y9TTmPj\u002BsHs=_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0xXzIwMjYtMDEtMTJUMDg6MDA6MDBfMCwwMF8wLDAwXzAsMDBfMCwwMF8wLDAwXzdvRWZDUHlsRnljPV9CQVNFTElORS1BVC1DRVJULTAwMDFfWTlUVG1QaitzSHM9.\u003CES256-SIGNATURE\u003E",
+      "finanzOnlineBeleg": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-1_2026-01-12T08:00:00_0,00_0,00_0,00_0,00_0,00_7oEfCPylFyc=_BASELINE-AT-CERT-0001_Y9TTmPj\u002BsHs="
+    },
+    {
+      "step": "Sale-Standard20",
+      "belegnummer": "AT-KASSE-BASELINE-01-20260112-2",
+      "belegDatumUhrzeitLocal": "2026-01-12T09:15:00",
+      "taxSets": {
+        "normal20": "25.00",
+        "ermaessigt1_10": "0",
+        "ermaessigt2_13": "0",
+        "null0": "0",
+        "besonders": "0"
+      },
+      "turnoverCounterCents": 2500,
+      "encryptedTurnoverCounterAes256Icm": "iraxNT1MdsU=",
+      "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+      "frozenPredecessorJws": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORS1QUkVERUNFU1NPUg.RlJPWkVOLVBSRURFQ0VTU09SLVNJR05BVFVSRS1CQVNFTElORS1PTkxZ1",
+      "sigVorigerBeleg": "sgePbpR8Opc=",
+      "machineCode": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-2_2026-01-12T09:15:00_25,00_0,00_0,00_0,00_0,00_iraxNT1MdsU=_BASELINE-AT-CERT-0001_sgePbpR8Opc=",
+      "jwsSigningInput": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0yXzIwMjYtMDEtMTJUMDk6MTU6MDBfMjUsMDBfMCwwMF8wLDAwXzAsMDBfMCwwMF9pcmF4TlQxTWRzVT1fQkFTRUxJTkUtQVQtQ0VSVC0wMDAxX3NnZVBicFI4T3BjPQ",
+      "qrWireFormat": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-2_2026-01-12T09:15:00_25,00_0,00_0,00_0,00_0,00_iraxNT1MdsU=_BASELINE-AT-CERT-0001_sgePbpR8Opc=_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0yXzIwMjYtMDEtMTJUMDk6MTU6MDBfMjUsMDBfMCwwMF8wLDAwXzAsMDBfMCwwMF9pcmF4TlQxTWRzVT1fQkFTRUxJTkUtQVQtQ0VSVC0wMDAxX3NnZVBicFI4T3BjPQ.\u003CES256-SIGNATURE\u003E",
+      "finanzOnlineBeleg": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-2_2026-01-12T09:15:00_25,00_0,00_0,00_0,00_0,00_iraxNT1MdsU=_BASELINE-AT-CERT-0001_sgePbpR8Opc="
+    },
+    {
+      "step": "Sale-Mixed20And10",
+      "belegnummer": "AT-KASSE-BASELINE-01-20260112-3",
+      "belegDatumUhrzeitLocal": "2026-01-12T10:30:00",
+      "taxSets": {
+        "normal20": "2.50",
+        "ermaessigt1_10": "6.90",
+        "ermaessigt2_13": "0",
+        "null0": "0",
+        "besonders": "0"
+      },
+      "turnoverCounterCents": 3440,
+      "encryptedTurnoverCounterAes256Icm": "s0EIKUpHUW0=",
+      "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+      "frozenPredecessorJws": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORS1QUkVERUNFU1NPUg.RlJPWkVOLVBSRURFQ0VTU09SLVNJR05BVFVSRS1CQVNFTElORS1PTkxZ2",
+      "sigVorigerBeleg": "5k4x\u002BB8/2qU=",
+      "machineCode": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-3_2026-01-12T10:30:00_2,50_6,90_0,00_0,00_0,00_s0EIKUpHUW0=_BASELINE-AT-CERT-0001_5k4x\u002BB8/2qU=",
+      "jwsSigningInput": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0zXzIwMjYtMDEtMTJUMTA6MzA6MDBfMiw1MF82LDkwXzAsMDBfMCwwMF8wLDAwX3MwRUlLVXBIVVcwPV9CQVNFTElORS1BVC1DRVJULTAwMDFfNWs0eCtCOC8ycVU9",
+      "qrWireFormat": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-3_2026-01-12T10:30:00_2,50_6,90_0,00_0,00_0,00_s0EIKUpHUW0=_BASELINE-AT-CERT-0001_5k4x\u002BB8/2qU=_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi0zXzIwMjYtMDEtMTJUMTA6MzA6MDBfMiw1MF82LDkwXzAsMDBfMCwwMF8wLDAwX3MwRUlLVXBIVVcwPV9CQVNFTElORS1BVC1DRVJULTAwMDFfNWs0eCtCOC8ycVU9.\u003CES256-SIGNATURE\u003E",
+      "finanzOnlineBeleg": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-3_2026-01-12T10:30:00_2,50_6,90_0,00_0,00_0,00_s0EIKUpHUW0=_BASELINE-AT-CERT-0001_5k4x\u002BB8/2qU="
+    },
+    {
+      "step": "Sale-Special13",
+      "belegnummer": "AT-KASSE-BASELINE-01-20260112-4",
+      "belegDatumUhrzeitLocal": "2026-01-12T12:00:00",
+      "taxSets": {
+        "normal20": "0",
+        "ermaessigt1_10": "0",
+        "ermaessigt2_13": "113.00",
+        "null0": "0",
+        "besonders": "0"
+      },
+      "turnoverCounterCents": 14740,
+      "encryptedTurnoverCounterAes256Icm": "FbpfLabgBrA=",
+      "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+      "frozenPredecessorJws": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORS1QUkVERUNFU1NPUg.RlJPWkVOLVBSRURFQ0VTU09SLVNJR05BVFVSRS1CQVNFTElORS1PTkxZ3",
+      "sigVorigerBeleg": "en5FXFliIWE=",
+      "machineCode": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-4_2026-01-12T12:00:00_0,00_0,00_113,00_0,00_0,00_FbpfLabgBrA=_BASELINE-AT-CERT-0001_en5FXFliIWE=",
+      "jwsSigningInput": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi00XzIwMjYtMDEtMTJUMTI6MDA6MDBfMCwwMF8wLDAwXzExMywwMF8wLDAwXzAsMDBfRmJwZkxhYmdCckE9X0JBU0VMSU5FLUFULUNFUlQtMDAwMV9lbjVGWEZsaUlXRT0",
+      "qrWireFormat": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-4_2026-01-12T12:00:00_0,00_0,00_113,00_0,00_0,00_FbpfLabgBrA=_BASELINE-AT-CERT-0001_en5FXFliIWE=_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi00XzIwMjYtMDEtMTJUMTI6MDA6MDBfMCwwMF8wLDAwXzExMywwMF8wLDAwXzAsMDBfRmJwZkxhYmdCckE9X0JBU0VMSU5FLUFULUNFUlQtMDAwMV9lbjVGWEZsaUlXRT0.\u003CES256-SIGNATURE\u003E",
+      "finanzOnlineBeleg": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-4_2026-01-12T12:00:00_0,00_0,00_113,00_0,00_0,00_FbpfLabgBrA=_BASELINE-AT-CERT-0001_en5FXFliIWE="
+    },
+    {
+      "step": "Nullbeleg",
+      "belegnummer": "AT-KASSE-BASELINE-01-20260112-5",
+      "belegDatumUhrzeitLocal": "2026-01-12T19:00:00",
+      "taxSets": {
+        "normal20": "0",
+        "ermaessigt1_10": "0",
+        "ermaessigt2_13": "0",
+        "null0": "0",
+        "besonders": "0"
+      },
+      "turnoverCounterCents": 14740,
+      "encryptedTurnoverCounterAes256Icm": "rWcgMAjPHbw=",
+      "certificateSerialNumber": "BASELINE-AT-CERT-0001",
+      "frozenPredecessorJws": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORS1QUkVERUNFU1NPUg.RlJPWkVOLVBSRURFQ0VTU09SLVNJR05BVFVSRS1CQVNFTElORS1PTkxZ4",
+      "sigVorigerBeleg": "uzuctGfI6vs=",
+      "machineCode": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-5_2026-01-12T19:00:00_0,00_0,00_0,00_0,00_0,00_rWcgMAjPHbw=_BASELINE-AT-CERT-0001_uzuctGfI6vs=",
+      "jwsSigningInput": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi01XzIwMjYtMDEtMTJUMTk6MDA6MDBfMCwwMF8wLDAwXzAsMDBfMCwwMF8wLDAwX3JXY2dNQWpQSGJ3PV9CQVNFTElORS1BVC1DRVJULTAwMDFfdXp1Y3RHZkk2dnM9",
+      "qrWireFormat": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-5_2026-01-12T19:00:00_0,00_0,00_0,00_0,00_0,00_rWcgMAjPHbw=_BASELINE-AT-CERT-0001_uzuctGfI6vs=_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9LQVNTRS1CQVNFTElORS0wMV9BVC1LQVNTRS1CQVNFTElORS0wMS0yMDI2MDExMi01XzIwMjYtMDEtMTJUMTk6MDA6MDBfMCwwMF8wLDAwXzAsMDBfMCwwMF8wLDAwX3JXY2dNQWpQSGJ3PV9CQVNFTElORS1BVC1DRVJULTAwMDFfdXp1Y3RHZkk2dnM9.\u003CES256-SIGNATURE\u003E",
+      "finanzOnlineBeleg": "_R1-AT1_KASSE-BASELINE-01_AT-KASSE-BASELINE-01-20260112-5_2026-01-12T19:00:00_0,00_0,00_0,00_0,00_0,00_rWcgMAjPHbw=_BASELINE-AT-CERT-0001_uzuctGfI6vs="
+    }
+  ]
+}

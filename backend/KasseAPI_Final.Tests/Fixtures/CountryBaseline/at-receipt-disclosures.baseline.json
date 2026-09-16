@@ -1,0 +1,125 @@
+{
+  "receiptId": "\u003Cvolatile\u003E",
+  "paymentId": "\u003Cvolatile\u003E",
+  "cashRegisterId": "\u003Cvolatile\u003E",
+  "originalPaymentId": null,
+  "originalSaleReceiptId": null,
+  "fiscalTraceKind": null,
+  "rksvSpecialReceiptKind": null,
+  "rksvNullbelegActsAsJahresbeleg": false,
+  "rksvFinanzOnlineSubmission": null,
+  "hasOfflineOrigin": false,
+  "offlineTransactionId": null,
+  "offlineCreatedAtUtc": null,
+  "fiscalizedAtUtc": null,
+  "clockDriftWarning": false,
+  "sequenceGapDetected": false,
+  "sequenceDuplicateDetected": false,
+  "receiptNumber": "AT-KASSE-BASELINE-01-20260112-2",
+  "date": "2026-01-12T08:15:00Z",
+  "receiptPersistedAtUtc": "\u003Cvolatile\u003E",
+  "cashierId": "cashier-baseline",
+  "cashierDisplayName": null,
+  "shiftId": null,
+  "shiftNumber": null,
+  "tableNumber": 3,
+  "kassenID": "KASSE-BASELINE-01",
+  "displayRegisterNumber": "KASSE-BASELINE-01",
+  "branchName": "Filiale Wien",
+  "terminalNumber": null,
+  "thankYouMessage": "Vielen Dank f\u00FCr Ihren Einkauf!",
+  "company": {
+    "name": "Baseline Gastro GmbH",
+    "address": "Baselinegasse 1, 1010 Wien",
+    "taxNumber": "ATU12345678",
+    "description": "Baseline Betrieb"
+  },
+  "header": {
+    "shopName": "Baseline Gastro GmbH",
+    "address": "Baselinegasse 1, 1010 Wien"
+  },
+  "items": [
+    {
+      "itemId": "\u003Cvolatile\u003E",
+      "name": "Cola 0,33",
+      "quantity": 2,
+      "unitPrice": 2.50,
+      "totalPrice": 5.00,
+      "lineTotalNet": 4.17,
+      "lineTotalGross": 5.00,
+      "taxRate": 20.00,
+      "vatRate": 0.20,
+      "vatAmount": 0.83,
+      "categoryName": null,
+      "parentItemId": null,
+      "isModifierLine": false
+    },
+    {
+      "itemId": "\u003Cvolatile\u003E",
+      "name": "D\u00F6ner Teller",
+      "quantity": 1,
+      "unitPrice": 6.90,
+      "totalPrice": 6.90,
+      "lineTotalNet": 6.27,
+      "lineTotalGross": 6.90,
+      "taxRate": 10.00,
+      "vatRate": 0.10,
+      "vatAmount": 0.63,
+      "categoryName": null,
+      "parentItemId": null,
+      "isModifierLine": false
+    }
+  ],
+  "subTotal": 10.44,
+  "netTotal": 10.44,
+  "taxAmount": 1.46,
+  "grandTotal": 11.90,
+  "totals": {
+    "totalNet": 10.44,
+    "totalVat": 1.46,
+    "totalGross": 11.90
+  },
+  "taxRates": [
+    {
+      "taxType": 2,
+      "rate": 10.00,
+      "vatRate": 0.10,
+      "netAmount": 6.27,
+      "taxAmount": 0.63,
+      "grossAmount": 6.90
+    },
+    {
+      "taxType": 1,
+      "rate": 20.00,
+      "vatRate": 0.20,
+      "netAmount": 4.17,
+      "taxAmount": 0.83,
+      "grossAmount": 5.00
+    }
+  ],
+  "payments": [
+    {
+      "method": "Cash",
+      "amount": 11.90,
+      "tendered": 11.90,
+      "change": 0
+    }
+  ],
+  "signature": {
+    "algorithm": "ES256",
+    "serialNumber": "BASELINE-AT-CERT-0001",
+    "timestamp": "2026-01-12T08:15:00",
+    "prevSignatureValue": "PREV-BASELINE-SIGNATURE",
+    "signatureValue": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORQ.QkFTRUxJTkVfU0lHTkFUVVJF",
+    "qrData": "_R1-AT1_BASELINE_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORQ.QkFTRUxJTkVfU0lHTkFUVVJF"
+  },
+  "footerText": "Vielen Dank f\u00FCr Ihren Einkauf!",
+  "rksvFooterLabel": "RKSV-konform",
+  "showDemoLabel": false,
+  "isPreorder": false,
+  "preorderNumber": null,
+  "preorderPaidAmount": null,
+  "preorderRemainingAmount": null,
+  "preorderPickupWeeks": null,
+  "preorderPolicyText": null
+}
