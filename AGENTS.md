@@ -550,7 +550,7 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 | F1 | Controller + service + DTO skeleton | Done |
 | F2 | Certificate grouping + CA chain | Done |
 | F3 | Special receipts + daily closings | Done |
-| F4 | Prüftool test script (`scripts/verify-rksv-dep-export.ps1`) | Done |
+| F4 | Prüftool test script (`scripts/rksv/verify-rksv-dep-export.ps1`) | Done |
 | F5 | Full RKSV §9 `BelegdatenPayload` Prüftool compliance | Done |
 
 **Key files:** `AdminRksvDepExportController`, `RksvDepExportService`, `RksvDepExportDtos`, `ITseKeyProvider`, `TseCertificateChainBuilder`, `BelegdatenPayload`, `BelegdatenPayloadBuilder`, `RksvMachineCodeBuilder`, `SignaturePipeline`, `TseService`
@@ -576,7 +576,7 @@ cd backend && dotnet test --filter "RksvDepExportServiceTests"
 ```
 
 ```powershell
-.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
 ```
 
 Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.

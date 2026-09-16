@@ -13,7 +13,7 @@ This folder holds **local-only** BMF verification JARs and **committed** JSON fi
 Regenerate fixtures:
 
 ```powershell
-.\scripts\generate-dep-export-fixtures.ps1
+.\scripts\rksv\generate-dep-export-fixtures.ps1
 ```
 
 ## Not committed (`.gitignore`)
@@ -29,7 +29,7 @@ Regenerate fixtures:
 Obtain JARs via the official BMF release (recommended):
 
 ```powershell
-pwsh ./scripts/ensure-bmf-prueftool.ps1
+pwsh ./scripts/rksv/ensure-bmf-prueftool.ps1
 ```
 
 Source: [Prüftool V1.1.1](https://github.com/BMF-RKSV-Technik/at-registrierkassen-mustercode/releases/tag/V1.1.1) (`regkassen-verification-1.1.1.zip`, SHA256-pinned in the script). Manual place:
@@ -42,7 +42,7 @@ Source: [Prüftool V1.1.1](https://github.com/BMF-RKSV-Technik/at-registrierkass
 Java 8 cannot decrypt AES-256 turnover counters; use JDK 17+.
 
 ```powershell
-.\scripts\verify-rksv-dep-export.ps1 -UseFixtures
+.\scripts\rksv\verify-rksv-dep-export.ps1 -UseFixtures
 ```
 
 CI: `.github/workflows/dep-prueftool.yml` (fixture script + `Category=DepPrueftool` seeded export smoke).

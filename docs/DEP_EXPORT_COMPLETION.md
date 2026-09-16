@@ -24,7 +24,7 @@ All 5 phases completed:
 | DTOs | `backend/Models/Export/RksvDepExportDtos.cs` |
 | RKSV §9 signing | `backend/Tse/BelegdatenPayload.cs`, `BelegdatenPayloadBuilder.cs`, `RksvMachineCodeBuilder.cs`, `SignaturePipeline.cs` |
 | TSE integration | `backend/Services/TseService.cs`, `backend/Tse/ITseKeyProvider.cs` |
-| Prüftool script | `scripts/verify-rksv-dep-export.ps1` |
+| Prüftool script | `scripts/rksv/verify-rksv-dep-export.ps1` |
 | Unit tests | `backend/KasseAPI_Final.Tests/RksvDepExportServiceTests.cs`, `BelegdatenPayloadTests.cs` |
 
 ### F5 — RKSV §9 fields (signing + Prüftool)
@@ -75,10 +75,10 @@ dotnet test --filter "BelegdatenPayloadTests"
 Requires JDK 17+ on PATH and `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.
 
 ```powershell
-.\scripts\verify-rksv-dep-export.ps1 -UseFixtures
+.\scripts\rksv\verify-rksv-dep-export.ps1 -UseFixtures
 ```
 
-Committed fixtures: `backend/Tests/fixtures/prueftool/` (`dep-export.json`, `crypto-material.json`). Regenerate: `.\scripts\generate-dep-export-fixtures.ps1`.
+Committed fixtures: `backend/Tests/fixtures/prueftool/` (`dep-export.json`, `crypto-material.json`). Regenerate: `.\scripts\rksv\generate-dep-export-fixtures.ps1` (`REGKASSE_UPDATE_BASELINE=1`).
 
 Expected: exit code **0** = PASS.
 

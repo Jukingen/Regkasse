@@ -188,12 +188,12 @@ node scripts/seed-test-data.mjs --help
 
 | Script | Purpose |
 |--------|---------|
-| [`ensure-bmf-prueftool.ps1`](ensure-bmf-prueftool.ps1) | Download official BMF Prüftool V1.1.1 ZIP into `backend/Tests/` |
-| [`verify-rksv-dep-export.ps1`](verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP format verify (JDK + jar) |
-| [`generate-dep-export-fixtures.ps1`](generate-dep-export-fixtures.ps1) (+ `.bat`) | Generate Prüftool fixtures |
-| [`verify-rksv-receipt-qr.ps1`](verify-rksv-receipt-qr.ps1) | Receipt QR verify |
-| [`run-verify-dep-export-complete.ps1`](run-verify-dep-export-complete.ps1) (+ `.bat`) | Combined DEP runner |
-| [`run_fiscal_go_live_validation.sh`](run_fiscal_go_live_validation.sh) / [`.ps1`](run_fiscal_go_live_validation.ps1) | Fiscal SQL gate — CI `fiscal-validation.yml` |
+| [`rksv/ensure-bmf-prueftool.ps1`](rksv/ensure-bmf-prueftool.ps1) | Download official BMF Prüftool V1.1.1 ZIP into `backend/Tests/` |
+| [`rksv/verify-rksv-dep-export.ps1`](rksv/verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP format verify (JDK + jar) |
+| [`rksv/generate-dep-export-fixtures.ps1`](rksv/generate-dep-export-fixtures.ps1) (+ `.bat`) | Generate Prüftool fixtures (`REGKASSE_UPDATE_BASELINE=1`) |
+| [`rksv/verify-rksv-receipt-qr.ps1`](rksv/verify-rksv-receipt-qr.ps1) | Receipt QR verify |
+| [`rksv/run-verify-dep-export-complete.ps1`](rksv/run-verify-dep-export-complete.ps1) (+ `.bat`) | Combined DEP runner |
+| [`rksv/run_fiscal_go_live_validation.sh`](rksv/run_fiscal_go_live_validation.sh) / [`.ps1`](rksv/run_fiscal_go_live_validation.ps1) | Fiscal SQL gate — CI `fiscal-validation.yml` |
 | [`sql/fiscal_go_live_validation.sql`](sql/fiscal_go_live_validation.sql) | Queries for fiscal go-live |
 
 Requires JDK 17+ for Prüftool scripts. See `docs/DEP_EXPORT_DEVELOPMENT.md`, `AGENTS.md`.

@@ -629,13 +629,13 @@ Done!
 ### generate-dep-export.bat
 
 **Path:** [`./scripts/rksv/generate-dep-export.bat`](../scripts/rksv/generate-dep-export.bat)  
-**PowerShell:** [`./scripts/generate-dep-export-fixtures.ps1`](../scripts/generate-dep-export-fixtures.ps1)
+**PowerShell:** [`./scripts/rksv/generate-dep-export-fixtures.ps1`](../scripts/rksv/generate-dep-export-fixtures.ps1)
 
 **Purpose:** Generates DEP (Datenerfassungsprotokoll) export **test fixtures** for BMF Prüftool (`dep-export.json`, `crypto-material.json`, `qr-code-rep.json`).
 
 **When to use:** When testing / verifying RKSV DEP export functionality (after format changes, before Prüftool).
 
-**Prerequisites:** .NET SDK 10+. Runs `dotnet test --filter RksvDepPrueftoolFixtureTests` (does **not** require a live API).
+**Prerequisites:** .NET SDK 10+. Runs `dotnet test --filter RksvDepPrueftoolFixtureTests` (does **not** require a live API). The script sets `REGKASSE_UPDATE_BASELINE=1` so the committed JSON files under `backend/Tests/fixtures/prueftool/` are rewritten. A plain test run without that switch leaves them untouched.
 
 **Example:**
 
