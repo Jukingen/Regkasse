@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { UpdateCompanySettingsRequestBusinessHours } from './updateCompanySettingsRequestBusinessHours';
+import type { VatRegime } from './vatRegime';
 
 export interface UpdateCompanySettingsRequest {
   /**
@@ -28,6 +29,12 @@ export interface UpdateCompanySettingsRequest {
    * @nullable
    */
   bankSwiftCode?: string | null;
+  /**
+   * @maxLength 2
+   * @nullable
+   * @pattern ^([A-Za-z]{2})?$
+   */
+  billingCountry?: string | null;
   businessHours: UpdateCompanySettingsRequestBusinessHours;
   /**
    * @minLength 1
@@ -179,6 +186,8 @@ export interface UpdateCompanySettingsRequest {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  /** @nullable */
+  taxExempt?: boolean | null;
   /**
    * @maxLength 500
    * @nullable
@@ -188,4 +197,5 @@ export interface UpdateCompanySettingsRequest {
   tseAutoConnect?: boolean | null;
   /** @nullable */
   tseConnectionTimeout?: number | null;
+  vatRegime?: VatRegime;
 }

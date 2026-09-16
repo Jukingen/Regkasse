@@ -89,20 +89,28 @@ import type {
   AuditRetentionInfoResponse,
   AuthenticateFonRequest,
   BackupArtifactImportResponseDto,
+  BackupChainResponseDto,
   BackupChecksumVerifyResponseDto,
   BackupComplianceStatusResponseDto,
   BackupContentValidationDto,
   BackupDashboardHealthResponseDto,
   BackupDashboardStatsResponseDto,
+  BackupDownloadHistoryResponseDto,
   BackupExecutionModePutRequestDto,
   BackupExecutionModeResponseDto,
   BackupHistoryListResponse,
   BackupHistoryResponse,
   BackupHistoryResponseDto,
   BackupLatestStatusResponseDto,
+  BackupLegalHoldRequestDto,
   BackupListItemResponseDto,
+  BackupManualVerifyResponseDto,
+  BackupMoveToColdResponseDto,
   BackupRecoverabilitySummaryResponseDto,
   BackupResult,
+  BackupRetentionPolicyPutRequestDto,
+  BackupRetentionPolicyResponseDto,
+  BackupRetentionStatusDto,
   BackupRunResponseDto,
   BackupScheduleStatusResponseDto,
   BackupSettingsPutRequestDto,
@@ -110,6 +118,7 @@ import type {
   BackupStorageCostResponseDto,
   BackupTriggerRequestDto,
   BackupTriggerResponseDto,
+  BackupTriggerResult,
   BackupVerificationReportDto,
   BackupVerificationResponseDto,
   BenefitAssignment,
@@ -131,6 +140,8 @@ import type {
   CancelPaymentRequest,
   CancellationResponse,
   CashRegisterDto,
+  CashRegisterOpenRequestDto,
+  CashRegisterOpenRequestMutationResult,
   CashRegisterTseHealthDto,
   CategoryDemoResetResultDto,
   CategoryDto,
@@ -290,6 +301,8 @@ import type {
   GetApiAdminAuditPermissionsParams,
   GetApiAdminAuditPermissionsReportParams,
   GetApiAdminAuditTenantTenantIdParams,
+  GetApiAdminBackupPitrChainParams,
+  GetApiAdminBackupRunsIdDownloadHistoryParams,
   GetApiAdminBackupRunsParams,
   GetApiAdminBillingAuditParams,
   GetApiAdminBillingBackupHistoryParams,
@@ -299,6 +312,7 @@ import type {
   GetApiAdminBillingStatsParams,
   GetApiAdminBillingTenantInvoicesParams,
   GetApiAdminCardTransactionsParams,
+  GetApiAdminCashRegistersOpenRequestsParams,
   GetApiAdminCashRegistersParams,
   GetApiAdminCategoriesSearchParams,
   GetApiAdminDailyClosingCalendarParams,
@@ -359,6 +373,7 @@ import type {
   GetApiAdminOnlinePaymentsParams,
   GetApiAdminOperationLogsParams,
   GetApiAdminOperationsSummaryParams,
+  GetApiAdminOrdersPreordersParams,
   GetApiAdminPaymentMethodDefinitionsParams,
   GetApiAdminPaymentsAlertsParams,
   GetApiAdminPaymentsIdReversalPolicyParams,
@@ -397,6 +412,7 @@ import type {
   GetApiAdminReportsUserPerformanceParams,
   GetApiAdminRestoreComplianceCheckParams,
   GetApiAdminRestoreHistoryParams,
+  GetApiAdminRestoreVerificationRunsIdReportParams,
   GetApiAdminRestoreVerificationRunsParams,
   GetApiAdminRiskParams,
   GetApiAdminRksvComplianceReportParams,
@@ -409,6 +425,7 @@ import type {
   GetApiAdminRksvDepExportStatisticsTrendParams,
   GetApiAdminRksvDepExportStatusParams,
   GetApiAdminRksvDepExportTestMaterialParams,
+  GetApiAdminRksvMonatsbelegeParams,
   GetApiAdminSessionsParams,
   GetApiAdminShiftsOverviewParams,
   GetApiAdminSupportAdminTicketsParams,
@@ -498,6 +515,8 @@ import type {
   ImpactSimulationRequestDto,
   ImportResult,
   IncidentInvestigationResponse,
+  IncrementalBackupTriggerRequestDto,
+  IncrementalRestoreResultDto,
   IndustryTemplateDto,
   IntegrityReportDto,
   IssuedLicenseDetailResponse,
@@ -544,6 +563,8 @@ import type {
   MonatsbelegClosingResult,
   MonatsbelegDetailDto,
   MonatsbelegListItemDto,
+  MonatsbelegListResponse,
+  MonatsbelegPolicyDto,
   MonatsbelegSummaryDto,
   MonthlyInvoiceGenerationResult,
   NotificationConfig,
@@ -592,6 +613,9 @@ import type {
   PermissionRequestMutationResult,
   PermissionRequestStatsDto,
   PitrAvailabilityResponseDto,
+  PitrDryRunRequestDto,
+  PitrDryRunResponseDto,
+  PitrPreRestoreValidationDto,
   PostApiAdminBackupArtifactsImportBody,
   PostApiAdminExportEmailSendBody,
   PostApiAdminLicenseTestRefreshParams,
@@ -622,6 +646,9 @@ import type {
   PostApiAdminUsersBulkImportPreviewBody,
   PostApiAdminUsersBulkImportPreviewParams,
   PostApiAdminWebsiteMenuSyncParams,
+  PreorderListResponseDto,
+  PreorderSettingsDto,
+  PreorderStatsDto,
   PreviewTenantLicenseRequest,
   PreviewWebsiteRequestDto,
   PreviewWebsiteResponseDto,
@@ -661,6 +688,7 @@ import type {
   RequestTenantDataDeletionDto,
   RequestTenantSettingsChangeDto,
   ResolveApprovalRequestDto,
+  ResolveCashRegisterOpenRequestBody,
   ResolveDigitalServiceRequestDto,
   ResolvePermissionRequestBody,
   ResolveRiskScoreRequestDto,
@@ -924,6 +952,7 @@ import type {
   UpdateFinanzOnlineRuntimeRequest,
   UpdateFiskalySettingsRequest,
   UpdateMaintenanceNotificationRequestDto,
+  UpdateMonatsbelegPolicyRequest,
   UpdateOnlineOrderStatusRequestDto,
   UpdateOnlineOrderStatusResponseDto,
   UpdatePaymentGatewaySettingsRequestDto,
@@ -954,6 +983,7 @@ import type {
   VerifyAdminVoucherCodeResponse,
   VerifyTenantDomainRequestDto,
   VoidInvoiceRequest,
+  WalArchiveStatusDto,
   WebsiteTemplateDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -3058,6 +3088,121 @@ export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData =
 
 
 
+export const getApiAdminBackupRunsIdDownload = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/backup/runs/${id}/download`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsIdDownloadQueryKey = (id: string,) => {
+    return [`/api/admin/backup/runs/${id}/download`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsIdDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdDownloadQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>> = ({ signal }) => getApiAdminBackupRunsIdDownload(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>>
+export type GetApiAdminBackupRunsIdDownloadQueryError = ProblemDetails
+
+export const useGetApiAdminBackupRunsIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsIdDownloadQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupRunsIdDownloadHistory = (
+    id: string,
+    params?: GetApiAdminBackupRunsIdDownloadHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupDownloadHistoryResponseDto>(
+      {url: `/api/admin/backup/runs/${id}/download-history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsIdDownloadHistoryQueryKey = (id: string,
+    params?: GetApiAdminBackupRunsIdDownloadHistoryParams,) => {
+    return [`/api/admin/backup/runs/${id}/download-history`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsIdDownloadHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError = ProblemDetails>(id: string,
+    params?: GetApiAdminBackupRunsIdDownloadHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdDownloadHistoryQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>> = ({ signal }) => getApiAdminBackupRunsIdDownloadHistory(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsIdDownloadHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>>
+export type GetApiAdminBackupRunsIdDownloadHistoryQueryError = ProblemDetails
+
+export const useGetApiAdminBackupRunsIdDownloadHistory = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError = ProblemDetails>(
+ id: string,
+    params?: GetApiAdminBackupRunsIdDownloadHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdDownloadHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsIdDownloadHistoryQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const postApiAdminBackupArtifactsImport = (
     postApiAdminBackupArtifactsImportBody: PostApiAdminBackupArtifactsImportBody,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -3553,7 +3698,56 @@ export const useGetApiAdminBackupRunsIdVerifyChecksum = <TData = Awaited<ReturnT
 
 
 
-export const getApiAdminBackupRunsIdContentValidation = (
+export const postApiAdminBackupBackupIdVerify = (
+    backupId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupManualVerifyResponseDto>(
+      {url: `/api/admin/backup/${backupId}/verify`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupBackupIdVerifyMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>, TError,{backupId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>, TError,{backupId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>, {backupId: string}> = (props) => {
+          const {backupId} = props ?? {};
+
+          return  postApiAdminBackupBackupIdVerify(backupId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupBackupIdVerifyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>>
+    
+    export type PostApiAdminBackupBackupIdVerifyMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupBackupIdVerify = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>, TError,{backupId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupBackupIdVerify>>,
+        TError,
+        {backupId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupBackupIdVerifyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupRunsIdContentValidation = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3817,6 +4011,528 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminBackupExecutionModeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupPitrWal = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<WalArchiveStatusDto>(
+      {url: `/api/admin/backup/pitr/wal`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupPitrWalQueryKey = () => {
+    return [`/api/admin/backup/pitr/wal`] as const;
+    }
+
+    
+export const getGetApiAdminBackupPitrWalQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupPitrWalQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>> = ({ signal }) => getApiAdminBackupPitrWal(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupPitrWalQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>>
+export type GetApiAdminBackupPitrWalQueryError = unknown
+
+export const useGetApiAdminBackupPitrWal = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWal>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupPitrWalQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupPitrChain = (
+    params?: GetApiAdminBackupPitrChainParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupChainResponseDto>(
+      {url: `/api/admin/backup/pitr/chain`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupPitrChainQueryKey = (params?: GetApiAdminBackupPitrChainParams,) => {
+    return [`/api/admin/backup/pitr/chain`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminBackupPitrChainQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>, TError = ProblemDetails>(params?: GetApiAdminBackupPitrChainParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupPitrChainQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>> = ({ signal }) => getApiAdminBackupPitrChain(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupPitrChainQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>>
+export type GetApiAdminBackupPitrChainQueryError = ProblemDetails
+
+export const useGetApiAdminBackupPitrChain = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>, TError = ProblemDetails>(
+ params?: GetApiAdminBackupPitrChainParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrChain>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupPitrChainQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminBackupPitrPreRestoreValidate = (
+    validatePitrRestorePointRequestDto: ValidatePitrRestorePointRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PitrPreRestoreValidationDto>(
+      {url: `/api/admin/backup/pitr/pre-restore-validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: validatePitrRestorePointRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupPitrPreRestoreValidateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>, {data: ValidatePitrRestorePointRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupPitrPreRestoreValidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupPitrPreRestoreValidateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>>
+    export type PostApiAdminBackupPitrPreRestoreValidateMutationBody = ValidatePitrRestorePointRequestDto
+    export type PostApiAdminBackupPitrPreRestoreValidateMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupPitrPreRestoreValidate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupPitrPreRestoreValidate>>,
+        TError,
+        {data: ValidatePitrRestorePointRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupPitrPreRestoreValidateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupPitrDryRun = (
+    pitrDryRunRequestDto: PitrDryRunRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PitrDryRunResponseDto>(
+      {url: `/api/admin/backup/pitr/dry-run`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: pitrDryRunRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupPitrDryRunMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>, TError,{data: PitrDryRunRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>, TError,{data: PitrDryRunRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>, {data: PitrDryRunRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupPitrDryRun(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupPitrDryRunMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>>
+    export type PostApiAdminBackupPitrDryRunMutationBody = PitrDryRunRequestDto
+    export type PostApiAdminBackupPitrDryRunMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupPitrDryRun = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>, TError,{data: PitrDryRunRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupPitrDryRun>>,
+        TError,
+        {data: PitrDryRunRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupPitrDryRunMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupIncremental = (
+    incrementalBackupTriggerRequestDto: IncrementalBackupTriggerRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupTriggerResult>(
+      {url: `/api/admin/backup/incremental`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: incrementalBackupTriggerRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupIncrementalMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncremental>>, TError,{data: IncrementalBackupTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncremental>>, TError,{data: IncrementalBackupTriggerRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupIncremental>>, {data: IncrementalBackupTriggerRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupIncremental(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupIncrementalMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupIncremental>>>
+    export type PostApiAdminBackupIncrementalMutationBody = IncrementalBackupTriggerRequestDto
+    export type PostApiAdminBackupIncrementalMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupIncremental = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncremental>>, TError,{data: IncrementalBackupTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupIncremental>>,
+        TError,
+        {data: IncrementalBackupTriggerRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupIncrementalMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupIncrementalRestore = (
+    pitrDryRunRequestDto: PitrDryRunRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<IncrementalRestoreResultDto>(
+      {url: `/api/admin/backup/incremental/restore`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: pitrDryRunRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupIncrementalRestoreMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>, TError,{data: PitrDryRunRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>, TError,{data: PitrDryRunRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>, {data: PitrDryRunRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupIncrementalRestore(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupIncrementalRestoreMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>>
+    export type PostApiAdminBackupIncrementalRestoreMutationBody = PitrDryRunRequestDto
+    export type PostApiAdminBackupIncrementalRestoreMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupIncrementalRestore = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>, TError,{data: PitrDryRunRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupIncrementalRestore>>,
+        TError,
+        {data: PitrDryRunRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupIncrementalRestoreMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupRetentionPolicy = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupRetentionPolicyResponseDto>(
+      {url: `/api/admin/backup/retention-policy`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRetentionPolicyQueryKey = () => {
+    return [`/api/admin/backup/retention-policy`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRetentionPolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRetentionPolicyQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>> = ({ signal }) => getApiAdminBackupRetentionPolicy(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRetentionPolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>>
+export type GetApiAdminBackupRetentionPolicyQueryError = unknown
+
+export const useGetApiAdminBackupRetentionPolicy = <TData = Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRetentionPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRetentionPolicyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminBackupRetentionPolicy = (
+    backupRetentionPolicyPutRequestDto: BackupRetentionPolicyPutRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupRetentionPolicyResponseDto>(
+      {url: `/api/admin/backup/retention-policy`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: backupRetentionPolicyPutRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminBackupRetentionPolicyMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>, TError,{data: BackupRetentionPolicyPutRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>, TError,{data: BackupRetentionPolicyPutRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>, {data: BackupRetentionPolicyPutRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminBackupRetentionPolicy(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminBackupRetentionPolicyMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>>
+    export type PutApiAdminBackupRetentionPolicyMutationBody = BackupRetentionPolicyPutRequestDto
+    export type PutApiAdminBackupRetentionPolicyMutationError = ProblemDetails
+
+    export const usePutApiAdminBackupRetentionPolicy = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>, TError,{data: BackupRetentionPolicyPutRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminBackupRetentionPolicy>>,
+        TError,
+        {data: BackupRetentionPolicyPutRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminBackupRetentionPolicyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupIdMoveToCold = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupMoveToColdResponseDto>(
+      {url: `/api/admin/backup/${id}/move-to-cold`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupIdMoveToColdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminBackupIdMoveToCold(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupIdMoveToColdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>>
+    
+    export type PostApiAdminBackupIdMoveToColdMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupIdMoveToCold = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupIdMoveToCold>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupIdMoveToColdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupIdLegalHold = (
+    id: string,
+    backupLegalHoldRequestDto: BackupLegalHoldRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupRetentionStatusDto>(
+      {url: `/api/admin/backup/${id}/legal-hold`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: backupLegalHoldRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupIdLegalHoldMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>, TError,{id: string;data: BackupLegalHoldRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>, TError,{id: string;data: BackupLegalHoldRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>, {id: string;data: BackupLegalHoldRequestDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminBackupIdLegalHold(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupIdLegalHoldMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>>
+    export type PostApiAdminBackupIdLegalHoldMutationBody = BackupLegalHoldRequestDto
+    export type PostApiAdminBackupIdLegalHoldMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupIdLegalHold = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>, TError,{id: string;data: BackupLegalHoldRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupIdLegalHold>>,
+        TError,
+        {id: string;data: BackupLegalHoldRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupIdLegalHoldMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -5467,7 +6183,167 @@ export const useGetApiAdminCardTransactionsId = <TData = Awaited<ReturnType<type
 
 
 
-export const getApiAdminCashRegisters = (
+export const getApiAdminCashRegistersOpenRequests = (
+    params?: GetApiAdminCashRegistersOpenRequestsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CashRegisterOpenRequestDto[]>(
+      {url: `/api/admin/cash-registers/open-requests`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminCashRegistersOpenRequestsQueryKey = (params?: GetApiAdminCashRegistersOpenRequestsParams,) => {
+    return [`/api/admin/cash-registers/open-requests`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminCashRegistersOpenRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError = unknown>(params?: GetApiAdminCashRegistersOpenRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminCashRegistersOpenRequestsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>> = ({ signal }) => getApiAdminCashRegistersOpenRequests(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminCashRegistersOpenRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>>
+export type GetApiAdminCashRegistersOpenRequestsQueryError = unknown
+
+export const useGetApiAdminCashRegistersOpenRequests = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError = unknown>(
+ params?: GetApiAdminCashRegistersOpenRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersOpenRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminCashRegistersOpenRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminCashRegistersOpenRequestsIdApprove = (
+    id: string,
+    resolveCashRegisterOpenRequestBody: ResolveCashRegisterOpenRequestBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CashRegisterOpenRequestMutationResult>(
+      {url: `/api/admin/cash-registers/open-requests/${id}/approve`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resolveCashRegisterOpenRequestBody
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminCashRegistersOpenRequestsIdApproveMutationOptions = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>, {id: string;data: ResolveCashRegisterOpenRequestBody}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminCashRegistersOpenRequestsIdApprove(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminCashRegistersOpenRequestsIdApproveMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>>
+    export type PostApiAdminCashRegistersOpenRequestsIdApproveMutationBody = ResolveCashRegisterOpenRequestBody
+    export type PostApiAdminCashRegistersOpenRequestsIdApproveMutationError = CashRegisterOpenRequestMutationResult
+
+    export const usePostApiAdminCashRegistersOpenRequestsIdApprove = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdApprove>>,
+        TError,
+        {id: string;data: ResolveCashRegisterOpenRequestBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminCashRegistersOpenRequestsIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminCashRegistersOpenRequestsIdDeny = (
+    id: string,
+    resolveCashRegisterOpenRequestBody: ResolveCashRegisterOpenRequestBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CashRegisterOpenRequestMutationResult>(
+      {url: `/api/admin/cash-registers/open-requests/${id}/deny`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resolveCashRegisterOpenRequestBody
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminCashRegistersOpenRequestsIdDenyMutationOptions = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>, {id: string;data: ResolveCashRegisterOpenRequestBody}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminCashRegistersOpenRequestsIdDeny(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminCashRegistersOpenRequestsIdDenyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>>
+    export type PostApiAdminCashRegistersOpenRequestsIdDenyMutationBody = ResolveCashRegisterOpenRequestBody
+    export type PostApiAdminCashRegistersOpenRequestsIdDenyMutationError = CashRegisterOpenRequestMutationResult
+
+    export const usePostApiAdminCashRegistersOpenRequestsIdDeny = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>, TError,{id: string;data: ResolveCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminCashRegistersOpenRequestsIdDeny>>,
+        TError,
+        {id: string;data: ResolveCashRegisterOpenRequestBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminCashRegistersOpenRequestsIdDenyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminCashRegisters = (
     params?: GetApiAdminCashRegistersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -17963,6 +18839,223 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminOrdersPreorderStats = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PreorderStatsDto>(
+      {url: `/api/admin/orders/preorder-stats`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOrdersPreorderStatsQueryKey = () => {
+    return [`/api/admin/orders/preorder-stats`] as const;
+    }
+
+    
+export const getGetApiAdminOrdersPreorderStatsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOrdersPreorderStatsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>> = ({ signal }) => getApiAdminOrdersPreorderStats(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOrdersPreorderStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>>
+export type GetApiAdminOrdersPreorderStatsQueryError = unknown
+
+export const useGetApiAdminOrdersPreorderStats = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOrdersPreorderStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOrdersPreorders = (
+    params?: GetApiAdminOrdersPreordersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PreorderListResponseDto>(
+      {url: `/api/admin/orders/preorders`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOrdersPreordersQueryKey = (params?: GetApiAdminOrdersPreordersParams,) => {
+    return [`/api/admin/orders/preorders`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminOrdersPreordersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>, TError = unknown>(params?: GetApiAdminOrdersPreordersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOrdersPreordersQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>> = ({ signal }) => getApiAdminOrdersPreorders(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOrdersPreordersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>>
+export type GetApiAdminOrdersPreordersQueryError = unknown
+
+export const useGetApiAdminOrdersPreorders = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>, TError = unknown>(
+ params?: GetApiAdminOrdersPreordersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOrdersPreordersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOrdersPreorderSettings = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PreorderSettingsDto>(
+      {url: `/api/admin/orders/preorder-settings`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOrdersPreorderSettingsQueryKey = () => {
+    return [`/api/admin/orders/preorder-settings`] as const;
+    }
+
+    
+export const getGetApiAdminOrdersPreorderSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOrdersPreorderSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>> = ({ signal }) => getApiAdminOrdersPreorderSettings(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOrdersPreorderSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>>
+export type GetApiAdminOrdersPreorderSettingsQueryError = unknown
+
+export const useGetApiAdminOrdersPreorderSettings = <TData = Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOrdersPreorderSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOrdersPreorderSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOrdersPreorderSettings = (
+    preorderSettingsDto: PreorderSettingsDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PreorderSettingsDto>(
+      {url: `/api/admin/orders/preorder-settings`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: preorderSettingsDto
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminOrdersPreorderSettingsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>, TError,{data: PreorderSettingsDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>, TError,{data: PreorderSettingsDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>, {data: PreorderSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOrdersPreorderSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOrdersPreorderSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>>
+    export type PutApiAdminOrdersPreorderSettingsMutationBody = PreorderSettingsDto
+    export type PutApiAdminOrdersPreorderSettingsMutationError = ProblemDetails
+
+    export const usePutApiAdminOrdersPreorderSettings = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>, TError,{data: PreorderSettingsDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOrdersPreorderSettings>>,
+        TError,
+        {data: PreorderSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOrdersPreorderSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminPricingRules = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -20835,6 +21928,66 @@ export const useGetApiAdminRestoreVerificationRunsId = <TData = Awaited<ReturnTy
 
 
 
+export const getApiAdminRestoreVerificationRunsIdReport = (
+    id: string,
+    params?: GetApiAdminRestoreVerificationRunsIdReportParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/restore-verification/runs/${id}/report`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRestoreVerificationRunsIdReportQueryKey = (id: string,
+    params?: GetApiAdminRestoreVerificationRunsIdReportParams,) => {
+    return [`/api/admin/restore-verification/runs/${id}/report`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminRestoreVerificationRunsIdReportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError = unknown>(id: string,
+    params?: GetApiAdminRestoreVerificationRunsIdReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationRunsIdReportQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>> = ({ signal }) => getApiAdminRestoreVerificationRunsIdReport(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRestoreVerificationRunsIdReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>>
+export type GetApiAdminRestoreVerificationRunsIdReportQueryError = unknown
+
+export const useGetApiAdminRestoreVerificationRunsIdReport = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError = unknown>(
+ id: string,
+    params?: GetApiAdminRestoreVerificationRunsIdReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsIdReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRestoreVerificationRunsIdReportQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiAdminRestoreVerificationRunsIdEvidence = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -23043,6 +24196,168 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getDeleteApiAdminRksvDepExportScheduleIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminRksvMonatsbelege = (
+    params?: GetApiAdminRksvMonatsbelegeParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegListResponse>(
+      {url: `/api/admin/rksv/monatsbelege`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRksvMonatsbelegeQueryKey = (params?: GetApiAdminRksvMonatsbelegeParams,) => {
+    return [`/api/admin/rksv/monatsbelege`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminRksvMonatsbelegeQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>, TError = ProblemDetails>(params?: GetApiAdminRksvMonatsbelegeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRksvMonatsbelegeQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>> = ({ signal }) => getApiAdminRksvMonatsbelege(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRksvMonatsbelegeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>>
+export type GetApiAdminRksvMonatsbelegeQueryError = ProblemDetails
+
+export const useGetApiAdminRksvMonatsbelege = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>, TError = ProblemDetails>(
+ params?: GetApiAdminRksvMonatsbelegeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelege>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRksvMonatsbelegeQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminRksvMonatsbelegPolicy = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegPolicyDto>(
+      {url: `/api/admin/rksv/monatsbeleg-policy`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRksvMonatsbelegPolicyQueryKey = () => {
+    return [`/api/admin/rksv/monatsbeleg-policy`] as const;
+    }
+
+    
+export const getGetApiAdminRksvMonatsbelegPolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRksvMonatsbelegPolicyQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>> = ({ signal }) => getApiAdminRksvMonatsbelegPolicy(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRksvMonatsbelegPolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>>
+export type GetApiAdminRksvMonatsbelegPolicyQueryError = ProblemDetails
+
+export const useGetApiAdminRksvMonatsbelegPolicy = <TData = Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRksvMonatsbelegPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRksvMonatsbelegPolicyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminRksvMonatsbelegPolicy = (
+    updateMonatsbelegPolicyRequest: UpdateMonatsbelegPolicyRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<MonatsbelegPolicyDto>(
+      {url: `/api/admin/rksv/monatsbeleg-policy`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateMonatsbelegPolicyRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminRksvMonatsbelegPolicyMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>, TError,{data: UpdateMonatsbelegPolicyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>, TError,{data: UpdateMonatsbelegPolicyRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>, {data: UpdateMonatsbelegPolicyRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminRksvMonatsbelegPolicy(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminRksvMonatsbelegPolicyMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>>
+    export type PutApiAdminRksvMonatsbelegPolicyMutationBody = UpdateMonatsbelegPolicyRequest
+    export type PutApiAdminRksvMonatsbelegPolicyMutationError = ProblemDetails
+
+    export const usePutApiAdminRksvMonatsbelegPolicy = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>, TError,{data: UpdateMonatsbelegPolicyRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminRksvMonatsbelegPolicy>>,
+        TError,
+        {data: UpdateMonatsbelegPolicyRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminRksvMonatsbelegPolicyMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

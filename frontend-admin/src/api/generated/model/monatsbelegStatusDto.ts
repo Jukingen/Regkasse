@@ -8,6 +8,9 @@
 import type { MissingMonth } from './missingMonth';
 
 export interface MonatsbelegStatusDto {
+  /** @nullable */
+  blockingMode?: string | null;
+  canContinueWithWarning?: boolean;
   currentMonthExists?: boolean;
   currentMonthOverdue?: boolean;
   daysUntilDeadline?: number;
@@ -23,6 +26,7 @@ export interface MonatsbelegStatusDto {
   /** @nullable */
   nextRequiredMonth?: string | null;
   requiresAttention: boolean;
+  salesBlocked?: boolean;
   totalMissingCount: number;
   /** @nullable */
   warningLevel?: string | null;

@@ -29,12 +29,15 @@ import type {
   CardPaymentConfirmResponse,
   CardPaymentIntentResponse,
   CardPaymentRequest,
+  CashRegisterOpenRequestDto,
+  CashRegisterOpenRequestMutationResult,
   CashierFavoriteDto,
   CashierShiftDto,
   CompleteCartRequest,
   ConfirmCardPaymentIntentRequest,
   ConfirmCardPaymentRequest,
   CreateCartRequest,
+  CreateCashRegisterOpenRequestBody,
   CreatePaymentRequest,
   CreateStornoPaymentRequest,
   CurrentShiftResponse,
@@ -47,6 +50,7 @@ import type {
   GetApiPosCustomersByQrParams,
   GetApiPosListParams,
   GetApiPosOfflineOrdersPendingParams,
+  GetApiPosOrdersPreordersParams,
   GetApiPosParams,
   GetApiPosPaymentCustomerCustomerIdParams,
   GetApiPosPaymentDateRangeParams,
@@ -65,6 +69,8 @@ import type {
   MaintenanceModeStatusDto,
   MaintenanceNotificationDto,
   MergeTableCartsRequest,
+  NotifyMonatsbelegManagerRequest,
+  NotifyMonatsbelegManagerResult,
   OfflineOrderRequest,
   OnlinePaymentDto,
   PagedResultOfReceiptListItemDto,
@@ -84,6 +90,8 @@ import type {
   PostApiPosCartClearParams,
   PostApiPosOfflineOrdersReplayParams,
   PostApiPosReceiptsReceiptIdCancelParams,
+  PreorderDto,
+  PreorderListResponseDto,
   ProblemDetails,
   Product,
   ReceiptDTO,
@@ -101,6 +109,7 @@ import type {
   StornoRequest,
   StornoResponse,
   UpdateCartItemRequest,
+  UpdatePreorderStatusRequest,
   UpdateStockRequest,
   ValidateVoucherRequest,
   VerifySignatureRequest,
@@ -2749,7 +2758,164 @@ export const useGetApiPosCashRegisterDefault = <TData = Awaited<ReturnType<typeo
 
 
 
-export const getApiPosCompany = (
+export const postApiPosCashRegisterOpenRequests = (
+    createCashRegisterOpenRequestBody: CreateCashRegisterOpenRequestBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CashRegisterOpenRequestMutationResult>(
+      {url: `/api/pos/cash-register/open-requests`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createCashRegisterOpenRequestBody
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosCashRegisterOpenRequestsMutationOptions = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, TError,{data: CreateCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, TError,{data: CreateCashRegisterOpenRequestBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, {data: CreateCashRegisterOpenRequestBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosCashRegisterOpenRequests(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosCashRegisterOpenRequestsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>>
+    export type PostApiPosCashRegisterOpenRequestsMutationBody = CreateCashRegisterOpenRequestBody
+    export type PostApiPosCashRegisterOpenRequestsMutationError = CashRegisterOpenRequestMutationResult
+
+    export const usePostApiPosCashRegisterOpenRequests = <TError = CashRegisterOpenRequestMutationResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, TError,{data: CreateCashRegisterOpenRequestBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>,
+        TError,
+        {data: CreateCashRegisterOpenRequestBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosCashRegisterOpenRequestsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosCashRegisterOpenRequestsMine = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CashRegisterOpenRequestDto[]>(
+      {url: `/api/pos/cash-register/open-requests/mine`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosCashRegisterOpenRequestsMineQueryKey = () => {
+    return [`/api/pos/cash-register/open-requests/mine`] as const;
+    }
+
+    
+export const getGetApiPosCashRegisterOpenRequestsMineQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterOpenRequestsMineQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>> = ({ signal }) => getApiPosCashRegisterOpenRequestsMine(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosCashRegisterOpenRequestsMineQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>>
+export type GetApiPosCashRegisterOpenRequestsMineQueryError = unknown
+
+export const useGetApiPosCashRegisterOpenRequestsMine = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosCashRegisterOpenRequestsMineQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiPosCashRegisterMonatsbelegNotifyManager = (
+    notifyMonatsbelegManagerRequest: NotifyMonatsbelegManagerRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<NotifyMonatsbelegManagerResult>(
+      {url: `/api/pos/cash-register/monatsbeleg/notify-manager`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: notifyMonatsbelegManagerRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosCashRegisterMonatsbelegNotifyManagerMutationOptions = <TError = NotifyMonatsbelegManagerResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, TError,{data: NotifyMonatsbelegManagerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, TError,{data: NotifyMonatsbelegManagerRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, {data: NotifyMonatsbelegManagerRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosCashRegisterMonatsbelegNotifyManager(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosCashRegisterMonatsbelegNotifyManagerMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>>
+    export type PostApiPosCashRegisterMonatsbelegNotifyManagerMutationBody = NotifyMonatsbelegManagerRequest
+    export type PostApiPosCashRegisterMonatsbelegNotifyManagerMutationError = NotifyMonatsbelegManagerResult
+
+    export const usePostApiPosCashRegisterMonatsbelegNotifyManager = <TError = NotifyMonatsbelegManagerResult,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, TError,{data: NotifyMonatsbelegManagerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>,
+        TError,
+        {data: NotifyMonatsbelegManagerRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosCashRegisterMonatsbelegNotifyManagerMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosCompany = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3597,7 +3763,170 @@ export const useGetApiPosPaymentOnlineId = <TData = Awaited<ReturnType<typeof ge
 
 
 
-export const getApiPosReceiptsRecent = (
+export const getApiPosOrdersPreorders = (
+    params?: GetApiPosOrdersPreordersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PreorderListResponseDto>(
+      {url: `/api/pos/orders/preorders`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosOrdersPreordersQueryKey = (params?: GetApiPosOrdersPreordersParams,) => {
+    return [`/api/pos/orders/preorders`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosOrdersPreordersQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError = ProblemDetails>(params?: GetApiPosOrdersPreordersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosOrdersPreordersQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>> = ({ signal }) => getApiPosOrdersPreorders(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosOrdersPreordersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>>
+export type GetApiPosOrdersPreordersQueryError = ProblemDetails
+
+export const useGetApiPosOrdersPreorders = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError = ProblemDetails>(
+ params?: GetApiPosOrdersPreordersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosOrdersPreordersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosOrdersPreordersByReceiptReceiptNumber = (
+    receiptNumber: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PreorderDto>(
+      {url: `/api/pos/orders/preorders/by-receipt/${receiptNumber}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryKey = (receiptNumber: string,) => {
+    return [`/api/pos/orders/preorders/by-receipt/${receiptNumber}`] as const;
+    }
+
+    
+export const getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError = ProblemDetails>(receiptNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryKey(receiptNumber);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>> = ({ signal }) => getApiPosOrdersPreordersByReceiptReceiptNumber(receiptNumber, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(receiptNumber), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosOrdersPreordersByReceiptReceiptNumberQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>>
+export type GetApiPosOrdersPreordersByReceiptReceiptNumberQueryError = ProblemDetails
+
+export const useGetApiPosOrdersPreordersByReceiptReceiptNumber = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError = ProblemDetails>(
+ receiptNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryOptions(receiptNumber,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiPosOrdersIdPreorderStatus = (
+    id: string,
+    updatePreorderStatusRequest: UpdatePreorderStatusRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PreorderDto>(
+      {url: `/api/pos/orders/${id}/preorder-status`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updatePreorderStatusRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiPosOrdersIdPreorderStatusMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, TError,{id: string;data: UpdatePreorderStatusRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, TError,{id: string;data: UpdatePreorderStatusRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, {id: string;data: UpdatePreorderStatusRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiPosOrdersIdPreorderStatus(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiPosOrdersIdPreorderStatusMutationResult = NonNullable<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>>
+    export type PutApiPosOrdersIdPreorderStatusMutationBody = UpdatePreorderStatusRequest
+    export type PutApiPosOrdersIdPreorderStatusMutationError = ProblemDetails
+
+    export const usePutApiPosOrdersIdPreorderStatus = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, TError,{id: string;data: UpdatePreorderStatusRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>,
+        TError,
+        {id: string;data: UpdatePreorderStatusRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiPosOrdersIdPreorderStatusMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosReceiptsRecent = (
     params?: GetApiPosReceiptsRecentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

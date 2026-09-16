@@ -5,6 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { RestoreVerificationCheckDto } from './restoreVerificationCheckDto';
 import type { RestoreDrillFailureCategory } from './restoreDrillFailureCategory';
 import type { PostRestoreContinuityProofState } from './postRestoreContinuityProofState';
 import type { RestoreDrillStage } from './restoreDrillStage';
@@ -15,6 +16,8 @@ export interface RestoreVerificationRunResponseDto {
   applicationSmokeProbeExecuted?: boolean;
   /** @nullable */
   applicationSmokeProbePassed?: boolean | null;
+  /** @nullable */
+  checks?: RestoreVerificationCheckDto[] | null;
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
@@ -35,6 +38,8 @@ export interface RestoreVerificationRunResponseDto {
   externalDependencyL6Summary?: string | null;
   /** @nullable */
   externalDependencyProofOutcome?: string | null;
+  /** @nullable */
+  failedCheckIds?: string[] | null;
   failureCategory?: RestoreDrillFailureCategory;
   /** @nullable */
   failureCode?: string | null;
@@ -89,7 +94,13 @@ export interface RestoreVerificationRunResponseDto {
   /** @nullable */
   sourceBackupRunId?: string | null;
   /** @nullable */
+  sourceBackupStrategy?: string | null;
+  /** @nullable */
+  sourceBackupTenantId?: string | null;
+  /** @nullable */
   startedAt?: string | null;
   status?: RestoreVerificationStatus;
   triggerSource?: RestoreVerificationTriggerSource;
+  /** @nullable */
+  verdict?: string | null;
 }

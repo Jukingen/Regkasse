@@ -5,8 +5,15 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { RestoreVerificationStatus } from './restoreVerificationStatus';
+import type { RestoreVerificationTriggerSource } from './restoreVerificationTriggerSource';
 
 export type GetApiAdminRestoreVerificationRunsParams = {
 page?: number;
 pageSize?: number;
+status?: RestoreVerificationStatus;
+triggerSource?: RestoreVerificationTriggerSource;
+fromUtc?: string;
+toUtc?: string;
+sourceBackupRunId?: string;
 };

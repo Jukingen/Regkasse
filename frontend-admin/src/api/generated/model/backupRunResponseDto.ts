@@ -8,6 +8,7 @@
 import type { BackupArtifactResponseDto } from './backupArtifactResponseDto';
 import type { BackupPipelineSnapshotDto } from './backupPipelineSnapshotDto';
 import type { BackupRunStatus } from './backupRunStatus';
+import type { BackupStorageTier } from './backupStorageTier';
 import type { BackupStrategyKind } from './backupStrategyKind';
 import type { BackupTriggerSource } from './backupTriggerSource';
 import type { BackupVerificationResponseDto } from './backupVerificationResponseDto';
@@ -34,6 +35,7 @@ export interface BackupRunResponseDto {
   configSnapshotJson?: string | null;
   /** @nullable */
   correlationId?: string | null;
+  downloadCount?: number;
   duplicatePrevented?: boolean;
   /** @nullable */
   durationFormatted?: string | null;
@@ -47,19 +49,48 @@ export interface BackupRunResponseDto {
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
+  inColdStorage?: boolean;
   isSimulatedExecution?: boolean;
   /** @nullable */
   lastRecordedTerminalFailureCode?: string | null;
+  legalHold?: boolean;
+  /** @nullable */
+  legalHoldReason?: string | null;
+  /** @nullable */
+  legalHoldUntilUtc?: string | null;
   /** @nullable */
   nextRetryAtUtc?: string | null;
   pipeline?: BackupPipelineSnapshotDto;
+  /** @nullable */
+  primaryArtifactId?: string | null;
+  /** @nullable */
+  primaryDownloadFileName?: string | null;
   requestedAt?: string;
+  /** @nullable */
+  requestedByDisplayName?: string | null;
+  /** @nullable */
+  requestedByEmail?: string | null;
+  /** @nullable */
+  requestedByLabel?: string | null;
   /** @nullable */
   requestedByUserId?: string | null;
   /** @nullable */
+  requestedFromIp?: string | null;
+  /** @nullable */
+  retentionExpiresAtUtc?: string | null;
+  /** @nullable */
+  retentionStatus?: string | null;
+  /** @nullable */
   startedAt?: string | null;
   status?: BackupRunStatus;
+  storageTier?: BackupStorageTier;
   strategy?: BackupStrategyKind;
+  /** @nullable */
+  tenantId?: string | null;
+  /** @nullable */
+  tenantName?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
   /** @nullable */
   totalSizeBytes?: number | null;
   /** @nullable */

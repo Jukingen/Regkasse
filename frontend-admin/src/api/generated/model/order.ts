@@ -37,8 +37,11 @@ export interface Order {
    */
   idempotencyKey?: string | null;
   isActive?: boolean;
+  isPreorder?: boolean;
   /** @nullable */
   items?: OrderItem[] | null;
+  /** @nullable */
+  lastPreorderPaymentId?: string | null;
   /**
    * @maxLength 500
    * @nullable
@@ -50,11 +53,41 @@ export interface Order {
    * @maxLength 50
    */
   orderId: string;
+  /** @nullable */
+  preorderCollectedAt?: string | null;
+  /** @nullable */
+  preorderCustomerNotes?: string | null;
+  /**
+   * @maxLength 20
+   * @nullable
+   */
+  preorderNumber?: string | null;
+  preorderPaidAmount?: number;
+  /** @nullable */
+  preorderPickupDeadline?: string | null;
+  preorderPickupWeeks?: number;
+  /** @nullable */
+  preorderReadyAt?: string | null;
+  preorderRemainingAmount?: number;
+  /**
+   * @maxLength 20
+   * @nullable
+   */
+  preorderStatus?: string | null;
+  /**
+   * @maxLength 256
+   * @nullable
+   */
+  receiptNumber?: string | null;
+  /** @nullable */
+  sourcePaymentId?: string | null;
   status: OrderStatus;
   subtotal: number;
   /** @nullable */
   tableNumber?: number | null;
   taxAmount: number;
+  /** @nullable */
+  tenantId?: string | null;
   totalAmount: number;
   /** @nullable */
   updatedAt?: string | null;

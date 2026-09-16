@@ -7,6 +7,9 @@
  */
 
 export interface RksvReminderMonatsbelegDto {
+  /** @nullable */
+  blockingMode?: string | null;
+  canContinueWithWarning?: boolean;
   currentMonthExists?: boolean;
   currentMonthOverdue?: boolean;
   /** @nullable */
@@ -14,8 +17,12 @@ export interface RksvReminderMonatsbelegDto {
   isRequired: boolean;
   lastMonthExists?: boolean;
   lastMonthMissing?: boolean;
+  salesBlocked?: boolean;
   /** @nullable */
   status: string | null;
+  viennaDayOfMonth?: number;
+  /** @nullable */
+  warningLevel?: string | null;
   /** @nullable */
   warningMessageDe?: string | null;
 }

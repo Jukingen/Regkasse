@@ -5,8 +5,13 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { BackupStrategyKind } from './backupStrategyKind';
 
 export type GetApiAdminBackupRunsParams = {
 page?: number;
 pageSize?: number;
+strategy?: BackupStrategyKind;
+createdBy?: string;
+fromUtc?: string;
+toUtc?: string;
 };

@@ -17,10 +17,15 @@ export type NotificationConfigEnabledEvents = {
   CashRegisterClosed?: boolean;
   CashRegisterDecommissioned?: boolean;
   CashRegisterOpened?: boolean;
+  CashRegisterOpenRequestApproved?: boolean;
+  CashRegisterOpenRequestDenied?: boolean;
+  CashRegisterOpenRequested?: boolean;
   CriticalActionApprovalApproved?: boolean;
   CriticalActionApprovalRejected?: boolean;
   CriticalActionApprovalRequested?: boolean;
+  DailyClosingAutoCreated?: boolean;
   DailyClosingBackdatedCreated?: boolean;
+  DailyClosingOpenOrdersWarning?: boolean;
   DailyClosingPendingReminder?: boolean;
   DataAccessDeleteRequested?: boolean;
   DataExportReady?: boolean;
@@ -29,6 +34,7 @@ export type NotificationConfigEnabledEvents = {
   DepExportValidationFailed?: boolean;
   DigitalServiceRequested?: boolean;
   FinanzOnlineSubmissionFailed?: boolean;
+  JahresbelegFonReminder?: boolean;
   LicenseExpired?: boolean;
   LicenseExpiringSoon?: boolean;
   LimitApproaching?: boolean;
@@ -36,6 +42,11 @@ export type NotificationConfigEnabledEvents = {
   MaintenanceForceDisplayEnabled?: boolean;
   MaintenanceStarted?: boolean;
   MaintenanceUpcoming?: boolean;
+  MonatsbelegAutoCreated?: boolean;
+  MonatsbelegAutoCreateFailed?: boolean;
+  MonatsbelegCreated?: boolean;
+  MonatsbelegManagerContacted?: boolean;
+  MonatsbelegMissingReminder?: boolean;
   OfflineOrdersBacklogGrowing?: boolean;
   OfflineOrdersExpiringSoon?: boolean;
   OfflineQueueGrowing?: boolean;

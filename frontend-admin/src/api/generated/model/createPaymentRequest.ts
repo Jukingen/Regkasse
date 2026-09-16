@@ -19,6 +19,7 @@ export interface CreatePaymentRequest {
    * @nullable
    */
   idempotencyKey?: string | null;
+  isPreorder?: boolean;
   isRefund?: boolean;
   isStorno?: boolean;
   /** @nullable */
@@ -31,6 +32,18 @@ export interface CreatePaymentRequest {
    */
   originalReceiptNumber?: string | null;
   payment: PaymentMethodRequest;
+  /** @nullable */
+  preorderBalanceOrderId?: string | null;
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
+  preorderCustomerNotes?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 999999
+   */
+  preorderRemainingAmount?: number;
   /**
    * @maxLength 256
    * @nullable

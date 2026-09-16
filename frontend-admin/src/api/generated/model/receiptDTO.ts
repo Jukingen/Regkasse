@@ -36,6 +36,7 @@ export interface ReceiptDTO {
   grandTotal?: number;
   hasOfflineOrigin?: boolean;
   header?: ReceiptHeaderDTO;
+  isPreorder?: boolean;
   /** @nullable */
   items?: ReceiptItemDTO[] | null;
   /** @nullable */
@@ -52,6 +53,16 @@ export interface ReceiptDTO {
   paymentId?: string;
   /** @nullable */
   payments?: ReceiptPaymentDTO[] | null;
+  /** @nullable */
+  preorderNumber?: string | null;
+  /** @nullable */
+  preorderPaidAmount?: number | null;
+  /** @nullable */
+  preorderPickupWeeks?: number | null;
+  /** @nullable */
+  preorderPolicyText?: string | null;
+  /** @nullable */
+  preorderRemainingAmount?: number | null;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;

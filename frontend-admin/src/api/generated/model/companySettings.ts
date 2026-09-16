@@ -5,13 +5,17 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { AutoTagesabschlussSettings } from './autoTagesabschlussSettings';
 import type { CompanySettingsBusinessHours } from './companySettingsBusinessHours';
 import type { Tenant } from './tenant';
+import type { VatRegime } from './vatRegime';
 import type { WorkingHoursSettings } from './workingHoursSettings';
 
 export interface CompanySettings {
   /** @nullable */
   address?: string | null;
+  autoMonatsbelegEnabled?: boolean;
+  autoTagesabschluss: AutoTagesabschlussSettings;
   /**
    * @maxLength 50
    * @nullable
@@ -32,6 +36,12 @@ export interface CompanySettings {
    * @nullable
    */
   bankSwiftCode?: string | null;
+  /**
+   * @maxLength 2
+   * @nullable
+   * @pattern ^([A-Za-z]{2})?$
+   */
+  billingCountry?: string | null;
   businessHours: CompanySettingsBusinessHours;
   /**
    * @minLength 1
@@ -180,6 +190,16 @@ export interface CompanySettings {
   language: string;
   /** @nullable */
   lastFinanzOnlineSync?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 32
+   */
+  monatsbelegBlockingMode: string;
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  monatsbelegRetryCount?: number;
   /** @nullable */
   name?: string | null;
   /**
@@ -192,6 +212,16 @@ export interface CompanySettings {
   /** @nullable */
   phone?: string | null;
   /**
+   * @maxLength 500
+   * @nullable
+   */
+  preorderCancellationPolicyText?: string | null;
+  /**
+   * @minimum 1
+   * @maximum 52
+   */
+  preorderPickupDeadlineWeeks?: number;
+  /**
    * @minLength 1
    * @maxLength 50
    */
@@ -201,6 +231,7 @@ export interface CompanySettings {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  taxExempt?: boolean;
   tenant?: Tenant;
   tenantId: string;
   /**
@@ -230,6 +261,7 @@ export interface CompanySettings {
   useDecemberMonatsbelegAsJahresbeleg?: boolean;
   /** @nullable */
   vatId?: string | null;
+  vatRegime: VatRegime;
   /** @nullable */
   website?: string | null;
   workingHours: WorkingHoursSettings;

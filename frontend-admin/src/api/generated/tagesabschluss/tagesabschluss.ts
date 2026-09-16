@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  AutoTagesabschlussSettingsDto,
   DailyClosingRequest,
   FiskalyReceiptEnvelopeDto,
   GetApiTagesabschlussCanCloseCashRegisterIdParams,
@@ -405,7 +406,113 @@ export const useGetApiTagesabschlussHistory = <TData = Awaited<ReturnType<typeof
 
 
 
-export const getApiTagesabschlussCanCloseCashRegisterId = (
+export const getApiTagesabschlussAutoCloseSettings = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AutoTagesabschlussSettingsDto>(
+      {url: `/api/Tagesabschluss/auto-close-settings`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiTagesabschlussAutoCloseSettingsQueryKey = () => {
+    return [`/api/Tagesabschluss/auto-close-settings`] as const;
+    }
+
+    
+export const getGetApiTagesabschlussAutoCloseSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussAutoCloseSettingsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>> = ({ signal }) => getApiTagesabschlussAutoCloseSettings(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiTagesabschlussAutoCloseSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>>
+export type GetApiTagesabschlussAutoCloseSettingsQueryError = unknown
+
+export const useGetApiTagesabschlussAutoCloseSettings = <TData = Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiTagesabschlussAutoCloseSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiTagesabschlussAutoCloseSettings = (
+    autoTagesabschlussSettingsDto: AutoTagesabschlussSettingsDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AutoTagesabschlussSettingsDto>(
+      {url: `/api/Tagesabschluss/auto-close-settings`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: autoTagesabschlussSettingsDto
+    },
+      options);
+    }
+  
+
+
+export const getPutApiTagesabschlussAutoCloseSettingsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, TError,{data: AutoTagesabschlussSettingsDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, TError,{data: AutoTagesabschlussSettingsDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, {data: AutoTagesabschlussSettingsDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiTagesabschlussAutoCloseSettings(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiTagesabschlussAutoCloseSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>>
+    export type PutApiTagesabschlussAutoCloseSettingsMutationBody = AutoTagesabschlussSettingsDto
+    export type PutApiTagesabschlussAutoCloseSettingsMutationError = unknown
+
+    export const usePutApiTagesabschlussAutoCloseSettings = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, TError,{data: AutoTagesabschlussSettingsDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>,
+        TError,
+        {data: AutoTagesabschlussSettingsDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiTagesabschlussAutoCloseSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiTagesabschlussCanCloseCashRegisterId = (
     cashRegisterId: string,
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal

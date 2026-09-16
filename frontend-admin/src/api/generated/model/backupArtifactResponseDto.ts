@@ -7,11 +7,14 @@
  */
 import type { BackupArtifactType } from './backupArtifactType';
 import type { BackupArtifactLifecycleState } from './backupArtifactLifecycleState';
+import type { BackupStorageTier } from './backupStorageTier';
 
 export interface BackupArtifactResponseDto {
   artifactType?: BackupArtifactType;
   /** @nullable */
   byteSize?: number | null;
+  /** @nullable */
+  cloudLocator?: string | null;
   /** @nullable */
   contentHashSha256?: string | null;
   /** @nullable */
@@ -22,7 +25,11 @@ export interface BackupArtifactResponseDto {
   formattedSize?: string | null;
   id?: string;
   isFilePresentForDownload?: boolean;
+  legalHoldProtected?: boolean;
   lifecycleState?: BackupArtifactLifecycleState;
   /** @nullable */
+  movedToColdAtUtc?: string | null;
+  /** @nullable */
   storageLocator?: string | null;
+  storageTier?: BackupStorageTier;
 }

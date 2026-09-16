@@ -7,6 +7,12 @@
  */
 
 export interface TagesabschlussResult {
+  /** @nullable */
+  cashCount?: number | null;
+  /** @nullable */
+  cashCountNote?: string | null;
+  /** @nullable */
+  cashDifference?: number | null;
   closingDate: string;
   /** @nullable */
   closingId?: string | null;
@@ -30,6 +36,8 @@ export interface TagesabschlussResult {
   isEmpty: boolean;
   /** @nullable */
   lateCreationReason?: string | null;
+  openOrdersCount?: number;
+  openOrdersForced?: boolean;
   paymentsWithoutInvoiceCount: number;
   /** @nullable */
   status?: string | null;
@@ -37,6 +45,8 @@ export interface TagesabschlussResult {
   totalAmount: number;
   totalTaxAmount: number;
   transactionCount: number;
+  /** @nullable */
+  trigger?: string | null;
   /** @nullable */
   tseSignature?: string | null;
   /** @nullable */

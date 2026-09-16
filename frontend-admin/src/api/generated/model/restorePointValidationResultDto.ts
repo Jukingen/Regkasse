@@ -12,6 +12,10 @@ export interface RestorePointValidationResultDto {
   /** @nullable */
   baseBackupTimeUtc?: string | null;
   estimatedDataLossSeconds?: number;
+  /** @nullable */
+  fullBackupId?: string | null;
+  /** @nullable */
+  incrementalBackupIds?: string[] | null;
   isValid?: boolean;
   /** @nullable */
   message?: string | null;

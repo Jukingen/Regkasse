@@ -13,6 +13,16 @@ export interface PosCashRegisterContextDto {
   /** @nullable */
   messageCode?: string | null;
   /** @nullable */
+  monatsbelegBlockingMode?: string | null;
+  monatsbelegCanContinueWithWarning?: boolean;
+  monatsbelegSalesBlocked?: boolean;
+  /** @nullable */
+  monatsbelegViennaDayOfMonth?: number | null;
+  /** @nullable */
+  monatsbelegWarningLevel?: string | null;
+  /** @nullable */
+  monatsbelegWarningMessageDe?: string | null;
+  /** @nullable */
   nextAction?: string | null;
   /** @nullable */
   preferredRegisterId?: string | null;

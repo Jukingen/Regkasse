@@ -5,9 +5,11 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { AutoTagesabschlussSettingsDto } from './autoTagesabschlussSettingsDto';
 import type { WorkingHoursDto } from './workingHoursDto';
 
 export interface PosCompanyInfoDto {
+  autoTagesabschluss?: AutoTagesabschlussSettingsDto;
   /** @nullable */
   companyAddress?: string | null;
   /** @nullable */

@@ -9,6 +9,13 @@
 export interface RksvReminderJahresbelegDto {
   /** @nullable */
   daysUntilDeadline?: number | null;
+  /** @nullable */
+  fonDaysUntilDeadline?: number | null;
+  fonRequired?: boolean;
+  /** @nullable */
+  fonStatus?: string | null;
+  /** @nullable */
+  fonSubmissionStatus?: string | null;
   isRequired: boolean;
   /** @nullable */
   status: string | null;

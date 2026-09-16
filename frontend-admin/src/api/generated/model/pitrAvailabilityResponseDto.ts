@@ -21,4 +21,10 @@ export interface PitrAvailabilityResponseDto {
   /** @nullable */
   walArchiveLagMinutes?: number | null;
   walArchivingEnabled?: boolean;
+  /** @nullable */
+  walCoverageEndUtc?: string | null;
+  /** @nullable */
+  walCoverageStartUtc?: string | null;
+  walFileCount?: number;
+  walRetentionDays?: number;
 }

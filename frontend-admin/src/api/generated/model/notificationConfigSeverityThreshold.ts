@@ -17,10 +17,15 @@ export type NotificationConfigSeverityThreshold = {
   CashRegisterClosed?: string;
   CashRegisterDecommissioned?: string;
   CashRegisterOpened?: string;
+  CashRegisterOpenRequestApproved?: string;
+  CashRegisterOpenRequestDenied?: string;
+  CashRegisterOpenRequested?: string;
   CriticalActionApprovalApproved?: string;
   CriticalActionApprovalRejected?: string;
   CriticalActionApprovalRequested?: string;
+  DailyClosingAutoCreated?: string;
   DailyClosingBackdatedCreated?: string;
+  DailyClosingOpenOrdersWarning?: string;
   DailyClosingPendingReminder?: string;
   DataAccessDeleteRequested?: string;
   DataExportReady?: string;
@@ -29,6 +34,7 @@ export type NotificationConfigSeverityThreshold = {
   DepExportValidationFailed?: string;
   DigitalServiceRequested?: string;
   FinanzOnlineSubmissionFailed?: string;
+  JahresbelegFonReminder?: string;
   LicenseExpired?: string;
   LicenseExpiringSoon?: string;
   LimitApproaching?: string;
@@ -36,6 +42,11 @@ export type NotificationConfigSeverityThreshold = {
   MaintenanceForceDisplayEnabled?: string;
   MaintenanceStarted?: string;
   MaintenanceUpcoming?: string;
+  MonatsbelegAutoCreated?: string;
+  MonatsbelegAutoCreateFailed?: string;
+  MonatsbelegCreated?: string;
+  MonatsbelegManagerContacted?: string;
+  MonatsbelegMissingReminder?: string;
   OfflineOrdersBacklogGrowing?: string;
   OfflineOrdersExpiringSoon?: string;
   OfflineQueueGrowing?: string;

@@ -1323,6 +1323,97 @@
         }
       }
     },
+    "/api/admin/backup/runs/{id}/download": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/runs/{id}/download-history": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDownloadHistoryResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/artifacts/import": {
       "post": {
         "tags": [
@@ -1533,6 +1624,36 @@
               "format": "int32",
               "default": 20
             }
+          },
+          {
+            "name": "strategy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/BackupStrategyKind"
+            }
+          },
+          {
+            "name": "createdBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -1642,6 +1763,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BackupChecksumVerifyResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/{backupId}/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupManualVerifyResponseDto"
                 }
               }
             }
@@ -1840,6 +2001,410 @@
           },
           "422": {
             "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/pitr/wal": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalArchiveStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/pitr/chain": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupChainResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/pitr/pre-restore-validate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePitrRestorePointRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PitrPreRestoreValidationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/pitr/dry-run": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PitrDryRunRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PitrDryRunResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/incremental": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncrementalBackupTriggerRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupTriggerResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/incremental/restore": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PitrDryRunRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncrementalRestoreResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/retention-policy": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRetentionPolicyResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupRetentionPolicyPutRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRetentionPolicyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/{id}/move-to-cold": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupMoveToColdResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/{id}/legal-hold": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupLegalHoldRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRetentionStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -3147,6 +3712,163 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminCardTransactionListItemDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/cash-registers/open-requests": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CashRegisterOpenRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/cash-registers/open-requests/{id}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveCashRegisterOpenRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/cash-registers/open-requests/{id}/deny": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveCashRegisterOpenRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
                 }
               }
             }
@@ -12712,6 +13434,134 @@
         }
       }
     },
+    "/api/admin/orders/preorder-stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderStatsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orders/preorders": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderListResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orders/preorder-settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreorderSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/pricing-rules": {
       "get": {
         "tags": [
@@ -14680,6 +15530,43 @@
               "format": "int32",
               "default": 20
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RestoreVerificationStatus"
+            }
+          },
+          {
+            "name": "triggerSource",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RestoreVerificationTriggerSource"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "sourceBackupRunId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -14722,6 +15609,37 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/restore-verification/runs/{id}/report": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -16321,6 +17239,153 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/monatsbelege": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/monatsbeleg-policy": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegPolicyDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMonatsbelegPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegPolicyDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",
@@ -40473,6 +41538,124 @@
         }
       }
     },
+    "/api/pos/cash-register/open-requests": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCashRegisterOpenRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashRegisterOpenRequestMutationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/cash-register/open-requests/mine": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CashRegisterOpenRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/cash-register/monatsbeleg/notify-manager": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyMonatsbelegManagerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyMonatsbelegManagerResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyMonatsbelegManagerResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyMonatsbelegManagerResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/company": {
       "get": {
         "tags": [
@@ -41002,6 +42185,158 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OnlinePaymentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/orders/preorders": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderListResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/orders/preorders/by-receipt/{receiptNumber}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "receiptNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/orders/{id}/preorder-status": {
+      "put": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreorderStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreorderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -45412,6 +46747,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "trigger",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -45434,6 +46776,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TagesabschlussErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Tagesabschluss/auto-close-settings": {
+      "get": {
+        "tags": [
+          "Tagesabschluss"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoTagesabschlussSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tagesabschluss"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoTagesabschlussSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoTagesabschlussSettingsDto"
                 }
               }
             }
@@ -50853,6 +52240,19 @@
           80,
           81,
           82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
           99
         ],
         "type": "integer",
@@ -51617,6 +53017,64 @@
         },
         "additionalProperties": false
       },
+      "AutoTagesabschlussSettings": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "hourVienna": {
+            "maximum": 23,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "minuteVienna": {
+            "maximum": 59,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "openOrdersPolicy": {
+            "maxLength": 32,
+            "type": "string",
+            "nullable": true
+          },
+          "promptCashCount": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AutoTagesabschlussSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "hourVienna": {
+            "maximum": 23,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "minuteVienna": {
+            "maximum": 59,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "openOrdersPolicy": {
+            "maxLength": 32,
+            "type": "string",
+            "nullable": true
+          },
+          "promptCashCount": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "AvailableAction": {
         "type": "object",
         "properties": {
@@ -51775,6 +53233,21 @@
             "type": "string",
             "nullable": true
           },
+          "storageTier": {
+            "$ref": "#/components/schemas/BackupStorageTier"
+          },
+          "cloudLocator": {
+            "type": "string",
+            "nullable": true
+          },
+          "movedToColdAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "legalHoldProtected": {
+            "type": "boolean"
+          },
           "isFilePresentForDownload": {
             "type": "boolean"
           }
@@ -51792,6 +53265,100 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "BackupChainItemDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "packageKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "strategy": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "completedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "incrementalSinceUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "parentRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "coveredByWal": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupChainResponseDto": {
+        "type": "object",
+        "properties": {
+          "tenantIdFilter": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fullBackup": {
+            "$ref": "#/components/schemas/BackupChainItemDto"
+          },
+          "incrementals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupChainItemDto"
+            },
+            "nullable": true
+          },
+          "systemBackups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupChainItemDto"
+            },
+            "nullable": true
+          },
+          "walCoverageStartUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "walCoverageEndUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "walFileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "restorePointAvailable": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "BackupChecksumArtifactResultDto": {
         "type": "object",
@@ -52431,6 +53998,78 @@
         },
         "additionalProperties": false
       },
+      "BackupDownloadHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "userEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupDownloadHistoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "downloadCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupDownloadHistoryItemDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupExecutionModePutRequestDto": {
         "type": "object",
         "properties": {
@@ -52729,6 +54368,24 @@
         },
         "additionalProperties": false
       },
+      "BackupLegalHoldRequestDto": {
+        "type": "object",
+        "properties": {
+          "legalHold": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "untilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupListItemResponseDto": {
         "type": "object",
         "properties": {
@@ -52794,6 +54451,84 @@
             "nullable": true
           },
           "manifestDownloadUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupManualTriggerResultKind": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "BackupManualVerifyResponseDto": {
+        "type": "object",
+        "properties": {
+          "backupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "verifiedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifierSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "verificationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupChecksumArtifactResultDto"
+            },
+            "nullable": true
+          },
+          "tableReport": {
+            "$ref": "#/components/schemas/BackupVerificationReportDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupMoveToColdResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "artifactsArchived": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artifactsDeduplicated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
             "type": "string",
             "nullable": true
           }
@@ -52976,6 +54711,83 @@
         },
         "additionalProperties": false
       },
+      "BackupRetentionPolicyPutRequestDto": {
+        "type": "object",
+        "properties": {
+          "hotRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warmRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coldRetentionYears": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coldStorageEnabled": {
+            "type": "boolean"
+          },
+          "legalRetentionEnforced": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupRetentionPolicyResponseDto": {
+        "type": "object",
+        "properties": {
+          "hotRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warmRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coldRetentionYears": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coldStorageEnabled": {
+            "type": "boolean"
+          },
+          "legalRetentionEnforced": {
+            "type": "boolean"
+          },
+          "cloudProvider": {
+            "type": "string",
+            "nullable": true
+          },
+          "cloudConfigured": {
+            "type": "boolean"
+          },
+          "cloudFallbackToFilesystem": {
+            "type": "boolean"
+          },
+          "legalBasis": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemLegalRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "storageCosts": {
+            "$ref": "#/components/schemas/BackupStorageCostResponseDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupRetentionReadinessResponseDto": {
         "type": "object",
         "properties": {
@@ -53008,6 +54820,50 @@
         },
         "additionalProperties": false
       },
+      "BackupRetentionStatusDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storageTier": {
+            "$ref": "#/components/schemas/BackupStorageTier"
+          },
+          "legalHold": {
+            "type": "boolean"
+          },
+          "legalHoldUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "legalHoldReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionExpiresAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "canDelete": {
+            "type": "boolean"
+          },
+          "inColdStorage": {
+            "type": "boolean"
+          },
+          "cloudLocator": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupRunResponseDto": {
         "type": "object",
         "properties": {
@@ -53033,6 +54889,48 @@
             "nullable": true
           },
           "requestedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedByEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedByLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedFromIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "primaryArtifactId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "primaryDownloadFileName": {
             "type": "string",
             "nullable": true
           },
@@ -53131,6 +55029,33 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          },
+          "storageTier": {
+            "$ref": "#/components/schemas/BackupStorageTier"
+          },
+          "legalHold": {
+            "type": "boolean"
+          },
+          "legalHoldUntilUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "legalHoldReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionExpiresAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retentionStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "inColdStorage": {
+            "type": "boolean"
           },
           "artifacts": {
             "type": "array",
@@ -53431,6 +55356,15 @@
         },
         "additionalProperties": false
       },
+      "BackupStorageTier": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "BackupStorageTierCostRowDto": {
         "type": "object",
         "properties": {
@@ -53551,6 +55485,35 @@
           "orchestrationState": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupTriggerResult": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "backupRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true
+          },
+          "triggerKind": {
+            "$ref": "#/components/schemas/BackupManualTriggerResultKind"
           }
         },
         "additionalProperties": false
@@ -55010,11 +56973,6 @@
             "format": "date-time",
             "nullable": true
           },
-          "lastShiftAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
           "currentCashierName": {
             "type": "string",
             "nullable": true
@@ -55027,12 +56985,104 @@
             "type": "string",
             "nullable": true
           },
+          "lastShiftAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "assignedUserName": {
             "type": "string",
             "nullable": true
           },
           "deviceInfo": {
             "$ref": "#/components/schemas/CashRegisterDeviceInfoDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CashRegisterOpenRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedByUserName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "resolutionNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CashRegisterOpenRequestMutationResult": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "request": {
+            "$ref": "#/components/schemas/CashRegisterOpenRequestDto"
           }
         },
         "additionalProperties": false
@@ -55803,6 +57853,7 @@
       },
       "CompanySettings": {
         "required": [
+          "autoTagesabschluss",
           "businessHours",
           "companyAddress",
           "companyName",
@@ -55814,11 +57865,13 @@
           "defaultPaymentMethod",
           "invoiceNumbering",
           "language",
+          "monatsbelegBlockingMode",
           "receiptNumbering",
           "taxCalculationMethod",
           "tenantId",
           "timeFormat",
           "timeZone",
+          "vatRegime",
           "workingHours"
         ],
         "type": "object",
@@ -55945,6 +57998,9 @@
           "workingHours": {
             "$ref": "#/components/schemas/WorkingHoursSettings"
           },
+          "autoTagesabschluss": {
+            "$ref": "#/components/schemas/AutoTagesabschlussSettings"
+          },
           "contactPerson": {
             "maxLength": 100,
             "type": "string",
@@ -55995,6 +58051,18 @@
             "maxLength": 2,
             "minLength": 1,
             "type": "string"
+          },
+          "billingCountry": {
+            "maxLength": 2,
+            "pattern": "^([A-Za-z]{2})?$",
+            "type": "string",
+            "nullable": true
+          },
+          "vatRegime": {
+            "$ref": "#/components/schemas/VatRegime"
+          },
+          "taxExempt": {
+            "type": "boolean"
           },
           "language": {
             "maxLength": 10,
@@ -56108,6 +58176,31 @@
           },
           "useDecemberMonatsbelegAsJahresbeleg": {
             "type": "boolean"
+          },
+          "monatsbelegBlockingMode": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "autoMonatsbelegEnabled": {
+            "type": "boolean"
+          },
+          "monatsbelegRetryCount": {
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "preorderPickupDeadlineWeeks": {
+            "maximum": 52,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "preorderCancellationPolicyText": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -56768,6 +58861,20 @@
             "nullable": true
           },
           "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateCashRegisterOpenRequestBody": {
+        "type": "object",
+        "properties": {
+          "registerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note": {
             "type": "string",
             "nullable": true
           }
@@ -57719,6 +59826,25 @@
           },
           "stornoReason": {
             "$ref": "#/components/schemas/StornoReason"
+          },
+          "isPreorder": {
+            "type": "boolean"
+          },
+          "preorderCustomerNotes": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "preorderRemainingAmount": {
+            "maximum": 999999,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "preorderBalanceOrderId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -62742,11 +64868,6 @@
             "format": "date-time",
             "nullable": true
           },
-          "lastShiftAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
           "currentCashierName": {
             "type": "string",
             "nullable": true
@@ -62757,6 +64878,11 @@
           },
           "currentCashierEmail": {
             "type": "string",
+            "nullable": true
+          },
+          "lastShiftAtUtc": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "deviceInfo": {
@@ -65542,6 +67668,80 @@
           },
           "hints": {
             "$ref": "#/components/schemas/IncidentInvestigationHintsDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncrementalBackupTriggerRequestDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sinceUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncrementalRestorePlanDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullBackupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fullBackupCompletedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "incrementalBackupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "nearestSystemDumpId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncrementalRestoreResultDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/IncrementalRestorePlanDto"
+          },
+          "isolatedDryRunEnqueued": {
+            "type": "boolean"
+          },
+          "drillRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -69988,6 +72188,132 @@
         },
         "additionalProperties": false
       },
+      "MonatsbelegListResponse": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasFailedAutoCreates": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonatsbelegListRowDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegListRowDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "registerLocation": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "period": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tseSignature": {
+            "type": "string",
+            "nullable": true
+          },
+          "depStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "fonStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isJahresbeleg": {
+            "type": "boolean"
+          },
+          "autoCreated": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegPolicyDto": {
+        "type": "object",
+        "properties": {
+          "blockingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "autoMonatsbelegEnabled": {
+            "type": "boolean"
+          },
+          "monatsbelegRetryCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "useDecemberMonatsbelegAsJahresbeleg": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "MonatsbelegRegisterStatusItemDto": {
         "type": "object",
         "properties": {
@@ -70166,6 +72492,16 @@
           "warningMessage": {
             "type": "string",
             "nullable": true
+          },
+          "blockingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "salesBlocked": {
+            "type": "boolean"
+          },
+          "canContinueWithWarning": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -70804,6 +73140,15 @@
               "CashRegisterDecommissioned": {
                 "type": "boolean"
               },
+              "CashRegisterOpenRequested": {
+                "type": "boolean"
+              },
+              "CashRegisterOpenRequestApproved": {
+                "type": "boolean"
+              },
+              "CashRegisterOpenRequestDenied": {
+                "type": "boolean"
+              },
               "LicenseExpiringSoon": {
                 "type": "boolean"
               },
@@ -70861,6 +73206,27 @@
               "DailyClosingPendingReminder": {
                 "type": "boolean"
               },
+              "DailyClosingAutoCreated": {
+                "type": "boolean"
+              },
+              "DailyClosingOpenOrdersWarning": {
+                "type": "boolean"
+              },
+              "MonatsbelegMissingReminder": {
+                "type": "boolean"
+              },
+              "MonatsbelegAutoCreated": {
+                "type": "boolean"
+              },
+              "MonatsbelegManagerContacted": {
+                "type": "boolean"
+              },
+              "MonatsbelegCreated": {
+                "type": "boolean"
+              },
+              "MonatsbelegAutoCreateFailed": {
+                "type": "boolean"
+              },
               "OnlineOrderPushedToPos": {
                 "type": "boolean"
               },
@@ -70871,6 +73237,9 @@
                 "type": "boolean"
               },
               "OnlineOrderConfirmed": {
+                "type": "boolean"
+              },
+              "JahresbelegFonReminder": {
                 "type": "boolean"
               },
               "DigitalServiceRequested": {
@@ -71111,6 +73480,15 @@
               "CashRegisterDecommissioned": {
                 "type": "string"
               },
+              "CashRegisterOpenRequested": {
+                "type": "string"
+              },
+              "CashRegisterOpenRequestApproved": {
+                "type": "string"
+              },
+              "CashRegisterOpenRequestDenied": {
+                "type": "string"
+              },
               "LicenseExpiringSoon": {
                 "type": "string"
               },
@@ -71168,6 +73546,27 @@
               "DailyClosingPendingReminder": {
                 "type": "string"
               },
+              "DailyClosingAutoCreated": {
+                "type": "string"
+              },
+              "DailyClosingOpenOrdersWarning": {
+                "type": "string"
+              },
+              "MonatsbelegMissingReminder": {
+                "type": "string"
+              },
+              "MonatsbelegAutoCreated": {
+                "type": "string"
+              },
+              "MonatsbelegManagerContacted": {
+                "type": "string"
+              },
+              "MonatsbelegCreated": {
+                "type": "string"
+              },
+              "MonatsbelegAutoCreateFailed": {
+                "type": "string"
+              },
               "OnlineOrderPushedToPos": {
                 "type": "string"
               },
@@ -71178,6 +73577,9 @@
                 "type": "string"
               },
               "OnlineOrderConfirmed": {
+                "type": "string"
+              },
+              "JahresbelegFonReminder": {
                 "type": "string"
               },
               "DigitalServiceRequested": {
@@ -71424,6 +73826,33 @@
             "additionalProperties": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotifyMonatsbelegManagerRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotifyMonatsbelegManagerResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -73043,6 +75472,70 @@
           },
           "idempotencyKey": {
             "maxLength": 64,
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isPreorder": {
+            "type": "boolean"
+          },
+          "preorderStatus": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "preorderNumber": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "preorderPaidAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "preorderRemainingAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "preorderPickupDeadline": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "preorderPickupWeeks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "preorderReadyAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "preorderCollectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "preorderCustomerNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "lastPreorderPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "maxLength": 256,
             "type": "string",
             "nullable": true
           },
@@ -75415,6 +77908,137 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "walFileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "walRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "walCoverageStartUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "walCoverageEndUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PitrCheckResultDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PitrDryRunRequestDto": {
+        "type": "object",
+        "properties": {
+          "targetTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PitrDryRunResponseDto": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "drillRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "baseBackupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "targetTimeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validation": {
+            "$ref": "#/components/schemas/PitrPreRestoreValidationDto"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PitrPreRestoreValidationDto": {
+        "type": "object",
+        "properties": {
+          "passed": {
+            "type": "boolean"
+          },
+          "targetTimeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "baseBackupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "recoveryMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedDataLossSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hash": {
+            "$ref": "#/components/schemas/PitrCheckResultDto"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/PitrCheckResultDto"
+          },
+          "tseChain": {
+            "$ref": "#/components/schemas/PitrCheckResultDto"
+          },
+          "chain": {
+            "$ref": "#/components/schemas/BackupChainResponseDto"
+          },
+          "restorePoint": {
+            "$ref": "#/components/schemas/RestorePointValidationResultDto"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -75470,6 +78094,29 @@
           "messageCode": {
             "type": "string",
             "nullable": true
+          },
+          "monatsbelegBlockingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "monatsbelegWarningLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "monatsbelegSalesBlocked": {
+            "type": "boolean"
+          },
+          "monatsbelegCanContinueWithWarning": {
+            "type": "boolean"
+          },
+          "monatsbelegViennaDayOfMonth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "monatsbelegWarningMessageDe": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -75507,6 +78154,9 @@
           },
           "workingHours": {
             "$ref": "#/components/schemas/WorkingHoursDto"
+          },
+          "autoTagesabschluss": {
+            "$ref": "#/components/schemas/AutoTagesabschlussSettingsDto"
           }
         },
         "additionalProperties": false
@@ -75965,6 +78615,148 @@
           "inconclusive"
         ],
         "type": "string"
+      },
+      "PreorderDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "preorderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "orderDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pickupDeadlineUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pickupWeeks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "readyAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "collectedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PreorderListResponseDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ready": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "collected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancelled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreorderDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PreorderSettingsDto": {
+        "type": "object",
+        "properties": {
+          "pickupDeadlineWeeks": {
+            "maximum": 52,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancellationPolicyText": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PreorderStatsDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ready": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "collected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancelled": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       },
       "PreviewTenantLicenseRequest": {
         "required": [
@@ -77984,6 +80776,32 @@
           },
           "showDemoLabel": {
             "type": "boolean"
+          },
+          "isPreorder": {
+            "type": "boolean"
+          },
+          "preorderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "preorderPaidAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "preorderRemainingAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "preorderPickupWeeks": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "preorderPolicyText": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -79449,6 +82267,16 @@
         },
         "additionalProperties": false
       },
+      "ResolveCashRegisterOpenRequestBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ResolveDigitalServiceRequestDto": {
         "type": "object",
         "properties": {
@@ -79739,6 +82567,19 @@
           },
           "recoveryMethod": {
             "type": "string",
+            "nullable": true
+          },
+          "fullBackupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "incrementalBackupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           }
         },
@@ -80116,6 +82957,24 @@
         },
         "additionalProperties": false
       },
+      "RestoreVerificationCheckDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "result": {
+            "type": "string",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RestoreVerificationHistoryResponseDto": {
         "type": "object",
         "properties": {
@@ -80365,6 +83224,33 @@
           },
           "configSnapshotJson": {
             "type": "string",
+            "nullable": true
+          },
+          "verdict": {
+            "type": "string",
+            "nullable": true
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestoreVerificationCheckDto"
+            },
+            "nullable": true
+          },
+          "failedCheckIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "sourceBackupStrategy": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceBackupTenantId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -81393,6 +84279,22 @@
           "status": {
             "type": "string",
             "nullable": true
+          },
+          "fonRequired": {
+            "type": "boolean"
+          },
+          "fonStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "fonDaysUntilDeadline": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "fonSubmissionStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -81431,6 +84333,24 @@
           "warningMessageDe": {
             "type": "string",
             "nullable": true
+          },
+          "blockingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "warningLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "salesBlocked": {
+            "type": "boolean"
+          },
+          "canContinueWithWarning": {
+            "type": "boolean"
+          },
+          "viennaDayOfMonth": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -84581,6 +87501,31 @@
           "lateCreationReason": {
             "type": "string",
             "nullable": true
+          },
+          "trigger": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashCountNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashCount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "cashDifference": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "openOrdersCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openOrdersForced": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -95777,6 +98722,19 @@
             "minLength": 1,
             "type": "string"
           },
+          "billingCountry": {
+            "maxLength": 2,
+            "pattern": "^([A-Za-z]{2})?$",
+            "type": "string",
+            "nullable": true
+          },
+          "vatRegime": {
+            "$ref": "#/components/schemas/VatRegime"
+          },
+          "taxExempt": {
+            "type": "boolean",
+            "nullable": true
+          },
           "finanzOnlineApiUrl": {
             "maxLength": 500,
             "type": "string",
@@ -96207,6 +99165,25 @@
         },
         "additionalProperties": false
       },
+      "UpdateMonatsbelegPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "blockingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "autoMonatsbelegEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "monatsbelegRetryCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateNotificationSettingsRequest": {
         "type": "object",
         "properties": {
@@ -96346,6 +99323,25 @@
             "nullable": true
           },
           "metadataJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePreorderStatusRequest": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "cancellationReason": {
+            "maxLength": 500,
             "type": "string",
             "nullable": true
           }
@@ -98289,6 +101285,19 @@
         },
         "additionalProperties": { }
       },
+      "VatRegime": {
+        "enum": [
+          "AT_RKSV_STANDARD",
+          "DE_USTG_STANDARD",
+          "DE_KLEINUNTERNEHMER",
+          "CH_MWST_STANDARD",
+          "CH_KLEINUNTERNEHMER",
+          "EU_REVERSE_CHARGE",
+          "EU_OSS",
+          "NON_EU"
+        ],
+        "type": "string"
+      },
       "VerifyAdminVoucherCodeRequest": {
         "required": [
           "code"
@@ -98456,6 +101465,56 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalArchiveStatusDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "directoryExists": {
+            "type": "boolean"
+          },
+          "directory": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldestFileUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "newestFileUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "switchIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lagMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "hostArchiveCommandRequired": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -98875,6 +101934,12 @@
       "name": "AdminBackup"
     },
     {
+      "name": "AdminBackupPitr"
+    },
+    {
+      "name": "AdminBackupRetention"
+    },
+    {
       "name": "AdminBilling"
     },
     {
@@ -99013,6 +102078,9 @@
       "name": "AdminPermissionRequests"
     },
     {
+      "name": "AdminPreorder"
+    },
+    {
       "name": "AdminPricingRules"
     },
     {
@@ -99044,6 +102112,12 @@
     },
     {
       "name": "AdminRksvDepExport"
+    },
+    {
+      "name": "AdminRksvMonatsbeleg"
+    },
+    {
+      "name": "AdminRksvMonatsbelegPolicy"
     },
     {
       "name": "AdminRksvReporting"
@@ -99380,6 +102454,9 @@
     },
     {
       "name": "PosOnlinePayment"
+    },
+    {
+      "name": "PosPreorder"
     },
     {
       "name": "PosReceipts"
