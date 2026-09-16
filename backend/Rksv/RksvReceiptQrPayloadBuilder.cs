@@ -3,13 +3,15 @@ using KasseAPI_Final.Tse;
 namespace KasseAPI_Final.Rksv;
 
 /// <summary>
-/// Builds RKSV receipt QR wire format: BMF §9 machine code (from signed JWS payload) + compact JWS.
+/// Builds the RKSV receipt QR that BMF CheckSingleReceipt accepts: §9 machine code plus a standard-Base64 Sig-Wert.
 /// </summary>
 public static class RksvReceiptQrPayloadBuilder
 {
     /// <summary>
-    /// Combines the RKSV §9 machine code embedded in the JWS payload with the full compact JWS.
-    /// Wire layout: <c>{machineCode}_{header.payload.signature}</c> (11 body fields + JWS per <see cref="RksvQrPayloadLayout.StandardRksvV1"/>).
+    /// Combines the RKSV §9 machine code embedded in the JWS payload with the JWS signature as standard Base64.
+    /// Wire layout: <c>{machineCode}_{Sig-Wert}</c> — 13 underscore groups, last field has no <c>_</c>
+    /// (BMF <c>BASICCONSTRAINTS_NUMBER_OF_ELEMENTS</c>). Compact JWS is not appended: Base64URL payload/signature
+    /// segments use <c>_</c> and would split into more than 13 fields.
     /// </summary>
     public static bool TryBuildFromCompactJws(string? compactJws, out string qrPayload)
     {
@@ -31,7 +33,20 @@ public static class RksvReceiptQrPayloadBuilder
         if (!SignaturePipeline.TryGetMachineCodeFromCompactJws(trimmed, out var machineCode))
             return false;
 
-        qrPayload = $"{machineCode}_{trimmed}";
+        byte[] signatureBytes;
+        try
+        {
+            signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(parts[2]);
+        }
+        catch (TsePipelineException)
+        {
+            return false;
+        }
+
+        if (signatureBytes.Length == 0)
+            return false;
+
+        qrPayload = $"{machineCode}_{Convert.ToBase64String(signatureBytes)}";
         return true;
     }
 

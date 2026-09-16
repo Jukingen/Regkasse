@@ -7,8 +7,8 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Strict parser for QR strings produced by <see cref="PaymentService"/> / <see cref="ReceiptService"/>:
-/// BMF §9 machine code + compact JWS (<see cref="RksvQrPayloadLayout.StandardRksvV1"/>), with legacy
-/// <see cref="RksvQrPayloadLayout.InternalCompact"/> still accepted for stored receipts.
+/// BMF §9 machine code + standard-Base64 Sig-Wert (<see cref="RksvQrPayloadLayout.StandardRksvV1"/>),
+/// with legacy compact-JWS and internal-compact layouts still accepted for stored receipts.
 /// </summary>
 public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadFormatValidator
 {

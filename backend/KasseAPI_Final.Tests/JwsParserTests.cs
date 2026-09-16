@@ -48,7 +48,7 @@ public sealed class JwsParserTests
     }
 
     [Fact]
-    public void Parse_RksvQrWire_ExtractsTrailingCompactJws()
+    public void Parse_RksvQrWire_ReconstructsCompactJwsFromSigWert()
     {
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, new Mock<ILogger<SignaturePipeline>>().Object);
@@ -58,7 +58,7 @@ public sealed class JwsParserTests
         var result = JwsParser.Parse(qr);
 
         Assert.True(result.Success, result.Error);
-        Assert.Equal(JwsWireFormat.RksvQrWithCompactJws, result.Format);
+        Assert.Equal(JwsWireFormat.FiskalyMachineCode, result.Format);
         Assert.Equal(jws, result.CompactJws);
     }
 

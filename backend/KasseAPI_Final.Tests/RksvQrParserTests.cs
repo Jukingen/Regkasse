@@ -21,6 +21,18 @@ public sealed class RksvQrParserTests
     }
 
     [Fact]
+    public void IsStandardRksvV1Format_DetectsBmfSigWertLayout()
+    {
+        var sigWert = Convert.ToBase64String(new byte[64]);
+        var s =
+            "_R1-AT1_K1_AT-K1-20200101-1_2020-01-01T00:00:00_1,00_2,00_3,00_4,00_5,00_ENC9_CERT8_PREV7_" + sigWert;
+
+        Assert.True(RksvQrParser.IsStandardRksvV1Format(s));
+        Assert.False(s.Contains('.'));
+        Assert.Matches(@"^(_[^_]+){13}$", s);
+    }
+
+    [Fact]
     public void IsInternalCompactFormat_DetectsLegacyLayout()
     {
         var jws = "eyJhbGciOiJFUzI1NiJ9.eyJrYXNzZW5JZCI6IjEifQ.signature";

@@ -386,8 +386,22 @@ internal static class AtFiscalChainBaseline
     }
 
     /// <summary>Replaces the non-reproducible ES256 segment so the QR wire format itself stays comparable.</summary>
-    private static string MaskSignature(string qrWire, string compactJws, string signingInput) =>
-        qrWire.Replace(compactJws, $"{signingInput}.{SignaturePlaceholder}", StringComparison.Ordinal);
+    private static string MaskSignature(string qrWire, string compactJws, string signingInput)
+    {
+        if (qrWire.Contains(compactJws, StringComparison.Ordinal))
+            return qrWire.Replace(compactJws, $"{signingInput}.{SignaturePlaceholder}", StringComparison.Ordinal);
+
+        var segments = compactJws.Split('.');
+        if (segments.Length == 3)
+        {
+            var std = Convert.ToBase64String(TseCryptoHelper.FromBase64UrlNoPadding(segments[2]));
+            var suffix = "_" + std;
+            if (qrWire.EndsWith(suffix, StringComparison.Ordinal))
+                return qrWire[..^std.Length] + SignaturePlaceholder;
+        }
+
+        return qrWire;
+    }
 
     private static string Money(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 

@@ -91,7 +91,7 @@ Package content must match the XSD (`regKasse.xsd`); repo builder: `FinanzOnline
 ### Step 0 — Contract clarity (Compliance + Backend, ~1 PD)
 
 1. Confirm: do Startbeleg/Jahresbeleg go to FON via **`belegpruefung`**? (The BMF Webservice model points that way.)  
-2. `beleg` field: Anlage Z12 maschinenlesbarer Code — **not** the QR wire (`{machineCode}_{compactJws}`); usually **machine code only**, or the exact format BMF requires.  
+2. `beleg` field: Anlage Z12 maschinenlesbarer Code — **not** the printed QR wire (`{machineCode}_{Sig-Wert}`); usually **machine code only**, or the exact format BMF requires.  
 3. Lock return code → `Verified` / `Failed` / `ManualVerificationRequired` mapping with Compliance.
 
 ### Step 1 — Beleg text generation (Backend, ~2–3 PD)

@@ -32,7 +32,9 @@ public sealed class RksvReceiptQrPrueftoolIntegrationTests
             var result = PrueftoolQrVerificationHelper.RunCheckSingleReceipt(qrRep, crypto, outputDir);
 
             Assert.Equal(0, result.ExitCode);
-            Assert.Equal("PASS", result.VerificationState);
+            Assert.True(
+                string.Equals(result.VerificationState, "PASS", StringComparison.Ordinal),
+                $"BMF CheckSingleReceipt expected PASS, got '{result.VerificationState}'. stdout={result.StdOut} stderr={result.StdErr}");
         }
         finally
         {
@@ -66,7 +68,9 @@ public sealed class RksvReceiptQrPrueftoolIntegrationTests
                 outputDir);
 
             Assert.Equal(0, result.ExitCode);
-            Assert.Equal("PASS", result.VerificationState);
+            Assert.True(
+                string.Equals(result.VerificationState, "PASS", StringComparison.Ordinal),
+                $"BMF CheckSingleReceipt expected PASS, got '{result.VerificationState}'. stdout={result.StdOut} stderr={result.StdErr}");
         }
         finally
         {

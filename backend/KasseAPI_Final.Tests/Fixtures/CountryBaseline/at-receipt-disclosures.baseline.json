@@ -111,7 +111,7 @@
     "timestamp": "2026-01-12T08:15:00",
     "prevSignatureValue": "PREV-BASELINE-SIGNATURE",
     "signatureValue": "eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORQ.QkFTRUxJTkVfU0lHTkFUVVJF",
-    "qrData": "_R1-AT1_BASELINE_eyJhbGciOiJFUzI1NiJ9.X1IxLUFUMV9CQVNFTElORQ.QkFTRUxJTkVfU0lHTkFUVVJF"
+    "qrData": "_R1-AT1_BASELINE_QkFTRUxJTkVfU0lHTkFUVVJF"
   },
   "footerText": "Vielen Dank f\u00FCr Ihren Einkauf!",
   "rksvFooterLabel": "RKSV-konform",

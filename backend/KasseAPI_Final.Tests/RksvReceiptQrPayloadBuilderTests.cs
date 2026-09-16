@@ -34,6 +34,9 @@ public sealed class RksvReceiptQrPayloadBuilderTests
         Assert.Equal("100,00", parsed.Payload.TaxBuckets[0].Amount);
         Assert.NotNull(parsed.Payload.EncryptedTurnoverCounter);
         Assert.NotNull(parsed.Payload.PreviousSignature);
+
+        Assert.DoesNotContain('.', qr);
+        Assert.Matches(@"^(_[^_]+){13}$", qr);
     }
 
     [Fact]
