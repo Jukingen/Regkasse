@@ -104,7 +104,7 @@ export function RestoreVerificationDetail({ runId }: { runId: string }) {
   ];
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Space>
         <Link href={ADMIN_RESTORE_VERIFICATION_PATH} prefetch={false}>
           {t('backupDr.restoreVerificationPage.backToList')}
@@ -113,11 +113,11 @@ export function RestoreVerificationDetail({ runId }: { runId: string }) {
       <RestoreVerificationProgress />
 
       {runQuery.isError ? (
-        <Alert type="error" showIcon message={t('backupDr.restoreVerificationPage.loadError')} />
+        <Alert type="error" showIcon title={t('backupDr.restoreVerificationPage.loadError')} />
       ) : null}
 
       <Card loading={runQuery.isLoading}>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <Space align="center" wrap>
             {verdict === 'passed' ? (
               <CheckCircleFilled style={{ color: '#389e0d', fontSize: 32 }} />
@@ -141,7 +141,7 @@ export function RestoreVerificationDetail({ runId }: { runId: string }) {
             <Alert
               type="error"
               showIcon
-              message={t('backupDr.restoreVerificationPage.failedChecks', {
+              title={t('backupDr.restoreVerificationPage.failedChecks', {
                 checks: failed.map((id) => t(restoreVerificationCheckLabelKey(id))).join(', '),
               })}
             />

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { customInstance } from '@/lib/axios';
+
 import { fetchAllFiskalyHistory } from '../fiskalyHistory';
 
 vi.mock('@/lib/axios', () => ({
   customInstance: vi.fn(),
 }));
-
-import { customInstance } from '@/lib/axios';
 
 describe('fetchAllFiskalyHistory', () => {
   it('pages until totalCount is reached', async () => {

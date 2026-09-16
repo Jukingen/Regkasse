@@ -107,7 +107,7 @@ export function PitrRestore() {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Alert
         type="warning"
         showIcon
@@ -174,7 +174,7 @@ export function PitrRestore() {
         }
         extra={canRestore ? <PitrRestoreWorkflow /> : null}
       >
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
           <DatePicker
             showTime={{ format: 'HH:mm:ss' }}
             format="DD.MM.YYYY HH:mm:ss"

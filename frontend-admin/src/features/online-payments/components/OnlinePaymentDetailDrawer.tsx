@@ -37,7 +37,7 @@ export function OnlinePaymentDetailDrawer({ payment, onClose }: OnlinePaymentDet
       open={payment !== null}
       onClose={onClose}
       destroyOnHidden
-      width={480}
+      size={480}
     >
       {payment ? (
         <Descriptions column={1} size="small" bordered>

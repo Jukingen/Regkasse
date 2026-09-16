@@ -66,7 +66,7 @@ export function BackupChain({ chain, loading }: BackupChainProps) {
 
   return (
     <Card title={t('backupDr.pitrPage.chainTitle')} loading={loading}>
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
         {chain?.message ? (
           <Alert type="info" showIcon title={t('backupDr.pitrPage.chainNote')} description={chain.message} />
         ) : null}

@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/axios', () => ({
-  customInstance: vi.fn(),
-  AXIOS_INSTANCE: { get: vi.fn() },
-}));
-
 import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 
 import {
@@ -14,6 +9,11 @@ import {
   getFiskalyErrors,
   setFiskalyErrorReview,
 } from '../fiskalyErrors';
+
+vi.mock('@/lib/axios', () => ({
+  customInstance: vi.fn(),
+  AXIOS_INSTANCE: { get: vi.fn() },
+}));
 
 describe('fiskalyErrors api', () => {
   it('loads the error list with filters', async () => {

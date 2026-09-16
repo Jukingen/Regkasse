@@ -85,7 +85,7 @@ export function TagesabschlussDetail({
   const failed = live.fiskalyStatus?.toLowerCase() === 'failed';
 
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
       <Descriptions bordered size="small" column={1}>
         <Descriptions.Item label={t('tagesabschluss.history.colDate')}>{dateLabel}</Descriptions.Item>
         <Descriptions.Item label={t('tagesabschluss.type')}>{typeLabel}</Descriptions.Item>

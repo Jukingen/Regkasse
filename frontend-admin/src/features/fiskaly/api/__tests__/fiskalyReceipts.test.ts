@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { customInstance } from '@/lib/axios';
+
 import { parseFiskalyReceiptError, postFiskalyReceiptOperation } from '../fiskalyReceipts';
 
 vi.mock('@/lib/axios', () => ({
   customInstance: vi.fn(),
 }));
-
-import { customInstance } from '@/lib/axios';
 
 describe('parseFiskalyReceiptError', () => {
   it('reads nested error envelope from axios response', () => {

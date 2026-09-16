@@ -112,7 +112,7 @@ export function RestoreVerificationList() {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <RestoreVerificationProgress hideWhenIdle={false} />
       <Card size="small">
         <Space wrap>
@@ -178,7 +178,7 @@ export function RestoreVerificationList() {
         </Space>
       </Card>
       {query.isError ? (
-        <Alert type="error" showIcon message={t('backupDr.restoreVerificationPage.loadError')} />
+        <Alert type="error" showIcon title={t('backupDr.restoreVerificationPage.loadError')} />
       ) : null}
       <Table<RestoreVerificationRunDto>
         rowKey="id"

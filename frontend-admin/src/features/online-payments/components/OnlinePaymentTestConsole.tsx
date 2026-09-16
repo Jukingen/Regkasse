@@ -109,7 +109,7 @@ export function OnlinePaymentTestConsole({ onPaymentCreated }: OnlinePaymentTest
 
   return (
     <Card title={ts('console.title')}>
-      <Alert type="info" showIcon style={{ marginBottom: 16 }} message={ts('console.intro')} />
+      <Alert type="info" showIcon style={{ marginBottom: 16 }} title={ts('console.intro')} />
       <Form<ConsoleForm>
         form={form}
         layout="vertical"

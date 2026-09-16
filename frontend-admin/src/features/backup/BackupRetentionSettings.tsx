@@ -61,7 +61,7 @@ export function BackupRetentionSettings() {
   }
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Alert
         type="info"
         showIcon
@@ -100,7 +100,7 @@ export function BackupRetentionSettings() {
       </Row>
 
       <Card title={t('backupDr.retention.policyCardTitle')} loading={isLoading}>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t('backupDr.retention.cloudProvider')}:{' '}
             <Tag>{data?.cloudProvider ?? 'Filesystem'}</Tag>

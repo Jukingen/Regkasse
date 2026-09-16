@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
+
+import { exportFiskalyStatistics, getFiskalyStatistics } from '../fiskalyStatistics';
+
 vi.mock('@/lib/axios', () => ({
   customInstance: vi.fn(),
   AXIOS_INSTANCE: { get: vi.fn() },
 }));
-
-import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
-
-import { exportFiskalyStatistics, getFiskalyStatistics } from '../fiskalyStatistics';
 
 describe('fiskalyStatistics api', () => {
   it('loads statistics with filters', async () => {
