@@ -5,7 +5,7 @@
 
 This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance.
 
-Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Switzerland, and generic EU e-invoicing are **planned**. Two foundations have shipped and are wired to nothing yet: the per-tenant country and VAT-regime **columns** and the **`CountryProfile` registry** (both in [§2](#2-countryprofile-and-the-per-tenant-binding)). Country-aware tax/invoice strategies, the provisioning country step, the shared VAT-ID validator, and country feature-flag names are **not implemented in code yet**. Do not treat this document as proof that those types exist on disk.
+Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Switzerland, and generic EU e-invoicing are **planned**. Three foundations have shipped and are wired to nothing yet: the per-tenant country and VAT-regime **columns**, the **`CountryProfile` registry** (both in [§2](#2-countryprofile-and-the-per-tenant-binding)), and the **strategy layer** — `ITaxStrategy` / `IInvoiceStrategy` with an Austrian adapter and DE/CH/EU skeletons ([§3](#3-taxstrategy-and-invoicestrategy)). No production path calls any of them: `PaymentService`, `TseService`, `ReceiptService`, and `RksvSpecialReceiptService` are untouched. The provisioning country step, the shared VAT-ID validator, and country feature-flag names are **not implemented in code yet**. Do not treat this document as proof that those types exist on disk.
 
 ---
 
@@ -13,10 +13,10 @@ Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Sw
 
 | Country | Fiscal System | Status | Notes |
 |---------|---------------|--------|-------|
-| **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)** | Current behavior unchanged; pinned by the baseline regression suite in [§11](#11-testing-strategy) |
-| **DE** | KassenSicherheit (planned) | Planned — no code | See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) |
-| **CH** | MWST + QR-Rechnung (planned) | Planned — no code | See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) |
-| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable** | See [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) |
+| **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)**; adapter shipped, **not called** | Current behavior unchanged; `AustriaTaxStrategy` / `AustriaInvoiceStrategy` delegate to the existing services and are pinned by the baseline regression suite in [§11](#11-testing-strategy) |
+| **DE** | KassenSicherheit (planned) | Skeleton only — throws | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` throw `NotImplementedException`. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) |
+| **CH** | MWST + QR-Rechnung (planned) | Skeleton only — throws | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` throw `NotImplementedException`. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) |
+| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; skeleton throws | `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` throw `NotImplementedException`. See [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) |
 
 `EU_DEFAULT` is a fallback profile identifier, not an ISO 3166-1 alpha-2 code. It must never appear in the Super Admin create-tenant country list.
 
@@ -33,7 +33,7 @@ The intended flow is:
 3. Choose VAT and invoice behavior through **TaxStrategy** / **InvoiceStrategy** plus `CompanySettings.VatRegime`.
 4. Gate country-specific fiscal and e-invoicing modules with **feature flags** stored in the existing `tenant_settings` table.
 
-Steps 1 and 3 have their persistence in place. Steps 2 and 4 are design targets. Until they ship, keep using the Austrian RKSV/TSE rules in [`AGENTS.md`](../AGENTS.md) and the `RKSV_*.md` docs.
+Steps 1–3 exist in code: the columns, the registry, and the strategy layer with its resolvers. **Step 3 is not yet wired into any production path** — resolving a strategy is possible, but nothing resolves one. Step 4 is still a design target. Until the call sites migrate, the Austrian RKSV/TSE rules in [`AGENTS.md`](../AGENTS.md) and the `RKSV_*.md` docs remain the operative description of live behavior.
 
 ---
 
@@ -77,7 +77,7 @@ Regime is independent from country: an Austrian mandant may legitimately invoice
 
 ### 2.4 The registry (shipped)
 
-`ICountryProfileRegistry` / `CountryProfileRegistry` seeds `AT`, `DE`, `CH`, and `EU_DEFAULT` in code and is registered as a singleton. **Nothing calls it yet** — the strategy layer, provisioning country step, and VAT-ID validator are still to come, so adding it changed no behavior.
+`ICountryProfileRegistry` / `CountryProfileRegistry` seeds `AT`, `DE`, `CH`, and `EU_DEFAULT` in code and is registered as a singleton. It is consumed only by the strategy resolvers (§3) and by tests; **no production path calls it yet**, so adding it changed no behavior. The provisioning country step and the shared VAT-ID validator are still to come.
 
 | Field | Role |
 |-------|------|
@@ -100,11 +100,40 @@ A profile deliberately carries **no VAT rates** — a unit test fails the build 
 
 ## 3. TaxStrategy and InvoiceStrategy
 
-**Target:** `ITaxStrategy` and `IInvoiceStrategy` selected from CountryProfile plus `VatRegime`. Neither interface exists in code yet.
+**Shipped (not called).** `ITaxStrategy` and `IInvoiceStrategy` live in `backend/Services/Countries/Strategies/`, are resolved from CountryProfile plus `VatRegime`, and are registered in DI. Austria must keep today's receipt and tax **output**, byte for byte where it is reproducible at all (§11), so the Austrian classes are **adapters**: they contain no arithmetic, no rounding rule, and no bucket rule of their own.
 
-Austria must keep today's receipt and tax **output**, byte for byte where it is reproducible at all (§11). Wrap or select at the edges. Do not rewrite `PaymentService` internals, `TseService`, `RksvSpecialReceiptService`, or `CartMoneyHelper` as a parallel AT engine.
+### 3.1 Members and what Austria delegates to
 
-Non-AT strategies must not enable RKSV special receipts or Austrian TSE signing.
+| Member | Austrian delegate |
+|--------|-------------------|
+| `ITaxStrategy.CalculateTax` | `CartMoneyHelper.ComputeLine` + `BuildTaxSummaryFromLines` + `BuildReceiptTotalsAndBreakdown` |
+| `ITaxStrategy.ProjectFiscalTaxSets` | `RksvTaxSetMapper.MapFromTaxDetailsJson` (RKSV `Betrag-Satz-*` buckets) |
+| `ITaxStrategy.ValidateVatId` | `CountryProfile.MatchesVatIdShape` — the strategy holds **no** regex of its own |
+| `ITaxStrategy.DetermineInvoiceFields` | Read-only projection of `CompanySettings` / `Customer`; introduces no new rule |
+| `IInvoiceStrategy.AllocateReceiptNumberAsync` | `ISequenceReservationService.ReserveNextReceiptNumberAsync` (Belegnummer, gap-free per register and UTC day) |
+| `IInvoiceStrategy.BuildInvoiceDocumentAsync` | `IReceiptService.GenerateReceiptAsync`; the `ReceiptDTO` is returned unchanged |
+| `IInvoiceStrategy.GetMandatoryDisclosures` | Constant metadata list (key + legal basis + source field); values come from the document, not from this call |
+
+Deliberately **out** of `IInvoiceStrategy`: TSE signing input, RKSV §9 machine code, and the QR payload. Those belong to the signature pipeline (`BelegdatenPayloadBuilder`), not to document layout. The billing invoice sequence is a different counter and is also out of scope.
+
+**Numbering scope (decided).** Austria has two Belegnummer allocators, and the strategy wraps only one of them:
+
+| Path | Allocator | In `IInvoiceStrategy`? |
+|------|-----------|------------------------|
+| Online payment, storno, refund, all Sonderbelege | `IReceiptSequenceService.AllocateNextBelegNrInTransactionAsync` (bound to the caller's `IDbContextTransaction`) | **No** — stays outside the country layer so no EF transaction leaks into a country-neutral contract |
+| Offline order replay | `ISequenceReservationService.ReserveNextReceiptNumberAsync` | Yes — this is what `AllocateReceiptNumberAsync` delegates to |
+
+Do not "fix" this by adding a transaction parameter to the interface without a separate decision.
+
+`ProjectFiscalTaxSets` is separate from `CalculateTax` on purpose: it projects a persisted `payment_details.tax_details` payload, and the mapper derives each bucket's gross **from the VAT amount** (`tax × (100 + rate) / rate`) rather than reusing the line gross. A hand-written "sum the line gross" implementation drifts by cents — for 2 × 2,50 at 20 % the mapper yields `4.98`, not `5.00`. Delegate; never restate.
+
+### 3.2 Resolution and failure
+
+`ITaxStrategyResolver` / `IInvoiceStrategyResolver` take a `CountryProfile` and a `VatRegime`. They fail closed with `UnknownTaxRegimeException` (error code `UNKNOWN_TAX_REGIME`) when the profile does not allow the regime, or when no strategy is registered for the country. There is **no** Austrian fallback: a wrong pair must never run RKSV for a non-AT mandant.
+
+Lifetimes: tax strategies and their resolver are singletons (stateless delegators); invoice strategies and their resolver are **scoped**, because the Austrian one depends on scoped `ISequenceReservationService` and `IReceiptService`.
+
+Non-AT strategies throw `NotImplementedException` naming the document to execute first, so they can never silently enable RKSV special receipts or Austrian TSE signing.
 
 ---
 
@@ -165,9 +194,19 @@ EU_DEFAULT supports an EN 16931-oriented invoice builder and a **read-only** ViD
 
 Admin UI **language** catalogs stay `de` / `en` / `tr`. Do not add `de-DE` / `de-CH` catalogs unless copy truly diverges. Tenant **formatting** (date, currency, separators, VAT label) should follow CountryProfile once a formatting hook exists.
 
-VAT-ID regexes and normalization belong **only** in CountryProfile seeds (and a validator that reads the registry). Austria's current live pattern remains the AT seed. Do not copy country regexes into controllers or FA form constants as a second source of truth.
+VAT-ID regexes belong **only** in CountryProfile seeds. Do not copy country regexes into controllers or FA form constants as a second source of truth.
 
-The one validator that exists today is deliberately narrow: `billing_country` is checked for the two-letter ISO 3166-1 alpha-2 **shape** and upper-cased on write. It does not assert the code is an assigned country, and it does not validate VAT-ID.
+### 7.1 One pattern, one literal (shipped)
+
+`Models/Countries/VatIdPatterns` holds the per-country constants; the CountryProfile seeds and the two `[RegularExpression]` attributes (`PaymentDetails.Steuernummer`, `CreatePaymentRequest.Steuernummer`) reference the same constants. Attributes need a compile-time constant and therefore cannot read the registry — that is the reason the constants exist, not an invitation to add more literals. `VatIdPatternConsolidationTests` fails the build if a production file declares its own `^ATU\d{8}$` again.
+
+Runtime consumers of the shared Austrian matcher: `PaymentService` (payment gate), `TenantSettingsService` (fiscal settings change), `FiskalyTseService`, `FiskalySetupService`, `FiskalyConnectionProbe`, `InvoiceController`.
+
+**Matching is strict — normalization is the call site's job.** `VatIdPatterns.IsAustrianUid`, `VatIdPatterns.AustriaRegex`, `CountryProfile.MatchesVatIdShape`, and `ITaxStrategy.ValidateVatId` all match the value **as given**: no trimming, no case folding. Call sites that accept user-typed input keep their own `Trim().ToUpperInvariant()` (fiskaly and tenant-settings already do); the payment gate deliberately does not, because it never did.
+
+**One behavior change shipped with the consolidation:** `InvoiceController` previously accepted any `CompanyTaxNumber` that started with `ATU` and was 11 characters long, so values like `ATU1234567X` passed. It now uses the shared pattern and returns HTTP 400 for them. This tightens invoice creation only; the payment and TSE paths were already strict and are unchanged.
+
+The other validator that exists today is deliberately narrow: `billing_country` is checked for the two-letter ISO 3166-1 alpha-2 **shape** and upper-cased on write. It does not assert the code is an assigned country, and it does not validate VAT-ID.
 
 ---
 
@@ -239,7 +278,10 @@ Rollback is per country and flag-driven, not schema-driven.
 | Regression — AT fiscal chain | Austrian output unchanged by the country layer | **Shipped** |
 | Unit — CountryProfile registry | Registry returns AT/DE/CH; `EU_DEFAULT` exists but is not selectable; unknown ISO code rejected; AT seed mirrors live defaults; no VAT rates on a profile | **Shipped** |
 | Unit — VAT-ID shape from seeds | AT/DE/CH valid and invalid cases resolved from `VatIdPattern` | **Shipped** |
-| Unit — VAT-ID validator + VIES | Shared `IVatIdValidator`, call-site migration, VIES client mocked only | Planned |
+| Unit — strategy resolution | AT + `AT_RKSV_STANDARD` → Austrian strategy; DE + `DE_USTG_STANDARD` → German; regime not allowed by the profile → `UNKNOWN_TAX_REGIME`; unregistered country → throws; DE/CH/EU skeletons throw and name their doc | **Shipped** |
+| Unit — AT delegation | `CalculateTax` equals `CartMoneyHelper` output (decimal and serialized); `ProjectFiscalTaxSets` equals `RksvTaxSetMapper`; numbering and document calls land on the existing services; `tax_exempt` changes nothing | **Shipped** |
+| Unit — VAT-ID pattern consolidation | One literal shared by seeds and attributes; strict semantics pinned; a file-scan test rejects a re-introduced local regex | **Shipped** |
+| Unit — VIES lookup | Live registration check, VIES client mocked only | Planned |
 | E2E — `CreateTenantWizard` | Country step; AT create; DE defaults; unknown country → 400 | Planned (wizard has no country step yet) |
 | CI | No live VIES, no real DE TSE, no Swiss bank APIs | Standing rule |
 
