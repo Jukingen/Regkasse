@@ -37,5 +37,5 @@ export function canShowManualVerifyAction(
 ): boolean {
   if (!canManageSettings || !run?.id) return false;
   const status = run.status;
-  return status === 3 || status === BackupRunStatus.NUMBER_3;
+  return status === BackupRunStatus.NUMBER_3;
 }

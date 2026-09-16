@@ -172,7 +172,15 @@ export function PitrRestore() {
             {t('backupDr.pitr.pickTimeTitle')}
           </Space>
         }
-        extra={canRestore ? <PitrRestoreWorkflow /> : null}
+        extra={
+          canRestore ? (
+            <PitrRestoreWorkflow
+              canRestore={canRestore}
+              formatDt={formatDateTime}
+              formatLocale={formatLocale}
+            />
+          ) : null
+        }
       >
         <Space orientation="vertical" size={16} style={{ width: '100%' }}>
           <DatePicker

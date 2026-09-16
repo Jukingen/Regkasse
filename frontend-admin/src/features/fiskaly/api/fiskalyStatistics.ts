@@ -107,6 +107,6 @@ export async function exportFiskalyStatistics(
       match?.[1] ?? `fiskaly-statistics.${params.format === 'pdf' ? 'pdf' : 'csv'}`;
     return { blob, fileName };
   } catch (err) {
-    await rethrowBlobError(err);
+    return await rethrowBlobError(err);
   }
 }

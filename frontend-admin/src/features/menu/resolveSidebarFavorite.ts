@@ -33,7 +33,8 @@ function indexNestedBlock(
   if (block.kind === 'nested' || block.kind === 'fiscalRksvClosing' || block.kind === 'rksvHub') {
     map.set(block.menuKey, { labelKey: block.labelKey, icon: block.icon });
   }
-  if (block.kind === 'nested') {
+  // Only nested layout *blocks* carry child groups; nested rows do not.
+  if (block.kind === 'nested' && 'childGroups' in block) {
     for (const child of block.childGroups ?? []) {
       map.set(child.menuKey, { labelKey: child.labelKey, icon: child.icon });
     }

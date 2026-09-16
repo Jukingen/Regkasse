@@ -215,6 +215,6 @@ export async function postFiskalyBatchDepExport(
       failedCount: Number(response.headers['x-regkasse-batch-failed'] ?? 0),
     };
   } catch (err) {
-    await rethrowBlobError(err);
+    return await rethrowBlobError(err);
   }
 }

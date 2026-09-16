@@ -269,7 +269,13 @@ export function MonatsbelegList() {
             type="error"
             showIcon
             title={tp('loadErrorTitle')}
-            description={<ApiErrorAlertDescription error={query.error} />}
+            description={
+              <ApiErrorAlertDescription
+                t={t}
+                error={query.error}
+                logContext="MonatsbelegList"
+              />
+            }
             action={
               <Button size="small" type="primary" onClick={() => void query.refetch()}>
                 {tp('refresh')}

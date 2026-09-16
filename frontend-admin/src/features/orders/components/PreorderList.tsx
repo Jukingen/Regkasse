@@ -99,7 +99,7 @@ export function PreorderList() {
       {
         title: t('onlineOrders.preorder.columnDate'),
         dataIndex: 'orderDate',
-        render: dateColumnRender,
+        render: dateColumnRender('datetime'),
       },
     ],
     [formatLocale, t]

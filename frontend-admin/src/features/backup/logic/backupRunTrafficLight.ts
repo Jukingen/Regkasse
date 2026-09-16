@@ -21,9 +21,13 @@ export function backupRunTrafficLightTagColor(
   return 'default';
 }
 
+/**
+ * `styles` is a CSS module import, which TypeScript types as an index signature, so the expected
+ * keys cannot be required here.
+ */
 export function backupRunTrafficLightRowClass(
   status: number | undefined,
-  styles: { rowSuccess: string; rowPending: string; rowFailed: string }
+  styles: Readonly<Record<string, string>>
 ): string {
   const light = resolveBackupRunTrafficLight(status);
   if (light === 'success') return styles.rowSuccess;
