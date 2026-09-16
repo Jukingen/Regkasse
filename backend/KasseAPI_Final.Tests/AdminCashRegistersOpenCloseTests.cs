@@ -33,6 +33,7 @@ public sealed class AdminCashRegistersOpenCloseTests
             management ?? Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>(),
             shift,
+            Mock.Of<ICashRegisterOpenRequestService>(),
             CashRegisterTestDoubles.PermissiveRegisterPermissions(),
             TenantTestDoubles.TenantAccessorReturning(TenantAId),
             NullLogger<AdminCashRegistersController>.Instance,

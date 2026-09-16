@@ -6,6 +6,13 @@ import type {
   PosWorkingHoursSpecialDay,
 } from '../../utils/workingHoursStatus';
 
+export type PosAutoTagesabschluss = {
+  enabled: boolean;
+  hourVienna: number;
+  minuteVienna: number;
+  promptCashCount: boolean;
+};
+
 /** Matches backend <c>PosCompanyInfoDto</c> (GET /api/pos/company). */
 export interface PosCompanyInfo {
   companyName: string;
@@ -16,6 +23,7 @@ export interface PosCompanyInfo {
   companyDescription?: string | null;
   timeZone?: string;
   workingHours?: PosWorkingHoursExtended | null;
+  autoTagesabschluss?: PosAutoTagesabschluss | null;
 }
 
 function readString(raw: Record<string, unknown>, ...keys: string[]): string {
@@ -92,6 +100,19 @@ function parseWorkingHours(raw: unknown): PosWorkingHoursExtended | null {
   };
 }
 
+function parseAutoTagesabschluss(raw: unknown): PosAutoTagesabschluss {
+  const record =
+    raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const hour = Number(record.hourVienna ?? record.HourVienna ?? 3);
+  const minute = Number(record.minuteVienna ?? record.MinuteVienna ?? 0);
+  return {
+    enabled: record.enabled !== false && record.Enabled !== false,
+    hourVienna: Number.isFinite(hour) ? Math.min(23, Math.max(0, Math.trunc(hour))) : 3,
+    minuteVienna: Number.isFinite(minute) ? Math.min(59, Math.max(0, Math.trunc(minute))) : 0,
+    promptCashCount: record.promptCashCount !== false && record.PromptCashCount !== false,
+  };
+}
+
 export function parsePosCompanyInfo(raw: unknown): PosCompanyInfo {
   const record =
     raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
@@ -116,6 +137,9 @@ export function parsePosCompanyInfo(raw: unknown): PosCompanyInfo {
           : String(description),
     timeZone,
     workingHours: parseWorkingHours(record.workingHours ?? record.WorkingHours),
+    autoTagesabschluss: parseAutoTagesabschluss(
+      record.autoTagesabschluss ?? record.AutoTagesabschluss
+    ),
   };
 }
 

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Reports;
@@ -20,6 +21,12 @@ namespace KasseAPI_Final.Services
         Task<TagesabschlussResult> PerformDailyClosingAsync(
             string userId,
             Guid cashRegisterId,
+            DateTime? closingDate = null,
+            string? reason = null);
+        Task<TagesabschlussResult> PerformDailyClosingAsync(
+            string userId,
+            Guid cashRegisterId,
+            DailyClosingPerformOptions options,
             DateTime? closingDate = null,
             string? reason = null);
         Task<TagesabschlussResult> PerformMonthlyClosingAsync(string userId, Guid cashRegisterId);
@@ -161,14 +168,26 @@ namespace KasseAPI_Final.Services
                 .CountAsync();
         }
 
+        public Task<TagesabschlussResult> PerformDailyClosingAsync(
+            string userId,
+            Guid cashRegisterId,
+            DateTime? closingDate = null,
+            string? reason = null) =>
+            PerformDailyClosingAsync(userId, cashRegisterId, DailyClosingPerformOptions.Manual, closingDate, reason);
+
         public async Task<TagesabschlussResult> PerformDailyClosingAsync(
             string userId,
             Guid cashRegisterId,
+            DailyClosingPerformOptions options,
             DateTime? closingDate = null,
             string? reason = null)
         {
             try
             {
+                options ??= DailyClosingPerformOptions.Manual;
+                var trigger = DailyClosingTriggers.Normalize(options.Trigger);
+                var isAutomatic = DailyClosingTriggers.IsAutomatic(trigger);
+
                 var resolve = TryResolveDailyClosingBusinessDay(closingDate);
                 if (resolve.ErrorMessage != null)
                 {
@@ -182,6 +201,8 @@ namespace KasseAPI_Final.Services
                 var businessDay = resolve.BusinessDay;
                 var isBackdated = resolve.IsBackdated;
                 var lateReason = NormalizeLateCreationReason(reason);
+                if (isAutomatic && isBackdated && lateReason == null)
+                    lateReason = AutoTagesabschlussSettings.AutomaticLateReason;
                 if (isBackdated && lateReason == null)
                 {
                     return new TagesabschlussResult
@@ -321,6 +342,12 @@ namespace KasseAPI_Final.Services
                         ClosingDate = closingAnchorUtc,
                         IsBackdated = isBackdated,
                         LateCreationReason = isBackdated ? lateReason : null,
+                        Trigger = trigger,
+                        CashCountNote = options.CashCountNote,
+                        CashCount = options.CashCount,
+                        CashDifference = options.CashDifference,
+                        OpenOrdersCount = Math.Max(0, options.OpenOrdersCount),
+                        OpenOrdersForced = options.OpenOrdersForced,
                         ClosingType = "Daily",
                         DayKind = dayKind,
                         TotalAmount = totalAmount,
@@ -397,7 +424,8 @@ namespace KasseAPI_Final.Services
                     lateReason,
                     dailyClosing.CreatedAt,
                     isEmpty,
-                    transactionCount);
+                    transactionCount,
+                    trigger);
 
                 await _reportPdfCapture.TryCaptureClosingReportAsync(dailyClosing.Id, userId);
 
@@ -438,6 +466,12 @@ namespace KasseAPI_Final.Services
                     PaymentsWithoutInvoiceCount = 0,
                     IsBackdated = isBackdated,
                     LateCreationReason = isBackdated ? lateReason : null,
+                    Trigger = trigger,
+                    CashCountNote = options.CashCountNote,
+                    CashCount = options.CashCount,
+                    CashDifference = options.CashDifference,
+                    OpenOrdersCount = Math.Max(0, options.OpenOrdersCount),
+                    OpenOrdersForced = options.OpenOrdersForced,
                     CreatedAt = dailyClosing.CreatedAt,
                     Warning = warning
                 };
@@ -889,6 +923,12 @@ namespace KasseAPI_Final.Services
                     HasStoredPdf = hasStoredPdf,
                     IsBackdated = c.IsBackdated || IsLateCreatedDailyClosing(c),
                     LateCreationReason = c.LateCreationReason,
+                    Trigger = DailyClosingTriggers.Normalize(c.Trigger),
+                    CashCountNote = c.CashCountNote,
+                    CashCount = c.CashCount,
+                    CashDifference = c.CashDifference,
+                    OpenOrdersCount = c.OpenOrdersCount,
+                    OpenOrdersForced = c.OpenOrdersForced,
                 };
             }).ToList();
         }
@@ -1095,13 +1135,17 @@ namespace KasseAPI_Final.Services
             string? lateReason,
             DateTime createdAtUtc,
             bool isEmpty = false,
-            int transactionCount = 0)
+            int transactionCount = 0,
+            string trigger = DailyClosingTriggers.Manual)
         {
             if (_auditLogService == null)
                 return;
 
             try
             {
+                var normalizedTrigger = DailyClosingTriggers.Normalize(trigger);
+                var isAutomatic = DailyClosingTriggers.IsAutomatic(normalizedTrigger);
+                var auditActorId = isAutomatic ? "system" : userId;
                 var action = isBackdated ? "TagesabschlussBackdatedCreated" : "TagesabschlussCreated";
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
                 var daysLate = isBackdated
@@ -1114,17 +1158,22 @@ namespace KasseAPI_Final.Services
                     : isBackdated
                         ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
                         : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
+                if (isAutomatic)
+                    description += " (trigger=Automatic)";
 
                 await _auditLogService.LogSystemOperationAsync(
                     action,
                     "DailyClosing",
-                    userId,
-                    "Unknown",
+                    auditActorId,
+                    isAutomatic ? "System" : "Unknown",
                     description: description,
                     requestData: new
                     {
                         cashRegisterId,
+                        actor_user_id = auditActorId,
                         userId,
+                        trigger = normalizedTrigger,
+                        timestamp_utc = createdAtUtc,
                         closingDate = businessDay.ToString("yyyy-MM-dd"),
                         isBackdated,
                         isEmpty,
@@ -1135,23 +1184,40 @@ namespace KasseAPI_Final.Services
                         createdAt = createdAtUtc,
                         daysLate,
                     },
-                    responseData: new { closingId, isBackdated, isEmpty, daysLate },
+                    responseData: new { closingId, isBackdated, isEmpty, daysLate, trigger = normalizedTrigger },
                     entityId: closingId,
                     tenantId: tenantId == Guid.Empty ? null : tenantId);
 
-                if (isBackdated && _activityEvents != null && tenantId != Guid.Empty)
+                if (_activityEvents != null && tenantId != Guid.Empty)
                 {
-                    await _activityEvents.TryPublishAsync(
-                        new ActivityEventPublishRequest(
-                            tenantId,
-                            ActivityEventType.DailyClosingBackdatedCreated,
-                            "Nachträglicher Tagesabschluss erstellt",
-                            Description: description,
-                            DedupKey: $"daily_closing_backdated:{closingId:N}",
-                            ActorUserId: userId,
-                            EntityType: "DailyClosing",
-                            EntityId: closingId.ToString("N")),
-                        CancellationToken.None).ConfigureAwait(false);
+                    if (isAutomatic)
+                    {
+                        await _activityEvents.TryPublishAsync(
+                            new ActivityEventPublishRequest(
+                                tenantId,
+                                ActivityEventType.DailyClosingAutoCreated,
+                                "Automatischer Tagesabschluss erstellt",
+                                Description: description,
+                                DedupKey: $"daily_closing_auto:{closingId:N}",
+                                ActorUserId: "system",
+                                EntityType: "DailyClosing",
+                                EntityId: closingId.ToString("N")),
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
+                    else if (isBackdated)
+                    {
+                        await _activityEvents.TryPublishAsync(
+                            new ActivityEventPublishRequest(
+                                tenantId,
+                                ActivityEventType.DailyClosingBackdatedCreated,
+                                "Nachträglicher Tagesabschluss erstellt",
+                                Description: description,
+                                DedupKey: $"daily_closing_backdated:{closingId:N}",
+                                ActorUserId: userId,
+                                EntityType: "DailyClosing",
+                                EntityId: closingId.ToString("N")),
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1275,5 +1341,14 @@ namespace KasseAPI_Final.Services
 
         /// <summary>Operator reason when <see cref="IsBackdated"/>; null for on-time closings.</summary>
         public string? LateCreationReason { get; set; }
+
+        /// <summary><see cref="DailyClosingTriggers"/> — Manual or Automatic.</summary>
+        public string? Trigger { get; set; }
+
+        public string? CashCountNote { get; set; }
+        public decimal? CashCount { get; set; }
+        public decimal? CashDifference { get; set; }
+        public int OpenOrdersCount { get; set; }
+        public bool OpenOrdersForced { get; set; }
     }
 }

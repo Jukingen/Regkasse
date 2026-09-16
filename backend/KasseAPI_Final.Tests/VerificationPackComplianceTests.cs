@@ -236,7 +236,7 @@ public sealed class VerificationPackComplianceTests
 
         // Vienna local 10 May 2026 → prior April Monatsbeleg missing; April deadline end May → not overdue on 10 May.
         var time = new FixedUtcTimeProvider(new DateTime(2026, 5, 10, 14, 0, 0, DateTimeKind.Utc));
-        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()));
+        var policy = new RksvMonatsbelegPolicy(ctx, Options.Create(new TseOptions()), time);
         var sut = new MonatsbelegReminderService(ctx, TenantTestDoubles.PrimaryTenantResolver, time, policy);
 
         var status = await sut.GetMonatsbelegStatusAsync(regId, CancellationToken.None);

@@ -25,4 +25,8 @@ public sealed class PosCompanyInfoDto
 
     /// <summary>Restaurant working hours + reminder lead time for POS Tagesabschluss banner.</summary>
     public WorkingHoursDto WorkingHours { get; init; } = WorkingHoursDto.From(null);
+
+    /// <summary>Automatic Tagesabschluss fallback time (Europe/Vienna) for POS cash-count prompt.</summary>
+    public AutoTagesabschlussSettingsDto AutoTagesabschluss { get; init; } =
+        AutoTagesabschlussSettingsDto.From(null);
 }

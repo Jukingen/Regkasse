@@ -84,6 +84,7 @@ public sealed class CashRegisterHealthService : ICashRegisterHealthService
         var offlineCounts = await LoadOfflineQueueCountsAsync(registerIds, cancellationToken).ConfigureAwait(false);
         var lastPaymentSync = await LoadLastPaymentSyncAsync(registerIds, cancellationToken).ConfigureAwait(false);
         var lastOfflineSync = await LoadLastOfflineFiscalizedAsync(registerIds, cancellationToken).ConfigureAwait(false);
+        var lastShiftAt = await LoadLastShiftAtAsync(registerIds, cancellationToken).ConfigureAwait(false);
 
         var tseSnapshot = _health.Snapshot;
         var tseConfigured = IsTseConfigured();
@@ -104,6 +105,7 @@ public sealed class CashRegisterHealthService : ICashRegisterHealthService
 
             dto.TseHealthStatus = tseStatus;
             dto.OfflineQueueCount = offlineCounts.GetValueOrDefault(dto.Id);
+            dto.LastShiftAtUtc = lastShiftAt.TryGetValue(dto.Id, out var shiftAt) ? shiftAt : null;
 
             var paymentSync = lastPaymentSync.GetValueOrDefault(dto.Id);
             var offlineSync = lastOfflineSync.GetValueOrDefault(dto.Id);
@@ -174,6 +176,36 @@ public sealed class CashRegisterHealthService : ICashRegisterHealthService
             .Select(g => new { g.Key, Max = g.Max(p => p.CreatedAt) })
             .ToDictionaryAsync(x => x.Key, x => x.Max, cancellationToken)
             .ConfigureAwait(false);
+
+    private async Task<Dictionary<Guid, DateTime>> LoadLastShiftAtAsync(
+        IReadOnlyList<Guid> registerIds,
+        CancellationToken cancellationToken)
+    {
+        if (registerIds.Count == 0)
+            return new Dictionary<Guid, DateTime>();
+
+        var rows = await _db.CashierShifts
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => registerIds.Contains(s.CashRegisterId))
+            .GroupBy(s => s.CashRegisterId)
+            .Select(g => new
+            {
+                g.Key,
+                At = g.Max(s => s.EndedAt ?? s.StartedAt),
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var result = new Dictionary<Guid, DateTime>(rows.Count);
+        foreach (var row in rows)
+        {
+            if (row.At != default)
+                result[row.Key] = row.At;
+        }
+
+        return result;
+    }
 
     private async Task<Dictionary<Guid, DateTime>> LoadLastOfflineFiscalizedAsync(
         IReadOnlyList<Guid> registerIds,

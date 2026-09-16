@@ -104,7 +104,7 @@ public sealed class CashRegisterSelectableRow
 
     /// <summary>
     /// <see cref="RegisterStatus.Open"/> or <see cref="RegisterStatus.Closed"/>. A closed row is still selectable: POS opens it
-    /// through <c>POST /api/pos/shift/auto-open</c> right after the user picks it, so the client can label it accordingly.
+    /// through <c>POST /api/pos/shift/auto-open</c> when the caller has <c>shift.open</c>.
     /// </summary>
     /// <remarks>
     /// Serialized by name (<c>"Open"</c> / <c>"Closed"</c>) rather than the default ordinal, because the POS picker matches on the

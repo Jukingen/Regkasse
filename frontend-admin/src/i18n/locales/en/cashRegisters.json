@@ -4,6 +4,9 @@
   "columns": {
     "name": "Register",
     "status": "Status",
+    "shiftStatus": "Shift status",
+    "currentCashier": "Current cashier",
+    "lastShift": "Last shift",
     "operations": "Operations",
     "compliance": "RKSV",
     "activity": "Activity",
@@ -190,6 +193,19 @@
     "decommissioned": "Decommissioned",
     "unknown": "Status {{status}}"
   },
+  "lifecycle": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "maintenance": "Maintenance",
+    "disabled": "Disabled",
+    "decommissioned": "Decommissioned"
+  },
+  "shiftOccupancy": {
+    "open": "🟢 Open",
+    "closed": "🔴 Closed",
+    "none": "⚠️ No shift",
+    "unavailable": "—"
+  },
   "decommission": {
     "modalTitle": "Permanently decommission register",
     "modalTitleWithNumber": "Decommission register - {{number}}",
@@ -370,5 +386,26 @@
       "specialReceipts": "Special receipt report"
     },
     "userActivityCard": "User activity"
+  },
+  "openRequests": {
+    "title": "Pending cash register open requests",
+    "hint": "Cashiers with shift permission open a closed register themselves on POS. Without permission a request appears here — approving opens the register for the requesting cashier.",
+    "empty": "No pending requests.",
+    "loadFailed": "Could not load open requests.",
+    "approve": "Approve",
+    "deny": "Deny",
+    "approved": "Register opening approved. The cashier can now select the register.",
+    "denied": "Request denied.",
+    "resolveFailed": "Could not process the request.",
+    "status": {
+      "pending": "Pending"
+    },
+    "columns": {
+      "register": "Register",
+      "cashier": "Cashier",
+      "requestedAt": "Requested",
+      "status": "Status",
+      "actions": "Actions"
+    }
   }
 }

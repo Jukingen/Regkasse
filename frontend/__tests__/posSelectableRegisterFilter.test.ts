@@ -4,6 +4,7 @@ import {
   filterPaymentUsableSelectableRows,
   isOpenedOnSelect,
   isPaymentUsableSelectableRow,
+  resolvePosPickerRowKind,
 } from '../utils/posSelectableRegisterFilter';
 
 describe('posSelectableRegisterFilter', () => {
@@ -16,7 +17,7 @@ describe('posSelectableRegisterFilter', () => {
     ).toBe(true);
   });
 
-  it('keeps Closed rows — picking one opens it via shift auto-open', () => {
+  it('keeps Closed rows so the cashier can auto-open or request opening', () => {
     expect(
       isPaymentUsableSelectableRow({
         id: 'a',
@@ -58,5 +59,15 @@ describe('posSelectableRegisterFilter', () => {
     expect(isOpenedOnSelect({ id: '2', registerNumber: 'B', status: 'closed' })).toBe(true);
     expect(isOpenedOnSelect({ id: '3', registerNumber: 'C', status: 'Open' })).toBe(false);
     expect(isOpenedOnSelect({ id: '4', registerNumber: 'D' })).toBe(false);
+  });
+
+  it('maps picker row kind from till status and shift.open', () => {
+    const closed = { id: '1', registerNumber: 'A', status: 'Closed' };
+    const open = { id: '2', registerNumber: 'B', status: 'Open' };
+    const maintenance = { id: '3', registerNumber: 'C', status: 'Maintenance' };
+    expect(resolvePosPickerRowKind(open, true)).toBe('available');
+    expect(resolvePosPickerRowKind(closed, true)).toBe('opensOnSelect');
+    expect(resolvePosPickerRowKind(closed, false)).toBe('requestOpen');
+    expect(resolvePosPickerRowKind(maintenance, true)).toBe('unavailable');
   });
 });

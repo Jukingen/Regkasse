@@ -55,6 +55,7 @@ import { BulkDecommissionModal } from '@/features/cash-registers/components/Bulk
 import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
 import { CashRegisterSelector } from '@/features/cash-registers/components/CashRegisterSelector';
+import { CashRegisterOpenRequestsPanel } from '@/features/cash-registers/components/CashRegisterOpenRequestsPanel';
 import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
@@ -550,6 +551,10 @@ export default function AdminCashRegistersPage() {
       </AdminPageScopeSummary>
 
       <CashRegisterShiftRksvGuide />
+
+      {canManageCashRegisters ? (
+        <CashRegisterOpenRequestsPanel tenantId={selectedTenantId} />
+      ) : null}
 
       <Card>
         <Space orientation="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>

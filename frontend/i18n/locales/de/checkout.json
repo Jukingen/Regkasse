@@ -84,7 +84,14 @@
       "red": "Monatsbeleg ÜBERFÄLLIG! Bitte sofort erstellen",
       "createNow": "Jetzt erstellen",
       "dismissA11y": "Hinweis ausblenden",
-      "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…"
+      "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…",
+      "missingTitle": "Monatsbeleg fehlt",
+      "contactManager": "Manager kontaktieren",
+      "continueWithWarning": "Verkauf mit Warnung",
+      "notifySuccess": "Der Mandanten-Admin wurde benachrichtigt.",
+      "notifyAlready": "Der Mandanten-Admin wurde heute bereits benachrichtigt.",
+      "notifyFailed": "Benachrichtigung fehlgeschlagen. Bitte erneut versuchen.",
+      "allowedWithWarning": "Bitte Mandanten-Admin kontaktieren. Verkauf ist mit Warnung möglich. Fehlender Monatsbeleg wird am Monatsanfang automatisch nachgeholt."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Monatsbeleg für aktuellen Monat überfällig!",

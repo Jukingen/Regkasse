@@ -35,4 +35,6 @@ export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
   '/admin/license',
   /** Billing overview — redirects to `/admin/license-management`; sales remain separate. */
   '/admin/billing',
+  /** Alias of `/rksv/monatsbelege`. */
+  '/admin/rksv/monatsbelege',
 ] as const;

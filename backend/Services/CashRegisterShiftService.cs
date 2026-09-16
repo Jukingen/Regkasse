@@ -132,20 +132,18 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterOpenResult.StartbelegRequired();
             }
 
-            if (_rksvMonatsbelegPolicy.SessionGateApplies)
+            var monatsbelegGate = await _rksvMonatsbelegPolicy
+                .EvaluateSalesGateAsync(registerId, cancellationToken)
+                .ConfigureAwait(false);
+            if (monatsbelegGate.BlocksSales)
             {
-                var (y, m) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
-                if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
-                        .ConfigureAwait(false))
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    _logger.LogWarning(
-                        "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for previous month {Year}-{Month}",
-                        registerId,
-                        y,
-                        m);
-                    return CashRegisterOpenResult.MonatsbelegRequired();
-                }
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogWarning(
+                    "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for previous month (mode={Mode}, day={Day})",
+                    registerId,
+                    monatsbelegGate.Mode,
+                    monatsbelegGate.ViennaDayOfMonth);
+                return CashRegisterOpenResult.MonatsbelegRequired();
             }
 
             register.Status = RegisterStatus.Open;

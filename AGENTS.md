@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`**, optionally **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`**, and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-08-22
+**Last updated:** 2026-09-16
 
 ## Language Rules
 Follow these language rules strictly:
@@ -583,6 +583,16 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 
 **Developer guide:** `docs/DEP_EXPORT_DEVELOPMENT.md`
 
+## Country & Fiscal Regimes (Multi-Country)
+
+Austria (`CountryCode=AT`) remains the production fiscal path (RKSV/TSE/FinanzOnline). Other countries use `CountryProfile` + feature flags; DE/CH/EU modules are not production-ready. Hub: [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
+
+- Resolve country from `CompanySettings.CountryCode` via `ICountryProfileRegistry` (seeds: AT, DE, CH, `EU_DEFAULT`). Missing/legacy code = AT. The registry and `CountryCode` column are **planned**; live code still uses `company_settings.country` (default AT).
+- Select VAT and invoice behavior through `ITaxStrategy` / `IInvoiceStrategy` and `VatRegime`. Do not fork `PaymentService` or `TseService` internals.
+- Gate country features with `IFeatureFlagService` (`tenant_settings` keys `FeatureFlags:{Name}`). Country-derived defaults: tenant override → profile. `Fiscal.RksvAt` is always on for AT and cannot be disabled (**documented lock**; flag name not in `FeatureFlagNames` yet).
+- Tenant create requires ISO 3166-1 alpha-2 `countryCode` (FA CreateTenantWizard country step — **planned**; live wizard is still single-step). Non-AT tenants must not enable RKSV/TSE.
+- VAT-ID regexes, rates, and labels live in CountryProfile seeds — not in controllers or FA form constants. `EU_DEFAULT` is registry-only, not selectable.
+
 ## Backup & Disaster Recovery
 
 **Hub doc:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](docs/BACKUP_SYSTEM.md)  
@@ -748,6 +758,7 @@ Use `/ai` docs selectively based on the task:
 - Backend/API/auth/contract work → `ai/01_BACKEND_CONTRACT.md`, `ai/03_API_CONTRACT.md`
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
+- **Country / VAT / e-invoicing work** → `docs/COUNTRIES.md` + `docs/FISCAL_GERMANY.md` + `docs/FISCAL_SWITZERLAND.md` + `docs/EINVOICING_EU.md`
 - **Super Admin TSE ops** (health, failover, healing, scaling, knowledge, … — diagnostic; not DEP rewrite) → `ai/modules/tse_admin_ops.md`, `docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`
 - **RKSV Demo/Production overlay** (receipt DEMO label; `TseMode=Real` also disables Development TSE health bypass) → [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md); API `GET/POST /api/admin/rksv/config`; FA `/admin/rksv/config`. Do **not** treat `/settings/development-mode` `bypassTseCheck` as `RKSV.Mode`. TSE health bypass is opt-in (`DevelopmentOptions:BypassTseInDevelopment`, default `false`).
 - **POS production hosts / Single POS UI** → `docs/POS_PRODUCTION_ARCHITECTURE.md`, `docs/MULTI_TENANT.md`
@@ -790,6 +801,7 @@ Use `/ai` docs selectively based on the task:
 - Auth / RBAC behavior
 - Payment processing (money, rounding, idempotency)
 - TSE signature chain (fiscal compliance)
+- Country profile resolution, VAT strategy selection, e-invoicing builder selection
 - RKSV special receipts
 - Decommissioned register lifecycle (no new sessions/payments)
 - Voucher ledger balance integrity
@@ -804,6 +816,7 @@ Use `/ai` docs selectively based on the task:
 - Do not mix unrelated refactors into feature work
 - Do not rename or reshape public APIs, DTOs, config keys, or role semantics without checking downstream consumers
 - Do not weaken validation, auditability, authorization, or fiscal guarantees
+- Do not hardcode country codes, VAT rates, or VAT-ID regexes outside `CountryProfile` seeds.
 - Do not commit secrets
 - Do not delete columns directly; mark as `is_deleted` or deprecated
 - Do not modify existing migration files after they are committed

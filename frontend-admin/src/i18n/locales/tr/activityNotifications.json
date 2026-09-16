@@ -52,6 +52,9 @@
     "CashRegisterOpened": "Kasa açıldı",
     "CashRegisterClosed": "Kasa kapatıldı",
     "CashRegisterDecommissioned": "Kasa devre dışı",
+    "CashRegisterOpenRequested": "Kasa açılışı talep edildi",
+    "CashRegisterOpenRequestApproved": "Kasa açılışı onaylandı",
+    "CashRegisterOpenRequestDenied": "Kasa açılışı reddedildi",
     "LicenseExpiringSoon": "Lisans süresi doluyor",
     "LicenseExpired": "Lisans süresi doldu",
     "LimitApproaching": "Limit yaklaşıyor",
@@ -64,6 +67,8 @@
     "RestoreDrillSucceeded": "Geri yükleme tatbikatı başarılı",
     "DailyClosingBackdatedCreated": "Gecikmeli gün sonu oluşturuldu",
     "DailyClosingPendingReminder": "Gün sonu kapanışı bekliyor",
+    "DailyClosingAutoCreated": "Otomatik gün sonu",
+    "DailyClosingOpenOrdersWarning": "Otomatik gün sonunda açık siparişler",
     "DepExportDueSoon": "DEP dışa aktarım yakında",
     "DepExportOverdue": "DEP dışa aktarım gecikmiş",
     "DepExportValidationFailed": "DEP dışa aktarım doğrulaması başarısız",
@@ -85,6 +90,12 @@
     "CriticalActionApprovalRequested": "Kritik işlem onay bekliyor",
     "CriticalActionApprovalApproved": "Kritik işlem onaylandı",
     "CriticalActionApprovalRejected": "Kritik işlem reddedildi",
-    "RksvRuntimeConfigChanged": "RKSV işletim modu değişti"
+    "RksvRuntimeConfigChanged": "RKSV işletim modu değişti",
+    "MonatsbelegMissingReminder": "Monatsbeleg eksik",
+    "MonatsbelegAutoCreated": "Monatsbeleg otomatik oluşturuldu",
+    "MonatsbelegCreated": "Monatsbeleg oluşturuldu",
+    "MonatsbelegAutoCreateFailed": "Monatsbeleg otomatik oluşturma başarısız",
+    "JahresbelegFonReminder": "Jahresbeleg FinanzOnline hatırlatması",
+    "MonatsbelegManagerContacted": "Monatsbeleg: kasiyer yöneticiyi aradı"
   }
 }

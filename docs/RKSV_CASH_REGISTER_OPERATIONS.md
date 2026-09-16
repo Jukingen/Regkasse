@@ -147,7 +147,17 @@ One Startbeleg per cash register, unless the register is permanently disabled. A
 
 **Create:** TSE-signed Monatsbeleg for past Vienna calendar months; a **December** request is routed in the service to the **Jahresbeleg** path.
 
-**FinanzOnline:** No separate `belegpruefung` outbox (product decision **NotRequired**). Mandatory FON Belegcheck applies to Startbeleg + Jahresbeleg. Detail: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; NotRequired note on the receipt detail.
+**FinanzOnline:** No separate `belegpruefung` outbox for January–November (product decision **NotRequired**). Mandatory FON Belegcheck applies to Startbeleg + Jahresbeleg (December Monatsbeleg). Deadline for Jahresbeleg FON is **15 February** of the following year (`JahresbelegFonReminder`). Detail: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; NotRequired note on the receipt detail; FON column on `/rksv/monatsbelege`.
+
+**POS sales gate (product policy, not RKSV law):** RKSV requires creating the Monatsbeleg within 7 days of month end. Blocking POS sales when the **previous Vienna month** is missing is a tenant setting on `CompanySettings` (`monatsbeleg_blocking_mode`), default **Strict** (backward compatible). FA list: `/rksv/monatsbelege` (`GET /api/admin/rksv/monatsbelege`).
+
+| Mode | When previous-month Monatsbeleg is missing |
+|------|--------------------------------------------|
+| **Strict** (default) | Shift open and sales blocked (`nextAction=monatsbeleg_required`). |
+| **GracePeriod** | Sales **allowed** on Vienna days **1–14** (red warning days 1–7, yellow days 8–14). Hard-block from **day 15**. |
+| **WarningOnly** | Never block; always warn. |
+
+Cashier UX: blocking modal (**Manager kontaktieren**, optional create) when sales are blocked; non-blocking banner (**Verkauf mit Warnung**) when sales are allowed. `POST /api/pos/cash-register/monatsbeleg/notify-manager` writes a daily-deduped Manager activity. FA: **Einstellungen** → Monatsbeleg policy (`GET/PUT /api/admin/rksv/monatsbeleg-policy`). **Auto-Monatsbeleg** (`CompanySettings.auto_monatsbeleg_enabled`, default **true**) creates the previous-month TSE receipt on Vienna day 1 at 00:01 (catch-up through day 7) via `MonatsbelegSchedulerHostedService` (`forcePastMonth: true`, audit actor `system`). Umsatzzähler is taken from the signature chain (zero-amount Monatsbeleg does not increment it). Failed creates retry with exponential backoff (`monatsbeleg_retry_count`, default 3) then emit `MonatsbelegAutoCreateFailed` and a red FA warning on `/rksv/monatsbelege`. December routes to Jahresbeleg + FON outbox; a 15 February Belegcheck reminder is sent until verified. After create, the next POS ensure-ready / payment validation unblocks automatically. Hosted config: `MonatsbelegOps` in [`backend/CONFIGURATION.md`](../backend/CONFIGURATION.md).
 
 ### 4.4 Jahresbeleg
 
@@ -263,6 +273,12 @@ Seal the cash-register period with TSE and (when enabled) forward it to FinanzOn
 - Closing is possible for a past Vienna business day; `CreatedAt` / TSE signature time are **not** backdated.
 - `is_backdated`, `late_creation_reason` (required), and audit `TagesabschlussBackdatedCreated`.
 - Detail: [`docs/BACKDATED_TAGESABSCHLUSS.md`](BACKDATED_TAGESABSCHLUSS.md).
+
+### Automatic fallback (forgotten daily closing)
+
+If the cashier does not close by the tenant-configured Europe/Vienna time (default 03:00), `AutoTagesabschlussHostedService` creates a TSE-signed Daily closing for **yesterday**. Empty days are skipped. Open-order policy can force-close with a Manager warning or block until tables are closed. Month-end / year-end also attempts Monatsbeleg / Jahresbeleg. FA `/tagesabschluss` shows column **Auslöser / Triggered by / Tetikleyen** (System vs User) and a Manual/Automatic filter.
+
+This is **not** `WorkingHours.AutoClosePOSAtClosing` (POS display prompt only). Config: `AutoTagesabschluss:*` plus `CompanySettings.AutoTagesabschluss`. Detail: [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
 
 ### After Tagesabschluss (verified RKSV behavior)
 

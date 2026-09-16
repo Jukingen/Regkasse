@@ -106,6 +106,10 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 
 | Doc | Topic |
 |-----|--------|
+| [`COUNTRIES.md`](COUNTRIES.md) | **Multi-country hub** (AT production; DE/CH/EU planned, no code yet) |
+| [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) | Germany fiscal **stub** (not production-ready) |
+| [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung **stub** (not production-ready) |
+| [`EINVOICING_EU.md`](EINVOICING_EU.md) | EU e-invoicing / ViDA readiness **stub** (no submission) |
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
 | [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
 | [`DEPLOYMENT_COMPLIANCE.md`](DEPLOYMENT_COMPLIANCE.md) | **Production RKSV gate, ComplianceOfficer, audit trail** |
@@ -262,6 +266,8 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`README.md`](README.md) | This index |
 | [`REGKASSE_APK_INSTALLATIONSANLEITUNG.md`](REGKASSE_APK_INSTALLATIONSANLEITUNG.md) | APK install (de) |
 | [`restore-*.md`](restore-boundary-notes.md) | Restore boundary / drills |
+| [`COUNTRIES.md`](COUNTRIES.md) | Multi-country fiscal hub |
+| [`EINVOICING_EU.md`](EINVOICING_EU.md) / [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) / [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Country fiscal stubs (not production-ready) |
 | [`RKSV_*.md`](RKSV_COMPLIANCE.md) | RKSV / BMF / operations |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | **Key** — FA mandant CRUD |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | **Key** — users / Access hub |

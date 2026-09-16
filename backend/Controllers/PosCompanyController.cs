@@ -62,6 +62,7 @@ public sealed class PosCompanyController : ControllerBase
                 ? "Europe/Vienna"
                 : settings.TimeZone,
             WorkingHours = WorkingHoursDto.From(settings.WorkingHours),
+            AutoTagesabschluss = AutoTagesabschlussSettingsDto.From(settings.AutoTagesabschluss),
         });
     }
 }

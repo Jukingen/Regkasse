@@ -1,7 +1,8 @@
 namespace KasseAPI_Final.Configuration;
 
 /// <summary>
-/// Evening reminder when Tagesabschluss is still pending (never auto-closes — RKSV requires manual closing).
+/// Evening reminder when Tagesabschluss is still pending. Automatic fallback is
+/// configured separately (<see cref="AutoTagesabschlussOptions"/>).
 /// </summary>
 public sealed class TagesabschlussReminderOptions
 {

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -68,13 +69,17 @@ public sealed class RksvReminderService : IRksvReminderService
             .HasMonatsbelegForRegisterMonthAsync(cashRegisterId, prevYear, prevMonth, cancellationToken)
             .ConfigureAwait(false);
 
+        var gate = await _monatsbelegPolicy
+            .EvaluateSalesGateAsync(cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+
         // RKSV: Monatsbeleg is due for the previous completed month (within 7 days of month end).
         var mbRequired = !hasPreviousMonth;
         var currentMonthGraceOverdue = false;
         var lastMonthMissing = !hasPreviousMonth;
 
         string mbStatus;
-        if (!hasPreviousMonth && today.Day > 7)
+        if (!hasPreviousMonth && gate.WarningLevel == MonatsbelegSalesGateEvaluator.WarningRed)
             mbStatus = MbOverdue;
         else if (!hasPreviousMonth)
             mbStatus = MbUpcoming;
@@ -83,7 +88,8 @@ public sealed class RksvReminderService : IRksvReminderService
 
         int? mbDays = mbRequired ? Math.Max(0, 7 - today.Day) : null;
 
-        var warningMessageDe = BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue);
+        var warningMessageDe = gate.WarningMessageDe
+            ?? BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue);
 
         var monatsbeleg = new RksvReminderMonatsbelegDto
         {
@@ -95,6 +101,11 @@ public sealed class RksvReminderService : IRksvReminderService
             CurrentMonthOverdue = currentMonthGraceOverdue,
             LastMonthMissing = lastMonthMissing,
             WarningMessageDe = warningMessageDe,
+            BlockingMode = MonatsbelegBlockingModeNames.ToPersisted(gate.Mode),
+            WarningLevel = gate.WarningLevel,
+            SalesBlocked = gate.BlocksSales,
+            CanContinueWithWarning = gate.CanContinueWithWarning,
+            ViennaDayOfMonth = gate.ViennaDayOfMonth,
         };
 
         var hasJbPriorYear = await HasJahresbelegForViennaYearAsync(
@@ -127,11 +138,23 @@ public sealed class RksvReminderService : IRksvReminderService
         else
             jbStatus = MbUpcoming;
 
+        var (fonRequired, fonReminderStatus, fonDays, fonSubmissionStatus) = await ResolveJahresbelegFonAsync(
+                cashRegisterId,
+                viennaYear - 1,
+                hasJbPriorYear,
+                today,
+                cancellationToken)
+            .ConfigureAwait(false);
+
         var jahresbeleg = new RksvReminderJahresbelegDto
         {
             IsRequired = jbRequired,
             DaysUntilDeadline = jbDays,
             Status = jbStatus,
+            FonRequired = fonRequired,
+            FonStatus = fonReminderStatus,
+            FonDaysUntilDeadline = fonDays,
+            FonSubmissionStatus = fonSubmissionStatus,
         };
 
         return new RksvReminderStatusDto
@@ -201,6 +224,49 @@ public sealed class RksvReminderService : IRksvReminderService
                      p.RksvSpecialReceiptYear == year,
                 cancellationToken)
                 .ConfigureAwait(false);
+    }
+
+    private async Task<(bool Required, string Status, int? Days, string? SubmissionStatus)> ResolveJahresbelegFonAsync(
+        Guid cashRegisterId,
+        int jahresbelegYear,
+        bool hasJahresbeleg,
+        DateTime viennaToday,
+        CancellationToken cancellationToken)
+    {
+        if (!hasJahresbeleg)
+            return (false, MbOk, null, null);
+
+        var paymentId = await _db.PaymentDetails.AsNoTracking()
+            .Where(p =>
+                p.CashRegisterId == cashRegisterId
+                && p.IsActive
+                && (
+                    (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg
+                     && p.RksvSpecialReceiptYear == jahresbelegYear)
+                    || (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg
+                        && p.RksvSpecialReceiptYear == jahresbelegYear
+                        && p.RksvSpecialReceiptMonth == 12)))
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        string? submission = null;
+        if (paymentId is Guid pid)
+        {
+            submission = await _db.RksvSpecialReceiptFinanzOnlineSubmissions.AsNoTracking()
+                .Where(s => s.PaymentId == pid)
+                .Select(s => s.Status)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (string.Equals(submission, RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Verified, StringComparison.OrdinalIgnoreCase))
+            return (false, MbOk, null, submission);
+
+        var deadline = AutoMonatsbelegCutoff.JahresbelegFonDeadline(jahresbelegYear);
+        var days = (deadline - viennaToday.Date).Days;
+        var overdue = viennaToday.Date > deadline;
+        return (true, overdue ? MbOverdue : MbUpcoming, Math.Max(0, days), submission ?? RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Pending);
     }
 
     private static string? BuildMonatsbelegReminderWarningDe(bool lastMonthMissing, bool currentMonthGraceOverdue)

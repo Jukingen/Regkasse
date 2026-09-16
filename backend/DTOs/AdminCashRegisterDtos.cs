@@ -106,6 +106,12 @@ public sealed class CashRegisterDto
     /// <summary>Email of the open-shift cashier; omitted when the till is unattended.</summary>
     public string? CurrentCashierEmail { get; set; }
 
+    /// <summary>
+    /// Latest cashier-shift timestamp (ended_at, else started_at). Null when this register has never had a shift.
+    /// Distinct from <see cref="Status"/> (open till) and <see cref="IsActive"/> (inventory flag).
+    /// </summary>
+    public DateTime? LastShiftAtUtc { get; set; }
+
     /// <summary>Display name of <see cref="AssignedUserId"/>; null when the register is unassigned.</summary>
     public string? AssignedUserName { get; set; }
 

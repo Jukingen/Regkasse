@@ -52,6 +52,9 @@
     "CashRegisterOpened": "Cash register opened",
     "CashRegisterClosed": "Cash register closed",
     "CashRegisterDecommissioned": "Cash register decommissioned",
+    "CashRegisterOpenRequested": "Cash register open requested",
+    "CashRegisterOpenRequestApproved": "Cash register open approved",
+    "CashRegisterOpenRequestDenied": "Cash register open denied",
     "LicenseExpiringSoon": "License expiring soon",
     "LicenseExpired": "License expired",
     "LimitApproaching": "Limit approaching",
@@ -64,6 +67,8 @@
     "RestoreDrillSucceeded": "Restore drill succeeded",
     "DailyClosingBackdatedCreated": "Backdated daily closing created",
     "DailyClosingPendingReminder": "Daily closing pending",
+    "DailyClosingAutoCreated": "Automatic daily closing",
+    "DailyClosingOpenOrdersWarning": "Open orders during automatic daily closing",
     "DepExportDueSoon": "DEP export due soon",
     "DepExportOverdue": "DEP export overdue",
     "DepExportValidationFailed": "DEP export validation failed",
@@ -85,6 +90,12 @@
     "CriticalActionApprovalRequested": "Critical action awaiting approval",
     "CriticalActionApprovalApproved": "Critical action approved",
     "CriticalActionApprovalRejected": "Critical action rejected",
-    "RksvRuntimeConfigChanged": "RKSV operating mode changed"
+    "RksvRuntimeConfigChanged": "RKSV operating mode changed",
+    "MonatsbelegMissingReminder": "Monatsbeleg missing",
+    "MonatsbelegAutoCreated": "Monatsbeleg created automatically",
+    "MonatsbelegCreated": "Monatsbeleg created",
+    "MonatsbelegAutoCreateFailed": "Monatsbeleg automatic creation failed",
+    "JahresbelegFonReminder": "Jahresbeleg FinanzOnline reminder",
+    "MonatsbelegManagerContacted": "Monatsbeleg: cashier contacted admin"
   }
 }

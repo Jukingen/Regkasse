@@ -16,6 +16,8 @@ public sealed class PosCashierEndpointPermissionContractTests
             ("GET /api/pos/cart/current", AppPermissions.CartManage),
             ("GET /api/pos/status/overview", AppPermissions.CartView),
             ("GET /api/pos/cash-register/selectable", AppPermissions.CartView),
+            ("POST /api/pos/cash-register/open-requests", AppPermissions.CartView),
+            ("GET /api/pos/cash-register/open-requests/mine", AppPermissions.CartView),
             ("POST /api/pos/cash-register/ensure-ready", AppPermissions.CartView),
             ("GET /api/pos/company", AppPermissions.CartView),
             ("GET /api/pos/payment/methods", AppPermissions.PaymentView),

@@ -1114,6 +1114,49 @@
     "emptyByRegister": "Bu pencerede kapsam örneği yok.",
     "emptyTopRisk": "Bu pencerede üst risk örneği yok."
   },
+  "monatsbelegePage": {
+    "title": "Monatsbeleg listesi",
+    "subtitle": "Kasa başına TSE imzalı Monatsbeleg (Aralık = Jahresbeleg). DEP kaynağı: payment_details.",
+    "createLink": "Monatsbeleg oluştur",
+    "refresh": "Yenile",
+    "filterYear": "Yıl",
+    "filterRegister": "Kasa",
+    "filterRegisterAll": "Tüm kasalar",
+    "filterStatus": "Durum",
+    "colMonth": "Ay",
+    "colRegister": "Kasa",
+    "colCreatedAt": "Oluşturulma",
+    "colCreatedBy": "Oluşturan",
+    "colTse": "TSE imzası",
+    "colDep": "DEP",
+    "colFon": "FON",
+    "colStatus": "Durum",
+    "autoTag": "Otomatik",
+    "empty": "Bu filtreler için Monatsbeleg yok.",
+    "failedAlertTitle": "Otomatik oluşturma başarısız",
+    "failedAlertBody": "En az bir Auto-Monatsbeleg tekrar denemelerinden sonra oluşturulamadı. Lütfen Sonderbelege'de elle oluşturun.",
+    "forbiddenTitle": "Yetki yok",
+    "forbiddenDescription": "Monatsbeleg listesini görmek için yetki gerekir.",
+    "loadErrorTitle": "Monatsbeleg listesi yüklenemedi",
+    "status": {
+      "all": "Tümü",
+      "created": "Oluşturuldu",
+      "failed": "Başarısız",
+      "fonPending": "FON bekliyor"
+    },
+    "dep": {
+      "InDep": "DEP'te",
+      "Missing": "Eksik"
+    },
+    "fon": {
+      "NotRequired": "Gerekli değil",
+      "Pending": "Bekliyor",
+      "Submitted": "Gönderildi",
+      "Verified": "Doğrulandı",
+      "Failed": "Başarısız",
+      "ManualVerificationRequired": "Manuel kontrol"
+    }
+  },
   "offlineOrdersPage": {
     "title": "Çevrimdışı siparişler",
     "subtitle": "Çevrimdışı kaydedilen ve daha sonra senkronize edilen tam POS sipariş anlık görüntüleri.",

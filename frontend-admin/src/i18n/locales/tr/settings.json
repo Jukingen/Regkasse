@@ -258,7 +258,7 @@
     "stopOnlineOrdersRequired": "Dakika gerekli",
     "stopOnlineOrdersRange": "Değer 0 ile 180 arasında olmalı",
     "autoClosePosLabel": "Kapanışta POS kapanış uyarısı",
-    "autoClosePosTooltip": "Yalnızca görüntü: Kapanışta POS'ta güçlü uyarı gösterir. Otomatik Tagesabschluss yok; sipariş/ödeme kilidi yok (RKSV).",
+    "autoClosePosTooltip": "Yalnızca görüntü: Kapanışta POS'ta güçlü uyarı gösterir. Sipariş/ödeme kilidi yok. Mali otomatik Tagesabschluss, Operativer Tagesabschluss sayfasında ayrıca ayarlanır.",
     "closedDayMessageLabel": "Kapalı gün müşteri mesajı",
     "closedDayMessageTooltip": "Bugün kapalıyken website/uygulamada gösterilir (POS/Admin değil).",
     "closedDayMessageRequired": "Mesaj gerekli",
@@ -754,6 +754,27 @@
       "timeZone": "Saat dilimi",
       "language": "Dil",
       "use24HourFormat": "24 saat formatı"
+    }
+  },
+  "rksv": {
+    "monatsbelegPolicy": {
+      "title": "Monatsbeleg — POS satış kilidi",
+      "intro": "RKSV, ay sonundan itibaren 7 gün içinde Monatsbeleg oluşturulmasını ister. POS satışını kilitlemek yasal zorunluluk değil, mandant politikasıdır.",
+      "modeLabel": "Kilitleme modu",
+      "modeHelp": "Strict: önceki ay Monatsbeleg'i oluşana kadar satış kilitli. GracePeriod: 14 gün uyarıyla satış, sonra kilit. WarningOnly: satış her zaman açık, uyarı gösterilir.",
+      "modeStrict": "Strict — satışı kilitle (varsayılan)",
+      "modeGracePeriod": "GracePeriod — 14 gün uyarıyla izin ver",
+      "modeWarningOnly": "WarningOnly — yalnızca uyarı, kilit yok",
+      "autoLabel": "Otomatik Monatsbeleg",
+      "autoHelp": "Viyana takviminin 1. günü 00:01'de (7. güne kadar yakalama) önceki ayın Monatsbeleg'i otomatik TSE imzalanır ve DEP'e yazılır. Mandanten-Admin bilgilendirilir.",
+      "retryLabel": "Hata durumunda deneme",
+      "retryHelp": "Otomatik deneme sayısı (1–5, varsayılan 3), üstel bekleme; ardından FA'da kırmızı uyarı.",
+      "openList": "Monatsbeleg listesini aç",
+      "openCreate": "Sonderbelege'de Monatsbeleg oluştur",
+      "saveSuccess": "Monatsbeleg politikası kaydedildi.",
+      "saveFailed": "Monatsbeleg politikası kaydedilemedi.",
+      "loadFailed": "Monatsbeleg politikası yüklenemedi.",
+      "readOnly": "Monatsbeleg politikasını değiştirme yetkiniz yok."
     }
   }
 }

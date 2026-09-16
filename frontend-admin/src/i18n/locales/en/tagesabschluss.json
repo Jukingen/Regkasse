@@ -55,6 +55,21 @@
     "hint": "Note",
     "backendHint": "Server note (language not guaranteed)"
   },
+  "autoClose": {
+    "title": "Automatic daily closing",
+    "intro": "If the cashier does not close by the configured Europe/Vienna time and that day has transactions, the system creates a TSE-signed fallback for the previous business day.",
+    "enabled": "Enable automatic fallback",
+    "hour": "Hour (Vienna)",
+    "minute": "Minute",
+    "openOrdersPolicy": "Open tables / orders",
+    "openOrdersForce": "Close with warning (default)",
+    "openOrdersNotify": "Notify and still close",
+    "openOrdersBlock": "Block until tables are closed",
+    "promptCashCount": "Show POS “count cash” prompt before fallback",
+    "save": "Save settings",
+    "saveSuccess": "Automatic daily closing settings saved.",
+    "saveError": "Could not save settings."
+  },
   "backdated": {
     "dateLabel": "Closing date",
     "infoTitle": "Daily closing for a specific day",
@@ -121,6 +136,11 @@
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
     "colFiskaly": "Fiskaly",
+    "colTrigger": "Triggered by",
+    "filterAutomatic": "Automatic",
+    "filterManual": "Manual",
+    "triggerAutomatic": "System",
+    "triggerManual": "User",
     "closingTypes": {
       "Daily": "Daily",
       "Monthly": "Monthly",

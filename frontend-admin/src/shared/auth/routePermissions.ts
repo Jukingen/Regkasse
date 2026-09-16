@@ -302,6 +302,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Sidebar-only virtual keys: same access as Sonderbelege page (query focus deep links). */
   '/rksv/sb/startbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/monatsbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/monatsbelege': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/admin/rksv/monatsbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/jahresbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/nullbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,

@@ -147,10 +147,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 return StampPreferred(dto, userSettings);
             }
 
-            if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+            if (await TryApplyMonatsbelegGateAsync(effectiveRegister.Id, dto, cancellationToken).ConfigureAwait(false))
             {
-                dto.NextAction = "monatsbeleg_required";
-                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
                 return StampPreferred(dto, userSettings);
             }
 
@@ -184,10 +182,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             return StampPreferred(dto, userSettings);
         }
 
-        if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+        if (await TryApplyMonatsbelegGateAsync(effectiveRegister.Id, dto, cancellationToken).ConfigureAwait(false))
         {
-            dto.NextAction = "monatsbeleg_required";
-            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -404,10 +400,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 return StampPreferred(dto, userSettings);
             }
 
-            if (await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+            if (await TryApplyMonatsbelegGateAsync(effective.Id, dto, cancellationToken).ConfigureAwait(false))
             {
-                dto.NextAction = "monatsbeleg_required";
-                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
                 return StampPreferred(dto, userSettings);
             }
 
@@ -426,10 +420,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         }
 
         if (effective.Status == RegisterStatus.Closed &&
-            await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+            await TryApplyMonatsbelegGateAsync(effective.Id, dto, cancellationToken).ConfigureAwait(false))
         {
-            dto.NextAction = "monatsbeleg_required";
-            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -521,12 +513,25 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             _ => null
         };
 
-    private async Task<bool> RequiresMonatsbelegAsync(Guid registerId, CancellationToken cancellationToken)
+    private async Task<bool> TryApplyMonatsbelegGateAsync(
+        Guid registerId,
+        PosCashRegisterContextDto dto,
+        CancellationToken cancellationToken)
     {
-        if (!_rksvMonatsbelegPolicy.SessionGateApplies)
-            return false;
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
-        return !await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
+        var decision = await _rksvMonatsbelegPolicy
+            .EvaluateSalesGateAsync(registerId, cancellationToken)
             .ConfigureAwait(false);
+        dto.MonatsbelegBlockingMode = MonatsbelegBlockingModeNames.ToPersisted(decision.Mode);
+        dto.MonatsbelegWarningLevel = decision.WarningLevel;
+        dto.MonatsbelegSalesBlocked = decision.BlocksSales;
+        dto.MonatsbelegCanContinueWithWarning = decision.CanContinueWithWarning;
+        dto.MonatsbelegViennaDayOfMonth = decision.ViennaDayOfMonth;
+        dto.MonatsbelegWarningMessageDe = decision.WarningMessageDe;
+        if (!decision.BlocksSales)
+            return false;
+
+        dto.NextAction = "monatsbeleg_required";
+        dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
+        return true;
     }
 }

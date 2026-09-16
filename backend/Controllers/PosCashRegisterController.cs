@@ -21,6 +21,8 @@ public sealed class PosCashRegisterController : ControllerBase
 {
     private readonly IPosCashRegisterReadinessService _readiness;
     private readonly ICashRegisterResolutionService _cashRegisterResolution;
+    private readonly ICashRegisterOpenRequestService _openRequests;
+    private readonly IMonatsbelegOpsService _monatsbelegOps;
     private readonly IPosCriticalActionAuditService _posCriticalAudit;
     private readonly AppDbContext _db;
     private readonly ILogger<PosCashRegisterController> _logger;
@@ -28,12 +30,16 @@ public sealed class PosCashRegisterController : ControllerBase
     public PosCashRegisterController(
         IPosCashRegisterReadinessService readiness,
         ICashRegisterResolutionService cashRegisterResolution,
+        ICashRegisterOpenRequestService openRequests,
+        IMonatsbelegOpsService monatsbelegOps,
         IPosCriticalActionAuditService posCriticalAudit,
         AppDbContext db,
         ILogger<PosCashRegisterController> logger)
     {
         _readiness = readiness;
         _cashRegisterResolution = cashRegisterResolution;
+        _openRequests = openRequests;
+        _monatsbelegOps = monatsbelegOps;
         _posCriticalAudit = posCriticalAudit;
         _db = db;
         _logger = logger;
@@ -88,7 +94,8 @@ public sealed class PosCashRegisterController : ControllerBase
     /// <remarks>
     /// Response shape (camelCase): <c>{ "registers": [ { "id", "registerNumber", "location", "status" } ], "emptyReason": ... }</c>,
     /// where <c>status</c> is the <see cref="RegisterStatus"/> name (<c>"Open"</c> / <c>"Closed"</c>) — closed rows are selectable and
-    /// get opened by <c>POST /api/pos/shift/auto-open</c> on pick.
+    /// get opened by <c>POST /api/pos/shift/auto-open</c> on pick when the caller has <c>shift.open</c>.
+    /// Without that permission the cashier requests Mandanten-Admin via <c>POST /api/pos/cash-register/open-requests</c>.
     /// Do not substitute <c>GET /api/CashRegister</c> on POS — that returns full inventory including decommissioned registers.
     /// </remarks>
     [HttpGet("selectable")]
@@ -212,5 +219,79 @@ public sealed class PosCashRegisterController : ControllerBase
         }
 
         return Ok(new { registerId = id.ToString("D") });
+    }
+
+    /// <summary>
+    /// Cashier requests Mandanten-Admin to open a closed cash register (in-app notification + FA queue).
+    /// </summary>
+    [HttpPost("open-requests")]
+    [HasPermission(AppPermissions.CartView)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CashRegisterOpenRequestMutationResult>> CreateOpenRequest(
+        [FromBody] CreateCashRegisterOpenRequestBody? body,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        var result = await _openRequests.CreateAsync(userId, body ?? new CreateCashRegisterOpenRequestBody(), cancellationToken);
+        if (!result.Succeeded)
+        {
+            return result.Code is CashRegisterOpenRequestService.RegisterNotFoundCode
+                or CashRegisterOpenRequestService.TenantContextRequiredCode
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>Caller's cash register open requests (pending + recent resolved).</summary>
+    [HttpGet("open-requests/mine")]
+    [HasPermission(AppPermissions.CartView)]
+    [ProducesResponseType(typeof(IReadOnlyList<CashRegisterOpenRequestDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<CashRegisterOpenRequestDto>>> ListMyOpenRequests(
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        return Ok(await _openRequests.ListMineAsync(userId, cancellationToken));
+    }
+
+    /// <summary>
+    /// Cashier notifies Mandanten-Admin that the previous-month Monatsbeleg is missing.
+    /// </summary>
+    [HttpPost("monatsbeleg/notify-manager")]
+    [HasPermission(AppPermissions.CartView)]
+    [ProducesResponseType(typeof(NotifyMonatsbelegManagerResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(NotifyMonatsbelegManagerResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(NotifyMonatsbelegManagerResult), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<NotifyMonatsbelegManagerResult>> NotifyMonatsbelegManager(
+        [FromBody] NotifyMonatsbelegManagerRequest? body,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "User not authenticated" });
+
+        var registerId = body?.CashRegisterId ?? Guid.Empty;
+        if (registerId == Guid.Empty)
+            return BadRequest(new NotifyMonatsbelegManagerResult { Ok = false, Code = "INVALID_REGISTER", Message = "Cash register id is required." });
+
+        var result = await _monatsbelegOps.NotifyManagerAsync(userId, registerId, cancellationToken);
+        if (!result.Ok)
+        {
+            return result.Code is MonatsbelegOpsService.RegisterNotFoundCode
+                or MonatsbelegOpsService.TenantContextRequiredCode
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
     }
 }

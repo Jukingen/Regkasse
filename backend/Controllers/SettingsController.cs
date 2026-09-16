@@ -531,6 +531,7 @@ namespace KasseAPI_Final.Controllers
                         CompanyTaxNumber = string.Empty,
                         BusinessHours = new Dictionary<string, string>(),
                         WorkingHours = WorkingHoursSettings.CreateDefault(),
+                        AutoTagesabschluss = AutoTagesabschlussSettings.CreateDefault(),
                         Currency = "EUR",
                         Language = "de-DE",
                         TimeZone = "Europe/Vienna",

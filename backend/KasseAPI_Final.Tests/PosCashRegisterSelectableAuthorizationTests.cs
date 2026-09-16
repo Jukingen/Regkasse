@@ -43,9 +43,9 @@ public class PosCashRegisterSelectableAuthorizationTests
     }
 
     /// <summary>
-    /// The POS picker matches <c>status</c> by name to decide whether a row needs opening on pick. The API has no global
-    /// string-enum converter, so without the property-level converter this would serialize as an ordinal and the client
-    /// would silently stop recognizing closed rows.
+    /// The POS picker matches <c>status</c> by name so closed tills can auto-open on pick (or request opening without shift.open).
+    /// The API has no global string-enum converter, so without the property-level converter this would serialize as an
+    /// ordinal and the client would silently stop recognizing closed rows.
     /// </summary>
     [Fact]
     public void SelectableRow_SerializesStatusByName()

@@ -45,6 +45,8 @@ public sealed class EnhancedCashRegisterDto
     /// <summary>Email of the open-shift cashier; omitted when the till is unattended.</summary>
     public string? CurrentCashierEmail { get; set; }
 
+    public DateTime? LastShiftAtUtc { get; set; }
+
     public CashRegisterDeviceInfoDto DeviceInfo { get; set; } = new();
 
     public static EnhancedCashRegisterDto From(CashRegisterDto source) =>
@@ -77,6 +79,7 @@ public sealed class EnhancedCashRegisterDto
             CurrentCashierName = source.CurrentCashierName,
             CurrentCashierUserName = source.CurrentCashierUserName,
             CurrentCashierEmail = source.CurrentCashierEmail,
+            LastShiftAtUtc = source.LastShiftAtUtc,
             DeviceInfo = source.DeviceInfo,
         };
 }

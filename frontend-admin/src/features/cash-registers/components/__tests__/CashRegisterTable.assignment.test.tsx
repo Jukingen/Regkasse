@@ -92,6 +92,9 @@ describe('CashRegisterTable assignment column', () => {
     renderTable([registerFixture()]);
 
     expect(screen.getByRole('columnheader', { name: 'Zugewiesen an' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Schichtstatus' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Aktueller Kassierer' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Letzte Schicht' })).toBeInTheDocument();
   });
 
   it('marks a register without assignment as unassigned', () => {
@@ -122,5 +125,18 @@ describe('CashRegisterTable assignment column', () => {
     renderTable([registerFixture({ assignedUserId: 'cashier-9', assignedUserName: null })]);
 
     expect(screen.getByText('cashier-9')).toBeInTheDocument();
+  });
+
+  it('shows closed occupancy separately from Aktiv lifecycle', () => {
+    renderTable([
+      registerFixture({
+        status: 1,
+        isActive: true,
+        lastShiftAtUtc: '2026-09-14T10:00:00Z',
+      } as AssignmentFixture),
+    ]);
+
+    expect(screen.getByText('Aktiv')).toBeInTheDocument();
+    expect(screen.getByText(/Geschlossen/)).toBeInTheDocument();
   });
 });

@@ -130,6 +130,10 @@ public sealed class TagesabschlussServiceOperationalTests
             Status = "Completed",
             IsBackdated = true,
             LateCreationReason = "Technisches Problem / Systemausfall",
+            Trigger = DailyClosingTriggers.Automatic,
+            CashCountNote = AutoTagesabschlussSettings.NoCashCountNote,
+            OpenOrdersCount = 2,
+            OpenOrdersForced = true,
             CreatedAt = DateTime.UtcNow,
         });
         await ctx.SaveChangesAsync();
@@ -144,6 +148,10 @@ public sealed class TagesabschlussServiceOperationalTests
         Assert.Equal(120m, history[0].TotalAmount);
         Assert.True(history[0].IsBackdated);
         Assert.Equal("Technisches Problem / Systemausfall", history[0].LateCreationReason);
+        Assert.Equal(DailyClosingTriggers.Automatic, history[0].Trigger);
+        Assert.Equal(AutoTagesabschlussSettings.NoCashCountNote, history[0].CashCountNote);
+        Assert.Equal(2, history[0].OpenOrdersCount);
+        Assert.True(history[0].OpenOrdersForced);
         Assert.True(history[0].CreatedAt > DateTime.MinValue);
         Assert.Equal("manager-user", await ctx.DailyClosings.Select(d => d.UserId).FirstAsync());
     }

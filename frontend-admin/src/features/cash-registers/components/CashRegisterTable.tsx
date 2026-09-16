@@ -8,7 +8,6 @@ import {
   MinusCircleOutlined,
   SafetyOutlined,
   ShopOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { Button, Empty, Space, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -23,7 +22,6 @@ import {
   type CashRegisterActionKey,
   CashRegisterActions,
 } from '@/features/cash-registers/components/CashRegisterActions';
-import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
@@ -31,6 +29,13 @@ import {
   resolveAssignmentState,
 } from '@/features/cash-registers/utils/assignmentStatus';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
+import {
+  readLastShiftAt,
+  registerLifecycleTagColor,
+  registerShiftOccupancyTagColor,
+  resolveRegisterLifecycleKind,
+  resolveRegisterShiftOccupancy,
+} from '@/features/cash-registers/utils/registerOperationalStatus';
 import {
   isDecommissionedRegister,
   rawRegisterStatus,
@@ -141,7 +146,7 @@ export const CashRegisterTable = memo(function CashRegisterTable({
                   registerNumber
                 )}
                 {record.isActive === false ? (
-                  <Tag>{t('common.categories.table.inactive')}</Tag>
+                  <Tag>{t('cashRegisters.lifecycle.inactive')}</Tag>
                 ) : null}
               </div>
               <Typography.Text className={styles.registerLocation}>
@@ -156,17 +161,62 @@ export const CashRegisterTable = memo(function CashRegisterTable({
     {
       title: t('cashRegisters.columns.status'),
       key: 'status',
+      width: 140,
+      render: (_: unknown, record) => {
+        const lifecycle = resolveRegisterLifecycleKind(record);
+        return (
+          <Tag color={registerLifecycleTagColor(lifecycle)}>
+            {t(`cashRegisters.lifecycle.${lifecycle}`)}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t('cashRegisters.columns.shiftStatus'),
+      key: 'shiftStatus',
+      width: 160,
+      render: (_: unknown, record) => {
+        const occupancy = resolveRegisterShiftOccupancy(record);
+        return (
+          <Tag color={registerShiftOccupancyTagColor(occupancy)}>
+            {t(`cashRegisters.shiftOccupancy.${occupancy}`)}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t('cashRegisters.columns.currentCashier'),
+      key: 'currentCashier',
       width: 180,
       render: (_: unknown, record) => {
+        const name = resolveCashierName(asEnhanced(record));
         return (
-          <div className={styles.statusCell}>
-            <CashRegisterStatusBadge register={record} useIcon />
-            <Typography.Text className={styles.cellSubtle}>
-              {record.isActive === false
-                ? t('common.categories.table.inactive')
-                : t('common.categories.table.active')}
+          <Typography.Text className={styles.cellValue}>
+            {name ?? FORMAT_EMPTY_DISPLAY}
+          </Typography.Text>
+        );
+      },
+    },
+    {
+      title: t('cashRegisters.columns.lastShift'),
+      key: 'lastShift',
+      width: 180,
+      render: (_: unknown, record) => {
+        const lastShift = readLastShiftAt(record);
+        if (!lastShift) {
+          return (
+            <Typography.Text className={styles.cellSubtle}>{FORMAT_EMPTY_DISPLAY}</Typography.Text>
+          );
+        }
+        return (
+          <Space orientation="vertical" size={0}>
+            <Typography.Text className={styles.cellValue}>
+              {formatRelativeTime(lastShift, formatLocale)}
             </Typography.Text>
-          </div>
+            <Typography.Text className={styles.cellSubtle}>
+              {formatDateTime(lastShift, formatLocale)}
+            </Typography.Text>
+          </Space>
         );
       },
     },
@@ -190,9 +240,6 @@ export const CashRegisterTable = memo(function CashRegisterTable({
                 {t('cashRegisters.offlineQueue.label', { count: offlineCount })}
               </Tag>
             ) : null}
-            <Typography.Text className={styles.cellSubtle}>
-              <UserOutlined /> {resolveCashierName(enhanced) ?? FORMAT_EMPTY_DISPLAY}
-            </Typography.Text>
           </Space>
         );
       },
@@ -405,7 +452,7 @@ export const CashRegisterTable = memo(function CashRegisterTable({
           : undefined
       }
       pagination={{ ...adminTablePaginationDefaults }}
-      scroll={{ x: showBalanceColumn || canManageRegisters ? 1600 : 1400 }}
+      scroll={{ x: showBalanceColumn || canManageRegisters ? 2100 : 1900 }}
       locale={{
         emptyText: <Empty description={emptyDescription} />,
       }}

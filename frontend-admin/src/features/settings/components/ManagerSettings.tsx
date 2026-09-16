@@ -23,6 +23,7 @@ import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPas
 import { FiskalyEnabledSwitch } from '@/features/settings/components/FiskalyEnabledSwitch';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import { TenantTseStatusCard } from '@/features/settings/components/TenantTseStatusCard';
+import { RksvSettings } from '@/features/settings/RksvSettings';
 import { useTenantSettings } from '@/features/settings/hooks/useTenantSettings';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -226,6 +227,8 @@ export function ManagerSettings() {
         </Card>
 
         <TenantTseStatusCard />
+
+        <RksvSettings />
 
         <Card title={t('settings.manager.fiscal.title')}>
           <FiskalyEnabledSwitch />

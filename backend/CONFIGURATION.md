@@ -194,6 +194,8 @@ Legacy override: `Auth:RequireSuperAdminTwoFactor` (`null` = follow `TwoFactorAu
 
 FinanzOnline **user/password** for SOAP are expected from **company settings in the database** (or optional `FinanzOnline:Session` binding in non-tracked config). Do not put production FinanzOnline credentials in tracked files.
 
+Development Soft FON (`UseSimulation=true`) leaves `Session:BaseUrl`, `Registrierkassen:BaseUrl`, and `Session:DefaultCredential` empty on purpose. Startup readiness warnings for those keys are Development-only. Production/Staging must set them (or `Connectivity:UseCompanySettings` + `company_settings`). See [`docs/ENVIRONMENT_CONFIGURATION.md`](../docs/ENVIRONMENT_CONFIGURATION.md) § Common Warnings.
+
 ### Manual restore approval (Super Admin)
 
 Section `ManualRestoreApproval` (`ManualRestoreApproval__*` env vars):
@@ -477,6 +479,42 @@ Section `RksvDataCleanup` (`RksvDataCleanup__*` env vars). Hosted service: `Rksv
 | `StartupGraceMinutes` | `5` | Boot delay before the first sweep. |
 
 Tracking tables: `rksv_cold_archive_runs`, `rksv_cold_archive_items`. Live `payment_details` rows remain in the database after archive.
+
+## Automatic Tagesabschluss fallback (`AutoTagesabschluss`)
+
+Hosted worker `AutoTagesabschlussHostedService` closes the **previous** Europe/Vienna business day when the cashier did not. Per-tenant time and open-order policy live on `CompanySettings.AutoTagesabschluss` (FA `/tagesabschluss`). This is **not** `WorkingHours.AutoClosePOSAtClosing` (POS display prompt only).
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `AutoTagesabschluss:Enabled` | `true` | Deployment-wide kill switch. When `false`, no tenant is auto-closed. |
+| `AutoTagesabschluss:DefaultHourVienna` | `3` | Fallback Europe/Vienna hour (0–23) when the tenant has no company-settings row. |
+| `AutoTagesabschluss:DefaultMinuteVienna` | `0` | Fallback minute (0–59). |
+| `AutoTagesabschluss:CheckIntervalMinutes` | `15` | Hosted poll interval (minimum 5). |
+
+Empty days are skipped. Auto closings are backdated (`trigger=Automatic`, audit actor `system`). On the last day of the month / year the worker also attempts Monatsbeleg / Jahresbeleg. See [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](../docs/RKSV_AFTER_TAGESABSCHLUSS.md).
+
+## Monatsbeleg POS sales policy (`MonatsbelegOps` + company settings)
+
+RKSV requires creating the Monatsbeleg within 7 days of month end. **Blocking POS sales** when last month’s receipt is missing is a **tenant product policy**, not a legal requirement.
+
+Tenant fields on `company_settings` (FA: Einstellungen → Monatsbeleg policy, `GET/PUT /api/admin/rksv/monatsbeleg-policy`):
+
+| Column | Default | Description |
+|--------|---------|-------------|
+| `monatsbeleg_blocking_mode` | `Strict` | `Strict` — block sales until previous-month Monatsbeleg exists. `GracePeriod` — allow sales Vienna days 1–14 (red 1–7, yellow 8–14), block from day 15. `WarningOnly` — never block, always warn. |
+| `auto_monatsbeleg_enabled` | `true` | When true, hosted worker creates previous-month Monatsbeleg on Vienna day 1 at 00:01 (catch-up through day 7), TSE-signs it, stores it in DEP (`payment_details`), and notifies Mandanten-Admin. |
+| `monatsbeleg_retry_count` | `3` | Auto-create attempts per register/month (1–5) with exponential backoff; then Manager alert + FA red warning. |
+
+Hosted worker section `MonatsbelegOps` (`MonatsbelegOps__*` env vars). Service: `MonatsbelegSchedulerHostedService`.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `ReminderEnabled` | `true` | Daily missing-Monatsbeleg reminder to Mandanten-Admin activity feed (deduped per register/day). Jahresbeleg FON Belegcheck reminder through 15 February. |
+| `AutoCreateEnabled` | `true` | Master switch; each tenant still needs `auto_monatsbeleg_enabled`. |
+| `CheckIntervalMinutes` | `15` | Hosted poll interval (minimum 5). On day 1 before 00:01 Vienna, waits until 00:01. |
+| `CatchUpThroughDay` | `7` | Vienna calendar day (inclusive) through which a missing previous-month receipt is still auto-created (RKSV 7-day window). |
+
+Sales gate is evaluated in `IRksvMonatsbelegPolicy.EvaluateSalesGateAsync` and applied by shift open, payment register validation, and POS `ensure-ready` (not a separate payment controller). Demo / Off TSE never blocks (`SessionGateApplies`). Detail: [`docs/RKSV_CASH_REGISTER_OPERATIONS.md`](../docs/RKSV_CASH_REGISTER_OPERATIONS.md) §4.3.
 
 ## Logging
 

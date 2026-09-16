@@ -55,6 +55,21 @@
     "hint": "Not",
     "backendHint": "Sunucu notu (dil garanti degil)"
   },
+  "autoClose": {
+    "title": "Otomatik gun sonu",
+    "intro": "Kasiyer yapilandirilan Europe/Vienna saatine kadar kapatmazsa ve o gunde islem varsa, sistem onceki is gunu icin TSE imzali bir yedek kapanis olusturur.",
+    "enabled": "Otomatik yedek kapanisi ac",
+    "hour": "Saat (Viyana)",
+    "minute": "Dakika",
+    "openOrdersPolicy": "Acik masalar / siparisler",
+    "openOrdersForce": "Uyariyla kapat (varsayilan)",
+    "openOrdersNotify": "Bildir ve yine de kapat",
+    "openOrdersBlock": "Masalar kapanana kadar engelle",
+    "promptCashCount": "Yedekten once POS'ta \"Kasa say\" uyarisi",
+    "save": "Ayarlari kaydet",
+    "saveSuccess": "Otomatik gun sonu ayarlari kaydedildi.",
+    "saveError": "Ayarlar kaydedilemedi."
+  },
   "backdated": {
     "dateLabel": "Kapanis tarihi",
     "infoTitle": "Belirli bir gun icin gunluk kapanis",
@@ -121,6 +136,11 @@
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
     "colFiskaly": "Fiskaly",
+    "colTrigger": "Tetikleyen",
+    "filterAutomatic": "Otomatik",
+    "filterManual": "Manuel",
+    "triggerAutomatic": "Sistem",
+    "triggerManual": "Kullanici",
     "closingTypes": {
       "Daily": "Gunluk",
       "Monthly": "Aylik",

@@ -157,6 +157,7 @@ export const PERMISSIONS = {
   RKSV_NULLBELEG_CREATE: 'rksv.nullbeleg.create',
   RKSV_STARTBELEG_CREATE: 'rksv.startbeleg.create',
   RKSV_MONATSBELEG_CREATE: 'rksv.monatsbeleg.create',
+  RKSV_MONATSBELEG_VIEW: 'rksv.monatsbeleg.view',
   RKSV_SCHLUSSBELEG_CREATE: 'rksv.schlussbeleg.create',
   /** RKSV demo/test helper card (Sonderbelege). SuperAdmin-only via backend catalog; align with AppPermissions.RksvTestHelper. */
   RKSV_TEST_HELPER: 'rksv.test-helper',

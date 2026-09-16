@@ -258,7 +258,7 @@
     "stopOnlineOrdersRequired": "Minutes are required",
     "stopOnlineOrdersRange": "Value must be between 0 and 180",
     "autoClosePosLabel": "POS closing prompt at closing time",
-    "autoClosePosTooltip": "Display only: shows a strong POS prompt at closing time. No automatic Tagesabschluss and no lock on orders or payments (RKSV).",
+    "autoClosePosTooltip": "Display only: shows a strong POS prompt at closing time. Does not lock orders or payments. Fiscal automatic Tagesabschluss is configured separately on Operativer Tagesabschluss.",
     "closedDayMessageLabel": "Closed-day customer message",
     "closedDayMessageTooltip": "Shown on website/app when closed today (not POS/Admin).",
     "closedDayMessageRequired": "Message is required",
@@ -754,6 +754,27 @@
       "timeZone": "Timezone",
       "language": "Language",
       "use24HourFormat": "24-hour format"
+    }
+  },
+  "rksv": {
+    "monatsbelegPolicy": {
+      "title": "Monatsbeleg — POS sales blocking",
+      "intro": "RKSV requires creating the Monatsbeleg within 7 days of month end. Blocking POS sales is a tenant policy, not a legal requirement.",
+      "modeLabel": "Blocking mode",
+      "modeHelp": "Strict: block sales until the previous-month Monatsbeleg exists. GracePeriod: allow 14 days with warning, then block. WarningOnly: always allow sales and always warn.",
+      "modeStrict": "Strict — block sales (default)",
+      "modeGracePeriod": "GracePeriod — allow 14 days with warning",
+      "modeWarningOnly": "WarningOnly — warning only, never block",
+      "autoLabel": "Auto-Monatsbeleg",
+      "autoHelp": "On the 1st of each Vienna calendar month at 00:01 (catch-up through day 7), last month's Monatsbeleg is TSE-signed and stored in the DEP. The tenant admin is notified.",
+      "retryLabel": "Retries on failure",
+      "retryHelp": "Automatic attempts (1–5, default 3) with exponential backoff, then a red warning in FA.",
+      "openList": "View Monatsbelege",
+      "openCreate": "Create Monatsbeleg in special receipts",
+      "saveSuccess": "Monatsbeleg policy saved.",
+      "saveFailed": "Monatsbeleg policy could not be saved.",
+      "loadFailed": "Monatsbeleg policy could not be loaded.",
+      "readOnly": "You do not have permission to change the Monatsbeleg policy."
     }
   }
 }

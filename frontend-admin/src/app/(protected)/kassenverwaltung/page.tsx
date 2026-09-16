@@ -19,6 +19,7 @@ import {
 } from '@/features/cash-registers/api/cashRegisters';
 import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
+import { CashRegisterOpenRequestsPanel } from '@/features/cash-registers/components/CashRegisterOpenRequestsPanel';
 import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CashRegisterTenantSelector } from '@/features/cash-registers/components/CashRegisterTenantSelector';
@@ -400,6 +401,8 @@ export default function KassenverwaltungPage() {
       ) : null}
 
       <CashRegisterShiftRksvGuide />
+
+      {canOperate ? <CashRegisterOpenRequestsPanel tenantId={tenantId ?? selectedTenantId} /> : null}
 
       <Card>
         <Space style={{ marginBottom: 16 }} wrap align="center">

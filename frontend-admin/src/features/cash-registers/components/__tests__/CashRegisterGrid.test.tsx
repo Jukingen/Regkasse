@@ -80,7 +80,7 @@ describe('CashRegisterGrid', () => {
       '/admin/cash-registers/reg-1'
     );
     expect(screen.getByText('Hauptkasse')).toBeInTheDocument();
-    expect(screen.getByText(/Noch nicht geöffnet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Kein Shift/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Details')).toBeInTheDocument();
     expect(screen.getByLabelText('Stilllegen')).toBeInTheDocument();
     expect(screen.getByLabelText('Sonderbelege')).toBeInTheDocument();

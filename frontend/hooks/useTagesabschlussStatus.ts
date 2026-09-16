@@ -21,6 +21,8 @@ export type PosTagesabschlussStatus = {
   closingTimeLabel: string | null;
   usedWorkingHours: boolean;
   timeUntilClose: number;
+  shouldPromptCashCount: boolean;
+  autoCloseTimeLabel: string;
   /** Backend: Tagesabschluss is allowed for this register (not a sales lock). */
   canClose: boolean;
   loading: boolean;
@@ -82,6 +84,8 @@ export function useTagesabschlussStatus(): PosTagesabschlussStatus {
     closingTimeLabel: reminder.closingTimeLabel,
     usedWorkingHours: reminder.usedWorkingHours,
     timeUntilClose: reminder.timeUntilClose,
+    shouldPromptCashCount: reminder.shouldPromptCashCount,
+    autoCloseTimeLabel: reminder.autoCloseTimeLabel,
     canClose,
     loading: reminder.loading || statusLoading,
     refresh,

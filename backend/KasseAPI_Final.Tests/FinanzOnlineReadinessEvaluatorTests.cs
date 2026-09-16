@@ -271,6 +271,29 @@ public sealed class FinanzOnlineReadinessEvaluatorTests
     }
 
     [Fact]
+    public void Missing_session_urls_and_credentials_in_development_are_warnings()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+        var r = FinanzOnlineReadinessEvaluator.Evaluate(
+            new FinanzOnlineSessionOptions { UseSimulation = false, BaseUrl = "" },
+            new FinanzOnlineRegistrierkassenOptions { UseSimulation = false, EnableRealTestSubmission = true, BaseUrl = "" },
+            new FinanzOnlineTransmissionQueryOptions { UseSimulation = false, EnableRealTestQuery = true },
+            new FinanzOnlineOutboxOptions { Enabled = true },
+            new FinanzOnlineConnectivityOptions { UseCompanySettings = false },
+            new FinanzOnlineDevTestOptions(),
+            simulationOptions: null,
+            hostEnvironment: env.Object,
+            tenantCompanyProbe: null);
+
+        Assert.Equal("Degraded", r.OverallStatus);
+        Assert.Contains(r.Findings, f => f.Code == "FO_READINESS_SESSION_BASEURL_MISSING" && f.Severity == "Warning");
+        Assert.Contains(r.Findings, f => f.Code == "FO_READINESS_RKDB_BASEURL_MISSING" && f.Severity == "Warning");
+        Assert.Contains(r.Findings, f => f.Code == "FO_READINESS_CONFIG_SESSION_CREDENTIALS_MISSING" && f.Severity == "Warning");
+        Assert.False(r.RealTestSubmissionPossible);
+    }
+
+    [Fact]
     public void Config_credentials_missing_username_is_blocking()
     {
         var r = FinanzOnlineReadinessEvaluator.Evaluate(

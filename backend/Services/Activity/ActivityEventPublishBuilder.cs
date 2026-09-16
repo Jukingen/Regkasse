@@ -73,6 +73,9 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened => "Cash register opened",
             ActivityEventType.CashRegisterClosed => "Cash register closed",
             ActivityEventType.CashRegisterDecommissioned => "Cash register decommissioned",
+            ActivityEventType.CashRegisterOpenRequested => "Cash register open requested",
+            ActivityEventType.CashRegisterOpenRequestApproved => "Cash register open request approved",
+            ActivityEventType.CashRegisterOpenRequestDenied => "Cash register open request denied",
             ActivityEventType.LicenseExpiringSoon => ResolveLicenseExpiringTitle(metadata),
             ActivityEventType.LicenseExpired => "License expired",
             ActivityEventType.LimitApproaching => "Limit approaching",
@@ -89,6 +92,14 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.RestoreDrillSucceeded => "Restore drill succeeded",
             ActivityEventType.DailyClosingBackdatedCreated => "Backdated daily closing created",
             ActivityEventType.DailyClosingPendingReminder => "Daily closing pending reminder",
+            ActivityEventType.DailyClosingAutoCreated => "Automatic daily closing created",
+            ActivityEventType.DailyClosingOpenOrdersWarning => "Open orders during automatic daily closing",
+            ActivityEventType.MonatsbelegMissingReminder => "Monatsbeleg missing reminder",
+            ActivityEventType.MonatsbelegAutoCreated => "Monatsbeleg auto-created",
+            ActivityEventType.MonatsbelegCreated => "Monatsbeleg created",
+            ActivityEventType.MonatsbelegAutoCreateFailed => "Monatsbeleg auto-create failed",
+            ActivityEventType.JahresbelegFonReminder => "Jahresbeleg FinanzOnline reminder",
+            ActivityEventType.MonatsbelegManagerContacted => "Monatsbeleg manager contacted",
             ActivityEventType.DepExportDueSoon => "DEP export due soon",
             ActivityEventType.DepExportOverdue => "DEP export overdue",
             ActivityEventType.DepExportValidationFailed => "DEP export validation failed",
@@ -338,10 +349,21 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.CashRegisterOpened
                 or ActivityEventType.CashRegisterClosed
                 or ActivityEventType.CashRegisterDecommissioned
+                or ActivityEventType.CashRegisterOpenRequested
+                or ActivityEventType.CashRegisterOpenRequestApproved
+                or ActivityEventType.CashRegisterOpenRequestDenied
                 => ("cash_register", TryGetString(metadata, "CashRegisterId")),
             ActivityEventType.DailyClosingBackdatedCreated
+                or ActivityEventType.DailyClosingAutoCreated
                 => ("DailyClosing", TryGetString(metadata, "ClosingId")),
             ActivityEventType.DailyClosingPendingReminder
+                or ActivityEventType.DailyClosingOpenOrdersWarning
+                or ActivityEventType.MonatsbelegMissingReminder
+                or ActivityEventType.MonatsbelegAutoCreated
+                or ActivityEventType.MonatsbelegCreated
+                or ActivityEventType.MonatsbelegAutoCreateFailed
+                or ActivityEventType.JahresbelegFonReminder
+                or ActivityEventType.MonatsbelegManagerContacted
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),
             ActivityEventType.DepExportDueSoon
                 or ActivityEventType.DepExportOverdue

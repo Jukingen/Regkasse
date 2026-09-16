@@ -1,9 +1,9 @@
 /**
  * Defensive filtering for the POS picker: keeps rows the cashier can actually work on.
  *
- * GET /api/pos/cash-register/selectable returns Open *and* Closed rows — picking a closed one opens it via
- * POST /api/pos/shift/auto-open. Only permanently unusable states are dropped here, which also hardens the
- * picker if the admin inventory response (every status) ever leaks into this code path.
+ * GET /api/pos/cash-register/selectable returns Open *and* Closed rows.
+ * Open + shift.open → select to continue. Closed + shift.open → select auto-opens the shift.
+ * Closed without shift.open → request Mandanten-Admin. Permanently unusable states are dropped.
  */
 
 /** States a POS user can never open a shift on, whatever the picker returned. */
@@ -18,9 +18,16 @@ export type CashRegisterRowWithOptionalStatus = {
   assignedUserId?: string | null;
 };
 
-/** True when the row is closed and therefore gets opened on pick rather than reused. */
-export function isOpenedOnSelect(row: CashRegisterRowWithOptionalStatus): boolean {
+export type PosPickerRowKind = 'available' | 'opensOnSelect' | 'requestOpen' | 'unavailable';
+
+/** True when the till has no open shift (`RegisterStatus.Closed`). */
+export function isClosedRegister(row: CashRegisterRowWithOptionalStatus): boolean {
   return row.status?.trim().toLowerCase() === 'closed';
+}
+
+/** Closed row that a user with `shift.open` opens by picking it. */
+export function isOpenedOnSelect(row: CashRegisterRowWithOptionalStatus): boolean {
+  return isClosedRegister(row);
 }
 
 export function isPaymentUsableSelectableRow(row: CashRegisterRowWithOptionalStatus): boolean {
@@ -33,4 +40,16 @@ export function filterPaymentUsableSelectableRows<T extends CashRegisterRowWithO
   rows: T[]
 ): T[] {
   return rows.filter(isPaymentUsableSelectableRow);
+}
+
+/**
+ * How the POS picker should treat a row. `canOpenShift` is JWT `shift.open` (not FA `isActive`).
+ */
+export function resolvePosPickerRowKind(
+  row: CashRegisterRowWithOptionalStatus,
+  canOpenShift: boolean
+): PosPickerRowKind {
+  if (!isPaymentUsableSelectableRow(row)) return 'unavailable';
+  if (isClosedRegister(row)) return canOpenShift ? 'opensOnSelect' : 'requestOpen';
+  return 'available';
 }

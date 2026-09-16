@@ -39,6 +39,8 @@ export interface CashRegisterDto {
   /** @nullable */
   lastMonatsbelegUtc?: string | null;
   /** @nullable */
+  lastShiftAtUtc?: string | null;
+  /** @nullable */
   lastSyncAtUtc?: string | null;
   /** @nullable */
   location?: string | null;

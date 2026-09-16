@@ -200,5 +200,26 @@ public enum AuditEventType
     /// <summary>Backup checksum / content verification completed.</summary>
     BackupVerified = 88,
 
+    /// <summary>Cashier requested Mandanten-Admin to open a closed cash register.</summary>
+    CashRegisterOpenRequested = 89,
+
+    /// <summary>Mandanten-Admin approved a POS cash register open request.</summary>
+    CashRegisterOpenRequestApproved = 90,
+
+    /// <summary>Mandanten-Admin denied a POS cash register open request.</summary>
+    CashRegisterOpenRequestDenied = 91,
+
+    /// <summary>Cashier notified Mandanten-Admin that Monatsbeleg is missing.</summary>
+    MonatsbelegManagerContacted = 92,
+
+    /// <summary>Mandanten-Admin changed Monatsbeleg sales-blocking policy.</summary>
+    MonatsbelegPolicyChanged = 93,
+
+    /// <summary>TSE-signed Monatsbeleg created (including automatic system actor).</summary>
+    MonatsbelegCreated = 94,
+
+    /// <summary>Automatic Monatsbeleg creation exhausted retries.</summary>
+    MonatsbelegAutoCreateFailed = 95,
+
     Other = 99
 }

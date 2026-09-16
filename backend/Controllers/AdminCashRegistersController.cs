@@ -26,6 +26,7 @@ public sealed class AdminCashRegistersController : ControllerBase
     private readonly ICashRegisterManagementService _cashRegisterManagement;
     private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly ICashRegisterShiftService _cashRegisterShift;
+    private readonly ICashRegisterOpenRequestService _openRequests;
     private readonly ICashRegisterPermissionService _permissions;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminCashRegistersController> _logger;
@@ -36,6 +37,7 @@ public sealed class AdminCashRegistersController : ControllerBase
         ICashRegisterManagementService cashRegisterManagement,
         ICashRegisterListEnrichmentService enrichment,
         ICashRegisterShiftService cashRegisterShift,
+        ICashRegisterOpenRequestService openRequests,
         ICashRegisterPermissionService permissions,
         ICurrentTenantAccessor tenantAccessor,
         ILogger<AdminCashRegistersController> logger,
@@ -45,6 +47,7 @@ public sealed class AdminCashRegistersController : ControllerBase
         _cashRegisterManagement = cashRegisterManagement;
         _enrichment = enrichment;
         _cashRegisterShift = cashRegisterShift;
+        _openRequests = openRequests;
         _permissions = permissions;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
@@ -78,6 +81,91 @@ public sealed class AdminCashRegistersController : ControllerBase
                 code = permission.Code,
             }),
     };
+
+    /// <summary>
+    /// Pending (default) or filtered POS cash register open requests for Mandanten-Admin.
+    /// SuperAdmin may pass <paramref name="tenantId"/> to filter a mandant.
+    /// </summary>
+    [HttpGet("open-requests")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(IReadOnlyList<CashRegisterOpenRequestDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<CashRegisterOpenRequestDto>>> ListOpenRequests(
+        [FromQuery] string? status,
+        [FromQuery] Guid? tenantId,
+        CancellationToken cancellationToken)
+    {
+        var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var rows = await _openRequests.ListAsync(
+            string.IsNullOrWhiteSpace(status) ? CashRegisterOpenRequestStatuses.Pending : status,
+            tenantId,
+            actorIsSuperAdmin,
+            cancellationToken);
+        return Ok(rows);
+    }
+
+    /// <summary>
+    /// Approve a cashier open request: opens the register as the requesting cashier (not as Mandanten-Admin).
+    /// </summary>
+    [HttpPost("open-requests/{id:guid}/approve")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CashRegisterOpenRequestMutationResult>> ApproveOpenRequest(
+        Guid id,
+        [FromBody] ResolveCashRegisterOpenRequestBody? body,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
+
+        var result = await _openRequests.ApproveAsync(
+            id,
+            userId,
+            User.GetActorRole() ?? Roles.FallbackUnknown,
+            User.IsInRole(Roles.SuperAdmin),
+            body,
+            cancellationToken);
+        return MapOpenRequestMutation(result);
+    }
+
+    /// <summary>Deny a cashier cash register open request.</summary>
+    [HttpPost("open-requests/{id:guid}/deny")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(CashRegisterOpenRequestMutationResult), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CashRegisterOpenRequestMutationResult>> DenyOpenRequest(
+        Guid id,
+        [FromBody] ResolveCashRegisterOpenRequestBody? body,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
+
+        var result = await _openRequests.DenyAsync(
+            id,
+            userId,
+            User.GetActorRole() ?? Roles.FallbackUnknown,
+            User.IsInRole(Roles.SuperAdmin),
+            body,
+            cancellationToken);
+        return MapOpenRequestMutation(result);
+    }
+
+    private ActionResult<CashRegisterOpenRequestMutationResult> MapOpenRequestMutation(
+        CashRegisterOpenRequestMutationResult result)
+    {
+        if (result.Succeeded)
+            return Ok(result);
+
+        return result.Code is CashRegisterOpenRequestService.RequestNotFoundCode
+            or CashRegisterOpenRequestService.RegisterNotFoundCode
+            ? NotFound(result)
+            : BadRequest(result);
+    }
 
     /// <summary>
     /// Lists cash registers. SuperAdmin may pass <paramref name="tenantId"/> to filter a mandant, or omit it to list all tenants.

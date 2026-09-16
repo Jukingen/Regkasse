@@ -207,6 +207,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/rksv/signature-verify',
     '/rksv/sb/startbeleg',
     '/rksv/sb/monatsbeleg',
+    '/rksv/monatsbelege',
     '/rksv/sb/jahresbeleg',
     '/rksv/sb/nullbeleg',
     '/rksv/sb/schlussbeleg',
@@ -219,6 +220,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts]: [
     '/rksv/sb/startbeleg',
     '/rksv/sb/monatsbeleg',
+    '/rksv/monatsbelege',
     '/rksv/sb/jahresbeleg',
     '/rksv/sb/nullbeleg',
     '/rksv/sb/schlussbeleg',
@@ -506,6 +508,13 @@ export function resolveAdminMenuSelectedKeys(
   if (!p) return [];
   if (p === RKSV_HUB_PATH) return [RKSV_HUB_MENU_LEAF_KEY];
 
+  if (p === '/rksv/monatsbelege' || p === '/admin/rksv/monatsbelege') {
+    const keys = selectableLeafKeys as string[];
+    if (keys.includes('/rksv/sb/monatsbeleg')) {
+      return ['/rksv/sb/monatsbeleg'];
+    }
+  }
+
   if (p === '/rksv/sonderbelege' && search && search.length > 0) {
     const sp = new globalThis.URLSearchParams(search);
     const focus = sp.get('focus')?.trim();
@@ -786,6 +795,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
   if (
     p === '/rksv/sb/startbeleg' ||
     p === '/rksv/sb/monatsbeleg' ||
+    p === '/rksv/monatsbelege' ||
     p === '/rksv/sb/jahresbeleg' ||
     p === '/rksv/sb/nullbeleg' ||
     p === '/rksv/sb/schlussbeleg' ||

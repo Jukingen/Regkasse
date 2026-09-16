@@ -1239,6 +1239,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
         builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
         builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
+        builder.Services.AddScoped<ICashRegisterOpenRequestService, CashRegisterOpenRequestService>();
         builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
         builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagementService>();
         builder.Services.AddScoped<ICashRegisterPermissionService, CashRegisterPermissionService>();
@@ -1265,10 +1266,13 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
         builder.Services.AddScoped<IAdminShiftManagementService, AdminShiftManagementService>();
         builder.Services.AddScoped<IShiftAutoCloseService, ShiftAutoCloseService>();
+        builder.Services.AddScoped<IAutoTagesabschlussService, AutoTagesabschlussService>();
         builder.Services.Configure<ShiftAutoCloseOptions>(
             builder.Configuration.GetSection(ShiftAutoCloseOptions.SectionName));
         builder.Services.Configure<TagesabschlussReminderOptions>(
             builder.Configuration.GetSection(TagesabschlussReminderOptions.SectionName));
+        builder.Services.Configure<AutoTagesabschlussOptions>(
+            builder.Configuration.GetSection(AutoTagesabschlussOptions.SectionName));
         builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
         builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
         builder.Services.AddScoped<ITaxRegulationService, TaxRegulationService>();
@@ -1314,6 +1318,10 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
         builder.Services.AddScoped<IMonatsbelegReminderService, MonatsbelegReminderService>();
         builder.Services.AddScoped<IRksvReminderService, RksvReminderService>();
+        builder.Services.AddScoped<IMonatsbelegOpsService, MonatsbelegOpsService>();
+        builder.Services.AddScoped<IRksvMonatsbelegService, RksvMonatsbelegService>();
+        builder.Services.Configure<MonatsbelegOpsOptions>(
+            builder.Configuration.GetSection(MonatsbelegOpsOptions.SectionName));
         builder.Services.AddSingleton<IRksvReceiptQrPayloadFormatValidator, RksvReceiptQrPayloadFormatValidator>();
         builder.Services.AddScoped<IRksvComplianceReportService, RksvComplianceReportService>();
         builder.Services.AddScoped<IRksvEvidenceBundleService, RksvEvidenceBundleService>();
@@ -1534,6 +1542,8 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
+        builder.Services.AddHostedService<MonatsbelegSchedulerHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.AutoTagesabschlussHostedService>();
         builder.Services.AddSingleton<TseHealthStateStore>();
         builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
         builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();

@@ -258,7 +258,7 @@
     "stopOnlineOrdersRequired": "Bitte Minuten angeben",
     "stopOnlineOrdersRange": "Wert zwischen 0 und 180",
     "autoClosePosLabel": "POS-Schließhinweis zur Schließzeit",
-    "autoClosePosTooltip": "Nur Anzeige: Zeigt im POS einen starken Hinweis zur Schließzeit. Kein automatischer Tagesabschluss, keine Sperre von Bestellungen oder Zahlungen (RKSV).",
+    "autoClosePosTooltip": "Nur Anzeige: Zeigt im POS einen starken Hinweis zur Schließzeit. Sperrt keine Bestellungen oder Zahlungen. Der fiskalische automatische Tagesabschluss wird separat unter Operativer Tagesabschluss konfiguriert.",
     "closedDayMessageLabel": "Nachricht an geschlossenen Tagen",
     "closedDayMessageTooltip": "Kundenmeldung auf Website/App, wenn heute geschlossen ist (nicht POS/Admin).",
     "closedDayMessageRequired": "Nachricht erforderlich",
@@ -754,6 +754,27 @@
       "timeZone": "Zeitzone",
       "language": "Sprache",
       "use24HourFormat": "24-Stunden-Format"
+    }
+  },
+  "rksv": {
+    "monatsbelegPolicy": {
+      "title": "Monatsbeleg — POS-Verkaufssperre",
+      "intro": "RKSV verlangt den Monatsbeleg binnen 7 Tagen nach Monatsende. Ob der POS-Verkauf gesperrt wird, ist eine Mandanten-Einstellung (nicht gesetzlich vorgeschrieben).",
+      "modeLabel": "Sperrmodus",
+      "modeHelp": "Strict: Verkauf gesperrt, bis der Vormonats-Monatsbeleg erstellt ist. GracePeriod: 14 Tage mit Warnung, danach Sperre. WarningOnly: immer verkaufen, immer warnen.",
+      "modeStrict": "Strict — Verkauf sperren (Standard)",
+      "modeGracePeriod": "GracePeriod — 14 Tage mit Warnung erlauben",
+      "modeWarningOnly": "WarningOnly — nur Warnung, kein Verkaufsstopp",
+      "autoLabel": "Auto-Monatsbeleg",
+      "autoHelp": "Am 1. des Wiener Kalendermonats um 00:01 (Nachholung bis Tag 7) wird der Vormonats-Monatsbeleg automatisch TSE-signiert und im DEP gespeichert. Der Mandanten-Admin erhält eine Benachrichtigung.",
+      "retryLabel": "Wiederholungen bei Fehler",
+      "retryHelp": "Anzahl der automatischen Versuche (1–5, Standard 3) mit exponentiellem Abstand, danach rote Warnung in FA.",
+      "openList": "Monatsbelege anzeigen",
+      "openCreate": "Monatsbeleg in Sonderbelege erstellen",
+      "saveSuccess": "Monatsbeleg-Richtlinie gespeichert.",
+      "saveFailed": "Monatsbeleg-Richtlinie konnte nicht gespeichert werden.",
+      "loadFailed": "Monatsbeleg-Richtlinie konnte nicht geladen werden.",
+      "readOnly": "Sie haben keine Berechtigung, die Monatsbeleg-Richtlinie zu ändern."
     }
   }
 }

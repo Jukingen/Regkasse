@@ -1114,6 +1114,49 @@
     "emptyByRegister": "Keine Abdeckungs-Stichproben in diesem Zeitraum.",
     "emptyTopRisk": "Keine Top-Risiko-Stichproben in diesem Zeitraum."
   },
+  "monatsbelegePage": {
+    "title": "Monatsbelege",
+    "subtitle": "TSE-signierte Monatsbelege (Dezember = Jahresbeleg) je Kasse. DEP-Quelle: payment_details.",
+    "createLink": "Monatsbeleg erstellen",
+    "refresh": "Aktualisieren",
+    "filterYear": "Jahr",
+    "filterRegister": "Kasse",
+    "filterRegisterAll": "Alle Kassen",
+    "filterStatus": "Status",
+    "colMonth": "Monat",
+    "colRegister": "Kasse",
+    "colCreatedAt": "Erstellt",
+    "colCreatedBy": "Erstellt von",
+    "colTse": "TSE-Signatur",
+    "colDep": "DEP",
+    "colFon": "FON",
+    "colStatus": "Status",
+    "autoTag": "Auto",
+    "empty": "Keine Monatsbelege für die Filter.",
+    "failedAlertTitle": "Automatische Erstellung fehlgeschlagen",
+    "failedAlertBody": "Mindestens ein Auto-Monatsbeleg konnte nach Wiederholungen nicht erstellt werden. Bitte manuell in Sonderbelege nachholen.",
+    "forbiddenTitle": "Keine Berechtigung",
+    "forbiddenDescription": "Sie benötigen die Berechtigung, Monatsbelege anzuzeigen.",
+    "loadErrorTitle": "Monatsbelege konnten nicht geladen werden",
+    "status": {
+      "all": "Alle",
+      "created": "Erstellt",
+      "failed": "Fehlgeschlagen",
+      "fonPending": "FON ausstehend"
+    },
+    "dep": {
+      "InDep": "Im DEP",
+      "Missing": "Fehlt"
+    },
+    "fon": {
+      "NotRequired": "Nicht erforderlich",
+      "Pending": "Ausstehend",
+      "Submitted": "Übermittelt",
+      "Verified": "Geprüft",
+      "Failed": "Fehlgeschlagen",
+      "ManualVerificationRequired": "Manuelle Prüfung"
+    }
+  },
   "offlineOrdersPage": {
     "title": "Offline-Bestellungen",
     "subtitle": "Vollständige POS-Bestell-Snapshots, die offline gespeichert und später synchronisiert werden.",

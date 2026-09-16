@@ -55010,6 +55010,11 @@
             "format": "date-time",
             "nullable": true
           },
+          "lastShiftAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "currentCashierName": {
             "type": "string",
             "nullable": true
@@ -62733,6 +62738,11 @@
             "format": "int32"
           },
           "lastSyncAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastShiftAtUtc": {
             "type": "string",
             "format": "date-time",
             "nullable": true

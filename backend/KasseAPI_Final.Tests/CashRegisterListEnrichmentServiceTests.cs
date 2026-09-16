@@ -175,6 +175,61 @@ public sealed class CashRegisterListEnrichmentServiceTests
     }
 
     [Fact]
+    public async Task ApplyAsync_sets_last_shift_timestamp()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant { Id = TenantId, Name = "T", Slug = "t", CreatedAt = now });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = RegisterId,
+            TenantId = TenantId,
+            RegisterNumber = "K1",
+            Location = "Main",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Closed,
+        });
+        db.CashierShifts.Add(new CashierShift
+        {
+            TenantId = TenantId,
+            CashRegisterId = RegisterId,
+            CashierId = "cashier-1",
+            CashierName = "Anna",
+            StartBalance = 0m,
+            StartedAt = now.AddHours(-8),
+            EndedAt = now.AddHours(-1),
+            Status = CashierShiftStatuses.Completed,
+            CreatedAt = now,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new CashRegisterHealthService(
+            db,
+            AlwaysOnlineTseHealthMonitor.Instance,
+            CreateTseOptionsMonitor("Device"));
+
+        var entity = await db.CashRegisters.FirstAsync();
+        var dto = new CashRegisterDto
+        {
+            Id = entity.Id,
+            TenantId = entity.TenantId,
+            RegisterNumber = entity.RegisterNumber,
+            Location = entity.Location,
+            Status = entity.Status,
+            StartingBalance = entity.StartingBalance,
+            CurrentBalance = entity.CurrentBalance,
+            LastBalanceUpdate = entity.LastBalanceUpdate,
+            CreatedAt = entity.CreatedAt,
+        };
+
+        await service.ApplyOperationalFieldsAsync([dto], [entity], CancellationToken.None);
+
+        Assert.Equal(now.AddHours(-1), dto.LastShiftAtUtc);
+    }
+
+    [Fact]
     public async Task GetTseHealthAsync_returns_404_when_register_missing()
     {
         await using var db = CreateDb();

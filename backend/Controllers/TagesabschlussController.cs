@@ -271,7 +271,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Get closing history for the authenticated user
+        /// Get closing history for the authenticated tenant / operational register.
         /// </summary>
         [HttpGet("history")]
         [HasPermission(AppPermissions.DailyClosingView)]
@@ -281,6 +281,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate,
             [FromQuery] Guid? cashRegisterId,
+            [FromQuery] string? trigger,
             CancellationToken cancellationToken)
         {
             try
@@ -294,12 +295,82 @@ namespace KasseAPI_Final.Controllers
                     toDate,
                     registerResolution.RegisterId!.Value,
                     cancellationToken);
+                if (!string.IsNullOrWhiteSpace(trigger))
+                {
+                    var normalized = DailyClosingTriggers.Normalize(trigger);
+                    history = history
+                        .Where(h => DailyClosingTriggers.Normalize(h.Trigger) == normalized)
+                        .ToList();
+                }
+
                 return Ok(history);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
+        }
+
+        /// <summary>Per-tenant automatic Tagesabschluss fallback settings (Europe/Vienna time).</summary>
+        [HttpGet("auto-close-settings")]
+        [HasPermission(AppPermissions.DailyClosingView)]
+        [ProducesResponseType(typeof(AutoTagesabschlussSettingsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AutoTagesabschlussSettingsDto>> GetAutoCloseSettings(
+            CancellationToken cancellationToken)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = "Tenant context required",
+                    code = TagesabschlussErrorCodes.TenantContextRequired,
+                    details = TagesabschlussErrorCodes.TenantContextRequired,
+                });
+            }
+
+            var settings = await _db.CompanySettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(AutoTagesabschlussSettingsDto.From(settings?.AutoTagesabschluss));
+        }
+
+        /// <summary>Update per-tenant automatic Tagesabschluss fallback settings.</summary>
+        [HttpPut("auto-close-settings")]
+        [HasPermission(AppPermissions.DailyClosingExecute)]
+        [ProducesResponseType(typeof(AutoTagesabschlussSettingsDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AutoTagesabschlussSettingsDto>> PutAutoCloseSettings(
+            [FromBody] AutoTagesabschlussSettingsDto? request,
+            CancellationToken cancellationToken)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            if (tenantId == Guid.Empty)
+            {
+                return BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = "Tenant context required",
+                    code = TagesabschlussErrorCodes.TenantContextRequired,
+                    details = TagesabschlussErrorCodes.TenantContextRequired,
+                });
+            }
+
+            var settings = await _db.CompanySettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (settings == null)
+            {
+                return NotFound(new TagesabschlussErrorResponse
+                {
+                    error = "Company settings not found",
+                    code = "COMPANY_SETTINGS_NOT_FOUND",
+                });
+            }
+
+            settings.AutoTagesabschluss = (request ?? new AutoTagesabschlussSettingsDto()).ToSettings();
+            settings.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return Ok(AutoTagesabschlussSettingsDto.From(settings.AutoTagesabschluss));
         }
 
         /// <summary>

@@ -68,6 +68,7 @@ public sealed class AdminCashRegisterAssignTests
             management,
             CashRegisterTestDoubles.NoOpListEnrichment(),
             Mock.Of<ICashRegisterShiftService>(),
+            Mock.Of<ICashRegisterOpenRequestService>(),
             new CashRegisterPermissionService(
                 db,
                 TenantTestDoubles.SettingsResolverReturning(TenantAId),

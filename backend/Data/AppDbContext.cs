@@ -136,6 +136,8 @@ namespace KasseAPI_Final.Data
         public DbSet<RksvColdArchiveRun> RksvColdArchiveRuns { get; set; }
         public DbSet<RksvColdArchiveItem> RksvColdArchiveItems { get; set; }
         public DbSet<DigitalServiceRequest> DigitalServiceRequests { get; set; }
+        public DbSet<CashRegisterOpenRequest> CashRegisterOpenRequests { get; set; }
+        public DbSet<MonatsbelegAutoRun> MonatsbelegAutoRuns { get; set; }
         public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<SupportTicketMessage> SupportTicketMessages { get; set; }
@@ -1988,6 +1990,13 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.CashRegisterId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                // Customer has a tenant query filter (plus IsSystem exemption); optional navigation
+                // avoids EF filter-interaction warnings (FK column stays required).
+                entity.Navigation(e => e.Customer).IsRequired(false);
                 entity.HasIndex(e => e.CashRegisterId);
                 entity.HasIndex(e => new { e.CashRegisterId, e.CreatedAt })
                     .IsDescending(false, true);
@@ -2472,6 +2481,56 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<CashRegisterOpenRequest>(entity =>
+            {
+                entity.ToTable("cash_register_open_requests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.RequestedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.RequestedAt).IsRequired();
+                entity.Property(e => e.Note).HasMaxLength(500);
+                entity.Property(e => e.ResolvedByUserId).HasMaxLength(450);
+                entity.Property(e => e.ResolutionNote).HasMaxLength(500);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_cash_register_open_requests_tenant_id");
+                entity.HasIndex(e => e.CashRegisterId).HasDatabaseName("idx_cash_register_open_requests_register_id");
+                entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.RequestedByUserId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_cash_register_open_requests_pending_register_user")
+                    .HasFilter("status = 'Pending'");
+                entity.HasIndex(e => new { e.Status, e.RequestedAt })
+                    .HasDatabaseName("idx_cash_register_open_requests_status_requested");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<MonatsbelegAutoRun>(entity =>
+            {
+                entity.ToTable("monatsbeleg_auto_runs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.LastError).HasMaxLength(500);
+                entity.Property(e => e.CorrelationId).IsRequired().HasMaxLength(64);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_monatsbeleg_auto_runs_tenant_id");
+                entity.HasIndex(e => e.CashRegisterId).HasDatabaseName("idx_monatsbeleg_auto_runs_register_id");
+                entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.Year, e.Month })
+                    .IsUnique()
+                    .HasDatabaseName("ux_monatsbeleg_auto_runs_register_period");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<DigitalServiceRequest>(entity =>
@@ -3146,6 +3205,9 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.LicenseSaleId)
                     .OnDelete(DeleteBehavior.Restrict);
+                // LicenseSale has a tenant query filter; LicenseReminder is not ITenantEntity.
+                // Optional navigation avoids EF filter-interaction warnings (FK column stays required).
+                entity.Navigation(e => e.LicenseSale).IsRequired(false);
             });
 
             builder.Entity<InvoiceSequence>(entity =>
@@ -3376,6 +3438,13 @@ namespace KasseAPI_Final.Data
                         v => JsonSerializer.Serialize(v ?? WorkingHoursSettings.CreateDefault()),
                         v => DeserializeWorkingHours(v))
                     .HasDefaultValueSql("'{}'::jsonb");
+                entity.Property(e => e.AutoTagesabschluss)
+                    .HasColumnName("auto_tagesabschluss")
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v ?? AutoTagesabschlussSettings.CreateDefault()),
+                        v => DeserializeAutoTagesabschluss(v))
+                    .HasDefaultValueSql("'{}'::jsonb");
                 entity.Property(e => e.ContactPerson).HasMaxLength(100);
                 entity.Property(e => e.ContactPhone).HasMaxLength(20);
                 entity.Property(e => e.ContactEmail).HasMaxLength(100);
@@ -3401,6 +3470,16 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.PreorderCancellationPolicyText)
                     .HasColumnName("preorder_cancellation_policy_text")
                     .HasMaxLength(500);
+                entity.Property(e => e.MonatsbelegBlockingMode)
+                    .HasColumnName("monatsbeleg_blocking_mode")
+                    .HasMaxLength(32)
+                    .HasDefaultValue(MonatsbelegBlockingModeNames.Strict);
+                entity.Property(e => e.AutoMonatsbelegEnabled)
+                    .HasColumnName("auto_monatsbeleg_enabled")
+                    .HasDefaultValue(true);
+                entity.Property(e => e.MonatsbelegRetryCount)
+                    .HasColumnName("monatsbeleg_retry_count")
+                    .HasDefaultValue(3);
 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
                 entity.HasIndex(e => new { e.TenantId, e.CompanyRegistrationNumber }).IsUnique();
@@ -3970,6 +4049,26 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LateCreationReason)
                     .HasColumnName("late_creation_reason")
                     .HasMaxLength(500);
+                entity.Property(e => e.Trigger)
+                    .HasColumnName("trigger")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasDefaultValue(DailyClosingTriggers.Manual);
+                entity.Property(e => e.CashCountNote)
+                    .HasColumnName("cash_count_note")
+                    .HasMaxLength(200);
+                entity.Property(e => e.CashCount)
+                    .HasColumnName("cash_count")
+                    .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CashDifference)
+                    .HasColumnName("cash_difference")
+                    .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.OpenOrdersCount)
+                    .HasColumnName("open_orders_count")
+                    .HasDefaultValue(0);
+                entity.Property(e => e.OpenOrdersForced)
+                    .HasColumnName("open_orders_forced")
+                    .HasDefaultValue(false);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TseSignature).HasColumnType("text");
@@ -5153,6 +5252,12 @@ namespace KasseAPI_Final.Data
             // Customer is excluded here and gets a dedicated filter below that also passes system rows (walk-in guest)
             // so the single shared guest customer stays resolvable under every tenant (POS payments, RKSV special receipts).
             //
+            // EF Core may log PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning when a required
+            // navigation points at a filtered principal (especially Customer, whose filter includes IsSystem).
+            // Those are expected when both ends share the same tenant filter — EF cannot prove captured
+            // ICurrentTenantAccessor expressions are equivalent. Fix only true mismatches: mark the navigation
+            // optional (FK stays required) as with Benefit* → Customer and LicenseReminder → LicenseSale.
+            //
             // Do not implement ITenantEntity on cross-tenant scheduler tables (e.g. AuditReportSchedule,
             // DepExportSchedule) without updating hosted services to IgnoreQueryFilters() when discovering due work.
             foreach (var entityType in builder.Model.GetEntityTypes()
@@ -5473,6 +5578,7 @@ namespace KasseAPI_Final.Data
             CardPaymentTransaction ct => ct.CashRegisterId,
             DailyClosing dc => dc.CashRegisterId,
             Monatsbeleg mb => mb.CashRegisterId,
+            MonatsbelegAutoRun mar => mar.CashRegisterId,
             Jahresbeleg jb => jb.CashRegisterId,
             TseSignature ts => ts.CashRegisterId,
             SignatureChainState sc => sc.CashRegisterId,
@@ -5495,6 +5601,17 @@ namespace KasseAPI_Final.Data
 
             var parsed = JsonSerializer.Deserialize<WorkingHoursSettings>(json)
                          ?? WorkingHoursSettings.CreateDefault();
+            parsed.Normalize();
+            return parsed;
+        }
+
+        private static AutoTagesabschlussSettings DeserializeAutoTagesabschluss(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return AutoTagesabschlussSettings.CreateDefault();
+
+            var parsed = JsonSerializer.Deserialize<AutoTagesabschlussSettings>(json)
+                         ?? AutoTagesabschlussSettings.CreateDefault();
             parsed.Normalize();
             return parsed;
         }

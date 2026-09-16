@@ -44,6 +44,15 @@ public sealed class MonatsbelegStatusDto
 
     /// <summary>Optional German operator copy for POS/dashboard banners (null when no dedicated message).</summary>
     public string? WarningMessage { get; init; }
+
+    /// <summary><c>Strict</c> | <c>GracePeriod</c> | <c>WarningOnly</c>.</summary>
+    public string BlockingMode { get; init; } = "Strict";
+
+    /// <summary>True when POS sales are blocked for the previous-month Monatsbeleg gap.</summary>
+    public bool SalesBlocked { get; init; }
+
+    /// <summary>True when POS may continue after cashier acknowledgment (non-Strict allow window).</summary>
+    public bool CanContinueWithWarning { get; init; }
 }
 
 public sealed class MissingMonth

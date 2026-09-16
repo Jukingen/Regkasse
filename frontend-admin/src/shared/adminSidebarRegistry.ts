@@ -1431,7 +1431,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
   specialReceiptMonthly: {
     id: 'specialReceiptMonthly',
     menuKey: '/rksv/sb/monatsbeleg',
-    href: '/rksv/sonderbelege?focus=monatsbeleg',
+    href: '/rksv/monatsbelege',
     labelKey: 'nav.monthlyReceipt',
     icon: 'FileDoneOutlined',
     permission: PERMISSIONS.FINANZONLINE_MANAGE,

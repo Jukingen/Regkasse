@@ -84,7 +84,14 @@
       "red": "Monatsbeleg OVERDUE! Please create it immediately",
       "createNow": "Create now",
       "dismissA11y": "Dismiss notice",
-      "loadingHint": "Loading RKSV Monatsbeleg status…"
+      "loadingHint": "Loading RKSV Monatsbeleg status…",
+      "missingTitle": "Monatsbeleg missing",
+      "contactManager": "Contact manager",
+      "continueWithWarning": "Continue with warning",
+      "notifySuccess": "The tenant admin was notified.",
+      "notifyAlready": "The tenant admin was already notified today.",
+      "notifyFailed": "Notification failed. Please try again.",
+      "allowedWithWarning": "Please contact the tenant admin. Sales are allowed with a warning. A missing Monatsbeleg is created automatically at the start of the month."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Monatsbeleg for the current month is overdue!",

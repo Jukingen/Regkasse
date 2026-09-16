@@ -169,6 +169,26 @@ Migration: `20260711211840_AddDailyClosingPeriodUniqueIndex`.
 
 ---
 
+## Automatic fallback (cashier forgot)
+
+If the cashier does not close by the tenant-configured Europe/Vienna time (default **03:00**), `AutoTagesabschlussHostedService` creates a TSE-signed **Daily** closing for **yesterday** (not today). Empty days are skipped.
+
+| Item | Behavior |
+|------|----------|
+| Business day | Previous Vienna calendar day (`AutoTagesabschlussCutoff.GetYesterdayBusinessDay`) |
+| `DailyClosing.Trigger` | `Automatic` |
+| Audit | `TagesabschlussCreated` / `TagesabschlussBackdatedCreated` with `actor_user_id=system`, `trigger=Automatic` |
+| Late reason | `Automatischer Tagesabschluss (Kassierer hat nicht abgeschlossen)` |
+| Open tables / carts | Policy: `ForceWithWarning` (default), `NotifyAndContinue`, or `Block` (notify Manager, skip close) |
+| Cash count | Shift `CashCount` when present; otherwise note `Kein Kassensturz` |
+| Month / year end | After the daily close, attempt Monatsbeleg (last day of month) and Jahresbeleg (31 Dec) |
+
+POS never auto-closes; it only shows a reminder / “Kasse zählen” banner. Configure per tenant on FA `/tagesabschluss`. Distinct from `WorkingHours.AutoClosePOSAtClosing`.
+
+**Key files:** `backend/Services/AutoTagesabschlussService.cs`, `backend/Services/Hosted/AutoTagesabschlussHostedService.cs`.
+
+---
+
 ## Correction vs outdated snippet
 
 ```csharp

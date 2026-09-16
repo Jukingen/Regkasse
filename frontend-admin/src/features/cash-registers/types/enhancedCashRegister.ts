@@ -26,6 +26,8 @@ export type EnhancedCashRegister = CashRegister & {
   currentCashierName?: string | null;
   currentCashierUserName?: string | null;
   currentCashierEmail?: string | null;
+  /** Latest cashier-shift ended_at/started_at from admin list enrichment. */
+  lastShiftAtUtc?: string | null;
   /** Display name for `assignedUserId`; the id itself comes from the base CashRegister shape. */
   assignedUserName?: string | null;
   deviceInfo?: CashRegisterDeviceInfo | null;

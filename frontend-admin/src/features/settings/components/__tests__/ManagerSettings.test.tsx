@@ -29,6 +29,10 @@ vi.mock('@/features/settings/components/TenantTseStatusCard', () => ({
   TenantTseStatusCard: () => <div data-testid="tenant-tse-status-card" />,
 }));
 
+vi.mock('@/features/settings/RksvSettings', () => ({
+  RksvSettings: () => <div data-testid="rksv-settings" />,
+}));
+
 vi.mock('@/api/generated/admin/admin', () => ({
   usePutApiAdminCashRegistersId: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));

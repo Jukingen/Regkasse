@@ -292,16 +292,14 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "RKSV Startbeleg must be created before sales on this cash register.");
         }
 
-        if (_rksvMonatsbelegPolicy.SessionGateApplies)
+        var monatsbelegGate = await _rksvMonatsbelegPolicy
+            .EvaluateSalesGateAsync(requestedRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        if (monatsbelegGate.BlocksSales)
         {
-            var (y, m) = PostgreSqlUtcDateTime.GetViennaPreviousYearMonth();
-            if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(requestedRegisterId, y, m, cancellationToken)
-                    .ConfigureAwait(false))
-            {
-                return CashRegisterResolutionValidationResult.Failure(
-                    CashRegisterResolutionCodes.MonatsbelegRequired,
-                    "RKSV Monatsbeleg must be created for the previous completed calendar month before sales on this cash register.");
-            }
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.MonatsbelegRequired,
+                "RKSV Monatsbeleg must be created for the previous completed calendar month before sales on this cash register.");
         }
 
         return core;

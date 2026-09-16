@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CalendarOutlined, FilePdfOutlined, ReloadOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -67,6 +67,7 @@ import { summarizeCalendarMonth } from '@/features/tagesabschluss/calendarStatus
 import { DailyClosingCalendar } from '@/features/tagesabschluss/components/DailyClosingCalendar';
 import { downloadClosingReportPdf } from '@/features/tagesabschluss/downloadClosingReportPdf';
 import { TagesabschlussDetail } from '@/features/tagesabschluss/TagesabschlussDetail';
+import { AutoTagesabschlussSettingsCard } from '@/features/tagesabschluss/components/AutoTagesabschlussSettingsCard';
 import { fiskalyStatusColor, readTagesabschlussFiskalyFields } from '@/features/tagesabschluss/fiskalyFields';
 import {
   filterHistoryByDayKind,
@@ -237,6 +238,9 @@ export default function TagesabschlussPage() {
   >(undefined);
   const [customBackdatedReason, setCustomBackdatedReason] = useState('');
   const [historyDayKindFilter, setHistoryDayKindFilter] = useState<HistoryDayKindFilter>('all');
+  const [historyTriggerFilter, setHistoryTriggerFilter] = useState<'all' | 'Manual' | 'Automatic'>(
+    'all'
+  );
   const [historyView, setHistoryView] = useState<'calendar' | 'list'>('calendar');
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = viennaTodayDayjs();
@@ -330,10 +334,16 @@ export default function TagesabschlussPage() {
     query: { enabled: registerIdValid },
   });
   const historyRows: TagesabschlussResult[] = historyQuery.data ?? [];
-  const filteredHistoryRows = useMemo(
-    () => filterHistoryByDayKind(historyRows, historyDayKindFilter),
-    [historyRows, historyDayKindFilter]
-  );
+  const filteredHistoryRows = useMemo(() => {
+    const byKind = filterHistoryByDayKind(historyRows, historyDayKindFilter);
+    if (historyTriggerFilter === 'all') return byKind;
+    return byKind.filter((row) => {
+      const trigger = (row.trigger ?? 'Manual').toLowerCase();
+      return historyTriggerFilter === 'Automatic'
+        ? trigger === 'automatic'
+        : trigger !== 'automatic';
+    });
+  }, [historyRows, historyDayKindFilter, historyTriggerFilter]);
 
   const statsQuery = useGetApiTagesabschlussStatistics(statsParams, {
     query: { enabled: registerIdValid },
@@ -664,7 +674,27 @@ export default function TagesabschlussPage() {
         },
       },
       {
-        title: t('tagesabschluss.type'),
+        title: t('tagesabschluss.history.colTrigger'),
+        dataIndex: 'trigger',
+        key: 'trigger',
+        width: 140,
+        render: (v: string | null | undefined) => {
+          const automatic = (v ?? 'Manual').toLowerCase() === 'automatic';
+          return (
+            <Tag
+              color={automatic ? 'purple' : 'blue'}
+              variant="filled"
+              icon={automatic ? <RobotOutlined /> : <UserOutlined />}
+            >
+              {automatic
+                ? `🤖 ${t('tagesabschluss.history.triggerAutomatic')}`
+                : `👤 ${t('tagesabschluss.history.triggerManual')}`}
+            </Tag>
+          );
+        },
+      },
+      {
+        title: t('tagesabschluss.history.colType'),
         dataIndex: 'closingType',
         key: 'closingType',
         width: 180,
@@ -1213,6 +1243,8 @@ export default function TagesabschlussPage() {
         </Space>
       </Card>
 
+      <AutoTagesabschlussSettingsCard />
+
       <Card
         title={
           <Space wrap>
@@ -1380,6 +1412,7 @@ export default function TagesabschlussPage() {
               <Title level={5} style={{ margin: 0 }}>
                 {t('tagesabschluss.history.sectionTitle')}
               </Title>
+              <Space wrap>
               <Select
                 size="small"
                 style={{ minWidth: 140 }}
@@ -1391,6 +1424,18 @@ export default function TagesabschlussPage() {
                   { value: 'empty', label: t('tagesabschluss.history.filterEmpty') },
                 ]}
               />
+              <Select
+                size="small"
+                style={{ minWidth: 160 }}
+                value={historyTriggerFilter}
+                onChange={(next: 'all' | 'Manual' | 'Automatic') => setHistoryTriggerFilter(next)}
+                options={[
+                  { value: 'all', label: t('tagesabschluss.history.filterAll') },
+                  { value: 'Automatic', label: t('tagesabschluss.history.filterAutomatic') },
+                  { value: 'Manual', label: t('tagesabschluss.history.filterManual') },
+                ]}
+              />
+              </Space>
             </Space>
             {dataBlockedHint ? (
               <Empty description={dataBlockedHint} />

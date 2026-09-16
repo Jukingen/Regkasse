@@ -67,7 +67,7 @@ describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
     expect(apiClient.get).not.toHaveBeenCalledWith('/CashRegister');
   });
 
-  it('keeps Closed rows — they are opened by shift auto-open once picked', async () => {
+  it('keeps Closed rows so the cashier can request Mandanten-Admin to open them', async () => {
     jest.mocked(apiClient.get).mockResolvedValue({
       registers: [
         { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', registerNumber: 'K1', status: 'Closed' },

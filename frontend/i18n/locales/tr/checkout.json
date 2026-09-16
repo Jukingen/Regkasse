@@ -84,7 +84,14 @@
       "red": "Monatsbeleg GECİKTİ! Lütfen hemen oluşturun",
       "createNow": "Şimdi oluştur",
       "dismissA11y": "Uyarıyı kapat",
-      "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…"
+      "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…",
+      "missingTitle": "Monatsbeleg eksik",
+      "contactManager": "Yöneticiyi bilgilendir",
+      "continueWithWarning": "Uyarıyla satışı sürdür",
+      "notifySuccess": "Mandanten-Admin bilgilendirildi.",
+      "notifyAlready": "Mandanten-Admin bugün zaten bilgilendirildi.",
+      "notifyFailed": "Bildirim başarısız. Lütfen tekrar deneyin.",
+      "allowedWithWarning": "Lütfen Mandanten-Admin ile iletişime geçin. Satış uyarıyla mümkün. Eksik Monatsbeleg ay başında otomatik oluşturulur."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Cari ay için Monatsbeleg gecikti!",

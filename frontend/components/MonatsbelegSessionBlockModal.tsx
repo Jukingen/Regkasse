@@ -1,6 +1,6 @@
 // RKSV: full-screen blocking modal when Monatsbeleg is overdue (ensure-ready monatsbeleg_required).
-import React, { useCallback, useMemo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   SoftColors,
@@ -13,14 +13,16 @@ import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useMonatsbelegStatus } from '../hooks/useMonatsbelegStatus';
 import { usePosMonatsbelegCreate } from '../hooks/usePosMonatsbelegCreate';
+import { notifyPosMonatsbelegManager } from '../services/api/cashRegisterService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
 import { resolvePosMonatsbelegTarget } from '../utils/resolvePosMonatsbelegTarget';
 
 export function MonatsbelegSessionBlockModal() {
-  const { data, loading, error } = usePosRegisterReadiness();
+  const { data, loading, error, refreshAsync } = usePosRegisterReadiness();
   const { data: monatsbelegStatus } = useMonatsbelegStatus();
   const { busy, requestCreate } = usePosMonatsbelegCreate();
+  const [notifyBusy, setNotifyBusy] = useState(false);
   const { year, month } = useMemo(
     () => resolvePosMonatsbelegTarget(monatsbelegStatus),
     [monatsbelegStatus]
@@ -41,6 +43,26 @@ export function MonatsbelegSessionBlockModal() {
     requestCreate({ cashRegisterId: registerId, year, month });
   }, [registerId, requestCreate, year, month]);
 
+  const onNotifyManager = useCallback(async () => {
+    if (!registerId || notifyBusy) return;
+    setNotifyBusy(true);
+    try {
+      const result = await notifyPosMonatsbelegManager(registerId);
+      await refreshAsync();
+      if (result.code === 'ALREADY_NOTIFIED') {
+        Alert.alert('Mandanten-Admin', 'Der Mandanten-Admin wurde heute bereits benachrichtigt.');
+      } else if (result.ok) {
+        Alert.alert('Mandanten-Admin', 'Der Mandanten-Admin wurde benachrichtigt.');
+      } else {
+        Alert.alert('Mandanten-Admin', 'Benachrichtigung fehlgeschlagen. Bitte erneut versuchen.');
+      }
+    } catch {
+      Alert.alert('Mandanten-Admin', 'Benachrichtigung fehlgeschlagen. Bitte erneut versuchen.');
+    } finally {
+      setNotifyBusy(false);
+    }
+  }, [notifyBusy, refreshAsync, registerId]);
+
   return (
     <Modal
       visible={visible}
@@ -48,17 +70,35 @@ export function MonatsbelegSessionBlockModal() {
       presentationStyle="fullScreen"
       onRequestClose={() => {}}>
       <View style={styles.root}>
-        <Text style={styles.title}>Monatsbeleg erforderlich</Text>
+        <Text style={styles.title}>Monatsbeleg fehlt</Text>
         <Text style={styles.body}>
           {isDecemberAnnual
             ? 'Im Dezember entspricht der Monatsabschluss dem Jahresbeleg (RKSV). Ohne Jahresbeleg sind keine Verkäufe möglich.'
-            : 'Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg (RKSV). Ohne Monatsbeleg sind keine Verkäufe möglich.'}
+            : 'Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Bitte Mandanten-Admin kontaktieren.'}
         </Text>
         <Pressable
-          onPress={onCreate}
-          disabled={busy}
+          onPress={() => {
+            void onNotifyManager();
+          }}
+          disabled={notifyBusy || busy}
           style={({ pressed }) => [
             styles.btn,
+            pressed && !notifyBusy && styles.btnPressed,
+            (notifyBusy || busy) && styles.btnDisabled,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Manager kontaktieren">
+          {notifyBusy ? (
+            <WaveLoader size={20} color={SoftColors.textInverse} />
+          ) : (
+            <Text style={styles.btnText}>Manager kontaktieren</Text>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={onCreate}
+          disabled={busy || notifyBusy}
+          style={({ pressed }) => [
+            styles.btnSecondary,
             pressed && !busy && styles.btnPressed,
             busy && styles.btnDisabled,
           ]}
@@ -67,9 +107,9 @@ export function MonatsbelegSessionBlockModal() {
             isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'
           }>
           {busy ? (
-            <WaveLoader size={20} color={SoftColors.textInverse} />
+            <WaveLoader size={20} color={SoftColors.accent} />
           ) : (
-            <Text style={styles.btnText}>
+            <Text style={styles.btnSecondaryText}>
               {isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Monatsbeleg erstellen'}
             </Text>
           )}
@@ -107,7 +147,17 @@ const styles = StyleSheet.create({
     borderRadius: SoftRadius.md,
     minWidth: 220,
     alignItems: 'center',
+    marginBottom: SoftSpacing.md,
     ...SoftShadows.sm,
+  },
+  btnSecondary: {
+    alignSelf: 'center',
+    backgroundColor: SoftColors.bgCard,
+    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    minWidth: 220,
+    alignItems: 'center',
   },
   btnPressed: {
     opacity: 0.9,
@@ -119,5 +169,10 @@ const styles = StyleSheet.create({
     ...SoftTypography.label,
     fontWeight: '600',
     color: SoftColors.textInverse,
+  },
+  btnSecondaryText: {
+    ...SoftTypography.label,
+    fontWeight: '600',
+    color: SoftColors.accent,
   },
 });

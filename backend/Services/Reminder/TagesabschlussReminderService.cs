@@ -11,7 +11,8 @@ namespace KasseAPI_Final.Services.Reminder;
 
 /// <summary>
 /// Hourly worker: in the Europe/Vienna evening window, publishes activity/email reminders
-/// for cash registers that still need Tagesabschluss. Does <strong>not</strong> auto-close (RKSV).
+/// for cash registers that still need Tagesabschluss. Automatic fallback runs separately
+/// via <see cref="KasseAPI_Final.Services.Hosted.AutoTagesabschlussHostedService"/>.
 /// </summary>
 public sealed class TagesabschlussReminderService : BackgroundService
 {
@@ -215,7 +216,7 @@ public sealed class TagesabschlussReminderService : BackgroundService
             var description =
                 $"Der Tagesabschluss für Kasse {registerLabel} (Mandant {tenantName ?? tenantId.ToString("D")}) " +
                 $"wurde am {viennaToday:yyyy-MM-dd} (Europe/Vienna) noch nicht durchgeführt. " +
-                "Bitte manuell abschließen und Kassenbestand zählen. Automatischer Abschluss ist nicht möglich.";
+                "Bitte manuell abschließen und Kassenbestand zählen. Ohne Abschluss erfolgt später ein automatischer Fallback.";
 
             await activity.PublishAsync(
                     new ActivityEventPublishRequest(

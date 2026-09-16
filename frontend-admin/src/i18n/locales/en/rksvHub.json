@@ -1114,6 +1114,49 @@
     "emptyByRegister": "No coverage samples in this window.",
     "emptyTopRisk": "No top-risk samples in this window."
   },
+  "monatsbelegePage": {
+    "title": "Monthly receipts",
+    "subtitle": "TSE-signed Monatsbelege (December = Jahresbeleg) per register. DEP source: payment_details.",
+    "createLink": "Create Monatsbeleg",
+    "refresh": "Refresh",
+    "filterYear": "Year",
+    "filterRegister": "Register",
+    "filterRegisterAll": "All registers",
+    "filterStatus": "Status",
+    "colMonth": "Month",
+    "colRegister": "Register",
+    "colCreatedAt": "Created at",
+    "colCreatedBy": "Created by",
+    "colTse": "TSE signature",
+    "colDep": "DEP",
+    "colFon": "FON",
+    "colStatus": "Status",
+    "autoTag": "Auto",
+    "empty": "No Monatsbelege for these filters.",
+    "failedAlertTitle": "Automatic creation failed",
+    "failedAlertBody": "At least one Auto-Monatsbeleg could not be created after retries. Please create it manually in special receipts.",
+    "forbiddenTitle": "Access denied",
+    "forbiddenDescription": "You need permission to view Monatsbelege.",
+    "loadErrorTitle": "Monatsbelege could not be loaded",
+    "status": {
+      "all": "All",
+      "created": "Created",
+      "failed": "Failed",
+      "fonPending": "FON pending"
+    },
+    "dep": {
+      "InDep": "In DEP",
+      "Missing": "Missing"
+    },
+    "fon": {
+      "NotRequired": "Not required",
+      "Pending": "Pending",
+      "Submitted": "Submitted",
+      "Verified": "Verified",
+      "Failed": "Failed",
+      "ManualVerificationRequired": "Manual check"
+    }
+  },
   "offlineOrdersPage": {
     "title": "Offline orders",
     "subtitle": "Full POS order snapshots stored offline and synced later.",

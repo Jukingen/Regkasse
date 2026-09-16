@@ -54,6 +54,29 @@ namespace KasseAPI_Final.Models
         [Column("late_creation_reason")]
         public string? LateCreationReason { get; set; }
 
+        /// <summary><see cref="DailyClosingTriggers"/> — Manual (cashier/admin) or Automatic (fallback worker).</summary>
+        [Required]
+        [MaxLength(20)]
+        [Column("trigger")]
+        public string Trigger { get; set; } = DailyClosingTriggers.Manual;
+
+        /// <summary>Optional cash-count note (e.g. "Kein Kassensturz" when auto-closed without a count).</summary>
+        [MaxLength(200)]
+        [Column("cash_count_note")]
+        public string? CashCountNote { get; set; }
+
+        [Column("cash_count", TypeName = "decimal(18,2)")]
+        public decimal? CashCount { get; set; }
+
+        [Column("cash_difference", TypeName = "decimal(18,2)")]
+        public decimal? CashDifference { get; set; }
+
+        [Column("open_orders_count")]
+        public int OpenOrdersCount { get; set; }
+
+        [Column("open_orders_forced")]
+        public bool OpenOrdersForced { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string ClosingType { get; set; } = string.Empty; // Daily, Monthly, Yearly

@@ -18,20 +18,20 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupOperationalReadiness _readiness;
     private readonly TimeProvider _timeProvider;
-    private readonly IAuditLogService _audit;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BackupScheduledEnqueueService> _logger;
 
     public BackupScheduledEnqueueService(
         IOptionsMonitor<BackupOptions> options,
         IBackupOperationalReadiness readiness,
         TimeProvider timeProvider,
-        IAuditLogService audit,
+        IServiceScopeFactory scopeFactory,
         ILogger<BackupScheduledEnqueueService> logger)
     {
         _options = options;
         _readiness = readiness;
         _timeProvider = timeProvider;
-        _audit = audit;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -179,7 +179,9 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
 
         try
         {
-            await _audit.LogSystemOperationAsync(
+            await using var auditScope = _scopeFactory.CreateAsyncScope();
+            var audit = auditScope.ServiceProvider.GetRequiredService<IAuditLogService>();
+            await audit.LogSystemOperationAsync(
                 action: "BACKUP_CREATED",
                 entityType: "BackupRun",
                 userId: "system",

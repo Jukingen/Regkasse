@@ -27,6 +27,7 @@ import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import { FavoritesBar } from '../../components/FavoritesBar';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
+import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
@@ -788,6 +789,8 @@ export default function CashRegisterScreen() {
         onOpenPaymentHistory={handleOpenPaymentHistory}
         onOpenReceiptList={canOpenReceiptList ? handleOpenReceiptList : undefined}
       />
+
+      <MonatsbelegSalesWarningBanner />
 
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}

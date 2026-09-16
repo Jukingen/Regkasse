@@ -122,6 +122,15 @@ namespace KasseAPI_Final.Models
         [Column("working_hours", TypeName = "jsonb")]
         public WorkingHoursSettings WorkingHours { get; set; } = WorkingHoursSettings.CreateDefault();
 
+        /// <summary>
+        /// Automatic Tagesabschluss fallback (Vienna local time, open-order policy).
+        /// JSONB; defaults when null/empty.
+        /// </summary>
+        [Required]
+        [Column("auto_tagesabschluss", TypeName = "jsonb")]
+        public AutoTagesabschlussSettings AutoTagesabschluss { get; set; } =
+            AutoTagesabschlussSettings.CreateDefault();
+
         [MaxLength(100)]
         public string? ContactPerson { get; set; }
 
@@ -237,6 +246,27 @@ namespace KasseAPI_Final.Models
         /// </summary>
         [Column("use_december_monatsbeleg_as_jahresbeleg")]
         public bool UseDecemberMonatsbelegAsJahresbeleg { get; set; } = true;
+
+        /// <summary>
+        /// POS sales blocking when the previous Vienna-month Monatsbeleg is missing:
+        /// <c>Strict</c> (default), <c>GracePeriod</c>, or <c>WarningOnly</c>.
+        /// </summary>
+        [Required]
+        [MaxLength(32)]
+        [Column("monatsbeleg_blocking_mode")]
+        public string MonatsbelegBlockingMode { get; set; } = MonatsbelegBlockingModeNames.Strict;
+
+        /// <summary>
+        /// When true (default), the hosted worker creates the previous-month TSE Monatsbeleg
+        /// on Vienna day 1 at 00:01 (catch-up through day 7) and notifies Mandanten-Admin.
+        /// </summary>
+        [Column("auto_monatsbeleg_enabled")]
+        public bool AutoMonatsbelegEnabled { get; set; } = true;
+
+        /// <summary>Max Auto-Monatsbeleg attempts per register/month (1–5, default 3).</summary>
+        [Range(1, 5)]
+        [Column("monatsbeleg_retry_count")]
+        public int MonatsbelegRetryCount { get; set; } = 3;
 
         /// <summary>Printed pickup window on Vorbestellung / Besorgerzettel receipts.</summary>
         [Range(PreorderPolicyDefaults.MinPickupDeadlineWeeks, PreorderPolicyDefaults.MaxPickupDeadlineWeeks)]

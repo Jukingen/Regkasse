@@ -142,6 +142,9 @@ export type MonatsbelegStatusDto = {
   currentMonthOverdue: boolean;
   lastMonthMissing: boolean;
   warningMessage: string | null;
+  blockingMode?: string;
+  salesBlocked?: boolean;
+  canContinueWithWarning?: boolean;
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {

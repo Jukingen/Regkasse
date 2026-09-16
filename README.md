@@ -402,6 +402,10 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`docs/BILLING_TENANT_LICENSE.md`](docs/BILLING_TENANT_LICENSE.md) | Mandant license sales |
 | [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md) | SuperAdmin 2FA |
 | [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md) | Website hours (never gates POS/FA) |
+| [`docs/COUNTRIES.md`](docs/COUNTRIES.md) | Multi-country fiscal hub (AT production; DE/CH/EU planned) |
+| [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md) | Germany KassenSicherheit stub (not production-ready) |
+| [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung stub (not production-ready) |
+| [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md) | EU EN 16931 / ViDA readiness stub (no submission) |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting & developer security practices |
 
 Package READMEs: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md), [`frontend-admin/README.md`](frontend-admin/README.md), [`frontend-sites/README.md`](frontend-sites/README.md).

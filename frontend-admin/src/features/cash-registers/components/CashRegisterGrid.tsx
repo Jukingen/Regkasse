@@ -17,13 +17,19 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import type { CashRegister } from '@/api/generated/model';
-import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
   assignmentTagColor,
   resolveAssignmentState,
 } from '@/features/cash-registers/utils/assignmentStatus';
+import {
+  readLastShiftAt,
+  registerLifecycleTagColor,
+  registerShiftOccupancyTagColor,
+  resolveRegisterLifecycleKind,
+  resolveRegisterShiftOccupancy,
+} from '@/features/cash-registers/utils/registerOperationalStatus';
 import {
   canDecommissionRegister,
   isDecommissionedRegister,
@@ -109,6 +115,9 @@ export function CashRegisterGrid({
         const enhanced = asEnhanced(register);
         const status = rawRegisterStatus(register);
         const decommissioned = isDecommissionedRegister(status);
+        const lifecycle = resolveRegisterLifecycleKind(register);
+        const shiftOccupancy = resolveRegisterShiftOccupancy(register);
+        const lastShift = readLastShiftAt(register);
         const assignmentState = resolveAssignmentState(enhanced.assignedUserId, user?.id);
         const registerId = register.id?.trim();
         const offlineHref = registerId
@@ -250,11 +259,11 @@ export function CashRegisterGrid({
               />
 
               <div className={styles.statusRow}>
-                <CashRegisterStatusBadge register={register} />
-                <Tag>
-                  {register.isActive === false
-                    ? t('common.categories.table.inactive')
-                    : t('common.categories.table.active')}
+                <Tag color={registerLifecycleTagColor(lifecycle)}>
+                  {t(`cashRegisters.lifecycle.${lifecycle}`)}
+                </Tag>
+                <Tag color={registerShiftOccupancyTagColor(shiftOccupancy)}>
+                  {t(`cashRegisters.shiftOccupancy.${shiftOccupancy}`)}
                 </Tag>
               </div>
 
@@ -293,6 +302,17 @@ export function CashRegisterGrid({
                       decommissioned ? register.decommissionedAtUtc : register.lastBalanceUpdate,
                       formatLocale
                     )}
+                  </Typography.Text>
+                </div>
+
+                <div>
+                  <Typography.Text className={styles.detailLabel}>
+                    <ClockCircleOutlined /> {t('cashRegisters.columns.lastShift')}
+                  </Typography.Text>
+                  <Typography.Text className={styles.detailValue}>
+                    {lastShift
+                      ? formatDateTime(lastShift, formatLocale)
+                      : FORMAT_EMPTY_DISPLAY}
                   </Typography.Text>
                 </div>
 

@@ -55,6 +55,21 @@
     "hint": "Hinweis",
     "backendHint": "Hinweis vom Server (Sprache nicht garantiert)"
   },
+  "autoClose": {
+    "title": "Automatischer Tagesabschluss",
+    "intro": "Wenn der Kassierer den Tagesabschluss nicht bis zur konfigurierten Uhrzeit (Europe/Vienna) durchführt und an diesem Tag Transaktionen vorliegen, erstellt das System einen TSE-signierten Fallback für den vorherigen Geschäftstag.",
+    "enabled": "Automatischen Fallback aktivieren",
+    "hour": "Stunde (Wien)",
+    "minute": "Minute",
+    "openOrdersPolicy": "Offene Tische / Bestellungen",
+    "openOrdersForce": "Mit Warnung schließen (Standard)",
+    "openOrdersNotify": "Benachrichtigen und trotzdem schließen",
+    "openOrdersBlock": "Blockieren, bis Tische geschlossen sind",
+    "promptCashCount": "POS-Hinweis „Kasse zählen“ vor dem Fallback",
+    "save": "Einstellungen speichern",
+    "saveSuccess": "Automatischer Tagesabschluss gespeichert.",
+    "saveError": "Einstellungen konnten nicht gespeichert werden."
+  },
   "backdated": {
     "dateLabel": "Abschlussdatum",
     "infoTitle": "Tagesabschluss für einen bestimmten Tag",
@@ -121,6 +136,11 @@
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
     "colFiskaly": "Fiskaly",
+    "colTrigger": "Auslöser",
+    "filterAutomatic": "Automatisch",
+    "filterManual": "Manuell",
+    "triggerAutomatic": "System",
+    "triggerManual": "Benutzer",
     "closingTypes": {
       "Daily": "Täglich",
       "Monthly": "Monatlich",

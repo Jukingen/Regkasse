@@ -141,6 +141,14 @@ Source: `DailyClosingBackdatedReportNote` → `RksvReportTemplate.OperatorNotice
 
 ---
 
+## Automatic fallback vs manual late close
+
+When the cashier never closes, the hosted worker still creates a **backdated** Daily closing for yesterday after the tenant cutoff (default 03:00 Europe/Vienna). The row is honest: real `CreatedAt`, `Trigger=Automatic`, audit actor `system`, and late reason `Automatischer Tagesabschluss (Kassierer hat nicht abgeschlossen)`. Manual late closings still require an operator reason.
+
+See [`docs/RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
+
+---
+
 ## 8. Related docs
 
 - `docs/RKSV_CASH_REGISTER_OPERATIONS.md` — Tagesabschluss / formal Tagesbericht distinction

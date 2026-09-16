@@ -11,6 +11,12 @@ public enum ActivityEventType
     CashRegisterOpened = 10,
     CashRegisterClosed = 11,
     CashRegisterDecommissioned = 12,
+    /// <summary>Cashier requested Mandanten-Admin to open a closed cash register.</summary>
+    CashRegisterOpenRequested = 13,
+    /// <summary>Mandanten-Admin approved a cash register open request (register opened for the cashier).</summary>
+    CashRegisterOpenRequestApproved = 14,
+    /// <summary>Mandanten-Admin denied a cash register open request.</summary>
+    CashRegisterOpenRequestDenied = 15,
     LicenseExpiringSoon = 20,
     LicenseExpired = 21,
     OfflineQueueGrowing = 30,
@@ -29,8 +35,24 @@ public enum ActivityEventType
     SuspiciousSameCardMultiple = 64,
     SuspiciousRapidTransactions = 65,
     DailyClosingBackdatedCreated = 70,
-    /// <summary>Evening reminder: Tagesabschluss still pending (no auto-close).</summary>
+    /// <summary>Evening reminder: Tagesabschluss still pending (fallback auto-close may follow).</summary>
     DailyClosingPendingReminder = 71,
+    /// <summary>Automatic Tagesabschluss fallback created the Daily closing.</summary>
+    DailyClosingAutoCreated = 72,
+    /// <summary>Open tables/orders existed when automatic Tagesabschluss ran (warning, still closed or blocked).</summary>
+    DailyClosingOpenOrdersWarning = 73,
+    /// <summary>Daily reminder: previous-month Monatsbeleg is still missing.</summary>
+    MonatsbelegMissingReminder = 75,
+    /// <summary>Optional Auto-Monatsbeleg created the previous-month TSE receipt (legacy alias of MonatsbelegCreated).</summary>
+    MonatsbelegAutoCreated = 76,
+    /// <summary>Cashier asked Mandanten-Admin to create a missing Monatsbeleg.</summary>
+    MonatsbelegManagerContacted = 77,
+    /// <summary>TSE-signed Monatsbeleg (or December Jahresbeleg) was created, including Auto-Monatsbeleg.</summary>
+    MonatsbelegCreated = 78,
+    /// <summary>Auto-Monatsbeleg exhausted retries for a register/month.</summary>
+    MonatsbelegAutoCreateFailed = 79,
+    /// <summary>Jahresbeleg exists but FinanzOnline Belegcheck is still pending (deadline 15 February).</summary>
+    JahresbelegFonReminder = 84,
     /// <summary>Online order materialized into a POS cart (FA / kitchen alert).</summary>
     OnlineOrderPushedToPos = 80,
     /// <summary>Online order payment succeeded (Stripe / mock gateway).</summary>

@@ -4,6 +4,9 @@
   "columns": {
     "name": "Kasa",
     "status": "Durum",
+    "shiftStatus": "Vardiya durumu",
+    "currentCashier": "Aktif kasiyer",
+    "lastShift": "Son vardiya",
     "operations": "Operasyon",
     "compliance": "RKSV",
     "activity": "Aktivite",
@@ -129,6 +132,19 @@
     "disabled": "Devre dışı",
     "decommissioned": "Kapatıldı",
     "unknown": "Durum {{status}}"
+  },
+  "lifecycle": {
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "maintenance": "Bakım",
+    "disabled": "Devre dışı",
+    "decommissioned": "Kapatıldı"
+  },
+  "shiftOccupancy": {
+    "open": "🟢 Açık",
+    "closed": "🔴 Kapalı",
+    "none": "⚠️ Vardiya yok",
+    "unavailable": "—"
   },
   "shift": {
     "openSuccess": "Kasa açıldı. Vardiya sizin kullanıcınız altında çalışıyor.",
@@ -370,5 +386,26 @@
       "specialReceipts": "Sonderbeleg raporu"
     },
     "userActivityCard": "Kullanıcı aktivitesi"
+  },
+  "openRequests": {
+    "title": "Bekleyen kasa açılış talepleri",
+    "hint": "Vardiya yetkisi olan kasiyerler kapalı kasayı POS’ta kendileri açar. Yetki yoksa talep burada görünür — onay, kasayı talep eden kasiyer adına açar.",
+    "empty": "Bekleyen talep yok.",
+    "loadFailed": "Talepler yüklenemedi.",
+    "approve": "Onayla",
+    "deny": "Reddet",
+    "approved": "Kasa açılışı onaylandı. Kasiyer kasayı artık seçebilir.",
+    "denied": "Talep reddedildi.",
+    "resolveFailed": "Talep işlenemedi.",
+    "status": {
+      "pending": "Bekliyor"
+    },
+    "columns": {
+      "register": "Kasa",
+      "cashier": "Kasiyer",
+      "requestedAt": "Talep",
+      "status": "Durum",
+      "actions": "İşlemler"
+    }
   }
 }

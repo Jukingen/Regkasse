@@ -7,8 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { SoftColors, SoftSpacing } from '../../constants/SoftTheme';
 import {
+  fetchMyPosCashRegisterOpenRequests,
   fetchPosSelectableRegisters,
+  requestPosCashRegisterOpen,
   setDefaultPosCashRegister,
+  type CashRegisterOpenRequestRow,
   type CashRegisterSelectableRow,
   type PosSelectableEmptyReason,
 } from '../../services/api/cashRegisterService';
@@ -18,7 +21,8 @@ import {
   needsPosCashRegisterSelection,
   readValidPosCashRegisterId,
 } from '../../utils/posCashRegister';
-import { isOpenedOnSelect } from '../../utils/posSelectableRegisterFilter';
+import { isClosedRegister, resolvePosPickerRowKind } from '../../utils/posSelectableRegisterFilter';
+import { hasPermission } from '../../utils/posPermissions';
 import {
   classifyRegisterListError,
   type RegisterListFailureKind,
@@ -45,23 +49,32 @@ export default function CashRegisterSelectScreen() {
   const [listFailure, setListFailure] = useState<RegisterListFailureKind | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
+  const [myRequests, setMyRequests] = useState<CashRegisterOpenRequestRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [requestNotice, setRequestNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
 
-  const loadRegisters = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setListFailure(null);
-    setEmptyReason(null);
+  const loadRegisters = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoading(true);
+      setError(null);
+      setListFailure(null);
+      setEmptyReason(null);
+    }
     try {
-      const { registers: rows, emptyReason: reason } = await fetchPosSelectableRegisters();
+      const [{ registers: rows, emptyReason: reason }, requests] = await Promise.all([
+        fetchPosSelectableRegisters(),
+        fetchMyPosCashRegisterOpenRequests().catch(() => [] as CashRegisterOpenRequestRow[]),
+      ]);
       setRegisters(rows);
       setEmptyReason(reason);
+      setMyRequests(requests);
     } catch (e) {
       setRegisters([]);
       setListFailure(classifyRegisterListError(e));
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -69,6 +82,19 @@ export default function CashRegisterSelectScreen() {
     if (!isAuthReady || !isAuthenticated) return;
     void loadRegisters();
   }, [isAuthReady, isAuthenticated, loadRegisters, retryToken]);
+
+  const canOpenShift = hasPermission(user, 'shift.open');
+  const hasPendingOpenRequest = myRequests.some((row) => row.status === 'Pending');
+
+  useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
+    if (!hasPendingOpenRequest && canOpenShift) return;
+    if (!hasPendingOpenRequest && !registers.some((row) => isClosedRegister(row))) return;
+    const timer = setInterval(() => {
+      void loadRegisters({ silent: true });
+    }, 10_000);
+    return () => clearInterval(timer);
+  }, [isAuthReady, isAuthenticated, hasPendingOpenRequest, canOpenShift, registers, loadRegisters]);
 
   const handleSelect = useCallback(
     async (registerId: string) => {
@@ -89,6 +115,10 @@ export default function CashRegisterSelectScreen() {
           router.replace('/(tabs)/cash-register');
           return;
         }
+        if (parsed.httpStatus === 403) {
+          setError(t('settings:registerSelect.mustBeOpenedByManager'));
+          return;
+        }
         const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
         setError(t(keys.messageKey));
       } finally {
@@ -96,6 +126,40 @@ export default function CashRegisterSelectScreen() {
       }
     },
     [savingId, setCurrentCashRegisterId, t]
+  );
+
+  const latestRequestByRegisterId = React.useMemo(() => {
+    const map = new Map<string, CashRegisterOpenRequestRow>();
+    for (const row of myRequests) {
+      if (!map.has(row.cashRegisterId)) {
+        map.set(row.cashRegisterId, row);
+      }
+    }
+    return map;
+  }, [myRequests]);
+
+  const handleRequestOpen = useCallback(
+    async (registerId: string) => {
+      const trimmed = readValidPosCashRegisterId(registerId);
+      if (!trimmed || requestingId || savingId) return;
+      setRequestingId(trimmed);
+      setError(null);
+      setRequestNotice(null);
+      try {
+        const result = await requestPosCashRegisterOpen(trimmed);
+        if (!result.succeeded && result.code !== 'OPEN_REQUEST_ALREADY_PENDING') {
+          setError(t('settings:registerSelect.requestFailed'));
+          return;
+        }
+        setRequestNotice(t('settings:registerSelect.requestSent'));
+        await loadRegisters({ silent: true });
+      } catch {
+        setError(t('settings:registerSelect.requestFailed'));
+      } finally {
+        setRequestingId(null);
+      }
+    },
+    [loadRegisters, requestingId, savingId, t]
   );
 
   if (!isAuthReady) {
@@ -132,11 +196,23 @@ export default function CashRegisterSelectScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>{t('settings:registerSelect.title')}</Text>
-      <Text style={styles.intro}>{t('settings:registerSelect.intro')}</Text>
+      <Text style={styles.intro}>
+        {t(
+          canOpenShift
+            ? 'settings:registerSelect.intro'
+            : 'settings:registerSelect.introNoPermission'
+        )}
+      </Text>
 
       {error ? (
         <View style={styles.errorBanner} accessibilityRole="alert">
           <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {requestNotice ? (
+        <View style={styles.successBanner} accessibilityRole="alert">
+          <Text style={styles.successText}>{requestNotice}</Text>
         </View>
       ) : null}
 
@@ -149,20 +225,86 @@ export default function CashRegisterSelectScreen() {
       {!loading && registers.length > 0 ? (
         <View style={styles.optionList}>
           {registers.map((register) => {
-            const disabled = Boolean(savingId);
+            const kind = resolvePosPickerRowKind(register, canOpenShift);
+            const latestRequest = latestRequestByRegisterId.get(register.id);
+            const pending = latestRequest?.status === 'Pending';
+            const denied = latestRequest?.status === 'Denied';
+            const requesting = requestingId === register.id;
             const selected = savingId === register.id;
+            const busy = Boolean(savingId || requestingId);
+
+            if (kind === 'unavailable') {
+              return (
+                <View key={register.id} style={[styles.optionRow, styles.optionRowClosed]}>
+                  <View style={styles.optionTextWrap}>
+                    <Text style={styles.optionText}>
+                      {formatRegisterLabel(register.registerNumber)}
+                    </Text>
+                    <Text style={styles.optionStatus}>
+                      {t('settings:registerSelect.statusUnavailable')}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+
+            if (kind === 'requestOpen') {
+              return (
+                <View key={register.id} style={[styles.optionRow, styles.optionRowClosed]}>
+                  <View style={styles.optionTextWrap}>
+                    <Text style={styles.optionText}>
+                      {formatRegisterLabel(register.registerNumber)}
+                    </Text>
+                    <Text style={styles.optionMeta}>
+                      {register.location?.trim()
+                        ? register.location.trim()
+                        : t('settings:registerSelect.noDescription')}
+                    </Text>
+                    <Text style={styles.optionStatus}>
+                      {t('settings:registerSelect.statusClosed')}
+                    </Text>
+                    <Text style={styles.optionHint}>
+                      {denied
+                        ? t('settings:registerSelect.requestDenied')
+                        : t('settings:registerSelect.mustBeOpenedByManager')}
+                    </Text>
+                  </View>
+                  <Pressable
+                    disabled={busy || pending}
+                    onPress={() => void handleRequestOpen(register.id)}
+                    style={[
+                      styles.requestButton,
+                      (busy || pending) && styles.optionRowDisabled,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: busy || pending, busy: requesting }}>
+                    <Text style={styles.requestButtonText}>
+                      {pending || requesting
+                        ? t('settings:registerSelect.requestSent')
+                        : t('settings:registerSelect.requestOpen')}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            }
+
+            const statusLabel =
+              kind === 'opensOnSelect'
+                ? t('settings:registerSelect.statusClosedOpensOnSelect')
+                : t('settings:registerSelect.statusAvailable');
+
             return (
               <Pressable
                 key={register.id}
-                disabled={disabled}
+                disabled={busy}
                 onPress={() => void handleSelect(register.id)}
                 style={[
                   styles.optionRow,
                   selected && styles.optionRowSelected,
-                  disabled && styles.optionRowDisabled,
+                  busy && styles.optionRowDisabled,
                 ]}
                 accessibilityRole="button"
-                accessibilityState={{ disabled, busy: selected }}>
+                accessibilityState={{ disabled: busy, busy: selected }}>
                 <View style={styles.optionTextWrap}>
                   <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
                     {formatRegisterLabel(register.registerNumber)}
@@ -172,11 +314,7 @@ export default function CashRegisterSelectScreen() {
                       ? register.location.trim()
                       : t('settings:registerSelect.noDescription')}
                   </Text>
-                  <Text style={styles.optionStatus}>
-                    {isOpenedOnSelect(register)
-                      ? t('settings:registerSelect.statusClosedOpensOnSelect')
-                      : t('settings:registerSelect.statusOpen')}
-                  </Text>
+                  <Text style={styles.optionStatus}>{statusLabel}</Text>
                 </View>
                 <Text style={[styles.selectLabel, selected && styles.optionTextSelected]}>
                   {selected
@@ -190,17 +328,17 @@ export default function CashRegisterSelectScreen() {
       ) : null}
 
       {!loading && registers.length === 0 ? (
-        <Text style={styles.empty}>{emptyMessage}</Text>
+        <Text style={styles.empty}>
+          {listFailure ? t('settings:registerSelect.listLoadFailed') : emptyMessage}
+        </Text>
       ) : null}
 
-      {listFailure ? (
-        <Pressable
-          onPress={() => setRetryToken((n) => n + 1)}
-          style={styles.linkButton}
-          accessibilityRole="button">
-          <Text style={styles.linkText}>{t('settings:registerAssignment.reloadList')}</Text>
-        </Pressable>
-      ) : null}
+      <Pressable
+        onPress={() => setRetryToken((n) => n + 1)}
+        style={styles.linkButton}
+        accessibilityRole="button">
+        <Text style={styles.linkText}>{t('settings:registerAssignment.reloadList')}</Text>
+      </Pressable>
 
       <Pressable
         onPress={() => void logout()}
@@ -299,6 +437,45 @@ const styles = StyleSheet.create({
     color: SoftColors.textMuted,
     marginTop: SoftSpacing.sm,
     lineHeight: 20,
+  },
+  optionRowClosed: {
+    alignItems: 'flex-start',
+  },
+  optionHint: {
+    fontSize: 12,
+    color: SoftColors.textSecondary,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  requestButton: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: SoftColors.accentDark,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    maxWidth: 150,
+  },
+  requestButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: SoftColors.accentDark,
+    textAlign: 'center',
+  },
+  successBanner: {
+    backgroundColor: SoftColors.bgAccent,
+    borderWidth: 1,
+    borderColor: SoftColors.accentDark,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: SoftSpacing.md,
+  },
+  successText: {
+    fontSize: 14,
+    color: SoftColors.accentDark,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   errorBanner: {
     backgroundColor: SoftColors.errorBg,

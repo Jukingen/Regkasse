@@ -52,6 +52,9 @@
     "CashRegisterOpened": "Kasse geöffnet",
     "CashRegisterClosed": "Kasse geschlossen",
     "CashRegisterDecommissioned": "Kasse stillgelegt",
+    "CashRegisterOpenRequested": "Kassenöffnung angefragt",
+    "CashRegisterOpenRequestApproved": "Kassenöffnung genehmigt",
+    "CashRegisterOpenRequestDenied": "Kassenöffnung abgelehnt",
     "LicenseExpiringSoon": "Lizenz läuft ab",
     "LicenseExpired": "Lizenz abgelaufen",
     "LimitApproaching": "Limit nähert sich",
@@ -64,6 +67,8 @@
     "RestoreDrillSucceeded": "Restore-Übung erfolgreich",
     "DailyClosingBackdatedCreated": "Tagesabschluss nachträglich erstellt",
     "DailyClosingPendingReminder": "Tagesabschluss steht aus",
+    "DailyClosingAutoCreated": "Automatischer Tagesabschluss",
+    "DailyClosingOpenOrdersWarning": "Offene Bestellungen beim automatischen Tagesabschluss",
     "DepExportDueSoon": "DEP-Export bald fällig",
     "DepExportOverdue": "DEP-Export überfällig",
     "DepExportValidationFailed": "DEP-Export-Validierung fehlgeschlagen",
@@ -85,6 +90,12 @@
     "CriticalActionApprovalRequested": "Kritische Aktion wartet auf Freigabe",
     "CriticalActionApprovalApproved": "Kritische Aktion freigegeben",
     "CriticalActionApprovalRejected": "Kritische Aktion abgelehnt",
-    "RksvRuntimeConfigChanged": "RKSV-Betriebsmodus geändert"
+    "RksvRuntimeConfigChanged": "RKSV-Betriebsmodus geändert",
+    "MonatsbelegMissingReminder": "Monatsbeleg fehlt",
+    "MonatsbelegAutoCreated": "Monatsbeleg automatisch erstellt",
+    "MonatsbelegCreated": "Monatsbeleg erstellt",
+    "MonatsbelegAutoCreateFailed": "Monatsbeleg automatisch fehlgeschlagen",
+    "JahresbelegFonReminder": "Jahresbeleg FinanzOnline-Erinnerung",
+    "MonatsbelegManagerContacted": "Monatsbeleg: Kassierer hat kontaktiert"
   }
 }

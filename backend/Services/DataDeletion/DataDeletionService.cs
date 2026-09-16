@@ -405,6 +405,10 @@ public sealed class DataDeletionService : IDataDeletionService
                 .ExecuteDeleteAsync(ct).ConfigureAwait(false),
             ["digital_service_requests"] = await db.DigitalServiceRequests.IgnoreQueryFilters()
                 .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
+            ["cash_register_open_requests"] = await db.CashRegisterOpenRequests.IgnoreQueryFilters()
+                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
+            ["monatsbeleg_auto_runs"] = await db.MonatsbelegAutoRuns.IgnoreQueryFilters()
+                .Where(x => x.TenantId == tenantId).ExecuteDeleteAsync(ct).ConfigureAwait(false),
         };
 
         return counts;
