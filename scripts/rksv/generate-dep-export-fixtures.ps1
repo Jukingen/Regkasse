@@ -14,13 +14,22 @@ Write-Host "Generating BMF Prüftool fixtures..." -ForegroundColor Cyan
 Write-Host "  Output: $OutputDir"
 
 Push-Location (Join-Path $repoRoot "backend")
+$previousUpdateFlag = $env:REGKASSE_UPDATE_BASELINE
 try {
+    # Without this switch the generator writes to a temp directory and leaves the committed files alone.
+    $env:REGKASSE_UPDATE_BASELINE = "1"
     dotnet test --filter "RksvDepPrueftoolFixtureTests" --no-restore 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Fixture generation tests failed (exit code $LASTEXITCODE)."
     }
 }
 finally {
+    if ($null -eq $previousUpdateFlag) {
+        Remove-Item Env:\REGKASSE_UPDATE_BASELINE -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:REGKASSE_UPDATE_BASELINE = $previousUpdateFlag
+    }
     Pop-Location
 }
 
@@ -38,5 +47,5 @@ Write-Host "  $crypto"
 Write-Host "  $qrRep"
 Write-Host ""
 Write-Host "Verify (requires JDK 17+):" -ForegroundColor Yellow
-Write-Host "  .\scripts\verify-rksv-dep-export.ps1 -UseFixtures"
-Write-Host "  .\scripts\verify-rksv-receipt-qr.ps1 -UseFixtures"
+Write-Host "  .\scripts\rksv\verify-rksv-dep-export.ps1 -UseFixtures"
+Write-Host "  .\scripts\rksv\verify-rksv-receipt-qr.ps1 -UseFixtures"

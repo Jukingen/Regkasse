@@ -13,9 +13,25 @@ namespace KasseAPI_Final.Tests.Fixtures;
 /// </summary>
 internal static class PrueftoolFixtureLocations
 {
+    /// <summary>
+    /// Same switch as the country baseline suite: set it to <c>1</c> to rewrite committed fixtures.
+    /// </summary>
+    public const string UpdateEnvironmentVariable = CountryBaseline.BaselineFixtureFile.UpdateEnvironmentVariable;
+
     /// <summary>Committed fixtures under <c>backend/Tests/fixtures/prueftool</c>.</summary>
     public static string CommittedDirectory =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tests", "fixtures", "prueftool"));
+
+    /// <summary>
+    /// True only when the regeneration switch is set. A plain test run must leave the committed
+    /// fixtures untouched, so it must not dirty the working tree either.
+    /// </summary>
+    public static bool ShouldRegenerateCommittedFixtures()
+    {
+        var raw = Environment.GetEnvironmentVariable(UpdateEnvironmentVariable);
+        return !string.IsNullOrWhiteSpace(raw)
+               && (raw == "1" || raw.Equals("true", StringComparison.OrdinalIgnoreCase));
+    }
 
     /// <summary>Fresh directory under the temp path. Caller deletes it; failure to delete is not a test failure.</summary>
     public static string CreateTempDirectory(string purpose)
