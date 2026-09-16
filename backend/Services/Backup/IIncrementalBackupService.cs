@@ -27,7 +27,7 @@ public interface IIncrementalBackupService
     /// Enqueues a Tenant-strategy incremental package (delta ZIP) for the worker.
     /// Not a standalone RKSV restore source — use with a prior full tenant backup / System dump for recovery.
     /// </summary>
-    Task<BackupResult> CreateIncrementalBackupAsync(
+    Task<BackupTriggerResult> CreateIncrementalBackupAsync(
         Guid tenantId,
         Guid userId,
         DateTime lastFullBackupUtc,

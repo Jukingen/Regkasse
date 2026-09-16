@@ -3,8 +3,12 @@ namespace KasseAPI_Final.Services.Backup;
 /// <summary>
 /// Outcome of <see cref="IBackupService.CreateBackupAsync"/>.
 /// Enqueue-only: dump / checksum / retention run on the backup worker.
+///
+/// Named <c>BackupTriggerResult</c> rather than <c>BackupResult</c> because
+/// <see cref="Billing.BackupResult"/> already owns that short name, and OpenAPI schema ids are built
+/// from the short name — two types called <c>BackupResult</c> break spec generation outright.
 /// </summary>
-public sealed class BackupResult
+public sealed class BackupTriggerResult
 {
     public bool Succeeded { get; private init; }
     public string? Code { get; private init; }
@@ -12,7 +16,7 @@ public sealed class BackupResult
     public Guid? BackupRunId { get; private init; }
     public BackupManualTriggerResultKind? TriggerKind { get; private init; }
 
-    public static BackupResult Success(Guid backupRunId, BackupManualTriggerResultKind kind) =>
+    public static BackupTriggerResult Success(Guid backupRunId, BackupManualTriggerResultKind kind) =>
         new()
         {
             Succeeded = true,
@@ -20,7 +24,7 @@ public sealed class BackupResult
             TriggerKind = kind
         };
 
-    public static BackupResult Fail(string code, string error) =>
+    public static BackupTriggerResult Fail(string code, string error) =>
         new()
         {
             Succeeded = false,

@@ -58,21 +58,21 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
         };
     }
 
-    public async Task<BackupResult> CreateIncrementalBackupAsync(
+    public async Task<BackupTriggerResult> CreateIncrementalBackupAsync(
         Guid tenantId,
         Guid userId,
         DateTime lastFullBackupUtc,
         CancellationToken ct = default)
     {
         if (tenantId == Guid.Empty)
-            return BackupResult.Fail(TenantNotFoundCode, "Tenant id is required.");
+            return BackupTriggerResult.Fail(TenantNotFoundCode, "Tenant id is required.");
 
         var tenant = await _db.Tenants.AsNoTracking()
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
             .ConfigureAwait(false);
         if (tenant == null)
-            return BackupResult.Fail(TenantNotFoundCode, "Tenant not found.");
+            return BackupTriggerResult.Fail(TenantNotFoundCode, "Tenant not found.");
 
         DateTime since;
         try
@@ -81,7 +81,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
         }
         catch (ArgumentOutOfRangeException ex)
         {
-            return BackupResult.Fail(InvalidSinceCode, ex.Message);
+            return BackupTriggerResult.Fail(InvalidSinceCode, ex.Message);
         }
 
         var budget = await EnsureStorageBudgetAsync(ct).ConfigureAwait(false);
@@ -94,7 +94,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
             changes = await GetChangesSinceAsync(tenantId, since, ct).ConfigureAwait(false);
             if (changes.TotalChangedRows == 0)
             {
-                return BackupResult.Fail(
+                return BackupTriggerResult.Fail(
                     NoChangesCode,
                     $"No tenant data changes since {since:O}; incremental package not enqueued.");
             }
@@ -126,10 +126,10 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
             changes?.TotalChangedRows,
             outcome.Kind);
 
-        return BackupResult.Success(outcome.Run.Id, outcome.Kind);
+        return BackupTriggerResult.Success(outcome.Run.Id, outcome.Kind);
     }
 
-    private async Task<BackupResult?> EnsureStorageBudgetAsync(CancellationToken ct)
+    private async Task<BackupTriggerResult?> EnsureStorageBudgetAsync(CancellationToken ct)
     {
         var usedBytes = await (
                 from a in _db.BackupArtifacts.AsNoTracking()
@@ -143,7 +143,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
 
         if (usedBytes >= BackupService.MaxStorageBytes)
         {
-            return BackupResult.Fail(
+            return BackupTriggerResult.Fail(
                 BackupService.StorageLimitCode,
                 $"Backup storage budget exceeded ({usedBytes} bytes >= {BackupService.MaxStorageBytes} bytes). Reduce retention or free artifacts.");
         }
@@ -152,7 +152,7 @@ public sealed class IncrementalBackupService : IIncrementalBackupService
         var disk = _diskMonitor.TryGetUsage(opts.ArtifactStagingRoot, opts.StagingDiskUsageAlertPercent);
         if (disk is { Alert: true })
         {
-            return BackupResult.Fail(
+            return BackupTriggerResult.Fail(
                 BackupService.StagingDiskFullCode,
                 $"Staging disk at {disk.UsedPercent}% (alert threshold {opts.StagingDiskUsageAlertPercent}%). Free space before enqueueing.");
         }

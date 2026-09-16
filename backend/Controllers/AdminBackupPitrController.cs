@@ -99,9 +99,9 @@ public sealed class AdminBackupPitrController : ControllerBase
 
     [HttpPost("incremental")]
     [HasPermission(AppPermissions.BackupManage)]
-    [ProducesResponseType(typeof(BackupResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BackupTriggerResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<BackupResult>> TriggerIncremental(
+    public async Task<ActionResult<BackupTriggerResult>> TriggerIncremental(
         [FromBody] IncrementalBackupTriggerRequestDto? body,
         CancellationToken cancellationToken)
     {
