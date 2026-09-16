@@ -4,11 +4,15 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+/// <summary>
+/// BMF <c>CheckSingleReceipt</c> over the receipt QR wire format. The first test reads the committed
+/// fixtures (same contract as <see cref="RksvDepPrueftoolCiSmokeTests"/>); the second generates its own
+/// throwaway copy. Neither writes into the committed directory — only
+/// <see cref="RksvDepPrueftoolFixtureTests"/> may do that.
+/// </summary>
+[Collection(PrueftoolFixtureCollection.Name)]
 public sealed class RksvReceiptQrPrueftoolIntegrationTests
 {
-    private static string FixtureDirectory =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tests", "fixtures", "prueftool"));
-
     [SkippableFact]
     public void QrCode_Fixtures_PassBmfCheckSingleReceipt_WhenPrueftoolInstalled()
     {
@@ -16,16 +20,24 @@ public sealed class RksvReceiptQrPrueftoolIntegrationTests
             PrueftoolQrVerificationHelper.IsReceiptVerificationAvailable(out var skipReason),
             skipReason ?? "Prüftool not available.");
 
-        RksvDepPrueftoolFixtureGenerator.Generate(FixtureDirectory);
+        var committed = PrueftoolFixtureLocations.CommittedDirectory;
+        var qrRep = Path.Combine(committed, "qr-code-rep.json");
+        var crypto = Path.Combine(committed, "crypto-material.json");
+        Assert.True(File.Exists(qrRep), $"Missing committed fixture: {qrRep}");
+        Assert.True(File.Exists(crypto), $"Missing committed fixture: {crypto}");
 
-        var qrRep = Path.Combine(FixtureDirectory, "qr-code-rep.json");
-        var crypto = Path.Combine(FixtureDirectory, "crypto-material.json");
-        var outputDir = Path.Combine(Path.GetTempPath(), "regkasse-prueftool-qr", Guid.NewGuid().ToString("N"));
+        var outputDir = PrueftoolFixtureLocations.CreateTempDirectory("qr");
+        try
+        {
+            var result = PrueftoolQrVerificationHelper.RunCheckSingleReceipt(qrRep, crypto, outputDir);
 
-        var result = PrueftoolQrVerificationHelper.RunCheckSingleReceipt(qrRep, crypto, outputDir);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Equal("PASS", result.VerificationState);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal("PASS", result.VerificationState);
+        }
+        finally
+        {
+            PrueftoolFixtureLocations.TryDelete(outputDir);
+        }
     }
 
     [SkippableFact]
@@ -35,22 +47,31 @@ public sealed class RksvReceiptQrPrueftoolIntegrationTests
             PrueftoolQrVerificationHelper.IsReceiptVerificationAvailable(out var skipReason),
             skipReason ?? "Prüftool not available.");
 
-        var paths = RksvDepPrueftoolFixtureGenerator.Generate(FixtureDirectory);
-        var qrCodes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(File.ReadAllText(paths.QrCodeRepPath))!;
-        Assert.NotEmpty(qrCodes);
+        var generatedDir = PrueftoolFixtureLocations.CreateTempDirectory("qr-generated");
+        var outputDir = PrueftoolFixtureLocations.CreateTempDirectory("qr-single");
+        try
+        {
+            var paths = RksvDepPrueftoolFixtureGenerator.Generate(generatedDir);
+            var qrCodes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(
+                File.ReadAllText(paths.QrCodeRepPath))!;
+            Assert.NotEmpty(qrCodes);
 
-        var singleQrPath = Path.Combine(Path.GetTempPath(), $"regkasse-single-qr-{Guid.NewGuid():N}.json");
-        var firstQr = qrCodes.First(q =>
-            RksvQrParser.IsStandardRksvV1Format(q));
-        File.WriteAllText(singleQrPath, System.Text.Json.JsonSerializer.Serialize(new[] { firstQr }));
+            var singleQrPath = Path.Combine(generatedDir, "single-qr.json");
+            var firstQr = qrCodes.First(RksvQrParser.IsStandardRksvV1Format);
+            File.WriteAllText(singleQrPath, System.Text.Json.JsonSerializer.Serialize(new[] { firstQr }));
 
-        var outputDir = Path.Combine(Path.GetTempPath(), "regkasse-prueftool-qr-single", Guid.NewGuid().ToString("N"));
-        var result = PrueftoolQrVerificationHelper.RunCheckSingleReceipt(
-            singleQrPath,
-            paths.CryptoMaterialPath,
-            outputDir);
+            var result = PrueftoolQrVerificationHelper.RunCheckSingleReceipt(
+                singleQrPath,
+                paths.CryptoMaterialPath,
+                outputDir);
 
-        Assert.Equal(0, result.ExitCode);
-        Assert.Equal("PASS", result.VerificationState);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal("PASS", result.VerificationState);
+        }
+        finally
+        {
+            PrueftoolFixtureLocations.TryDelete(outputDir);
+            PrueftoolFixtureLocations.TryDelete(generatedDir);
+        }
     }
 }

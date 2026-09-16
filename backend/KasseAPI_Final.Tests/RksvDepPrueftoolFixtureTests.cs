@@ -6,10 +6,15 @@ using Xunit.Abstractions;
 
 namespace KasseAPI_Final.Tests;
 
+/// <summary>
+/// Documented regenerator for the committed Prüftool fixtures (see
+/// <c>backend/Tests/fixtures/prueftool/README.md</c>). This is the only class allowed to write into that
+/// directory, and the collection keeps it from running while the readers are reading.
+/// </summary>
+[Collection(PrueftoolFixtureCollection.Name)]
 public sealed class RksvDepPrueftoolFixtureTests
 {
-    private static string FixtureDirectory =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tests", "fixtures", "prueftool"));
+    private static string FixtureDirectory => PrueftoolFixtureLocations.CommittedDirectory;
 
     private readonly ITestOutputHelper? _output;
 
