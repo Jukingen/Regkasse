@@ -599,7 +599,7 @@ Whenever backend API changes affect FA: refresh `backend/swagger.json`, run `npm
 
 Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany, Switzerland, and a generic EU e-invoicing default are **planned** (no country-profile or strategy code in the repository yet).
 
-- **Target binding:** `CompanySettings.CountryCode` plus an in-code `CountryProfile` registry (AT, DE, CH, registry-only `EU_DEFAULT`). Today the live column is `company_settings.country` (default `AT`).
+- **Binding (shipped):** `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`), alongside `VatRegime`, `BillingCountry`, and `TaxExempt`. There is **no** `CountryCode` column and none will be added — a regression test enforces this. The in-code `CountryProfile` registry (AT, DE, CH, registry-only `EU_DEFAULT`) is still planned.
 - **Target behavior:** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime`. Do not fork `PaymentService` or `TseService` internals.
 - **Flags:** existing `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are planned; AT RKSV must remain on.
 - **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).

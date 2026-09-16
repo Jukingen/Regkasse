@@ -270,7 +270,7 @@ These keys are the **target** layout. They are **not** bound in `appsettings*.ex
 | Section / store | Role | Notes |
 |-----------------|------|--------|
 | **CountryProfile** | In-code registry seeds (AT, DE, CH, `EU_DEFAULT`) | **Not appsettings.** Locale, currency, fiscal system, e-invoicing, VAT-ID pattern, allowed `VatRegime`. `EU_DEFAULT` is registry-only. |
-| **`company_settings`** | Per-mandant country | Live column is `country` (default AT). Planned: `CountryCode`, `VatRegime`, preferred locale/currency. Not a feature-flag store. |
+| **`company_settings`** | Per-mandant country binding | Live columns: `country` (default AT, the binding), `vat_regime` (default `AT_RKSV_STANDARD`), `billing_country`, `tax_exempt`; locale/currency reuse `Language` / `Currency`. No `CountryCode` column. Not a feature-flag store. |
 | **`tenant_settings`** | Feature-flag overrides | Existing `IFeatureFlagService`, keys `FeatureFlags:{Name}`. See [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md). |
 | **`FeatureFlags` (appsettings)** | Global defaults for **existing** experimental flags | Must **not** default `Fiscal.RksvAt` to false. Country flag names are planned, not in `FeatureFlagNames` yet. |
 | **`KassenSicherheit`** | Planned DE module | Separate from Austrian `Tse:`. Fake/simulated providers fail closed outside Development. Vendor choice is not fixed here. |

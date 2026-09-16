@@ -585,12 +585,13 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 
 ## Country & Fiscal Regimes (Multi-Country)
 
-Austria (`CountryCode=AT`) remains the production fiscal path (RKSV/TSE/FinanzOnline). Other countries use `CountryProfile` + feature flags; DE/CH/EU modules are not production-ready. Hub: [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
+Austria (`company_settings.country = 'AT'`) remains the production fiscal path (RKSV/TSE/FinanzOnline). Other countries use `CountryProfile` + feature flags; DE/CH/EU modules are not production-ready. Hub: [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
 
-- Resolve country from `CompanySettings.CountryCode` via `ICountryProfileRegistry` (seeds: AT, DE, CH, `EU_DEFAULT`). Missing/legacy code = AT. The registry and `CountryCode` column are **planned**; live code still uses `company_settings.country` (default AT).
+- Resolve country from `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`). Unknown/legacy value = AT. **Never add a `CountryCode` column or a second country field** — `Country`, `VatRegime`, `BillingCountry`, and `TaxExempt` shipped in migration `20260916110000_AddCompanySettingsCountryBilling`.
+- `ICountryProfileRegistry` (seeds: AT, DE, CH, registry-only `EU_DEFAULT`) is **shipped but not yet called**. `GetOrDefault` → AT for unknown/legacy codes; `Get` throws `UNKNOWN_COUNTRY_CODE`. Profiles hold no VAT rates. AT seed mirrors the live company-settings defaults and is pinned by tests.
 - Select VAT and invoice behavior through `ITaxStrategy` / `IInvoiceStrategy` and `VatRegime`. Do not fork `PaymentService` or `TseService` internals.
 - Gate country features with `IFeatureFlagService` (`tenant_settings` keys `FeatureFlags:{Name}`). Country-derived defaults: tenant override → profile. `Fiscal.RksvAt` is always on for AT and cannot be disabled (**documented lock**; flag name not in `FeatureFlagNames` yet).
-- Tenant create requires ISO 3166-1 alpha-2 `countryCode` (FA CreateTenantWizard country step — **planned**; live wizard is still single-step). Non-AT tenants must not enable RKSV/TSE.
+- Tenant create requires an ISO 3166-1 alpha-2 country in the request payload, persisted to `company_settings.country` (FA CreateTenantWizard country step — **planned**; live wizard is still single-step). Non-AT tenants must not enable RKSV/TSE.
 - VAT-ID regexes, rates, and labels live in CountryProfile seeds — not in controllers or FA form constants. `EU_DEFAULT` is registry-only, not selectable.
 
 ## Backup & Disaster Recovery
