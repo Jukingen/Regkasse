@@ -447,6 +447,19 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService, KasseAPI_Final.Services.FeatureFlags.FeatureFlagService>();
         // Country profiles are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
+        // Country strategies (docs/COUNTRIES.md §3). Registered but not called by any domain flow yet.
+        // Tax strategies are stateless delegators → singleton.
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyTaxStrategy>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultTaxStrategy>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.TaxStrategyResolver>();
+        // Invoice strategies depend on scoped services (sequence reservation, receipts) → scoped.
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.InvoiceStrategyResolver>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentStatusService, KasseAPI_Final.Services.Deployment.DeploymentStatusService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentRollbackService, KasseAPI_Final.Services.Deployment.DeploymentRollbackService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.ITenantDeploymentService, KasseAPI_Final.Services.Deployment.TenantDeploymentService>();
