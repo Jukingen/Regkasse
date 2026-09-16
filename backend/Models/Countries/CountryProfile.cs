@@ -77,9 +77,14 @@ public sealed class CountryProfile
     /// <summary>True when <paramref name="regime"/> is valid for this country.</summary>
     public bool Supports(VatRegime regime) => AllowedVatRegimes.Contains(regime);
 
-    /// <summary>Shape-only VAT-ID check. Does not contact VIES and does not assert the number is registered.</summary>
+    /// <summary>
+    /// Shape-only VAT-ID check. Does not contact VIES and does not assert the number is registered.
+    /// **Strict:** the input is matched as given — no trimming and no case folding — so this stays
+    /// byte-identical to the checks already live on the fiscal path. Call sites that accept
+    /// user-typed input normalize before calling.
+    /// </summary>
     public bool MatchesVatIdShape(string? vatId) =>
-        !string.IsNullOrWhiteSpace(vatId) && VatIdRegex.IsMatch(vatId.Trim());
+        !string.IsNullOrEmpty(vatId) && VatIdRegex.IsMatch(vatId);
 
     public override string ToString() => $"{Code} ({FiscalSystem})";
 }

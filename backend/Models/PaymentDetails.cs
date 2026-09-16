@@ -55,7 +55,7 @@ namespace KasseAPI_Final.Models
         // Avusturya yasal gereksinimleri (RKSV & DSGVO)
         [Required]
         [MaxLength(12)]
-        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
+        [RegularExpression(Countries.VatIdPatterns.Austria, ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
         public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
 
         /// <summary>RKSV §8 snapshot: Unternehmensbezeichnung at payment time (from <see cref="CompanySettings"/>).</summary>

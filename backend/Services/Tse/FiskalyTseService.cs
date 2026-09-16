@@ -12,7 +12,7 @@ namespace KasseAPI_Final.Services.Tse;
 /// </summary>
 public sealed class FiskalyTseService : IFiskalyTseService
 {
-    private static readonly Regex AustrianVatId = new(@"^ATU\d{8}$", RegexOptions.CultureInvariant);
+    private static readonly Regex AustrianVatId = KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex;
 
     private readonly IFiskalyClient _client;
     private readonly IOptionsMonitor<FiskalyOptions> _options;

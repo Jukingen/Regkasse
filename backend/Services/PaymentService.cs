@@ -3601,11 +3601,8 @@ namespace KasseAPI_Final.Services
             }
         }
 
-        private bool IsValidAustrianTaxNumber(string taxNumber)
-        {
-            var pattern = @"^ATU\d{8}$";
-            return Regex.IsMatch(taxNumber, pattern);
-        }
+        private static bool IsValidAustrianTaxNumber(string taxNumber) =>
+            KasseAPI_Final.Models.Countries.VatIdPatterns.IsAustrianUid(taxNumber);
 
         /// <summary>
         /// Returns the standard PaymentResult for daily allowance conflict (concurrency or unique-index race).

@@ -27,7 +27,7 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         // RKSV receipts are not an e-invoicing standard; AT declares none until EN 16931 is wired.
         eInvoicingStandards: [],
         // Identical to the pattern already enforced on the fiscal path (UID: ATU + 8 digits).
-        vatIdPattern: @"^ATU\d{8}$",
+        vatIdPattern: VatIdPatterns.Austria,
         allowedVatRegimes:
         [
             VatRegime.AT_RKSV_STANDARD,
@@ -45,7 +45,7 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         defaultTimeZone: "Europe/Berlin",
         fiscalSystem: FiscalSystem.KASSENSICHERHEIT_DE,
         eInvoicingStandards: [EInvoicingStandard.ZUGFERD, EInvoicingStandard.XRECHNUNG],
-        vatIdPattern: @"^DE\d{9}$",
+        vatIdPattern: VatIdPatterns.Germany,
         allowedVatRegimes:
         [
             VatRegime.DE_USTG_STANDARD,
@@ -65,7 +65,7 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         fiscalSystem: FiscalSystem.MWST_CH,
         eInvoicingStandards: [EInvoicingStandard.QR_RECHNUNG],
         // CHE-123.456.789 with an optional language-specific VAT suffix.
-        vatIdPattern: @"^CHE-\d{3}\.\d{3}\.\d{3}( (MWST|TVA|IVA))?$",
+        vatIdPattern: VatIdPatterns.Switzerland,
         // Switzerland is outside the EU VAT area: no reverse charge, no OSS.
         allowedVatRegimes:
         [
@@ -86,7 +86,7 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         fiscalSystem: FiscalSystem.NONE,
         eInvoicingStandards: [EInvoicingStandard.EN_16931],
         // Broad EU VAT-ID shape; per-country patterns live in their own profiles.
-        vatIdPattern: @"^[A-Z]{2}[A-Za-z0-9+*.]{2,12}$",
+        vatIdPattern: VatIdPatterns.EuDefault,
         allowedVatRegimes:
         [
             VatRegime.EU_REVERSE_CHARGE,

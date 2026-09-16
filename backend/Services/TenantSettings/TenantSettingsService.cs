@@ -108,8 +108,6 @@ public sealed class TenantSettingsService : ITenantSettingsService
         "AT", "DE",
     };
 
-    private static readonly Regex TaxNumberRegex = new(@"^ATU\d{8}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private readonly AppDbContext _db;
     private readonly IAuditLogService _auditLog;
     private readonly ITenantSettingsNotificationService _notifications;
@@ -716,7 +714,7 @@ public sealed class TenantSettingsService : ITenantSettingsService
             return SettingsChangeResult.Fail("Company address is required (max 200).", TenantSettingsErrorCodes.InvalidValue);
 
         var tax = (fiscal.CompanyTaxNumber ?? string.Empty).Trim().ToUpperInvariant();
-        if (!TaxNumberRegex.IsMatch(tax))
+        if (!KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex.IsMatch(tax))
         {
             return SettingsChangeResult.Fail(
                 "Company tax number must match ATU########.",

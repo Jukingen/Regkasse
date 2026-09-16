@@ -68,7 +68,7 @@ public sealed class FiskalySetupOperationResult<T>
 public sealed class FiskalySetupService : IFiskalySetupService
 {
     public const string ScuIdSettingsKey = "Fiskaly:ScuId";
-    private static readonly Regex AustrianVatId = new(@"^ATU\d{8}$", RegexOptions.CultureInvariant);
+    private static readonly Regex AustrianVatId = KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex;
 
     private readonly IOptionsMonitor<FiskalyOptions> _options;
     private readonly FiskalyEnabledOverrideCache _enabledCache;

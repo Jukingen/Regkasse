@@ -16,7 +16,7 @@ public sealed class FiskalyConnectionProbe : IFiskalyConnectionProbe
 {
     public const string DefaultTestVatId = "ATU73948115";
 
-    private static readonly Regex AustrianVatId = new(@"^ATU\d{8}$", RegexOptions.CultureInvariant);
+    private static readonly Regex AustrianVatId = KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

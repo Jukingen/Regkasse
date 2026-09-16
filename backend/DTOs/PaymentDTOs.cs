@@ -33,7 +33,7 @@ namespace KasseAPI_Final.DTOs
         public decimal TotalAmount { get; set; }
 
         /// <summary>Optional UID hint (ATU########). Normalized from company profile when omitted or invalid after validation rules.</summary>
-        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
+        [RegularExpression(Models.Countries.VatIdPatterns.Austria, ErrorMessage = "Steuernummer must be in format ATU12345678")]
         public string? Steuernummer { get; set; }
 
         /// <summary>Required: POS cash register row (FK). Must not be empty GUID.</summary>

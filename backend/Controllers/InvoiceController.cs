@@ -460,7 +460,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyNameRequired));
                 if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber))
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberRequired));
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11)
+                if (!KasseAPI_Final.Models.Countries.VatIdPatterns.IsAustrianUid(request.CompanyTaxNumber))
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberInvalidFormat));
                 if (request.CashRegisterId == Guid.Empty)
                     return BadRequest("CashRegisterId is required.");
