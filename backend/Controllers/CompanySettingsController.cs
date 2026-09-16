@@ -122,6 +122,20 @@ namespace KasseAPI_Final.Controllers
                 settings.InvoiceNumbering = request.InvoiceNumbering;
                 settings.ReceiptNumbering = request.ReceiptNumbering;
                 settings.DefaultPaymentMethod = request.DefaultPaymentMethod;
+                // Country/billing profile. Operating Country is not settable here — it is a fiscal
+                // change owned by the Super Admin tenant-settings approval flow.
+                if (request.BillingCountry != null)
+                {
+                    if (!Iso3166CountryCode.TryNormalize(request.BillingCountry, out var billingCountry))
+                        return BadRequest(new { message = $"BillingCountry: {Iso3166CountryCode.ValidationMessage}" });
+
+                    settings.BillingCountry = billingCountry;
+                }
+
+                if (request.VatRegime.HasValue)
+                    settings.VatRegime = request.VatRegime.Value;
+                if (request.TaxExempt.HasValue)
+                    settings.TaxExempt = request.TaxExempt.Value;
                 // FinanzOnline credentials are tenant-wide CompanySettings (one row per mandant).
                 if (request.FinanzOnlineUsername != null)
                     settings.FinanzOnlineUsername = request.FinanzOnlineUsername;
@@ -656,6 +670,20 @@ namespace KasseAPI_Final.Controllers
         [Required]
         [MaxLength(50)]
         public string DefaultPaymentMethod { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional ISO 3166-1 alpha-2 billing country when it differs from the operating country.
+        /// Omit to leave unchanged; send an empty string to clear it.
+        /// </summary>
+        [MaxLength(2)]
+        [RegularExpression(Iso3166CountryCode.OptionalPattern, ErrorMessage = Iso3166CountryCode.ValidationMessage)]
+        public string? BillingCountry { get; set; }
+
+        /// <summary>Optional VAT regime. Omit to leave unchanged.</summary>
+        public VatRegime? VatRegime { get; set; }
+
+        /// <summary>Optional VAT exemption flag. Omit to leave unchanged.</summary>
+        public bool? TaxExempt { get; set; }
 
         [MaxLength(500)]
         public string? FinanzOnlineApiUrl { get; set; }

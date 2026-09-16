@@ -3455,6 +3455,19 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.PaymentTerms).HasMaxLength(50);
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
                 entity.Property(e => e.Country).IsRequired().HasMaxLength(2).HasDefaultValue("AT");
+                entity.Property(e => e.BillingCountry)
+                    .HasColumnName("billing_country")
+                    .HasMaxLength(2);
+                entity.Property(e => e.VatRegime)
+                    .HasColumnName("vat_regime")
+                    .HasConversion<string>()
+                    .IsRequired()
+                    .HasMaxLength(VatRegimeNames.MaxLength)
+                    .HasDefaultValue(VatRegime.AT_RKSV_STANDARD);
+                entity.Property(e => e.TaxExempt)
+                    .HasColumnName("tax_exempt")
+                    .IsRequired()
+                    .HasDefaultValue(false);
                 entity.Property(e => e.Language).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.TimeZone).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.DateFormat).IsRequired().HasMaxLength(20);

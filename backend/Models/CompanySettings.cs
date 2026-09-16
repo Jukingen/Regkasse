@@ -166,6 +166,24 @@ namespace KasseAPI_Final.Models
         [Column("country")]
         public string Country { get; set; } = "AT";
 
+        /// <summary>
+        /// ISO 3166-1 alpha-2 billing country when invoicing happens elsewhere than the operating
+        /// <see cref="Country"/>. Null means "bill in the operating country".
+        /// </summary>
+        [MaxLength(2)]
+        [RegularExpression(Iso3166CountryCode.OptionalPattern, ErrorMessage = Iso3166CountryCode.ValidationMessage)]
+        [Column("billing_country")]
+        public string? BillingCountry { get; set; }
+
+        /// <summary>VAT regime used for tax calculation and invoice disclosures. Existing mandants are Austrian.</summary>
+        [Required]
+        [Column("vat_regime")]
+        public VatRegime VatRegime { get; set; } = VatRegime.AT_RKSV_STANDARD;
+
+        /// <summary>True when the mandant is exempt from VAT (small-business or equivalent relief).</summary>
+        [Column("tax_exempt")]
+        public bool TaxExempt { get; set; }
+
         [Required]
         [MaxLength(10)]
         public string Language { get; set; } = string.Empty;

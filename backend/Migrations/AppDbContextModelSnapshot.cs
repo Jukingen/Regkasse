@@ -2714,6 +2714,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("auto_tagesabschluss")
                         .HasDefaultValueSql("'{}'::jsonb");
 
+                    b.Property<string>("BillingCountry")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("billing_country");
+
                     b.Property<string>("BusinessHours")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -2906,6 +2911,12 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<bool>("TaxExempt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("tax_exempt");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -2943,6 +2954,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<bool>("UseDecemberMonatsbelegAsJahresbeleg")
                         .HasColumnType("boolean")
                         .HasColumnName("use_december_monatsbeleg_as_jahresbeleg");
+
+                    b.Property<string>("VatRegime")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("AT_RKSV_STANDARD")
+                        .HasColumnName("vat_regime");
 
                     b.Property<string>("WorkingHours")
                         .IsRequired()

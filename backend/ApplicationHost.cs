@@ -445,6 +445,8 @@ internal static class ApplicationHost
         });
         builder.Services.Configure<FeatureFlagsOptions>(builder.Configuration.GetSection(FeatureFlagsOptions.SectionName));
         builder.Services.AddScoped<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService, KasseAPI_Final.Services.FeatureFlags.FeatureFlagService>();
+        // Country profiles are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentStatusService, KasseAPI_Final.Services.Deployment.DeploymentStatusService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentRollbackService, KasseAPI_Final.Services.Deployment.DeploymentRollbackService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.ITenantDeploymentService, KasseAPI_Final.Services.Deployment.TenantDeploymentService>();
