@@ -66,37 +66,35 @@ function assertOrvalConfigPointsAtSwagger() {
 }
 
 /**
- * Fail on modified, deleted, or untracked files under the generated tree.
- * Plain `git diff` alone misses brand-new Orval files (untracked).
+ * Fail when the regenerate step changed anything that is not already staged, or left new files
+ * nobody staged. Plain `git diff` alone misses brand-new Orval files (untracked).
+ *
+ * Staged content must pass: the pre-commit hook runs before the commit exists, so a developer who
+ * regenerated and ran `git add backend/swagger.json frontend-admin/src/api/generated` has to be able
+ * to commit. In CI nothing is staged, so the index equals HEAD and the check stays strict.
  */
 function assertGeneratedTreeClean() {
-  const porcelain = run(`git status --porcelain -- ${generatedRel}/`, {
+  const unstaged = run(
+    `git -c core.safecrlf=false diff --name-only --ignore-cr-at-eol -- ${generatedRel}/`,
+    { stdio: 'pipe' },
+  ).trim();
+  const untracked = run(`git ls-files --others --exclude-standard -- ${generatedRel}/`, {
     stdio: 'pipe',
   }).trim();
 
-  if (!porcelain) {
-    // Also catch content drift on tracked files when status is clean but
-    // index/worktree comparison is needed after regenerate in the same process.
-    try {
-      run(
-        `git -c core.safecrlf=false diff --exit-code --ignore-cr-at-eol -- ${generatedRel}/`,
-        { stdio: 'pipe' },
-      );
-    } catch {
-      printDriftHelp();
-      try {
-        run(`git diff --stat --ignore-cr-at-eol -- ${generatedRel}/`, { stdio: 'inherit' });
-      } catch {
-        /* ignore */
-      }
-      process.exit(1);
-    }
+  if (!unstaged && !untracked) {
     return;
   }
 
   printDriftHelp();
-  console.error('\nWorking tree changes under generated client:');
-  console.error(porcelain);
+  if (unstaged) {
+    console.error('\nRegenerated files that differ from what is staged/committed:');
+    console.error(unstaged);
+  }
+  if (untracked) {
+    console.error('\nNew generated files that are not staged:');
+    console.error(untracked);
+  }
   try {
     run(`git diff --stat --ignore-cr-at-eol -- ${generatedRel}/`, { stdio: 'inherit' });
   } catch {
