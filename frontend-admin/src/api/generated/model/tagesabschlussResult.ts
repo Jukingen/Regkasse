@@ -30,16 +30,6 @@ export interface TagesabschlussResult {
   isEmpty: boolean;
   /** @nullable */
   lateCreationReason?: string | null;
-  /** @nullable */
-  trigger?: string | null;
-  /** @nullable */
-  cashCountNote?: string | null;
-  /** @nullable */
-  cashCount?: number | null;
-  /** @nullable */
-  cashDifference?: number | null;
-  openOrdersCount?: number;
-  openOrdersForced?: boolean;
   paymentsWithoutInvoiceCount: number;
   /** @nullable */
   status?: string | null;
