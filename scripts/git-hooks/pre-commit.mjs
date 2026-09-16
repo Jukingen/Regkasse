@@ -113,7 +113,11 @@ function main() {
 
   // --- 1) API client sync ---
   if (process.env.SKIP_API_CLIENT_VERIFY !== '1') {
-    const orvalReady = existsSync(join(root, 'frontend-admin', 'node_modules', 'orval'));
+    // npm workspaces hoist orval to the repo root, so checking only the package folder silently
+    // disabled this gate on every hoisted install.
+    const orvalReady =
+      existsSync(join(root, 'frontend-admin', 'node_modules', 'orval')) ||
+      existsSync(join(root, 'node_modules', 'orval'));
     if (!orvalReady) {
       console.warn(
         'pre-commit: Orval not installed in frontend-admin — skipping API client verify.',
