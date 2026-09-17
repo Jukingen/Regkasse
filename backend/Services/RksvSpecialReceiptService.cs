@@ -8,6 +8,8 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -41,6 +43,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly IReportPdfCaptureService _reportPdfCapture;
     private readonly IOptionsMonitor<FinanzOnlineModeOptions> _finanzOnlineModeOptions;
     private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _finanzOnlineCutoverOptions;
+    private readonly ICountryStrategyContext _countryStrategyContext;
+    private readonly IInvoiceStrategyResolver _invoiceStrategyResolver;
 
     public RksvSpecialReceiptService(
         AppDbContext db,
@@ -55,7 +59,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         IFinanzOnlineOutboxService finanzOnlineOutbox,
         IReportPdfCaptureService reportPdfCapture,
         IOptionsMonitor<FinanzOnlineModeOptions> finanzOnlineModeOptions,
-        IOptionsMonitor<FinanzOnlineCutoverGuardOptions> finanzOnlineCutoverOptions)
+        IOptionsMonitor<FinanzOnlineCutoverGuardOptions> finanzOnlineCutoverOptions,
+        ICountryStrategyContext? countryStrategyContext = null,
+        IInvoiceStrategyResolver? invoiceStrategyResolver = null,
+        ICountryProfileRegistry? countryProfileRegistry = null)
     {
         _db = db;
         _tseService = tseService;
@@ -70,12 +77,28 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _reportPdfCapture = reportPdfCapture;
         _finanzOnlineModeOptions = finanzOnlineModeOptions;
         _finanzOnlineCutoverOptions = finanzOnlineCutoverOptions;
+        var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+        _countryStrategyContext = countryStrategyContext
+            ?? new CountryStrategyContext(_db, registry, _tenantResolver);
+        _invoiceStrategyResolver = invoiceStrategyResolver
+            ?? CountryStrategyWiring.CreateInvoiceResolver(receipts: _receiptService);
     }
 
     private static readonly JsonSerializerOptions RksvFonOutboxJsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    /// <summary>
+    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). DE/CH/EU
+    /// skeletons throw <see cref="NotImplementedException"/> naming the country doc.
+    /// </summary>
+    private async Task EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
+    {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = strategy.GetMandatoryDisclosures(binding.Settings, customer: null);
+    }
 
     /// <inheritdoc />
     public async Task<CreateNullbelegResponse> CreateNullbelegAsync(
@@ -86,6 +109,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         var (viennaCurrentYear, viennaCurrentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
         var resolvedYear = request.Year ?? viennaCurrentYear;
@@ -426,6 +451,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
+        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
@@ -628,6 +655,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         ValidateMonatsbelegTargetMonth(request.Year, request.Month, forcePastMonth);
 
@@ -870,6 +899,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         var (viennaYear, _) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
         if (request.Year < viennaYear - 1 || request.Year > viennaYear)
@@ -1127,6 +1158,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 

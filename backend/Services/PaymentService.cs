@@ -8,8 +8,11 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
@@ -70,6 +73,8 @@ namespace KasseAPI_Final.Services
         private readonly FeatureFlags.IFeatureFlagService? _featureFlags;
         private readonly ITenantLimitGuard? _tenantLimitGuard;
         private readonly IPreorderService? _preorderService;
+        private readonly ICountryStrategyContext _countryStrategyContext;
+        private readonly ITaxStrategyResolver _taxStrategyResolver;
 
         public PaymentService(
             AppDbContext context,
@@ -109,7 +114,10 @@ namespace KasseAPI_Final.Services
             ICardPaymentService? cardPaymentService = null,
             FeatureFlags.IFeatureFlagService? featureFlags = null,
             ITenantLimitGuard? tenantLimitGuard = null,
-            IPreorderService? preorderService = null)
+            IPreorderService? preorderService = null,
+            ICountryStrategyContext? countryStrategyContext = null,
+            ITaxStrategyResolver? taxStrategyResolver = null,
+            ICountryProfileRegistry? countryProfileRegistry = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -149,6 +157,10 @@ namespace KasseAPI_Final.Services
             _featureFlags = featureFlags;
             _tenantLimitGuard = tenantLimitGuard;
             _preorderService = preorderService;
+            var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+            _countryStrategyContext = countryStrategyContext
+                ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
+            _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
         }
 
         /// <summary>
@@ -541,12 +553,15 @@ namespace KasseAPI_Final.Services
                 }
 
                 var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+                var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+                var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
 
-                var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer) && IsValidAustrianTaxNumber(request.Steuernummer!)
+                var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer)
+                    && taxStrategy.ValidateVatId(request.Steuernummer, countryBinding.Profile).IsValid
                     ? request.Steuernummer!.Trim()
                     : companyProfile.TaxNumber;
 
-                if (!IsValidAustrianTaxNumber(effectiveSteuernummer))
+                if (!taxStrategy.ValidateVatId(effectiveSteuernummer, countryBinding.Profile).IsValid)
                 {
                     _logger.LogWarning("Resolved Steuernummer invalid (check company settings CompanyTaxNumber): {TaxNumber}", effectiveSteuernummer);
                     return new PaymentResult
@@ -765,6 +780,7 @@ namespace KasseAPI_Final.Services
 
                     var cartSnapshotPrices = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
 
+                    var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
                     foreach (var itemRequest in request.Items)
                     {
                         var product = await _context.Products
@@ -827,7 +843,7 @@ namespace KasseAPI_Final.Services
                             }
                         }
 
-                        // VAT: same RKSV tax type as cart (product.TaxType); single rounding via CartMoneyHelper.
+                        // VAT: country strategy (Austria delegates to CartMoneyHelper — same rounding).
                         decimal unitGross;
                         if (cartSnapshotPrices != null && cartSnapshotPrices.TryGetValue(product.Id, out var snapGross))
                         {
@@ -844,11 +860,24 @@ namespace KasseAPI_Final.Services
                             unitGross = priceRes.UnitPriceGross;
                         }
 
-                        var line = CartMoneyHelper.ComputeLine(unitGross, itemRequest.Quantity, product.TaxType);
-                        totalAmount += line.LineGross;
-                        totalTaxAmount += line.LineTax;
+                        pricedLines.Add((itemRequest, product, unitGross));
+                    }
 
-                        var paymentItem = new PaymentItem
+                    var taxResult = taxStrategy.CalculateTax(
+                        pricedLines.ConvertAll(l =>
+                            TaxLineItemInput.FromTaxType(l.UnitGross, l.Item.Quantity, l.Product.TaxType)),
+                        new TaxCalculationContext
+                        {
+                            CountryProfile = countryBinding.Profile,
+                            VatRegime = countryBinding.VatRegime,
+                            TaxExempt = countryBinding.Settings.TaxExempt,
+                        });
+
+                    for (var i = 0; i < pricedLines.Count; i++)
+                    {
+                        var (itemRequest, product, _) = pricedLines[i];
+                        var line = taxResult.Lines[i];
+                        paymentItems.Add(new PaymentItem
                         {
                             ProductId = product.Id,
                             ProductName = product.Name,
@@ -859,17 +888,13 @@ namespace KasseAPI_Final.Services
                             TaxRate = line.TaxRate,
                             TaxAmount = line.LineTax,
                             LineNet = line.LineNet
-                        };
-
-                        // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
-                        paymentItems.Add(paymentItem);
+                        });
                         productIdToCategoryId[product.Id] = product.CategoryId;
-
-                        var taxKey = line.TaxType.ToString().ToLowerInvariant();
-                        if (!taxDetails.ContainsKey(taxKey))
-                            taxDetails[taxKey] = 0;
-                        taxDetails[taxKey] += line.LineTax;
                     }
+
+                    totalAmount = taxResult.Totals.TotalGross;
+                    totalTaxAmount = taxResult.Totals.TotalVat;
+                    taxDetails = taxResult.TaxDetails.ToDictionary(static kv => kv.Key, static kv => kv.Value);
 
                     var benefitResult = await CalculateBenefitsAsync(
                         customer,
@@ -1536,10 +1561,13 @@ namespace KasseAPI_Final.Services
                 return null;
 
             var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
             var paymentItems = new List<PaymentItem>();
             var productIdToCategoryId = new Dictionary<Guid, Guid>();
             decimal totalAmount = 0;
 
+            var pricedLines = new List<(BenefitEligibilityPreviewItemRequest Item, Product Product, decimal UnitGross)>();
             foreach (var item in request.Items ?? new List<BenefitEligibilityPreviewItemRequest>())
             {
                 if (item.Quantity < 1)
@@ -1557,7 +1585,23 @@ namespace KasseAPI_Final.Services
                     product.CategoryId,
                     request.CashRegisterId,
                     DateTime.UtcNow);
-                var line = CartMoneyHelper.ComputeLine(priceRes.UnitPriceGross, item.Quantity, product.TaxType);
+                pricedLines.Add((item, product, priceRes.UnitPriceGross));
+            }
+
+            var taxResult = taxStrategy.CalculateTax(
+                pricedLines.ConvertAll(l =>
+                    TaxLineItemInput.FromTaxType(l.UnitGross, l.Item.Quantity, l.Product.TaxType)),
+                new TaxCalculationContext
+                {
+                    CountryProfile = countryBinding.Profile,
+                    VatRegime = countryBinding.VatRegime,
+                    TaxExempt = countryBinding.Settings.TaxExempt,
+                });
+
+            for (var i = 0; i < pricedLines.Count; i++)
+            {
+                var (item, product, _) = pricedLines[i];
+                var line = taxResult.Lines[i];
                 totalAmount += line.LineGross;
                 paymentItems.Add(new PaymentItem
                 {
@@ -3600,9 +3644,6 @@ namespace KasseAPI_Final.Services
                 return null;
             }
         }
-
-        private static bool IsValidAustrianTaxNumber(string taxNumber) =>
-            KasseAPI_Final.Models.Countries.VatIdPatterns.IsAustrianUid(taxNumber);
 
         /// <summary>
         /// Returns the standard PaymentResult for daily allowance conflict (concurrency or unique-index race).

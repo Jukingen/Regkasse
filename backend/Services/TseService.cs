@@ -2,7 +2,10 @@ using System.Data;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Tse.Fiskaly;
@@ -27,6 +30,8 @@ namespace KasseAPI_Final.Services
         private readonly IOptionsMonitor<TseOptions>? _tseOptions;
         private readonly ISoftTseService? _softTse;
         private readonly FiskalyEnabledOverrideCache? _fiskalyEnabledCache;
+        private readonly ICountryStrategyContext _countryStrategyContext;
+        private readonly ITaxStrategyResolver _taxStrategyResolver;
 
         public TseService(
             AppDbContext context,
@@ -41,7 +46,11 @@ namespace KasseAPI_Final.Services
             IOptionsMonitor<FiskalyOptions>? fiskalyOptions = null,
             IOptionsMonitor<TseOptions>? tseOptions = null,
             ISoftTseService? softTse = null,
-            FiskalyEnabledOverrideCache? fiskalyEnabledCache = null)
+            FiskalyEnabledOverrideCache? fiskalyEnabledCache = null,
+            ICountryStrategyContext? countryStrategyContext = null,
+            ITaxStrategyResolver? taxStrategyResolver = null,
+            ISettingsTenantResolver? settingsTenantResolver = null,
+            ICountryProfileRegistry? countryProfileRegistry = null)
         {
             _context = context;
             _pipeline = pipeline;
@@ -56,6 +65,10 @@ namespace KasseAPI_Final.Services
             _tseOptions = tseOptions;
             _softTse = softTse;
             _fiskalyEnabledCache = fiskalyEnabledCache;
+            var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+            _countryStrategyContext = countryStrategyContext
+                ?? new CountryStrategyContext(_context, registry, settingsTenantResolver);
+            _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
         }
 
         private bool CanUseSoftTseFallback() =>
@@ -260,6 +273,12 @@ namespace KasseAPI_Final.Services
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber (fiscal Kassen-ID) is required.", nameof(registerNumber));
 
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
+            var taxSets = CountryStrategyWiring.RequireTaxSets(
+                taxStrategy.ProjectFiscalTaxSets(taxDetailsJson, totalAmount),
+                countryBinding.Profile.Code);
+
             var correlationId = Guid.NewGuid().ToString("N")[..12];
             _logger.LogInformation("CreateInvoiceSignatureAsync started, correlationId={CorrelationId}, invoiceNumber={InvoiceNumber}, enlisted={Enlisted}", correlationId, invoiceNumber, dbTransaction != null);
 
@@ -280,7 +299,6 @@ namespace KasseAPI_Final.Services
                     "TSE is not available. Enable and initialize Fiskaly, or use Soft TSE in Development.");
             }
 
-            var taxSets = BelegdatenPayloadBuilder.MapTaxSets(taxDetailsJson, totalAmount);
             if (_keyProvider.GetTurnoverCounterAesKeyBytes() is null)
             {
                 throw new InvalidOperationException("Turnover counter AES key is not configured.");
@@ -610,14 +628,11 @@ namespace KasseAPI_Final.Services
             string kassenId,
             string belegnummer,
             DateTime closingDate,
-            decimal totalAmount,
+            RksvTaxSetAmounts taxSets,
             string? previousCompactJws,
             long turnoverCents,
             bool incrementTurnover)
         {
-            var taxSets = totalAmount == 0m
-                ? RksvTaxSetAmounts.Zero
-                : new RksvTaxSetAmounts { Normal = totalAmount };
             var newTurnover = incrementTurnover ? turnoverCents + taxSets.TotalGrossCents : turnoverCents;
             var aesKey = _keyProvider.GetTurnoverCounterAesKeyBytes()
                 ?? throw new InvalidOperationException("Turnover counter AES key is not configured.");
@@ -712,6 +727,13 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
+
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
+            var closingTaxSets = CountryStrategyWiring.RequireTaxSets(
+                taxStrategy.ProjectFiscalTaxSets("{}", totalAmount),
+                countryBinding.Profile.Code);
+
             var useSoftFallback = false;
             if (!await _tseProvider.IsReadyAsync())
             {
@@ -747,7 +769,7 @@ namespace KasseAPI_Final.Services
                     kId,
                     belegNr,
                     closingDate,
-                    totalAmount,
+                    closingTaxSets,
                     prevSig,
                     turnoverCents,
                     incrementTurnover: true);

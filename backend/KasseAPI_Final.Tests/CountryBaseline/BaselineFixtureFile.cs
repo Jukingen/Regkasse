@@ -14,6 +14,14 @@ internal static class BaselineFixtureFile
 {
     internal const string UpdateEnvironmentVariable = "REGKASSE_UPDATE_BASELINE";
 
+    internal static JsonNode Read(string fixtureFileName)
+    {
+        var fixturePath = Path.Combine(ResolveFixtureDirectory(), fixtureFileName);
+        var text = File.ReadAllText(fixturePath).ReplaceLineEndings("\n");
+        return JsonNode.Parse(text)
+            ?? throw new InvalidOperationException($"Fixture '{fixtureFileName}' parsed to null.");
+    }
+
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
 
     /// <summary>Stable text form: indented JSON, LF line endings, trailing newline.</summary>

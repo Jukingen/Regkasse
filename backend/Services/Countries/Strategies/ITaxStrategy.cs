@@ -9,8 +9,8 @@ namespace KasseAPI_Final.Services.Countries.Strategies;
 /// services that already own the math. Austria must keep today's output byte for byte, so
 /// <see cref="Austria.AustriaTaxStrategy"/> may not restate a rounding rule, a bucket rule, or a rate.
 ///
-/// Resolved through <see cref="ITaxStrategyResolver"/>. No domain flow calls this yet — see
-/// <c>docs/COUNTRIES.md</c> §3.
+/// Resolved through <see cref="ITaxStrategyResolver"/>. Call sites: PaymentService tax/UID,
+/// TseService tax-set projection.
 /// </summary>
 public interface ITaxStrategy
 {

@@ -1,6 +1,8 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,28 +13,56 @@ public sealed class InvoiceService : IInvoiceService
     private readonly AppDbContext _context;
     private readonly ICompanyProfileProvider _companyProfileProvider;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly ICountryStrategyContext _countryStrategyContext;
+    private readonly IInvoiceStrategyResolver _invoiceStrategyResolver;
+    private readonly ITaxStrategyResolver _taxStrategyResolver;
 
     public InvoiceService(
         AppDbContext context,
         ICompanyProfileProvider companyProfileProvider,
-        ISettingsTenantResolver settingsTenantResolver)
+        ISettingsTenantResolver settingsTenantResolver,
+        ICountryStrategyContext? countryStrategyContext = null,
+        IInvoiceStrategyResolver? invoiceStrategyResolver = null,
+        ITaxStrategyResolver? taxStrategyResolver = null,
+        ICountryProfileRegistry? countryProfileRegistry = null)
     {
         _context = context;
         _companyProfileProvider = companyProfileProvider;
         _settingsTenantResolver = settingsTenantResolver;
+        var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+        _countryStrategyContext = countryStrategyContext
+            ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
+        _invoiceStrategyResolver = invoiceStrategyResolver
+            ?? CountryStrategyWiring.CreateInvoiceResolver();
+        _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
     }
 
     public async Task<InvoiceDto> GenerateInvoiceAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payment);
-        var invoice = await ResolveInvoiceFromPaymentAsync(payment, cancellationToken).ConfigureAwait(false);
+        await EnsureCountryInvoiceGateAsync(cancellationToken).ConfigureAwait(false);
+        var invoice = await ResolveInvoiceFromPaymentCoreAsync(payment, cancellationToken).ConfigureAwait(false);
         return MapToDto(invoice);
     }
 
     public async Task<Invoice> ResolveInvoiceFromPaymentAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payment);
+        await EnsureCountryInvoiceGateAsync(cancellationToken).ConfigureAwait(false);
+        return await ResolveInvoiceFromPaymentCoreAsync(payment, cancellationToken).ConfigureAwait(false);
+    }
 
+    private async Task EnsureCountryInvoiceGateAsync(CancellationToken cancellationToken)
+    {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = invoiceStrategy.GetMandatoryDisclosures(binding.Settings, customer: null);
+        var taxStrategy = _taxStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        _ = taxStrategy.DetermineInvoiceFields(binding.Settings, customer: null);
+    }
+
+    private async Task<Invoice> ResolveInvoiceFromPaymentCoreAsync(PaymentDetails payment, CancellationToken cancellationToken)
+    {
         var persisted = await _context.Invoices
             .AsNoTracking()
             .FirstOrDefaultAsync(
