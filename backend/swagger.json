@@ -4715,6 +4715,48 @@
         }
       }
     },
+    "/api/admin/countries": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CountryProfileSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/critical-actions/approve-with-2fa": {
       "post": {
         "tags": [
@@ -58544,6 +58586,54 @@
         },
         "additionalProperties": false
       },
+      "CountryProfileSummaryDto": {
+        "required": [
+          "allowedVatRegimes",
+          "code",
+          "currency",
+          "defaultLocale",
+          "eInvoicingStandards",
+          "fiscalSystem",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultLocale": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiscalSystem": {
+            "$ref": "#/components/schemas/FiscalSystem"
+          },
+          "eInvoicingStandards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EInvoicingStandard"
+            },
+            "nullable": true
+          },
+          "allowedVatRegimes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VatRegime"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateAdminFeedbackRequestDto": {
         "required": [
           "category",
@@ -64660,6 +64750,15 @@
         },
         "additionalProperties": false
       },
+      "EInvoicingStandard": {
+        "enum": [
+          "ZUGFERD",
+          "XRECHNUNG",
+          "QR_RECHNUNG",
+          "EN_16931"
+        ],
+        "type": "string"
+      },
       "ElmahErrorListItemDto": {
         "type": "object",
         "properties": {
@@ -66478,6 +66577,15 @@
           }
         },
         "additionalProperties": false
+      },
+      "FiscalSystem": {
+        "enum": [
+          "NONE",
+          "RKSV_AT",
+          "KASSENSICHERHEIT_DE",
+          "MWST_CH"
+        ],
+        "type": "string"
       },
       "FiskalyCashRegisterSetupDto": {
         "type": "object",
@@ -101950,6 +102058,9 @@
     },
     {
       "name": "AdminCashRegisters"
+    },
+    {
+      "name": "AdminCountries"
     },
     {
       "name": "AdminCriticalActions"

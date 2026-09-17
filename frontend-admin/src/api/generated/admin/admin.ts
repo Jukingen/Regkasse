@@ -156,6 +156,7 @@ import type {
   ConfigureTseHealingRequestDto,
   ConfigureTseScalingPolicyRequestDto,
   ConvertToPaidRequest,
+  CountryProfileSummaryDto,
   CreateAdminFeedbackRequestDto,
   CreateAdminTenantRequest,
   CreateAdminVoucherRequest,
@@ -7037,7 +7038,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminCriticalActionsApproveWith2fa = (
+    export const getApiAdminCountries = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CountryProfileSummaryDto[]>(
+      {url: `/api/admin/countries`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminCountriesQueryKey = () => {
+    return [`/api/admin/countries`] as const;
+    }
+
+    
+export const getGetApiAdminCountriesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminCountries>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCountries>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminCountriesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminCountries>>> = ({ signal }) => getApiAdminCountries(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCountries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminCountriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCountries>>>
+export type GetApiAdminCountriesQueryError = ProblemDetails
+
+export const useGetApiAdminCountries = <TData = Awaited<ReturnType<typeof getApiAdminCountries>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCountries>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminCountriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminCriticalActionsApproveWith2fa = (
     adminCriticalActionsControllerIssueWithTwoFactorRequest: AdminCriticalActionsControllerIssueWithTwoFactorRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       

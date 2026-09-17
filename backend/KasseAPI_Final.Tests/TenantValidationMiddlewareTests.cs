@@ -99,6 +99,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/limits/dashboard")]
     [InlineData("/api/admin/sessions")]
     [InlineData("/api/admin/sessions/terminate-all")]
+    [InlineData("/api/admin/countries")]
     [InlineData("/api/admin/rksv/config")]
     [InlineData("/api/admin/backup")]
     [InlineData("/api/admin/backup/trigger")]
@@ -131,6 +132,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/tenants")]
     [InlineData("/api/admin/billing/stats")]
     [InlineData("/api/admin/limits/dashboard")]
+    [InlineData("/api/admin/countries")]
     public async Task NonSuperAdmin_OnPlatformPath_WithoutTenant_Returns404(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };

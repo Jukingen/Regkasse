@@ -163,7 +163,7 @@ Flags do **not** live on `company_settings`. Country is read from `CompanySettin
 
 ## 5. Tenant provisioning
 
-**Today:** Super Admin `CreateTenantWizard` is a **single-step** form (name, slug, contact, trial, demo). There is no country step and no `GET /api/admin/countries`. New tenants receive the column defaults from §2.1: `country = 'AT'`, `vat_regime = 'AT_RKSV_STANDARD'`, `tax_exempt = false`, `billing_country = null`.
+**Today:** Super Admin `CreateTenantWizard` is a **single-step** form (name, slug, contact, trial, demo). `GET /api/admin/countries` lists tenant-selectable profiles (AT, DE, CH; `EU_DEFAULT` omitted) for Super Admin; the wizard does not consume it yet. New tenants receive the column defaults from §2.1: `country = 'AT'`, `vat_regime = 'AT_RKSV_STANDARD'`, `tax_exempt = false`, `billing_country = null`.
 
 **Planned:**
 
