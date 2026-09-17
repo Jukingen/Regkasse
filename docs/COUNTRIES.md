@@ -139,25 +139,25 @@ Non-AT strategies throw `NotImplementedException` naming the document to execute
 
 ## 4. Feature flags
 
-**Today (implemented and verified):** `IFeatureFlagService` persists overrides in **`tenant_settings`** under key `FeatureFlags:{Name}`, where `tenant_id = null` means a global override. Config defaults come from the appsettings `FeatureFlags` section via `FeatureFlagsOptions`. Canonical names today: `EnableNewPaymentFlow`, `EnableDepExportV2`, `EnableOnlineOrdersV2`, `EnableAutoAusfall`. Resolution order today is tenant override → global override → appsettings default. Management API: `/api/admin/feature-flags` (Super Admin). See [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md).
+**Today (implemented and verified):** `IFeatureFlagService` persists overrides in **`tenant_settings`** under key `FeatureFlags:{Name}`, where `tenant_id = null` means a global override. Config defaults come from the appsettings `FeatureFlags` section via `FeatureFlagsOptions`. Canonical names: `EnableNewPaymentFlow`, `EnableDepExportV2`, `EnableOnlineOrdersV2`, `EnableAutoAusfall`, plus the country/fiscal names below. Management API: `/api/admin/feature-flags` (Super Admin). See [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md).
 
-Flags do **not** live on `company_settings`.
+Flags do **not** live on `company_settings`. Country is read from `CompanySettings.Country` and resolved through `ICountryProfileRegistry`.
 
-**Planned country flags** (not in `FeatureFlagNames` yet):
+**Experimental flags** (unchanged): tenant override → global override → appsettings. Country profile is never consulted.
 
-| Flag | Intended default |
-|------|------------------|
-| `Fiscal.RksvAt` | On for AT; **locked on** for AT tenants (cannot be turned off) |
-| `Fiscal.KassenSicherheitDe` | On for DE profile; off for AT |
-| `Fiscal.MwstCh` | On for CH profile; off for AT |
-| `EInvoicing.Zugferd` / `EInvoicing.XRechnung` | From DE e-invoicing profile |
-| `EInvoicing.QrRechnung` | From CH profile |
-| `EInvoicing.En16931` | From EU_DEFAULT / explicit EU e-invoicing |
-| `Vies.CheckEnabled` | Always default **off** (not derived from country) |
+**Country / fiscal flags** (`FeatureFlagNames`): AT `Fiscal.RksvAt` lock → tenant override → country profile default → global override → `FeatureFlagsOptions` → `false`.
 
-**Planned resolution for country flags:** tenant override in `tenant_settings` → country default derived from `CompanySettings.Country` + `VatRegime` (later, from the CountryProfile registry). Do **not** use an appsettings `false` as the AT RKSV default — that would disable production TSE. Existing experimental flags keep their current order unchanged.
+| Flag | Default |
+|------|---------|
+| `Fiscal.RksvAt` | On for AT; **locked on** (cannot be turned off). No `FeatureFlagsOptions` property — never an appsettings `false` default. |
+| `Fiscal.KassenSicherheitDe` | On for DE profile (`FiscalSystem.KASSENSICHERHEIT_DE`); off otherwise. Tenant override allowed. |
+| `Fiscal.MwstCh` | On for CH profile (`FiscalSystem.MWST_CH`); off otherwise. Tenant override allowed. |
+| `EInvoicing.Zugferd` / `EInvoicing.XRechnung` | **Always default off** (DE builders are skeletons). Tenant override to `true` is allowed. |
+| `EInvoicing.QrRechnung` | On when the profile lists `QR_RECHNUNG` (CH). |
+| `EInvoicing.En16931` | On when the profile lists `EN_16931` (`EU_DEFAULT`). |
+| `Vies.CheckEnabled` | Always default **off** (not derived from country). Tenant override allowed. |
 
-`Fiscal.RksvAt` locked-true for AT is **documented here only** until code exists.
+`GetStatusesAsync` `Source` values: `config`, `global_override`, `tenant_override`, `country_profile`, `locked`.
 
 ---
 

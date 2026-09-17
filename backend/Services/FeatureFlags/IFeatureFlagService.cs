@@ -3,8 +3,9 @@ namespace KasseAPI_Final.Services.FeatureFlags;
 public interface IFeatureFlagService
 {
     /// <summary>
-    /// Effective flag: tenant override → global override → config default.
-    /// Unknown flags default to <c>false</c>.
+    /// Effective flag. Experimental names: tenant override → global override → config default.
+    /// Country/fiscal names: AT <c>Fiscal.RksvAt</c> lock → tenant override → country profile →
+    /// global override → config default. Unknown flags default to <c>false</c>.
     /// </summary>
     bool IsEnabled(string featureName, string? tenantId = null);
 
@@ -37,7 +38,11 @@ public sealed class FeatureFlagStatusDto
     public bool Enabled { get; init; }
     public bool ConfigDefault { get; init; }
     public bool? OverrideValue { get; init; }
-    public string Source { get; init; } = "config"; // config | global_override | tenant_override
+    /// <summary>
+    /// One of <see cref="FeatureFlagSources"/>:
+    /// <c>config</c>, <c>global_override</c>, <c>tenant_override</c>, <c>country_profile</c>, <c>locked</c>.
+    /// </summary>
+    public string Source { get; init; } = FeatureFlagSources.Config;
     public string? TenantId { get; init; }
 }
 

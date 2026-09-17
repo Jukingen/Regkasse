@@ -1,7 +1,9 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.FeatureFlags;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -55,7 +57,36 @@ public sealed class FeatureFlagServiceTests
             Options.Create(opts ?? new FeatureFlagsOptions()).ToMonitor(),
             new MemoryCache(new MemoryCacheOptions()),
             audit.Object,
-            NullLogger<FeatureFlagService>.Instance);
+            NullLogger<FeatureFlagService>.Instance,
+            new CountryProfileRegistry());
+    }
+
+    private static async Task SeedCountryAsync(IDbContextFactory<AppDbContext> factory, Guid tenantId, string country)
+    {
+        await using var db = await factory.CreateDbContextAsync();
+        db.CompanySettings.Add(new CompanySettings
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CompanyName = "Flag Test GmbH",
+            CompanyAddress = "Wien",
+            CompanyTaxNumber = "ATU12345678",
+            Currency = country == "CH" ? "CHF" : "EUR",
+            Country = country,
+            Language = "de",
+            TimeZone = "Europe/Vienna",
+            DateFormat = "dd.MM.yyyy",
+            TimeFormat = "HH:mm",
+            TaxCalculationMethod = "inclusive",
+            InvoiceNumbering = "INV-{yyyy}-{seq}",
+            ReceiptNumbering = "R-{seq}",
+            DefaultPaymentMethod = "Cash",
+            BusinessHours = new Dictionary<string, string>(),
+            WorkingHours = WorkingHoursSettings.CreateDefault(),
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
     }
 
     [Fact]
@@ -102,5 +133,132 @@ public sealed class FeatureFlagServiceTests
     {
         Assert.Equal(FeatureFlagNames.EnableNewPaymentFlow, FeatureFlagNames.Normalize("NewPaymentFlow"));
         Assert.Equal(FeatureFlagNames.EnableAutoAusfall, FeatureFlagNames.Normalize("enableAutoAusfall"));
+    }
+
+    [Fact]
+    public void Normalize_PreservesDottedCountryFlagNames()
+    {
+        Assert.Equal(FeatureFlagNames.FiscalRksvAt, FeatureFlagNames.Normalize("Fiscal.RksvAt"));
+        Assert.Equal(FeatureFlagNames.EInvoicingEn16931, FeatureFlagNames.Normalize("einvoicing.en16931"));
+        Assert.Equal(12, FeatureFlagNames.All.Count);
+        Assert.Equal(4, FeatureFlagNames.Experimental.Count);
+    }
+
+    [Fact]
+    public async Task AtTenant_FiscalRksvAt_IsLockedTrue_OverrideFalseRejected()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Austria);
+        var svc = CreateService(factory);
+        var tenant = tenantId.ToString("D");
+
+        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+
+        var ex = await Assert.ThrowsAsync<FeatureFlagLockedException>(() =>
+            svc.SetEnabledAsync(FeatureFlagNames.FiscalRksvAt, enabled: false, tenantId: tenant, actorUserId: "admin"));
+        Assert.Equal(FeatureFlagLockedException.Code, ex.ErrorCode);
+        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+
+        var statuses = await svc.GetStatusesAsync(tenant);
+        var rksv = Assert.Single(statuses, s => s.Name == FeatureFlagNames.FiscalRksvAt);
+        Assert.True(rksv.Enabled);
+        Assert.Equal(FeatureFlagSources.Locked, rksv.Source);
+        Assert.False(rksv.ConfigDefault);
+    }
+
+    [Fact]
+    public async Task DeTenant_KassenSicherheitOn_RksvAtOff_EInvoicingOffUntilOverride()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Germany);
+        var svc = CreateService(factory);
+        var tenant = tenantId.ToString("D");
+
+        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingZugferd, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingXRechnung, tenant));
+
+        await svc.SetEnabledAsync(FeatureFlagNames.EInvoicingZugferd, true, tenant, "admin");
+        Assert.True(svc.IsEnabled(FeatureFlagNames.EInvoicingZugferd, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingZugferd));
+    }
+
+    [Fact]
+    public async Task ChTenant_MwstOn_RksvAtOff_QrRechnungFromProfile()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Switzerland);
+        var svc = CreateService(factory);
+        var tenant = tenantId.ToString("D");
+
+        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalMwstCh, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+        Assert.True(svc.IsEnabled(FeatureFlagNames.EInvoicingQrRechnung, tenant));
+    }
+
+    [Fact]
+    public async Task EuDefaultTenant_En16931On_AllFiscalOff()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.EuDefault);
+        var svc = CreateService(factory);
+        var tenant = tenantId.ToString("D");
+
+        Assert.True(svc.IsEnabled(FeatureFlagNames.EInvoicingEn16931, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenant));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalMwstCh, tenant));
+    }
+
+    [Fact]
+    public void CountryDefaults_EuDefaultProfile_MatchesRegistry()
+    {
+        var profile = new CountryProfileRegistry().Get(CountryProfileCodes.EuDefault);
+
+        Assert.True(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.EInvoicingEn16931, profile, out var en) && en);
+        Assert.True(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.FiscalRksvAt, profile, out var rksv) && !rksv);
+        Assert.True(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.FiscalKassenSicherheitDe, profile, out var de) && !de);
+        Assert.True(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.FiscalMwstCh, profile, out var ch) && !ch);
+        Assert.False(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.EInvoicingZugferd, profile, out _));
+        Assert.False(CountryFeatureFlagDefaults.TryGet(FeatureFlagNames.ViesCheckEnabled, profile, out _));
+    }
+
+    [Fact]
+    public async Task ViesCheckEnabled_DefaultFalse_TenantOverrideWorks()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        var otherTenant = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Austria);
+        await SeedCountryAsync(factory, otherTenant, CountryProfileCodes.Austria);
+        var svc = CreateService(factory);
+
+        Assert.False(svc.IsEnabled(FeatureFlagNames.ViesCheckEnabled, tenantId.ToString("D")));
+
+        await svc.SetEnabledAsync(FeatureFlagNames.ViesCheckEnabled, true, tenantId.ToString("D"), "admin");
+        Assert.True(svc.IsEnabled(FeatureFlagNames.ViesCheckEnabled, tenantId.ToString("D")));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.ViesCheckEnabled, otherTenant.ToString("D")));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.ViesCheckEnabled));
+    }
+
+    [Fact]
+    public async Task ExperimentalFlags_IgnoreCountryProfile()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Germany);
+        var svc = CreateService(factory, new FeatureFlagsOptions { EnableDepExportV2 = true });
+
+        Assert.True(svc.IsEnabled(FeatureFlagNames.EnableDepExportV2, tenantId.ToString("D")));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EnableNewPaymentFlow, tenantId.ToString("D")));
+
+        await svc.SetEnabledAsync(FeatureFlagNames.EnableOnlineOrdersV2, true, tenantId.ToString("D"), "admin");
+        Assert.True(svc.IsEnabled(FeatureFlagNames.EnableOnlineOrdersV2, tenantId.ToString("D")));
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EnableOnlineOrdersV2));
     }
 }
