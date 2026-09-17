@@ -2,8 +2,10 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -58,8 +60,16 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         string? cashRegisterNumber = null,
         bool seedIndustryStarterUsers = true,
         int? trialDurationDays = null,
+        CountryProfile? countryProfile = null,
+        VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
         CancellationToken cancellationToken = default)
     {
+        var profile = countryProfile ?? new CountryProfileRegistry().Default;
+        var isAustrian = string.Equals(
+            profile.Code,
+            CountryProfileCodes.Austria,
+            StringComparison.OrdinalIgnoreCase);
+
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
         if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(resolvedEmail, excludeUserId: null)
                 .ConfigureAwait(false))
@@ -81,6 +91,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         var resolvedRegisterNumber = ResolveRegisterNumber(cashRegisterNumber);
 
         var now = DateTime.UtcNow;
+        _db.CompanySettings.Add(CreateProvisionedSettings(tenant.Id, profile, vatRegime, now));
+
         var cashRegister = new CashRegister
         {
             TenantId = tenant.Id,
@@ -97,33 +109,40 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         _db.CashRegisters.Add(cashRegister);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var tseResult = await _tseProvisioning
-            .ProvisionTseForCashRegisterAsync(cashRegister.Id, force: false, cancellationToken)
-            .ConfigureAwait(false);
-        if (!tseResult.IsSuccess)
+        TseProvisioningResult? tseResult = null;
+        if (isAustrian)
         {
-            _logger.LogWarning(
-                "TSE provisioning failed for tenant {TenantId} register {CashRegisterId}: {Error}. Tenant create continues; operator can provision TSE later.",
-                tenant.Id,
-                cashRegister.Id,
-                tseResult.Error);
-        }
-        else if (tseResult.FellBackToSoftTse)
-        {
-            _logger.LogWarning(
-                "Fiskaly SCU provisioning fell back to Soft TSE for tenant {TenantId} register {CashRegisterId}: {Detail}",
-                tenant.Id,
-                cashRegister.Id,
-                tseResult.Detail);
+            tseResult = await _tseProvisioning
+                .ProvisionTseForCashRegisterAsync(cashRegister.Id, force: false, cancellationToken)
+                .ConfigureAwait(false);
+            if (!tseResult.IsSuccess)
+            {
+                _logger.LogWarning(
+                    "TSE provisioning failed for tenant {TenantId} register {CashRegisterId}: {Error}. Tenant create continues; operator can provision TSE later.",
+                    tenant.Id,
+                    cashRegister.Id,
+                    tseResult.Error);
+            }
+            else if (tseResult.FellBackToSoftTse)
+            {
+                _logger.LogWarning(
+                    "Fiskaly SCU provisioning fell back to Soft TSE for tenant {TenantId} register {CashRegisterId}: {Detail}",
+                    tenant.Id,
+                    cashRegister.Id,
+                    tseResult.Detail);
+            }
         }
 
         Category category;
         IReadOnlyList<Guid> productIds;
 
-        await TaxGroupSeedData.SeedSystemTaxGroupsAsync(_db, tenant.Id, cancellationToken)
-            .ConfigureAwait(false);
+        if (isAustrian)
+        {
+            await TaxGroupSeedData.SeedSystemTaxGroupsAsync(_db, tenant.Id, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
-        if (importDemoMenu)
+        if (isAustrian && importDemoMenu)
         {
             var importResult = await _demoProductImport
                 .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), progress: null, cancellationToken)
@@ -146,6 +165,14 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         }
         else
         {
+            if (!isAustrian && importDemoMenu)
+            {
+                _logger.LogInformation(
+                    "Skipping AT demo catalog import for non-AT tenant {TenantId} country {Country}",
+                    tenant.Id,
+                    profile.Code);
+            }
+
             category = new Category
             {
                 TenantId = tenant.Id,
@@ -162,11 +189,18 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            var products = await CreateDemoProductsAsync(tenant.Id, category, cancellationToken)
-                .ConfigureAwait(false);
-            _db.Products.AddRange(products);
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            productIds = products.Select(p => p.Id).ToList();
+            if (isAustrian)
+            {
+                var products = await CreateDemoProductsAsync(tenant.Id, category, cancellationToken)
+                    .ConfigureAwait(false);
+                _db.Products.AddRange(products);
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                productIds = products.Select(p => p.Id).ToList();
+            }
+            else
+            {
+                productIds = [];
+            }
         }
 
         var adminUser = new ApplicationUser
@@ -261,13 +295,48 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             CategoryId = category.Id,
             ProductIds = productIds,
             TrialLicenseValidUntilUtc = trialUntil,
-            TseDeviceId = tseResult.Device?.Id,
-            TseProvisioned = tseResult.Outcome == TseProvisioningOutcome.Success,
-            TseScuId = tseResult.TseScuId,
-            TseStatus = tseResult.TseStatus,
-            TseFellBackToSoft = tseResult.FellBackToSoftTse,
+            TseDeviceId = tseResult?.Device?.Id,
+            TseProvisioned = tseResult?.Outcome == TseProvisioningOutcome.Success,
+            TseScuId = tseResult?.TseScuId,
+            TseStatus = tseResult?.TseStatus,
+            TseFellBackToSoft = tseResult?.FellBackToSoftTse ?? false,
         }, null);
     }
+
+    /// <summary>
+    /// New at tenant create (Paket 4): persists a CompanySettings row.
+    /// Non-country fields match <c>CompanySettingsController.CreateSettingsShell</c>;
+    /// Country / VatRegime / Currency / Language / TimeZone come from the country profile.
+    /// </summary>
+    private static CompanySettings CreateProvisionedSettings(
+        Guid tenantId,
+        CountryProfile profile,
+        VatRegime vatRegime,
+        DateTime now) => new()
+    {
+        TenantId = tenantId,
+        CompanyName = string.Empty,
+        CompanyAddress = string.Empty,
+        CompanyTaxNumber = string.Empty,
+        BusinessHours = new Dictionary<string, string>(),
+        WorkingHours = WorkingHoursSettings.CreateDefault(),
+        AutoTagesabschluss = AutoTagesabschlussSettings.CreateDefault(),
+        Currency = profile.Currency,
+        Country = profile.Code,
+        VatRegime = vatRegime,
+        Language = profile.DefaultLocale,
+        TimeZone = profile.DefaultTimeZone,
+        DateFormat = "dd.MM.yyyy",
+        TimeFormat = "HH:mm:ss",
+        DecimalPlaces = 2,
+        TaxCalculationMethod = "Standard",
+        InvoiceNumbering = "Sequential",
+        ReceiptNumbering = "Sequential",
+        DefaultPaymentMethod = "Cash",
+        IsActive = true,
+        CreatedAt = now,
+        UpdatedAt = now,
+    };
 
     private async Task SeedIndustryStarterUsersAsync(
         Tenant tenant,

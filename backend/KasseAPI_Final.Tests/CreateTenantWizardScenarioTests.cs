@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
@@ -99,6 +100,7 @@ public sealed class CreateTenantWizardScenarioTests
             Mock.Of<IWelcomeEmailService>(),
             Mock.Of<IAuditLogService>(),
             checklist.Object,
+            new CountryProfileRegistry(),
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
@@ -116,6 +118,8 @@ public sealed class CreateTenantWizardScenarioTests
                 Slug = "cafe-muster",
                 Email = "info@cafe-muster.at",
                 AdminEmail = "admin@cafe-muster.at",
+                CountryCode = "AT",
+                VatRegime = VatRegime.AT_RKSV_STANDARD,
                 GrantTrialLicense = true,
                 LicenseValidUntilUtc = licenseUntil,
                 ImportDemoMenu = false,
@@ -153,6 +157,15 @@ public sealed class CreateTenantWizardScenarioTests
             .SingleAsync(m => m.TenantId == tenant.Id);
         Assert.True(membership.IsOwner);
         Assert.True(membership.IsActive);
+
+        var at = new CountryProfileRegistry().Default;
+        var company = await db.CompanySettings.IgnoreQueryFilters()
+            .SingleAsync(s => s.TenantId == tenant.Id);
+        Assert.Equal(at.Code, company.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, company.VatRegime);
+        Assert.Equal(at.Currency, company.Currency);
+        Assert.Equal(at.DefaultLocale, company.Language);
+        Assert.Equal(at.DefaultTimeZone, company.TimeZone);
     }
 
     [Fact]
@@ -229,6 +242,8 @@ public sealed class CreateTenantWizardScenarioTests
                 Email = "info@weak.at",
                 AdminEmail = "admin@weak.at",
                 AdminPassword = "123",
+                CountryCode = "AT",
+                VatRegime = VatRegime.AT_RKSV_STANDARD,
             },
             "super-admin-1");
 

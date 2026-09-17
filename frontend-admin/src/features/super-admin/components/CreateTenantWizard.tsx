@@ -1,11 +1,10 @@
 'use client';
 
 /**
- * Single-step tenant creation wizard. Multi-step version removed to reduce confusion.
- * Form → processing progress → success or structured error.
+ * Two-step tenant creation wizard: Country → Tenant Form → processing → success.
  */
 import { useMutation } from '@tanstack/react-query';
-import { Button, Form, Modal } from 'antd';
+import { Button, Form, Modal, Steps } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import {
@@ -13,6 +12,7 @@ import {
   type CreateAdminTenantRequest,
   createAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
+import { CreateTenantCountryStep } from '@/features/super-admin/components/CreateTenantCountryStep';
 import { CreateTenantProcessingView } from '@/features/super-admin/components/CreateTenantProcessingView';
 import { type CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { OnboardingErrorModal } from '@/features/super-admin/components/OnboardingErrorModal';
@@ -26,6 +26,7 @@ import { useTenantOnboardingProgress } from '@/features/super-admin/hooks/useTen
 import type { TenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
 import { parseTenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
 import { normalizeTenantSlugInput } from '@/features/super-admin/lib/tenantSlug';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import { useI18n } from '@/i18n';
 import { getTenantAppBaseDomain } from '@/lib/auth/impersonationHandoff';
 
@@ -40,7 +41,15 @@ export type CreateTenantWizardProps = {
   switchToTenantLoading?: boolean;
 };
 
-type WizardPhase = 'form' | 'processing' | 'processingDone';
+type WizardPhase = 'country' | 'form' | 'processing' | 'processingDone';
+
+const COUNTRY_DEFAULTS = {
+  countryCode: 'AT',
+  vatRegime: 'AT_RKSV_STANDARD',
+  grantTrialLicense: true,
+  trialDurationDays: 14,
+  importDemoProducts: true,
+} as const;
 
 export function CreateTenantWizard(props: CreateTenantWizardProps) {
   if (!props.open) {
@@ -59,9 +68,11 @@ function CreateTenantWizardContent({
 }: CreateTenantWizardProps) {
   const { t } = useI18n();
   const baseDomain = getTenantAppBaseDomain();
+  const countriesQuery = useCountries();
+  const countries = countriesQuery.data ?? [];
   const [form] = Form.useForm<CreateTenantFormValues & { formError?: string }>();
   const [success, setSuccess] = useState<TenantOnboardingSuccessState | null>(null);
-  const [phase, setPhase] = useState<WizardPhase>('form');
+  const [phase, setPhase] = useState<WizardPhase>('country');
   const [onboardingError, setOnboardingError] = useState<TenantOnboardingError | null>(null);
   const [errorContext, setErrorContext] = useState<{ companyName: string; slug: string } | null>(
     null
@@ -73,7 +84,7 @@ function CreateTenantWizardContent({
     grantTrialLicense: boolean;
   } | null>(null);
 
-  const formFields = useTenantCreateFormFields(form, open);
+  const formFields = useTenantCreateFormFields(form, open && phase === 'form');
   const { canSubmit } = formFields;
 
   const grantTrialLicense = processingContext?.grantTrialLicense ?? true;
@@ -82,7 +93,7 @@ function CreateTenantWizardContent({
   const { definitions, statuses } = useTenantOnboardingProgress(grantTrialLicense, progressPhase);
 
   const resetFlow = useCallback(() => {
-    setPhase('form');
+    setPhase('country');
     setProcessingContext(null);
     setOnboardingError(null);
     setErrorContext(null);
@@ -125,14 +136,14 @@ function CreateTenantWizardContent({
       if (phase !== 'processing' && phase !== 'processingDone') {
         resetFlow();
       }
-    } else if (phase === 'form') {
-      form.setFieldsValue({
-        grantTrialLicense: true,
-        trialDurationDays: 14,
-        importDemoProducts: true,
-      });
     }
   }, [open, form, resetFlow, phase]);
+
+  useEffect(() => {
+    if (open) {
+      form.setFieldsValue({ ...COUNTRY_DEFAULTS });
+    }
+  }, [open, form]);
 
   const isProcessing =
     phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
@@ -142,6 +153,13 @@ function CreateTenantWizardContent({
       return;
     }
     onClose();
+  };
+
+  const goToFormStep = () => {
+    void form.validateFields(['countryCode', 'vatRegime']).then(
+      () => setPhase('form'),
+      () => undefined
+    );
   };
 
   const submitFromForm = (values: CreateTenantFormValues) => {
@@ -158,6 +176,8 @@ function CreateTenantWizardContent({
     createMutation.mutate({
       name: values.name.trim(),
       slug,
+      countryCode: values.countryCode,
+      vatRegime: values.vatRegime,
       email: values.email.trim(),
       adminEmail: values.email.trim(),
       phone: values.phone?.trim() || undefined,
@@ -166,6 +186,14 @@ function CreateTenantWizardContent({
       trialDurationDays: grantTrial ? (values.trialDurationDays ?? 14) : undefined,
       importDemoMenu: values.importDemoProducts ?? true,
     });
+  };
+
+  const handleFinish = (values: CreateTenantFormValues) => {
+    if (phase === 'country') {
+      setPhase('form');
+      return;
+    }
+    submitFromForm(values);
   };
 
   const handleDismissError = useCallback(() => {
@@ -193,11 +221,18 @@ function CreateTenantWizardContent({
       ? t('tenants.create.processing.title')
       : t('tenants.create.title');
 
+  const stepItems = [
+    { title: t('superadmin.tenantCreate.countryStep.title') },
+    { title: t('superadmin.tenantCreate.countryStep.tenantFormTitle') },
+  ];
+  const stepCurrent = phase === 'country' ? 0 : 1;
+  const formOpen = open && !success && (phase === 'country' || phase === 'form');
+
   return (
     <>
       <Modal
         title={modalTitle}
-        open={open && !success && phase !== 'form' && isProcessing}
+        open={open && !success && phase !== 'country' && phase !== 'form' && isProcessing}
         onCancel={handleWizardClose}
         width={640}
         destroyOnHidden
@@ -219,27 +254,62 @@ function CreateTenantWizardContent({
 
       <Modal
         title={modalTitle}
-        open={open && !success && phase === 'form'}
+        open={formOpen}
         onCancel={handleWizardClose}
         width={640}
         destroyOnHidden
-        footer={[
-          <Button key="cancel" onClick={handleWizardClose}>
-            {t('common.buttons.cancel')}
-          </Button>,
-          <Button key="submit" type="primary" disabled={!canSubmit} onClick={() => form.submit()}>
-            {t('tenants.create.submit')}
-          </Button>,
-        ]}
+        footer={
+          phase === 'country'
+            ? [
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button key="next" type="primary" htmlType="button" onClick={goToFormStep}>
+                  {t('superadmin.tenantCreate.countryStep.next')}
+                </Button>,
+              ]
+            : [
+                <Button key="back" htmlType="button" onClick={() => setPhase('country')}>
+                  {t('superadmin.tenantCreate.countryStep.back')}
+                </Button>,
+                <Button key="cancel" htmlType="button" onClick={handleWizardClose}>
+                  {t('common.buttons.cancel')}
+                </Button>,
+                <Button
+                  key="submit"
+                  type="primary"
+                  htmlType="button"
+                  disabled={!canSubmit}
+                  onClick={() => form.submit()}
+                >
+                  {t('tenants.create.submit')}
+                </Button>,
+              ]
+        }
       >
+        <Steps current={stepCurrent} items={stepItems} style={{ marginBottom: 24 }} />
         <Form
           form={form}
           layout="vertical"
           requiredMark="optional"
-          initialValues={{ grantTrialLicense: true, trialDurationDays: 14, importDemoProducts: true }}
-          onFinish={submitFromForm}
+          initialValues={COUNTRY_DEFAULTS}
+          onFinish={handleFinish}
         >
-          <TenantFormFields form={form} open={open} fieldState={formFields} />
+          <div
+            data-testid="create-tenant-country-panel"
+            style={{ display: phase === 'country' ? 'block' : 'none' }}
+          >
+            <CreateTenantCountryStep
+              countries={countries}
+              loading={Boolean(countriesQuery.isLoading)}
+            />
+          </div>
+          <div
+            data-testid="create-tenant-form-panel"
+            style={{ display: phase === 'form' ? 'block' : 'none' }}
+          >
+            <TenantFormFields form={form} open={open} fieldState={formFields} />
+          </div>
         </Form>
       </Modal>
 

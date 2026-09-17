@@ -5,6 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { VatRegime } from './vatRegime';
 
 export interface CreateAdminTenantRequest {
   /** @nullable */
@@ -24,6 +25,11 @@ export interface CreateAdminTenantRequest {
    * @nullable
    */
   cashRegisterNumber?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 32
+   */
+  countryCode: string;
   /**
    * @maxLength 200
    * @nullable
@@ -61,4 +67,5 @@ export interface CreateAdminTenantRequest {
   slug: string;
   /** @nullable */
   trialDurationDays?: number | null;
+  vatRegime: VatRegime;
 }

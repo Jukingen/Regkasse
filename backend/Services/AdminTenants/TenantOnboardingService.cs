@@ -1,6 +1,8 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Onboarding;
 using Microsoft.EntityFrameworkCore;
@@ -17,12 +19,14 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
     private const string ActionWelcomeEmail = "TENANT_ONBOARDING_WELCOME_EMAIL";
     private const string ActionCompleted = "TENANT_ONBOARDING_COMPLETED";
     private const string ActionFailed = "TENANT_ONBOARDING_FAILED";
+    private const string ActionCreatedWithCountry = "TENANT_CREATED_WITH_COUNTRY";
 
     private readonly AppDbContext _db;
     private readonly ITenantProvisioningService _provisioningService;
     private readonly IWelcomeEmailService _welcomeEmail;
     private readonly IAuditLogService _auditLog;
     private readonly ITenantOnboardingChecklistService _checklist;
+    private readonly ICountryProfileRegistry _countries;
     private readonly ILogger<TenantOnboardingService> _logger;
 
     public TenantOnboardingService(
@@ -31,6 +35,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         IWelcomeEmailService welcomeEmail,
         IAuditLogService auditLog,
         ITenantOnboardingChecklistService checklist,
+        ICountryProfileRegistry countries,
         ILogger<TenantOnboardingService> logger)
     {
         _db = db;
@@ -38,6 +43,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         _welcomeEmail = welcomeEmail;
         _auditLog = auditLog;
         _checklist = checklist;
+        _countries = countries;
         _logger = logger;
     }
 
@@ -104,6 +110,31 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             return (null, takenFailure);
         }
 
+        var profile = _countries.Get(request.CountryCode);
+        if (!profile.IsTenantSelectable)
+        {
+            await LogStepAsync(
+                ActionFailed,
+                actorId,
+                correlationId,
+                $"Country '{request.CountryCode}' is not tenant-selectable.",
+                AuditLogStatus.Failed,
+                cancellationToken).ConfigureAwait(false);
+            throw new CountryNotSelectableException(request.CountryCode);
+        }
+
+        if (!profile.Supports(request.VatRegime))
+        {
+            await LogStepAsync(
+                ActionFailed,
+                actorId,
+                correlationId,
+                $"VAT regime '{request.VatRegime}' is not allowed for country '{profile.Code}'.",
+                AuditLogStatus.Failed,
+                cancellationToken).ConfigureAwait(false);
+            throw new InvalidVatRegimeForCountryException(profile.Code, request.VatRegime);
+        }
+
         var now = DateTime.UtcNow;
         var tenant = new Tenant
         {
@@ -145,6 +176,13 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 cancellationToken,
                 tenant.Id).ConfigureAwait(false);
 
+            await LogCreatedWithCountryAsync(
+                actorId,
+                correlationId,
+                tenant.Id,
+                profile,
+                request.VatRegime).ConfigureAwait(false);
+
             var (provisioning, provisionError) = await _provisioningService
                 .ProvisionAsync(
                     tenant,
@@ -155,6 +193,8 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.CashRegisterNumber,
                     request.SeedIndustryStarterUsers,
                     request.TrialDurationDays,
+                    profile,
+                    request.VatRegime,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -292,6 +332,35 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Onboarding audit log failed for action {Action} tenant {TenantId}", action, tenantId);
+        }
+    }
+
+    private async Task LogCreatedWithCountryAsync(
+        string actorUserId,
+        string correlationId,
+        Guid tenantId,
+        CountryProfile profile,
+        VatRegime vatRegime)
+    {
+        try
+        {
+            await _auditLog.LogSystemOperationAsync(
+                ActionCreatedWithCountry,
+                AuditEntityType,
+                actorUserId,
+                Roles.SuperAdmin,
+                description: $"Tenant created with country {profile.Code} vatRegime {vatRegime}",
+                status: AuditLogStatus.Success,
+                correlationIdOverride: correlationId,
+                actionType: AuditEventType.TenantCreatedWithCountry,
+                entityId: tenantId,
+                tenantId: tenantId,
+                newValues: new { countryCode = profile.Code, vatRegime = vatRegime.ToString() })
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Onboarding audit log failed for action {Action} tenant {TenantId}", ActionCreatedWithCountry, tenantId);
         }
     }
 

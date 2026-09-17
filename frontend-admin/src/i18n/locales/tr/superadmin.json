@@ -17,7 +17,18 @@
   "loadFailed": "Kiracı listesi yüklenemedi.",
   "tenantCreate": {
     "slugExample": "cafe-example",
-    "urlPreviewHint": "Tam adres, kısa ad ve alan adından oluşturulur."
+    "urlPreviewHint": "Tam adres, kısa ad ve alan adından oluşturulur.",
+    "countryStep": {
+      "title": "Ülke",
+      "tenantFormTitle": "Mandant",
+      "countryLabel": "Ülke",
+      "vatRegimeLabel": "KDV rejimi",
+      "nonAtBanner": "AT dışı mandantlar RKSV/TSE etkinleştirmez. bkz. docs/COUNTRIES.md.",
+      "next": "İleri",
+      "back": "Geri",
+      "requiredCountry": "Lütfen bir ülke seçin.",
+      "requiredVatRegime": "Lütfen bir KDV rejimi seçin."
+    }
   },
   "digital": {
     "pageTitle": "Dijital hizmetler — Yönetim",

@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -140,6 +141,17 @@ public sealed class TenantProvisioningServiceTests
 
         var settings = await db.UserSettings.SingleAsync(s => s.UserId == result.AdminUserId);
         Assert.Equal(register.Id.ToString("D"), settings.CashRegisterId);
+
+        Assert.True(result.TseProvisioned);
+
+        var at = new CountryProfileRegistry().Default;
+        var company = await db.CompanySettings.IgnoreQueryFilters()
+            .SingleAsync(s => s.TenantId == tenant.Id);
+        Assert.Equal(at.Code, company.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, company.VatRegime);
+        Assert.Equal(at.Currency, company.Currency);
+        Assert.Equal(at.DefaultLocale, company.Language);
+        Assert.Equal(at.DefaultTimeZone, company.TimeZone);
 
         var reloadedTenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.NotNull(reloadedTenant.LicenseValidUntilUtc);

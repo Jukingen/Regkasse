@@ -8,6 +8,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.ActivityReports;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Auth;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Trial;
 using Microsoft.AspNetCore.Authorization;
@@ -275,20 +276,35 @@ public sealed class AdminTenantsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var (result, failure) = await _tenantService
-            .CreateWithFailureDetailAsync(request, ActorUserId, cancellationToken)
-            .ConfigureAwait(false);
-        if (failure != null)
+        try
         {
-            return BadRequest(new
+            var (result, failure) = await _tenantService
+                .CreateWithFailureDetailAsync(request, ActorUserId, cancellationToken)
+                .ConfigureAwait(false);
+            if (failure != null)
             {
-                message = failure.Message,
-                code = failure.Code,
-                suggestions = failure.SlugSuggestions,
-            });
-        }
+                return BadRequest(new
+                {
+                    message = failure.Message,
+                    code = failure.Code,
+                    suggestions = failure.SlugSuggestions,
+                });
+            }
 
-        return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
+        }
+        catch (UnknownCountryCodeException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (CountryNotSelectableException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (InvalidVatRegimeForCountryException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
     }
 
     /// <summary>Import the demo menu catalog (Salate, Pizzas, Pasta, …) for an existing tenant.</summary>

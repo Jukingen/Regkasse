@@ -221,5 +221,8 @@ public enum AuditEventType
     /// <summary>Automatic Monatsbeleg creation exhausted retries.</summary>
     MonatsbelegAutoCreateFailed = 95,
 
+    /// <summary>Super Admin created a mandant with an explicit country + VAT regime.</summary>
+    TenantCreatedWithCountry = 96,
+
     Other = 99
 }

@@ -1,7 +1,9 @@
 /**
- * Form values for the single-step tenant creation wizard.
+ * Form values for the two-step tenant creation wizard (country → tenant form).
  */
 export type CreateTenantFormValues = {
+  countryCode: string;
+  vatRegime: string;
   name: string;
   slug: string;
   email: string;

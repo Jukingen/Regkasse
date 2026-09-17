@@ -7,10 +7,12 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
@@ -99,6 +101,7 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<IWelcomeEmailService>(),
             Mock.Of<IAuditLogService>(),
             checklist.Object,
+            new CountryProfileRegistry(),
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
@@ -247,8 +250,10 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<string?>(),
                 It.IsAny<bool>(),
                 It.IsAny<int?>(),
+                It.IsAny<CountryProfile?>(),
+                It.IsAny<VatRegime>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CancellationToken _) =>
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CountryProfile? ______, VatRegime _______, CancellationToken _) =>
             {
                 if (grantTrial)
                     t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);
@@ -356,7 +361,13 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
 
         var (result, error) = await service.CreateAsync(
-            new CreateAdminTenantRequest { Name = "Acme Demo", Slug = "acme-demo" },
+            new CreateAdminTenantRequest
+            {
+                Name = "Acme Demo",
+                Slug = "acme-demo",
+                CountryCode = "AT",
+                VatRegime = VatRegime.AT_RKSV_STANDARD,
+            },
             "actor-1");
 
         Assert.Null(error);

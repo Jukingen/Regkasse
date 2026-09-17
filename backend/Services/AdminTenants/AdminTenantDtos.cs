@@ -157,6 +157,18 @@ public sealed class CreateAdminTenantRequest
     [MaxLength(64)]
     public string Slug { get; set; } = string.Empty;
 
+    /// <summary>
+    /// ISO 3166-1 alpha-2 from <c>GET /api/admin/countries</c>.
+    /// <c>EU_DEFAULT</c> is rejected as not tenant-selectable (not a 2-letter code).
+    /// </summary>
+    [Required]
+    [MaxLength(32)]
+    public string CountryCode { get; set; } = string.Empty;
+
+    /// <summary>Must be in the selected country's <c>AllowedVatRegimes</c>.</summary>
+    [Required]
+    public VatRegime VatRegime { get; set; }
+
     [MaxLength(200)]
     [EmailAddress]
     public string? Email { get; set; }

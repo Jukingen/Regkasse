@@ -17,7 +17,18 @@
   "loadFailed": "Could not load tenant list.",
   "tenantCreate": {
     "slugExample": "cafe-example",
-    "urlPreviewHint": "The full URL is built from the slug and domain."
+    "urlPreviewHint": "The full URL is built from the slug and domain.",
+    "countryStep": {
+      "title": "Country",
+      "tenantFormTitle": "Tenant",
+      "countryLabel": "Country",
+      "vatRegimeLabel": "VAT regime",
+      "nonAtBanner": "Non-AT tenants do not enable RKSV/TSE. See docs/COUNTRIES.md.",
+      "next": "Next",
+      "back": "Back",
+      "requiredCountry": "Please select a country.",
+      "requiredVatRegime": "Please select a VAT regime."
+    }
   },
   "digital": {
     "pageTitle": "Digital services — Management",

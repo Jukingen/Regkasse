@@ -52295,6 +52295,7 @@
           93,
           94,
           95,
+          96,
           99
         ],
         "type": "integer",
@@ -58674,8 +58675,10 @@
       },
       "CreateAdminTenantRequest": {
         "required": [
+          "countryCode",
           "name",
-          "slug"
+          "slug",
+          "vatRegime"
         ],
         "type": "object",
         "properties": {
@@ -58688,6 +58691,14 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string"
+          },
+          "countryCode": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "vatRegime": {
+            "$ref": "#/components/schemas/VatRegime"
           },
           "email": {
             "maxLength": 200,

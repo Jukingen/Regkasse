@@ -126,6 +126,8 @@ export type TenantSlugAvailability = {
 export type CreateAdminTenantRequest = {
   name: string;
   slug: string;
+  countryCode: string;
+  vatRegime: string;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
