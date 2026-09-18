@@ -6,6 +6,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Austria;
+using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tse;
 using Moq;
@@ -155,6 +156,25 @@ public sealed class AustriaStrategyDelegationTests
         Assert.True(result.IsValid);
         Assert.Equal("ATU12345678", result.VatId);
         Assert.Null(result.ErrorCode);
+    }
+
+    [Fact]
+    public void ValidateVatId_DelegatesToIVatIdValidator_Once()
+    {
+        var profile = Registry.Get(CountryProfileCodes.Austria);
+        var validator = new Mock<IVatIdValidator>(MockBehavior.Strict);
+        validator
+            .Setup(v => v.Validate("ATU12345678", profile))
+            .Returns(VatIdValidationResult.Valid("ATU12345678"));
+
+        var strategy = new AustriaTaxStrategy(validator.Object);
+        var result = strategy.ValidateVatId("ATU12345678", profile);
+
+        Assert.True(result.IsValid);
+        Assert.Equal("ATU12345678", result.VatId);
+        Assert.Null(result.ErrorCode);
+        validator.Verify(v => v.Validate("ATU12345678", profile), Times.Once);
+        validator.VerifyNoOtherCalls();
     }
 
     [Theory]
