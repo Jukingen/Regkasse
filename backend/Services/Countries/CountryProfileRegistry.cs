@@ -8,25 +8,32 @@ namespace KasseAPI_Final.Services.Countries;
 ///
 /// **Verification status:** the Austrian seed mirrors the values already live in production
 /// (<c>CompanySettingsController.CreateSettingsShell</c> and the Austrian UID pattern used across the
-/// fiscal path), so it is authoritative. The DE, CH, and EU_DEFAULT seeds describe **shape only** and
-/// have not been checked against official sources yet — they gate nothing today because no DE/CH/EU
-/// module exists. Source verification is a separate, reviewed change; do not treat these values as
-/// legal guidance. See <c>docs/COUNTRIES.md</c>.
+/// fiscal path), so it is authoritative. Seeded field values were checked against official sources in
+/// Paket 13; <c>// Source:</c> citations live on the seeds below. See <c>docs/COUNTRIES.md</c> §14
+/// Seed Sources. Do not treat these values as legal guidance. DE/CH/EU modules remain unimplemented
+/// and still gate nothing.
 /// </summary>
 public sealed class CountryProfileRegistry : ICountryProfileRegistry
 {
     private static readonly CountryProfile AustriaProfile = new(
+        // Source: ISO 3166-1 alpha-2 AT
         code: CountryProfileCodes.Austria,
         name: "Austria",
         isTenantSelectable: true,
         // Must stay identical to the live company-settings defaults, otherwise provisioning drifts.
+        // Source: ISO 4217 EUR
         currency: "EUR",
+        // Source: production default (CreateSettingsShell). BCP-47 AT is de-AT; kept de-DE — Paket 13-b decision (A).
         defaultLocale: "de-DE",
+        // Source: IANA Time Zone Database Europe/Vienna
         defaultTimeZone: "Europe/Vienna",
+        // Source: RKSV, BGBl. II Nr. 410/2015; FinanzOnline
         fiscalSystem: FiscalSystem.RKSV_AT,
         // RKSV receipts are not an e-invoicing standard; AT declares none until EN 16931 is wired.
+        // Source: RKSV Belege are cash-register receipts, not EN 16931
         eInvoicingStandards: [],
         // Identical to the pattern already enforced on the fiscal path (UID: ATU + 8 digits).
+        // Source: BMF UID; ATU + 8 digits; FinanzOnline
         vatIdPattern: VatIdPatterns.Austria,
         allowedVatRegimes:
         [
@@ -40,11 +47,17 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         code: CountryProfileCodes.Germany,
         name: "Germany",
         isTenantSelectable: true,
+        // Source: ISO 4217 EUR
         currency: "EUR",
+        // Source: IETF BCP 47 de-DE
         defaultLocale: "de-DE",
+        // Source: IANA Time Zone Database Europe/Berlin
         defaultTimeZone: "Europe/Berlin",
+        // Source: KassenSichV (Kassensicherungsverordnung)
         fiscalSystem: FiscalSystem.KASSENSICHERHEIT_DE,
+        // Source: FeRD ZUGFeRD; KoSIT XRechnung (EN 16931 CIUS)
         eInvoicingStandards: [EInvoicingStandard.ZUGFERD, EInvoicingStandard.XRECHNUNG],
+        // Source: UStG USt-IdNr. DE + 9 digits; EU VIES
         vatIdPattern: VatIdPatterns.Germany,
         allowedVatRegimes:
         [
@@ -59,12 +72,18 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         code: CountryProfileCodes.Switzerland,
         name: "Switzerland",
         isTenantSelectable: true,
+        // Source: ISO 4217 CHF
         currency: "CHF",
+        // Source: IETF BCP 47 de-CH (German-speaking default)
         defaultLocale: "de-CH",
+        // Source: IANA Time Zone Database Europe/Zurich
         defaultTimeZone: "Europe/Zurich",
+        // Source: MWSTG; ESTV
         fiscalSystem: FiscalSystem.MWST_CH,
+        // Source: SIX Interbank Clearing QR-bill specification
         eInvoicingStandards: [EInvoicingStandard.QR_RECHNUNG],
         // CHE-123.456.789 with an optional language-specific VAT suffix.
+        // Source: ESTV / Zefix UID CHE-xxx.xxx.xxx + optional MWST|TVA|IVA
         vatIdPattern: VatIdPatterns.Switzerland,
         // Switzerland is outside the EU VAT area: no reverse charge, no OSS.
         allowedVatRegimes:
@@ -78,14 +97,21 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         code: CountryProfileCodes.EuDefault,
         name: "European Union (default profile)",
         // Registry-only fallback; must never reach the create-tenant country list.
+        // Source: registry-only sentinel; not ISO 3166-1 alpha-2
         isTenantSelectable: false,
+        // Source: ISO 4217 EUR (euro-area default; never copied onto a tenant)
         currency: "EUR",
         // Never copied onto a tenant, because the profile is not selectable.
+        // Source: IETF BCP 47 en (never copied onto a tenant)
         defaultLocale: "en",
+        // Source: IANA UTC; no single EU zone (never copied onto a tenant)
         defaultTimeZone: "UTC",
+        // Source: no EU-level cash-register fiscalisation
         fiscalSystem: FiscalSystem.NONE,
+        // Source: CEN EN 16931-1; ViDA is a timeline, not a builder
         eInvoicingStandards: [EInvoicingStandard.EN_16931],
         // Broad EU VAT-ID shape; per-country patterns live in their own profiles.
+        // Source: placeholder; VIES formats are per member state (Paket 13-d)
         vatIdPattern: VatIdPatterns.EuDefault,
         allowedVatRegimes:
         [

@@ -94,7 +94,7 @@ Lookup semantics: `GetOrDefault` resolves unknown, legacy, or blank codes to **A
 
 A profile deliberately carries **no VAT rates** — a unit test fails the build if a rate-like property is added.
 
-**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); VAT rates are not on the profile (Paket 13-c). `// Source:` comments are still missing from `CountryProfileRegistry` (known gap, Paket 13-b). DE/CH/EU modules remain unimplemented and still gate nothing.
+**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); Paket 13-b added `// Source:` comments on the seeds (minimum 24). VAT rates are not on the profile (Paket 13-c). DE/CH/EU modules remain unimplemented and still gate nothing.
 
 ---
 
@@ -277,7 +277,7 @@ Rollback is per country and flag-driven, not schema-driven.
 | Unit — validators | `billing_country` shape and normalization | **Shipped** |
 | Regression — AT fiscal chain | Austrian output unchanged by the country layer | **Shipped** |
 | Unit — CountryProfile registry | Registry returns AT/DE/CH; `EU_DEFAULT` exists but is not selectable; unknown ISO code rejected; AT seed mirrors live defaults; no VAT rates on a profile | **Shipped** |
-| Unit — CountryProfile seed sources | Pin every seed field; `// Source:` comment count is an explicit known gap (0 until Paket 13-b) | **Shipped** (Paket 13) |
+| Unit — CountryProfile seed sources | Pin every seed field; `// Source:` comment count ≥ 24 | **Shipped** (Paket 13 / 13-b) |
 | Unit — VAT-ID shape from seeds | AT/DE/CH valid and invalid cases resolved from `VatIdPattern` | **Shipped** |
 | Unit — strategy resolution | AT + `AT_RKSV_STANDARD` → Austrian strategy; DE + `DE_USTG_STANDARD` → German; regime not allowed by the profile → `UNKNOWN_TAX_REGIME`; unregistered country → throws; DE/CH/EU skeletons throw and name their doc | **Shipped** |
 | Unit — AT delegation | `CalculateTax` equals `CartMoneyHelper` output (decimal and serialized); `ProjectFiscalTaxSets` equals `RksvTaxSetMapper`; numbering and document calls land on the existing services; `tax_exempt` changes nothing | **Shipped** |
@@ -339,11 +339,11 @@ Anyone adding a country layer must keep these fixtures green. If they go red, th
 
 ## 14. Seed Sources
 
-**Verified:** 2026-09-18 (Paket 13). Read-only: tests and this section only. Production seeds were **not** changed.
+**Verified:** 2026-09-18 (Paket 13). **Citations on seeds:** 2026-09-18 (Paket 13-b). Production seed **values** were not changed.
 
 This is an operational check of what the in-code registry currently stores. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance. CountryProfile **does not carry VAT rates**; rate rows below are N/A by design (Paket 13-c).
 
-`CountryProfileRegistry.cs` has **zero** `// Source:` comments today. `CountryProfileSourcesTests` asserts that count as a known gap. Paket 13-b adds the comments and updates the expected count.
+`CountryProfileRegistry.cs` carries `// Source:` comments on sourced seed fields (`CountryProfileSourcesTests` requires at least 24). AT `DefaultLocale` stays `de-DE` (Paket 13-b decision A).
 
 ### 14.1 Verification table
 
@@ -351,7 +351,7 @@ This is an operational check of what the in-code registry currently stores. It i
 |---------|-------|---------------|-----------------|--------|-------|
 | AT | Currency | `EUR` | ISO 4217; Austria uses the euro | Yes | Mirrors live `company_settings` default |
 | AT | DefaultTimeZone | `Europe/Vienna` | IANA tzdb | Yes | |
-| AT | DefaultLocale | `de-DE` | IETF BCP 47: Austrian German is `de-AT` | **DRIFT** | Production default; AT seed must stay byte-identical (Paket 13-b decision) |
+| AT | DefaultLocale | `de-DE` | IETF BCP 47: Austrian German is `de-AT` | **DECISION (A)** | Keep production default `de-DE`. BCP-47 `de-AT` is documented on the seed comment; value unchanged |
 | AT | FiscalSystem | `RKSV_AT` | RKSV, BGBl. II Nr. 410/2015; FinanzOnline | Yes | Only production fiscal module |
 | AT | EInvoicingStandards | `[]` | RKSV Belege are cash-register receipts, not EN 16931 e-invoices | Yes | Empty until an AT e-invoicing builder is wired |
 | AT | VatIdPattern | `^ATU\d{8}$` | BMF UID; Austrian UID is `ATU` + 8 digits; FinanzOnline | Yes | Same literal as the live fiscal path (`VatIdPatterns.Austria`) |
@@ -398,10 +398,10 @@ This is an operational check of what the in-code registry currently stores. It i
 
 ### 14.3 DRIFT and follow-up packages
 
-Do **not** fix these in this package. AT production seeds stay unchanged.
+AT production seed values stay unchanged (`de-DE` kept — decision A).
 
 | ID | Finding | Action |
 |----|---------|--------|
-| **Paket 13-b** | Zero `// Source:` comments on CountryProfile seeds; AT `DefaultLocale` is `de-DE` vs BCP-47 `de-AT` | Add source comments (breaks the known-gap test; update the expected count). Decide whether to change AT locale — that is a production seed change and needs its own review |
+| **Paket 13-b** | `// Source:` comments and AT locale decision | **Closed.** Comments on seeds (≥ 24). AT `DefaultLocale` remains `de-DE` (production default; BCP-47 `de-AT` noted on the comment) |
 | **Paket 13-c** | VAT rates are not CountryProfile fields | Tax-type seeds per country (AT live types already exist; DE/CH/EU not seeded) |
 | **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | Tighten or keep as sentinel-only; must not become a second Austrian/German/Swiss matcher |

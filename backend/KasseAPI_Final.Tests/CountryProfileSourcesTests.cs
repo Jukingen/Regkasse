@@ -7,9 +7,9 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Paket 13: pin every CountryProfile seed field and document the missing
-/// <c>// Source:</c> comments as an explicit known gap (Paket 13-b).
-/// Does not change production seeds. VAT rates are not on the profile (Paket 13-c).
+/// Paket 13 / 13-b: pin every CountryProfile seed field and require
+/// <c>// Source:</c> citations on the registry (minimum 24). VAT rates are not
+/// on the profile (Paket 13-c).
 /// </summary>
 public sealed class CountryProfileSourcesTests
 {
@@ -19,19 +19,19 @@ public sealed class CountryProfileSourcesTests
         new(@"^\s*//\s*Source:", RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// Known gap: CountryProfileRegistry seeds have no <c>// Source:</c> comments yet.
-    /// Expected count is 0 until Paket 13-b adds them; that change must update this assertion.
+    /// Paket 13-b: every sourced seed field carries a <c>// Source:</c> comment.
+    /// Floor is 24; raising the count is allowed, dropping below it is not.
     /// </summary>
     [Fact]
-    public void SourceComments_AreADocumentedKnownGap()
+    public void SourceComments_ArePresentOnSeeds()
     {
         var registryPath = Path.Combine(FindBackendRoot(), "Services", "Countries", "CountryProfileRegistry.cs");
         Assert.True(File.Exists(registryPath), $"CountryProfileRegistry.cs not found at '{registryPath}'.");
 
         var sourceCount = CountSourceComments(registryPath);
         Assert.True(
-            sourceCount == 0,
-            "PAKET 13-B: add // Source: comments to CountryProfile seeds. See docs/COUNTRIES.md Seed Sources.");
+            sourceCount >= 24,
+            $"Expected at least 24 // Source: comments in CountryProfileRegistry.cs, found {sourceCount}. See docs/COUNTRIES.md Seed Sources.");
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class CountryProfileSourcesTests
         Assert.Equal("Austria", austria.Name);
         Assert.True(austria.IsTenantSelectable);
         Assert.Equal("EUR", austria.Currency);
-        // DRIFT: BCP-47 AT = de-AT. See Paket 13-b.
+        // DECISION: keep de-DE (production default). BCP-47 AT is de-AT.
         Assert.Equal("de-DE", austria.DefaultLocale);
         Assert.Equal("Europe/Vienna", austria.DefaultTimeZone);
         Assert.Equal(FiscalSystem.RKSV_AT, austria.FiscalSystem);
