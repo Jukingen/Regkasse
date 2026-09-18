@@ -161,6 +161,45 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (path === '/api/admin/countries' && method === 'GET') {
+      await json(route, 200, [
+        {
+          code: 'AT',
+          name: 'Austria',
+          currency: 'EUR',
+          defaultLocale: 'de-DE',
+          fiscalSystem: 'RKSV_AT',
+          eInvoicingStandards: [],
+          allowedVatRegimes: ['AT_RKSV_STANDARD', 'EU_REVERSE_CHARGE', 'EU_OSS', 'NON_EU'],
+        },
+        {
+          code: 'DE',
+          name: 'Germany',
+          currency: 'EUR',
+          defaultLocale: 'de-DE',
+          fiscalSystem: 'KASSENSICHERHEIT_DE',
+          eInvoicingStandards: ['ZUGFERD', 'XRECHNUNG'],
+          allowedVatRegimes: [
+            'DE_USTG_STANDARD',
+            'DE_KLEINUNTERNEHMER',
+            'EU_REVERSE_CHARGE',
+            'EU_OSS',
+            'NON_EU',
+          ],
+        },
+        {
+          code: 'CH',
+          name: 'Switzerland',
+          currency: 'CHF',
+          defaultLocale: 'de-CH',
+          fiscalSystem: 'MWST_CH',
+          eInvoicingStandards: ['QR_RECHNUNG'],
+          allowedVatRegimes: ['CH_MWST_STANDARD', 'CH_KLEINUNTERNEHMER', 'NON_EU'],
+        },
+      ]);
+      return;
+    }
+
     if (path === '/api/admin/tenants/slug-availability' && method === 'GET') {
       const slug = url.searchParams.get('slug') ?? 'e2e-tenant';
       await json(route, 200, {

@@ -3,8 +3,9 @@ using KasseAPI_Final.Models.Countries;
 namespace KasseAPI_Final.Services.Countries;
 
 /// <summary>
-/// Code-seeded VAT rates per country. Not called from the payment or TSE path
-/// (Paket 13-c-bis). See <c>docs/COUNTRIES.md</c> §14.
+/// Code-seeded VAT rates per country. DE/CH <c>CalculateTax</c> uses this registry (Paket 30-c);
+/// AT stays on live <c>TaxTypes</c>. Not used by the Austrian TSE tax-set path.
+/// See <c>docs/COUNTRIES.md</c> §14.
 /// </summary>
 public sealed class CountryTaxTypeRegistry : ICountryTaxTypeRegistry
 {

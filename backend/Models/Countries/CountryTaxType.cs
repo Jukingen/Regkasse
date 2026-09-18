@@ -3,7 +3,7 @@ namespace KasseAPI_Final.Models.Countries;
 /// <summary>
 /// Immutable, code-seeded VAT rate for one country. Not an EF entity and not a
 /// <see cref="CountryProfile"/> field — rates live here so the profile stays rate-free.
-/// See <c>docs/COUNTRIES.md</c> §14. Not wired into tax calculation (Paket 13-c-bis).
+/// See <c>docs/COUNTRIES.md</c> §14. DE/CH wired via Paket 30-c; AT stays on live TaxTypes.
 /// </summary>
 public sealed class CountryTaxType
 {

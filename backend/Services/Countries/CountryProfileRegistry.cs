@@ -10,8 +10,9 @@ namespace KasseAPI_Final.Services.Countries;
 /// (<c>CompanySettingsController.CreateSettingsShell</c> and the Austrian UID pattern used across the
 /// fiscal path), so it is authoritative. Seeded field values were checked against official sources in
 /// Paket 13; <c>// Source:</c> citations live on the seeds below. See <c>docs/COUNTRIES.md</c> §14
-/// Seed Sources. Do not treat these values as legal guidance. DE/CH/EU modules remain unimplemented
-/// and still gate nothing.
+/// Seed Sources. Do not treat these values as legal guidance. Profiles feed strategy resolvers,
+/// country feature-flag defaults, Super Admin provisioning (`GET /api/admin/countries`), and
+/// <c>IVatIdValidator</c>. DE/CH/EU fiscal modules remain shape-only and are gated by feature flags.
 /// </summary>
 public sealed class CountryProfileRegistry : ICountryProfileRegistry
 {
