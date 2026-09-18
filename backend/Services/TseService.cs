@@ -71,6 +71,23 @@ namespace KasseAPI_Final.Services
             _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
         }
 
+        private RksvTaxSetAmounts ResolveAustrianFiscalTaxSets(
+            CountryStrategyBinding countryBinding,
+            string? taxDetailsJson,
+            decimal totalAmount)
+        {
+            if (!CountryPaymentTaxLineMapper.IsAustria(countryBinding.Profile))
+            {
+                throw new NotSupportedException(
+                    $"RKSV tax-set projection is Austria-only. Country {countryBinding.Profile.Code} uses a different fiscal system.");
+            }
+
+            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
+            return CountryStrategyWiring.RequireTaxSets(
+                taxStrategy.ProjectFiscalTaxSets(taxDetailsJson, totalAmount),
+                countryBinding.Profile.Code);
+        }
+
         private bool CanUseSoftTseFallback() =>
             TseSoftFallbackPolicy.IsAllowed(_tseOptions?.CurrentValue ?? new TseOptions(), _hostEnvironment);
 
@@ -274,10 +291,10 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("registerNumber (fiscal Kassen-ID) is required.", nameof(registerNumber));
 
             var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
-            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
-            var taxSets = CountryStrategyWiring.RequireTaxSets(
-                taxStrategy.ProjectFiscalTaxSets(taxDetailsJson, totalAmount),
-                countryBinding.Profile.Code);
+            var taxSets = ResolveAustrianFiscalTaxSets(
+                countryBinding,
+                taxDetailsJson,
+                totalAmount);
 
             var correlationId = Guid.NewGuid().ToString("N")[..12];
             _logger.LogInformation("CreateInvoiceSignatureAsync started, correlationId={CorrelationId}, invoiceNumber={InvoiceNumber}, enlisted={Enlisted}", correlationId, invoiceNumber, dbTransaction != null);
@@ -729,10 +746,10 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
 
             var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
-            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
-            var closingTaxSets = CountryStrategyWiring.RequireTaxSets(
-                taxStrategy.ProjectFiscalTaxSets("{}", totalAmount),
-                countryBinding.Profile.Code);
+            var closingTaxSets = ResolveAustrianFiscalTaxSets(
+                countryBinding,
+                "{}",
+                totalAmount);
 
             var useSoftFallback = false;
             if (!await _tseProvider.IsReadyAsync())

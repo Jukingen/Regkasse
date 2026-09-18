@@ -1,4 +1,4 @@
-> **Status:** Shape only (Paket 9). Not production-ready. No bank submission. No PDF/QR image.
+> **Status:** Shape only (Paket 9). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not production-ready. No bank submission. No PDF/QR image.
 
 # Fiscal Switzerland (MWST / QR-Rechnung)
 
@@ -19,7 +19,7 @@ This document does **not** include bank submission or PDF QR rendering.
 
 ## Status
 
-**NOT production-ready. Not wired into `PaymentService` / `TseService`.**
+**NOT production-ready. Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only.**
 
 | Item | State |
 |------|--------|
@@ -28,7 +28,7 @@ This document does **not** include bank submission or PDF QR rendering.
 | `SwitzerlandInvoiceStrategy` disclosures / placeholder document | Shape (MWSTG keys + `InvoiceDocumentDto`) |
 | QR-Rechnung payload (SIX) | Shape: `IQrRechnungBuilder` returns IBAN / creditor / debtor / amount / currency / reference. CH/LI prefix only. No bank API |
 | QR-Rechnung PDF / QR image | Not implemented (`BuildPdfAsync` throws) |
-| Wiring into `InvoiceService` / `PaymentService` | Out of scope (Paket 30-c); non-AT tenants still fail closed via `CountryCallSiteGuard` |
+| Wiring into `InvoiceService` / `PaymentService` | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
 
 Feature-flag gates: `Fiscal.MwstCh`, `EInvoicing.QrRechnung`. `Fiscal.RksvAt` stays **off** for CH tenants.
 

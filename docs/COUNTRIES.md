@@ -5,7 +5,7 @@
 
 This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance.
 
-Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Switzerland, and generic EU e-invoicing are **planned**. Three foundations have shipped and are wired to nothing yet: the per-tenant country and VAT-regime **columns**, the **`CountryProfile` registry** (both in [§2](#2-countryprofile-and-the-per-tenant-binding)), and the **strategy layer** — `ITaxStrategy` / `IInvoiceStrategy` with an Austrian adapter and DE/CH/EU skeletons ([§3](#3-taxstrategy-and-invoicestrategy)). No production path calls any of them: `PaymentService`, `TseService`, `ReceiptService`, and `RksvSpecialReceiptService` are untouched. The provisioning country step, the shared VAT-ID validator, and country feature-flag names are **not implemented in code yet**. Do not treat this document as proof that those types exist on disk.
+Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Switzerland, and generic EU e-invoicing are **shape-wired (Paket 30-c)** into `PaymentService` / `InvoiceService` tax and invoice strategies; RKSV special receipts and TSE tax-set projection remain **Austria-only**. The per-tenant country and VAT-regime **columns**, the **`CountryProfile` registry**, and the **strategy layer** (`ITaxStrategy` / `IInvoiceStrategy`) are in use at those call sites. Feature flags still gate DE/CH/EU modules (`FeatureDisabledException` when off). Do not treat this document as a claim of KassenSichV, MWST, or EN 16931 legal compliance.
 
 ---
 
@@ -13,10 +13,10 @@ Austria (RKSV / TSE / FinanzOnline) is the production fiscal system. Germany, Sw
 
 | Country | Fiscal System | Status | Notes |
 |---------|---------------|--------|-------|
-| **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)**; adapter shipped, **not called** | Current behavior unchanged; `AustriaTaxStrategy` / `AustriaInvoiceStrategy` delegate to the existing services and are pinned by the baseline regression suite in [§11](#11-testing-strategy) |
-| **DE** | KassenSicherheit (planned) | Skeleton only — throws | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` throw `NotImplementedException`. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) |
-| **CH** | MWST + QR-Rechnung (planned) | Skeleton only — throws | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` throw `NotImplementedException`. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) |
-| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; skeleton throws | `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` throw `NotImplementedException`. See [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) |
+| **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)**; adapter called | Current behavior unchanged; `AustriaTaxStrategy` / `AustriaInvoiceStrategy` delegate to the existing services and are pinned by the baseline regression suite in [§11](#11-testing-strategy) |
+| **DE** | KassenSicherheit (planned) | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` shape; RKSV special receipts and TSE tax-sets throw `NotSupportedException`. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
+| **CH** | MWST + QR-Rechnung (planned) | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` shape; RKSV special receipts throw `NotSupportedException`. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
+| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; domain wired (Paket 30-c) | `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` shape; TSE/RKSV remain AT-only. See [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 
 `EU_DEFAULT` is a fallback profile identifier, not an ISO 3166-1 alpha-2 code. It must never appear in the Super Admin create-tenant country list.
 
@@ -33,7 +33,7 @@ The intended flow is:
 3. Choose VAT and invoice behavior through **TaxStrategy** / **InvoiceStrategy** plus `CompanySettings.VatRegime`.
 4. Gate country-specific fiscal and e-invoicing modules with **feature flags** stored in the existing `tenant_settings` table.
 
-Steps 1–3 exist in code: the columns, the registry, and the strategy layer with its resolvers. **Step 3 is not yet wired into any production path** — resolving a strategy is possible, but nothing resolves one. Step 4 is still a design target. Until the call sites migrate, the Austrian RKSV/TSE rules in [`AGENTS.md`](../AGENTS.md) and the `RKSV_*.md` docs remain the operative description of live behavior.
+Steps 1–4 exist in code. Paket 30-c wires tax/invoice strategies into `PaymentService` and `InvoiceService`. `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException` for DE/CH/EU). The Austrian RKSV/TSE rules in [`AGENTS.md`](../AGENTS.md) and the `RKSV_*.md` docs remain the operative description of live AT behavior.
 
 ---
 

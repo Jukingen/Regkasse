@@ -26,8 +26,8 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Paket 30: domain call sites resolve country strategies. AT output is pinned to the committed
-/// fiscal-chain baseline; DE/CH skeletons fail closed.
+/// Paket 30 / 30-c: domain call sites resolve country strategies. AT output is pinned to the
+/// committed fiscal-chain baseline; DE/CH/EU invoice shape is wired, RKSV/TSE stay Austria-only.
 /// </summary>
 public sealed class CountryStrategyCallSiteTests
 {
@@ -341,7 +341,7 @@ public sealed class CountryStrategyCallSiteTests
     }
 
     [Fact]
-    public async Task TseService_GermanySettings_ThrowsNotImplemented_BeforeSigning()
+    public async Task TseService_GermanySettings_ThrowsNotSupported_BeforeTaxSets()
     {
         await using var db = CreateDb();
         TenantTestDoubles.EnsurePlatformTenant(db);
@@ -360,18 +360,19 @@ public sealed class CountryStrategyCallSiteTests
             countryStrategyContext: countryContext,
             taxStrategyResolver: TaxResolver);
 
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
             sut.CreateInvoiceSignatureAsync(
                 Guid.NewGuid(),
                 "DE-1",
                 10m,
                 "KASSE-01"));
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Austria-only", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("DE", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task InvoiceService_GermanySettings_ThrowsNotImplemented_WithoutMappingChange()
+    public async Task InvoiceService_GermanySettings_MapsStructuredOntoExistingDto()
     {
         await using var db = CreateDb();
         TenantTestDoubles.EnsurePlatformTenant(db);
@@ -384,7 +385,7 @@ public sealed class CountryStrategyCallSiteTests
             TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions
             {
                 CompanyName = "DE GmbH",
-                TaxNumber = "DE123",
+                TaxNumber = "DE123456789",
                 Street = "S",
                 ZipCode = "10115",
                 City = "Berlin",
@@ -403,21 +404,24 @@ public sealed class CountryStrategyCallSiteTests
             TotalAmount = 10m,
             TaxAmount = 1m,
             PaymentMethodRaw = "0",
-            Steuernummer = "DE123",
+            Steuernummer = "DE123456789",
             CashRegisterId = Guid.NewGuid(),
             ReceiptNumber = "1",
             TaxDetails = JsonDocument.Parse("{}"),
             PaymentItems = JsonDocument.Parse("[]"),
         };
 
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
-            sut.GenerateInvoiceAsync(payment));
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
-        Assert.Equal(0, await db.Invoices.CountAsync());
+        var dto = await sut.GenerateInvoiceAsync(payment);
+
+        Assert.Equal("1", dto.InvoiceNumber);
+        Assert.Equal(9m, dto.Subtotal);
+        Assert.Equal(1m, dto.TaxAmount);
+        Assert.Equal(10m, dto.TotalAmount);
+        Assert.Equal("DE123456789", dto.SellerTaxNumber);
     }
 
     [Fact]
-    public async Task RksvSpecialReceipt_GermanySettings_ThrowsNotImplemented_BeforeBelegNr()
+    public async Task RksvSpecialReceipt_GermanySettings_ThrowsNotSupported_BeforeBelegNr()
     {
         await using var db = CreateDb();
         TenantTestDoubles.EnsurePlatformTenant(db);
@@ -455,12 +459,13 @@ public sealed class CountryStrategyCallSiteTests
             countryStrategyContext: countryContext,
             invoiceStrategyResolver: InvoiceResolver);
 
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
             sut.CreateNullbelegAsync(
                 new CreateNullbelegRequest { CashRegisterId = Guid.NewGuid() },
                 actorUserId: "user-1"));
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Austria-only", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("DE", ex.Message, StringComparison.Ordinal);
         seq.VerifyNoOtherCalls();
         tse.VerifyNoOtherCalls();
     }

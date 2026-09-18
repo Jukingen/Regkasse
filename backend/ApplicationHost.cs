@@ -468,10 +468,12 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Vat.IViesClient, KasseAPI_Final.Services.Countries.Vat.DisabledViesClient>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Vat.IVatIdValidator, KasseAPI_Final.Services.Countries.Vat.VatIdValidator>();
         // Country strategies (docs/COUNTRIES.md §3). Call sites resolve through ICountryStrategyContext.
-        // Austria tax is a stateless adapter → singleton. DE/CH/EU tax read feature flags → scoped.
+        // Austria tax is a stateless adapter → singleton (parameterless ctor; do not inject scoped
+        // IVatIdValidator into the singleton). DE/CH/EU tax read feature flags → scoped.
         // TaxStrategyResolver is scoped so it can consume scoped DE/CH/EU strategies. CountryStrategyContext
         // is already scoped (AppDbContext) — no captive-dependency clash.
-        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy>(
+            _ => new KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy());
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultTaxStrategy>();

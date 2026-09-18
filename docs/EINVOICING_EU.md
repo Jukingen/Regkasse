@@ -1,4 +1,4 @@
-> **Status:** Shape only (Paket 10). Not production-ready. No Peppol / ViDA / tax-authority submission.
+> **Status:** Shape only (Paket 10). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not production-ready. No Peppol / ViDA / tax-authority submission.
 
 # EU e-invoicing (EN 16931) and ViDA readiness
 
@@ -19,7 +19,7 @@ This document does **not** implement tax-authority or network submission.
 
 ## Status
 
-**NOT production-ready. Not wired into `PaymentService` / `TseService`.**
+**NOT production-ready. Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not submission-ready.**
 
 | Item | State |
 |------|--------|
@@ -31,7 +31,7 @@ This document does **not** implement tax-authority or network submission.
 | Peppol Access Point | Not in scope |
 | VIES client | Shipped as optional (`Vies.CheckEnabled`, default **off**); no live VIES in tests |
 | ViDA | Read-only checklist only; no timeline committed |
-| Wiring into `InvoiceService` / `PaymentService` | Out of scope (Paket 30-c); non-AT tenants still fail closed via `CountryCallSiteGuard` |
+| Wiring into `InvoiceService` / `PaymentService` | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
 
 Feature-flag gates: `EInvoicing.En16931`, `EInvoicing.XRechnung` (DE CIUS), `Vies.CheckEnabled` (default **off**). `Fiscal.RksvAt` stays **off** for `EU_DEFAULT`.
 

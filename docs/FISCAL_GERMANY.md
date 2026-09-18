@@ -1,4 +1,4 @@
-> **Status:** Skeleton (shape only). Not production-ready. No DE TSE provider.
+> **Status:** Shape only. Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not production-ready. No DE TSE provider.
 
 # Fiscal Germany (KassenSichV)
 
@@ -19,7 +19,7 @@ Do not use this document to change Austrian payment, TSE, or FinanzOnline behavi
 
 ## Status
 
-**NOT production-ready. Not wired into `PaymentService` / `TseService`.**
+**NOT production-ready. Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only.**
 
 | Item | State |
 |------|--------|
@@ -28,7 +28,7 @@ Do not use this document to change Austrian payment, TSE, or FinanzOnline behavi
 | `GermanyInvoiceStrategy` disclosures / placeholder document | Shape (UStG §14 keys + `InvoiceDocumentDto`) |
 | `IKassenSicherheitService` | Stub: flag off → `FEATURE_DISABLED`; `Provider=not-configured` → no-op; other provider → `NotImplementedException` |
 | ZUGFeRD / XRechnung XML | Stub throws `NotImplementedException` (`docs/FISCAL_GERMANY.md`) |
-| Wiring into `PaymentService` | Out of scope (Paket 30-c) |
+| Wiring into `PaymentService` / `InvoiceService` | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
 
 Feature-flag gate: `Fiscal.KassenSicherheitDe`. ZUGFeRD XML: `EInvoicing.Zugferd`. `Fiscal.RksvAt` stays **off** for DE tenants.
 

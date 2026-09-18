@@ -75,6 +75,7 @@ namespace KasseAPI_Final.Services
         private readonly IPreorderService? _preorderService;
         private readonly ICountryStrategyContext _countryStrategyContext;
         private readonly ITaxStrategyResolver _taxStrategyResolver;
+        private readonly ICountryTaxTypeRegistry _taxTypes;
 
         public PaymentService(
             AppDbContext context,
@@ -117,7 +118,8 @@ namespace KasseAPI_Final.Services
             IPreorderService? preorderService = null,
             ICountryStrategyContext? countryStrategyContext = null,
             ITaxStrategyResolver? taxStrategyResolver = null,
-            ICountryProfileRegistry? countryProfileRegistry = null)
+            ICountryProfileRegistry? countryProfileRegistry = null,
+            ICountryTaxTypeRegistry? countryTaxTypeRegistry = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -161,6 +163,7 @@ namespace KasseAPI_Final.Services
             _countryStrategyContext = countryStrategyContext
                 ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
             _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
+            _taxTypes = countryTaxTypeRegistry ?? new CountryTaxTypeRegistry();
         }
 
         /// <summary>
@@ -865,12 +868,18 @@ namespace KasseAPI_Final.Services
 
                     var taxResult = taxStrategy.CalculateTax(
                         pricedLines.ConvertAll(l =>
-                            TaxLineItemInput.FromTaxType(l.UnitGross, l.Item.Quantity, l.Product.TaxType)),
+                            CountryPaymentTaxLineMapper.FromProductTaxType(
+                                countryBinding.Profile,
+                                l.UnitGross,
+                                l.Item.Quantity,
+                                l.Product.TaxType,
+                                _taxTypes)),
                         new TaxCalculationContext
                         {
                             CountryProfile = countryBinding.Profile,
                             VatRegime = countryBinding.VatRegime,
                             TaxExempt = countryBinding.Settings.TaxExempt,
+                            BuyerVatId = request.Steuernummer,
                         });
 
                     for (var i = 0; i < pricedLines.Count; i++)
@@ -1590,7 +1599,12 @@ namespace KasseAPI_Final.Services
 
             var taxResult = taxStrategy.CalculateTax(
                 pricedLines.ConvertAll(l =>
-                    TaxLineItemInput.FromTaxType(l.UnitGross, l.Item.Quantity, l.Product.TaxType)),
+                    CountryPaymentTaxLineMapper.FromProductTaxType(
+                        countryBinding.Profile,
+                        l.UnitGross,
+                        l.Item.Quantity,
+                        l.Product.TaxType,
+                        _taxTypes)),
                 new TaxCalculationContext
                 {
                     CountryProfile = countryBinding.Profile,

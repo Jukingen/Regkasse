@@ -90,13 +90,18 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     };
 
     /// <summary>
-    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). Non-AT
-    /// mandants throw <see cref="NotImplementedException"/> until Paket 30-c wires them.
+    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). DE/CH/EU
+    /// throw — RKSV special receipts are Austria-only.
     /// </summary>
     private async Task EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
     {
         var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
-        CountryCallSiteGuard.EnsureAustriaWired(binding.Profile, nameof(CreateNullbelegAsync));
+        if (!CountryPaymentTaxLineMapper.IsAustria(binding.Profile))
+        {
+            throw new NotSupportedException(
+                $"RKSV special receipts are Austria-only. Country {binding.Profile.Code} uses a different fiscal system.");
+        }
+
         var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
         _ = strategy.GetMandatoryDisclosures(binding.Settings, customer: null);
     }

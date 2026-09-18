@@ -55,7 +55,6 @@ public sealed class InvoiceService : IInvoiceService
     private async Task EnsureCountryInvoiceGateAsync(CancellationToken cancellationToken)
     {
         var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
-        CountryCallSiteGuard.EnsureAustriaWired(binding.Profile, nameof(GenerateInvoiceAsync));
         var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
         _ = invoiceStrategy.GetMandatoryDisclosures(binding.Settings, customer: null);
         var taxStrategy = _taxStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
@@ -79,6 +78,10 @@ public sealed class InvoiceService : IInvoiceService
 
     private async Task<Invoice> BuildInvoiceFromPaymentAsync(PaymentDetails payment, CancellationToken cancellationToken)
     {
+        var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (!CountryPaymentTaxLineMapper.IsAustria(binding.Profile))
+            return await BuildNonAtInvoiceFromStrategyAsync(payment, binding, cancellationToken).ConfigureAwait(false);
+
         var (sellerName, sellerAddress, sellerTaxNumber, sellerPhone, sellerEmail) =
             await ResolveSellerContextAsync(payment, cancellationToken).ConfigureAwait(false);
 
@@ -105,6 +108,70 @@ public sealed class InvoiceService : IInvoiceService
             CustomerTaxNumber = payment.Steuernummer,
             CompanyName = sellerName,
             CompanyTaxNumber = sellerTaxNumber,
+            CompanyAddress = sellerAddress,
+            CompanyPhone = sellerPhone,
+            CompanyEmail = sellerEmail,
+            TseSignature = payment.TseSignature ?? string.Empty,
+            KassenId = kassenId,
+            CashRegisterId = payment.CashRegisterId,
+            TseTimestamp = payment.TseTimestamp,
+            PaymentMethod = payment.PaymentMethod,
+            PaymentReference = payment.TransactionId,
+            PaymentDate = payment.CreatedAt,
+            InvoiceItems = payment.PaymentItems,
+            TaxDetails = payment.TaxDetails ?? System.Text.Json.JsonDocument.Parse("{}"),
+            IsActive = true,
+            InvoiceDataProvenance = "DerivedFromPayment",
+        };
+    }
+
+    private async Task<Invoice> BuildNonAtInvoiceFromStrategyAsync(
+        PaymentDetails payment,
+        CountryStrategyBinding binding,
+        CancellationToken cancellationToken)
+    {
+        var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        Customer? customer = null;
+        if (payment.CustomerId != Guid.Empty)
+        {
+            customer = await _context.Customers.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == payment.CustomerId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var document = await invoiceStrategy
+            .BuildInvoiceDocumentAsync(payment, binding.Settings, customer, cancellationToken)
+            .ConfigureAwait(false);
+        var structured = document.Structured
+            ?? throw new InvalidOperationException(
+                $"Non-AT invoice strategy '{binding.Profile.Code}' returned a null Structured document.");
+
+        var (sellerName, sellerAddress, sellerTaxNumber, sellerPhone, sellerEmail) =
+            await ResolveSellerContextAsync(payment, cancellationToken).ConfigureAwait(false);
+
+        var kassenId = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == payment.CashRegisterId)
+            .Select(r => r.RegisterNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false) ?? string.Empty;
+
+        return new Invoice
+        {
+            Id = payment.Id,
+            SourcePaymentId = payment.Id,
+            InvoiceNumber = structured.InvoiceNumber ?? payment.ReceiptNumber ?? string.Empty,
+            InvoiceDate = structured.InvoiceDate ?? payment.CreatedAt,
+            DueDate = structured.InvoiceDate ?? payment.CreatedAt,
+            Status = InvoiceStatus.Paid,
+            Subtotal = structured.NetAmount,
+            TaxAmount = structured.TaxAmount,
+            TotalAmount = structured.GrossAmount,
+            PaidAmount = structured.GrossAmount,
+            RemainingAmount = 0,
+            CustomerName = payment.CustomerName,
+            CustomerTaxNumber = payment.Steuernummer,
+            CompanyName = sellerName,
+            CompanyTaxNumber = structured.SellerTaxNumber ?? structured.SellerVatId ?? sellerTaxNumber,
             CompanyAddress = sellerAddress,
             CompanyPhone = sellerPhone,
             CompanyEmail = sellerEmail,
