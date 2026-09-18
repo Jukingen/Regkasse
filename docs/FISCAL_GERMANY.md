@@ -1,11 +1,11 @@
-> **Status:** Stub. Not production-ready. No code implemented yet.
+> **Status:** Skeleton (shape only). Not production-ready. No DE TSE provider.
 
 # Fiscal Germany (KassenSichV)
 
-**Last updated:** 2026-09-16  
+**Last updated:** 2026-09-18  
 **Hub:** [`COUNTRIES.md`](COUNTRIES.md) · **Rules:** [`../AGENTS.md`](../AGENTS.md)
 
-This page is a placeholder for future Germany cash-register and e-invoicing work. It is not a legal opinion and does not claim KassenSichV, DSFinV-K, ZUGFeRD, or XRechnung compliance.
+This page describes the **shape** of the German cash-register and e-invoicing module. It is not a legal opinion and does not claim KassenSichV, DSFinV-K, ZUGFeRD, or XRechnung compliance.
 
 ---
 
@@ -19,18 +19,20 @@ Do not use this document to change Austrian payment, TSE, or FinanzOnline behavi
 
 ## Status
 
-**NOT production-ready. No code implemented yet.**
+**NOT production-ready. Not wired into `PaymentService` / `TseService`.**
 
 | Item | State |
 |------|--------|
-| `CountryProfile` DE seed | Planned — see [`COUNTRIES.md`](COUNTRIES.md) |
-| KassenSicherheit / DE TSE providers | Planned skeleton only |
-| ZUGFeRD / XRechnung | Planned; EU EN 16931 relationship in [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) |
-| Wiring into `PaymentService` | Out of scope for this stub |
+| `CountryProfile` DE seed | Shipped |
+| `GermanyTaxStrategy.CalculateTax` | Shape: CountryTaxType 19/7 + `CartMoneyHelper` line math; AT buckets not used |
+| `GermanyInvoiceStrategy` disclosures / placeholder document | Shape (UStG §14 keys + `InvoiceDocumentDto`) |
+| `IKassenSicherheitService` | Stub: flag off → `FEATURE_DISABLED`; `Provider=not-configured` → no-op; other provider → `NotImplementedException` |
+| ZUGFeRD / XRechnung XML | Stub throws `NotImplementedException` (`docs/FISCAL_GERMANY.md`) |
+| Wiring into `PaymentService` | Out of scope (Paket 30-c) |
 
-Planned feature-flag gates (not in code): `Fiscal.KassenSicherheitDe`, `EInvoicing.Zugferd`, `EInvoicing.XRechnung`. `Fiscal.RksvAt` must stay **off** for DE tenants.
+Feature-flag gate: `Fiscal.KassenSicherheitDe`. ZUGFeRD XML: `EInvoicing.Zugferd`. `Fiscal.RksvAt` stays **off** for DE tenants.
 
-Simulated or fake DE signing, when it exists, must fail closed outside Development, in the same spirit as the Austrian TSE production lock. This document does not name a required vendor.
+Simulated or fake DE signing is rejected at host startup (`CountryFiscalLockEvaluator`). This document does not name a required vendor.
 
 ---
 

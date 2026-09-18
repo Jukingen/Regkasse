@@ -18,7 +18,10 @@ public sealed record ReceiptNumberAllocationContext
 /// Country-neutral wrapper around the document the existing services already produce. Austria returns
 /// the RKSV <see cref="ReceiptDTO"/> unchanged — no field is re-derived here.
 /// </summary>
-public sealed record InvoiceDocument(string CountryCode, ReceiptDTO Receipt);
+public sealed record InvoiceDocument(
+    string CountryCode,
+    ReceiptDTO Receipt,
+    InvoiceDocumentDto? Structured = null);
 
 /// <summary>
 /// One legally mandated disclosure, as a **requirement** rather than a rendered value: the printed

@@ -90,12 +90,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     };
 
     /// <summary>
-    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). DE/CH/EU
-    /// skeletons throw <see cref="NotImplementedException"/> naming the country doc.
+    /// Fail-closed country gate. AT returns the constant disclosure list (discarded). Non-AT
+    /// mandants throw <see cref="NotImplementedException"/> until Paket 30-c wires them.
     /// </summary>
     private async Task EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
     {
         var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        CountryCallSiteGuard.EnsureAustriaWired(binding.Profile, nameof(CreateNullbelegAsync));
         var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
         _ = strategy.GetMandatoryDisclosures(binding.Settings, customer: null);
     }

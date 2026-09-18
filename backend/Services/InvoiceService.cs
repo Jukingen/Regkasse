@@ -55,6 +55,7 @@ public sealed class InvoiceService : IInvoiceService
     private async Task EnsureCountryInvoiceGateAsync(CancellationToken cancellationToken)
     {
         var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
+        CountryCallSiteGuard.EnsureAustriaWired(binding.Profile, nameof(GenerateInvoiceAsync));
         var invoiceStrategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
         _ = invoiceStrategy.GetMandatoryDisclosures(binding.Settings, customer: null);
         var taxStrategy = _taxStrategyResolver.Resolve(binding.Profile, binding.VatRegime);

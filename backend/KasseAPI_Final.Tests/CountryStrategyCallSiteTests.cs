@@ -201,37 +201,42 @@ public sealed class CountryStrategyCallSiteTests
     }
 
     [Fact]
-    public void GermanyTaxStrategy_CalculateTax_ThrowsWithFiscalGermanyDoc()
+    public void GermanyTaxStrategy_CalculateTax_UsesDeRates()
     {
         var strategy = TaxResolver.Resolve(
             Registry.Get(CountryProfileCodes.Germany),
             VatRegime.DE_USTG_STANDARD);
 
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            strategy.CalculateTax(
-                [TaxLineItemInput.FromTaxType(10m, 1, TaxTypes.Standard)],
-                new TaxCalculationContext
-                {
-                    CountryProfile = Registry.Get(CountryProfileCodes.Germany),
-                    VatRegime = VatRegime.DE_USTG_STANDARD,
-                    TaxExempt = false,
-                }));
+        var result = strategy.CalculateTax(
+            [
+                TaxLineItemInput.FromVatPercent(119m, 1, 19m),
+                TaxLineItemInput.FromVatPercent(107m, 1, 7m),
+            ],
+            new TaxCalculationContext
+            {
+                CountryProfile = Registry.Get(CountryProfileCodes.Germany),
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+                TaxExempt = false,
+            });
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(ITaxStrategy.CalculateTax), ex.Message, StringComparison.Ordinal);
+        Assert.Equal(19m, result.TaxSummary.Single(s => s.TaxRatePct == 19m).TaxRatePct);
+        Assert.Equal(7m, result.TaxSummary.Single(s => s.TaxRatePct == 7m).TaxRatePct);
     }
 
     [Fact]
-    public void GermanyInvoiceStrategy_GetMandatoryDisclosures_ThrowsWithFiscalGermanyDoc()
+    public void GermanyInvoiceStrategy_GetMandatoryDisclosures_ReturnsUstgKeys()
     {
         var strategy = InvoiceResolver.Resolve(
             Registry.Get(CountryProfileCodes.Germany),
             VatRegime.DE_USTG_STANDARD);
 
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            strategy.GetMandatoryDisclosures(new CompanySettings { Country = "DE" }, customer: null));
+        var keys = strategy.GetMandatoryDisclosures(new CompanySettings { Country = "DE" }, customer: null)
+            .Select(d => d.Key)
+            .ToArray();
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("seller.vatId", keys);
+        Assert.Contains("invoice.number", keys);
+        Assert.Contains("invoice.gross", keys);
     }
 
     [Fact]

@@ -122,7 +122,6 @@ public sealed class CountryStrategyResolverTests
     }
 
     [Theory]
-    [InlineData("DE", "docs/FISCAL_GERMANY.md")]
     [InlineData("CH", "docs/FISCAL_SWITZERLAND.md")]
     [InlineData("EU_DEFAULT", "docs/EINVOICING_EU.md")]
     public void PlannedTaxStrategies_ThrowAndNameTheDocumentationToExecuteFirst(
@@ -131,7 +130,6 @@ public sealed class CountryStrategyResolverTests
     {
         ITaxStrategy strategy = countryCode switch
         {
-            "DE" => new GermanyTaxStrategy(),
             "CH" => new SwitzerlandTaxStrategy(),
             _ => new EuDefaultTaxStrategy(),
         };
@@ -152,8 +150,16 @@ public sealed class CountryStrategyResolverTests
         Assert.Contains(expectedDocPath, project.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GermanyTaxStrategy_ProjectFiscalTaxSets_StillThrows()
+    {
+        var ex = Assert.Throws<NotImplementedException>(() =>
+            new GermanyTaxStrategy().ProjectFiscalTaxSets("{}", 0m));
+
+        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
-    [InlineData("DE", "docs/FISCAL_GERMANY.md")]
     [InlineData("CH", "docs/FISCAL_SWITZERLAND.md")]
     [InlineData("EU_DEFAULT", "docs/EINVOICING_EU.md")]
     public async Task PlannedInvoiceStrategies_ThrowAndNameTheDocumentationToExecuteFirst(
@@ -162,7 +168,6 @@ public sealed class CountryStrategyResolverTests
     {
         IInvoiceStrategy strategy = countryCode switch
         {
-            "DE" => new GermanyInvoiceStrategy(),
             "CH" => new SwitzerlandInvoiceStrategy(),
             _ => new EuDefaultInvoiceStrategy(),
         };
@@ -174,5 +179,15 @@ public sealed class CountryStrategyResolverTests
 
         Assert.Contains(expectedDocPath, allocate.Message, StringComparison.Ordinal);
         Assert.Contains(expectedDocPath, disclosures.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GermanyInvoiceStrategy_AllocateReceiptNumber_StillThrows()
+    {
+        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+            new GermanyInvoiceStrategy().AllocateReceiptNumberAsync(
+                new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
+
+        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
     }
 }
