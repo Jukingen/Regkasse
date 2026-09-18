@@ -48,6 +48,12 @@ public sealed record TaxCalculationContext
     /// the live payment path has no exemption branch and this package must not introduce one.
     /// </summary>
     public bool TaxExempt { get; init; }
+
+    /// <summary>
+    /// Buyer VAT-ID for intra-EU reverse charge. Consumed by <c>EuDefaultTaxStrategy</c> only;
+    /// other strategies ignore it.
+    /// </summary>
+    public string? BuyerVatId { get; init; }
 }
 
 /// <summary>
@@ -121,8 +127,7 @@ public sealed record InvoiceFieldRequirements
 
     /// <summary>
     /// Whether the country requires the customer VAT-ID on the document. False for Austria: POS
-    /// receipts never require it. Reverse-charge and cross-border field rules are planned
-    /// (see <c>docs/EINVOICING_EU.md</c>).
+    /// receipts never require it. True for <c>EU_REVERSE_CHARGE</c> on the EU default strategy.
     /// </summary>
     public required bool RequiresCustomerVatId { get; init; }
 }

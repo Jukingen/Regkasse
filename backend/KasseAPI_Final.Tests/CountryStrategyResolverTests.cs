@@ -82,12 +82,34 @@ public sealed class CountryStrategyResolverTests
         Assert.IsType<GermanyInvoiceStrategy>(strategy);
     }
 
+    [Fact]
+    public void TaxResolver_EuDefault_WithEuRegime_ResolvesEuStrategy()
+    {
+        var strategy = TaxResolver().Resolve(
+            Registry.Get(CountryProfileCodes.EuDefault),
+            VatRegime.EU_REVERSE_CHARGE);
+
+        Assert.IsType<EuDefaultTaxStrategy>(strategy);
+        Assert.Equal(CountryProfileCodes.EuDefault, strategy.CountryCode);
+    }
+
+    [Fact]
+    public void InvoiceResolver_EuDefault_WithEuRegime_ResolvesEuStrategy()
+    {
+        var strategy = InvoiceResolver().Resolve(
+            Registry.Get(CountryProfileCodes.EuDefault),
+            VatRegime.EU_OSS);
+
+        Assert.IsType<EuDefaultInvoiceStrategy>(strategy);
+    }
+
     [Theory]
     [InlineData("AT", VatRegime.DE_USTG_STANDARD)]
     [InlineData("AT", VatRegime.CH_MWST_STANDARD)]
     [InlineData("DE", VatRegime.AT_RKSV_STANDARD)]
     [InlineData("CH", VatRegime.EU_OSS)]
     [InlineData("CH", VatRegime.EU_REVERSE_CHARGE)]
+    [InlineData("EU_DEFAULT", VatRegime.AT_RKSV_STANDARD)]
     public void Resolvers_Throw_WhenRegimeIsNotAllowedForTheCountry(string countryCode, VatRegime regime)
     {
         var profile = Registry.Get(countryCode);
@@ -142,28 +164,13 @@ public sealed class CountryStrategyResolverTests
         Assert.IsType<SwitzerlandInvoiceStrategy>(strategy);
     }
 
-    [Theory]
-    [InlineData("EU_DEFAULT", "docs/EINVOICING_EU.md")]
-    public void PlannedTaxStrategies_ThrowAndNameTheDocumentationToExecuteFirst(
-        string countryCode,
-        string expectedDocPath)
+    [Fact]
+    public void EuDefaultTaxStrategy_ProjectFiscalTaxSets_StillThrows()
     {
-        ITaxStrategy strategy = new EuDefaultTaxStrategy();
+        var ex = Assert.Throws<NotImplementedException>(() =>
+            new EuDefaultTaxStrategy().ProjectFiscalTaxSets("{}", 0m));
 
-        var profile = Registry.Get(countryCode);
-        var context = new TaxCalculationContext
-        {
-            CountryProfile = profile,
-            VatRegime = profile.AllowedVatRegimes[0],
-        };
-
-        var calculate = Assert.Throws<NotImplementedException>(() => strategy.CalculateTax([], context));
-        var validate = Assert.Throws<NotImplementedException>(() => strategy.ValidateVatId("XX000", profile));
-        var project = Assert.Throws<NotImplementedException>(() => strategy.ProjectFiscalTaxSets("{}", 0m));
-
-        Assert.Contains(expectedDocPath, calculate.Message, StringComparison.Ordinal);
-        Assert.Contains(expectedDocPath, validate.Message, StringComparison.Ordinal);
-        Assert.Contains(expectedDocPath, project.Message, StringComparison.Ordinal);
+        Assert.Contains(CountryStrategyDocs.EuDefault, ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -185,18 +192,13 @@ public sealed class CountryStrategyResolverTests
     }
 
     [Fact]
-    public async Task PlannedInvoiceStrategies_ThrowAndNameTheDocumentationToExecuteFirst()
+    public async Task EuDefaultInvoiceStrategy_AllocateReceiptNumber_StillThrows()
     {
-        const string expectedDocPath = "docs/EINVOICING_EU.md";
-        IInvoiceStrategy strategy = new EuDefaultInvoiceStrategy();
+        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+            new EuDefaultInvoiceStrategy().AllocateReceiptNumberAsync(
+                new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
 
-        var allocate = await Assert.ThrowsAsync<NotImplementedException>(() =>
-            strategy.AllocateReceiptNumberAsync(new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
-        var disclosures = Assert.Throws<NotImplementedException>(() =>
-            strategy.GetMandatoryDisclosures(new CompanySettings(), null));
-
-        Assert.Contains(expectedDocPath, allocate.Message, StringComparison.Ordinal);
-        Assert.Contains(expectedDocPath, disclosures.Message, StringComparison.Ordinal);
+        Assert.Contains(CountryStrategyDocs.EuDefault, ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
