@@ -44,9 +44,18 @@ Austria RKSV receipts and German ZUGFeRD are **not** defined here. See `RKSV_*.m
 - `EU_DEFAULT` is a fallback profile, not an ISO country code. Real mandants keep an ISO alpha-2 code (or AT backfill).
 - Tax and invoice strategies use `VatRegime` (including OSS and reverse charge) without forking `PaymentService`.
 - Reverse charge requires a buyer VAT-ID. Prefix `AT` / `DE` / `CH` uses that seeded profile regex; otherwise the context profile (`EU_DEFAULT` `^[A-Z]{2}[A-Z0-9]{8,12}$`). Missing or invalid shape → `VAT_ID_SHAPE_INVALID`. Never `GetOrDefault` (that would fall back to AT).
+- **Limitation:** an AT tenant with `VatRegime=EU_REVERSE_CHARGE` is **not** supported today. The resolver picks `AustriaTaxStrategy` by country code, so reverse charge does not apply. Future package (Paket 12-c or 30-e) may add cross-regime support. Do not change the resolver for this gap.
 - EN 16931 is the semantic target. UBL vs CII is an open question; this stub does not require Peppol.
 - VIES: mockable client behind `Vies.CheckEnabled`. Never call the live network from unit tests.
 - ViDA: a read-only readiness object (planned fields: `en16931Ready`, `viesEnabled`, `ossRegistered`, `eInvoicingCapable`). No submission API. This document does not assign a go-live date.
+
+---
+
+## OSS placeholder (Paket 30-c)
+
+OSS is **wired but not destination-rated**. `CountryPaymentTaxLineMapper` (and therefore `PaymentService`) maps EU_DEFAULT product `TaxType` ints through `TaxTypes.GetTaxRate` — the Austrian 20 / 10 / 13 / 0 / 4.9 stand-in. `EuDefaultTaxStrategy.CalculateOss` then uses the line `VatRatePercent` as-is.
+
+This is a **temporary placeholder**. Paket 30-d will add the real OSS destination-rate table. Tests pin the stand-in (`EuOss_CurrentlyUsesAtRates_TemporaryUntilPaket30d`) so the swap is visible.
 
 ---
 

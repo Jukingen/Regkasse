@@ -123,6 +123,10 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
         };
     }
 
+    /// <summary>
+    /// TEMP: OSS line rates currently come from the caller (Paket 30-c mapper uses
+    /// <c>TaxTypes.GetTaxRate</c> as an AT-rate stand-in). Real destination OSS table is Paket 30-d.
+    /// </summary>
     private static TaxCalculationResult CalculateOss(IReadOnlyList<TaxLineItemInput> lineItems)
     {
         var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
@@ -212,6 +216,9 @@ public sealed class EuDefaultInvoiceStrategy : IInvoiceStrategy
     private static readonly DisclosureRequirement BuyerVatIdDisclosure =
         new("buyer.vatId", LegalBasis, nameof(Customer.TaxNumber));
 
+    private static readonly DisclosureRequirement ReverseChargeDisclosure =
+        new("invoice.reverseCharge", "Reverse charge (VAT category AE)", nameof(PaymentDetails.TaxAmount));
+
     private readonly IFeatureFlagService? _featureFlags;
 
     public EuDefaultInvoiceStrategy(IFeatureFlagService? featureFlags = null)
@@ -281,10 +288,11 @@ public sealed class EuDefaultInvoiceStrategy : IInvoiceStrategy
         if (company.VatRegime != VatRegime.EU_REVERSE_CHARGE)
             return CoreDisclosures;
 
-        var withBuyerVat = new List<DisclosureRequirement>(CoreDisclosures.Count + 1);
-        withBuyerVat.AddRange(CoreDisclosures);
-        withBuyerVat.Add(BuyerVatIdDisclosure);
-        return withBuyerVat;
+        var withReverseCharge = new List<DisclosureRequirement>(CoreDisclosures.Count + 2);
+        withReverseCharge.AddRange(CoreDisclosures);
+        withReverseCharge.Add(BuyerVatIdDisclosure);
+        withReverseCharge.Add(ReverseChargeDisclosure);
+        return withReverseCharge;
     }
 
     private void EnsureEnabled()
