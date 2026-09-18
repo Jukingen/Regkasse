@@ -473,11 +473,12 @@ internal static class ApplicationHost
         // is already scoped (AppDbContext) — no captive-dependency clash.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyTaxStrategy>();
-        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.TaxStrategyResolver>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.NotImplementedKassenSicherheitService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
         // Invoice strategies depend on scoped services (sequence reservation, receipts) → scoped.
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyInvoiceStrategy>();

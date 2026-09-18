@@ -121,18 +121,34 @@ public sealed class CountryStrategyResolverTests
         Assert.IsType<AustriaTaxStrategy>(strategy);
     }
 
+    [Fact]
+    public void TaxResolver_Switzerland_WithSwissRegime_ResolvesSwissStrategy()
+    {
+        var strategy = TaxResolver().Resolve(
+            Registry.Get(CountryProfileCodes.Switzerland),
+            VatRegime.CH_MWST_STANDARD);
+
+        Assert.IsType<SwitzerlandTaxStrategy>(strategy);
+        Assert.Equal(CountryProfileCodes.Switzerland, strategy.CountryCode);
+    }
+
+    [Fact]
+    public void InvoiceResolver_Switzerland_WithSwissRegime_ResolvesSwissStrategy()
+    {
+        var strategy = InvoiceResolver().Resolve(
+            Registry.Get(CountryProfileCodes.Switzerland),
+            VatRegime.CH_MWST_STANDARD);
+
+        Assert.IsType<SwitzerlandInvoiceStrategy>(strategy);
+    }
+
     [Theory]
-    [InlineData("CH", "docs/FISCAL_SWITZERLAND.md")]
     [InlineData("EU_DEFAULT", "docs/EINVOICING_EU.md")]
     public void PlannedTaxStrategies_ThrowAndNameTheDocumentationToExecuteFirst(
         string countryCode,
         string expectedDocPath)
     {
-        ITaxStrategy strategy = countryCode switch
-        {
-            "CH" => new SwitzerlandTaxStrategy(),
-            _ => new EuDefaultTaxStrategy(),
-        };
+        ITaxStrategy strategy = new EuDefaultTaxStrategy();
 
         var profile = Registry.Get(countryCode);
         var context = new TaxCalculationContext
@@ -159,18 +175,20 @@ public sealed class CountryStrategyResolverTests
         Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("CH", "docs/FISCAL_SWITZERLAND.md")]
-    [InlineData("EU_DEFAULT", "docs/EINVOICING_EU.md")]
-    public async Task PlannedInvoiceStrategies_ThrowAndNameTheDocumentationToExecuteFirst(
-        string countryCode,
-        string expectedDocPath)
+    [Fact]
+    public void SwitzerlandTaxStrategy_ProjectFiscalTaxSets_StillThrows()
     {
-        IInvoiceStrategy strategy = countryCode switch
-        {
-            "CH" => new SwitzerlandInvoiceStrategy(),
-            _ => new EuDefaultInvoiceStrategy(),
-        };
+        var ex = Assert.Throws<NotImplementedException>(() =>
+            new SwitzerlandTaxStrategy().ProjectFiscalTaxSets("{}", 0m));
+
+        Assert.Contains("docs/FISCAL_SWITZERLAND.md", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PlannedInvoiceStrategies_ThrowAndNameTheDocumentationToExecuteFirst()
+    {
+        const string expectedDocPath = "docs/EINVOICING_EU.md";
+        IInvoiceStrategy strategy = new EuDefaultInvoiceStrategy();
 
         var allocate = await Assert.ThrowsAsync<NotImplementedException>(() =>
             strategy.AllocateReceiptNumberAsync(new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
@@ -189,5 +207,15 @@ public sealed class CountryStrategyResolverTests
                 new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
 
         Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SwitzerlandInvoiceStrategy_AllocateReceiptNumber_StillThrows()
+    {
+        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+            new SwitzerlandInvoiceStrategy().AllocateReceiptNumberAsync(
+                new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
+
+        Assert.Contains("docs/FISCAL_SWITZERLAND.md", ex.Message, StringComparison.Ordinal);
     }
 }
