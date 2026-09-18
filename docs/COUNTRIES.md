@@ -94,7 +94,7 @@ Lookup semantics: `GetOrDefault` resolves unknown, legacy, or blank codes to **A
 
 A profile deliberately carries **no VAT rates** — a unit test fails the build if a rate-like property is added.
 
-**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); Paket 13-b added `// Source:` comments on the seeds (minimum 24). VAT rates are not on the profile (Paket 13-c). DE/CH/EU modules remain unimplemented and still gate nothing.
+**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); Paket 13-b added `// Source:` comments on the seeds (minimum 24). VAT rates are **not** on the profile — they live on `ICountryTaxTypeRegistry` (Paket 13-c) and are not wired into calculation yet (Paket 13-c-bis). DE/CH/EU modules remain unimplemented and still gate nothing.
 
 ---
 
@@ -278,6 +278,7 @@ Rollback is per country and flag-driven, not schema-driven.
 | Regression — AT fiscal chain | Austrian output unchanged by the country layer | **Shipped** |
 | Unit — CountryProfile registry | Registry returns AT/DE/CH; `EU_DEFAULT` exists but is not selectable; unknown ISO code rejected; AT seed mirrors live defaults; no VAT rates on a profile | **Shipped** |
 | Unit — CountryProfile seed sources | Pin every seed field; `// Source:` comment count ≥ 24 | **Shipped** (Paket 13 / 13-b) |
+| Unit — Country tax type seeds | AT 20/10/13/0/4.9 pin live `TaxTypes`; DE 19/7; CH 8.1/2.6/3.8; unknown/`EU_DEFAULT` → empty (no AT fallback) | **Shipped** (Paket 13-c; not wired) |
 | Unit — VAT-ID shape from seeds | AT/DE/CH valid and invalid cases resolved from `VatIdPattern` | **Shipped** |
 | Unit — strategy resolution | AT + `AT_RKSV_STANDARD` → Austrian strategy; DE + `DE_USTG_STANDARD` → German; regime not allowed by the profile → `UNKNOWN_TAX_REGIME`; unregistered country → throws; DE/CH/EU skeletons throw and name their doc | **Shipped** |
 | Unit — AT delegation | `CalculateTax` equals `CartMoneyHelper` output (decimal and serialized); `ProjectFiscalTaxSets` equals `RksvTaxSetMapper`; numbering and document calls land on the existing services; `tax_exempt` changes nothing | **Shipped** |
@@ -341,7 +342,7 @@ Anyone adding a country layer must keep these fixtures green. If they go red, th
 
 **Verified:** 2026-09-18 (Paket 13). **Citations on seeds:** 2026-09-18 (Paket 13-b). Production seed **values** were not changed.
 
-This is an operational check of what the in-code registry currently stores. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance. CountryProfile **does not carry VAT rates**; rate rows below are N/A by design (Paket 13-c).
+This is an operational check of what the in-code registry currently stores. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance. CountryProfile **does not carry VAT rates**; rate rows below stay N/A on the profile. Country-scoped rates live in `ICountryTaxTypeRegistry` (Paket 13-c) and are **not** used by `PaymentService` / `AustriaTaxStrategy` yet (Paket 13-c-bis).
 
 `CountryProfileRegistry.cs` carries `// Source:` comments on sourced seed fields (`CountryProfileSourcesTests` requires at least 24). AT `DefaultLocale` stays `de-DE` (Paket 13-b decision A).
 
@@ -355,21 +356,21 @@ This is an operational check of what the in-code registry currently stores. It i
 | AT | FiscalSystem | `RKSV_AT` | RKSV, BGBl. II Nr. 410/2015; FinanzOnline | Yes | Only production fiscal module |
 | AT | EInvoicingStandards | `[]` | RKSV Belege are cash-register receipts, not EN 16931 e-invoices | Yes | Empty until an AT e-invoicing builder is wired |
 | AT | VatIdPattern | `^ATU\d{8}$` | BMF UID; Austrian UID is `ATU` + 8 digits; FinanzOnline | Yes | Same literal as the live fiscal path (`VatIdPatterns.Austria`) |
-| AT | VAT rates | *(not a profile field)* | UStG §10 (20 / 10 / 13 / 0 live tax types) | **N/A** | Profile does not carry rates; live tax types. Paket 13-c |
+| AT | VAT rates | *(not a profile field)* | UStG §10 + live `TaxTypes` (20 / 10 / 13 / 0 / 4.9) | **N/A on profile** | `ICountryTaxTypeRegistry` AT seed (Paket 13-c) |
 | DE | Currency | `EUR` | ISO 4217 | Yes | Shape-only until a DE module exists |
 | DE | DefaultTimeZone | `Europe/Berlin` | IANA tzdb | Yes | |
 | DE | DefaultLocale | `de-DE` | IETF BCP 47 | Yes | |
 | DE | FiscalSystem | `KASSENSICHERHEIT_DE` | KassenSichV (Kassensicherungsverordnung) | Yes | Name/intent only; skeleton throws |
 | DE | EInvoicingStandards | `ZUGFERD`, `XRECHNUNG` | FeRD ZUGFeRD; KoSIT XRechnung (EN 16931 profiles) | Yes | Declared standards; builders not implemented |
 | DE | VatIdPattern | `^DE\d{9}$` | USt-IdNr.: `DE` + 9 digits; EU VIES | Yes | |
-| DE | VAT rates | *(not a profile field)* | UStG §12 Abs. 1 (19 %); §12 Abs. 2 (7 %) | **N/A** | Paket 13-c |
+| DE | VAT rates | *(not a profile field)* | UStG §12 Abs. 1 (19 %); §12 Abs. 2 (7 %) | **N/A on profile** | `ICountryTaxTypeRegistry` DE seed (Paket 13-c) |
 | CH | Currency | `CHF` | ISO 4217 | Yes | |
 | CH | DefaultTimeZone | `Europe/Zurich` | IANA tzdb | Yes | |
 | CH | DefaultLocale | `de-CH` | IETF BCP 47 | Yes | Default German-speaking CH; `fr-CH` / `it-CH` are not on the profile |
 | CH | FiscalSystem | `MWST_CH` | MWSTG; ESTV | Yes | Name/intent only; skeleton throws |
 | CH | EInvoicingStandards | `QR_RECHNUNG` | SIX Interbank Clearing QR-bill specification | Yes | Not an EN 16931 profile (enum comment) |
 | CH | VatIdPattern | `^CHE-\d{3}\.\d{3}\.\d{3}( (MWST\|TVA\|IVA))?$` | ESTV / Zefix UID (`CHE-xxx.xxx.xxx` + optional MWST/TVA/IVA) | Yes | Suffix optional in the seed; ESTV VAT number usually includes a language suffix |
-| CH | VAT rates | *(not a profile field)* | ESTV / MWSTG from 1 Jan 2024: 8.1 % / 2.6 % (lodging 3.8 % not on profile) | **N/A** | Current as of this 2026 check; Paket 13-c |
+| CH | VAT rates | *(not a profile field)* | ESTV / MWSTG from 1 Jan 2024: 8.1 % / 2.6 % / lodging 3.8 % | **N/A on profile** | `ICountryTaxTypeRegistry` CH seed (Paket 13-c) |
 | EU_DEFAULT | IsTenantSelectable | `false` | Not an ISO 3166-1 alpha-2 country | Yes | Registry-only sentinel |
 | EU_DEFAULT | Currency | `EUR` | ISO 4217 (euro area default) | Yes | Never copied onto a tenant |
 | EU_DEFAULT | DefaultTimeZone | `UTC` | IANA; no single EU zone | Yes | Never copied onto a tenant |
@@ -377,7 +378,7 @@ This is an operational check of what the in-code registry currently stores. It i
 | EU_DEFAULT | FiscalSystem | `NONE` | No cash-register fiscalisation at EU level | Yes | |
 | EU_DEFAULT | EInvoicingStandards | `EN_16931` | CEN EN 16931-1; ViDA is a timeline, not a builder | Yes | Read-only readiness; no Peppol/ViDA submission |
 | EU_DEFAULT | VatIdPattern | `^[A-Z]{2}[A-Za-z0-9+*.]{2,12}$` | VIES formats are **per member state** | **Placeholder** | Broader than any one VIES pattern. Paket 13-d |
-| EU_DEFAULT | VAT rates | *(not a profile field)* | No single EU cash-register rate table | **N/A** | Paket 13-c |
+| EU_DEFAULT | VAT rates | *(not a profile field)* | No single EU cash-register rate table | **N/A on profile** | `Get("EU_DEFAULT")` returns empty |
 
 ### 14.2 Official references (cited, not loaded as law)
 
@@ -403,5 +404,6 @@ AT production seed values stay unchanged (`de-DE` kept — decision A).
 | ID | Finding | Action |
 |----|---------|--------|
 | **Paket 13-b** | `// Source:` comments and AT locale decision | **Closed.** Comments on seeds (≥ 24). AT `DefaultLocale` remains `de-DE` (production default; BCP-47 `de-AT` noted on the comment) |
-| **Paket 13-c** | VAT rates are not CountryProfile fields | Tax-type seeds per country (AT live types already exist; DE/CH/EU not seeded) |
+| **Paket 13-c** | VAT rates are not CountryProfile fields | **Closed.** `ICountryTaxTypeRegistry` in-code seeds (AT 20/10/13/0/4.9, DE 19/7, CH 8.1/2.6/3.8). Unknown/`EU_DEFAULT` → empty, no AT fallback. **Not wired** into calculation (Paket 13-c-bis) |
+| **Paket 13-c-bis** | Country tax types unused by `CalculateTax` / `PaymentService` | Wire `ICountryTaxTypeRegistry` into DE/CH strategies when those modules exist; AT stays on live `TaxTypes` until an explicit cutover |
 | **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | Tighten or keep as sentinel-only; must not become a second Austrian/German/Swiss matcher |
