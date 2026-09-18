@@ -27,6 +27,7 @@ using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Caching;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.CriticalActions;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Services.GracePeriods;
@@ -340,6 +341,22 @@ internal static class ApplicationHost
         {
             builder.Services.AddSingleton<IValidateOptions<TseOptions>, TseProductionOptionsValidator>();
             builder.Services.AddOptions<TseOptions>().ValidateOnStart();
+
+            builder.Services.Configure<KassenSicherheitOptions>(
+                builder.Configuration.GetSection(KassenSicherheitOptions.SectionName));
+            builder.Services.Configure<MwstOptions>(
+                builder.Configuration.GetSection(MwstOptions.SectionName));
+            builder.Services.Configure<QrRechnungOptions>(
+                builder.Configuration.GetSection(QrRechnungOptions.SectionName));
+            builder.Services.AddOptions<CountryFiscalLockOptions>()
+                .Configure<IConfiguration>((opts, cfg) =>
+                {
+                    cfg.GetSection(KassenSicherheitOptions.SectionName).Bind(opts.KassenSicherheit);
+                    cfg.GetSection(MwstOptions.SectionName).Bind(opts.Mwst);
+                    cfg.GetSection(QrRechnungOptions.SectionName).Bind(opts.QrRechnung);
+                });
+            builder.Services.AddSingleton<IValidateOptions<CountryFiscalLockOptions>, CountryFiscalLockOptionsValidator>();
+            builder.Services.AddOptions<CountryFiscalLockOptions>().ValidateOnStart();
         }
 
         builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));

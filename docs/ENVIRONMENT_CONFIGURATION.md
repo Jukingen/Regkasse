@@ -148,6 +148,17 @@ Use BMF **test** credentials on Staging where available; never point Soft TSE at
 
 Escape hatch (ops emergency only): `Tse:AllowUnsafeFiscalModesInProduction=true` — logs Critical; do not use for normal go-live.
 
+DE/CH use a **separate** host-level lock (`CountryFiscalLockEvaluator` / `CountryFiscalLockOptionsValidator`, `ValidateOnStart`). It does not read tenant country. Development bypasses DE/CH. Production **and** Staging always enforce DE/CH (`Tse:EnforceProductionLockInStaging=false` does **not** disable them). There is **no** DE/CH escape hatch. Checks run only when the key is set (non-whitespace):
+
+| Section | When | Rejected outside Development |
+|---------|------|------------------------------|
+| `KassenSicherheit:Provider` | key set | `fake` (case-insensitive). `not-configured` is allowed. |
+| `KassenSicherheit:AllowSimulatedTse` | key set | must be **false** (missing → treated as false). Independent of Provider. |
+| `Mwst:UseTestEndpoint` | key set | must be **false** |
+| `QrRechnung:BuilderMode` | key set | must not be `dryRun` (case-insensitive). `not-configured` is allowed. |
+
+Do not merge `KassenSicherheit` into `Tse:`. Stubs in `appsettings.Production.example.json` are lock holders only — they do not enable DE/CH TSE.
+
 ---
 
 ## 5. Health probes
@@ -265,20 +276,21 @@ In Development, `Backup:ExternalArchiveRoot` is often unset. PgDump then **skips
 
 Hub: [`COUNTRIES.md`](COUNTRIES.md). Stubs: [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md), [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md), [`EINVOICING_EU.md`](EINVOICING_EU.md).
 
-These keys are the **target** layout. They are **not** bound in `appsettings*.example.json` yet. Do not copy them into Production as if the modules existed.
+`KassenSicherheit`, `Mwst`, and `QrRechnung` exist as **empty stubs** in `appsettings.Production.example.json` so Production/Staging startup can reject unsafe values ([§4](#4-startup-validation-production--staging-lock)). They are **not** DE/CH TSE or QR-bill implementations. Do not treat the stubs as a live fiscal module.
 
 | Section / store | Role | Notes |
 |-----------------|------|--------|
 | **CountryProfile** | In-code registry seeds (AT, DE, CH, `EU_DEFAULT`) | **Not appsettings.** Locale, currency, fiscal system, e-invoicing, VAT-ID pattern, allowed `VatRegime`. `EU_DEFAULT` is registry-only. |
 | **`company_settings`** | Per-mandant country binding | Live columns: `country` (default AT, the binding), `vat_regime` (default `AT_RKSV_STANDARD`), `billing_country`, `tax_exempt`; locale/currency reuse `Language` / `Currency`. No `CountryCode` column. Not a feature-flag store. |
 | **`tenant_settings`** | Feature-flag overrides | Existing `IFeatureFlagService`, keys `FeatureFlags:{Name}`. See [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md). |
-| **`FeatureFlags` (appsettings)** | Global defaults for **existing** experimental flags | Must **not** default `Fiscal.RksvAt` to false. Country flag names are planned, not in `FeatureFlagNames` yet. |
-| **`KassenSicherheit`** | Planned DE module | Separate from Austrian `Tse:`. Fake/simulated providers fail closed outside Development. Vendor choice is not fixed here. |
-| **`QrRechnung`** | Planned CH QR-bill payload options | No bank submission. Gate: `EInvoicing.QrRechnung`. |
+| **`FeatureFlags` (appsettings)** | Global defaults for **existing** experimental flags | Must **not** default `Fiscal.RksvAt` to false. Country flags: `Fiscal.KassenSicherheitDe`, `Fiscal.MwstCh`, `EInvoicing.QrRechnung`, … |
+| **`KassenSicherheit`** | DE stub + startup lock | Separate from Austrian `Tse:`. `Provider=fake` or `AllowSimulatedTse=true` fail closed in Production/Staging. Vendor choice is not fixed here. |
+| **`Mwst`** | CH stub + startup lock | `UseTestEndpoint=true` fails closed in Production/Staging. |
+| **`QrRechnung`** | CH QR-bill stub + startup lock | `BuilderMode=dryRun` fails closed in Production/Staging. No bank submission. Gate: `EInvoicing.QrRechnung`. |
 | **`En16931`** | Planned EU invoice builder options | No Peppol/ViDA submission. Gate: `EInvoicing.En16931`. |
 | **`Vies`** | Planned B2B VAT-ID check | Default **off** (`Vies.CheckEnabled`). Tests must not call the live VIES network. |
 
-Austrian Production/Staging lock in [§4](#4-startup-validation-production--staging-lock) still applies only to `Tse:*` / `RKSV:*` / FinanzOnline. Do not merge DE `KassenSicherheit` into `Tse:`.
+Austrian Production/Staging lock in [§4](#4-startup-validation-production--staging-lock) still applies only to `Tse:*` / `RKSV:*` / FinanzOnline. DE/CH keys are locked by `CountryFiscalLockEvaluator`, not by `TseProductionOptionsValidator`. Do not merge DE `KassenSicherheit` into `Tse:`.
 
 ---
 
