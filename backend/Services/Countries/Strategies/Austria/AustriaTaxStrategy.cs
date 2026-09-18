@@ -1,6 +1,8 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Tse;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Countries.Strategies.Austria;
 
@@ -9,7 +11,8 @@ namespace KasseAPI_Final.Services.Countries.Strategies.Austria;
 /// tax summary) or <see cref="RksvTaxSetMapper"/> (RKSV gross buckets). Nothing is recomputed here, so
 /// the live RKSV output stays identical.
 ///
-/// Stateless — registered as a singleton.
+/// Stateless — registered as a singleton. VAT-ID shape goes through <see cref="IVatIdValidator"/>
+/// (no VIES on this path).
 /// </summary>
 public sealed class AustriaTaxStrategy : ITaxStrategy
 {
@@ -18,6 +21,20 @@ public sealed class AustriaTaxStrategy : ITaxStrategy
     /// require one. Cross-border rules are planned — see <c>docs/EINVOICING_EU.md</c>.
     /// </summary>
     private const bool AustrianReceiptsRequireCustomerVatId = false;
+
+    private readonly IVatIdValidator _vatIdValidator;
+
+    /// <summary>Test and singleton fallback: shape-only validator, VIES client never invoked.</summary>
+    [ActivatorUtilitiesConstructor]
+    public AustriaTaxStrategy()
+        : this(new VatIdValidator(new DisabledViesClient()))
+    {
+    }
+
+    public AustriaTaxStrategy(IVatIdValidator vatIdValidator)
+    {
+        _vatIdValidator = vatIdValidator ?? throw new ArgumentNullException(nameof(vatIdValidator));
+    }
 
     public string CountryCode => CountryProfileCodes.Austria;
 
@@ -68,12 +85,9 @@ public sealed class AustriaTaxStrategy : ITaxStrategy
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        // Strict on purpose: the live fiscal gates match the raw value, so this must not accept
-        // whitespace or lower case that they reject. Pattern comes from the profile seed only —
-        // no second UID regex in this class.
-        return profile.MatchesVatIdShape(vatId)
-            ? VatIdValidationResult.Valid(vatId!)
-            : VatIdValidationResult.Invalid();
+        // Shape only — VIES is not part of the live payment UID gate. The validator reads the
+        // profile seed; this class still has no regex of its own.
+        return _vatIdValidator.Validate(vatId, profile);
     }
 
     public InvoiceFieldRequirements DetermineInvoiceFields(CompanySettings company, Customer? customer)

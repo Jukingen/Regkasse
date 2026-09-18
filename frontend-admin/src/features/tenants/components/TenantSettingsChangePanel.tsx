@@ -19,6 +19,7 @@ import { ImpactSimulator } from '@/components/ImpactSimulator';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { simulateImpact } from '@/features/impact/api/impactSimulation';
 import type { ImpactReport } from '@/features/impact/types';
+import { useCountryVatIdValidation } from '@/features/settings/hooks/useCountryVatIdValidation';
 import {
   type CurrentTenantSettings,
   type FiscalSettingsValue,
@@ -112,6 +113,14 @@ export function TenantSettingsChangePanel({ tenantId }: TenantSettingsChangePane
     queryKey: tenantSettingsQueryKeys.current(tenantId),
     queryFn: () => getTenantSettings(tenantId),
     enabled: Boolean(tenantId),
+  });
+  const { rules: vatIdRules } = useCountryVatIdValidation({
+    country: settingsQuery.data?.country,
+    required: true,
+    messages: {
+      required: t('tenants.settingsChange.validation.taxNumberRequired'),
+      invalidAt: t('tenants.settingsChange.validation.taxNumberFormat'),
+    },
   });
 
   const historyQuery = useQuery({
@@ -573,16 +582,7 @@ export function TenantSettingsChangePanel({ tenantId }: TenantSettingsChangePane
                 <Form.Item
                   name="companyTaxNumber"
                   label={t('tenants.settingsChange.fields.taxNumber')}
-                  rules={[
-                    {
-                      required: true,
-                      message: t('tenants.settingsChange.validation.taxNumberRequired'),
-                    },
-                    {
-                      pattern: /^ATU\d{8}$/i,
-                      message: t('tenants.settingsChange.validation.taxNumberFormat'),
-                    },
-                  ]}
+                  rules={vatIdRules}
                 >
                   <Input maxLength={20} placeholder="ATU12345678" />
                 </Form.Item>

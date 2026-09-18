@@ -20,15 +20,23 @@ export {
   isValidAtuTaxNumber,
   isValidEmail,
   isValidUsername,
+  isValidVatId,
   maxLengthRule,
+  normalizeVatIdCountry,
   USERNAME_CHAR_PATTERN,
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
   USERNAME_PATTERN,
+  VAT_ID_PATTERNS,
+  vatIdInvalidMessageKey,
+  vatIdPatternForCountry,
   type ValidationTranslate,
+  type VatIdCountryCode,
 } from '@/lib/validations/common';
 export {
+  createCountryVatIdRules,
   createValidationRules,
+  type CountryVatIdRuleOptions,
   type ValidationRules,
   validationRules,
 } from '@/lib/validations/formRules';

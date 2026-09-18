@@ -447,6 +447,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService, KasseAPI_Final.Services.FeatureFlags.FeatureFlagService>();
         // Country profiles are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Vat.IViesClient, KasseAPI_Final.Services.Countries.Vat.DisabledViesClient>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Vat.IVatIdValidator, KasseAPI_Final.Services.Countries.Vat.VatIdValidator>();
         // Country strategies (docs/COUNTRIES.md §3). Call sites resolve through ICountryStrategyContext.
         // Tax strategies are stateless delegators → singleton.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy>();

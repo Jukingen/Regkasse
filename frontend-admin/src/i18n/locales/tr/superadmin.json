@@ -97,5 +97,13 @@
       "appPrice": "Fiyat (uygulama)",
       "status": "Durum"
     }
+  },
+  "validation": {
+    "vatId": {
+      "invalid": {
+        "DE": "Format: DE + 9 rakam (ör. DE123456789).",
+        "CH": "Format: CHE-123.456.789 (isteğe bağlı MWST/TVA/IVA)."
+      }
+    }
   }
 }

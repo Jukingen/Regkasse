@@ -13,6 +13,7 @@ import {
   useCompanySettings,
   useUpdateCompanySettings,
 } from '@/features/settings/hooks/useCompanySettings';
+import { useCountryVatIdValidation } from '@/features/settings/hooks/useCountryVatIdValidation';
 import {
   type CompanySettingsFormValues,
   mapCompanyFormToUpdateRequest,
@@ -52,6 +53,10 @@ export function CompanySettingsForm() {
     queryClient.invalidateQueries({ queryKey: getGetApiCompanySettingsQueryKey() });
   const { updateSettings, isLoading: isUpdating } = useUpdateCompanySettings();
   const rules = useMemo(() => createValidationRules(t), [t]);
+  const { rules: vatIdRules } = useCountryVatIdValidation({
+    country: settings?.country,
+    required: true,
+  });
   const [watchedValues, setWatchedValues] = useState<Partial<CompanySettingsFormValues>>({});
 
   const {
@@ -210,7 +215,7 @@ export function CompanySettingsForm() {
               {g('companyTaxNumber')}
             </FieldTooltip>
           }
-          rules={rules.atuTaxNumber(true)}
+          rules={vatIdRules}
         >
           <Input placeholder={g('placeholderAtu')} />
         </FormFieldWithTooltip>

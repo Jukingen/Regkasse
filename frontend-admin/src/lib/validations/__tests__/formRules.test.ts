@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ATU_TAX_NUMBER_PATTERN,
   USERNAME_PATTERN,
+  VAT_ID_PATTERNS,
   createValidationRules,
 } from '@/lib/validations/formRules';
 
@@ -63,6 +64,14 @@ describe('shared patterns', () => {
   it('accepts valid ATU numbers', () => {
     expect(ATU_TAX_NUMBER_PATTERN.test('ATU12345678')).toBe(true);
     expect(ATU_TAX_NUMBER_PATTERN.test('ATU1234567')).toBe(false);
+  });
+
+  it('accepts DE and CH VAT-ID shapes from the shared table', () => {
+    expect(VAT_ID_PATTERNS.DE.test('DE123456789')).toBe(true);
+    expect(VAT_ID_PATTERNS.DE.test('DE12345678')).toBe(false);
+    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.789')).toBe(true);
+    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.789 MWST')).toBe(true);
+    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.78')).toBe(false);
   });
 
   it('accepts valid usernames', () => {

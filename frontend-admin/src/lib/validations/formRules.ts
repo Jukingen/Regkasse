@@ -7,11 +7,19 @@ import type { Rule } from 'antd/es/form';
 import {
   ATU_TAX_NUMBER_PATTERN,
   USERNAME_PATTERN,
+  vatIdInvalidMessageKey,
+  vatIdPatternForCountry,
   type ValidationTranslate,
 } from '@/lib/validations/common';
 
 export type { ValidationTranslate } from '@/lib/validations/common';
-export { ATU_TAX_NUMBER_PATTERN, USERNAME_PATTERN } from '@/lib/validations/common';
+export {
+  ATU_TAX_NUMBER_PATTERN,
+  USERNAME_PATTERN,
+  VAT_ID_PATTERNS,
+  isValidVatId,
+  vatIdPatternForCountry,
+} from '@/lib/validations/common';
 
 export type ValidationRules = {
   required: (field: string) => Rule;
@@ -22,6 +30,7 @@ export type ValidationRules = {
   max: (max: number) => Rule;
   pattern: (pattern: RegExp, message: string) => Rule;
   atuTaxNumber: (required?: boolean) => Rule[];
+  vatIdNumber: (country?: string | null, required?: boolean) => Rule[];
   username: (required?: boolean) => Rule[];
 };
 
@@ -79,6 +88,8 @@ export function createValidationRules(t: ValidationTranslate): ValidationRules {
       });
       return rules;
     },
+    vatIdNumber: (country?: string | null, required = true) =>
+      createCountryVatIdRules(t, country, { required }),
     username: (required = true) => {
       const rules: Rule[] = [];
       if (required) {
@@ -102,3 +113,51 @@ export function createValidationRules(t: ValidationTranslate): ValidationRules {
 
 /** @deprecated Prefer {@link createValidationRules} — alias kept for snippet compatibility. */
 export const validationRules = createValidationRules;
+
+export type CountryVatIdRuleOptions = {
+  required?: boolean;
+  requiredMessage?: string;
+  invalidAtMessage?: string;
+};
+
+/**
+ * Country-profile VAT-ID rules. AT messages stay on the existing i18n keys unless overridden
+ * by the form (Super Admin / tenant-settings copy).
+ */
+export function createCountryVatIdRules(
+  t: ValidationTranslate,
+  country?: string | null,
+  options?: CountryVatIdRuleOptions
+): Rule[] {
+  const required = options?.required ?? true;
+  const pattern = vatIdPatternForCountry(country);
+  const requiredMessage =
+    options?.requiredMessage ?? t('common.validation.atuTaxNumberRequired');
+  const invalidMessage =
+    vatIdInvalidMessageKey(country) === 'common.validation.atuTaxNumberPattern'
+      ? (options?.invalidAtMessage ?? t('common.validation.atuTaxNumberPattern'))
+      : t(vatIdInvalidMessageKey(country));
+
+  const rules: Rule[] = [];
+  if (required) {
+    rules.push({
+      required: true,
+      message: requiredMessage,
+    });
+  }
+  rules.push({
+    validator: async (_, value) => {
+      const trimmed = String(value ?? '').trim();
+      if (!trimmed) {
+        if (required) {
+          throw new Error(requiredMessage);
+        }
+        return;
+      }
+      if (!pattern.test(trimmed)) {
+        throw new Error(invalidMessage);
+      }
+    },
+  });
+  return rules;
+}

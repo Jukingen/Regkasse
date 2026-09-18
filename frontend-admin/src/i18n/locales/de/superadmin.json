@@ -97,5 +97,13 @@
       "appPrice": "Preis (App)",
       "status": "Status"
     }
+  },
+  "validation": {
+    "vatId": {
+      "invalid": {
+        "DE": "Format: DE + 9 Ziffern (z. B. DE123456789).",
+        "CH": "Format: CHE-123.456.789 (optional MWST/TVA/IVA)."
+      }
+    }
   }
 }

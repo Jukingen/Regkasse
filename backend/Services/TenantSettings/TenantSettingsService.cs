@@ -1,9 +1,11 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Vat;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.TenantSettings;
@@ -111,15 +113,21 @@ public sealed class TenantSettingsService : ITenantSettingsService
     private readonly AppDbContext _db;
     private readonly IAuditLogService _auditLog;
     private readonly ITenantSettingsNotificationService _notifications;
+    private readonly IVatIdValidator _vatIdValidator;
+    private readonly ICountryProfileRegistry _countryProfiles;
 
     public TenantSettingsService(
         AppDbContext db,
         IAuditLogService auditLog,
-        ITenantSettingsNotificationService notifications)
+        ITenantSettingsNotificationService notifications,
+        IVatIdValidator? vatIdValidator = null,
+        ICountryProfileRegistry? countryProfiles = null)
     {
         _db = db;
         _auditLog = auditLog;
         _notifications = notifications;
+        _vatIdValidator = vatIdValidator ?? new VatIdValidator(new DisabledViesClient());
+        _countryProfiles = countryProfiles ?? new CountryProfileRegistry();
     }
 
     public async Task<SettingsChangeResult> RequestSettingsChangeAsync(
@@ -713,12 +721,17 @@ public sealed class TenantSettingsService : ITenantSettingsService
         if (string.IsNullOrWhiteSpace(fiscal.CompanyAddress) || fiscal.CompanyAddress.Trim().Length > 200)
             return SettingsChangeResult.Fail("Company address is required (max 200).", TenantSettingsErrorCodes.InvalidValue);
 
-        var tax = (fiscal.CompanyTaxNumber ?? string.Empty).Trim().ToUpperInvariant();
-        if (!KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex.IsMatch(tax))
+        var settings = await GetCompanySettingsAsync(tenantId, track: false, cancellationToken)
+            .ConfigureAwait(false);
+        var profile = _countryProfiles.GetOrDefault(settings?.Country);
+
+        var tax = _vatIdValidator.Normalize(fiscal.CompanyTaxNumber, profile);
+        if (!_vatIdValidator.Validate(tax, profile).IsValid)
         {
-            return SettingsChangeResult.Fail(
-                "Company tax number must match ATU########.",
-                TenantSettingsErrorCodes.InvalidValue);
+            var message = string.Equals(profile.Code, CountryProfileCodes.Austria, StringComparison.OrdinalIgnoreCase)
+                ? "Company tax number must match ATU########."
+                : $"Company tax number must match the {profile.Code} VAT-ID format.";
+            return SettingsChangeResult.Fail(message, TenantSettingsErrorCodes.InvalidValue);
         }
 
         var hasPayments = await HasSignedFiscalPaymentsAsync(tenantId, cancellationToken).ConfigureAwait(false);
