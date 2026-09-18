@@ -129,7 +129,7 @@ public sealed class CountryProfileSourcesTests
         Assert.Equal(
             [EInvoicingStandard.EN_16931],
             euDefault.EInvoicingStandards.ToArray());
-        Assert.Equal(@"^[A-Z]{2}[A-Za-z0-9+*.]{2,12}$", euDefault.VatIdPattern);
+        Assert.Equal(@"^[A-Z]{2}[A-Z0-9]{8,12}$", euDefault.VatIdPattern);
         Assert.Equal(VatIdPatterns.EuDefault, euDefault.VatIdPattern);
         Assert.Equal(
             [
@@ -138,6 +138,27 @@ public sealed class CountryProfileSourcesTests
                 VatRegime.NON_EU,
             ],
             euDefault.AllowedVatRegimes.ToArray());
+    }
+
+    [Theory]
+    [InlineData("DE123456789", true)]
+    [InlineData("FR12345678901", true)]
+    [InlineData("IT12345678901", true)]
+    [InlineData("ATU12345678", true)]
+    [InlineData("NL123456789B01", true)]
+    [InlineData("X", false)]
+    [InlineData("123", false)]
+    [InlineData("DE-123", false)]
+    [InlineData("de123456789", false)]
+    [InlineData("DE1234567", false)]
+    [InlineData("DE1234567890123", false)]
+    [InlineData("CHE-123.456.789", false)]
+    [InlineData("DE+12345678", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void EuDefaultVatIdShape_MatchesTightenedViesPrefix(string? vatId, bool expected)
+    {
+        Assert.Equal(expected, Registry.Get(CountryProfileCodes.EuDefault).MatchesVatIdShape(vatId));
     }
 
     private static int CountSourceComments(string registryPath) =>

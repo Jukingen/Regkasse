@@ -377,7 +377,7 @@ This is an operational check of what the in-code registry currently stores. It i
 | EU_DEFAULT | DefaultLocale | `en` | IETF BCP 47 | Yes | Never copied onto a tenant |
 | EU_DEFAULT | FiscalSystem | `NONE` | No cash-register fiscalisation at EU level | Yes | |
 | EU_DEFAULT | EInvoicingStandards | `EN_16931` | CEN EN 16931-1; ViDA is a timeline, not a builder | Yes | Read-only readiness; no Peppol/ViDA submission |
-| EU_DEFAULT | VatIdPattern | `^[A-Z]{2}[A-Za-z0-9+*.]{2,12}$` | VIES formats are **per member state** | **Placeholder** | Broader than any one VIES pattern. Paket 13-d |
+| EU_DEFAULT | VatIdPattern | `^[A-Z]{2}[A-Z0-9]{8,12}$` | VIES country prefix + 8–12 alphanumeric | **Strict (13-d)** | Registry-only sentinel. Punctuation / lowercase rejected. Not wired into `IVatIdValidator` (Paket 13-d-bis) |
 | EU_DEFAULT | VAT rates | *(not a profile field)* | No single EU cash-register rate table | **N/A on profile** | `Get("EU_DEFAULT")` returns empty |
 
 ### 14.2 Official references (cited, not loaded as law)
@@ -406,4 +406,5 @@ AT production seed values stay unchanged (`de-DE` kept — decision A).
 | **Paket 13-b** | `// Source:` comments and AT locale decision | **Closed.** Comments on seeds (≥ 24). AT `DefaultLocale` remains `de-DE` (production default; BCP-47 `de-AT` noted on the comment) |
 | **Paket 13-c** | VAT rates are not CountryProfile fields | **Closed.** `ICountryTaxTypeRegistry` in-code seeds (AT 20/10/13/0/4.9, DE 19/7, CH 8.1/2.6/3.8). Unknown/`EU_DEFAULT` → empty, no AT fallback. **Not wired** into calculation (Paket 13-c-bis) |
 | **Paket 13-c-bis** | Country tax types unused by `CalculateTax` / `PaymentService` | Wire `ICountryTaxTypeRegistry` into DE/CH strategies when those modules exist; AT stays on live `TaxTypes` until an explicit cutover |
-| **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | Tighten or keep as sentinel-only; must not become a second Austrian/German/Swiss matcher |
+| **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | **Closed.** `VatIdPatterns.EuDefault` is `^[A-Z]{2}[A-Z0-9]{8,12}$`. AT/DE/CH patterns unchanged. **Not wired** into `IVatIdValidator` (Paket 13-d-bis) |
+| **Paket 13-d-bis** | Tightened EU_DEFAULT regex unused by `IVatIdValidator` | Consume `VatIdPatterns.EuDefault` from the validator when EU_DEFAULT is in scope; do not copy a second literal |

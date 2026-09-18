@@ -111,7 +111,7 @@ public sealed class CountryProfileRegistry : ICountryProfileRegistry
         // Source: CEN EN 16931-1; ViDA is a timeline, not a builder
         eInvoicingStandards: [EInvoicingStandard.EN_16931],
         // Broad EU VAT-ID shape; per-country patterns live in their own profiles.
-        // Source: placeholder; VIES formats are per member state (Paket 13-d)
+        // Source: VIES country-prefixed VAT numbers (country code + 8-12 alphanumeric); rare national exceptions documented in CountryProfile notes.
         vatIdPattern: VatIdPatterns.EuDefault,
         allowedVatRegimes:
         [
