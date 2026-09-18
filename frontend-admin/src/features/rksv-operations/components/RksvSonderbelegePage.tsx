@@ -74,7 +74,7 @@ import { customInstance } from '@/lib/axios';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import {
   getMonthDifference,
   getViennaCalendarYear,
@@ -166,6 +166,7 @@ export default function RksvSonderbelegePage() {
   const { modal } = useAntdApp();
   const notify = useNotify();
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
 
   const { hasPermission, isSuperAdmin } = usePermissions();
   const { refreshToken } = useAuth();
@@ -914,7 +915,7 @@ export default function RksvSonderbelegePage() {
         dataIndex: 'grandTotal',
         key: 'grandTotal',
         align: 'right',
-        render: (v: number | undefined) => formatEUR(v ?? 0),
+        render: (v: number | undefined) => formatCurrency(v ?? 0),
       },
       {
         title: 'PDF',
@@ -952,7 +953,7 @@ export default function RksvSonderbelegePage() {
         ),
       },
     ],
-    []
+    [formatCurrency]
   );
 
   const actionDisabledBase =

@@ -6,7 +6,7 @@ import React, { useMemo } from 'react';
 
 import type { ReceiptTaxLineDto } from '@/features/receipts/types/receipts';
 import { useI18n } from '@/i18n';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 
 const { Text } = Typography;
 
@@ -27,6 +27,7 @@ export default function ReceiptTaxSummary({
   grandTotal,
 }: ReceiptTaxSummaryProps) {
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
 
   const columns: ColumnsType<ReceiptTaxLineDto> = useMemo(
     () => [
@@ -41,24 +42,24 @@ export default function ReceiptTaxSummary({
         dataIndex: 'netAmount',
         key: 'netAmount',
         align: 'right',
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => formatCurrency(val),
       },
       {
         title: t('receipts.detail.taxTable.colTax'),
         dataIndex: 'taxAmount',
         key: 'taxAmount',
         align: 'right',
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => formatCurrency(val),
       },
       {
         title: t('receipts.detail.taxTable.colGross'),
         dataIndex: 'grossAmount',
         key: 'grossAmount',
         align: 'right',
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => formatCurrency(val),
       },
     ],
-    [t]
+    [t, formatCurrency]
   );
 
   return (
@@ -75,7 +76,7 @@ export default function ReceiptTaxSummary({
               <Text strong>{t('receipts.detail.taxTable.footerSubTotal')}</Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={1} align="right">
-              <Text>{formatEUR(subTotal)}</Text>
+              <Text>{formatCurrency(subTotal)}</Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={2} />
             <Table.Summary.Cell index={3} />
@@ -86,7 +87,7 @@ export default function ReceiptTaxSummary({
             </Table.Summary.Cell>
             <Table.Summary.Cell index={1} />
             <Table.Summary.Cell index={2} align="right">
-              <Text>{formatEUR(taxTotal)}</Text>
+              <Text>{formatCurrency(taxTotal)}</Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={3} />
           </Table.Summary.Row>
@@ -100,7 +101,7 @@ export default function ReceiptTaxSummary({
             <Table.Summary.Cell index={2} />
             <Table.Summary.Cell index={3} align="right">
               <Text strong style={{ fontSize: 15 }}>
-                {formatEUR(grandTotal)}
+                {formatCurrency(grandTotal)}
               </Text>
             </Table.Summary.Cell>
           </Table.Summary.Row>

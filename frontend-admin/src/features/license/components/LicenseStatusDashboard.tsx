@@ -2,7 +2,6 @@
 
 import { ReloadOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Flex, Progress, Row, Spin, Statistic, Tag, Timeline } from 'antd';
-import dayjs from 'dayjs';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { LockedLicenseDataRightsCard } from '@/features/data-management/components/LockedLicenseDataRightsCard';
@@ -17,6 +16,7 @@ import {
 } from '@/features/license/utils/licenseHistoryLabels';
 import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useLicenseStatus, shouldShowSystemLockedAlertFromView } from '@/hooks/useLicenseStatus';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
@@ -58,6 +58,7 @@ function progressPercent(args: {
 
 export default function LicenseStatusDashboard() {
   const { t } = useI18n();
+  const { formatDateTime } = useCountryFormatting();
   const tenant = useCurrentTenant();
   const { status, history, isLoading, isFetching } = useLicenseStatus();
   const { refresh, isFetching: isRefreshing } = useLicensePageRefresh({
@@ -107,7 +108,7 @@ export default function LicenseStatusDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
             <span>{getLicenseHistoryEventLabel(item.eventType, t)}</span>
             <span style={{ fontSize: 12, opacity: 0.65 }}>
-              {dayjs(item.atUtc).format('DD.MM.YYYY HH:mm')}
+              {formatDateTime(item.atUtc)}
             </span>
           </div>
           {item.summary ? (

@@ -20,7 +20,7 @@ import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 
 interface ReceiptsTableProps {
@@ -58,7 +58,8 @@ function buildColumns(
   reprintActionLabel: string | undefined,
   onStartReprint: ((row: ReceiptListItemDto) => void) | undefined,
   showPaymentPdfReprint: boolean | undefined,
-  showStoredPdfDownload: boolean | undefined
+  showStoredPdfDownload: boolean | undefined,
+  formatCurrency: (value: number) => string
 ): ColumnsType<ReceiptListItemDto> {
   const base: ColumnsType<ReceiptListItemDto> = [
     {
@@ -147,7 +148,7 @@ function buildColumns(
       sorter: true,
       render: (val: number) => (
         <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {formatEUR(val)}
+          {formatCurrency(val)}
         </Typography.Text>
       ),
     },
@@ -247,6 +248,7 @@ export default memo(function ReceiptsTable({
   rowSelection,
 }: ReceiptsTableProps) {
   const { t, formatLocale } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
   const { hasPermission } = usePermissions();
   const showPdfReprintColumn =
     Boolean(showPaymentPdfReprint) && hasPermission(PERMISSIONS.RECEIPT_REPRINT);
@@ -262,7 +264,8 @@ export default memo(function ReceiptsTable({
         reprintActionLabel,
         onStartReprint,
         showPdfReprintColumn,
-        showStoredPdfColumn
+        showStoredPdfColumn,
+        formatCurrency
       ),
     [
       t,
@@ -271,6 +274,7 @@ export default memo(function ReceiptsTable({
       onStartReprint,
       showPdfReprintColumn,
       showStoredPdfColumn,
+      formatCurrency,
     ]
   );
 

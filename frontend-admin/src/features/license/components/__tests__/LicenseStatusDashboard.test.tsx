@@ -79,6 +79,10 @@ vi.mock('@/hooks/useLicenseStatus', async (importOriginal) => {
   };
 });
 
+vi.mock('@/features/settings/hooks/useCompanySettings', () => ({
+  useCompanySettings: () => ({ data: { country: 'AT' } }),
+}));
+
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: interpolateT({

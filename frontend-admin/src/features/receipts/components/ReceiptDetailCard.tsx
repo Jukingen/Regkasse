@@ -15,7 +15,7 @@ import { useClipboard } from '@/hooks/useClipboard';
 import { useI18n } from '@/i18n';
 import { formatDateTimeSeconds } from '@/lib/dateUtils';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import {
   analyzeRegisterFkField,
   buildFinanzOnlineQueuePath,
@@ -37,6 +37,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
   const { copy } = useClipboard();
 
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
   const router = useRouter();
   const regFk = analyzeRegisterFkField(receipt.cashRegisterId);
   const c = (key: string) => t(`receipts.detail.card.${key}`);
@@ -209,14 +210,14 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
         </Descriptions.Item>
       )}
       <Descriptions.Item label={c('labelSubTotal')}>
-        {formatEUR(receipt.subTotal)}
+        {formatCurrency(receipt.subTotal)}
       </Descriptions.Item>
       <Descriptions.Item label={c('labelTaxTotal')}>
-        {formatEUR(receipt.taxTotal)}
+        {formatCurrency(receipt.taxTotal)}
       </Descriptions.Item>
       <Descriptions.Item label={c('labelGrandTotal')}>
         <Text strong style={{ fontSize: 16 }}>
-          {formatEUR(receipt.grandTotal)}
+          {formatCurrency(receipt.grandTotal)}
         </Text>
       </Descriptions.Item>
       <Descriptions.Item label={c('labelQrCode')} span={{ xs: 1, sm: 2, md: 3 }}>
