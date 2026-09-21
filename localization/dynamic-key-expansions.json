@@ -496,6 +496,64 @@
           "monthly_close",
           "yearly_close"
         ]
+      },
+      {
+        "id": "cashRegisters.lifecycle",
+        "description": "Cash register lifecycle labels (grid + table)",
+        "staticPrefix": "cashRegisters.lifecycle",
+        "suffixes": ["active", "inactive", "maintenance", "disabled", "decommissioned"]
+      },
+      {
+        "id": "cashRegisters.shiftOccupancy",
+        "description": "Cash register shift occupancy labels (grid + table)",
+        "staticPrefix": "cashRegisters.shiftOccupancy",
+        "suffixes": ["open", "closed", "none", "unavailable"]
+      },
+      {
+        "id": "cashRegisters.reports.types",
+        "description": "Cash register report type labels",
+        "staticPrefix": "cashRegisters.reports.types",
+        "suffixes": ["revenue", "transactions", "shifts", "specialReceipts"]
+      },
+      {
+        "id": "cashRegisters.shiftGuidance.rksvRules",
+        "description": "RKSV shift guidance table — rule + description per key",
+        "staticPrefix": "cashRegisters.shiftGuidance.rksvRules",
+        "suffixes": [
+          "schlussbeleg.rule",
+          "schlussbeleg.description",
+          "tagesabschluss.rule",
+          "tagesabschluss.description",
+          "startbeleg.rule",
+          "startbeleg.description",
+          "reopenStartbeleg.rule",
+          "reopenStartbeleg.description",
+          "singleCashier.rule",
+          "singleCashier.description"
+        ]
+      },
+      {
+        "id": "cashRegisters.statusBadge.closed",
+        "description": "Closed-register status badge text + tooltip",
+        "staticPrefix": "cashRegisters.statusBadge.closed",
+        "suffixes": [
+          "dailyClosing.text",
+          "dailyClosing.tooltip",
+          "shiftChange.text",
+          "shiftChange.tooltip",
+          "neverOpened.text",
+          "neverOpened.tooltip",
+          "licenseExpired.text",
+          "licenseExpired.tooltip",
+          "generic.text",
+          "generic.tooltip"
+        ]
+      },
+      {
+        "id": "tagesabschluss.backdated.reasons",
+        "description": "Backdated Tagesabschluss reason presets",
+        "staticPrefix": "tagesabschluss.backdated.reasons",
+        "suffixes": ["forgot", "technical", "staff", "other"]
       }
     ]
   }
