@@ -603,7 +603,7 @@ Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany
 - **Strategies (shipped, wired):** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime` in `PaymentService` / `InvoiceService`. Do not fork `PaymentService` or `TseService` internals. TSE tax-sets and RKSV special receipts stay Austria-only.
 - **Flags:** `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are live; AT RKSV is **locked on**.
 - **FA:** create-tenant wizard country step; tenant-detail Country & Fiscal Regime card. Historical invoices keep `CountryCodeAtIssue` on country change.
-- **Remaining (NOT STARTED):** Paket 20 DE TSE provider, 21 CH QR bank, 22 EU Peppol, 30-d OSS destination rates — [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16.
+- **Remaining (NOT STARTED):** Paket 20 DE TSE provider, 21 CH QR bank, 22 EU Peppol — [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16. Paket 30-d (OSS destination rates) is done.
 - **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](docs/COUNTRY_LAYER_CUTOVER.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
 
 ### Payment / `PaymentDetails`

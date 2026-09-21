@@ -142,7 +142,7 @@ i18n `einvoicing.*` de/en/tr. OpenAPI + Orval with the API. POS does **not** sen
 - FatturaPA, Chorus B2B PDP, KSeF, Verifactu, TicketBAI clients  
 - CII / ZUGFeRD PDF embedding  
 - Live VIES (`Vies.CheckEnabled` stays default off)  
-- OSS destination rates (Paket **30-d**, still NOT STARTED)  
+- OSS destination rates — **shipped** in Paket **30-d** (in-code seed; 14 countries, FI 25.5, `EL` → `GR`). Not a Peppol submission concern.  
 - ViDA central reporting API  
 
 ---
