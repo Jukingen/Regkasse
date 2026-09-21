@@ -86,11 +86,19 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: npm ci
 
-      - name: Ensure eslint is present
+      - name: Ensure frontend-admin node_modules is complete
         working-directory: ${{ github.workspace }}
         run: |
+          missing=""
           if [ ! -x frontend-admin/node_modules/.bin/eslint ] && [ ! -x node_modules/.bin/eslint ]; then
-            echo "eslint missing from cache; running npm ci"
+            missing="eslint"
+          elif [ ! -d frontend-admin/node_modules/vitest ] && [ ! -d node_modules/vitest ]; then
+            missing="vitest"
+          elif [ ! -x frontend-admin/node_modules/.bin/tsc ] && [ ! -x node_modules/.bin/tsc ]; then
+            missing="tsc"
+          fi
+          if [ -n "$missing" ]; then
+            echo "${missing} missing from cache; running npm ci"
             npm ci
           fi
 
@@ -181,11 +189,19 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: npm ci
 
-      - name: Ensure eslint is present
+      - name: Ensure frontend-admin node_modules is complete
         working-directory: ${{ github.workspace }}
         run: |
+          missing=""
           if [ ! -x frontend-admin/node_modules/.bin/eslint ] && [ ! -x node_modules/.bin/eslint ]; then
-            echo "eslint missing from cache; running npm ci"
+            missing="eslint"
+          elif [ ! -d frontend-admin/node_modules/vitest ] && [ ! -d node_modules/vitest ]; then
+            missing="vitest"
+          elif [ ! -x frontend-admin/node_modules/.bin/tsc ] && [ ! -x node_modules/.bin/tsc ]; then
+            missing="tsc"
+          fi
+          if [ -n "$missing" ]; then
+            echo "${missing} missing from cache; running npm ci"
             npm ci
           fi
 
