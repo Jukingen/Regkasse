@@ -58,9 +58,11 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 21** (QR bank su
 
 ## Open Questions
 
-- Default QR reference type (QRR vs SCOR vs NON)?
-- Is the accommodation special rate in product scope?
-- When is QR currency CHF vs EUR?
+Answered for v1 in [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md): spec **IG 2.3**; default reference **SCOR**; PDF via **QuestPDF + QRCoder**; no bank HTTP API.
+
+Still open:
+
+- Is the accommodation special rate in product scope? (CountryTaxType lodging 3.8% is seeded; POS catalog mapping is a later product choice.)
 - Are language-specific UID suffixes in scope, or only the MWST suffix?
 
 ---
@@ -68,6 +70,7 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 21** (QR bank su
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub
+- [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) — Paket 21 QR-bill plan (not implemented)
 - [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) — production country-layer apply order
 - [`../AGENTS.md`](../AGENTS.md) — Country & Fiscal Regimes
 - [`EINVOICING_EU.md`](EINVOICING_EU.md) — EU e-invoicing stub (not CH QR-Rechnung)

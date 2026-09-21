@@ -75,16 +75,19 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16.
 
 ## Open Questions
 
-- Canonical syntax: UBL 2.1 vs CII?
-- Is Peppol required, or is EN 16931 XML enough for the first slice?
-- Where does “OSS registered” come from (tenant flag vs external register)?
-- Which mandants fall under which ViDA duties — **unknown**; not decided in this stub.
+Answered for v1 in [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md): **UBL 2.1** / Peppol BIS 3.0; **hosted AP** (not own AP); validator-first; no ViDA submission.
+
+Still open:
+
+- Where does “OSS registered” come from (tenant flag vs external register)? Paket 30-d still NOT STARTED.
+- Which mandants fall under which ViDA duties — **unknown**; not decided here.
 
 ---
 
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub
+- [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) — Paket 22 submission plan (not implemented)
 - [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) — production country-layer apply order
 - [`../AGENTS.md`](../AGENTS.md) — Country & Fiscal Regimes
 - [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) — DE ZUGFeRD / XRechnung stub

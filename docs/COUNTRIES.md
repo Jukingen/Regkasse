@@ -476,9 +476,9 @@ These packages are **NOT STARTED**. Do not treat CountryProfile seeds, tax-strat
 
 | Paket | Scope | Status | Doc |
 |-------|--------|--------|-----|
-| **20** | German TSE / KassenSicherheit **provider** (device provisioning, signing, chain). `IKassenSicherheitService` stays a stub. | **NOT STARTED** | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| **21** | Swiss QR-Rechnung **bank submission** (and PDF/QR image). Payload builder is shape-only; `BuildPdfAsync` throws. | **NOT STARTED** | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
-| **22** | EU **Peppol** Access Point / transport (and tax-authority / ViDA submission). EN 16931 XML builders still throw. | **NOT STARTED** | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+| **20** | German TSE / KassenSicherheit **provider** (device provisioning, signing, chain). `IKassenSicherheitService` stays a stub. | **NOT STARTED** (decision: [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) — fiskaly SIGN DE) | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
+| **21** | Swiss QR-Rechnung **PDF / bank-compatible payload** (no bank HTTP API). `BuildPdfAsync` throws. | **NOT STARTED** (plan: [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) — SIX IG **2.3**) | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
+| **22** | EU **Peppol** transport / tax-authority submission. EN 16931 XML builders still throw. | **NOT STARTED** (plan: [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) — UBL 2.1, hosted AP, validator-first) | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 | **30-d** | OSS **destination-rate** table. `EuDefaultTaxStrategy.CalculateOss` still uses line `VatRatePercent` from the Austrian `TaxTypes` stand-in. AT + `EU_OSS` remains unsupported. | **NOT STARTED** | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 
 Also still open (not numbered packages): Playwright E2E for the create-tenant country step; live VIES network tests (client is mocked; flag default off).

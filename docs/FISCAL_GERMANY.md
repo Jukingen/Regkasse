@@ -58,9 +58,11 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 20** (DE TSE pro
 
 ## Open Questions
 
-- Which TSE provider(s) and certification path will the product support?
-- Is ZUGFeRD, XRechnung, or both the default for DE mandants?
-- How should Austrian `Tse:` configuration stay isolated from DE KassenSicherheit configuration?
+Answered for v1 in [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md): **fiskaly SIGN DE** (cloud TSS). Epson/Swissbit USB deferred. `KassenSicherheit:` stays isolated from `Tse:`.
+
+Still open:
+
+- Is ZUGFeRD, XRechnung, or both the default for DE **e-invoicing**? See [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) (UBL / Peppol first; ZUGFeRD later).
 - Which turnover or legal thresholds change what is mandatory for a given mandant?
 
 ---
@@ -68,6 +70,7 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 20** (DE TSE pro
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub
+- [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) — Paket 20 provider decision (not implemented)
 - [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) — production country-layer apply order
 - [`../AGENTS.md`](../AGENTS.md) — Country & Fiscal Regimes
 - [`EINVOICING_EU.md`](EINVOICING_EU.md) — EN 16931 / ViDA stub (no submission)

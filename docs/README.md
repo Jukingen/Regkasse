@@ -109,8 +109,11 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 | [`COUNTRIES.md`](COUNTRIES.md) | **Multi-country hub** (AT production; DE/CH/EU shape-only) |
 | [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover (migrations, flags, FA, blackout windows) |
 | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) | Germany fiscal **stub** (not production-ready) |
+| [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) | Paket 20: SIGN DE vs Epson/Swissbit (decision; not implemented) |
 | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung **stub** (not production-ready) |
+| [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) | Paket 21: SIX IG 2.3 QR-bill plan (not implemented) |
 | [`EINVOICING_EU.md`](EINVOICING_EU.md) | EU e-invoicing / ViDA readiness **stub** (no submission) |
+| [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) | Paket 22: Peppol/UBL vs national platforms (plan; not implemented) |
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
 | [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
 | [`DEPLOYMENT_COMPLIANCE.md`](DEPLOYMENT_COMPLIANCE.md) | **Production RKSV gate, ComplianceOfficer, audit trail** |
@@ -270,6 +273,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`COUNTRIES.md`](COUNTRIES.md) | Multi-country fiscal hub |
 | [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover |
 | [`EINVOICING_EU.md`](EINVOICING_EU.md) / [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) / [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Country fiscal stubs (not production-ready) |
+| [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) / [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) / [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) | Paket 20/21/22 plans (not implemented) |
 | [`RKSV_*.md`](RKSV_COMPLIANCE.md) | RKSV / BMF / operations |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | **Key** — FA mandant CRUD |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | **Key** — users / Access hub |
