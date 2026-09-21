@@ -3,6 +3,8 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,28 +18,36 @@ public sealed class OfflineOrderService : IOfflineOrderService
 
     private readonly AppDbContext _context;
     private readonly IPaymentService _paymentService;
-    private readonly ISequenceReservationService _sequenceReservation;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<OfflineOrderService> _logger;
+    private readonly ICountryStrategyContext _countryStrategyContext;
+    private readonly IInvoiceStrategyResolver _invoiceStrategyResolver;
 
     public OfflineOrderService(
         AppDbContext context,
         IPaymentService paymentService,
-        ISequenceReservationService sequenceReservation,
         IAuditLogService auditLogService,
         ICurrentTenantAccessor tenantAccessor,
         IHttpContextAccessor httpContextAccessor,
-        ILogger<OfflineOrderService> logger)
+        ILogger<OfflineOrderService> logger,
+        ICountryStrategyContext? countryStrategyContext = null,
+        IInvoiceStrategyResolver? invoiceStrategyResolver = null,
+        ICountryProfileRegistry? countryProfileRegistry = null,
+        ISequenceReservationService? sequenceReservation = null)
     {
         _context = context;
         _paymentService = paymentService;
-        _sequenceReservation = sequenceReservation;
         _auditLogService = auditLogService;
         _tenantAccessor = tenantAccessor;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+        _countryStrategyContext = countryStrategyContext
+            ?? new CountryStrategyContext(_context, registry);
+        _invoiceStrategyResolver = invoiceStrategyResolver
+            ?? CountryStrategyWiring.CreateInvoiceResolver(sequences: sequenceReservation);
     }
 
     public async Task<OfflineOrderResponse> SaveOfflineOrderAsync(
@@ -142,48 +152,23 @@ public sealed class OfflineOrderService : IOfflineOrderService
             };
         }
 
-        var sequences = await _sequenceReservation
-            .ReserveSequencesAsync(orders.Count, cashRegisterId, ct)
-            .ConfigureAwait(false);
-
         var details = new List<ReplayOfflineOrderResult>(orders.Count);
-        var sequencesToRelease = new List<int>();
         var success = 0;
         var failed = 0;
 
-        try
+        for (var i = 0; i < orders.Count; i++)
         {
-            for (var i = 0; i < orders.Count; i++)
-            {
-                ct.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
 
-                var belegNr = await _sequenceReservation
-                    .ToBelegNrAsync(cashRegisterId, sequences[i], ct)
-                    .ConfigureAwait(false);
+            var belegNr = await AllocateReceiptNumberAsync(cashRegisterId, ct).ConfigureAwait(false);
+            var result = await ReplaySingleOrderAsync(orders[i], userId, ct, belegNr)
+                .ConfigureAwait(false);
 
-                var result = await ReplaySingleOrderAsync(orders[i], userId, ct, belegNr)
-                    .ConfigureAwait(false);
-
-                details.Add(result);
-                if (result.Success)
-                {
-                    success++;
-                }
-                else
-                {
-                    failed++;
-                    sequencesToRelease.Add(sequences[i]);
-                }
-            }
-        }
-        finally
-        {
-            if (sequencesToRelease.Count > 0)
-            {
-                await _sequenceReservation
-                    .ReleaseSequencesAsync(sequencesToRelease, cashRegisterId, ct)
-                    .ConfigureAwait(false);
-            }
+            details.Add(result);
+            if (result.Success)
+                success++;
+            else
+                failed++;
         }
 
         return new ReplayOfflineOrdersResult
@@ -326,33 +311,8 @@ public sealed class OfflineOrderService : IOfflineOrderService
         if (order.ExpiresAtUtc <= DateTime.UtcNow)
             throw new InvalidOperationException("Offline order has expired.");
 
-        var sequences = await _sequenceReservation
-            .ReserveSequencesAsync(1, order.CashRegisterId, ct)
-            .ConfigureAwait(false);
-
-        try
-        {
-            var belegNr = await _sequenceReservation
-                .ToBelegNrAsync(order.CashRegisterId, sequences[0], ct)
-                .ConfigureAwait(false);
-
-            var result = await ReplaySingleOrderAsync(order, userId, ct, belegNr).ConfigureAwait(false);
-            if (!result.Success)
-            {
-                await _sequenceReservation
-                    .ReleaseSequencesAsync(sequences, order.CashRegisterId, ct)
-                    .ConfigureAwait(false);
-            }
-
-            return result;
-        }
-        catch
-        {
-            await _sequenceReservation
-                .ReleaseSequencesAsync(sequences, order.CashRegisterId, ct)
-                .ConfigureAwait(false);
-            throw;
-        }
+        var belegNr = await AllocateReceiptNumberAsync(order.CashRegisterId, ct).ConfigureAwait(false);
+        return await ReplaySingleOrderAsync(order, userId, ct, belegNr).ConfigureAwait(false);
     }
 
     public async Task<ReplayOfflineOrdersResult> ReplayAllPendingForTenantAsync(
@@ -429,8 +389,8 @@ public sealed class OfflineOrderService : IOfflineOrderService
             {
                 for (var seqAttempt = 1; seqAttempt <= SequenceReservationAttempts; seqAttempt++)
                 {
-                    paymentRequest.ReservedReceiptNumber = await _sequenceReservation
-                        .ReserveNextReceiptNumberAsync(order.CashRegisterId, ct)
+                    paymentRequest.ReservedReceiptNumber = await AllocateReceiptNumberAsync(
+                            order.CashRegisterId, ct)
                         .ConfigureAwait(false);
 
                     paymentResult = await _paymentService.CreatePaymentAsync(
@@ -490,6 +450,10 @@ public sealed class OfflineOrderService : IOfflineOrderService
                 ErrorMessage = order.ErrorMessage
             };
         }
+        catch (NotImplementedException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Offline order replay failed. OrderId={OrderId}", order.Id);
@@ -516,6 +480,19 @@ public sealed class OfflineOrderService : IOfflineOrderService
         string.Equals(result.DiagnosticCode, "RECEIPT_NUMBER_CONFLICT", StringComparison.OrdinalIgnoreCase)
         || result.Errors.Any(e => e.Contains("receipt number", StringComparison.OrdinalIgnoreCase)
                                   || e.Contains("BelegNr", StringComparison.OrdinalIgnoreCase));
+
+    private async Task<string> AllocateReceiptNumberAsync(Guid cashRegisterId, CancellationToken ct)
+    {
+        var binding = await _countryStrategyContext.LoadAsync(ct).ConfigureAwait(false);
+        var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
+        return await strategy.AllocateReceiptNumberAsync(
+            new ReceiptNumberAllocationContext
+            {
+                CashRegisterId = cashRegisterId,
+                MaxAttempts = SequenceReservationAttempts,
+            },
+            ct).ConfigureAwait(false);
+    }
 
     private Guid RequireTenantId()
     {

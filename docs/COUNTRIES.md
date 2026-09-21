@@ -123,7 +123,7 @@ Deliberately **out** of `IInvoiceStrategy`: TSE signing input, RKSV §9 machine 
 | Path | Allocator | In `IInvoiceStrategy`? |
 |------|-----------|------------------------|
 | Online payment, storno, refund, all Sonderbelege | `IReceiptSequenceService.AllocateNextBelegNrInTransactionAsync` (bound to the caller's `IDbContextTransaction`) | **No** — stays outside the country layer so no EF transaction leaks into a country-neutral contract |
-| Offline order replay | `ISequenceReservationService.ReserveNextReceiptNumberAsync` | Yes — this is what `AllocateReceiptNumberAsync` delegates to |
+| Offline order replay | `ISequenceReservationService.ReserveNextReceiptNumberAsync` | Yes — Paket 30-b: `OfflineOrderService` calls `IInvoiceStrategy.AllocateReceiptNumberAsync`; Austria delegates to this service (`FormatBelegNr`). DE/CH/EU still throw `NotImplementedException`. |
 
 Do not "fix" this by adding a transaction parameter to the interface without a separate decision.
 

@@ -9,8 +9,9 @@ namespace KasseAPI_Final.Services.Countries.Strategies;
 ///
 /// TSE signing input, machine code, and QR payload are deliberately **not** part of this contract:
 /// they belong to the signature pipeline (<c>BelegdatenPayloadBuilder</c>), not to document layout.
-/// Resolved through <see cref="IInvoiceStrategyResolver"/>. Call sites: RksvSpecialReceiptService
-/// and InvoiceService fail-closed gates (AT disclosures discarded; skeletons throw).
+/// Resolved through <see cref="IInvoiceStrategyResolver"/>. Call sites: OfflineOrderService BelegNr
+/// allocation (Paket 30-b), RksvSpecialReceiptService and InvoiceService fail-closed gates
+/// (AT disclosures discarded; skeletons throw).
 /// </summary>
 public interface IInvoiceStrategy
 {
