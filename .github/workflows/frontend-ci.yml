@@ -60,6 +60,19 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --legacy-peer-deps --workspaces=false
 
+      - name: Ensure POS node_modules is complete
+        run: |
+          if [ ! -d node_modules/eslint ] && [ ! -x node_modules/.bin/eslint ]; then
+            echo "eslint missing from cache; running npm ci"
+            npm ci --legacy-peer-deps --workspaces=false
+          elif [ ! -d node_modules/jest ] && [ ! -x node_modules/.bin/jest ]; then
+            echo "jest missing from cache; running npm ci"
+            npm ci --legacy-peer-deps --workspaces=false
+          elif [ ! -d node_modules/typescript ] && [ ! -x node_modules/.bin/tsc ]; then
+            echo "typescript missing from cache; running npm ci"
+            npm ci --legacy-peer-deps --workspaces=false
+          fi
+
       - name: npm run lint
         run: npm run lint
 
