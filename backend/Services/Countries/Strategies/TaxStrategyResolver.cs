@@ -23,6 +23,22 @@ public sealed class TaxStrategyResolver : ITaxStrategyResolver
         if (!profile.Supports(vatRegime))
             throw new UnknownTaxRegimeException(profile.Code, vatRegime);
 
+        // OSS destination rates are Paket 30-d; AT must not silently use AustriaTaxStrategy.
+        if (string.Equals(profile.Code, CountryProfileCodes.Austria, StringComparison.OrdinalIgnoreCase)
+            && vatRegime == VatRegime.EU_OSS)
+        {
+            throw new ArgumentException("AT tenant + EU_OSS is not supported");
+        }
+
+        // Reverse charge is a VAT regime, not a fiscal system — route to EU_DEFAULT regardless of country.
+        if (vatRegime == VatRegime.EU_REVERSE_CHARGE)
+        {
+            if (!_byCountryCode.TryGetValue(CountryProfileCodes.EuDefault, out var euStrategy))
+                throw new UnknownTaxRegimeException(profile.Code, vatRegime);
+
+            return euStrategy;
+        }
+
         if (!_byCountryCode.TryGetValue(profile.Code, out var strategy))
             throw new UnknownTaxRegimeException(profile.Code, vatRegime);
 

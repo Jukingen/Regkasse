@@ -1,6 +1,6 @@
 # Countries and fiscal regimes
 
-**Last updated:** 2026-09-18  
+**Last updated:** 2026-09-21  
 **Related:** [`AGENTS.md`](../AGENTS.md) · [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) · [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) · [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md)
 
 This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance.
@@ -75,7 +75,7 @@ Persisted as the enum **member name**, so renaming a member is a breaking schema
 | `EU_OSS` | EU One-Stop-Shop reporting |
 | `NON_EU` | Outside the EU VAT area |
 
-Regime is independent from country: an Austrian mandant may legitimately invoice under `EU_REVERSE_CHARGE`.
+Regime is independent from country: an Austrian mandant may legitimately invoice under `EU_REVERSE_CHARGE`. Since Paket 12-c both resolvers route that regime to `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` regardless of country code. AT + `EU_OSS` is still unsupported (`ArgumentException`: `AT tenant + EU_OSS is not supported`).
 
 ### 2.4 The registry (shipped)
 
@@ -132,6 +132,10 @@ Do not "fix" this by adding a transaction parameter to the interface without a s
 ### 3.2 Resolution and failure
 
 `ITaxStrategyResolver` / `IInvoiceStrategyResolver` take a `CountryProfile` and a `VatRegime`. They fail closed with `UnknownTaxRegimeException` (error code `UNKNOWN_TAX_REGIME`) when the profile does not allow the regime, or when no strategy is registered for the country. There is **no** Austrian fallback: a wrong pair must never run RKSV for a non-AT mandant.
+
+Resolution order (Paket 12-c): (1) profile must `Supports` the regime; (2) AT + `EU_OSS` throws `ArgumentException` (`AT tenant + EU_OSS is not supported`) — destination OSS rates are Paket 30-d; (3) `EU_REVERSE_CHARGE` routes to the `EU_DEFAULT` strategies regardless of country code (VAT regime, not fiscal system); (4) otherwise look up by profile country code.
+
+`EInvoicing.En16931` does **not** gate reverse-charge `CalculateTax` or reverse-charge `GetMandatoryDisclosures`. Those run when the flag is off so an AT tenant can issue B2B intra-EU reverse-charge invoices. The flag still gates `EU_OSS` / `NON_EU` tax, `BuildInvoiceDocumentAsync`, `ValidateVatId`, `DetermineInvoiceFields`, and the EN 16931 / XRechnung / ZUGFeRD XML builders.
 
 Lifetimes: tax strategies and their resolver are singletons (stateless delegators); invoice strategies and their resolver are **scoped**, because the Austrian one depends on scoped `ISequenceReservationService` and `IReceiptService`.
 

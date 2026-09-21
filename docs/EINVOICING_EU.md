@@ -2,7 +2,7 @@
 
 # EU e-invoicing (EN 16931) and ViDA readiness
 
-**Last updated:** 2026-09-18  
+**Last updated:** 2026-09-21  
 **Hub:** [`COUNTRIES.md`](COUNTRIES.md) · **Rules:** [`../AGENTS.md`](../AGENTS.md)
 
 This page describes the **shape** of the generic EU e-invoicing layer used when a mandant has no country-specific invoice strategy. It is not a legal opinion, not Peppol onboarding, and **not submission-ready**.
@@ -44,7 +44,8 @@ Austria RKSV receipts and German ZUGFeRD are **not** defined here. See `RKSV_*.m
 - `EU_DEFAULT` is a fallback profile, not an ISO country code. Real mandants keep an ISO alpha-2 code (or AT backfill).
 - Tax and invoice strategies use `VatRegime` (including OSS and reverse charge) without forking `PaymentService`.
 - Reverse charge requires a buyer VAT-ID. Prefix `AT` / `DE` / `CH` uses that seeded profile regex; otherwise the context profile (`EU_DEFAULT` `^[A-Z]{2}[A-Z0-9]{8,12}$`). Missing or invalid shape → `VAT_ID_SHAPE_INVALID`. Never `GetOrDefault` (that would fall back to AT).
-- **Limitation:** an AT tenant with `VatRegime=EU_REVERSE_CHARGE` is **not** supported today. The resolver picks `AustriaTaxStrategy` by country code, so reverse charge does not apply. Future package (Paket 12-c or 30-e) may add cross-regime support. Do not change the resolver for this gap.
+- AT tenant + `VatRegime=EU_REVERSE_CHARGE` is supported since Paket 12-c. Both resolvers route reverse charge to `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` regardless of country code (VAT regime, not fiscal system). Valid buyer VAT-ID → 0% + reverse-charge disclosure; missing/invalid → `VAT_ID_SHAPE_INVALID`. AT + `EU_OSS` remains unsupported (`ArgumentException`: `AT tenant + EU_OSS is not supported`).
+- `EInvoicing.En16931` flag does NOT gate the reverse-charge VAT calculation or disclosure. It gates only the EN 16931 XML builders. Reverse charge works when the flag is off.
 - EN 16931 is the semantic target. UBL vs CII is an open question; this stub does not require Peppol.
 - VIES: mockable client behind `Vies.CheckEnabled`. Never call the live network from unit tests.
 - ViDA: a read-only readiness object (planned fields: `en16931Ready`, `viesEnabled`, `ossRegistered`, `eInvoicingCapable`). No submission API. This document does not assign a go-live date.

@@ -47,7 +47,8 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
     {
         ArgumentNullException.ThrowIfNull(lineItems);
         ArgumentNullException.ThrowIfNull(context);
-        EnsureEnabled();
+        if (context.VatRegime != VatRegime.EU_REVERSE_CHARGE)
+            EnsureEnabled();
 
         return context.VatRegime switch
         {
@@ -283,10 +284,11 @@ public sealed class EuDefaultInvoiceStrategy : IInvoiceStrategy
         Customer? customer)
     {
         ArgumentNullException.ThrowIfNull(company);
-        EnsureEnabled();
-
         if (company.VatRegime != VatRegime.EU_REVERSE_CHARGE)
+        {
+            EnsureEnabled();
             return CoreDisclosures;
+        }
 
         var withReverseCharge = new List<DisclosureRequirement>(CoreDisclosures.Count + 2);
         withReverseCharge.AddRange(CoreDisclosures);

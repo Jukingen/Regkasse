@@ -1,26 +1,34 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.EInvoicing;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Austria;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Vat;
+using KasseAPI_Final.Services.FeatureFlags;
 using KasseAPI_Final.Tests.CountryBaseline;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Paket 12-b: EU reverse charge + OSS placeholder pins. Does not call VIES.
+/// Paket 12-b reverse charge / OSS placeholder pins, plus Paket 12-c AT cross-regime routing.
+/// Does not call VIES.
 /// </summary>
 public sealed class EuReverseChargeTests
 {
+    private const string AtEuOssUnsupportedMessage = "AT tenant + EU_OSS is not supported";
+
     private static readonly ICountryProfileRegistry Profiles = new CountryProfileRegistry();
     private static readonly ICountryTaxTypeRegistry Rates = new CountryTaxTypeRegistry();
     private static readonly ITaxStrategyResolver TaxResolver = CountryStrategyWiring.CreateTaxResolver();
+    private static readonly IInvoiceStrategyResolver InvoiceResolver = CountryStrategyWiring.CreateInvoiceResolver();
     private static readonly IVatIdValidator VatIds = new VatIdValidator(new DisabledViesClient());
 
     private static EuDefaultTaxStrategy EuTax() => new(Profiles, VatIds, featureFlags: null);
@@ -51,6 +59,31 @@ public sealed class EuReverseChargeTests
         CompanyAddress = "Brussels",
         CompanyTaxNumber = "FR12345678901",
     };
+
+    private static CompanySettings AtCompany(VatRegime regime) => new()
+    {
+        Country = CountryProfileCodes.Austria,
+        VatRegime = regime,
+        CompanyName = "AT GmbH",
+        CompanyAddress = "Vienna",
+        CompanyTaxNumber = "ATU12345678",
+    };
+
+    private static TaxCalculationContext AtReverseChargeContext(string? buyerVatId) => new()
+    {
+        CountryProfile = Profiles.Get(CountryProfileCodes.Austria),
+        VatRegime = VatRegime.EU_REVERSE_CHARGE,
+        TaxExempt = false,
+        BuyerVatId = buyerVatId,
+    };
+
+    private static IFeatureFlagService FlagsOff()
+    {
+        var mock = new Mock<IFeatureFlagService>();
+        mock.Setup(f => f.IsEnabled(FeatureFlagNames.EInvoicingEn16931, It.IsAny<string?>()))
+            .Returns(false);
+        return mock.Object;
+    }
 
     [Fact]
     public void ReverseCharge_ValidDeBuyerVatId_IsZeroRated()
@@ -183,29 +216,90 @@ public sealed class EuReverseChargeTests
     }
 
     [Fact]
-    public void AtTenant_EuReverseChargeRegime_StillResolvesAustriaTaxStrategy()
+    public void AtTenant_EuReverseCharge_ResolvesEuDefaultTaxStrategy()
     {
         var at = Profiles.Get(CountryProfileCodes.Austria);
-        var strategy = TaxResolver.Resolve(at, VatRegime.EU_REVERSE_CHARGE);
-        Assert.IsType<AustriaTaxStrategy>(strategy);
+        var tax = TaxResolver.Resolve(at, VatRegime.EU_REVERSE_CHARGE);
+        var invoice = InvoiceResolver.Resolve(at, VatRegime.EU_REVERSE_CHARGE);
 
-        var expected = new AustriaTaxStrategy().CalculateTax(
-            [TaxLineItemInput.FromTaxType(121m, 1, TaxTypes.Standard)],
-            AtContext());
+        Assert.IsType<EuDefaultTaxStrategy>(tax);
+        Assert.IsType<EuDefaultInvoiceStrategy>(invoice);
 
-        var withBuyerVatId = strategy.CalculateTax(
-            [TaxLineItemInput.FromTaxType(121m, 1, TaxTypes.Standard)],
-            new TaxCalculationContext
-            {
-                CountryProfile = at,
-                VatRegime = VatRegime.EU_REVERSE_CHARGE,
-                TaxExempt = false,
-                BuyerVatId = "DE123456789",
-            });
+        var result = tax.CalculateTax(
+            [TaxLineItemInput.FromVatPercent(121m, 1, 21m)],
+            AtReverseChargeContext("DE123456789"));
 
-        Assert.Equal(expected.Totals.TotalVat, withBuyerVatId.Totals.TotalVat);
-        Assert.Equal(expected.Totals.TotalGross, withBuyerVatId.Totals.TotalGross);
-        Assert.NotEqual(0m, withBuyerVatId.Totals.TotalVat);
+        Assert.Equal(0m, result.Totals.TotalVat);
+        Assert.Equal(0m, result.TaxDetails["0"]);
+
+        var keys = invoice.GetMandatoryDisclosures(AtCompany(VatRegime.EU_REVERSE_CHARGE), customer: null)
+            .Select(d => d.Key)
+            .ToArray();
+        Assert.Contains("invoice.reverseCharge", keys);
+        Assert.Contains("buyer.vatId", keys);
+
+        foreach (var buyerVatId in new string?[] { null, "", "DE12" })
+        {
+            var ex = Assert.Throws<VatIdShapeInvalidException>(() =>
+                tax.CalculateTax(
+                    [TaxLineItemInput.FromVatPercent(121m, 1, 21m)],
+                    AtReverseChargeContext(buyerVatId)));
+            Assert.Equal(VatIdShapeInvalidException.Code, ex.ErrorCode);
+        }
+    }
+
+    [Fact]
+    public void AtTenant_AtRksvStandard_StillResolvesAustriaTaxStrategy()
+    {
+        var at = Profiles.Get(CountryProfileCodes.Austria);
+
+        Assert.IsType<AustriaTaxStrategy>(TaxResolver.Resolve(at, VatRegime.AT_RKSV_STANDARD));
+        Assert.IsType<AustriaInvoiceStrategy>(InvoiceResolver.Resolve(at, VatRegime.AT_RKSV_STANDARD));
+    }
+
+    [Fact]
+    public void AtTenant_EuOss_ThrowsWithClearMessage()
+    {
+        var at = Profiles.Get(CountryProfileCodes.Austria);
+
+        var taxEx = Assert.Throws<ArgumentException>(() => TaxResolver.Resolve(at, VatRegime.EU_OSS));
+        var invoiceEx = Assert.Throws<ArgumentException>(() => InvoiceResolver.Resolve(at, VatRegime.EU_OSS));
+
+        Assert.Equal(AtEuOssUnsupportedMessage, taxEx.Message);
+        Assert.Equal(AtEuOssUnsupportedMessage, invoiceEx.Message);
+    }
+
+    [Fact]
+    public void AtTenant_EuReverseCharge_WorksWhenEn16931FlagIsOff()
+    {
+        var flags = FlagsOff();
+        var tax = new EuDefaultTaxStrategy(Profiles, VatIds, flags);
+        var invoice = new EuDefaultInvoiceStrategy(flags);
+
+        var result = tax.CalculateTax(
+            [TaxLineItemInput.FromVatPercent(121m, 1, 21m)],
+            AtReverseChargeContext("DE123456789"));
+
+        Assert.Equal(0m, result.Totals.TotalVat);
+        Assert.Equal(0m, result.TaxDetails["0"]);
+
+        var keys = invoice.GetMandatoryDisclosures(AtCompany(VatRegime.EU_REVERSE_CHARGE), customer: null)
+            .Select(d => d.Key)
+            .ToArray();
+        Assert.Contains("invoice.reverseCharge", keys);
+        Assert.Contains("buyer.vatId", keys);
+    }
+
+    [Fact]
+    public async Task AtTenant_EuReverseCharge_XmlBuilderStillGatedByFlag()
+    {
+        IEn16931XmlBuilder builder = new NotImplementedEn16931XmlBuilder(FlagsOff());
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() =>
+            builder.BuildXmlAsync(new InvoiceDocumentDto { CountryCode = CountryProfileCodes.EuDefault }));
+
+        Assert.Equal(FeatureDisabledException.Code, ex.ErrorCode);
+        Assert.Equal(FeatureFlagNames.EInvoicingEn16931, ex.FeatureName);
     }
 
     private static decimal Money(JsonNode row, string name) =>
