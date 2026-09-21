@@ -7,7 +7,19 @@ This hub describes the multi-country architecture. It is not a legal opinion and
 
 ## Current state (as of HEAD)
 
-Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance. Production apply order, blackout windows, and smoke checks: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
+Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). Offline BelegNr allocation goes through `IInvoiceStrategy` (Paket 30-b). AT + `EU_REVERSE_CHARGE` routes to the EU_DEFAULT strategies (Paket 12-c). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`, Paket 14). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance. Production apply order: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md). Remaining work: [§16](#16-remaining-gaps).
+
+### Shipped since Paket 19
+
+| Paket | What landed |
+|-------|-------------|
+| **12-c** | AT + `EU_REVERSE_CHARGE` → `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy`. `EInvoicing.En16931` does not gate reverse-charge tax or disclosures. |
+| **30-b** | `OfflineOrderService` allocates BelegNr via `IInvoiceStrategy.AllocateReceiptNumberAsync` (Austria `FormatBelegNr`). |
+| **14** | FA tenant-detail Country & Fiscal Regime card (Super Admin edit; Mandanten-Admin view-only). |
+| **16** | Issue-time `CountryCodeAtIssue` / `VatRegimeAtIssue`; historical rows not rewritten; `COUNTRY_LOCKED_FISCAL` lifted. |
+| **18** | [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) |
+
+Paket **30-d** (OSS destination-rate table) is **not started**. OSS still uses the Austrian `TaxTypes` stand-in.
 
 ---
 
@@ -16,9 +28,9 @@ Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoi
 | Country | Fiscal System | Status | Notes |
 |---------|---------------|--------|-------|
 | **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)**; adapter called | Current behavior unchanged; `AustriaTaxStrategy` / `AustriaInvoiceStrategy` delegate to the existing services and are pinned by the baseline regression suite in [§11](#11-testing-strategy) |
-| **DE** | KassenSicherheit (planned) | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` shape; RKSV special receipts and TSE tax-sets throw `NotSupportedException`. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| **CH** | MWST + QR-Rechnung (planned) | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` shape; RKSV special receipts throw `NotSupportedException`. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
-| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; domain wired (Paket 30-c) | `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` shape; TSE/RKSV remain AT-only. See [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+| **DE** | KassenSicherheit (planned) | Domain wired (Paket 30-c); no DE TSE provider | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` shape; RKSV special receipts and TSE tax-sets throw `NotSupportedException`. Paket **20** not started. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
+| **CH** | MWST + QR-Rechnung (planned) | Domain wired (Paket 30-c); QR payload shape only | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` shape; no bank submit. Paket **21** not started. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
+| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; domain wired (Paket 30-c) | Reverse charge used by AT (Paket 12-c). No Peppol. Paket **22** not started. See [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 
 `EU_DEFAULT` is a fallback profile identifier, not an ISO 3166-1 alpha-2 code. It must never appear in the Super Admin create-tenant country list.
 
@@ -96,7 +108,7 @@ Lookup semantics: `GetOrDefault` resolves unknown, legacy, or blank codes to **A
 
 A profile deliberately carries **no VAT rates** — a unit test fails the build if a rate-like property is added.
 
-**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); Paket 13-b added `// Source:` comments on the seeds (minimum 24). VAT rates are **not** on the profile — they live on `ICountryTaxTypeRegistry` (Paket 13-c). DE/CH `CalculateTax` uses that registry (Paket 30-c); AT stays on live `TaxTypes`. DE/CH/EU modules remain shape-only and are gated by feature flags.
+**Seed verification status:** the AT seed is authoritative because it mirrors values already live in production (`EUR`, `de-DE`, `Europe/Vienna`, and the UID pattern `^ATU\d{8}$`), and regression tests pin it. Paket 13 checked every seeded **profile field** against official sources ([§14](#14-seed-sources)); Paket 13-b added `// Source:` comments on the seeds (minimum 24). VAT rates are **not** on the profile — they live on `ICountryTaxTypeRegistry` (Paket 13-c). DE/CH `CalculateTax` uses that registry (Paket 30-c); AT stays on live `TaxTypes`. DE/CH/EU modules remain shape-only and are gated by feature flags. DE TSE, CH bank submit, and Peppol are [§16](#16-remaining-gaps).
 
 ---
 
@@ -133,13 +145,13 @@ Do not "fix" this by adding a transaction parameter to the interface without a s
 
 `ITaxStrategyResolver` / `IInvoiceStrategyResolver` take a `CountryProfile` and a `VatRegime`. They fail closed with `UnknownTaxRegimeException` (error code `UNKNOWN_TAX_REGIME`) when the profile does not allow the regime, or when no strategy is registered for the country. There is **no** Austrian fallback: a wrong pair must never run RKSV for a non-AT mandant.
 
-Resolution order (Paket 12-c): (1) profile must `Supports` the regime; (2) AT + `EU_OSS` throws `ArgumentException` (`AT tenant + EU_OSS is not supported`) — destination OSS rates are Paket 30-d; (3) `EU_REVERSE_CHARGE` routes to the `EU_DEFAULT` strategies regardless of country code (VAT regime, not fiscal system); (4) otherwise look up by profile country code.
+Resolution order (Paket 12-c): (1) profile must `Supports` the regime; (2) AT + `EU_OSS` throws `ArgumentException` (`AT tenant + EU_OSS is not supported`) — destination OSS rates are **not started** (Paket 30-d; [§16](#16-remaining-gaps)); (3) `EU_REVERSE_CHARGE` routes to the `EU_DEFAULT` strategies regardless of country code (VAT regime, not fiscal system); (4) otherwise look up by profile country code.
 
 `EInvoicing.En16931` does **not** gate reverse-charge `CalculateTax` or reverse-charge `GetMandatoryDisclosures`. Those run when the flag is off so an AT tenant can issue B2B intra-EU reverse-charge invoices. The flag still gates `EU_OSS` / `NON_EU` tax, `BuildInvoiceDocumentAsync`, `ValidateVatId`, `DetermineInvoiceFields`, and the EN 16931 / XRechnung / ZUGFeRD XML builders.
 
 Lifetimes: tax strategies and their resolver are singletons (stateless delegators); invoice strategies and their resolver are **scoped**, because the Austrian one depends on scoped `ISequenceReservationService` and `IReceiptService`.
 
-Non-AT `CalculateTax` / disclosures / placeholder documents are shape-implemented. `ProjectFiscalTaxSets` and `AllocateReceiptNumberAsync` still throw `NotImplementedException` on DE/CH/EU. TSE tax-sets and RKSV special receipts throw `NotSupportedException` for non-AT countries, so they cannot silently enable Austrian TSE signing.
+Non-AT `CalculateTax` / disclosures / `InvoiceDocumentDto` shape are implemented. `ProjectFiscalTaxSets` and `AllocateReceiptNumberAsync` still throw `NotImplementedException` on DE/CH/EU. TSE tax-sets and RKSV special receipts throw `NotSupportedException` for non-AT countries, so they cannot silently enable Austrian TSE signing.
 
 ---
 
@@ -183,8 +195,8 @@ Existing mandants that never went through this step still have the column defaul
 |--|----|----|----|------------|
 | Selectable at create | Yes | Yes | Yes | **No** (fallback only) |
 | Fiscal system | RKSV + TSE (production) | Planned KassenSicherheit | Planned MWST | None (e-invoicing default) |
-| VAT label / rates | Live AT rates | Planned; not hardcoded in this hub | Planned MWST; not hardcoded here | OSS / reverse charge via `VatRegime` |
-| VAT-ID | AT UID in CountryProfile seed | Planned DE UID seed | Planned CHE-… seed | Planned EU VAT-ID seed |
+| VAT label / rates | Live AT `TaxTypes` | CountryTaxType 19/7 in `CalculateTax` (shape) | CountryTaxType 8.1 / 2.6 / 3.8 in `CalculateTax` (shape) | Reverse charge 0% (Paket 12-c); OSS still AT-rate stand-in |
+| VAT-ID | AT UID in CountryProfile seed | DE UID seed `^DE\d{9}$` | CHE-… seed | `EU_DEFAULT` regex; used by reverse-charge buyer path |
 | E-invoicing | Not this hub | Stub: [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) | Stub: [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Stub: [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 | Default flags | `Fiscal.RksvAt` on (lock) | DE fiscal/e-invoicing flags; `Fiscal.RksvAt` off | CH flags; `Fiscal.RksvAt` off | `EInvoicing.En16931`; ViDA report only |
 
@@ -194,7 +206,7 @@ EU_DEFAULT supports an EN 16931-oriented invoice builder and a **read-only** ViD
 
 ## 7. Formatting and VAT-ID
 
-Admin UI **language** catalogs stay `de` / `en` / `tr`. Do not add `de-DE` / `de-CH` catalogs unless copy truly diverges. Tenant **formatting** (date, currency, separators, VAT label) should follow CountryProfile once a formatting hook exists.
+Admin UI **language** catalogs stay `de` / `en` / `tr`. Do not add `de-DE` / `de-CH` catalogs unless copy truly diverges. Tenant **formatting** (date, currency, separators) follows `CompanySettings.Country` via FA `useCountryFormatting` / `getCountryFormatProfile`. Unknown country → AT.
 
 VAT-ID regexes belong **only** in CountryProfile seeds. Do not copy country regexes into controllers or FA form constants as a second source of truth.
 
@@ -286,13 +298,16 @@ Ops sequence (app package vs schema, flag rollback, smoke): [`COUNTRY_LAYER_CUTO
 | Regression — AT fiscal chain | Austrian output unchanged by the country layer | **Shipped** |
 | Unit — CountryProfile registry | Registry returns AT/DE/CH; `EU_DEFAULT` exists but is not selectable; unknown ISO code rejected; AT seed mirrors live defaults; no VAT rates on a profile | **Shipped** |
 | Unit — CountryProfile seed sources | Pin every seed field; `// Source:` comment count ≥ 24 | **Shipped** (Paket 13 / 13-b) |
-| Unit — Country tax type seeds | AT 20/10/13/0/4.9 pin live `TaxTypes`; DE 19/7; CH 8.1/2.6/3.8; unknown/`EU_DEFAULT` → empty (no AT fallback) | **Shipped** (Paket 13-c; not wired) |
+| Unit — Country tax type seeds | AT 20/10/13/0/4.9 pin live `TaxTypes`; DE 19/7; CH 8.1/2.6/3.8; unknown/`EU_DEFAULT` → empty (no AT fallback) | **Shipped** (Paket 13-c). DE/CH `CalculateTax` uses the registry (Paket 30-c); AT stays on live `TaxTypes`. |
 | Unit — VAT-ID shape from seeds | AT/DE/CH valid and invalid cases resolved from `VatIdPattern` | **Shipped** |
 | Unit — strategy resolution | AT + `AT_RKSV_STANDARD` → Austrian strategy; DE + `DE_USTG_STANDARD` → German; regime not allowed by the profile → `UNKNOWN_TAX_REGIME`; unregistered country → throws; DE/CH/EU skeletons throw and name their doc | **Shipped** |
 | Unit — AT delegation | `CalculateTax` equals `CartMoneyHelper` output (decimal and serialized); `ProjectFiscalTaxSets` equals `RksvTaxSetMapper`; numbering and document calls land on the existing services; `tax_exempt` changes nothing | **Shipped** |
 | Unit — VAT-ID pattern consolidation | One literal shared by seeds and attributes; strict semantics pinned; a file-scan test rejects a re-introduced local regex | **Shipped** |
 | Unit — VIES lookup | Live registration check, VIES client mocked only | Planned |
-| E2E — `CreateTenantWizard` | Country step; AT create; DE defaults; unknown country → 400 | Planned (wizard has no country step yet) |
+| RTL — `CreateTenantWizard` country step | Country then form; AT/DE defaults; `EU_DEFAULT` omitted | **Shipped** (`CreateTenantWizard.countryStep.test.tsx`). Playwright E2E still open. |
+| Unit — AT reverse-charge routing | AT + `EU_REVERSE_CHARGE` → EuDefault; `En16931` does not gate reverse-charge tax | **Shipped** (Paket 12-c) |
+| Unit — offline BelegNr | `OfflineOrderService` → `IInvoiceStrategy.AllocateReceiptNumberAsync` | **Shipped** (Paket 30-b) |
+| RTL — FA tenant country card | Super Admin edit + historical-preserved warning; Mandanten-Admin view-only | **Shipped** (Paket 14 / 16) |
 | Unit — historical invoice preservation | AT invoice → country change to DE → new DE invoice; both keep original `CountryCodeAtIssue`; no rewrite of historical rows | **Shipped** (Paket 16) |
 
 ### 11.1 AT baseline regression suite
@@ -339,7 +354,7 @@ Anyone adding a country layer must keep these fixtures green. If they go red, th
 - **Do not hardcode country codes** outside seeds and the `company_settings.country` binding. No host-derived, JWT-derived, or constant-list country resolution.
 - **Do not fork `PaymentService` or `TseService` internals** per country, and do not clone cart money logic. Select a strategy at the edge.
 - **Do not enable RKSV special receipts or Austrian TSE for non-AT tenants.**
-- **Do not implement ViDA submission, Peppol transport, or Swiss bank submission in this phase.** EU support is an EN 16931 builder plus a read-only readiness report.
+- **Do not implement ViDA submission, Peppol transport, or Swiss bank submission in this phase** (Pakets 22 / 21). EU support today is reverse-charge tax shape plus a read-only ViDA readiness report.
 - Do not add a `CountryCode` column or any second country field on `company_settings`; `company_settings.country` is the binding. Issue-time snapshots live on invoices/receipts/payment_details as `CountryCodeAtIssue`, not on company settings.
 - Do not treat `EU_DEFAULT` as a selectable country in the create-tenant wizard.
 - Do not claim Germany, Switzerland, or EU e-invoicing is production-ready.
@@ -419,6 +434,7 @@ AT production seed values stay unchanged (`de-DE` kept — decision A).
 | **Paket 13-c-bis** | Country tax types unused by AT `CalculateTax` / `PaymentService` | **Wired for DE/CH (Paket 30-c); AT stays on TaxTypes.** No AT cutover in this package. |
 | **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | **Closed.** `VatIdPatterns.EuDefault` is `^[A-Z]{2}[A-Z0-9]{8,12}$`. AT/DE/CH patterns unchanged. EU reverse charge consumes the profile regex via `IVatIdValidator` (Paket 12-b). VIES excludes `EU_DEFAULT` by design. |
 | **Paket 13-d-bis** | Tightened EU_DEFAULT regex vs VIES coverage | **Used by EU reverse charge path (Paket 12-b); VIES excludes EU_DEFAULT by design.** Validator stays profile-driven (`MatchesVatIdShape`); do not copy a second literal. |
+| **Paket 30-d** | OSS destination-rate table (not AT `TaxTypes` stand-in) | **NOT STARTED.** OSS still maps EU_DEFAULT product `TaxType` ints through `TaxTypes.GetTaxRate`. See [`EINVOICING_EU.md`](EINVOICING_EU.md) and [§16](#16-remaining-gaps). |
 
 ---
 
@@ -451,3 +467,18 @@ Audit:
 The Admin confirmation modal warns: "Historical invoices are preserved under the original country regime."
 
 `COUNTRY_LOCKED_FISCAL` is no longer returned on this path. Do not backfill historical snapshots from the live country after a change.
+
+---
+
+## 16. Remaining gaps
+
+These packages are **NOT STARTED**. Do not treat CountryProfile seeds, tax-strategy shape, or FA country UI as production DE/CH/EU fiscal.
+
+| Paket | Scope | Status | Doc |
+|-------|--------|--------|-----|
+| **20** | German TSE / KassenSicherheit **provider** (device provisioning, signing, chain). `IKassenSicherheitService` stays a stub. | **NOT STARTED** | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
+| **21** | Swiss QR-Rechnung **bank submission** (and PDF/QR image). Payload builder is shape-only; `BuildPdfAsync` throws. | **NOT STARTED** | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
+| **22** | EU **Peppol** Access Point / transport (and tax-authority / ViDA submission). EN 16931 XML builders still throw. | **NOT STARTED** | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+| **30-d** | OSS **destination-rate** table. `EuDefaultTaxStrategy.CalculateOss` still uses line `VatRatePercent` from the Austrian `TaxTypes` stand-in. AT + `EU_OSS` remains unsupported. | **NOT STARTED** | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+
+Also still open (not numbered packages): Playwright E2E for the create-tenant country step; live VIES network tests (client is mocked; flag default off).

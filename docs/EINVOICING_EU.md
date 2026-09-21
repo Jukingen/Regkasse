@@ -1,11 +1,11 @@
-> **Status:** Shape only (Paket 10). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not production-ready. No Peppol / ViDA / tax-authority submission.
+> **Status:** Shape only (Paket 10). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. AT reverse charge uses this layer (Paket 12-c). Not production-ready. **Paket 22 (Peppol) and Paket 30-d (OSS destination rates) are NOT STARTED.**
 
 # EU e-invoicing (EN 16931) and ViDA readiness
 
 **Last updated:** 2026-09-21  
 **Hub:** [`COUNTRIES.md`](COUNTRIES.md) · **Rules:** [`../AGENTS.md`](../AGENTS.md)
 
-This page describes the **shape** of the generic EU e-invoicing layer used when a mandant has no country-specific invoice strategy. It is not a legal opinion, not Peppol onboarding, and **not submission-ready**.
+This page describes the **shape** of the generic EU e-invoicing layer used when a mandant has no country-specific invoice strategy, and when an AT mandant invoices under `EU_REVERSE_CHARGE`. It is not a legal opinion, not Peppol onboarding, and **not submission-ready**.
 
 ---
 
@@ -13,7 +13,7 @@ This page describes the **shape** of the generic EU e-invoicing layer used when 
 
 Describe a default for EU-oriented mandants: EN 16931 semantic invoicing, reverse charge / OSS / NON_EU tax shape, optional Peppol as a later transport/CIUS choice, VIES as an optional B2B VAT-ID check, and a **read-only** ViDA readiness report.
 
-This document does **not** implement tax-authority or network submission.
+This document does **not** implement tax-authority or network submission (Paket **22**).
 
 ---
 
@@ -25,15 +25,17 @@ This document does **not** implement tax-authority or network submission.
 |------|--------|
 | `EU_DEFAULT` CountryProfile | Shipped; **registry-only**, not selectable as a country in the wizard — [`COUNTRIES.md`](COUNTRIES.md) |
 | `EuDefaultTaxStrategy.CalculateTax` | Shape: reverse charge (valid buyer VAT-ID → 0%) / OSS (line `VatRatePercent`) / NON_EU export (0%); AT buckets not used |
-| `EuDefaultInvoiceStrategy` disclosures / placeholder document | Shape (EN 16931 keys + `InvoiceDocumentDto`) |
+| AT + `EU_REVERSE_CHARGE` | **Shipped** (Paket 12-c): both resolvers route to EuDefault regardless of country code. `EInvoicing.En16931` does **not** gate reverse-charge tax or disclosures. |
+| `EuDefaultInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (EN 16931 keys) |
 | EN 16931 XML | Stub throws `NotImplementedException` (`IEn16931XmlBuilder`) |
 | XRechnung XML (DE CIUS) | Stub throws `NotImplementedException` (`IXrechnungXmlBuilder`); see [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| Peppol Access Point | Not in scope |
+| Peppol Access Point | **NOT STARTED** (Paket **22**) |
+| OSS destination rates | **NOT STARTED** (Paket **30-d**); AT `TaxTypes` stand-in remains |
 | VIES client | Shipped as optional (`Vies.CheckEnabled`, default **off**); no live VIES in tests |
 | ViDA | Read-only checklist only; no timeline committed |
-| Wiring into `InvoiceService` / `PaymentService` | Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
+| Wiring into `InvoiceService` / `PaymentService` | Tax/invoice domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
 
-Feature-flag gates: `EInvoicing.En16931`, `EInvoicing.XRechnung` (DE CIUS), `Vies.CheckEnabled` (default **off**). `Fiscal.RksvAt` stays **off** for `EU_DEFAULT`.
+Feature-flag gates: `EInvoicing.En16931`, `EInvoicing.XRechnung` (DE CIUS), `Vies.CheckEnabled` (default **off**). `Fiscal.RksvAt` stays **off** for `EU_DEFAULT`. Reverse-charge **tax** does not require `EInvoicing.En16931`.
 
 Austria RKSV receipts and German ZUGFeRD are **not** defined here. See `RKSV_*.md` and [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md). XRechnung is a German CIUS of EN 16931; the DE-specific doc is the reference for that builder.
 
@@ -45,18 +47,29 @@ Austria RKSV receipts and German ZUGFeRD are **not** defined here. See `RKSV_*.m
 - Tax and invoice strategies use `VatRegime` (including OSS and reverse charge) without forking `PaymentService`.
 - Reverse charge requires a buyer VAT-ID. Prefix `AT` / `DE` / `CH` uses that seeded profile regex; otherwise the context profile (`EU_DEFAULT` `^[A-Z]{2}[A-Z0-9]{8,12}$`). Missing or invalid shape → `VAT_ID_SHAPE_INVALID`. Never `GetOrDefault` (that would fall back to AT).
 - AT tenant + `VatRegime=EU_REVERSE_CHARGE` is supported since Paket 12-c. Both resolvers route reverse charge to `EuDefaultTaxStrategy` / `EuDefaultInvoiceStrategy` regardless of country code (VAT regime, not fiscal system). Valid buyer VAT-ID → 0% + reverse-charge disclosure; missing/invalid → `VAT_ID_SHAPE_INVALID`. AT + `EU_OSS` remains unsupported (`ArgumentException`: `AT tenant + EU_OSS is not supported`).
-- `EInvoicing.En16931` flag does NOT gate the reverse-charge VAT calculation or disclosure. It gates only the EN 16931 XML builders. Reverse charge works when the flag is off.
-- EN 16931 is the semantic target. UBL vs CII is an open question; this stub does not require Peppol.
+- `EInvoicing.En16931` flag does NOT gate the reverse-charge VAT calculation or disclosure. It still gates `EU_OSS` / `NON_EU` tax, `BuildInvoiceDocumentAsync`, `ValidateVatId`, `DetermineInvoiceFields`, and the EN 16931 / XRechnung / ZUGFeRD XML builders.
+- EN 16931 is the semantic target. UBL vs CII is an open question; this stub does not require Peppol until Paket 22.
 - VIES: mockable client behind `Vies.CheckEnabled`. Never call the live network from unit tests.
 - ViDA: a read-only readiness object (planned fields: `en16931Ready`, `viesEnabled`, `ossRegistered`, `eInvoicingCapable`). No submission API. This document does not assign a go-live date.
 
 ---
 
-## OSS placeholder (Paket 30-c)
+## OSS destination rates (Paket 30-d — NOT STARTED)
 
 OSS is **wired but not destination-rated**. `CountryPaymentTaxLineMapper` (and therefore `PaymentService`) maps EU_DEFAULT product `TaxType` ints through `TaxTypes.GetTaxRate` — the Austrian 20 / 10 / 13 / 0 / 4.9 stand-in. `EuDefaultTaxStrategy.CalculateOss` then uses the line `VatRatePercent` as-is.
 
-This is a **temporary placeholder**. Paket 30-d will add the real OSS destination-rate table. Tests pin the stand-in (`EuOss_CurrentlyUsesAtRates_TemporaryUntilPaket30d`) so the swap is visible.
+Paket **30-d** will replace that stand-in with a real destination-rate table. It has **not started**. Tests pin the stand-in (`EuOss_CurrentlyUsesAtRates_TemporaryUntilPaket30d`) so the swap is visible. Do not treat those AT rates as OSS law.
+
+---
+
+## Remaining gaps
+
+See [`COUNTRIES.md`](COUNTRIES.md) §16.
+
+| Paket | Scope | Status |
+|-------|--------|--------|
+| **22** | Peppol Access Point / transport; tax-authority / ViDA submission | **NOT STARTED** |
+| **30-d** | OSS destination-rate table | **NOT STARTED** |
 
 ---
 
@@ -72,6 +85,7 @@ This is a **temporary placeholder**. Paket 30-d will add the real OSS destinatio
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub
+- [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) — production country-layer apply order
 - [`../AGENTS.md`](../AGENTS.md) — Country & Fiscal Regimes
 - [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) — DE ZUGFeRD / XRechnung stub
 - [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) — CH QR-Rechnung stub (not EN 16931)

@@ -14,7 +14,7 @@
 | **Firma wechseln** (Dev) | tenant switch | `X-Tenant-Id` + `localStorage.dev_tenant_id` reload |
 | **Plattform-Admin** | platform admin host | `admin.regkasse.at` — no mandant context until impersonation |
 
-Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
+Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`COUNTRIES.md`](COUNTRIES.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md), [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md), [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
 
 ---
 
@@ -75,7 +75,7 @@ A **Mandant** is one SaaS customer company in Regkasse:
 
 | Tab (DE) | Content |
 |----------|---------|
-| **Übersicht** | Name, slug, status, contact, impersonate |
+| **Übersicht** | Name, slug, status, contact, impersonate, **Country & Fiscal Regime** card (`TenantCountryFiscalRegimeCard`) |
 | **Benutzer** | Invite, roles, owner, reset password — see [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) |
 | **Kassen** | Registers, decommission — see [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) |
 | **Lizenz** | Mandantenlizenz (`LicenseManager`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) |
@@ -89,13 +89,16 @@ Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|setti
 
 ### Create tenant (onboarding wizard)
 
-**UI:** `CreateTenantWizard` — multi-step Super Admin flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)
+**UI:** `CreateTenantWizard` — Super Admin flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md). Country layer: [`COUNTRIES.md`](COUNTRIES.md) §5.
 
-- **Entry:** `/admin/tenants` → **Mandant anlegen** → `/admin/tenants/create`
-- Steps: Firma → Administrator → Kasse & Lizenz → Zusammenfassung → Ergebnis
+- **Entry:** `/admin/tenants` → **Mandant anlegen** → `/admin/tenants/create` (modal wizard)
+- Steps: **Country** (`CreateTenantCountryStep`) → **tenant form** (`TenantFormFields`) → processing → success
+- Country list: `GET /api/admin/countries` (AT / DE / CH; `EU_DEFAULT` omitted). Payload includes `country` and `vatRegime`.
 - Live slug availability: `GET /api/admin/tenants/slug-availability`
-- License duration (30/90/365) maps to `licenseValidUntilUtc`; demo menu via `importDemoMenu`
-- On success, Step 5 shows one-time **provisioning** credentials (admin password, register, login URL)
+- License / trial / demo menu via form toggles (`grantTrialLicense`, `importDemoProducts`)
+- On success, `OnboardingSuccessModal` shows one-time **provisioning** credentials (admin password, register, login URL)
+
+Country after create is edited on the overview **Country & Fiscal Regime** card (`PATCH /api/admin/tenants/{id}/country`, Super Admin). Mandanten-Admin is view-only. Historical invoices keep `CountryCodeAtIssue` ([`COUNTRIES.md`](COUNTRIES.md) §15).
 
 **Backend:** `AdminTenantService.CreateAsync` → `TenantOnboardingService` + `TenantProvisioningService` (transactional).
 

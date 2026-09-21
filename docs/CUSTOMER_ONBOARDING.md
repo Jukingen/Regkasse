@@ -2,7 +2,7 @@
 
 > **Audience:** Super Admin operators, support, Mandanten-Admins, FA maintainers.  
 > **UI language (operators):** German (de-AT). **Technical/API:** English.  
-> **Related:** [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
+> **Related:** [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`COUNTRIES.md`](COUNTRIES.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
 
 End-to-end guide from **Super Admin tenant creation** through **Mandanten-Admin first login**, **POS setup**, and **first sale**.
 
@@ -44,8 +44,8 @@ flowchart LR
 1. Login as **SuperAdmin** on `https://admin.regkasse.at`
 2. Open **Mandanten** → `/admin/tenants`
 3. Click **Mandant anlegen** → navigates to `/admin/tenants/create`
-4. Complete the **5-step** `CreateTenantWizard`
-5. Review summary → confirm → wait for processing → copy credentials from the result screen
+4. Complete the **two-step** `CreateTenantWizard` (country → tenant form)
+5. Wait for processing → copy credentials from the result screen
 
 **UI:** `frontend-admin/src/features/super-admin/components/CreateTenantWizard/`  
 **API:** `POST /api/admin/tenants` (Super Admin JWT)  
@@ -53,15 +53,18 @@ flowchart LR
 
 ### Wizard steps
 
+Live UI: `CreateTenantWizard.tsx` — phases `country` → `form` → processing → success. The archived 5-screen flow under `CreateTenantWizard.multistep/` is **not** live.
+
 | Step | UI | What is collected |
 |------|-----|-------------------|
-| **1. Firma** | `Step1TenantInfo` | Company name, slug (auto from name + live availability), contact email, optional phone/address |
-| **2. Administrator** | `Step2AdminUser` | Admin email, password (auto or manual), role fixed **Mandanten-Admin** (`Manager`) |
-| **3. Kasse & Lizenz** | `Step3RegisterLicense` | Register name (default `KASSE-001`), license 30/90/365 days + start date, demo products checkbox |
-| **4. Zusammenfassung** | `Step4Summary` | Read-only review + irreversible warning |
-| **5. Ergebnis** | `Step5Result` | One-time password, login URL, copy / handoff actions |
+| **1. Country** | `CreateTenantCountryStep` | ISO country (AT / DE / CH from `GET /api/admin/countries`) and compatible `vatRegime`. Non-AT banner: RKSV/TSE is not enabled. Defaults AT / `AT_RKSV_STANDARD`. `EU_DEFAULT` is omitted. |
+| **2. Tenant form** | `TenantFormFields` | Company name, slug (live availability), contact email, optional phone/address, Mandanten-Admin credentials, register / license / trial / demo-product toggles |
+| **Processing** | `CreateTenantProcessingView` | Animated provisioning (company → slug → admin → license → register → products → credentials) |
+| **Result** | `OnboardingSuccessModal` | One-time password, login URL, copy / handoff actions |
 
-While create runs, `CreateTenantProcessingView` shows animated provisioning steps (company → slug → admin → license → register → products → credentials).
+**API:** `POST /api/admin/tenants` includes `country` and `vatRegime`. See [`COUNTRIES.md`](COUNTRIES.md) §5.
+
+**Country after create:** Super Admin tenant overview shows the Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Historical invoices keep `CountryCodeAtIssue` — [`COUNTRIES.md`](COUNTRIES.md) §15.
 
 **Rollback:** If provisioning fails after the tenant row is inserted, the transaction is rolled back (no partial customer). UI: `OnboardingErrorModal` with German rollback note.
 

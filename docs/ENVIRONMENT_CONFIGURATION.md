@@ -272,9 +272,9 @@ In Development, `Backup:ExternalArchiveRoot` is often unset. PgDump then **skips
 
 ---
 
-## 10. Country profiles and planned fiscal config (not implemented)
+## 10. Country profiles and DE/CH stub fiscal config
 
-Hub: [`COUNTRIES.md`](COUNTRIES.md). Stubs: [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md), [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md), [`EINVOICING_EU.md`](EINVOICING_EU.md).
+Hub: [`COUNTRIES.md`](COUNTRIES.md). Stubs: [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md), [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md), [`EINVOICING_EU.md`](EINVOICING_EU.md). Registry, strategy resolvers, feature-flag defaults, and `CountryFiscalLockEvaluator` are **shipped**. Live DE TSE, CH bank submit, and Peppol are **NOT STARTED** (Pakets 20 / 21 / 22 — [`COUNTRIES.md`](COUNTRIES.md) §16).
 
 `KassenSicherheit`, `Mwst`, and `QrRechnung` exist as **empty stubs** in `appsettings.Production.example.json` so Production/Staging startup can reject unsafe values ([§4](#4-startup-validation-production--staging-lock)). They are **not** DE/CH TSE or QR-bill implementations. Do not treat the stubs as a live fiscal module.
 

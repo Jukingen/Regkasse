@@ -597,12 +597,14 @@ Whenever backend API changes affect FA: refresh `backend/swagger.json`, run `npm
 
 ### Country & Fiscal Regime
 
-Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany, Switzerland, and a generic EU e-invoicing default are **planned** (no country-profile or strategy code in the repository yet).
+Austria is the **production** fiscal regime (RKSV / TSE / FinanzOnline). Germany, Switzerland, and a generic EU e-invoicing default are **shape-only** (not production-ready).
 
-- **Binding (shipped):** `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`), alongside `VatRegime`, `BillingCountry`, and `TaxExempt`. There is **no** `CountryCode` column and none will be added — a regression test enforces this. The in-code `CountryProfile` registry (AT, DE, CH, registry-only `EU_DEFAULT`) is still planned.
-- **Target behavior:** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime`. Do not fork `PaymentService` or `TseService` internals.
-- **Flags:** existing `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are planned; AT RKSV must remain on.
-- **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
+- **Binding (shipped):** `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`), alongside `VatRegime`, `BillingCountry`, and `TaxExempt`. There is **no** `CountryCode` column and none will be added — a regression test enforces this. In-code `CountryProfile` registry: AT, DE, CH, registry-only `EU_DEFAULT`.
+- **Strategies (shipped, wired):** `ITaxStrategy` / `IInvoiceStrategy` selected from profile + `VatRegime` in `PaymentService` / `InvoiceService`. Do not fork `PaymentService` or `TseService` internals. TSE tax-sets and RKSV special receipts stay Austria-only.
+- **Flags:** `IFeatureFlagService` stores overrides in `tenant_settings`, not `company_settings`. Country flag names (`Fiscal.RksvAt`, `Fiscal.KassenSicherheitDe`, …) are live; AT RKSV is **locked on**.
+- **FA:** create-tenant wizard country step; tenant-detail Country & Fiscal Regime card. Historical invoices keep `CountryCodeAtIssue` on country change.
+- **Remaining (NOT STARTED):** Paket 20 DE TSE provider, 21 CH QR bank, 22 EU Peppol, 30-d OSS destination rates — [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16.
+- **Hub:** [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](docs/COUNTRY_LAYER_CUTOVER.md). Stubs: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md).
 
 ### Payment / `PaymentDetails`
 
