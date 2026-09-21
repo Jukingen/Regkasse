@@ -6,12 +6,17 @@
  * OpenAPI spec version: v1
  */
 import type { TenantProvisioningDto } from './tenantProvisioningDto';
+import type { VatRegime } from './vatRegime';
 
 export interface AdminTenantDetailDto {
   activeUserCount?: number;
   /** @nullable */
   address?: string | null;
+  /** @nullable */
+  billingCountry?: string | null;
   cashRegisterCount?: number;
+  /** @nullable */
+  country?: string | null;
   createdAt?: string;
   /** @nullable */
   deletedAtUtc?: string | null;
@@ -44,6 +49,7 @@ export interface AdminTenantDetailDto {
   slug?: string | null;
   /** @nullable */
   status?: string | null;
+  taxExempt?: boolean;
   /** @nullable */
   trialConvertedAtUtc?: string | null;
   /** @nullable */
@@ -59,4 +65,7 @@ export interface AdminTenantDetailDto {
   trialStatus?: string | null;
   /** @nullable */
   updatedAt?: string | null;
+  /** @nullable */
+  vatId?: string | null;
+  vatRegime?: VatRegime;
 }

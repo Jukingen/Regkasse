@@ -79,6 +79,7 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deTenants from './locales/de/tenants.json';
+import deTenantCountry from './locales/de/tenantCountry.json';
 import deTrials from './locales/de/trials.json';
 import deTenantPortal from './locales/de/tenantPortal.json';
 import deSupport from './locales/de/support.json';
@@ -166,6 +167,7 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enTenants from './locales/en/tenants.json';
+import enTenantCountry from './locales/en/tenantCountry.json';
 import enTrials from './locales/en/trials.json';
 import enTenantPortal from './locales/en/tenantPortal.json';
 import enSupport from './locales/en/support.json';
@@ -253,6 +255,7 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trTenants from './locales/tr/tenants.json';
+import trTenantCountry from './locales/tr/tenantCountry.json';
 import trTrials from './locales/tr/trials.json';
 import trTenantPortal from './locales/tr/tenantPortal.json';
 import trSupport from './locales/tr/support.json';
@@ -340,6 +343,7 @@ const catalogs = {
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    tenantCountry: deTenantCountry,
     trials: deTrials,
     tenantPortal: deTenantPortal,
     support: deSupport,
@@ -429,6 +433,7 @@ const catalogs = {
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    tenantCountry: enTenantCountry,
     trials: enTrials,
     tenantPortal: enTenantPortal,
     support: enSupport,
@@ -518,6 +523,7 @@ const catalogs = {
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    tenantCountry: trTenantCountry,
     trials: trTrials,
     tenantPortal: trTenantPortal,
     support: trSupport,

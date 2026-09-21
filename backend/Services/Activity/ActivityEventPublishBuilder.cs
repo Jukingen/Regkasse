@@ -81,6 +81,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.LimitApproaching => "Limit approaching",
             ActivityEventType.LimitExceeded => "Limit exceeded",
             ActivityEventType.RksvRuntimeConfigChanged => "RKSV runtime config changed",
+            ActivityEventType.TenantCountryChanged => "Tenant country / VAT regime changed",
             ActivityEventType.OfflineQueueGrowing => "Offline queue growing",
             ActivityEventType.OfflineOrdersBacklogGrowing => "Offline orders backlog growing",
             ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",

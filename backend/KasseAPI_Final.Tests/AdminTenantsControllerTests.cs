@@ -10,6 +10,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.Enums;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Countries;
@@ -146,7 +147,8 @@ public sealed class AdminTenantsControllerTests
         IHttpContextAccessor? httpContextAccessor = null,
         ICurrentTenantAccessor? tenantAccessor = null,
         IHostEnvironment? environment = null,
-        TenantDeletionOptions? deletionOptions = null)
+        TenantDeletionOptions? deletionOptions = null,
+        IActivityEventPublisher? activity = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var tenantDeletion = CreateTenantDeletionService(db, audit, environment, deletionOptions);
@@ -166,7 +168,10 @@ public sealed class AdminTenantsControllerTests
             decommissionService ?? Mock.Of<ICashRegisterDecommissionService>(),
             accessor,
             tenantScopeAccessor,
-            Mock.Of<ILogger<AdminTenantService>>());
+            Mock.Of<ILogger<AdminTenantService>>(),
+            new CountryProfileRegistry(),
+            audit,
+            activity);
     }
 
     private static IHttpContextAccessor CreateHttpContextAccessor(ClaimsPrincipal? user = null)
@@ -2437,5 +2442,223 @@ public sealed class AdminTenantsControllerTests
             CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_IncludesCountryAndVatFields()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Country Tenant",
+            Slug = "country-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        SeedCompanySettings(db, tenantId, "AT", VatRegime.AT_RKSV_STANDARD, "ATU12345678", "DE", taxExempt: true);
+        await db.SaveChangesAsync();
+
+        var detail = await CreateService(db).GetByIdAsync(tenantId);
+
+        Assert.NotNull(detail);
+        Assert.Equal("AT", detail!.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, detail.VatRegime);
+        Assert.Equal("ATU12345678", detail.VatId);
+        Assert.Equal("DE", detail.BillingCountry);
+        Assert.True(detail.TaxExempt);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_VatRegimeChange_WritesAuditAndActivity()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Regime Tenant",
+            Slug = "regime-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        SeedCompanySettings(db, tenantId);
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var activity = new Mock<IActivityEventPublisher>();
+        var service = CreateService(db, auditLog: audit.Object, activity: activity.Object);
+
+        var (detail, error, code) = await service.UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "AT",
+                VatRegime = VatRegime.EU_REVERSE_CHARGE,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal(VatRegime.EU_REVERSE_CHARGE, detail!.VatRegime);
+        Assert.Equal("AT", detail.Country);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED",
+                "Tenant",
+                "super-admin",
+                Roles.SuperAdmin,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.TenantCountryChanged,
+                tenantId,
+                tenantId,
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()),
+            Times.Once);
+        activity.Verify(
+            a => a.TryPublishAsync(
+                tenantId,
+                ActivityEventType.TenantCountryChanged,
+                It.IsAny<object?>(),
+                "super-admin",
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_CountryChangeWithFiscalData_ReturnsLocked()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Locked Tenant",
+            Slug = "locked-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        db.PaymentDetails.Add(CreatePendingPayment(registerId));
+        await db.SaveChangesAsync();
+
+        var (detail, error, code) = await CreateService(db).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(detail);
+        Assert.Equal(AdminTenantCountryErrorCodes.CountryLockedFiscal, code);
+        Assert.Contains("fiscal", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateCountry_Controller_LockedFiscal_Returns409()
+    {
+        var tenantId = Guid.NewGuid();
+        var service = new Mock<IAdminTenantService>();
+        service
+            .Setup(s => s.UpdateCountryAsync(
+                tenantId,
+                It.IsAny<UpdateAdminTenantCountryRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((null, "locked", AdminTenantCountryErrorCodes.CountryLockedFiscal));
+
+        var controller = CreateController(service.Object);
+        var result = await controller.UpdateCountry(
+            tenantId,
+            new UpdateAdminTenantCountryRequest { Country = "DE", VatRegime = VatRegime.DE_USTG_STANDARD });
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+    }
+
+    private static void SeedCompanySettings(
+        AppDbContext db,
+        Guid tenantId,
+        string country = "AT",
+        VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
+        string vatId = "ATU12345678",
+        string? billingCountry = null,
+        bool taxExempt = false)
+    {
+        db.CompanySettings.Add(new CompanySettings
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CompanyName = "Demo GmbH",
+            CompanyAddress = "Wien 1",
+            CompanyTaxNumber = vatId,
+            Currency = "EUR",
+            Country = country,
+            VatRegime = vatRegime,
+            BillingCountry = billingCountry,
+            TaxExempt = taxExempt,
+            Language = "de",
+            TimeZone = "Europe/Vienna",
+            DateFormat = "dd.MM.yyyy",
+            TimeFormat = "HH:mm",
+            TaxCalculationMethod = "inclusive",
+            InvoiceNumbering = "INV-{yyyy}-{seq}",
+            ReceiptNumbering = "R-{seq}",
+            DefaultPaymentMethod = "Cash",
+            BusinessHours = new Dictionary<string, string>(),
+            WorkingHours = WorkingHoursSettings.CreateDefault(),
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
     }
 }

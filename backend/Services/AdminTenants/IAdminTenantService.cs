@@ -67,6 +67,13 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Super Admin: change operating country and/or VAT regime on <c>company_settings</c>.</summary>
+    Task<(AdminTenantDetailDto? Result, string? Error, string? ErrorCode)> UpdateCountryAsync(
+        Guid tenantId,
+        UpdateAdminTenantCountryRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string? Error)> SoftDeleteAsync(
         Guid tenantId,
         string? actorUserId,

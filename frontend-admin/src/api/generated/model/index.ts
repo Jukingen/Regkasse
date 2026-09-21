@@ -1793,6 +1793,7 @@ export * from './uiCapabilitiesDto';
 export * from './undoOperationRequest';
 export * from './undoOperationResponse';
 export * from './updateAdminFeedbackStatusRequestDto';
+export * from './updateAdminTenantCountryRequest';
 export * from './updateAdminTenantRequest';
 export * from './updateAdminTenantUserRequest';
 export * from './updateBankingInfoRequest';

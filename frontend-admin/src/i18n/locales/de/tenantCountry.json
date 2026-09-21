@@ -1,0 +1,21 @@
+{
+  "title": "Land & Fiskalregime",
+  "country": "Land",
+  "vatRegime": "Umsatzsteuer-Regime",
+  "vatId": "UID",
+  "billingCountry": "Rechnungsland",
+  "taxExempt": "Umsatzsteuerbefreit",
+  "taxExemptYes": "Ja",
+  "taxExemptNo": "Nein",
+  "edit": "Bearbeiten",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "confirmTitle": "Fiskalsystem wechseln?",
+  "confirmBody": "Ein Wechsel von Land oder Umsatzsteuer-Regime ändert das Fiskalsystem für neue Belege. Historische Rechnungen und signierte Belege bleiben unverändert erhalten.",
+  "confirmOk": "Wechseln",
+  "success": "Land und Fiskalregime wurden aktualisiert.",
+  "saveFailed": "Land und Fiskalregime konnten nicht aktualisiert werden.",
+  "lockedFiscal": "Das Land kann nach vorhandenen Fiskaldaten nicht geändert werden.",
+  "viewOnly": "Nur Ansicht. Änderungen sind Super-Administratoren vorbehalten.",
+  "empty": "—"
+}

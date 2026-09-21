@@ -1,0 +1,21 @@
+{
+  "title": "Country & Fiscal Regime",
+  "country": "Country",
+  "vatRegime": "VAT regime",
+  "vatId": "VAT ID",
+  "billingCountry": "Billing country",
+  "taxExempt": "Tax exempt",
+  "taxExemptYes": "Yes",
+  "taxExemptNo": "No",
+  "edit": "Edit",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirmTitle": "Switch fiscal system?",
+  "confirmBody": "Changing country or VAT regime switches the fiscal system for new receipts. Historical invoices and signed receipts are preserved unchanged.",
+  "confirmOk": "Switch",
+  "success": "Country and fiscal regime were updated.",
+  "saveFailed": "Could not update country and fiscal regime.",
+  "lockedFiscal": "Country cannot be changed after fiscal data exists.",
+  "viewOnly": "View only. Changes are reserved for Super Administrators.",
+  "empty": "—"
+}

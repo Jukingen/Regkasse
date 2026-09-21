@@ -240,4 +240,7 @@ public enum ActivityEventType
 
     /// <summary>Super Admin changed instance-wide RKSV Demo/Production overlay.</summary>
     RksvRuntimeConfigChanged = 250,
+
+    /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
+    TenantCountryChanged = 251,
 }

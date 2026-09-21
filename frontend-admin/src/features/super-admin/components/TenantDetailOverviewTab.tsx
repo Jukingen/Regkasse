@@ -9,6 +9,7 @@ import { SkeletonWrapper } from '@/components/Skeleton';
 import { useBillingTenantLicense } from '@/features/billing/hooks';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import { TenantCountryFiscalRegimeCard } from '@/features/super-admin/components/TenantCountryFiscalRegimeCard';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import {
   calculateLicenseDaysRemaining,
@@ -115,6 +116,8 @@ export function TenantDetailOverviewTab({
           </Space>
         ) : null}
       </Card>
+
+      <TenantCountryFiscalRegimeCard tenant={tenant} />
 
       <Card title={t('tenants.detail.overview.statsTitle')}>
         <Descriptions column={{ xs: 1, sm: 3 }} size="small">

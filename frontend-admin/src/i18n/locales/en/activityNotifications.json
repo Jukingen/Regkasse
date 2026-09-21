@@ -91,6 +91,7 @@
     "CriticalActionApprovalApproved": "Critical action approved",
     "CriticalActionApprovalRejected": "Critical action rejected",
     "RksvRuntimeConfigChanged": "RKSV operating mode changed",
+    "TenantCountryChanged": "Tenant country / fiscal regime changed",
     "MonatsbelegMissingReminder": "Monatsbeleg missing",
     "MonatsbelegAutoCreated": "Monatsbeleg created automatically",
     "MonatsbelegCreated": "Monatsbeleg created",

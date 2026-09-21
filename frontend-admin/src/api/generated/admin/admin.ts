@@ -943,6 +943,7 @@ import type {
   UndoOperationRequest,
   UndoOperationResponse,
   UpdateAdminFeedbackStatusRequestDto,
+  UpdateAdminTenantCountryRequest,
   UpdateAdminTenantRequest,
   UpdateAdminTenantUserRequest,
   UpdateBenefitAssignmentRequest,
@@ -30977,6 +30978,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPatchApiAdminTenantsTenantIdOperationModeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const patchApiAdminTenantsTenantIdCountry = (
+    tenantId: string,
+    updateAdminTenantCountryRequest: UpdateAdminTenantCountryRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminTenantDetailDto>(
+      {url: `/api/admin/tenants/${tenantId}/country`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateAdminTenantCountryRequest
+    },
+      options);
+    }
+  
+
+
+export const getPatchApiAdminTenantsTenantIdCountryMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>, TError,{tenantId: string;data: UpdateAdminTenantCountryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>, TError,{tenantId: string;data: UpdateAdminTenantCountryRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>, {tenantId: string;data: UpdateAdminTenantCountryRequest}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  patchApiAdminTenantsTenantIdCountry(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchApiAdminTenantsTenantIdCountryMutationResult = NonNullable<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>>
+    export type PatchApiAdminTenantsTenantIdCountryMutationBody = UpdateAdminTenantCountryRequest
+    export type PatchApiAdminTenantsTenantIdCountryMutationError = ProblemDetails
+
+    export const usePatchApiAdminTenantsTenantIdCountry = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>, TError,{tenantId: string;data: UpdateAdminTenantCountryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof patchApiAdminTenantsTenantIdCountry>>,
+        TError,
+        {tenantId: string;data: UpdateAdminTenantCountryRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchApiAdminTenantsTenantIdCountryMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

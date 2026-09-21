@@ -288,7 +288,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                 welcomeSent);
 
             var dto = provisioning.ToDto(welcomeSent, forcePasswordChangeOnNextLogin: true);
-            return (ToDetail(tenant, dto), null);
+            return (ToDetail(tenant, dto, profile.Code, request.VatRegime), null);
         }
         catch (Exception ex)
         {
@@ -372,7 +372,11 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantDetailDto ToDetail(Tenant t, TenantProvisioningDto provisioning) =>
+    private static AdminTenantDetailDto ToDetail(
+        Tenant t,
+        TenantProvisioningDto provisioning,
+        string country,
+        VatRegime vatRegime) =>
         new(
             t.Id,
             t.Name,
@@ -400,5 +404,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
             TrialConvertedAtUtc: t.TrialConvertedAtUtc,
             TrialReminder7dSent: t.TrialReminder7dSent,
             TrialReminder3dSent: t.TrialReminder3dSent,
-            TrialReminder1dSent: t.TrialReminder1dSent);
+            TrialReminder1dSent: t.TrialReminder1dSent,
+            Country: country,
+            VatRegime: vatRegime);
 }

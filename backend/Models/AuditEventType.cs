@@ -224,5 +224,8 @@ public enum AuditEventType
     /// <summary>Super Admin created a mandant with an explicit country + VAT regime.</summary>
     TenantCreatedWithCountry = 96,
 
+    /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
+    TenantCountryChanged = 97,
+
     Other = 99
 }

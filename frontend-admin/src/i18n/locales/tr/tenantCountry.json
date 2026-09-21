@@ -1,0 +1,21 @@
+{
+  "title": "Ülke ve mali rejim",
+  "country": "Ülke",
+  "vatRegime": "KDV rejimi",
+  "vatId": "KDV kimliği",
+  "billingCountry": "Fatura ülkesi",
+  "taxExempt": "KDV muaf",
+  "taxExemptYes": "Evet",
+  "taxExemptNo": "Hayır",
+  "edit": "Düzenle",
+  "save": "Kaydet",
+  "cancel": "İptal",
+  "confirmTitle": "Mali sistem değiştirilsin mi?",
+  "confirmBody": "Ülke veya KDV rejiminin değişmesi, yeni belgeler için mali sistemi değiştirir. Geçmiş faturalar ve imzalı belgeler olduğu gibi korunur.",
+  "confirmOk": "Değiştir",
+  "success": "Ülke ve mali rejim güncellendi.",
+  "saveFailed": "Ülke ve mali rejim güncellenemedi.",
+  "lockedFiscal": "Mali veri oluştuktan sonra ülke değiştirilemez.",
+  "viewOnly": "Yalnızca görüntüleme. Değişiklikler Super Admin içindir.",
+  "empty": "—"
+}

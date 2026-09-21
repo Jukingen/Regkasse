@@ -85,7 +85,12 @@ public sealed record AdminTenantDetailDto(
     DateTime? TrialConvertedAtUtc = null,
     bool TrialReminder7dSent = false,
     bool TrialReminder3dSent = false,
-    bool TrialReminder1dSent = false);
+    bool TrialReminder1dSent = false,
+    string Country = "AT",
+    VatRegime VatRegime = VatRegime.AT_RKSV_STANDARD,
+    string? VatId = null,
+    string? BillingCountry = null,
+    bool TaxExempt = false);
 
 public sealed record AdminTenantCashRegisterDto(
     Guid Id,
@@ -246,6 +251,29 @@ public sealed class UpdateAdminTenantRequest
     public DateTime? LicenseValidUntilUtc { get; set; }
 
     public bool? IsActive { get; set; }
+}
+
+public sealed class UpdateAdminTenantCountryRequest
+{
+    /// <summary>ISO 3166-1 alpha-2 from <c>GET /api/admin/countries</c>. <c>EU_DEFAULT</c> is rejected.</summary>
+    [Required]
+    [MaxLength(32)]
+    public string Country { get; set; } = string.Empty;
+
+    /// <summary>Must be in the selected country's <c>AllowedVatRegimes</c>.</summary>
+    [Required]
+    public VatRegime VatRegime { get; set; }
+}
+
+public static class AdminTenantCountryErrorCodes
+{
+    public const string TenantNotFound = "TENANT_NOT_FOUND";
+    public const string CompanySettingsMissing = "COMPANY_SETTINGS_MISSING";
+    public const string CountryLockedFiscal = "COUNTRY_LOCKED_FISCAL";
+    public const string UnknownCountry = "UNKNOWN_COUNTRY_CODE";
+    public const string CountryNotSelectable = "COUNTRY_NOT_SELECTABLE";
+    public const string VatRegimeNotAllowed = "VAT_REGIME_NOT_ALLOWED";
+    public const string AtEuOssNotSupported = "AT_EU_OSS_NOT_SUPPORTED";
 }
 
 public sealed class UpdateTenantOperationModeRequest

@@ -19,6 +19,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.LimitApproaching => ActivitySeverityNames.Warning,
             ActivityEventType.LimitExceeded => ActivitySeverityNames.Error,
             ActivityEventType.RksvRuntimeConfigChanged => ActivitySeverityNames.Warning,
+            ActivityEventType.TenantCountryChanged => ActivitySeverityNames.Warning,
             ActivityEventType.SuspiciousHighValuePayment => ActivitySeverityNames.Error,
             ActivityEventType.SuspiciousMultipleStornos => ActivitySeverityNames.Warning,
             ActivityEventType.SuspiciousMultipleRefunds => ActivitySeverityNames.Error,

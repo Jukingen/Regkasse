@@ -460,6 +460,33 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Super Admin: change mandant operating country and VAT regime.</summary>
+    [HttpPatch("{tenantId:guid}/country")]
+    [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AdminTenantDetailDto>> UpdateCountry(
+        Guid tenantId,
+        [FromBody] UpdateAdminTenantCountryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (result, error, errorCode) = await _tenantService
+            .UpdateCountryAsync(tenantId, request, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (errorCode == AdminTenantCountryErrorCodes.TenantNotFound
+            || errorCode == AdminTenantCountryErrorCodes.CompanySettingsMissing)
+            return NotFound(new { message = error, code = errorCode });
+        if (errorCode == AdminTenantCountryErrorCodes.CountryLockedFiscal)
+            return Conflict(new { message = error, code = errorCode });
+        if (error != null)
+            return BadRequest(new { message = error, code = errorCode });
+        return Ok(result);
+    }
+
     /// <summary>Weekly operation-log activity report for a tenant (last 7 days).</summary>
     [HttpGet("{tenantId:guid}/activity-report/weekly")]
     [ProducesResponseType(typeof(ActivityReportDto), StatusCodes.Status200OK)]

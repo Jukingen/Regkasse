@@ -80,6 +80,7 @@ export type NotificationConfigSeverityThreshold = {
   SuspiciousSameCardMultiple?: string;
   SuspiciousUnusualTime?: string;
   SystemPermissionChange?: string;
+  TenantCountryChanged?: string;
   TenantSettingsChangeApproved?: string;
   TenantSettingsChangeRejected?: string;
   TenantSettingsChangeRequested?: string;

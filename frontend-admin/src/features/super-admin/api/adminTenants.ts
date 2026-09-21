@@ -108,6 +108,11 @@ export type AdminTenantDetail = AdminTenantListItem & {
   trialReminder7dSent?: boolean;
   trialReminder3dSent?: boolean;
   trialReminder1dSent?: boolean;
+  country?: string | null;
+  vatRegime?: string | null;
+  vatId?: string | null;
+  billingCountry?: string | null;
+  taxExempt?: boolean;
 };
 
 export type UpdateTenantOperationModeRequest = {
@@ -157,6 +162,11 @@ export type UpdateAdminTenantRequest = {
   licenseKey?: string | null;
   licenseValidUntilUtc?: string | null;
   isActive?: boolean | null;
+};
+
+export type UpdateAdminTenantCountryRequest = {
+  country: string;
+  vatRegime: string;
 };
 
 export type TenantImpersonationResponse = {
@@ -274,6 +284,17 @@ export async function updateAdminTenant(
 ): Promise<AdminTenantDetail> {
   const { data } = await AXIOS_INSTANCE.put<AdminTenantDetail>(
     `/api/admin/tenants/${tenantId}`,
+    body
+  );
+  return data;
+}
+
+export async function updateAdminTenantCountry(
+  tenantId: string,
+  body: UpdateAdminTenantCountryRequest
+): Promise<AdminTenantDetail> {
+  const { data } = await AXIOS_INSTANCE.patch<AdminTenantDetail>(
+    `/api/admin/tenants/${tenantId}/country`,
     body
   );
   return data;

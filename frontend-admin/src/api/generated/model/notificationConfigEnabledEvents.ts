@@ -80,6 +80,7 @@ export type NotificationConfigEnabledEvents = {
   SuspiciousSameCardMultiple?: boolean;
   SuspiciousUnusualTime?: boolean;
   SystemPermissionChange?: boolean;
+  TenantCountryChanged?: boolean;
   TenantSettingsChangeApproved?: boolean;
   TenantSettingsChangeRejected?: boolean;
   TenantSettingsChangeRequested?: boolean;

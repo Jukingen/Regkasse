@@ -91,6 +91,7 @@
     "CriticalActionApprovalApproved": "Kritik işlem onaylandı",
     "CriticalActionApprovalRejected": "Kritik işlem reddedildi",
     "RksvRuntimeConfigChanged": "RKSV işletim modu değişti",
+    "TenantCountryChanged": "Kiracı ülkesi / mali rejim değişti",
     "MonatsbelegMissingReminder": "Monatsbeleg eksik",
     "MonatsbelegAutoCreated": "Monatsbeleg otomatik oluşturuldu",
     "MonatsbelegCreated": "Monatsbeleg oluşturuldu",

@@ -91,6 +91,7 @@
     "CriticalActionApprovalApproved": "Kritische Aktion freigegeben",
     "CriticalActionApprovalRejected": "Kritische Aktion abgelehnt",
     "RksvRuntimeConfigChanged": "RKSV-Betriebsmodus geändert",
+    "TenantCountryChanged": "Mandantenland / Fiskalregime geändert",
     "MonatsbelegMissingReminder": "Monatsbeleg fehlt",
     "MonatsbelegAutoCreated": "Monatsbeleg automatisch erstellt",
     "MonatsbelegCreated": "Monatsbeleg erstellt",

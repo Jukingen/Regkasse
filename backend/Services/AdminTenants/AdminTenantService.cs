@@ -3,8 +3,12 @@ using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.Enums;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -30,6 +34,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminTenantService> _logger;
+    private readonly ICountryProfileRegistry _countries;
+    private readonly IAuditLogService? _auditLog;
+    private readonly IActivityEventPublisher? _activity;
 
     public AdminTenantService(
         AppDbContext db,
@@ -44,7 +51,10 @@ public sealed partial class AdminTenantService : IAdminTenantService
         ICashRegisterDecommissionService cashRegisterDecommissionService,
         IHttpContextAccessor httpContextAccessor,
         ICurrentTenantAccessor tenantAccessor,
-        ILogger<AdminTenantService> logger)
+        ILogger<AdminTenantService> logger,
+        ICountryProfileRegistry? countries = null,
+        IAuditLogService? auditLog = null,
+        IActivityEventPublisher? activity = null)
     {
         _db = db;
         _userManager = userManager;
@@ -59,6 +69,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _httpContextAccessor = httpContextAccessor;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
+        _countries = countries ?? new CountryProfileRegistry();
+        _auditLog = auditLog;
+        _activity = activity;
     }
 
     public async Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(
@@ -441,13 +454,14 @@ public sealed partial class AdminTenantService : IAdminTenantService
             registerStats?.LastUsed,
             lastReceiptAt);
 
-        return ToDetail(
+        return await ToDetailAsync(
             tenant,
             provisioning: null,
             ownerAdminEmail: ownerEmail,
             activeUserCount: activeUserCount,
             cashRegisterCount: registerStats?.Count ?? 0,
-            lastActivityAtUtc: lastActivity);
+            lastActivityAtUtc: lastActivity,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<AdminTenantCashRegisterDto>?> ListCashRegistersAsync(
@@ -636,7 +650,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         tenant.UpdatedBy = actorUserId;
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Super-admin updated tenant {TenantId}", tenantId);
-        return (ToDetail(tenant), null);
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null);
     }
 
     public async Task<(AdminTenantDetailDto? Result, string? Error)> UpdateOperationModeAsync(
@@ -693,7 +707,158 @@ public sealed partial class AdminTenantService : IAdminTenantService
             "Super-admin set tenant {TenantId} operation mode to {Mode}",
             tenantId,
             mode);
-        return (ToDetail(tenant), null);
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null);
+    }
+
+    public async Task<(AdminTenantDetailDto? Result, string? Error, string? ErrorCode)> UpdateCountryAsync(
+        Guid tenantId,
+        UpdateAdminTenantCountryRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var tenant = await _db.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return (null, "Tenant not found.", AdminTenantCountryErrorCodes.TenantNotFound);
+
+        if (TenantStatuses.IsRemoved(tenant.Status))
+            return (null, "Deleted tenants cannot change country.", AdminTenantCountryErrorCodes.TenantNotFound);
+
+        var country = (request.Country ?? string.Empty).Trim().ToUpperInvariant();
+        CountryProfile profile;
+        try
+        {
+            profile = _countries.Get(country);
+        }
+        catch (UnknownCountryCodeException)
+        {
+            return (null, $"Unknown country code '{country}'.", AdminTenantCountryErrorCodes.UnknownCountry);
+        }
+
+        if (!profile.IsTenantSelectable)
+        {
+            return (
+                null,
+                "Country is not tenant-selectable.",
+                AdminTenantCountryErrorCodes.CountryNotSelectable);
+        }
+
+        if (!profile.Supports(request.VatRegime))
+        {
+            return (
+                null,
+                $"VAT regime {request.VatRegime} is not allowed for country {profile.Code}.",
+                AdminTenantCountryErrorCodes.VatRegimeNotAllowed);
+        }
+
+        if (profile.Code == "AT" && request.VatRegime == VatRegime.EU_OSS)
+        {
+            return (
+                null,
+                "AT tenant + EU_OSS is not supported.",
+                AdminTenantCountryErrorCodes.AtEuOssNotSupported);
+        }
+
+        var settings = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (settings is null)
+        {
+            return (
+                null,
+                "Company settings not found for tenant.",
+                AdminTenantCountryErrorCodes.CompanySettingsMissing);
+        }
+
+        var oldCountry = (settings.Country ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(oldCountry))
+            oldCountry = "AT";
+        var oldRegime = settings.VatRegime;
+        var countryChanged = !string.Equals(oldCountry, profile.Code, StringComparison.Ordinal);
+        var regimeChanged = oldRegime != request.VatRegime;
+
+        if (!countryChanged && !regimeChanged)
+        {
+            return (
+                await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false),
+                null,
+                null);
+        }
+
+        if (countryChanged)
+        {
+            var hasFiscalData = await HasSignedFiscalPaymentsAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (hasFiscalData)
+            {
+                return (
+                    null,
+                    "Cannot change country after fiscal data exists. Historical invoices are preserved; country remains locked.",
+                    AdminTenantCountryErrorCodes.CountryLockedFiscal);
+            }
+        }
+
+        settings.Country = profile.Code;
+        settings.VatRegime = request.VatRegime;
+        settings.UpdatedAt = DateTime.UtcNow;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        tenant.UpdatedBy = actorUserId;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (_auditLog is not null)
+        {
+            try
+            {
+                await _auditLog.LogSystemOperationAsync(
+                    "TENANT_COUNTRY_CHANGED",
+                    "Tenant",
+                    actorUserId ?? "system",
+                    Roles.SuperAdmin,
+                    description: $"Tenant country/vatRegime changed from {oldCountry}/{oldRegime} to {profile.Code}/{request.VatRegime}",
+                    status: AuditLogStatus.Success,
+                    actionType: AuditEventType.TenantCountryChanged,
+                    entityId: tenantId,
+                    tenantId: tenantId,
+                    oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
+                    newValues: new { country = profile.Code, vatRegime = request.VatRegime.ToString() })
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Tenant country change audit failed for {TenantId}", tenantId);
+            }
+        }
+
+        if (_activity is not null)
+        {
+            await _activity.TryPublishAsync(
+                tenantId,
+                ActivityEventType.TenantCountryChanged,
+                metadata: new
+                {
+                    oldCountry,
+                    newCountry = profile.Code,
+                    oldVatRegime = oldRegime.ToString(),
+                    newVatRegime = request.VatRegime.ToString(),
+                    ActorId = actorUserId,
+                },
+                actorUserId: actorUserId,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        _logger.LogInformation(
+            "Super-admin changed tenant {TenantId} country from {OldCountry}/{OldRegime} to {NewCountry}/{NewRegime}",
+            tenantId,
+            oldCountry,
+            oldRegime,
+            profile.Code,
+            request.VatRegime);
+
+        return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null, null);
     }
 
     public async Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
@@ -963,14 +1128,19 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return LicenseType.Trial;
     }
 
-    private static AdminTenantDetailDto ToDetail(
+    private async Task<AdminTenantDetailDto> ToDetailAsync(
         Tenant t,
         TenantProvisioningDto? provisioning = null,
         string? ownerAdminEmail = null,
         int activeUserCount = 0,
         int cashRegisterCount = 0,
-        DateTime? lastActivityAtUtc = null) =>
-        new(
+        DateTime? lastActivityAtUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        var (country, vatRegime, vatId, billingCountry, taxExempt) =
+            await LoadCountryFieldsAsync(t.Id, cancellationToken).ConfigureAwait(false);
+
+        return new(
             t.Id,
             t.Name,
             t.Slug,
@@ -1000,7 +1170,48 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.TrialConvertedAtUtc,
             t.TrialReminder7dSent,
             t.TrialReminder3dSent,
-            t.TrialReminder1dSent);
+            t.TrialReminder1dSent,
+            country,
+            vatRegime,
+            vatId,
+            billingCountry,
+            taxExempt);
+    }
+
+    private async Task<(string Country, VatRegime VatRegime, string? VatId, string? BillingCountry, bool TaxExempt)>
+        LoadCountryFieldsAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var settings = await _db.CompanySettings
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var country = string.IsNullOrWhiteSpace(settings?.Country)
+            ? "AT"
+            : settings.Country.Trim().ToUpperInvariant();
+        return (
+            country,
+            settings?.VatRegime ?? VatRegime.AT_RKSV_STANDARD,
+            string.IsNullOrWhiteSpace(settings?.VatId) ? null : settings.VatId,
+            string.IsNullOrWhiteSpace(settings?.BillingCountry) ? null : settings.BillingCountry,
+            settings?.TaxExempt ?? false);
+    }
+
+    /// <summary>True when the tenant has at least one TSE-signed payment (RKSV fiscal footprint).</summary>
+    private async Task<bool> HasSignedFiscalPaymentsAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await (
+                from p in _db.PaymentDetails.AsNoTracking().IgnoreQueryFilters()
+                join cr in _db.CashRegisters.AsNoTracking().IgnoreQueryFilters()
+                    on p.CashRegisterId equals cr.Id
+                where cr.TenantId == tenantId
+                      && p.TseSignature != null
+                      && p.TseSignature != ""
+                select p.Id)
+            .AnyAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     private static DateTime? MaxUtc(params DateTime?[] values)
     {

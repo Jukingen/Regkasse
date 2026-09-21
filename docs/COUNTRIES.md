@@ -7,7 +7,7 @@ This hub describes the multi-country architecture. It is not a legal opinion and
 
 ## Current state (as of HEAD)
 
-Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance.
+Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`); country changes after signed fiscal data still return `COUNTRY_LOCKED_FISCAL` (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance.
 
 ---
 

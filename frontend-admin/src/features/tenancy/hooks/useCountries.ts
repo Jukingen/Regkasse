@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 
 /**
  * Super Admin country-profile catalog (`GET /api/admin/countries`).
- * Thin Orval wrapper — not wired into any page yet (CreateTenantWizard country step is later).
+ * Used by CreateTenantWizard and the tenant-detail country card.
  */
 export function useCountries() {
   const { user } = useAuth();

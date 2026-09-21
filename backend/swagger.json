@@ -22935,6 +22935,75 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/country": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminTenantCountryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTenantDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/tenants/{tenantId}/activity-report/weekly": {
       "get": {
         "tags": [
@@ -50913,6 +50982,24 @@
           },
           "trialReminder1dSent": {
             "type": "boolean"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "vatRegime": {
+            "$ref": "#/components/schemas/VatRegime"
+          },
+          "vatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "billingCountry": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxExempt": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -52296,6 +52383,7 @@
           94,
           95,
           96,
+          97,
           99
         ],
         "type": "integer",
@@ -73573,6 +73661,9 @@
               },
               "RksvRuntimeConfigChanged": {
                 "type": "boolean"
+              },
+              "TenantCountryChanged": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -73912,6 +74003,9 @@
                 "type": "string"
               },
               "RksvRuntimeConfigChanged": {
+                "type": "string"
+              },
+              "TenantCountryChanged": {
                 "type": "string"
               }
             },
@@ -98316,6 +98410,24 @@
             "maxLength": 1000,
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateAdminTenantCountryRequest": {
+        "required": [
+          "country",
+          "vatRegime"
+        ],
+        "type": "object",
+        "properties": {
+          "country": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "vatRegime": {
+            "$ref": "#/components/schemas/VatRegime"
           }
         },
         "additionalProperties": false
