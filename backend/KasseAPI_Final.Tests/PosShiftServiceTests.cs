@@ -65,6 +65,50 @@ public class PosShiftServiceTests
             Mock.Of<ILogger<PosShiftService>>());
     }
 
+    private static void SeedOperationalRegister(
+        AppDbContext ctx,
+        Guid id,
+        RegisterStatus status = RegisterStatus.Closed,
+        bool isActive = true,
+        string? assignedUserId = null)
+    {
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = id,
+            RegisterNumber = "K-OPEN",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = status,
+            AssignedUserId = assignedUserId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = isActive,
+        });
+    }
+
+    private static async Task<ShiftAutoOpenResult> AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult openResult)
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        SeedOperationalRegister(ctx, regId);
+        await ctx.SaveChangesAsync();
+
+        var shift = new Mock<ICashRegisterShiftService>();
+        shift
+            .Setup(s => s.TryOpenCashRegisterAsync(
+                regId,
+                "cashier-1",
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(openResult);
+
+        return await CreateService(ctx, shift: shift.Object).AutoOpenShiftAsync("cashier-1", "Max", regId);
+    }
+
     [Fact]
     public async Task GetCurrentShift_NoActive_ReturnsFalse()
     {
@@ -183,32 +227,113 @@ public class PosShiftServiceTests
     }
 
     [Fact]
-    public async Task AutoOpenShift_RegisterAssignedToAnotherUser_ReturnsUnavailable()
+    public async Task AutoOpenShift_RegisterAssignedToAnotherUser_ReturnsRegisterAssignedToOtherUser()
     {
         await using var ctx = CreateContext();
         const string userId = "cashier-1";
         var regId = Guid.NewGuid();
-        ctx.CashRegisters.Add(new CashRegister
-        {
-            TenantId = SystemTenantIds.Platform,
-            Id = regId,
-            RegisterNumber = "K-OTHER",
-            Location = "Front",
-            StartingBalance = 0,
-            CurrentBalance = 0,
-            LastBalanceUpdate = DateTime.UtcNow,
-            Status = RegisterStatus.Closed,
-            AssignedUserId = "cashier-2",
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true,
-        });
+        SeedOperationalRegister(ctx, regId, status: RegisterStatus.Closed, assignedUserId: "cashier-2");
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
         var result = await svc.AutoOpenShiftAsync(userId, "Max", regId);
 
         Assert.False(result.Success);
+        Assert.Equal(ShiftAutoOpenCodes.RegisterAssignedToOtherUser, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterAssignedToOtherUser, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_InactiveRegister_ReturnsRegisterInactive()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        SeedOperationalRegister(ctx, regId, isActive: false);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateService(ctx).AutoOpenShiftAsync("cashier-1", "Max", regId);
+
+        Assert.False(result.Success);
+        Assert.Equal(ShiftAutoOpenCodes.RegisterInactive, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterInactive, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_Maintenance_ReturnsRegisterMaintenance()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        SeedOperationalRegister(ctx, regId, status: RegisterStatus.Maintenance);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateService(ctx).AutoOpenShiftAsync("cashier-1", "Max", regId);
+
+        Assert.False(result.Success);
+        Assert.Equal(ShiftAutoOpenCodes.RegisterMaintenance, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterMaintenance, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_Disabled_ReturnsRegisterDisabled()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        SeedOperationalRegister(ctx, regId, status: RegisterStatus.Disabled);
+        await ctx.SaveChangesAsync();
+
+        var result = await CreateService(ctx).AutoOpenShiftAsync("cashier-1", "Max", regId);
+
+        Assert.False(result.Success);
+        Assert.Equal(ShiftAutoOpenCodes.RegisterDisabled, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterDisabled, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenConflictOtherUser_ReturnsRegisterConflictOtherUser()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.ConflictOtherUser());
+        Assert.Equal(ShiftAutoOpenCodes.RegisterConflictOtherUser, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterConflictOtherUser, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenActorHasOtherOpen_ReturnsRegisterActorHasOtherOpen()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.ActorAlreadyHasOtherOpenRegister());
+        Assert.Equal(ShiftAutoOpenCodes.RegisterActorHasOtherOpen, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterActorHasOtherOpen, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenStartbelegRequired_ReturnsRegisterStartbelegRequired()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.StartbelegRequired());
+        Assert.Equal(ShiftAutoOpenCodes.RegisterStartbelegRequired, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterStartbelegRequired, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenMonatsbelegRequired_ReturnsRegisterMonatsbelegRequired()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.MonatsbelegRequired());
+        Assert.Equal(ShiftAutoOpenCodes.RegisterMonatsbelegRequired, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterMonatsbelegRequired, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenInvalidState_ReturnsRegisterInvalidState()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.InvalidState());
+        Assert.Equal(ShiftAutoOpenCodes.RegisterInvalidState, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterInvalidState, result.Message);
+    }
+
+    [Fact]
+    public async Task AutoOpenShift_TryOpenUnhandledKind_ReturnsRegisterUnavailable()
+    {
+        var result = await AutoOpenWithTryOpenKindAsync(CashRegisterOpenResult.AlreadyOpenSameUserNonIdempotent());
         Assert.Equal(ShiftAutoOpenCodes.RegisterUnavailable, result.Code);
+        Assert.Equal(ShiftAutoOpenMessages.RegisterUnavailable, result.Message);
     }
 
     [Fact]

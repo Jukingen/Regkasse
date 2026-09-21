@@ -306,20 +306,35 @@ public sealed class PosShiftService : IPosShiftService
                 ShiftAutoOpenMessages.RegisterDecommissioned);
         }
 
-        if (!register.IsActive ||
-            register.Status is RegisterStatus.Maintenance or RegisterStatus.Disabled)
+        if (!register.IsActive)
         {
             await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
             return ShiftAutoOpenResult.Fail(
-                ShiftAutoOpenCodes.RegisterUnavailable,
-                ShiftAutoOpenMessages.RegisterUnavailable);
+                ShiftAutoOpenCodes.RegisterInactive,
+                ShiftAutoOpenMessages.RegisterInactive);
+        }
+
+        if (register.Status == RegisterStatus.Maintenance)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterMaintenance,
+                ShiftAutoOpenMessages.RegisterMaintenance);
+        }
+
+        if (register.Status == RegisterStatus.Disabled)
+        {
+            await ClearStaleDefaultRegisterAsync(cashierUserId, register.Id, cancellationToken);
+            return ShiftAutoOpenResult.Fail(
+                ShiftAutoOpenCodes.RegisterDisabled,
+                ShiftAutoOpenMessages.RegisterDisabled);
         }
 
         if (CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, register.AssignedUserId))
         {
             return ShiftAutoOpenResult.Fail(
-                ShiftAutoOpenCodes.RegisterUnavailable,
-                ShiftAutoOpenMessages.RegisterUnavailable);
+                ShiftAutoOpenCodes.RegisterAssignedToOtherUser,
+                ShiftAutoOpenMessages.RegisterAssignedToOtherUser);
         }
 
         var startBalance = register.CurrentBalance;
@@ -346,14 +361,26 @@ public sealed class PosShiftService : IPosShiftService
                 return ShiftAutoOpenResult.Fail(
                     register.Status == RegisterStatus.Decommissioned
                         ? ShiftAutoOpenCodes.RegisterDecommissioned
-                        : ShiftAutoOpenCodes.RegisterUnavailable,
+                        : ShiftAutoOpenCodes.RegisterInvalidState,
                     register.Status == RegisterStatus.Decommissioned
                         ? ShiftAutoOpenMessages.RegisterDecommissioned
-                        : ShiftAutoOpenMessages.RegisterUnavailable);
+                        : ShiftAutoOpenMessages.RegisterInvalidState);
             case CashRegisterOpenKind.FailedConflictOtherUser:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterConflictOtherUser,
+                    ShiftAutoOpenMessages.RegisterConflictOtherUser);
             case CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterActorHasOtherOpen,
+                    ShiftAutoOpenMessages.RegisterActorHasOtherOpen);
             case CashRegisterOpenKind.FailedStartbelegRequired:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterStartbelegRequired,
+                    ShiftAutoOpenMessages.RegisterStartbelegRequired);
             case CashRegisterOpenKind.FailedMonatsbelegRequired:
+                return ShiftAutoOpenResult.Fail(
+                    ShiftAutoOpenCodes.RegisterMonatsbelegRequired,
+                    ShiftAutoOpenMessages.RegisterMonatsbelegRequired);
             default:
                 return ShiftAutoOpenResult.Fail(
                     ShiftAutoOpenCodes.RegisterUnavailable,

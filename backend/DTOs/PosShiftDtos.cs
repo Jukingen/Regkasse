@@ -30,6 +30,15 @@ public static class ShiftAutoOpenCodes
     public const string Ok = Success;
     public const string NeedRegisterSelection = "NEED_REGISTER_SELECTION";
     public const string RegisterUnavailable = "REGISTER_UNAVAILABLE";
+    public const string RegisterInactive = "REGISTER_INACTIVE";
+    public const string RegisterMaintenance = "REGISTER_MAINTENANCE";
+    public const string RegisterDisabled = "REGISTER_DISABLED";
+    public const string RegisterAssignedToOtherUser = "REGISTER_ASSIGNED_TO_OTHER_USER";
+    public const string RegisterInvalidState = "REGISTER_INVALID_STATE";
+    public const string RegisterConflictOtherUser = "REGISTER_CONFLICT_OTHER_USER";
+    public const string RegisterActorHasOtherOpen = "REGISTER_ACTOR_HAS_OTHER_OPEN";
+    public const string RegisterStartbelegRequired = "REGISTER_STARTBELEG_REQUIRED";
+    public const string RegisterMonatsbelegRequired = "REGISTER_MONATSBELEG_REQUIRED";
     public const string RegisterNotFound = "REGISTER_NOT_FOUND";
     public const string ShiftAlreadyOpen = "SHIFT_ALREADY_OPEN";
     public const string RegisterDecommissioned = "REGISTER_DECOMMISSIONED";
@@ -44,6 +53,24 @@ public static class ShiftAutoOpenMessages
         "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.";
     public const string RegisterUnavailable =
         "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterInactive =
+        "Die Kasse ist inaktiv. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterMaintenance =
+        "Die Kasse ist im Wartungsmodus. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterDisabled =
+        "Die Kasse ist deaktiviert. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterAssignedToOtherUser =
+        "Die Kasse ist einem anderen Kassierer zugewiesen. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterConflictOtherUser =
+        "Die Kasse ist bereits von einem anderen Kassierer geöffnet.";
+    public const string RegisterActorHasOtherOpen =
+        "Sie haben bereits eine andere Kasse geöffnet. Bitte schließen Sie diese zuerst.";
+    public const string RegisterStartbelegRequired =
+        "Startbeleg fehlt. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterMonatsbelegRequired =
+        "Monatsbeleg fehlt. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterInvalidState =
+        "Die Kasse kann in diesem Zustand nicht geöffnet werden. Bitte kontaktieren Sie den Administrator.";
     public const string RegisterNotFound = "Die ausgewählte Kasse wurde nicht gefunden.";
     public const string ShiftAlreadyOpen = "Die Schicht ist bereits geöffnet.";
     public const string RegisterDecommissioned =
