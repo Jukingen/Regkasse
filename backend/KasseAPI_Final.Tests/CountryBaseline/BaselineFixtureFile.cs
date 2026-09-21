@@ -88,14 +88,22 @@ internal static class BaselineFixtureFile
 
     private static string ResolveFixtureDirectory([CallerFilePath] string callerFilePath = "")
     {
-        // Source-tree location: <tests>/CountryBaseline/BaselineFixtureFile.cs
-        var countryBaselineDirectory = Path.GetDirectoryName(callerFilePath);
-        var testProjectDirectory = countryBaselineDirectory == null
-            ? null
-            : Path.GetDirectoryName(countryBaselineDirectory);
+        // Local/dev builds embed a real disk path. CI sets ContinuousIntegrationBuild=true, which
+        // remaps [CallerFilePath] to /_/backend/... (DeterministicSourcePaths) — that path does not
+        // exist on the runner, so we must not treat it as the source tree.
+        if (!string.IsNullOrEmpty(callerFilePath) && File.Exists(callerFilePath))
+        {
+            var countryBaselineDirectory = Path.GetDirectoryName(callerFilePath);
+            var testProjectDirectory = countryBaselineDirectory == null
+                ? null
+                : Path.GetDirectoryName(countryBaselineDirectory);
 
-        if (testProjectDirectory != null && Directory.Exists(testProjectDirectory))
-            return Path.Combine(testProjectDirectory, "Fixtures", "CountryBaseline");
+            if (testProjectDirectory != null
+                && File.Exists(Path.Combine(testProjectDirectory, "KasseAPI_Final.Tests.csproj")))
+            {
+                return Path.Combine(testProjectDirectory, "Fixtures", "CountryBaseline");
+            }
+        }
 
         return Path.Combine(ResolveTestProjectRootFromOutput(), "Fixtures", "CountryBaseline");
     }
@@ -107,6 +115,12 @@ internal static class BaselineFixtureFile
         {
             if (File.Exists(Path.Combine(directory.FullName, "KasseAPI_Final.Tests.csproj")))
                 return directory.FullName;
+
+            // Output is backend/bin/Tests/<config>/netX.0 — the csproj lives in a sibling
+            // folder under backend/, not on the ancestor chain.
+            var nested = Path.Combine(directory.FullName, "KasseAPI_Final.Tests", "KasseAPI_Final.Tests.csproj");
+            if (File.Exists(nested))
+                return Path.Combine(directory.FullName, "KasseAPI_Final.Tests");
 
             directory = directory.Parent;
         }

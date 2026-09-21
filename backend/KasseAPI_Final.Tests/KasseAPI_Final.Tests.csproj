@@ -38,6 +38,9 @@
     <Content Include="Fixtures\monatsbeleg_sig.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Fixtures\CountryBaseline\*.json" Exclude="Fixtures\CountryBaseline\*.actual.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
