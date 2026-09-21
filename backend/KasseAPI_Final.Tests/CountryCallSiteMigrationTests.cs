@@ -1,4 +1,3 @@
-using System.Globalization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -93,21 +92,6 @@ public sealed class CountryCallSiteMigrationTests
             CountryPaymentTaxLineMapper.FromProductTaxType(de, 10m, 1, TaxTypes.Special, Rates));
         Assert.Throws<ArgumentException>(() =>
             CountryPaymentTaxLineMapper.FromProductTaxType(de, 10m, 1, TaxTypes.ReducedNew, Rates));
-    }
-
-    [Fact]
-    public void Mapper_EuOss_UsesAtRatesAsTemporaryPlaceholder()
-    {
-        // TEMP: OSS uses AT rates as placeholder until real OSS table (Paket 30-d).
-        var line = CountryPaymentTaxLineMapper.FromProductTaxType(
-            Profiles.Get(CountryProfileCodes.EuDefault),
-            121m,
-            1,
-            TaxTypes.Standard,
-            Rates);
-
-        Assert.Equal(TaxTypes.GetTaxRate(TaxTypes.Standard), line.VatRatePercent);
-        Assert.Equal(20m, line.VatRatePercent);
     }
 
     [Fact]
@@ -274,33 +258,6 @@ public sealed class CountryCallSiteMigrationTests
         Assert.Equal(121m, result.Payment!.TotalAmount);
         Assert.Equal(0m, result.Payment.TaxAmount);
         Assert.Equal(0m, result.Payment.TaxDetails.RootElement.GetProperty("0").GetDecimal());
-    }
-
-    [Fact]
-    public void EuOss_TemporaryPlaceholder_UsesAtStandardRate()
-    {
-        var strategy = new EuDefaultTaxStrategy();
-        var expected = CartMoneyHelper.ComputeLine(121m, 1, TaxTypes.GetTaxRate(TaxTypes.Standard));
-        var line = CountryPaymentTaxLineMapper.FromProductTaxType(
-            Profiles.Get(CountryProfileCodes.EuDefault),
-            121m,
-            1,
-            TaxTypes.Standard,
-            Rates);
-
-        var result = strategy.CalculateTax(
-            [line],
-            new TaxCalculationContext
-            {
-                CountryProfile = Profiles.Get(CountryProfileCodes.EuDefault),
-                VatRegime = VatRegime.EU_OSS,
-                TaxExempt = false,
-            });
-
-        Assert.Equal(expected, Assert.Single(result.Lines));
-        Assert.Equal(20m, line.VatRatePercent);
-        var ossKey = line.VatRatePercent!.Value.ToString(CultureInfo.InvariantCulture);
-        Assert.Equal(expected.LineTax, result.TaxDetails[ossKey]);
     }
 
     [Fact]

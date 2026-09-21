@@ -12,7 +12,7 @@ using KasseAPI_Final.Tse;
 namespace KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 
 /// <summary>
-/// EU_DEFAULT tax shape: reverse charge and NON_EU at 0%, OSS at the line rate.
+/// EU_DEFAULT tax shape: reverse charge and NON_EU at 0%, OSS at the destination STANDARD rate.
 /// Line math from <see cref="CartMoneyHelper.ComputeLine(decimal, int, decimal)"/>, summary from
 /// <see cref="CountryRateTaxSummary"/> (not AT <c>TaxTypes</c> buckets). No Peppol / ViDA submission.
 /// </summary>
@@ -23,6 +23,7 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
     private readonly ICountryProfileRegistry _profiles;
     private readonly IVatIdValidator _vatIdValidator;
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly IOssVatRateRegistry _ossRates;
 
     public EuDefaultTaxStrategy()
         : this(new CountryProfileRegistry(), new VatIdValidator(new DisabledViesClient()), featureFlags: null)
@@ -32,11 +33,13 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
     public EuDefaultTaxStrategy(
         ICountryProfileRegistry profiles,
         IVatIdValidator vatIdValidator,
-        IFeatureFlagService? featureFlags = null)
+        IFeatureFlagService? featureFlags = null,
+        IOssVatRateRegistry? ossRates = null)
     {
         _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
         _vatIdValidator = vatIdValidator ?? throw new ArgumentNullException(nameof(vatIdValidator));
         _featureFlags = featureFlags;
+        _ossRates = ossRates ?? new OssVatRateRegistry();
     }
 
     public string CountryCode => CountryProfileCodes.EuDefault;
@@ -54,7 +57,7 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
         {
             VatRegime.EU_REVERSE_CHARGE => CalculateReverseCharge(lineItems, context),
             VatRegime.NON_EU => CalculateZeroRated(lineItems),
-            VatRegime.EU_OSS => CalculateOss(lineItems),
+            VatRegime.EU_OSS => CalculateOss(lineItems, context),
             _ => throw new ArgumentException(
                 $"EU_DEFAULT does not calculate tax for regime {context.VatRegime}.",
                 nameof(context)),
@@ -124,18 +127,28 @@ public sealed class EuDefaultTaxStrategy : ITaxStrategy
         };
     }
 
-    /// <summary>
-    /// TEMP: OSS line rates currently come from the caller (Paket 30-c mapper uses
-    /// <c>TaxTypes.GetTaxRate</c> as an AT-rate stand-in). Real destination OSS table is Paket 30-d.
-    /// </summary>
-    private static TaxCalculationResult CalculateOss(IReadOnlyList<TaxLineItemInput> lineItems)
+    private TaxCalculationResult CalculateOss(
+        IReadOnlyList<TaxLineItemInput> lineItems,
+        TaxCalculationContext context)
     {
+        if (string.IsNullOrWhiteSpace(context.DestinationCountry))
+        {
+            throw new ArgumentException(
+                "OSS requires BuyerVatId to determine destination country");
+        }
+
+        var country = context.DestinationCountry.Trim();
+        if (_ossRates.GetStandardRate(country) is not decimal percent)
+        {
+            throw new ArgumentException($"OSS destination rate missing: {country}");
+        }
+
         var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
         var taxDetails = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var item in lineItems)
         {
-            if (item.VatRatePercent is not decimal percent)
+            if (item.VatRatePercent is not decimal)
             {
                 throw new ArgumentException(
                     "EU OSS line items must use VAT percent, not RKSV tax types.",

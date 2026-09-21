@@ -465,6 +465,7 @@ internal static class ApplicationHost
         // Country profiles / tax-type rates are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryTaxTypeRegistry, KasseAPI_Final.Services.Countries.CountryTaxTypeRegistry>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.IOssVatRateRegistry, KasseAPI_Final.Services.Countries.OssVatRateRegistry>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Vat.IViesClient, KasseAPI_Final.Services.Countries.Vat.DisabledViesClient>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Vat.IVatIdValidator, KasseAPI_Final.Services.Countries.Vat.VatIdValidator>();
         // Country strategies (docs/COUNTRIES.md §3). Call sites resolve through ICountryStrategyContext.

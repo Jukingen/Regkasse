@@ -26,11 +26,9 @@ public static class CountryPaymentTaxLineMapper
 
         if (IsEuDefault(profile))
         {
-            // TEMP: OSS uses AT rates as placeholder until real OSS table (Paket 30-d).
-            return TaxLineItemInput.FromVatPercent(
-                unitPriceGross,
-                quantity,
-                TaxTypes.GetTaxRate(rksvTaxType));
+            // Line percent is the VAT-percent shape only. EU_OSS rates come from
+            // IOssVatRateRegistry via TaxCalculationContext.DestinationCountry.
+            return TaxLineItemInput.FromVatPercent(unitPriceGross, quantity, 0m);
         }
 
         return TaxLineItemInput.FromVatPercent(
@@ -44,6 +42,22 @@ public static class CountryPaymentTaxLineMapper
 
     public static bool IsEuDefault(CountryProfile profile) =>
         string.Equals(profile.Code, CountryProfileCodes.EuDefault, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// First two letters of <paramref name="buyerVatId"/> when <paramref name="vatRegime"/> is
+    /// <c>EU_OSS</c>. Alias <c>EL</c> → <c>GR</c> stays in <see cref="IOssVatRateRegistry"/>.
+    /// </summary>
+    public static string? ResolveOssDestinationCountry(VatRegime vatRegime, string? buyerVatId)
+    {
+        if (vatRegime != VatRegime.EU_OSS || string.IsNullOrWhiteSpace(buyerVatId))
+            return null;
+
+        var trimmed = buyerVatId.Trim();
+        if (trimmed.Length < 2)
+            return null;
+
+        return trimmed[..2].ToUpperInvariant();
+    }
 
     private static decimal ResolveCountryPercent(
         string countryCode,

@@ -18,7 +18,7 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Paket 12-b reverse charge / OSS placeholder pins, plus Paket 12-c AT cross-regime routing.
+/// Paket 12-b reverse charge pins, Paket 12-c AT cross-regime routing, and Paket 30-d OSS destination rates.
 /// Does not call VIES.
 /// </summary>
 public sealed class EuReverseChargeTests
@@ -149,26 +149,53 @@ public sealed class EuReverseChargeTests
         Assert.Equal(Money(row, "receiptTotalGross"), result.Totals.TotalGross);
     }
 
-    [Fact]
-    public void EuOss_CurrentlyUsesAtRates_TemporaryUntilPaket30d()
+    [Theory]
+    [InlineData("FR12345678901", 20)]
+    [InlineData("IT12345678901", 22)]
+    [InlineData("DE123456789", 19)]
+    public void EuOss_UsesDestinationRate_FromOssRegistry(string buyerVatId, int expectedPercent)
     {
-        // TEMP: OSS uses AT rates as placeholder until real OSS table (Paket 30-d).
-        var line = CountryPaymentTaxLineMapper.FromProductTaxType(
-            Profiles.Get(CountryProfileCodes.EuDefault),
-            121m,
-            1,
-            TaxTypes.Standard,
-            Rates);
+        var destination = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+            VatRegime.EU_OSS,
+            buyerVatId);
+        var rate = (decimal)expectedPercent;
+        var expected = CartMoneyHelper.ComputeLine(121m, 1, rate);
 
-        Assert.Equal(TaxTypes.GetTaxRate(TaxTypes.Standard), line.VatRatePercent);
-        Assert.Equal(20m, line.VatRatePercent);
-
-        var expected = CartMoneyHelper.ComputeLine(121m, 1, line.VatRatePercent!.Value);
-        var result = EuTax().CalculateTax([line], EuContext(VatRegime.EU_OSS));
+        var result = EuTax().CalculateTax(
+            [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+            EuContext(VatRegime.EU_OSS, buyerVatId) with { DestinationCountry = destination });
 
         Assert.Equal(expected, Assert.Single(result.Lines));
-        var ossKey = line.VatRatePercent.Value.ToString(CultureInfo.InvariantCulture);
-        Assert.Equal(expected.LineTax, result.TaxDetails[ossKey]);
+        Assert.Equal(rate, result.TaxSummary.Single().TaxRatePct);
+        Assert.Equal(expected.LineTax, result.TaxDetails[rate.ToString(CultureInfo.InvariantCulture)]);
+    }
+
+    [Fact]
+    public void EuOss_UnknownDestination_ThrowsRateMissing()
+    {
+        var destination = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+            VatRegime.EU_OSS,
+            "XX123456789");
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+            EuTax().CalculateTax(
+                [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+                EuContext(VatRegime.EU_OSS, "XX123456789") with { DestinationCountry = destination }));
+
+        Assert.Equal("OSS destination rate missing: XX", ex.Message);
+    }
+
+    [Fact]
+    public void EuOss_MissingBuyerVatId_Throws()
+    {
+        var destination = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(VatRegime.EU_OSS, null);
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+            EuTax().CalculateTax(
+                [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+                EuContext(VatRegime.EU_OSS) with { DestinationCountry = destination }));
+
+        Assert.Equal("OSS requires BuyerVatId to determine destination country", ex.Message);
     }
 
     [Fact]

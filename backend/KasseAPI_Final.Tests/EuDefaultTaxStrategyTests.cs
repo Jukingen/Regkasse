@@ -18,12 +18,14 @@ public sealed class EuDefaultTaxStrategyTests
 
     private static TaxCalculationContext EuContext(
         VatRegime regime,
-        string? buyerVatId = null) => new()
+        string? buyerVatId = null,
+        string? destinationCountry = null) => new()
     {
         CountryProfile = Profiles.Get(CountryProfileCodes.EuDefault),
         VatRegime = regime,
         TaxExempt = false,
         BuyerVatId = buyerVatId,
+        DestinationCountry = destinationCountry,
     };
 
     private static IFeatureFlagService Flags(bool enabled)
@@ -81,31 +83,45 @@ public sealed class EuDefaultTaxStrategyTests
         Assert.Equal(VatIdValidationResult.InvalidShapeErrorCode, ex.ErrorCode);
     }
 
-    [Fact]
-    public void CalculateTax_Oss_UsesLineVatPercent_AsInvariantKey()
+    [Theory]
+    [InlineData("FR", 20)]
+    [InlineData("IT", 22)]
+    [InlineData("DE", 19)]
+    public void CalculateTax_Oss_UsesDestinationStandardRate(string destinationCountry, int expectedPercent)
     {
-        var expected21 = CartMoneyHelper.ComputeLine(121m, 1, 21m);
-        var expected10 = CartMoneyHelper.ComputeLine(110m, 1, 10m);
+        var rate = (decimal)expectedPercent;
+        var expected = CartMoneyHelper.ComputeLine(121m, 1, rate);
 
         var result = Strategy().CalculateTax(
-            [
-                TaxLineItemInput.FromVatPercent(121m, 1, 21m),
-                TaxLineItemInput.FromVatPercent(110m, 1, 10m),
-            ],
-            EuContext(VatRegime.EU_OSS));
+            [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+            EuContext(VatRegime.EU_OSS, destinationCountry: destinationCountry));
 
-        Assert.Equal(2, result.Lines.Count);
-        Assert.Equal(expected21, result.Lines[0]);
-        Assert.Equal(expected10, result.Lines[1]);
-        Assert.Equal(expected21.LineNet + expected10.LineNet, result.Totals.TotalNet);
-        Assert.Equal(expected21.LineTax + expected10.LineTax, result.Totals.TotalVat);
-        Assert.Equal(expected21.LineGross + expected10.LineGross, result.Totals.TotalGross);
-        Assert.Equal(21m, result.TaxSummary.Single(s => s.TaxRatePct == 21m).TaxRatePct);
-        Assert.Equal(10m, result.TaxSummary.Single(s => s.TaxRatePct == 10m).TaxRatePct);
-        Assert.All(result.TaxSummary, s => Assert.Equal(0, s.TaxType));
-        Assert.Equal(expected21.LineTax, result.TaxDetails[21m.ToString(CultureInfo.InvariantCulture)]);
-        Assert.Equal(expected10.LineTax, result.TaxDetails[10m.ToString(CultureInfo.InvariantCulture)]);
+        Assert.Equal(expected, Assert.Single(result.Lines));
+        Assert.Equal(rate, result.TaxSummary.Single().TaxRatePct);
+        Assert.Equal(expected.LineTax, result.TaxDetails[rate.ToString(CultureInfo.InvariantCulture)]);
         Assert.DoesNotContain(TaxTypes.Standard.ToString(), result.TaxDetails.Keys);
+    }
+
+    [Fact]
+    public void CalculateTax_Oss_UnknownDestination_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Strategy().CalculateTax(
+                [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+                EuContext(VatRegime.EU_OSS, destinationCountry: "XX")));
+
+        Assert.Equal("OSS destination rate missing: XX", ex.Message);
+    }
+
+    [Fact]
+    public void CalculateTax_Oss_MissingBuyerVatId_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Strategy().CalculateTax(
+                [TaxLineItemInput.FromVatPercent(121m, 1, 0m)],
+                EuContext(VatRegime.EU_OSS)));
+
+        Assert.Equal("OSS requires BuyerVatId to determine destination country", ex.Message);
     }
 
     [Fact]
@@ -114,7 +130,7 @@ public sealed class EuDefaultTaxStrategyTests
         var ex = Assert.Throws<ArgumentException>(() =>
             Strategy().CalculateTax(
                 [TaxLineItemInput.FromTaxType(10m, 1, TaxTypes.Standard)],
-                EuContext(VatRegime.EU_OSS)));
+                EuContext(VatRegime.EU_OSS, destinationCountry: "FR")));
 
         Assert.Contains("VAT percent", ex.Message, StringComparison.Ordinal);
     }

@@ -1,4 +1,4 @@
-> **Status:** Shape only (Paket 10). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. AT reverse charge uses this layer (Paket 12-c). Not production-ready. **Paket 22 (Peppol) and Paket 30-d (OSS destination rates) are NOT STARTED.**
+> **Status:** Shape only (Paket 10). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. AT reverse charge uses this layer (Paket 12-c). OSS destination STANDARD rates are seeded (Paket 30-d). Not production-ready. **Paket 22 (Peppol) is NOT STARTED.**
 
 # EU e-invoicing (EN 16931) and ViDA readiness
 
@@ -24,13 +24,13 @@ This document does **not** implement tax-authority or network submission (Paket 
 | Item | State |
 |------|--------|
 | `EU_DEFAULT` CountryProfile | Shipped; **registry-only**, not selectable as a country in the wizard — [`COUNTRIES.md`](COUNTRIES.md) |
-| `EuDefaultTaxStrategy.CalculateTax` | Shape: reverse charge (valid buyer VAT-ID → 0%) / OSS (line `VatRatePercent`) / NON_EU export (0%); AT buckets not used |
+| `EuDefaultTaxStrategy.CalculateTax` | Shape: reverse charge (valid buyer VAT-ID → 0%) / OSS (destination STANDARD rate) / NON_EU export (0%); AT buckets not used |
 | AT + `EU_REVERSE_CHARGE` | **Shipped** (Paket 12-c): both resolvers route to EuDefault regardless of country code. `EInvoicing.En16931` does **not** gate reverse-charge tax or disclosures. |
 | `EuDefaultInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (EN 16931 keys) |
 | EN 16931 XML | Stub throws `NotImplementedException` (`IEn16931XmlBuilder`) |
 | XRechnung XML (DE CIUS) | Stub throws `NotImplementedException` (`IXrechnungXmlBuilder`); see [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
 | Peppol Access Point | **NOT STARTED** (Paket **22**) |
-| OSS destination rates | **NOT STARTED** (Paket **30-d**); AT `TaxTypes` stand-in remains |
+| OSS destination rate table (Paket 30-d) | **Shipped** in-code seed (`IOssVatRateRegistry`). Greek VAT-ID prefix `EL` aliases to `GR`. No AT `TaxTypes` fallback |
 | VIES client | Shipped as optional (`Vies.CheckEnabled`, default **off**); no live VIES in tests |
 | ViDA | Read-only checklist only; no timeline committed |
 | Wiring into `InvoiceService` / `PaymentService` | Tax/invoice domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
@@ -54,11 +54,30 @@ Austria RKSV receipts and German ZUGFeRD are **not** defined here. See `RKSV_*.m
 
 ---
 
-## OSS destination rates (Paket 30-d — NOT STARTED)
+## OSS destination rate table (Paket 30-d)
 
-OSS is **wired but not destination-rated**. `CountryPaymentTaxLineMapper` (and therefore `PaymentService`) maps EU_DEFAULT product `TaxType` ints through `TaxTypes.GetTaxRate` — the Austrian 20 / 10 / 13 / 0 / 4.9 stand-in. `EuDefaultTaxStrategy.CalculateOss` then uses the line `VatRatePercent` as-is.
+`OssVatRates` / `IOssVatRateRegistry` is an in-code STANDARD rate seed (no database table). `CountryPaymentTaxLineMapper.ResolveOssDestinationCountry` sets `TaxCalculationContext.DestinationCountry` from the first two letters of the buyer VAT-ID when `VatRegime` is `EU_OSS`. `EuDefaultTaxStrategy.CalculateOss` then uses `GetStandardRate`. Missing destination throws `OSS requires BuyerVatId to determine destination country`. An unknown destination throws `OSS destination rate missing: {country}`. There is no Austrian `TaxTypes` fallback. AT + `EU_OSS` remains unsupported.
 
-Paket **30-d** will replace that stand-in with a real destination-rate table. It has **not started**. Tests pin the stand-in (`EuOss_CurrentlyUsesAtRates_TemporaryUntilPaket30d`) so the swap is visible. Do not treat those AT rates as OSS law.
+`GetStandardRate` maps the Greek VAT-ID prefix `EL` to ISO `GR`. The seed contains `GR` only, not a separate `EL` row.
+
+Seeded STANDARD rates. `EffectiveFrom` is 2024-01-01 except Finland.
+
+| Country | Rate |
+|---------|------|
+| AT | 20 |
+| DE | 19 |
+| FR | 20 |
+| IT | 22 |
+| NL | 21 |
+| ES | 21 |
+| PL | 23 |
+| BE | 21 |
+| IE | 23 |
+| PT | 23 |
+| SE | 25 |
+| DK | 25 |
+| FI | 25.5 (effective 2024-09-01) |
+| GR | 24 |
 
 ---
 
@@ -69,7 +88,7 @@ See [`COUNTRIES.md`](COUNTRIES.md) §16.
 | Paket | Scope | Status |
 |-------|--------|--------|
 | **22** | Peppol Access Point / transport; tax-authority / ViDA submission | **NOT STARTED** |
-| **30-d** | OSS destination-rate table | **NOT STARTED** |
+| **30-d** | OSS destination rate table | **Shipped** (in-code seed; `EL` → `GR`) |
 
 ---
 
@@ -79,7 +98,7 @@ Answered for v1 in [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION
 
 Still open:
 
-- Where does “OSS registered” come from (tenant flag vs external register)? Paket 30-d still NOT STARTED.
+- Where does “OSS registered” come from (tenant flag vs external register)? The destination rate table does not answer this.
 - Which mandants fall under which ViDA duties — **unknown**; not decided here.
 
 ---

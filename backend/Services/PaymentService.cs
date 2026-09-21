@@ -880,6 +880,9 @@ namespace KasseAPI_Final.Services
                             VatRegime = countryBinding.VatRegime,
                             TaxExempt = countryBinding.Settings.TaxExempt,
                             BuyerVatId = request.Steuernummer,
+                            DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+                                countryBinding.VatRegime,
+                                request.Steuernummer),
                         });
 
                     for (var i = 0; i < pricedLines.Count; i++)
@@ -1612,6 +1615,7 @@ namespace KasseAPI_Final.Services
                     CountryProfile = countryBinding.Profile,
                     VatRegime = countryBinding.VatRegime,
                     TaxExempt = countryBinding.Settings.TaxExempt,
+                    DestinationCountry = null,
                 });
 
             for (var i = 0; i < pricedLines.Count; i++)

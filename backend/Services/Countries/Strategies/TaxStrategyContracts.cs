@@ -54,6 +54,12 @@ public sealed record TaxCalculationContext
     /// other strategies ignore it.
     /// </summary>
     public string? BuyerVatId { get; init; }
+
+    /// <summary>
+    /// ISO alpha-2 OSS destination. Set from the buyer VAT-ID prefix when the regime is
+    /// <c>EU_OSS</c>. Austria and other regimes leave it null.
+    /// </summary>
+    public string? DestinationCountry { get; init; }
 }
 
 /// <summary>
