@@ -93,7 +93,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     /// Fail-closed country gate. AT returns the constant disclosure list (discarded). DE/CH/EU
     /// throw — RKSV special receipts are Austria-only.
     /// </summary>
-    private async Task EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
+    private async Task<CountryStrategyBinding> EnsureCountryInvoiceStrategyAsync(CancellationToken cancellationToken)
     {
         var binding = await _countryStrategyContext.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (!CountryPaymentTaxLineMapper.IsAustria(binding.Profile))
@@ -104,6 +104,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
         var strategy = _invoiceStrategyResolver.Resolve(binding.Profile, binding.VatRegime);
         _ = strategy.GetMandatoryDisclosures(binding.Settings, customer: null);
+        return binding;
     }
 
     /// <inheritdoc />
@@ -116,7 +117,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         var (viennaCurrentYear, viennaCurrentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
         var resolvedYear = request.Year ?? viennaCurrentYear;
@@ -248,6 +249,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -457,7 +460,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
@@ -586,6 +589,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -662,7 +667,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         ValidateMonatsbelegTargetMonth(request.Year, request.Month, forcePastMonth);
 
@@ -835,6 +840,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -906,7 +913,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         var (viennaYear, _) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
         if (request.Year < viennaYear - 1 || request.Year > viennaYear)
@@ -1070,6 +1077,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
@@ -1165,7 +1174,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
+        var countryBinding = await EnsureCountryInvoiceStrategyAsync(cancellationToken).ConfigureAwait(false);
 
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
@@ -1313,6 +1322,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+            FiscalDocumentCountryStamp.Apply(payment, countryBinding);
+            FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, countryBinding);
 
             var decommissionedAtUtc = DateTime.UtcNow;
             register.Status = RegisterStatus.Decommissioned;

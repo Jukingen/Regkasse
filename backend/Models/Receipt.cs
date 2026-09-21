@@ -61,6 +61,15 @@ namespace KasseAPI_Final.Models
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        /// <summary>ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.</summary>
+        [MaxLength(2)]
+        [Column("country_code_at_issue")]
+        public string? CountryCodeAtIssue { get; set; }
+
+        /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
+        [Column("vat_regime_at_issue")]
+        public VatRegime? VatRegimeAtIssue { get; set; }
+
         // RKSV verification normalization (Phase 1) - nullable
         [MaxLength(50)]
         [Column("signature_format")]

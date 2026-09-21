@@ -1258,6 +1258,7 @@ namespace KasseAPI_Final.Services
                         TransactionId = validatedCardTransaction?.GatewayTransactionId,
                         Provider = validatedCardTransaction?.Gateway
                     };
+                    FiscalDocumentCountryStamp.Apply(payment, countryBinding);
 
                     // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
                     if (effectiveTseRequired)
@@ -1352,6 +1353,7 @@ namespace KasseAPI_Final.Services
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     };
+                    FiscalDocumentCountryStamp.CopyFromPayment(posInvoice, payment, countryBinding);
 
                     _context.PaymentDetails.Add(payment);
                     _context.Invoices.Add(posInvoice);
@@ -2357,6 +2359,7 @@ namespace KasseAPI_Final.Services
             var stornoTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value);
 
             var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
             var stornoId = Guid.NewGuid();
             var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             string stornoBelegNr = string.Empty;
@@ -2399,6 +2402,7 @@ namespace KasseAPI_Final.Services
                     CancelIdempotencyKey = cancelIdempotencyKey
                 };
                 CompanyProfileMapper.CopySnapshotFromOriginal(storno, payment, companyProfile);
+                FiscalDocumentCountryStamp.Apply(storno, countryBinding);
 
                 // Fiskaly SIGN AT: negative storno amount is signed as receipt_type=CANCELLATION
                 // (PUT /cash-register/{id}/receipt/{id}) via TseService — same endpoint as the Fiskaly test page.
@@ -2469,6 +2473,7 @@ namespace KasseAPI_Final.Services
                     CreatedBy = userId,
                     IsActive = true
                 };
+                FiscalDocumentCountryStamp.CopyFromPayment(stornoInvoice, storno, countryBinding);
 
                 _context.PaymentDetails.Add(storno);
                 _context.Invoices.Add(stornoInvoice);
@@ -2844,6 +2849,7 @@ namespace KasseAPI_Final.Services
                 var refundTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value * refundRatio);
 
                 var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+                var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
                 var refundId = Guid.NewGuid();
                 var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
                 string refundBelegNr = string.Empty;
@@ -2884,6 +2890,7 @@ namespace KasseAPI_Final.Services
                         IdempotencyKey = refundKey
                     };
                     CompanyProfileMapper.CopySnapshotFromOriginal(refund, payment, companyProfile);
+                    FiscalDocumentCountryStamp.Apply(refund, countryBinding);
 
                     TseSignatureResult sigResult;
                     try
@@ -2950,6 +2957,7 @@ namespace KasseAPI_Final.Services
                         CreatedBy = userId,
                         IsActive = true
                     };
+                    FiscalDocumentCountryStamp.CopyFromPayment(refundInvoice, refund, countryBinding);
 
                     _context.PaymentDetails.Add(refund);
                     _context.Invoices.Add(refundInvoice);
@@ -3301,6 +3309,7 @@ namespace KasseAPI_Final.Services
                     PaymentReference = payment.TransactionId,
                     PaymentDate = payment.CreatedAt
                 };
+                FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment);
 
                 var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice);
 

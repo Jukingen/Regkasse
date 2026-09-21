@@ -516,6 +516,7 @@ namespace KasseAPI_Final.Controllers
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
+                FiscalDocumentCountryStamp.Apply(invoice, countryBinding);
 
                 _context.Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
@@ -670,6 +671,8 @@ namespace KasseAPI_Final.Controllers
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
+                var duplicateBinding = await _countryStrategyContext.LoadAsync();
+                FiscalDocumentCountryStamp.Apply(newInvoice, duplicateBinding);
 
                 _context.Invoices.Add(newInvoice);
                 await _context.SaveChangesAsync();
@@ -785,6 +788,8 @@ namespace KasseAPI_Final.Controllers
                     CreatedBy = userId,
                     IsActive = true
                 };
+                var creditBinding = await _countryStrategyContext.LoadAsync();
+                FiscalDocumentCountryStamp.CopyFromInvoice(creditNote, original, creditBinding);
 
                 _context.Invoices.Add(creditNote);
                 await _context.SaveChangesAsync();
@@ -989,6 +994,8 @@ namespace KasseAPI_Final.Controllers
                             PaymentDate = derived.PaymentDate,
                             InvoiceItems = derived.InvoiceItems,
                             TaxDetails = derived.TaxDetails,
+                            CountryCodeAtIssue = derived.CountryCodeAtIssue,
+                            VatRegimeAtIssue = derived.VatRegimeAtIssue,
                             CreatedAt = DateTime.UtcNow,
                             IsActive = true
                         };

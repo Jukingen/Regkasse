@@ -510,6 +510,9 @@ public sealed class TenantSettingsService : ITenantSettingsService
         if (settings is null)
             return SettingsChangeResult.Fail("Company settings not found for tenant.", TenantSettingsErrorCodes.CompanySettingsMissing);
 
+        string? previousCountry = null;
+        string? appliedCountry = null;
+
         switch (settingType)
         {
             case TenantSettingType.Currency:
@@ -526,7 +529,9 @@ public sealed class TenantSettingsService : ITenantSettingsService
                 var country = DeserializeScalarString(jsonValue);
                 if (string.IsNullOrWhiteSpace(country))
                     return SettingsChangeResult.Fail("Country value is missing.", TenantSettingsErrorCodes.InvalidValue);
-                settings.Country = country.Trim().ToUpperInvariant();
+                previousCountry = settings.Country;
+                appliedCountry = country.Trim().ToUpperInvariant();
+                settings.Country = appliedCountry;
                 break;
             }
             case TenantSettingType.Timezone:
@@ -552,6 +557,19 @@ public sealed class TenantSettingsService : ITenantSettingsService
 
         settings.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (previousCountry != null
+            && appliedCountry != null
+            && !string.Equals(previousCountry, appliedCountry, StringComparison.OrdinalIgnoreCase))
+        {
+            await LogHistoricalCountryPreservedAsync(
+                    tenantId,
+                    previousCountry,
+                    appliedCountry,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return SettingsChangeResult.Success(Guid.Empty);
     }
 
@@ -658,23 +676,22 @@ public sealed class TenantSettingsService : ITenantSettingsService
                 TenantSettingsErrorCodes.CountryNotRksvCompatible);
         }
 
-        var hasFiscalData = await HasSignedFiscalPaymentsAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (hasFiscalData)
+        string? warning = null;
+        var settings = await GetCompanySettingsAsync(tenantId, track: false, cancellationToken)
+            .ConfigureAwait(false);
+        var currentCountry = (settings?.Country ?? string.Empty).Trim().ToUpperInvariant();
+        if (!string.Equals(currentCountry, country, StringComparison.OrdinalIgnoreCase))
         {
-            var settings = await GetCompanySettingsAsync(tenantId, track: false, cancellationToken)
+            var historicalCount = await FiscalDocumentCountryStamp
+                .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
                 .ConfigureAwait(false);
-            var currentCountry = (settings?.Country ?? string.Empty).Trim().ToUpperInvariant();
-            if (!string.Equals(currentCountry, country, StringComparison.OrdinalIgnoreCase))
+            if (historicalCount > 0)
             {
-                return SettingsChangeResult.Fail(
-                    "Cannot change country after fiscal data exists. " +
-                    "This would affect RKSV compliance. " +
-                    "Please contact support for assistance.",
-                    TenantSettingsErrorCodes.CountryLockedFiscal);
+                warning = "Historical invoices are preserved under the original country regime.";
             }
         }
 
-        return SettingsChangeResult.Success(Guid.Empty);
+        return SettingsChangeResult.Success(Guid.Empty, warning);
     }
 
     private static SettingsChangeResult ValidateTimezoneChange(string newTimezone)
@@ -769,6 +786,31 @@ public sealed class TenantSettingsService : ITenantSettingsService
         return await _db.Invoices.AsNoTracking()
             .IgnoreQueryFilters()
             .AnyAsync(i => i.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task LogHistoricalCountryPreservedAsync(
+        Guid tenantId,
+        string oldCountry,
+        string newCountry,
+        CancellationToken cancellationToken)
+    {
+        var historicalCount = await FiscalDocumentCountryStamp
+            .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
+            .ConfigureAwait(false);
+
+        await _auditLog.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED",
+                "Tenant",
+                "system",
+                RolesOrUnknown(),
+                description:
+                    $"Preserved {historicalCount} historical fiscal document(s) under the original country regime",
+                entityId: tenantId,
+                tenantId: tenantId,
+                oldValues: new { country = oldCountry },
+                newValues: new { country = newCountry, affectedRowCount = historicalCount },
+                actionType: AuditEventType.TenantCountryChangedHistoricalPreserved)
             .ConfigureAwait(false);
     }
 

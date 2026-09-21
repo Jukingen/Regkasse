@@ -98,6 +98,82 @@ public class InvoiceServiceGenerateTests
     }
 
     [Fact]
+    public async Task ResolveInvoiceFromPaymentAsync_CopiesCountryStampFromPayment()
+    {
+        var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"InvoiceGen_{Guid.NewGuid()}")
+            .Options;
+        await using var db = new AppDbContext(options, tenantAccessor);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+
+        db.CompanySettings.Add(new CompanySettings
+        {
+            TenantId = SystemTenantIds.Platform,
+            CompanyName = "Live GmbH",
+            CompanyAddress = "Live Str, 1020 Wien",
+            CompanyTaxNumber = "ATU99999999",
+            BusinessHours = new Dictionary<string, string>(),
+            Currency = "EUR",
+            Country = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+            Language = "de-DE",
+            TimeZone = "Europe/Vienna",
+            DateFormat = "dd.MM.yyyy",
+            TimeFormat = "HH:mm:ss",
+            TaxCalculationMethod = "Standard",
+            InvoiceNumbering = "Sequential",
+            ReceiptNumbering = "Sequential",
+            DefaultPaymentMethod = "Cash",
+        });
+
+        var regId = Guid.NewGuid();
+        db.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "KASSE-01",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var payment = new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Guest",
+            TableNumber = 1,
+            CashierId = "cashier-1",
+            TotalAmount = 12m,
+            TaxAmount = 2m,
+            PaymentMethodRaw = "0",
+            Steuernummer = "ATU12345678",
+            CompanyName = "Snapshot GmbH",
+            CompanyAddress = "Snapshot Gasse 2, 1010 Wien",
+            CashRegisterId = regId,
+            TseSignature = "eyJ.eyJ.sign",
+            ReceiptNumber = "AT-KASSE-01-20260612-9",
+            PaymentItems = JsonDocument.Parse("[]"),
+            TaxDetails = JsonDocument.Parse("{}"),
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        };
+
+        var invoice = await CreateService(db).ResolveInvoiceFromPaymentAsync(payment);
+
+        Assert.Equal("AT", invoice.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, invoice.VatRegimeAtIssue);
+    }
+
+    [Fact]
     public async Task GenerateInvoiceAsync_PrefersPersistedInvoiceRow()
     {
         var tenantAccessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);

@@ -274,7 +274,7 @@ public sealed class TenantSettingsServiceTests
     }
 
     [Fact]
-    public async Task Request_CountryChange_WithFiscalData_Fails()
+    public async Task Request_CountryChange_WithFiscalData_SucceedsWithPreservationWarning()
     {
         await using var db = CreateDb();
         await SeedAsync(db);
@@ -288,8 +288,8 @@ public sealed class TenantSettingsServiceTests
             "Move after go-live",
             "super-1");
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(TenantSettingsErrorCodes.CountryLockedFiscal, result.ErrorCode);
+        Assert.True(result.Succeeded);
+        Assert.Contains("original country regime", result.Warning, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

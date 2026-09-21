@@ -227,5 +227,11 @@ public enum AuditEventType
     /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
     TenantCountryChanged = 97,
 
+    /// <summary>
+    /// Country change left historical invoices/receipts/payments stamped with their original
+    /// <c>CountryCodeAtIssue</c> / <c>VatRegimeAtIssue</c> (row count in audit newValues).
+    /// </summary>
+    TenantCountryChangedHistoricalPreserved = 98,
+
     Other = 99
 }

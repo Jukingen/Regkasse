@@ -155,7 +155,9 @@ describe('TenantCountryFiscalRegimeCard', () => {
       expect(lastConfirm.current).not.toBeNull();
     });
     expect(String(lastConfirm.current?.title)).toMatch(/Fiskalsystem/);
-    expect(String(lastConfirm.current?.content)).toMatch(/Historische Rechnungen/);
+    expect(String(lastConfirm.current?.content)).toMatch(
+      /Historische Rechnungen bleiben unter dem ursprünglichen Länderregime/,
+    );
     expect(mockUpdateCountry).not.toHaveBeenCalled();
 
     await lastConfirm.current?.onOk?.();

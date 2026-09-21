@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
@@ -203,6 +204,7 @@ namespace KasseAPI_Final.Services
                 PrevSignatureValue = prevSignatureValue,
                 CreatedAt = DateTime.UtcNow
             };
+            FiscalDocumentCountryStamp.CopyFromPayment(newReceipt, payment);
 
             // 6. Items: Phase 2 flat-first. Product-only (no Modifiers) → one ReceiptItem with full totals. Legacy (Modifiers present) → main line (base only) + nested modifier lines.
             var receiptItems = new List<ReceiptItem>();
@@ -346,6 +348,7 @@ namespace KasseAPI_Final.Services
                 CreatedAt = DateTime.UtcNow,
                 Payment = payment,
             };
+            FiscalDocumentCountryStamp.CopyFromPayment(receipt, payment);
 
             ApplyPaymentItemsToReceipt(receipt, payment);
 
@@ -386,6 +389,7 @@ namespace KasseAPI_Final.Services
                 PrevSignatureValue = prevSignatureValue,
                 CreatedAt = DateTime.UtcNow
             };
+            FiscalDocumentCountryStamp.CopyFromPayment(newReceipt, payment);
 
             ApplyPaymentItemsToReceipt(newReceipt, payment);
             _context.Receipts.Add(newReceipt);

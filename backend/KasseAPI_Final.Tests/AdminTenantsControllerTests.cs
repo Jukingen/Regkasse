@@ -2560,19 +2560,23 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
-    public async Task UpdateCountryAsync_CountryChangeWithFiscalData_ReturnsLocked()
+    public async Task UpdateCountryAsync_AtInvoiceThenDe_PreservesHistoricalCountryAtIssue()
     {
         await using var db = CreateDb();
         var tenantId = Guid.NewGuid();
         var registerId = Guid.NewGuid();
+        var atPaymentId = Guid.NewGuid();
+        var atInvoiceId = Guid.NewGuid();
+        var atReceiptId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
         db.Tenants.Add(new Tenant
         {
             Id = tenantId,
-            Name = "Locked Tenant",
-            Slug = "locked-tenant",
+            Name = "Preserve Tenant",
+            Slug = "preserve-tenant",
             Status = TenantStatuses.Active,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = now,
         });
         SeedCompanySettings(db, tenantId);
         db.CashRegisters.Add(new CashRegister
@@ -2583,15 +2587,81 @@ public sealed class AdminTenantsControllerTests
             Location = "Main",
             StartingBalance = 0,
             CurrentBalance = 0,
-            LastBalanceUpdate = DateTime.UtcNow,
+            LastBalanceUpdate = now,
             Status = RegisterStatus.Closed,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = now,
             IsActive = true,
         });
-        db.PaymentDetails.Add(CreatePendingPayment(registerId));
+        var atPayment = CreatePendingPayment(registerId);
+        atPayment.Id = atPaymentId;
+        atPayment.CountryCodeAtIssue = "AT";
+        atPayment.VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD;
+        db.PaymentDetails.Add(atPayment);
+        db.Invoices.Add(new Invoice
+        {
+            Id = atInvoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-AT-1",
+            InvoiceDate = now,
+            DueDate = now.AddDays(14),
+            Status = InvoiceStatus.Paid,
+            Subtotal = 10m,
+            TaxAmount = 2m,
+            TotalAmount = 12m,
+            PaidAmount = 12m,
+            RemainingAmount = 0,
+            CompanyName = "Demo GmbH",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Wien 1",
+            TseSignature = "sig",
+            KassenId = "KASSE-001",
+            TseTimestamp = now,
+            CashRegisterId = registerId,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        db.Receipts.Add(new Receipt
+        {
+            ReceiptId = atReceiptId,
+            TenantId = tenantId,
+            PaymentId = atPaymentId,
+            ReceiptNumber = "AT-TSE-20260526-0001",
+            IssuedAt = now,
+            CashRegisterId = registerId,
+            SubTotal = 10m,
+            TaxTotal = 2m,
+            GrandTotal = 12m,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+        });
         await db.SaveChangesAsync();
 
-        var (detail, error, code) = await CreateService(db).UpdateCountryAsync(
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var (detail, error, code) = await CreateService(db, auditLog: audit.Object).UpdateCountryAsync(
             tenantId,
             new UpdateAdminTenantCountryRequest
             {
@@ -2600,9 +2670,53 @@ public sealed class AdminTenantsControllerTests
             },
             "super-admin");
 
-        Assert.Null(detail);
-        Assert.Equal(AdminTenantCountryErrorCodes.CountryLockedFiscal, code);
-        Assert.Contains("fiscal", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal("DE", detail!.Country);
+        Assert.Equal(VatRegime.DE_USTG_STANDARD, detail.VatRegime);
+
+        db.ChangeTracker.Clear();
+        var preservedPayment = await db.PaymentDetails.AsNoTracking().SingleAsync(p => p.Id == atPaymentId);
+        var preservedInvoice = await db.Invoices.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == atInvoiceId);
+        var preservedReceipt = await db.Receipts.IgnoreQueryFilters().AsNoTracking().SingleAsync(r => r.ReceiptId == atReceiptId);
+        var settings = await db.CompanySettings.IgnoreQueryFilters().AsNoTracking()
+            .SingleAsync(s => s.TenantId == tenantId);
+
+        Assert.Equal("AT", preservedPayment.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedPayment.VatRegimeAtIssue);
+        Assert.Equal("AT", preservedInvoice.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedInvoice.VatRegimeAtIssue);
+        Assert.Equal("AT", preservedReceipt.CountryCodeAtIssue);
+        Assert.Equal("DE", settings.Country);
+        Assert.Equal(VatRegime.DE_USTG_STANDARD, settings.VatRegime);
+
+        var deInvoice = new Invoice();
+        FiscalDocumentCountryStamp.Apply(deInvoice, settings.Country, settings.VatRegime);
+        Assert.Equal("DE", deInvoice.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.DE_USTG_STANDARD, deInvoice.VatRegimeAtIssue);
+        Assert.Equal("AT", preservedInvoice.CountryCodeAtIssue);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED",
+                "Tenant",
+                "super-admin",
+                Roles.SuperAdmin,
+                It.Is<string?>(d => d != null && d.Contains("3", StringComparison.Ordinal)),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.TenantCountryChangedHistoricalPreserved,
+                tenantId,
+                tenantId,
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()),
+            Times.Once);
     }
 
     [Fact]

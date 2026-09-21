@@ -66,6 +66,15 @@ namespace KasseAPI_Final.Models
         [MaxLength(200)]
         public string? CompanyAddress { get; set; }
 
+        /// <summary>ISO 3166-1 alpha-2 operating country frozen at issue time. Null on legacy rows.</summary>
+        [MaxLength(2)]
+        [Column("country_code_at_issue")]
+        public string? CountryCodeAtIssue { get; set; }
+
+        /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
+        [Column("vat_regime_at_issue")]
+        public VatRegime? VatRegimeAtIssue { get; set; }
+
         /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]
         [Column("cash_register_id")]

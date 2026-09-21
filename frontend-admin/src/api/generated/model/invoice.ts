@@ -10,6 +10,7 @@ import type { InvoiceInvoiceItems } from './invoiceInvoiceItems';
 import type { PaymentMethod } from './paymentMethod';
 import type { InvoiceStatus } from './invoiceStatus';
 import type { Tenant } from './tenant';
+import type { VatRegime } from './vatRegime';
 
 export interface Invoice {
   cashRegisterId: string;
@@ -45,6 +46,12 @@ export interface Invoice {
    * @nullable
    */
   correlationId?: string | null;
+  /**
+   * @minLength 0
+   * @maxLength 2
+   * @nullable
+   */
+  countryCodeAtIssue?: string | null;
   createdAt: string;
   /**
    * @maxLength 450
@@ -156,4 +163,5 @@ export interface Invoice {
    * @nullable
    */
   updatedBy?: string | null;
+  vatRegimeAtIssue?: VatRegime;
 }

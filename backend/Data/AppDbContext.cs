@@ -1480,6 +1480,13 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CompanyAddress).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.CompanyPhone).HasMaxLength(20);
                 entity.Property(e => e.CompanyEmail).HasMaxLength(100);
+                entity.Property(e => e.CountryCodeAtIssue)
+                    .HasColumnName("country_code_at_issue")
+                    .HasMaxLength(2);
+                entity.Property(e => e.VatRegimeAtIssue)
+                    .HasColumnName("vat_regime_at_issue")
+                    .HasConversion<string>()
+                    .HasMaxLength(VatRegimeNames.MaxLength);
                 entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
@@ -1951,6 +1958,13 @@ namespace KasseAPI_Final.Data
                     .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
                 entity.Property(e => e.CompanyName).HasMaxLength(100);
                 entity.Property(e => e.CompanyAddress).HasMaxLength(200);
+                entity.Property(e => e.CountryCodeAtIssue)
+                    .HasColumnName("country_code_at_issue")
+                    .HasMaxLength(2);
+                entity.Property(e => e.VatRegimeAtIssue)
+                    .HasColumnName("vat_regime_at_issue")
+                    .HasConversion<string>()
+                    .HasMaxLength(VatRegimeNames.MaxLength);
                 entity.Property(e => e.PrevSignatureValueUsed).HasColumnType("text");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
@@ -4648,6 +4662,13 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.JwsSignature).HasColumnType("text");
                 entity.Property(e => e.SignatureValue).HasColumnType("text");
                 entity.Property(e => e.PrevSignatureValue).HasColumnType("text");
+                entity.Property(e => e.CountryCodeAtIssue)
+                    .HasColumnName("country_code_at_issue")
+                    .HasMaxLength(2);
+                entity.Property(e => e.VatRegimeAtIssue)
+                    .HasColumnName("vat_regime_at_issue")
+                    .HasConversion<string>()
+                    .HasMaxLength(VatRegimeNames.MaxLength);
             });
 
             // Receipt sequence: one row per (CashRegisterId, date).

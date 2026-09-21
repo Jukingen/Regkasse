@@ -789,17 +789,12 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 null);
         }
 
+        var historicalCount = 0;
         if (countryChanged)
         {
-            var hasFiscalData = await HasSignedFiscalPaymentsAsync(tenantId, cancellationToken)
+            historicalCount = await FiscalDocumentCountryStamp
+                .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
                 .ConfigureAwait(false);
-            if (hasFiscalData)
-            {
-                return (
-                    null,
-                    "Cannot change country after fiscal data exists. Historical invoices are preserved; country remains locked.",
-                    AdminTenantCountryErrorCodes.CountryLockedFiscal);
-            }
         }
 
         settings.Country = profile.Code;
@@ -826,6 +821,29 @@ public sealed partial class AdminTenantService : IAdminTenantService
                     oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
                     newValues: new { country = profile.Code, vatRegime = request.VatRegime.ToString() })
                     .ConfigureAwait(false);
+
+                if (countryChanged)
+                {
+                    await _auditLog.LogSystemOperationAsync(
+                        "TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED",
+                        "Tenant",
+                        actorUserId ?? "system",
+                        Roles.SuperAdmin,
+                        description:
+                            $"Preserved {historicalCount} historical fiscal document(s) under the original country regime",
+                        status: AuditLogStatus.Success,
+                        actionType: AuditEventType.TenantCountryChangedHistoricalPreserved,
+                        entityId: tenantId,
+                        tenantId: tenantId,
+                        oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
+                        newValues: new
+                        {
+                            country = profile.Code,
+                            vatRegime = request.VatRegime.ToString(),
+                            affectedRowCount = historicalCount,
+                        })
+                        .ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {

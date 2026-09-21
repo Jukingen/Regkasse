@@ -11,7 +11,7 @@
   "save": "Speichern",
   "cancel": "Abbrechen",
   "confirmTitle": "Fiskalsystem wechseln?",
-  "confirmBody": "Ein Wechsel von Land oder Umsatzsteuer-Regime ändert das Fiskalsystem für neue Belege. Historische Rechnungen und signierte Belege bleiben unverändert erhalten.",
+  "confirmBody": "Ein Wechsel von Land oder Umsatzsteuer-Regime ändert das Fiskalsystem für neue Belege. Historische Rechnungen bleiben unter dem ursprünglichen Länderregime erhalten.",
   "confirmOk": "Wechseln",
   "success": "Land und Fiskalregime wurden aktualisiert.",
   "saveFailed": "Land und Fiskalregime konnten nicht aktualisiert werden.",

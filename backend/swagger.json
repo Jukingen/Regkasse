@@ -52384,6 +52384,7 @@
           95,
           96,
           97,
+          98,
           99
         ],
         "type": "integer",
@@ -68546,6 +68547,15 @@
             "minLength": 0,
             "type": "string",
             "nullable": true
+          },
+          "countryCodeAtIssue": {
+            "maxLength": 2,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "vatRegimeAtIssue": {
+            "$ref": "#/components/schemas/VatRegime"
           },
           "tseSignature": {
             "minLength": 1,

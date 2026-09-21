@@ -11,7 +11,7 @@
   "save": "Save",
   "cancel": "Cancel",
   "confirmTitle": "Switch fiscal system?",
-  "confirmBody": "Changing country or VAT regime switches the fiscal system for new receipts. Historical invoices and signed receipts are preserved unchanged.",
+  "confirmBody": "Changing country or VAT regime switches the fiscal system for new receipts. Historical invoices are preserved under the original country regime.",
   "confirmOk": "Switch",
   "success": "Country and fiscal regime were updated.",
   "saveFailed": "Could not update country and fiscal regime.",

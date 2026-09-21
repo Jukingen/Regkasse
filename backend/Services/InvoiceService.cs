@@ -91,7 +91,7 @@ public sealed class InvoiceService : IInvoiceService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false) ?? string.Empty;
 
-        return new Invoice
+        var invoice = new Invoice
         {
             Id = payment.Id,
             SourcePaymentId = payment.Id,
@@ -123,6 +123,8 @@ public sealed class InvoiceService : IInvoiceService
             IsActive = true,
             InvoiceDataProvenance = "DerivedFromPayment",
         };
+        FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, binding);
+        return invoice;
     }
 
     private async Task<Invoice> BuildNonAtInvoiceFromStrategyAsync(
@@ -155,7 +157,7 @@ public sealed class InvoiceService : IInvoiceService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false) ?? string.Empty;
 
-        return new Invoice
+        var invoice = new Invoice
         {
             Id = payment.Id,
             SourcePaymentId = payment.Id,
@@ -187,6 +189,8 @@ public sealed class InvoiceService : IInvoiceService
             IsActive = true,
             InvoiceDataProvenance = "DerivedFromPayment",
         };
+        FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment, binding);
+        return invoice;
     }
 
     private async Task<(string Name, string Address, string TaxNumber, string? Phone, string? Email)> ResolveSellerContextAsync(

@@ -7,7 +7,7 @@ This hub describes the multi-country architecture. It is not a legal opinion and
 
 ## Current state (as of HEAD)
 
-Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`); country changes after signed fiscal data still return `COUNTRY_LOCKED_FISCAL` (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance.
+Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance.
 
 ---
 
@@ -244,6 +244,8 @@ Migration `20260916110000_AddCompanySettingsCountryBilling` is additive only: th
 
 Existing mandants were backfilled to `vat_regime = 'AT_RKSV_STANDARD'` and `tax_exempt = false`, with `billing_country` left null. PostgreSQL backfills on `ADD COLUMN … DEFAULT`; the migration also carries explicit idempotent `UPDATE` guards. `country` needed no backfill because it was already `'AT'` for every existing row.
 
+Migration `20260921180000_AddFiscalDocumentCountryAtIssueSnapshots` is additive only: nullable `country_code_at_issue` and `vat_regime_at_issue` on `invoices`, `receipts`, and `payment_details`. **No backfill** — legacy rows stay null. Country change must not `UPDATE` these columns.
+
 RKSV / TSE / FinanzOnline behavior is unchanged, and that claim is enforced by the regression suite in [§11](#11-testing-strategy) rather than asserted here.
 
 ### 9.2 Remaining
@@ -287,7 +289,7 @@ Rollback is per country and flag-driven, not schema-driven.
 | Unit — VAT-ID pattern consolidation | One literal shared by seeds and attributes; strict semantics pinned; a file-scan test rejects a re-introduced local regex | **Shipped** |
 | Unit — VIES lookup | Live registration check, VIES client mocked only | Planned |
 | E2E — `CreateTenantWizard` | Country step; AT create; DE defaults; unknown country → 400 | Planned (wizard has no country step yet) |
-| CI | No live VIES, no real DE TSE, no Swiss bank APIs | Standing rule |
+| Unit — historical invoice preservation | AT invoice → country change to DE → new DE invoice; both keep original `CountryCodeAtIssue`; no rewrite of historical rows | **Shipped** (Paket 16) |
 
 ### 11.1 AT baseline regression suite
 
@@ -331,7 +333,7 @@ Anyone adding a country layer must keep these fixtures green. If they go red, th
 - **Do not fork `PaymentService` or `TseService` internals** per country, and do not clone cart money logic. Select a strategy at the edge.
 - **Do not enable RKSV special receipts or Austrian TSE for non-AT tenants.**
 - **Do not implement ViDA submission, Peppol transport, or Swiss bank submission in this phase.** EU support is an EN 16931 builder plus a read-only readiness report.
-- Do not add a `CountryCode` column or any second country field; `company_settings.country` is the binding.
+- Do not add a `CountryCode` column or any second country field on `company_settings`; `company_settings.country` is the binding. Issue-time snapshots live on invoices/receipts/payment_details as `CountryCodeAtIssue`, not on company settings.
 - Do not treat `EU_DEFAULT` as a selectable country in the create-tenant wizard.
 - Do not claim Germany, Switzerland, or EU e-invoicing is production-ready.
 - Do not mix Austrian `Tse:` settings with planned `KassenSicherheit` settings.
@@ -410,3 +412,35 @@ AT production seed values stay unchanged (`de-DE` kept — decision A).
 | **Paket 13-c-bis** | Country tax types unused by AT `CalculateTax` / `PaymentService` | **Wired for DE/CH (Paket 30-c); AT stays on TaxTypes.** No AT cutover in this package. |
 | **Paket 13-d** | `EU_DEFAULT` VatId regex is a generic placeholder, not a VIES member-state pattern | **Closed.** `VatIdPatterns.EuDefault` is `^[A-Z]{2}[A-Z0-9]{8,12}$`. AT/DE/CH patterns unchanged. EU reverse charge consumes the profile regex via `IVatIdValidator` (Paket 12-b). VIES excludes `EU_DEFAULT` by design. |
 | **Paket 13-d-bis** | Tightened EU_DEFAULT regex vs VIES coverage | **Used by EU reverse charge path (Paket 12-b); VIES excludes EU_DEFAULT by design.** Validator stays profile-driven (`MatchesVatIdShape`); do not copy a second literal. |
+
+---
+
+## 15. Historical Invoice Preservation
+
+A Super Admin country change (`PATCH /api/admin/tenants/{id}/country`) updates **only** `company_settings.country` / `vat_regime`. It does **not** rewrite historical fiscal documents.
+
+### 15.1 Issue-time snapshots
+
+Migration `20260921180000_AddFiscalDocumentCountryAtIssueSnapshots` adds nullable columns:
+
+| Column | Type | Tables |
+|--------|------|--------|
+| `country_code_at_issue` | `varchar(2)` | `invoices`, `receipts`, `payment_details` |
+| `vat_regime_at_issue` | `varchar(32)` | `invoices`, `receipts`, `payment_details` |
+
+These are **not** a second operating-country field on `company_settings`. `CompanySettings.Country` remains the live binding; the snapshots freeze what was in effect when the document was issued.
+
+Stamping happens at issue time from `CompanySettings` (via `ICountryStrategyContext` / `FiscalDocumentCountryStamp`). Receipts and invoices derived from a payment copy the payment's snapshot so the chain stays consistent. Legacy rows issued before this migration stay `NULL`.
+
+### 15.2 Country change
+
+After signed fiscal data exists, country change is **allowed**. Historical rows keep their original `CountryCodeAtIssue` / `VatRegimeAtIssue`. New receipts issued after the change stamp the **new** country.
+
+Audit:
+
+- `TENANT_COUNTRY_CHANGED` (`AuditEventType.TenantCountryChanged`) — the operating-country / regime change itself.
+- `TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED` (`AuditEventType.TenantCountryChangedHistoricalPreserved`) — `newValues.affectedRowCount` is the number of existing invoice + receipt + payment_details rows that were left untouched.
+
+The Admin confirmation modal warns: "Historical invoices are preserved under the original country regime."
+
+`COUNTRY_LOCKED_FISCAL` is no longer returned on this path. Do not backfill historical snapshots from the live country after a change.
