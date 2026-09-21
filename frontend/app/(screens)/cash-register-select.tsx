@@ -22,7 +22,12 @@ import {
   needsPosCashRegisterSelection,
   readValidPosCashRegisterId,
 } from '../../utils/posCashRegister';
-import { isClosedRegister, resolvePosPickerRowKind } from '../../utils/posSelectableRegisterFilter';
+import {
+  filterAssignedToUser,
+  isClosedRegister,
+  resolvePosPickerRowKind,
+  sortSelectableRegisters,
+} from '../../utils/posSelectableRegisterFilter';
 import { hasPermission } from '../../utils/posPermissions';
 import {
   classifyRegisterListError,
@@ -60,6 +65,7 @@ export default function CashRegisterSelectScreen() {
   const [bannerBusy, setBannerBusy] = useState(false);
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
+  const [onlyMine, setOnlyMine] = useState(false);
 
   const loadRegisters = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) {
@@ -91,6 +97,11 @@ export default function CashRegisterSelectScreen() {
   }, [isAuthReady, isAuthenticated, loadRegisters, retryToken]);
 
   const canOpenShift = hasPermission(user, 'shift.open');
+  const visibleRegisters = React.useMemo(() => {
+    const sorted = sortSelectableRegisters(registers);
+    if (!onlyMine) return sorted;
+    return filterAssignedToUser(sorted, user?.id ?? '');
+  }, [onlyMine, registers, user?.id]);
   const hasPendingOpenRequest = myRequests.some((row) => row.status === 'Pending');
 
   useEffect(() => {
@@ -288,9 +299,20 @@ export default function CashRegisterSelectScreen() {
         <Text style={styles.openingHint}>{t('settings:registerSelect.openingShift')}</Text>
       ) : null}
 
-      {!loading && registers.length > 0 ? (
+      {!loading ? (
+        <Pressable
+          testID="register-select-only-mine"
+          onPress={() => setOnlyMine((value) => !value)}
+          style={[styles.onlyMineToggle, onlyMine && styles.onlyMineToggleOn]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: onlyMine }}>
+          <Text style={styles.onlyMineText}>{t('settings:registerSelect.onlyMine')}</Text>
+        </Pressable>
+      ) : null}
+
+      {!loading && visibleRegisters.length > 0 ? (
         <View style={styles.optionList}>
-          {registers.map((register) => {
+          {visibleRegisters.map((register) => {
             const kind = resolvePosPickerRowKind(register, canOpenShift);
             const latestRequest = latestRequestByRegisterId.get(register.id);
             const pending = latestRequest?.status === 'Pending';
@@ -357,7 +379,7 @@ export default function CashRegisterSelectScreen() {
             const statusLabel =
               kind === 'opensOnSelect'
                 ? t('settings:registerSelect.statusClosedOpensOnSelect')
-                : t('settings:registerSelect.statusAvailable');
+                : t('settings:registerSelect.statusOpen');
 
             return (
               <Pressable
@@ -394,9 +416,13 @@ export default function CashRegisterSelectScreen() {
         </View>
       ) : null}
 
-      {!loading && registers.length === 0 ? (
+      {!loading && visibleRegisters.length === 0 ? (
         <Text style={styles.empty}>
-          {listFailure ? t('settings:registerSelect.listLoadFailed') : emptyMessage}
+          {listFailure
+            ? t('settings:registerSelect.listLoadFailed')
+            : onlyMine && registers.length > 0
+              ? t('settings:registerSelect.emptyNoneAssigned')
+              : emptyMessage}
         </Text>
       ) : null}
 
@@ -585,6 +611,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: SoftColors.error,
+  },
+  onlyMineToggle: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: SoftSpacing.md,
+  },
+  onlyMineToggleOn: {
+    borderColor: SoftColors.accentDark,
+    backgroundColor: SoftColors.bgAccent,
+  },
+  onlyMineText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: SoftColors.textPrimary,
   },
   linkButton: {
     marginTop: SoftSpacing.md,

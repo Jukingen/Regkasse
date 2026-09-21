@@ -53,3 +53,39 @@ export function resolvePosPickerRowKind(
   if (isClosedRegister(row)) return canOpenShift ? 'opensOnSelect' : 'requestOpen';
   return 'available';
 }
+
+function isOpenStatus(status: string | undefined): boolean {
+  return status?.trim().toLowerCase() === 'open';
+}
+
+/**
+ * Open rows first, then the rest. Each group is ordered by registerNumber.
+ * Equal numbers keep input order.
+ */
+export function sortSelectableRegisters<T extends CashRegisterRowWithOptionalStatus>(
+  registers: readonly T[]
+): T[] {
+  return registers
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => {
+      const groupA = isOpenStatus(a.row.status) ? 0 : 1;
+      const groupB = isOpenStatus(b.row.status) ? 0 : 1;
+      if (groupA !== groupB) return groupA - groupB;
+      const byNumber = a.row.registerNumber.localeCompare(b.row.registerNumber, 'de', {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      if (byNumber !== 0) return byNumber;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.row);
+}
+
+/** Rows assigned to this user. Shared, blank, and other-user rows are dropped. */
+export function filterAssignedToUser<T extends CashRegisterRowWithOptionalStatus>(
+  registers: readonly T[],
+  userId: string
+): T[] {
+  if (registers.length === 0 || userId.trim() === '') return [];
+  return registers.filter((row) => row.assignedUserId === userId);
+}

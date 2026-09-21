@@ -1,10 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  filterAssignedToUser,
   filterPaymentUsableSelectableRows,
   isOpenedOnSelect,
   isPaymentUsableSelectableRow,
   resolvePosPickerRowKind,
+  sortSelectableRegisters,
 } from '../utils/posSelectableRegisterFilter';
 
 describe('posSelectableRegisterFilter', () => {
@@ -69,5 +71,60 @@ describe('posSelectableRegisterFilter', () => {
     expect(resolvePosPickerRowKind(closed, true)).toBe('opensOnSelect');
     expect(resolvePosPickerRowKind(closed, false)).toBe('requestOpen');
     expect(resolvePosPickerRowKind(maintenance, true)).toBe('unavailable');
+  });
+
+  it('sorts Open before Closed', () => {
+    const sorted = sortSelectableRegisters([
+      { id: 'closed', registerNumber: '1', status: 'Closed' },
+      { id: 'open', registerNumber: '9', status: 'Open' },
+    ]);
+    expect(sorted.map((row) => row.id)).toEqual(['open', 'closed']);
+  });
+
+  it('sorts registerNumber within each group so 2 comes before 10', () => {
+    const sorted = sortSelectableRegisters([
+      { id: 'open-10', registerNumber: '10', status: 'Open' },
+      { id: 'closed-10', registerNumber: '10', status: 'Closed' },
+      { id: 'open-2', registerNumber: '2', status: 'Open' },
+      { id: 'closed-2', registerNumber: '2', status: 'Closed' },
+    ]);
+    expect(sorted.map((row) => row.id)).toEqual(['open-2', 'open-10', 'closed-2', 'closed-10']);
+  });
+
+  it('keeps original order when register numbers are equal', () => {
+    const sorted = sortSelectableRegisters([
+      { id: 'second', registerNumber: '1', status: 'Open' },
+      { id: 'first', registerNumber: '1', status: ' open ' },
+    ]);
+    expect(sorted.map((row) => row.id)).toEqual(['second', 'first']);
+  });
+
+  it('keeps rows assigned to the user and drops shared rows', () => {
+    const rows = filterAssignedToUser(
+      [
+        { id: 'mine', registerNumber: '1', assignedUserId: 'cashier-1' },
+        { id: 'shared', registerNumber: '2', assignedUserId: null },
+      ],
+      'cashier-1'
+    );
+    expect(rows.map((row) => row.id)).toEqual(['mine']);
+  });
+
+  it('drops a register assigned to another user', () => {
+    const rows = filterAssignedToUser(
+      [{ id: 'other', registerNumber: '1', assignedUserId: 'cashier-2' }],
+      'cashier-1'
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('returns an empty list for an empty input or an empty user id', () => {
+    expect(filterAssignedToUser([], 'cashier-1')).toEqual([]);
+    expect(
+      filterAssignedToUser(
+        [{ id: 'mine', registerNumber: '1', assignedUserId: 'cashier-1' }],
+        '   '
+      )
+    ).toEqual([]);
   });
 });
