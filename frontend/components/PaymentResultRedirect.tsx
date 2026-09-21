@@ -14,7 +14,7 @@ import { onlinePaymentStoreActions } from '../stores/onlinePaymentStore';
  * Parses payment_intent_client_secret and redirect_status; never stores the secret.
  */
 export function PaymentResultRedirect() {
-  const rawParams = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const rawParams = useLocalSearchParams() as Record<string, string | string[] | undefined>;
 
   useEffect(() => {
     const parsed = parsePaymentResultParams(rawParams);

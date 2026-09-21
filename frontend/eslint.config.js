@@ -98,7 +98,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ['utils/loggingUtils.ts', 'utils/debugPosPaymentTrace.ts'],
+    files: ['utils/loggingUtils.ts', 'utils/debugPosPaymentTrace.ts', 'lib/logger.ts'],
     rules: {
       'no-console': 'off',
     },

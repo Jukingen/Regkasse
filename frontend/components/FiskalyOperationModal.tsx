@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
-import { paymentHistoryLabelKeyToI18n } from '../services/api/paymentHistoryService';
+import { paymentHistoryLabelKeyToI18n, postStorno } from '../services/api/paymentHistoryService';
 import {
   postCreateJahresbeleg,
   postCreateMonatsbeleg,

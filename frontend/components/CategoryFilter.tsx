@@ -2,7 +2,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Text, Pressable, StyleSheet, ScrollView, View, useWindowDimensions } from 'react-native';
+import {
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  View,
+  useWindowDimensions,
+  type DimensionValue,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -36,7 +44,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const { width } = useWindowDimensions();
   const [viewMode, setViewMode] = useState<'chips' | 'grid'>('chips');
   const gridColumns = width >= 768 ? 4 : 3;
-  const tileWidth = `${100 / gridColumns}%`;
+  const tileWidth = `${100 / gridColumns}%` as DimensionValue;
 
   const renderAllChip = (compact: boolean) => {
     const isSelected = selectedCategoryId === null;

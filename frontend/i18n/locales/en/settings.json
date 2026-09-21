@@ -226,7 +226,21 @@
     "openShiftError": "Please try again or contact your Mandanten-Admin.",
     "emptyNoneOpen": "All registers are closed. Select a register — the shift opens automatically.",
     "emptyNoneAssigned": "No cash register is assigned to you. Please ask your Mandanten-Admin to assign one.",
-    "emptyNoneSelectable": "No register is available for you. Please contact your Mandanten-Admin."
+    "emptyNoneSelectable": "No register is available for you. Please contact your Mandanten-Admin.",
+    "registerMaintenance": "The cash register is in maintenance mode. Please contact the administrator.",
+    "registerDisabled": "The cash register is disabled. Please contact the administrator.",
+    "registerInactive": "The cash register is inactive. Please contact the administrator.",
+    "registerAssignedToOtherUser": "The cash register is assigned to another cashier. Please contact the administrator.",
+    "registerConflictOtherUser": "The cash register is already open by another cashier.",
+    "registerAlreadyOpenTitle": "Already open",
+    "registerActorHasOtherOpen": "You already have another cash register open. Please close it first.",
+    "closeOtherRegister": "Close the other register",
+    "registerStartbelegRequired": "The start receipt is missing. Please contact the administrator.",
+    "registerMonatsbelegRequired": "The monthly receipt is missing. Please contact the administrator.",
+    "contactManager": "Contact manager",
+    "registerInvalidState": "The cash register cannot be opened in this state. Please contact the administrator.",
+    "requestOpenShort": "Request opening",
+    "reload": "Reload"
   },
   "cashRegister": {
     "sectionTitle": "Register",

@@ -226,7 +226,21 @@
     "openShiftError": "Bitte versuchen Sie es erneut oder kontaktieren Sie Ihren Mandanten-Admin.",
     "emptyNoneOpen": "Alle Kassen sind geschlossen. Wählen Sie eine Kasse — die Schicht wird beim Auswählen geöffnet.",
     "emptyNoneAssigned": "Ihnen ist keine Kasse zugewiesen. Bitte Ihren Mandanten-Admin um eine Zuweisung bitten.",
-    "emptyNoneSelectable": "Keine Kasse ist für Sie freigegeben. Bitte kontaktieren Sie Ihren Mandanten-Admin."
+    "emptyNoneSelectable": "Keine Kasse ist für Sie freigegeben. Bitte kontaktieren Sie Ihren Mandanten-Admin.",
+    "registerMaintenance": "Die Kasse ist im Wartungsmodus. Bitte kontaktieren Sie den Administrator.",
+    "registerDisabled": "Die Kasse ist deaktiviert. Bitte kontaktieren Sie den Administrator.",
+    "registerInactive": "Die Kasse ist inaktiv. Bitte kontaktieren Sie den Administrator.",
+    "registerAssignedToOtherUser": "Die Kasse ist einem anderen Kassierer zugewiesen. Bitte kontaktieren Sie den Administrator.",
+    "registerConflictOtherUser": "Die Kasse ist bereits von einem anderen Kassierer geöffnet.",
+    "registerAlreadyOpenTitle": "Bereits geöffnet",
+    "registerActorHasOtherOpen": "Sie haben bereits eine andere Kasse geöffnet. Bitte schließen Sie diese zuerst.",
+    "closeOtherRegister": "Andere Kasse schließen",
+    "registerStartbelegRequired": "Startbeleg fehlt. Bitte kontaktieren Sie den Administrator.",
+    "registerMonatsbelegRequired": "Monatsbeleg fehlt. Bitte kontaktieren Sie den Administrator.",
+    "contactManager": "Manager kontaktieren",
+    "registerInvalidState": "Die Kasse kann in diesem Zustand nicht geöffnet werden. Bitte kontaktieren Sie den Administrator.",
+    "requestOpenShort": "Öffnung anfordern",
+    "reload": "Erneut laden"
   },
   "cashRegister": {
     "sectionTitle": "Kasse",

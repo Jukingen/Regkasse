@@ -9,13 +9,14 @@ import { SoftColors, SoftSpacing } from '../../constants/SoftTheme';
 import {
   fetchMyPosCashRegisterOpenRequests,
   fetchPosSelectableRegisters,
+  notifyPosMonatsbelegManager,
   requestPosCashRegisterOpen,
   setDefaultPosCashRegister,
   type CashRegisterOpenRequestRow,
   type CashRegisterSelectableRow,
   type PosSelectableEmptyReason,
 } from '../../services/api/cashRegisterService';
-import { autoOpenShiftApi } from '../../services/api/shiftService';
+import { autoCloseShiftApi, autoOpenShiftApi } from '../../services/api/shiftService';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import {
   needsPosCashRegisterSelection,
@@ -29,8 +30,9 @@ import {
 } from '../../utils/registerListError';
 import {
   parseShiftAutoOpenError,
+  resolveRegisterSelectAutoOpenUx,
   SHIFT_AUTO_OPEN_CODES,
-  shiftAutoOpenAlertI18nKeys,
+  type RegisterSelectAutoOpenUx,
 } from '../../utils/shiftAutoOpenError';
 
 function formatRegisterLabel(registerNumber: string): string {
@@ -52,6 +54,10 @@ export default function CashRegisterSelectScreen() {
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [myRequests, setMyRequests] = useState<CashRegisterOpenRequestRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [autoOpenBanner, setAutoOpenBanner] = useState<
+    (RegisterSelectAutoOpenUx & { registerId: string }) | null
+  >(null);
+  const [bannerBusy, setBannerBusy] = useState(false);
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
 
@@ -59,6 +65,7 @@ export default function CashRegisterSelectScreen() {
     if (!opts?.silent) {
       setLoading(true);
       setError(null);
+      setAutoOpenBanner(null);
       setListFailure(null);
       setEmptyReason(null);
     }
@@ -103,6 +110,7 @@ export default function CashRegisterSelectScreen() {
 
       setSavingId(trimmed);
       setError(null);
+      setAutoOpenBanner(null);
       try {
         const assigned = await setDefaultPosCashRegister(trimmed);
         await autoOpenShiftApi(assigned);
@@ -115,12 +123,8 @@ export default function CashRegisterSelectScreen() {
           router.replace('/(tabs)/cash-register');
           return;
         }
-        if (parsed.httpStatus === 403) {
-          setError(t('settings:registerSelect.mustBeOpenedByManager'));
-          return;
-        }
-        const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
-        setError(t(keys.messageKey));
+        const ux = resolveRegisterSelectAutoOpenUx(parsed.code, parsed.httpStatus);
+        setAutoOpenBanner({ ...ux, registerId: trimmed });
       } finally {
         setSavingId(null);
       }
@@ -151,6 +155,7 @@ export default function CashRegisterSelectScreen() {
           setError(t('settings:registerSelect.requestFailed'));
           return;
         }
+        setAutoOpenBanner(null);
         setRequestNotice(t('settings:registerSelect.requestSent'));
         await loadRegisters({ silent: true });
       } catch {
@@ -161,6 +166,36 @@ export default function CashRegisterSelectScreen() {
     },
     [loadRegisters, requestingId, savingId, t]
   );
+
+  const onBannerAction = useCallback(async () => {
+    if (!autoOpenBanner || bannerBusy || savingId || requestingId) return;
+    if (autoOpenBanner.action === 'none' || autoOpenBanner.action === 'noop') return;
+
+    setBannerBusy(true);
+    setError(null);
+    try {
+      if (autoOpenBanner.action === 'requestOpen') {
+        await handleRequestOpen(autoOpenBanner.registerId);
+        return;
+      }
+      if (autoOpenBanner.action === 'reload') {
+        await loadRegisters();
+        return;
+      }
+      if (autoOpenBanner.action === 'closeOther') {
+        await autoCloseShiftApi();
+        await loadRegisters();
+        return;
+      }
+      if (autoOpenBanner.action === 'notifyManager') {
+        await notifyPosMonatsbelegManager(autoOpenBanner.registerId);
+      }
+    } catch {
+      setError(t('settings:registerSelect.requestFailed'));
+    } finally {
+      setBannerBusy(false);
+    }
+  }, [autoOpenBanner, bannerBusy, handleRequestOpen, loadRegisters, requestingId, savingId, t]);
 
   if (!isAuthReady) {
     return (
@@ -203,6 +238,37 @@ export default function CashRegisterSelectScreen() {
             : 'settings:registerSelect.introNoPermission'
         )}
       </Text>
+
+      {autoOpenBanner ? (
+        <View
+          testID={
+            autoOpenBanner.tone === 'info'
+              ? 'register-select-info-banner'
+              : 'register-select-error-banner'
+          }
+          style={autoOpenBanner.tone === 'info' ? styles.infoBanner : styles.errorBanner}
+          accessibilityRole="alert">
+          <Text style={autoOpenBanner.tone === 'info' ? styles.infoText : styles.errorText}>
+            {t(autoOpenBanner.messageKey)}
+          </Text>
+          {autoOpenBanner.buttonKey ? (
+            <Pressable
+              testID="register-select-banner-action"
+              disabled={bannerBusy || Boolean(savingId || requestingId)}
+              onPress={() => void onBannerAction()}
+              style={styles.bannerAction}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: bannerBusy }}>
+              <Text
+                style={
+                  autoOpenBanner.tone === 'info' ? styles.bannerActionInfo : styles.bannerActionError
+                }>
+                {t(autoOpenBanner.buttonKey)}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {error ? (
         <View style={styles.errorBanner} accessibilityRole="alert">
@@ -303,6 +369,7 @@ export default function CashRegisterSelectScreen() {
                   selected && styles.optionRowSelected,
                   busy && styles.optionRowDisabled,
                 ]}
+                testID="cash-register-select-option"
                 accessibilityRole="button"
                 accessibilityState={{ disabled: busy, busy: selected }}>
                 <View style={styles.optionTextWrap}>
@@ -490,6 +557,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: SoftColors.error,
     lineHeight: 20,
+  },
+  infoBanner: {
+    backgroundColor: SoftColors.infoBg,
+    borderWidth: 1,
+    borderColor: SoftColors.info,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: SoftSpacing.md,
+  },
+  infoText: {
+    fontSize: 14,
+    color: SoftColors.textPrimary,
+    lineHeight: 20,
+  },
+  bannerAction: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  bannerActionInfo: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: SoftColors.info,
+  },
+  bannerActionError: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: SoftColors.error,
   },
   linkButton: {
     marginTop: SoftSpacing.md,

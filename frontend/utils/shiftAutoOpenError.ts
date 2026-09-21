@@ -6,6 +6,15 @@ export const SHIFT_AUTO_OPEN_CODES = {
   OK: 'SUCCESS',
   NEED_REGISTER_SELECTION: 'NEED_REGISTER_SELECTION',
   REGISTER_UNAVAILABLE: 'REGISTER_UNAVAILABLE',
+  REGISTER_INACTIVE: 'REGISTER_INACTIVE',
+  REGISTER_MAINTENANCE: 'REGISTER_MAINTENANCE',
+  REGISTER_DISABLED: 'REGISTER_DISABLED',
+  REGISTER_ASSIGNED_TO_OTHER_USER: 'REGISTER_ASSIGNED_TO_OTHER_USER',
+  REGISTER_INVALID_STATE: 'REGISTER_INVALID_STATE',
+  REGISTER_CONFLICT_OTHER_USER: 'REGISTER_CONFLICT_OTHER_USER',
+  REGISTER_ACTOR_HAS_OTHER_OPEN: 'REGISTER_ACTOR_HAS_OTHER_OPEN',
+  REGISTER_STARTBELEG_REQUIRED: 'REGISTER_STARTBELEG_REQUIRED',
+  REGISTER_MONATSBELEG_REQUIRED: 'REGISTER_MONATSBELEG_REQUIRED',
   REGISTER_NOT_FOUND: 'REGISTER_NOT_FOUND',
   SHIFT_ALREADY_OPEN: 'SHIFT_ALREADY_OPEN',
   REGISTER_DECOMMISSIONED: 'REGISTER_DECOMMISSIONED',
@@ -131,5 +140,110 @@ export function shiftAutoOpenAlertI18nKeys(code: string): {
         titleKey: 'shift:alerts.unknownTitle',
         messageKey: 'shift:errors.unknown',
       };
+  }
+}
+
+export type RegisterSelectAutoOpenAction =
+  | 'none'
+  | 'requestOpen'
+  | 'reload'
+  | 'closeOther'
+  | 'notifyManager'
+  | 'noop';
+
+export type RegisterSelectAutoOpenUx = {
+  tone: 'error' | 'info';
+  messageKey: string;
+  buttonKey: string | null;
+  action: RegisterSelectAutoOpenAction;
+};
+
+/** Cash-register picker banner for a failed POST /pos/shift/auto-open. */
+export function resolveRegisterSelectAutoOpenUx(
+  code: string,
+  httpStatus?: number
+): RegisterSelectAutoOpenUx {
+  if (httpStatus === 403) {
+    return {
+      tone: 'error',
+      messageKey: 'settings:registerSelect.mustBeOpenedByManager',
+      buttonKey: null,
+      action: 'none',
+    };
+  }
+
+  switch (code) {
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_MAINTENANCE:
+      return {
+        tone: 'error',
+        messageKey: 'settings:registerSelect.registerMaintenance',
+        buttonKey: null,
+        action: 'none',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_DISABLED:
+      return {
+        tone: 'error',
+        messageKey: 'settings:registerSelect.registerDisabled',
+        buttonKey: null,
+        action: 'none',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_INACTIVE:
+      return {
+        tone: 'error',
+        messageKey: 'settings:registerSelect.registerInactive',
+        buttonKey: null,
+        action: 'none',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_ASSIGNED_TO_OTHER_USER:
+      return {
+        tone: 'error',
+        messageKey: 'settings:registerSelect.registerAssignedToOtherUser',
+        buttonKey: 'settings:registerSelect.requestOpenShort',
+        action: 'requestOpen',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_CONFLICT_OTHER_USER:
+      return {
+        tone: 'info',
+        messageKey: 'settings:registerSelect.registerConflictOtherUser',
+        buttonKey: 'settings:registerSelect.registerAlreadyOpenTitle',
+        action: 'reload',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_ACTOR_HAS_OTHER_OPEN:
+      return {
+        tone: 'info',
+        messageKey: 'settings:registerSelect.registerActorHasOtherOpen',
+        buttonKey: 'settings:registerSelect.closeOtherRegister',
+        action: 'closeOther',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_MONATSBELEG_REQUIRED:
+      return {
+        tone: 'info',
+        messageKey: 'settings:registerSelect.registerMonatsbelegRequired',
+        buttonKey: 'settings:registerSelect.contactManager',
+        action: 'notifyManager',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_STARTBELEG_REQUIRED:
+      return {
+        tone: 'info',
+        messageKey: 'settings:registerSelect.registerStartbelegRequired',
+        buttonKey: 'settings:registerSelect.contactManager',
+        action: 'noop',
+      };
+    case SHIFT_AUTO_OPEN_CODES.REGISTER_INVALID_STATE:
+      return {
+        tone: 'error',
+        messageKey: 'settings:registerSelect.registerInvalidState',
+        buttonKey: 'settings:registerSelect.reload',
+        action: 'reload',
+      };
+    default: {
+      const keys = shiftAutoOpenAlertI18nKeys(code);
+      return {
+        tone: 'error',
+        messageKey: keys.messageKey,
+        buttonKey: null,
+        action: 'none',
+      };
+    }
   }
 }

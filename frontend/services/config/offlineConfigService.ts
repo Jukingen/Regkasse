@@ -3,7 +3,9 @@ import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 import { storage } from '@/utils/storage';
 
 type OfflineConfigState = {
-  [K in keyof typeof OFFLINE_CONFIG]: (typeof OFFLINE_CONFIG)[K];
+  [K in keyof typeof OFFLINE_CONFIG]: K extends 'ENABLE_OFFLINE_GUTSCHEIN'
+    ? boolean
+    : (typeof OFFLINE_CONFIG)[K];
 };
 
 const USER_CONFIG_STORAGE_KEY = 'offline_user_config';
@@ -28,7 +30,7 @@ export class OfflineConfigService {
   }
 
   /** Get configuration value */
-  get<K extends keyof typeof OFFLINE_CONFIG>(key: K): (typeof OFFLINE_CONFIG)[K] {
+  get<K extends keyof OfflineConfigState>(key: K): OfflineConfigState[K] {
     return this.config[key];
   }
 
