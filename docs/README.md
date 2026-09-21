@@ -106,7 +106,8 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 
 | Doc | Topic |
 |-----|--------|
-| [`COUNTRIES.md`](COUNTRIES.md) | **Multi-country hub** (AT production; DE/CH/EU planned, no code yet) |
+| [`COUNTRIES.md`](COUNTRIES.md) | **Multi-country hub** (AT production; DE/CH/EU shape-only) |
+| [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover (migrations, flags, FA, blackout windows) |
 | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) | Germany fiscal **stub** (not production-ready) |
 | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung **stub** (not production-ready) |
 | [`EINVOICING_EU.md`](EINVOICING_EU.md) | EU e-invoicing / ViDA readiness **stub** (no submission) |
@@ -267,6 +268,7 @@ Alphabetical list of Markdown under `docs/` (excluding nested package docs). Top
 | [`REGKASSE_APK_INSTALLATIONSANLEITUNG.md`](REGKASSE_APK_INSTALLATIONSANLEITUNG.md) | APK install (de) |
 | [`restore-*.md`](restore-boundary-notes.md) | Restore boundary / drills |
 | [`COUNTRIES.md`](COUNTRIES.md) | Multi-country fiscal hub |
+| [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Country-layer production cutover |
 | [`EINVOICING_EU.md`](EINVOICING_EU.md) / [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) / [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) | Country fiscal stubs (not production-ready) |
 | [`RKSV_*.md`](RKSV_COMPLIANCE.md) | RKSV / BMF / operations |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | **Key** — FA mandant CRUD |

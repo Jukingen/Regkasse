@@ -1,7 +1,7 @@
 # Environment configuration
 
-**Last updated:** 2026-09-16  
-**Related:** [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`DEVELOPMENT.md`](../DEVELOPMENT.md) · [`DEPLOYMENT.md`](../DEPLOYMENT.md) · [`backend/CONFIGURATION.md`](../backend/CONFIGURATION.md)
+**Last updated:** 2026-09-21  
+**Related:** [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`DEVELOPMENT.md`](../DEVELOPMENT.md) · [`DEPLOYMENT.md`](../DEPLOYMENT.md) · [`backend/CONFIGURATION.md`](../backend/CONFIGURATION.md)
 
 Regkasse separates three concepts:
 
@@ -292,6 +292,8 @@ Hub: [`COUNTRIES.md`](COUNTRIES.md). Stubs: [`FISCAL_GERMANY.md`](FISCAL_GERMANY
 
 Austrian Production/Staging lock in [§4](#4-startup-validation-production--staging-lock) still applies only to `Tse:*` / `RKSV:*` / FinanzOnline. DE/CH keys are locked by `CountryFiscalLockEvaluator`, not by `TseProductionOptionsValidator`. Do not merge DE `KassenSicherheit` into `Tse:`.
 
+Production country-layer apply order: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
+
 ---
 
-**See also:** [`backend/docs/HEALTH_GUARDRAILS.md`](../backend/docs/HEALTH_GUARDRAILS.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · [`COUNTRIES.md`](COUNTRIES.md)
+**See also:** [`backend/docs/HEALTH_GUARDRAILS.md`](../backend/docs/HEALTH_GUARDRAILS.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md)

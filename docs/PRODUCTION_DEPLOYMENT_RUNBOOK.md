@@ -16,6 +16,7 @@
 | Backup Fake vs PgDump | [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md) § Understanding `"no real pg_dump"` |
 | TSE cutover | [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) |
 | FON cutover | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) |
+| Country layer | [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) (schema + flags + FA; not DE/CH fiscal go-live) |
 | Config template | [`../backend/appsettings.Production.example.json`](../backend/appsettings.Production.example.json) |
 | Scripts | [`../scripts/ops/preflight-production.sh`](../scripts/ops/preflight-production.sh), [`../scripts/ops/deploy-production.sh`](../scripts/ops/deploy-production.sh) |
 

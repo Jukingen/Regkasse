@@ -1,13 +1,13 @@
 # Countries and fiscal regimes
 
 **Last updated:** 2026-09-21  
-**Related:** [`AGENTS.md`](../AGENTS.md) · [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) · [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) · [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md)
+**Related:** [`AGENTS.md`](../AGENTS.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) · [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) · [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md)
 
 This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance.
 
 ## Current state (as of HEAD)
 
-Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance.
+Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance. Production apply order, blackout windows, and smoke checks: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
 
 ---
 
@@ -257,6 +257,8 @@ RKSV / TSE / FinanzOnline behavior is unchanged, and that claim is enforced by t
 
 Do not backfill `EU_DEFAULT` onto real mandants.
 
+Production migration order, backfill SQL, and rollback: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
+
 ---
 
 ## 10. Rollback
@@ -269,6 +271,8 @@ Rollback is per country and flag-driven, not schema-driven.
 4. **EU rollback:** turn off `EInvoicing.En16931` and `Vies.CheckEnabled`.
 5. **Application rollback** if flags are not enough. **Do not drop** the country/billing columns as a first rollback step; additive columns can stay unused and dropping them destroys tenant configuration.
 6. Austrian `Tse:` / `PaymentService` / special receipts must run **without** loading DE/CH/EU builders.
+
+Ops sequence (app package vs schema, flag rollback, smoke): [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
 
 ---
 
@@ -322,6 +326,9 @@ Anyone adding a country layer must keep these fixtures green. If they go red, th
 | [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | Current `tenant_settings` flag mechanism |
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | Host/env vs planned country config sections |
 | [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) | Austrian TSE fail-closed lock (pattern for DE fake providers) |
+| [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) | Production country-layer cutover (migrations, flags, FA/POS, blackout windows) |
+| [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) | **Austria only** — Soft TSE → production fiscal (do not reuse for DE/CH) |
+| [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) | Linux API host deploy (`deploy-production.sh`) |
 
 ---
 

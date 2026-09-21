@@ -4,7 +4,8 @@
 **Purpose:** Steps to leave a deliberate **simulation** environment (`Soft TSE` / `RKSV:Mode=Demo` / `FinanzOnline:UseSimulation=true`) and enter **production fiscal** mode.  
 **Plan:** [`RKSV_ACTION_PLAN.md`](RKSV_ACTION_PLAN.md) · **Readiness:** [`RKSV_IMPLEMENTATION_READINESS.md`](RKSV_IMPLEMENTATION_READINESS.md)  
 **FON extra detail:** [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)  
-**TSE lock:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)
+**TSE lock:** [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)  
+**Country layer (schema / flags / FA — not this AT fiscal switch):** [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md)
 
 > Do **not** claim “RKSV production compliant” or “BMF Verified production” until cutover is complete.  
 > Do not write secrets into this file.
