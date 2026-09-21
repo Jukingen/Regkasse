@@ -388,7 +388,10 @@
     "userActivityCard": "Kullanıcı aktivitesi"
   },
   "openRequests": {
-    "title": "Bekleyen kasa açılış talepleri",
+    "title": "Açılış talepleri",
+    "refresh": "Yenile",
+    "denyReasonLabel": "Red nedeni (isteğe bağlı)",
+    "denyReasonPlaceholder": "Kasiyer için isteğe bağlı not",
     "hint": "Vardiya yetkisi olan kasiyerler kapalı kasayı POS’ta kendileri açar. Yetki yoksa talep burada görünür — onay, kasayı talep eden kasiyer adına açar.",
     "empty": "Bekleyen talep yok.",
     "loadFailed": "Talepler yüklenemedi.",

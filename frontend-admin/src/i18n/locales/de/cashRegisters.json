@@ -388,7 +388,10 @@
     "userActivityCard": "Benutzer-Aktivität"
   },
   "openRequests": {
-    "title": "Offene Kassenöffnungs-Anfragen",
+    "title": "Öffnungsanfragen",
+    "refresh": "Aktualisieren",
+    "denyReasonLabel": "Ablehnungsgrund (optional)",
+    "denyReasonPlaceholder": "Optionaler Hinweis für den Kassierer",
     "hint": "Kassierer mit Schichtberechtigung öffnen eine geschlossene Kasse selbst am POS. Ohne Berechtigung erscheint hier eine Anfrage — Genehmigen öffnet die Kasse für den anfragenden Kassierer.",
     "empty": "Keine offenen Anfragen.",
     "loadFailed": "Anfragen konnten nicht geladen werden.",

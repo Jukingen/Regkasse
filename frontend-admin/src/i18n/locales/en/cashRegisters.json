@@ -388,7 +388,10 @@
     "userActivityCard": "User activity"
   },
   "openRequests": {
-    "title": "Pending cash register open requests",
+    "title": "Open requests",
+    "refresh": "Refresh",
+    "denyReasonLabel": "Denial reason (optional)",
+    "denyReasonPlaceholder": "Optional note for the cashier",
     "hint": "Cashiers with shift permission open a closed register themselves on POS. Without permission a request appears here — approving opens the register for the requesting cashier.",
     "empty": "No pending requests.",
     "loadFailed": "Could not load open requests.",

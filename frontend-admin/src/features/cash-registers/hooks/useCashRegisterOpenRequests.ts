@@ -27,7 +27,7 @@ export function useCashRegisterOpenRequests(
     queryKey: [...CASH_REGISTER_OPEN_REQUESTS_QUERY_KEY, status, tenantId ?? '__jwt__'],
     queryFn: () => fetchCashRegisterOpenRequests(statusParam, tenantId),
     enabled: isAuthorized,
-    refetchInterval: status === 'Pending' ? 15_000 : false,
+    refetchInterval: status === 'Pending' ? 10_000 : false,
   });
 }
 

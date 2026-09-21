@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Button, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Badge, Button, Input, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { DateColumn } from '@/components/DateColumn';
@@ -10,6 +10,7 @@ import {
   useCashRegisterOpenRequests,
   useDenyCashRegisterOpenRequest,
 } from '@/features/cash-registers/hooks/useCashRegisterOpenRequests';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
@@ -26,25 +27,55 @@ export function CashRegisterOpenRequestsPanel({
 }: CashRegisterOpenRequestsPanelProps) {
   const { t } = useI18n();
   const notify = useNotify();
-  const { data, isLoading, isError } = useCashRegisterOpenRequests('Pending', tenantId);
+  const { modal } = useAntdApp();
+  const { data, isLoading, isError, isRefetching, refetch } = useCashRegisterOpenRequests(
+    'Pending',
+    tenantId
+  );
   const approveMutation = useApproveCashRegisterOpenRequest();
   const denyMutation = useDenyCashRegisterOpenRequest();
 
-  const resolveRequest = async (id: string, action: 'approve' | 'deny') => {
+  const approveRequest = async (id: string) => {
     try {
-      if (action === 'approve') {
-        await approveMutation.mutateAsync({ id });
-        notify.successKey('cashRegisters.openRequests.approved');
-      } else {
-        await denyMutation.mutateAsync({ id });
-        notify.successKey('cashRegisters.openRequests.denied');
-      }
+      await approveMutation.mutateAsync({ id });
+      notify.successKey('cashRegisters.openRequests.approved');
     } catch (err) {
       notify.apiError(err, {
         fallbackKey: 'cashRegisters.openRequests.resolveFailed',
         logContext: 'CashRegisterOpenRequestsPanel.resolve',
       });
     }
+  };
+
+  const confirmDeny = (id: string) => {
+    let note = '';
+    modal.confirm({
+      title: t('cashRegisters.openRequests.deny'),
+      content: (
+        <Input.TextArea
+          rows={3}
+          aria-label={t('cashRegisters.openRequests.denyReasonLabel')}
+          placeholder={t('cashRegisters.openRequests.denyReasonPlaceholder')}
+          onChange={(event) => {
+            note = event.target.value;
+          }}
+        />
+      ),
+      okText: t('cashRegisters.openRequests.deny'),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        const trimmed = note.trim();
+        try {
+          await denyMutation.mutateAsync(trimmed ? { id, note: trimmed } : { id });
+          notify.successKey('cashRegisters.openRequests.denied');
+        } catch (err) {
+          notify.apiError(err, {
+            fallbackKey: 'cashRegisters.openRequests.resolveFailed',
+            logContext: 'CashRegisterOpenRequestsPanel.resolve',
+          });
+        }
+      },
+    });
   };
 
   const columns: ColumnsType<CashRegisterOpenRequest> = [
@@ -89,7 +120,7 @@ export function CashRegisterOpenRequestsPanel({
               type="primary"
               size="small"
               loading={approveMutation.isPending}
-              onClick={() => void resolveRequest(row.id, 'approve')}
+              onClick={() => void approveRequest(row.id)}
             >
               {t('cashRegisters.openRequests.approve')}
             </Button>
@@ -97,7 +128,7 @@ export function CashRegisterOpenRequestsPanel({
               danger
               size="small"
               loading={denyMutation.isPending}
-              onClick={() => void resolveRequest(row.id, 'deny')}
+              onClick={() => confirmDeny(row.id)}
             >
               {t('cashRegisters.openRequests.deny')}
             </Button>
@@ -112,9 +143,15 @@ export function CashRegisterOpenRequestsPanel({
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>
-      <Title level={titleLevel} style={{ margin: 0 }}>
-        {t('cashRegisters.openRequests.title')}
-      </Title>
+      <Space align="center" wrap>
+        <Title level={titleLevel} style={{ margin: 0 }}>
+          {t('cashRegisters.openRequests.title')}
+        </Title>
+        <Badge count={rows.length} showZero />
+        <Button onClick={() => void refetch()} loading={isRefetching}>
+          {t('cashRegisters.openRequests.refresh')}
+        </Button>
+      </Space>
       <Paragraph type="secondary" style={{ margin: 0 }}>
         {t('cashRegisters.openRequests.hint')}
       </Paragraph>
