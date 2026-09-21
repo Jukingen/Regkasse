@@ -268,7 +268,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tse/fiskaly': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/fiskaly/setup': [PERMISSIONS.FISKALY_OPERATIONS_CONFIG, PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/fiskaly/test': [PERMISSIONS.SYSTEM_CRITICAL],
-  '/admin/fiskaly/history': [PERMISSIONS.FISKALY_HISTORY_VIEW],
+  '/admin/fiskaly/history': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/fiskaly/statistics': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/fiskaly/errors': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/tse/compliance': [PERMISSIONS.SYSTEM_CRITICAL],

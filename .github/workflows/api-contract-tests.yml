@@ -122,6 +122,14 @@ jobs:
         working-directory: frontend
         run: npm ci --legacy-peer-deps --workspaces=false
 
+      - name: Ensure POS node_modules is complete
+        working-directory: frontend
+        run: |
+          if [ ! -d node_modules/jest ] && [ ! -x node_modules/.bin/jest ]; then
+            echo "Jest missing from cache; running npm ci"
+            npm ci --legacy-peer-deps --workspaces=false
+          fi
+
       - name: POS payment contract tests
         working-directory: frontend
         run: npm run test:contract
