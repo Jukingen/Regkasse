@@ -149,7 +149,7 @@ Or FA `/admin/deployments` · local script notes in `deploy-backend-stage.yml` f
 
 | Path | Role |
 |------|------|
-| `scripts/ci-build.ps1` | Docker/dotnet build (+ push) |
+| `scripts/ci/ci-build.ps1` | Docker/dotnet build (+ push via `scripts/docker/docker-push-prod.ps1`) |
 | `scripts/ci-test.ps1` | Package tests |
 | `scripts/ci-deploy.ps1` | Local/ops webhook + smoke |
 | `scripts/smoke-test.sh` | Post-deploy smoke |
@@ -165,6 +165,7 @@ Or FA `/admin/deployments` · local script notes in `deploy-backend-stage.yml` f
 | Deploy job green but host unchanged | Webhook secret empty → workflow logs "not set" and exits 0 |
 | Smoke fail + no rollback (staging) | `BACKEND_STAGING_ROLLBACK_WEBHOOK_URL` missing |
 | GHCR push 403 | `packages:write`; package visibility; SSO auth for org |
+| Deploy **Resolve deploy target** Skipped | **Build & push images** failed (`needs`). Not missing `FA_STAGING_*` vars (they have defaults). See [`CI_CD.md`](CI_CD.md) § Deploy.yml job graph |
 | Production blocked | Environment reviewers; wrong confirm/compliance phrase |
 | Duplicate CI minutes | Path-filtered workflows + `ci.yml` both run on PR — expected for full gate; use path filters alone for fast loops if needed |
 

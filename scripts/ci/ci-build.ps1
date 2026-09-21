@@ -119,7 +119,7 @@ if ($Docker) {
             throw 'Push requested but Registry / DOCKER_REGISTRY is empty'
         }
         Write-Host "=== CI: push to $Registry (tag=$Tag) ===" -ForegroundColor Cyan
-        & (Join-Path $PSScriptRoot 'docker-push-prod.ps1') -Registry $Registry -Tag $Tag -Profile $Profiles
+        & (Join-Path $PSScriptRoot '..\docker\docker-push-prod.ps1') -Registry $Registry -Tag $Tag -Profile $Profiles
         if ($LASTEXITCODE -ne 0) { throw "docker-push-prod failed ($LASTEXITCODE)" }
     }
     elseif ($Push -and $NoPush) {

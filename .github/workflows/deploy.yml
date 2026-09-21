@@ -95,6 +95,8 @@ jobs:
         run: |
           ./scripts/ci/ci-build.ps1 -Docker -Profiles admin,sites,pos -Push -Registry $env:DOCKER_REGISTRY -Tag $env:IMAGE_TAG
 
+  # Skipped automatically when "Build & push images" fails (needs). Not gated on
+  # FA_STAGING_* / webhook secrets — those have YAML defaults or are optional.
   resolve-target:
     name: Resolve deploy target
     runs-on: ubuntu-latest

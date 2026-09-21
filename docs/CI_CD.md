@@ -2,7 +2,7 @@
 
 How automated build, test, image publish, deploy, smoke, and rollback fit together.
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-09-21
 
 | Related | Link |
 |---------|------|
@@ -65,14 +65,14 @@ How automated build, test, image publish, deploy, smoke, and rollback fit togeth
 
 | Script | Purpose |
 |--------|---------|
-| [`scripts/ci-build.ps1`](../scripts/ci-build.ps1) | Release build and/or Compose prod image build (+ optional GHCR push) |
-| [`scripts/ci-test.ps1`](../scripts/ci-test.ps1) | Backend / Admin / POS test gates |
-| [`scripts/ci-deploy.ps1`](../scripts/ci-deploy.ps1) | Webhook deploy + `smoke-test.sh` + optional rollback |
+| [`scripts/ci/ci-build.ps1`](../scripts/ci/ci-build.ps1) | Release build and/or Compose prod image build (+ optional GHCR push) |
+| [`scripts/ci/ci-test.ps1`](../scripts/ci/ci-test.ps1) | Backend / Admin / POS test gates |
+| [`scripts/ci/ci-deploy.ps1`](../scripts/ci/ci-deploy.ps1) | Webhook deploy + `smoke-test.sh` + optional rollback |
 
 ```powershell
-.\scripts\ci-test.ps1 -Backend
-.\scripts\ci-build.ps1 -Docker -Profiles admin -NoPush
-.\scripts\ci-deploy.ps1 -Stage staging -Image ghcr.io/org/regkasse-api:sha-abc1234 `
+.\scripts\ci\ci-test.ps1 -Backend
+.\scripts\ci\ci-build.ps1 -Docker -Profiles admin -NoPush
+.\scripts\ci\ci-deploy.ps1 -Stage staging -Image ghcr.io/org/regkasse-api:sha-abc1234 `
   -ApiBase https://api.staging.regkasse.at -DryRun
 ```
 
@@ -88,6 +88,68 @@ How automated build, test, image publish, deploy, smoke, and rollback fit togeth
 4. To also run Staging API deploy from `deploy.yml`, set variable `DEPLOY_YML_RUN_STAGING_API=true` or use Actions → Deploy → `staging`.
 
 Secrets: see [`.github/environments/staging.yml`](../.github/environments/staging.yml).
+
+### Deploy.yml job graph (why "Resolve deploy target" is Skipped)
+
+Workflow: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml). This is **not** `frontend-admin-deploy.yml`.
+
+| Job | When it runs | When it is Skipped |
+|-----|--------------|--------------------|
+| **Build & push images** | Always on push `main`/`master` and on `workflow_dispatch` | Never skipped |
+| **Resolve deploy target** | After a **successful** image job | **Always skipped if Build & push fails** (`needs: build-and-push`, no `if: always()`). Not gated on Variables/Secrets. |
+| **Deploy Staging (API)** | `workflow_dispatch` target=`staging`, **or** repo variable `DEPLOY_YML_RUN_STAGING_API=true` | Ordinary push (Backend CI owns Staging API). Missing webhooks do **not** skip this job — they fail inside the reusable stage. |
+| **Frontend staging webhooks** | After image success | Optional; empty `FA_STAGING_DEPLOY_WEBHOOK_URL` logs "not set" and exits 0 |
+| **Deploy Production (API)** | Dispatch target=`production` and `confirm=deploy-production` | Push to `main`; wrong confirm phrase |
+
+A 40–60s **Build & push** failure is almost always GHCR login/push (not a missing `FA_STAGING_API_BASE_URL`). Those public build-args already have YAML defaults.
+
+#### Required GitHub configuration (do not put secrets in YAML)
+
+**Permissions (repo or org)**
+
+| Setting | Why |
+|---------|-----|
+| Actions → General → Workflow permissions → **Read and write** | `GITHUB_TOKEN` can `packages: write` |
+| GHCR package **Actions** access for `regkasse-api` / `regkasse-frontend-*` | Token may push to an existing package |
+| Org **Package creation** allowed for GITHUB_TOKEN | First push of a new image name |
+| Org SAML/SSO authorized for `GITHUB_TOKEN` if the org requires it | Otherwise login/push **403** in ~30–50s |
+
+**Repository Variables (optional — defaults in the workflow)**
+
+| Variable | Used for | Default if unset |
+|----------|----------|------------------|
+| `FA_STAGING_API_BASE_URL` | Admin + Sites `NEXT_PUBLIC_API_BASE_URL` | `https://api.staging.regkasse.at` |
+| `FA_STAGING_RKSV_ENVIRONMENT` | Admin `NEXT_PUBLIC_RKSV_ENVIRONMENT` | `TEST` |
+| `POS_STAGING_API_URL` | POS `EXPO_PUBLIC_API_BASE_URL` | `https://api.staging.regkasse.at/api` |
+| `BACKEND_FA_BASE_URL` | POS `EXPO_PUBLIC_ADMIN_BASE_URL` | `https://admin.staging.regkasse.at` |
+| `BACKEND_STAGING_API_BASE_URL` | Staging smoke URL | `https://api.staging.regkasse.at` |
+| `DEPLOY_YML_RUN_STAGING_API` | Also deploy Staging API from this workflow | unset = image publish only |
+
+**Repository Secrets (never commit; never hardcode in YAML)**
+
+| Secret | Required for |
+|--------|----------------|
+| `GITHUB_TOKEN` | Provided by Actions — GHCR login |
+| `BACKEND_STAGING_DEPLOY_WEBHOOK_URL` | Staging host pull/restart (only if Staging API job runs) |
+| `BACKEND_STAGING_ROLLBACK_WEBHOOK_URL` | Staging auto-rollback |
+| `BACKEND_STAGING_MIGRATE_WEBHOOK_URL` | Host EF migrate |
+| `FA_STAGING_DEPLOY_WEBHOOK_URL` | Optional FA image hook |
+| `DEPLOYMENT_STATUS_URL` / `DEPLOYMENT_STATUS_TOKEN` | FA `/admin/deployments` ingest |
+| `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD` | Authenticated smoke |
+| `ONCALL_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` | Alerts |
+
+Full checklists: [`.github/environments/staging.yml`](../.github/environments/staging.yml) · [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md).
+
+#### Country-layer migrations (Paket 16)
+
+`deploy.yml` Staging API (when that job runs) already sets `run_migrations: true` on [`deploy-backend-stage.yml`](../.github/workflows/deploy-backend-stage.yml). Production uses the dedicated migrate Environment, not this workflow.
+
+Additive migrations (do **not** skip migrate on first country-layer cutover):
+
+- `20260916110000_AddCompanySettingsCountryBilling`
+- `20260921180000_AddFiscalDocumentCountryAtIssueSnapshots` (issue-time snapshots)
+
+Order, windows, and rollback: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) §2. Confirm `GET /health/migrations` → `pendingCount=0` after the migrate job.
 
 ### Production (gated)
 
@@ -144,4 +206,5 @@ Do not merge Soft TSE override with prod Compose.
 - [ ] Set smoke login secrets  
 - [ ] Optional `SLACK_WEBHOOK_URL` / `ONCALL_WEBHOOK_URL`  
 - [ ] Packages:write for GHCR (default `GITHUB_TOKEN` on public/private as configured)  
+- [ ] Org/package GHCR **Actions** access + SSO so **Deploy → Build & push** can login  
 - [ ] Run umbrella **CI** on a PR once; **Deploy** dry-run to staging once  

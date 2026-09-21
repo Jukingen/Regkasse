@@ -142,6 +142,8 @@ PITR / isolated restore: [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER
 
 Schema (step 2) **before** or **with** the API binary that writes `CountryCodeAtIssue`. Expand-then-code is already the host script order: migrate, then `systemctl restart`.
 
+CI: **Deploy Production** / Backend CI tag `v*` run the migrate Environment. [`deploy.yml`](../.github/workflows/deploy.yml) Staging API (only when `DEPLOY_YML_RUN_STAGING_API=true` or dispatch `staging`) already sets `run_migrations: true`. A failed **Build & push** skips **Resolve deploy target** — that is not a migrate skip. See [`CI_CD.md`](CI_CD.md) § Deploy.yml job graph.
+
 ### 3.1 Config sections (do not invent keys)
 
 Use the Production secret store / `appsettings.Production.json` / systemd `EnvironmentFile`. Template: [`backend/appsettings.Production.example.json`](../backend/appsettings.Production.example.json). Details: [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md).
