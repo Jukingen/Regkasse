@@ -375,5 +375,16 @@
         "submitFailed": "Operation failed."
       }
     }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg missing",
+      "bodyStrict": "The fiscal monthly receipt for the previous completed month is missing. Sales are blocked until it is created.",
+      "bodyGrace": "The fiscal monthly receipt for the previous completed month is missing. Sales are temporarily allowed with a warning.",
+      "bodyWarning": "The fiscal monthly receipt for the previous completed month is missing. Sales are allowed with a warning.",
+      "createNow": "Create Monatsbeleg",
+      "contactManager": "Contact manager",
+      "dismiss": "Dismiss"
+    }
   }
 }

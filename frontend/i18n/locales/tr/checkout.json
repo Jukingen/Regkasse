@@ -375,5 +375,16 @@
         "submitFailed": "İşlem başarısız."
       }
     }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg eksik",
+      "bodyStrict": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Belge oluşturulana kadar satışlar kapalı.",
+      "bodyGrace": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Satışlar geçici olarak uyarıyla mümkün.",
+      "bodyWarning": "Tamamlanan önceki ayın mali Monatsbeleg belgesi yok. Satışlar uyarıyla mümkün.",
+      "createNow": "Monatsbeleg oluştur",
+      "contactManager": "Yöneticiye bildir",
+      "dismiss": "Kapat"
+    }
   }
 }

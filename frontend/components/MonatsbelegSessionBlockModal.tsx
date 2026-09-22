@@ -18,7 +18,16 @@ import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
 import { resolvePosMonatsbelegTarget } from '../utils/resolvePosMonatsbelegTarget';
 
-export function MonatsbelegSessionBlockModal() {
+export type MonatsbelegSessionBlockModalProps = {
+  /** When set, the modal is only shown for an explicit hard-block attempt (Zahlen / Schicht). */
+  forcedVisible?: boolean;
+  onRequestClose?: () => void;
+};
+
+export function MonatsbelegSessionBlockModal({
+  forcedVisible,
+  onRequestClose,
+}: MonatsbelegSessionBlockModalProps = {}) {
   const { data, loading, error, refreshAsync } = usePosRegisterReadiness();
   const { data: monatsbelegStatus } = useMonatsbelegStatus();
   const { busy, requestCreate } = usePosMonatsbelegCreate();
@@ -29,12 +38,14 @@ export function MonatsbelegSessionBlockModal() {
   );
   const isDecemberAnnual = month === 12;
 
-  const visible =
+  const gateActive =
     POS_ENSURE_READY_ON_ENTRY &&
     !loading &&
     !error &&
     isReadinessMonatsbelegGateActive(data, { ensureReadyEnabled: true }) &&
     Boolean(data?.effectiveRegisterId?.trim());
+
+  const visible = forcedVisible === true && gateActive;
 
   const registerId = data?.effectiveRegisterId?.trim() ?? '';
 
@@ -68,7 +79,9 @@ export function MonatsbelegSessionBlockModal() {
       visible={visible}
       animationType="fade"
       presentationStyle="fullScreen"
-      onRequestClose={() => {}}>
+      onRequestClose={() => {
+        onRequestClose?.();
+      }}>
       <View style={styles.root}>
         <Text style={styles.title}>Monatsbeleg fehlt</Text>
         <Text style={styles.body}>

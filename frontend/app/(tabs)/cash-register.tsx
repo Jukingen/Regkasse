@@ -28,6 +28,7 @@ import { FavoritesBar } from '../../components/FavoritesBar';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
+import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
@@ -61,6 +62,7 @@ import {
   isReadinessRegisterDecommissioned,
   isReadinessOpenRegisterGateActive,
   isReadinessStartbelegGateActive,
+  isReadinessMonatsbelegGateActive,
   registerGateAlertMessage,
   buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
@@ -329,6 +331,7 @@ export default function CashRegisterScreen() {
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
+  const [monatsbelegHardBlockVisible, setMonatsbelegHardBlockVisible] = useState(false);
   const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
   const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -693,6 +696,14 @@ export default function CashRegisterScreen() {
       return;
     }
     if (
+      isReadinessMonatsbelegGateActive(posReadiness.data, {
+        ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+      })
+    ) {
+      setMonatsbelegHardBlockVisible(true);
+      return;
+    }
+    if (
       isReadinessStartbelegGateActive(posReadiness.data, {
         ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
       })
@@ -791,6 +802,10 @@ export default function CashRegisterScreen() {
       />
 
       <MonatsbelegSalesWarningBanner />
+      <MonatsbelegSessionBlockModal
+        forcedVisible={monatsbelegHardBlockVisible}
+        onRequestClose={() => setMonatsbelegHardBlockVisible(false)}
+      />
 
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}

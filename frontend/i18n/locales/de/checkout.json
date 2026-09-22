@@ -375,5 +375,16 @@
         "submitFailed": "Vorgang fehlgeschlagen."
       }
     }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg fehlt",
+      "bodyStrict": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind gesperrt, bis der Beleg erstellt ist.",
+      "bodyGrace": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind vorübergehend mit Warnung möglich.",
+      "bodyWarning": "Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg. Verkäufe sind mit Warnung möglich.",
+      "createNow": "Monatsbeleg erstellen",
+      "contactManager": "Manager kontaktieren",
+      "dismiss": "Hinweis schließen"
+    }
   }
 }

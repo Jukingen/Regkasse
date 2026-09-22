@@ -16,7 +16,6 @@ import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { MaintenanceNotice } from '../../components/MaintenanceNotice';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
-import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import PaymentModal from '../../components/PaymentModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
@@ -253,7 +252,6 @@ function PosTabsInner({
         <TimeSyncBanner />
         <DevLoopbackApiBanner />
         <TseOfflineRestrictionBanner />
-        <MonatsbelegSessionBlockModal />
         <StartbelegRequiredBanner />
         <TagesabschlussReminder />
         <Tabs

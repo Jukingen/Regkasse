@@ -1,39 +1,48 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { useAuth } from '../contexts/AuthContext';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useMonatsbelegStatus } from '../hooks/useMonatsbelegStatus';
+import { usePosMonatsbelegCreate } from '../hooks/usePosMonatsbelegCreate';
 import { notifyPosMonatsbelegManager } from '../services/api/cashRegisterService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
+import { resolveMonatsbelegBannerState } from '../utils/posMonatsbelegBannerState';
+import { hasPermission } from '../utils/posPermissions';
+import { resolvePosMonatsbelegTarget } from '../utils/resolvePosMonatsbelegTarget';
+import { WaveLoader } from '../src/components/common/WaveLoader';
+
+const RKSV_MONATSBELEG_CREATE = 'rksv.monatsbeleg.create';
 
 /**
- * Non-blocking POS warning when Monatsbeleg is missing but sales are still allowed
- * (GracePeriod days 1–14 or WarningOnly).
+ * Dashboard banner for missing previous-month Monatsbeleg (all blocking modes).
+ * Strict / day-15+ Grace: not dismissible. Grace 1–14 and WarningOnly: session dismiss.
  */
 export function MonatsbelegSalesWarningBanner() {
   const { t } = useTranslation(['checkout']);
+  const { user } = useAuth();
   const posReadiness = usePosRegisterReadiness();
-  const { requiresAttention, warningLevel, data, isOverdue } = useMonatsbelegStatus();
+  const { data: status } = useMonatsbelegStatus();
+  const { busy, requestCreate } = usePosMonatsbelegCreate();
   const [dismissed, setDismissed] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
 
   const registerId = posReadiness.data?.effectiveRegisterId?.trim() ?? '';
-  const salesBlocked =
-    posReadiness.data?.monatsbelegSalesBlocked === true || data?.salesBlocked === true;
-  const canContinue =
-    posReadiness.data?.monatsbelegCanContinueWithWarning === true ||
-    data?.canContinueWithWarning === true;
-  const level = posReadiness.data?.monatsbelegWarningLevel ?? warningLevel;
-  const isRed = level === 'red' || isOverdue;
+  const canCreate = hasPermission(user, RKSV_MONATSBELEG_CREATE);
+  const state = useMemo(
+    () =>
+      resolveMonatsbelegBannerState({
+        readiness: posReadiness.data,
+        status,
+        canCreate,
+        dismissed,
+      }),
+    [canCreate, dismissed, posReadiness.data, status]
+  );
 
-  const visible =
-    !dismissed &&
-    !salesBlocked &&
-    (level === 'yellow' || level === 'red') &&
-    (canContinue || requiresAttention) &&
-    isValidPosCashRegisterId(registerId);
+  const { year, month } = useMemo(() => resolvePosMonatsbelegTarget(status), [status]);
 
   const onNotify = useCallback(async () => {
     if (!registerId || notifyBusy) return;
@@ -54,34 +63,54 @@ export function MonatsbelegSalesWarningBanner() {
     }
   }, [notifyBusy, registerId, t]);
 
-  if (!visible) return null;
+  const onCreate = useCallback(() => {
+    if (!canCreate || !registerId) return;
+    requestCreate({ cashRegisterId: registerId, year, month, force: true });
+  }, [canCreate, month, registerId, requestCreate, year]);
+
+  if (!state.visible || !isValidPosCashRegisterId(registerId)) return null;
 
   return (
     <View
-      style={[styles.root, isRed ? styles.rootRed : styles.rootYellow]}
-      accessibilityRole="alert">
-      <Text style={styles.title}>{t('checkout:posFlow.monatsbelegBanner.missingTitle')}</Text>
-      <Text style={styles.body}>{t('checkout:posFlow.monatsbelegBanner.allowedWithWarning')}</Text>
+      style={[styles.root, state.tone === 'red' ? styles.rootRed : styles.rootYellow]}
+      accessibilityRole="alert"
+      testID="monatsbeleg-dashboard-banner">
+      <Text style={styles.title}>{t('checkout:monatsbeleg.banner.title')}</Text>
+      <Text style={styles.body}>{t(`checkout:monatsbeleg.banner.${state.bodyKey}`)}</Text>
       <View style={styles.actions}>
+        {state.showCreate ? (
+          <Pressable
+            onPress={onCreate}
+            disabled={busy || notifyBusy}
+            style={({ pressed }) => [styles.btn, pressed && !busy && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('checkout:monatsbeleg.banner.createNow')}>
+            {busy ? (
+              <WaveLoader size={16} color={SoftColors.textInverse} />
+            ) : (
+              <Text style={styles.btnText}>{t('checkout:monatsbeleg.banner.createNow')}</Text>
+            )}
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => {
             void onNotify();
           }}
-          disabled={notifyBusy}
+          disabled={notifyBusy || busy}
           style={({ pressed }) => [styles.btn, pressed && !notifyBusy && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.contactManager')}>
-          <Text style={styles.btnText}>{t('checkout:posFlow.monatsbelegBanner.contactManager')}</Text>
+          accessibilityLabel={t('checkout:monatsbeleg.banner.contactManager')}>
+          <Text style={styles.btnText}>{t('checkout:monatsbeleg.banner.contactManager')}</Text>
         </Pressable>
-        <Pressable
-          onPress={() => setDismissed(true)}
-          style={({ pressed }) => [styles.btnGhost, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.continueWithWarning')}>
-          <Text style={styles.btnGhostText}>
-            {t('checkout:posFlow.monatsbelegBanner.continueWithWarning')}
-          </Text>
-        </Pressable>
+        {state.canDismiss ? (
+          <Pressable
+            onPress={() => setDismissed(true)}
+            style={({ pressed }) => [styles.btnGhost, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('checkout:monatsbeleg.banner.dismiss')}>
+            <Text style={styles.btnGhostText}>{t('checkout:monatsbeleg.banner.dismiss')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
