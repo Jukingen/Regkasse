@@ -10,13 +10,17 @@ import {
   SoftTypography,
 } from '../constants/SoftTheme';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
+import { useAuth } from '../contexts/AuthContext';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { useMonatsbelegStatus } from '../hooks/useMonatsbelegStatus';
 import { usePosMonatsbelegCreate } from '../hooks/usePosMonatsbelegCreate';
 import { notifyPosMonatsbelegManager } from '../services/api/cashRegisterService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { hasPermission } from '../utils/posPermissions';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
 import { resolvePosMonatsbelegTarget } from '../utils/resolvePosMonatsbelegTarget';
+
+const RKSV_MONATSBELEG_CREATE = 'rksv.monatsbeleg.create';
 
 export type MonatsbelegSessionBlockModalProps = {
   /** When set, the modal is only shown for an explicit hard-block attempt (Zahlen / Schicht). */
@@ -28,10 +32,12 @@ export function MonatsbelegSessionBlockModal({
   forcedVisible,
   onRequestClose,
 }: MonatsbelegSessionBlockModalProps = {}) {
+  const { user } = useAuth();
   const { data, loading, error, refreshAsync } = usePosRegisterReadiness();
   const { data: monatsbelegStatus } = useMonatsbelegStatus();
   const { busy, requestCreate } = usePosMonatsbelegCreate();
   const [notifyBusy, setNotifyBusy] = useState(false);
+  const canCreateMonatsbeleg = hasPermission(user, RKSV_MONATSBELEG_CREATE);
   const { year, month } = useMemo(
     () => resolvePosMonatsbelegTarget(monatsbelegStatus),
     [monatsbelegStatus]
@@ -50,9 +56,9 @@ export function MonatsbelegSessionBlockModal({
   const registerId = data?.effectiveRegisterId?.trim() ?? '';
 
   const onCreate = useCallback(() => {
-    if (!registerId) return;
+    if (!canCreateMonatsbeleg || !registerId) return;
     requestCreate({ cashRegisterId: registerId, year, month, force: true });
-  }, [registerId, requestCreate, year, month]);
+  }, [canCreateMonatsbeleg, registerId, requestCreate, year, month]);
 
   const onNotifyManager = useCallback(async () => {
     if (!registerId || notifyBusy) return;
@@ -107,26 +113,29 @@ export function MonatsbelegSessionBlockModal({
             <Text style={styles.btnText}>Manager kontaktieren</Text>
           )}
         </Pressable>
-        <Pressable
-          onPress={onCreate}
-          disabled={busy || notifyBusy}
-          style={({ pressed }) => [
-            styles.btnSecondary,
-            pressed && !busy && styles.btnPressed,
-            busy && styles.btnDisabled,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'
-          }>
-          {busy ? (
-            <WaveLoader size={20} color={SoftColors.accent} />
-          ) : (
-            <Text style={styles.btnSecondaryText}>
-              {isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Monatsbeleg erstellen'}
-            </Text>
-          )}
-        </Pressable>
+        {canCreateMonatsbeleg ? (
+          <Pressable
+            onPress={onCreate}
+            disabled={busy || notifyBusy}
+            style={({ pressed }) => [
+              styles.btnSecondary,
+              pressed && !busy && styles.btnPressed,
+              busy && styles.btnDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'
+            }
+            testID="monatsbeleg-session-create">
+            {busy ? (
+              <WaveLoader size={20} color={SoftColors.accent} />
+            ) : (
+              <Text style={styles.btnSecondaryText}>
+                {isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Monatsbeleg erstellen'}
+              </Text>
+            )}
+          </Pressable>
+        ) : null}
       </View>
     </Modal>
   );
