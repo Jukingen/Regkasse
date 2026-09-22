@@ -7,6 +7,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -171,8 +172,11 @@ public sealed class PosStornoControllerTests
         var paymentId = Guid.NewGuid();
         var stornoId = Guid.NewGuid();
         var paymentMock = new Mock<IPaymentService>();
+        var createdAtTodayVienna = PostgreSqlUtcDateTime
+            .ViennaCalendarMidnightContainingInstant(DateTime.UtcNow)
+            .AddHours(12);
         paymentMock.Setup(x => x.GetPaymentAsync(paymentId))
-            .ReturnsAsync(SalePayment(paymentId, DateTime.UtcNow.AddHours(-1)));
+            .ReturnsAsync(SalePayment(paymentId, createdAtTodayVienna));
         paymentMock.Setup(x => x.CancelPaymentAsync(
                 paymentId,
                 It.IsAny<string>(),
@@ -200,5 +204,32 @@ public sealed class PosStornoControllerTests
         Assert.True(body.Success);
         Assert.Equal(stornoId, body.StornoPaymentId);
         Assert.Equal("messages.stornoSuccess", body.MessageKey);
+    }
+
+    [Fact]
+    public async Task StornoPayment_CashierNotToday_ReturnsNotTodayDiagnostic()
+    {
+        await using var ctx = CreateContext();
+        var paymentId = Guid.NewGuid();
+        var createdAtYesterdayVienna = PostgreSqlUtcDateTime
+            .ViennaCalendarMidnightContainingInstant(DateTime.UtcNow)
+            .AddHours(-1);
+        var paymentMock = new Mock<IPaymentService>();
+        paymentMock.Setup(x => x.GetPaymentAsync(paymentId))
+            .ReturnsAsync(SalePayment(paymentId, createdAtYesterdayVienna));
+
+        var controller = CreateController(ctx, paymentMock);
+        var result = await controller.StornoPayment(new StornoRequest
+        {
+            PaymentId = paymentId,
+            Reason = "Customer changed mind",
+            ReasonCode = "CUSTOMER_REQUEST",
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<StornoResponse>(bad.Value);
+        Assert.False(body.Success);
+        Assert.Equal(PosReceiptStornoEligibility.NotTodayDiagnostic, body.DiagnosticCode);
+        Assert.Equal(PosReceiptStornoEligibility.NotTodayErrorKey, body.ErrorKey);
     }
 }
