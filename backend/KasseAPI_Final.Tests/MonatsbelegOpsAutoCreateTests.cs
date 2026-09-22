@@ -23,7 +23,10 @@ public sealed class MonatsbelegOpsAutoCreateTests
     /// <summary>2026-09-01 00:05 Vienna (CEST).</summary>
     private static readonly DateTime Day1After0001Utc = new(2026, 8, 31, 22, 5, 0, DateTimeKind.Utc);
 
-    /// <summary>2026-09-15 Vienna — outside 7-day catch-up.</summary>
+    /// <summary>2026-09-08 12:00 Vienna (CEST) — day 8 of the 14-day catch-up.</summary>
+    private static readonly DateTime Day8Utc = new(2026, 9, 8, 10, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>2026-09-15 Vienna — outside 14-day catch-up.</summary>
     private static readonly DateTime MidMonthUtc = new(2026, 9, 15, 10, 0, 0, DateTimeKind.Utc);
 
     [Fact]
@@ -40,6 +43,57 @@ public sealed class MonatsbelegOpsAutoCreateTests
                 It.IsAny<CreateMonatsbelegRequest>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        harness.Activity.Verify(
+            a => a.PublishAsync(
+                It.Is<ActivityEventPublishRequest>(r =>
+                    r.Type == ActivityEventType.MonatsbelegAutoCreateMissed
+                    && r.DedupKey == $"monatsbeleg-auto-missed:{harness.RegisterId:D}:2026-08"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        harness.Audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "MONATSBELEG_AUTO_CREATE_MISSED",
+                It.IsAny<string>(),
+                AutoMonatsbelegCutoff.SystemActorUserId,
+                AutoMonatsbelegCutoff.SystemActorRole,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                It.IsAny<object>(),
+                It.IsAny<string>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.MonatsbelegAutoCreateMissed,
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object>(),
+                It.IsAny<object>(),
+                It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAutoCreateAsync_Day8Through14_CreatesPreviousMonth()
+    {
+        var harness = await CreateHarnessAsync(Day8Utc, hasMonatsbeleg: false);
+        await using var _ = harness.Context;
+
+        var created = await harness.Sut.RunAutoCreateAsync();
+
+        Assert.Equal(1, created);
+        harness.SpecialReceipts.Verify(
+            s => s.CreateMonatsbelegAsync(
+                It.Is<CreateMonatsbelegRequest>(r => r.Year == 2026 && r.Month == 8 && r.CashRegisterId == harness.RegisterId),
+                AutoMonatsbelegCutoff.SystemActorUserId,
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        harness.Activity.Verify(
+            a => a.PublishAsync(
+                It.Is<ActivityEventPublishRequest>(r => r.Type == ActivityEventType.MonatsbelegAutoCreateMissed),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -228,7 +282,7 @@ public sealed class MonatsbelegOpsAutoCreateTests
         {
             AutoCreateEnabled = true,
             ReminderEnabled = true,
-            CatchUpThroughDay = 7,
+            CatchUpThroughDay = 14,
             RetryBackoffEnabled = false,
             CheckIntervalMinutes = 15,
         });

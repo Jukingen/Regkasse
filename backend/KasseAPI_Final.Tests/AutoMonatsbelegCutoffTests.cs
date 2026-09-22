@@ -20,10 +20,17 @@ public sealed class AutoMonatsbelegCutoffTests
     }
 
     [Fact]
-    public void IsInAutoCreateWindow_Day7_IsTrue_Day8_IsFalse()
+    public void IsInAutoCreateWindow_Day14_IsTrue_Day15_IsFalse()
     {
-        Assert.True(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 7, 12, 0, 0)));
-        Assert.False(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 8, 12, 0, 0)));
+        Assert.True(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 14, 12, 0, 0)));
+        Assert.False(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 15, 12, 0, 0)));
+    }
+
+    [Fact]
+    public void IsInAutoCreateWindow_Day8Through14_IsTrue()
+    {
+        Assert.True(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 8, 12, 0, 0)));
+        Assert.True(AutoMonatsbelegCutoff.IsInAutoCreateWindow(new DateTime(2026, 9, 14, 23, 59, 0)));
     }
 
     [Fact]

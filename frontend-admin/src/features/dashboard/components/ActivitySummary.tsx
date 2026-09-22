@@ -44,6 +44,7 @@ function getActivityTypeTagColor(type: string, severity: ActivitySeverity): stri
     MonatsbelegAutoCreated: 'green',
     MonatsbelegCreated: 'green',
     MonatsbelegAutoCreateFailed: 'red',
+    MonatsbelegAutoCreateMissed: 'red',
     JahresbelegFonReminder: 'gold',
     MonatsbelegManagerContacted: 'gold',
     DailyClosingAutoCreated: 'purple',

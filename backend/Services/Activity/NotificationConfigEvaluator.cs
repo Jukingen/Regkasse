@@ -36,7 +36,8 @@ internal static class NotificationConfigEvaluator
             or ActivityEventType.TseFailoverActivated
             or ActivityEventType.TseFailoverNoBackup
             or ActivityEventType.TseFailoverFailed
-            or ActivityEventType.TseCertificateExpired;
+            or ActivityEventType.TseCertificateExpired
+            or ActivityEventType.MonatsbelegAutoCreateMissed;
 
     public static bool ShouldDeliverEmail(NotificationConfig config, ActivityEventType type, string severity)
     {

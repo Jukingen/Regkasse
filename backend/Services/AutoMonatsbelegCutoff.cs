@@ -3,11 +3,12 @@ using KasseAPI_Final.Time;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Vienna-local window for automatic previous-month Monatsbeleg creation (1st 00:01 + RKSV 7-day catch-up).
+/// Vienna-local window for automatic previous-month Monatsbeleg creation
+/// (1st 00:01 + product catch-up through day 14; RKSV legal window remains 7 days).
 /// </summary>
 public static class AutoMonatsbelegCutoff
 {
-    public const int DefaultCatchUpThroughDay = 7;
+    public const int DefaultCatchUpThroughDay = 14;
     public const int MinRetryCount = 1;
     public const int MaxRetryCount = 5;
     public const int DefaultRetryCount = 3;
@@ -53,7 +54,7 @@ public static class AutoMonatsbelegCutoff
         new(jahresbelegYear + 1, 2, 15);
 
     /// <summary>
-    /// Hosted sweep delay. When <paramref name="allowImmediateIfInWindow"/> and already past 00:01 on day 1–7, returns zero.
+    /// Hosted sweep delay. When <paramref name="allowImmediateIfInWindow"/> and already past 00:01 on day 1–14, returns zero.
     /// On day 1 before 00:01, waits until 00:01 (capped by the poll interval).
     /// </summary>
     public static TimeSpan GetDelayUntilNextSweep(

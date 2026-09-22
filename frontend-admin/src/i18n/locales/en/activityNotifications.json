@@ -96,6 +96,7 @@
     "MonatsbelegAutoCreated": "Monatsbeleg created automatically",
     "MonatsbelegCreated": "Monatsbeleg created",
     "MonatsbelegAutoCreateFailed": "Monatsbeleg automatic creation failed",
+    "MonatsbelegAutoCreateMissed": "Monatsbeleg automatic creation missed",
     "JahresbelegFonReminder": "Jahresbeleg FinanzOnline reminder",
     "MonatsbelegManagerContacted": "Monatsbeleg: cashier contacted admin"
   }

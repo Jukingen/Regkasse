@@ -29,6 +29,7 @@ export const ACTIVITY_EVENT_TYPES = [
   'MonatsbelegAutoCreated',
   'MonatsbelegCreated',
   'MonatsbelegAutoCreateFailed',
+  'MonatsbelegAutoCreateMissed',
   'JahresbelegFonReminder',
   'MonatsbelegManagerContacted',
   'DepExportDueSoon',

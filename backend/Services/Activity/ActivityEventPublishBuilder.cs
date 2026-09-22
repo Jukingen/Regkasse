@@ -99,6 +99,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.MonatsbelegAutoCreated => "Monatsbeleg auto-created",
             ActivityEventType.MonatsbelegCreated => "Monatsbeleg created",
             ActivityEventType.MonatsbelegAutoCreateFailed => "Monatsbeleg auto-create failed",
+            ActivityEventType.MonatsbelegAutoCreateMissed => "Monatsbeleg auto-create missed",
             ActivityEventType.JahresbelegFonReminder => "Jahresbeleg FinanzOnline reminder",
             ActivityEventType.MonatsbelegManagerContacted => "Monatsbeleg manager contacted",
             ActivityEventType.DepExportDueSoon => "DEP export due soon",
@@ -363,6 +364,7 @@ internal static class ActivityEventPublishBuilder
                 or ActivityEventType.MonatsbelegAutoCreated
                 or ActivityEventType.MonatsbelegCreated
                 or ActivityEventType.MonatsbelegAutoCreateFailed
+                or ActivityEventType.MonatsbelegAutoCreateMissed
                 or ActivityEventType.JahresbelegFonReminder
                 or ActivityEventType.MonatsbelegManagerContacted
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),

@@ -28,6 +28,8 @@ export type CreateMonatsbelegModalProps = {
   year: number;
   month: number;
   reason?: string;
+  /** When true, the first submit includes force=true (past-month catch-up). */
+  initialForce?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -105,13 +107,14 @@ export function CreateMonatsbelegModal({
   year,
   month,
   reason,
+  initialForce = false,
   onClose,
   onSuccess,
 }: CreateMonatsbelegModalProps) {
   const { modal } = useAntdApp();
   const notify = useNotify();
   const createMonatsbeleg = useCreateMonatsbeleg();
-  const [forceMode, setForceMode] = useState(false);
+  const [forceMode, setForceMode] = useState(initialForce);
   const [warning, setWarning] = useState<{ message: string; severity: string } | null>(null);
   const [lateReason, setLateReason] = useState('');
   const [successOpen, setSuccessOpen] = useState(false);
@@ -125,13 +128,13 @@ export function CreateMonatsbelegModal({
 
   useEffect(() => {
     if (open) {
-      setForceMode(false);
+      setForceMode(initialForce);
       setWarning(null);
       setLateReason('');
       setSuccessOpen(false);
       setSuccessResult(null);
     }
-  }, [open, cashRegisterId, year, month]);
+  }, [open, cashRegisterId, year, month, initialForce]);
 
   const handleSubmit = useCallback(
     async (explicitForce?: boolean) => {

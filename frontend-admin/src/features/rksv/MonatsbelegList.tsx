@@ -7,6 +7,9 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 
+import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
+import { getViennaCalendarYearMonth } from '@/shared/utils/viennaCalendar';
+
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { dateColumnRender } from '@/components/DateColumn';
@@ -61,6 +64,8 @@ export function MonatsbelegList() {
   const [status, setStatus] = useState<MonatsbelegListStatusFilter>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [forceCreateOpen, setForceCreateOpen] = useState(false);
+  const canCreateMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
 
   const registers = useAdminCashRegisterList({
     allowTenantScopedDefault: true,
@@ -84,6 +89,28 @@ export function MonatsbelegList() {
     queryFn: ({ signal }) => fetchMonatsbelege(listParams, signal),
     enabled: allowed,
   });
+
+  const forceTarget = useMemo(() => {
+    const failed = (query.data?.items ?? []).find((r) => r.status === 'failed');
+    const vienna = getViennaCalendarYearMonth();
+    const prevMonth = vienna.month === 1 ? 12 : vienna.month - 1;
+    const prevYear = vienna.month === 1 ? vienna.year - 1 : vienna.year;
+    const firstRegister = registers.registers?.[0];
+    return {
+      cashRegisterId: failed?.cashRegisterId ?? cashRegisterId ?? firstRegister?.id ?? '',
+      cashRegisterLabel: failed
+        ? failed.registerLocation
+          ? `${failed.registerNumber} — ${failed.registerLocation}`
+          : failed.registerNumber
+        : firstRegister
+          ? firstRegister.location
+            ? `${firstRegister.registerNumber} — ${firstRegister.location}`
+            : firstRegister.registerNumber
+          : undefined,
+      year: failed?.year ?? prevYear,
+      month: failed?.month ?? prevMonth,
+    };
+  }, [cashRegisterId, query.data?.items, registers.registers]);
 
   const yearOptions = useMemo(() => {
     const years: number[] = [];
@@ -209,13 +236,26 @@ export function MonatsbelegList() {
           </Space>
         }
       />
-      {query.data?.hasFailedAutoCreates ? (
+      {query.data?.hasFailedAutoCreates || query.data?.hasMissedAutoCreates ? (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          title={tp('failedAlertTitle')}
-          description={tp('failedAlertBody')}
+          title={query.data.hasMissedAutoCreates ? tp('missedAlertTitle') : tp('failedAlertTitle')}
+          description={
+            query.data.hasMissedAutoCreates ? tp('missedAlertBody') : tp('failedAlertBody')
+          }
+          action={
+            canCreateMonatsbeleg ? (
+              <Button
+                type="primary"
+                danger
+                onClick={() => setForceCreateOpen(true)}
+                data-testid="monatsbeleg-create-now-force">
+                {tp('createNowForce')}
+              </Button>
+            ) : null
+          }
         />
       ) : null}
       <Card>
@@ -294,6 +334,21 @@ export function MonatsbelegList() {
           />
         )}
       </Card>
+      {forceTarget.cashRegisterId ? (
+        <CreateMonatsbelegModal
+          open={forceCreateOpen}
+          cashRegisterId={forceTarget.cashRegisterId}
+          cashRegisterLabel={forceTarget.cashRegisterLabel}
+          year={forceTarget.year}
+          month={forceTarget.month}
+          initialForce
+          onClose={() => setForceCreateOpen(false)}
+          onSuccess={() => {
+            setForceCreateOpen(false);
+            void query.refetch();
+          }}
+        />
+      ) : null}
     </>
   );
 }

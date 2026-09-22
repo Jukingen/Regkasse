@@ -30,6 +30,7 @@ export type MonatsbelegListResponse = {
   year: number;
   total: number;
   hasFailedAutoCreates: boolean;
+  hasMissedAutoCreates: boolean;
   items: MonatsbelegListRow[];
 };
 
@@ -60,6 +61,9 @@ export function fetchMonatsbelege(
     year: dto.year,
     total: dto.total ?? 0,
     hasFailedAutoCreates: Boolean(dto.hasFailedAutoCreates),
+    hasMissedAutoCreates: Boolean(
+      (dto as { hasMissedAutoCreates?: boolean }).hasMissedAutoCreates
+    ),
     items: Array.isArray(dto.items) ? dto.items : [],
   }));
 }

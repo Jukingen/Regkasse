@@ -22,6 +22,9 @@ public sealed class MonatsbelegListResponse
 
     public bool HasFailedAutoCreates { get; init; }
 
+    /// <summary>True when auto-create catch-up closed with the previous month still missing.</summary>
+    public bool HasMissedAutoCreates { get; init; }
+
     public IReadOnlyList<MonatsbelegListRowDto> Items { get; init; } = [];
 }
 

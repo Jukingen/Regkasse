@@ -19,6 +19,7 @@ public sealed class MonatsbelegOpsService : IMonatsbelegOpsService
     public const string NotMissingCode = "NOT_MISSING";
     public const string RegisterNotFoundCode = "REGISTER_NOT_FOUND";
     public const string TenantContextRequiredCode = "TENANT_CONTEXT_REQUIRED";
+    public const string WindowClosedReason = "window_closed";
 
     private readonly AppDbContext _db;
     private readonly ISettingsTenantResolver _tenantResolver;
@@ -199,7 +200,10 @@ public sealed class MonatsbelegOpsService : IMonatsbelegOpsService
         var viennaNow = ViennaNow();
         var catchUp = Math.Clamp(_options.CurrentValue.CatchUpThroughDay, 1, 31);
         if (!AutoMonatsbelegCutoff.IsInAutoCreateWindow(viennaNow, catchUp))
+        {
+            await RunMissedAlertsAsync(viennaNow, catchUp, cancellationToken).ConfigureAwait(false);
             return 0;
+        }
 
         var previous = _tenantAccessor.TenantId;
         _tenantAccessor.TenantId = null;
@@ -619,6 +623,213 @@ public sealed class MonatsbelegOpsService : IMonatsbelegOpsService
                 cancellationToken)
             .ConfigureAwait(false);
         return false;
+    }
+
+    private async Task RunMissedAlertsAsync(
+        DateTime viennaNow,
+        int catchUp,
+        CancellationToken cancellationToken)
+    {
+        var previous = _tenantAccessor.TenantId;
+        _tenantAccessor.TenantId = null;
+        try
+        {
+            var tenantIds = await _db.CompanySettings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(s => s.AutoMonatsbelegEnabled)
+                .Select(s => s.TenantId)
+                .Distinct()
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            foreach (var tenantId in tenantIds)
+            {
+                try
+                {
+                    await EmitMissedForTenantAsync(tenantId, viennaNow, catchUp, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Auto-Monatsbeleg miss alert failed for tenant {TenantId}", tenantId);
+                }
+            }
+        }
+        finally
+        {
+            _tenantAccessor.TenantId = previous;
+        }
+    }
+
+    private async Task EmitMissedForTenantAsync(
+        Guid tenantId,
+        DateTime viennaNow,
+        int catchUp,
+        CancellationToken cancellationToken)
+    {
+        var tenantActive = await _db.Tenants
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AnyAsync(
+                t => t.Id == tenantId && t.DeletedAtUtc == null && t.Status == TenantStatuses.Active,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!tenantActive)
+            return;
+
+        var registers = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r =>
+                r.TenantId == tenantId
+                && r.IsActive
+                && r.Status != RegisterStatus.Decommissioned
+                && r.Status != RegisterStatus.Disabled)
+            .Select(r => new { r.Id, r.RegisterNumber, r.Location })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var prev = AutoMonatsbelegCutoff.PreviousMonthAnchor(viennaNow);
+        var period = $"{prev.Year:D4}-{prev.Month:D2}";
+        var ambient = _tenantAccessor.TenantId;
+        _tenantAccessor.TenantId = tenantId;
+        try
+        {
+            foreach (var register in registers)
+            {
+                var present = await _monatsbelegPolicy
+                    .HasMonatsbelegForRegisterMonthAsync(register.Id, prev.Year, prev.Month, cancellationToken)
+                    .ConfigureAwait(false);
+                if (present)
+                    continue;
+
+                await PersistMissedRunAsync(tenantId, register.Id, prev.Year, prev.Month, cancellationToken)
+                    .ConfigureAwait(false);
+
+                await PublishMissedAsync(
+                        tenantId,
+                        register.Id,
+                        register.RegisterNumber,
+                        FormatRegisterLabel(register.RegisterNumber, register.Location),
+                        period,
+                        viennaNow.Day,
+                        catchUp,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _tenantAccessor.TenantId = ambient;
+        }
+    }
+
+    private async Task PersistMissedRunAsync(
+        Guid tenantId,
+        Guid registerId,
+        int year,
+        int month,
+        CancellationToken cancellationToken)
+    {
+        var run = await _db.MonatsbelegAutoRuns
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(
+                r => r.TenantId == tenantId
+                    && r.CashRegisterId == registerId
+                    && r.Year == year
+                    && r.Month == month,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (run == null)
+        {
+            _db.MonatsbelegAutoRuns.Add(new MonatsbelegAutoRun
+            {
+                TenantId = tenantId,
+                CashRegisterId = registerId,
+                Year = year,
+                Month = month,
+                Status = MonatsbelegAutoRunStatuses.Exhausted,
+                LastError = WindowClosedReason,
+                CorrelationId = Guid.NewGuid().ToString("D"),
+                CreatedAtUtc = _time.GetUtcNow().UtcDateTime,
+                UpdatedAtUtc = _time.GetUtcNow().UtcDateTime,
+            });
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        if (run.Status == MonatsbelegAutoRunStatuses.Succeeded)
+            return;
+
+        if (string.IsNullOrWhiteSpace(run.LastError))
+            run.LastError = WindowClosedReason;
+        if (run.Status != MonatsbelegAutoRunStatuses.Exhausted)
+            run.Status = MonatsbelegAutoRunStatuses.Exhausted;
+        run.UpdatedAtUtc = _time.GetUtcNow().UtcDateTime;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task PublishMissedAsync(
+        Guid tenantId,
+        Guid registerId,
+        string? registerNumber,
+        string label,
+        string period,
+        int viennaDayOfMonth,
+        int catchUp,
+        CancellationToken cancellationToken)
+    {
+        var correlationId = Guid.NewGuid().ToString("D");
+        await _activity.PublishAsync(
+                new ActivityEventPublishRequest(
+                    tenantId,
+                    ActivityEventType.MonatsbelegAutoCreateMissed,
+                    Title: $"Monatsbeleg automatisch verpasst — {label}",
+                    Description:
+                        $"Auto-Monatsbeleg-Fenster (Tag 1–{catchUp}) ist vorbei. " +
+                        $"Monatsbeleg {period} fehlt an Kasse {label}. Bitte in FA mit force erstellen.",
+                    DedupKey: $"monatsbeleg-auto-missed:{registerId:D}:{period}",
+                    ActorUserId: AutoMonatsbelegCutoff.SystemActorUserId,
+                    EntityType: "cash_register",
+                    EntityId: registerId.ToString("D"),
+                    Metadata: new Dictionary<string, object>
+                    {
+                        ["tenant_id"] = tenantId.ToString("D"),
+                        ["cashRegisterId"] = registerId.ToString("D"),
+                        ["register_id"] = registerId.ToString("D"),
+                        ["registerNumber"] = registerNumber ?? "",
+                        ["period"] = period,
+                        ["viennaDayOfMonth"] = viennaDayOfMonth,
+                        ["catchUpThroughDay"] = catchUp,
+                        ["reason"] = WindowClosedReason,
+                    }),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        await _audit.LogSystemOperationAsync(
+            "MONATSBELEG_AUTO_CREATE_MISSED",
+            "cash_register",
+            AutoMonatsbelegCutoff.SystemActorUserId,
+            AutoMonatsbelegCutoff.SystemActorRole,
+            description: $"Automatic Monatsbeleg missed for {period} on {registerNumber}",
+            status: AuditLogStatus.Failed,
+            actionType: AuditEventType.MonatsbelegAutoCreateMissed,
+            entityId: registerId,
+            tenantId: tenantId,
+            requestData: new
+            {
+                actor_user_id = AutoMonatsbelegCutoff.SystemActorUserId,
+                tenant_id = tenantId,
+                cash_register_id = registerId,
+                period,
+                vienna_day_of_month = viennaDayOfMonth,
+                catch_up_through_day = catchUp,
+                reason = WindowClosedReason,
+                timestamp_utc = _time.GetUtcNow().UtcDateTime,
+                correlation_id = correlationId,
+            });
     }
 
     private async Task PublishCreatedAsync(

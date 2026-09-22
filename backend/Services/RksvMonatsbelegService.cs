@@ -207,12 +207,15 @@ public sealed class RksvMonatsbelegService : IRksvMonatsbelegService
         var items = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         var hasFailed = autoRuns.Any(r =>
             r.Status == MonatsbelegAutoRunStatuses.Exhausted || r.Status == MonatsbelegAutoRunStatuses.Failed);
+        var hasMissed = autoRuns.Any(r =>
+            string.Equals(r.LastError, MonatsbelegOpsService.WindowClosedReason, StringComparison.Ordinal));
 
         return new MonatsbelegListResponse
         {
             Year = year,
             Total = total,
             HasFailedAutoCreates = hasFailed,
+            HasMissedAutoCreates = hasMissed,
             Items = items,
         };
     }

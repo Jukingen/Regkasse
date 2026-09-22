@@ -233,5 +233,11 @@ public enum AuditEventType
     /// </summary>
     TenantCountryChangedHistoricalPreserved = 98,
 
+    /// <summary>
+    /// Auto-Monatsbeleg catch-up window closed with previous-month receipt still missing.
+    /// Numeric 105: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    MonatsbelegAutoCreateMissed = 105,
+
     Other = 99
 }

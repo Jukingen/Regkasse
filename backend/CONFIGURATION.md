@@ -502,7 +502,7 @@ Tenant fields on `company_settings` (FA: Einstellungen → Monatsbeleg policy, `
 | Column | Default | Description |
 |--------|---------|-------------|
 | `monatsbeleg_blocking_mode` | `Strict` | `Strict` — block sales until previous-month Monatsbeleg exists. `GracePeriod` — allow sales Vienna days 1–14 (red 1–7, yellow 8–14), block from day 15. `WarningOnly` — never block, always warn. |
-| `auto_monatsbeleg_enabled` | `true` | When true, hosted worker creates previous-month Monatsbeleg on Vienna day 1 at 00:01 (catch-up through day 7), TSE-signs it, stores it in DEP (`payment_details`), and notifies Mandanten-Admin. |
+| `auto_monatsbeleg_enabled` | `true` | When true, hosted worker creates previous-month Monatsbeleg on Vienna day 1 at 00:01 (catch-up through day 14), TSE-signs it, stores it in DEP (`payment_details`), and notifies Mandanten-Admin. Days 8–14 are a late product catch-up (RKSV legal window remains 7 days; no backdating). |
 | `monatsbeleg_retry_count` | `3` | Auto-create attempts per register/month (1–5) with exponential backoff; then Manager alert + FA red warning. |
 
 Hosted worker section `MonatsbelegOps` (`MonatsbelegOps__*` env vars). Service: `MonatsbelegSchedulerHostedService`.
@@ -512,7 +512,7 @@ Hosted worker section `MonatsbelegOps` (`MonatsbelegOps__*` env vars). Service: 
 | `ReminderEnabled` | `true` | Daily missing-Monatsbeleg reminder to Mandanten-Admin activity feed (deduped per register/day). Jahresbeleg FON Belegcheck reminder through 15 February. |
 | `AutoCreateEnabled` | `true` | Master switch; each tenant still needs `auto_monatsbeleg_enabled`. |
 | `CheckIntervalMinutes` | `15` | Hosted poll interval (minimum 5). On day 1 before 00:01 Vienna, waits until 00:01. |
-| `CatchUpThroughDay` | `7` | Vienna calendar day (inclusive) through which a missing previous-month receipt is still auto-created (RKSV 7-day window). |
+| `CatchUpThroughDay` | `14` | Inclusive Vienna calendar day for auto-create. Days 1–7 match the RKSV legal window; days 8–14 are a late product catch-up (TSE-signed, no backdating). Day 15+ emits `MonatsbelegAutoCreateMissed` instead of creating. Distinct from GracePeriod sales-block days. |
 
 Sales gate is evaluated in `IRksvMonatsbelegPolicy.EvaluateSalesGateAsync` and applied by shift open, payment register validation, and POS `ensure-ready` (not a separate payment controller). Demo / Off TSE never blocks (`SessionGateApplies`). Detail: [`docs/RKSV_CASH_REGISTER_OPERATIONS.md`](../docs/RKSV_CASH_REGISTER_OPERATIONS.md) §4.3.
 

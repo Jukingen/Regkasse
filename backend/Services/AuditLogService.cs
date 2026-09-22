@@ -777,6 +777,7 @@ namespace KasseAPI_Final.Services
                 "RksvDepExportFailed" => AuditEventType.RksvDepExportFailed,
                 "MONATSBELEG_CREATED" => AuditEventType.MonatsbelegCreated,
                 "MONATSBELEG_AUTO_CREATE_FAILED" => AuditEventType.MonatsbelegAutoCreateFailed,
+                "MONATSBELEG_AUTO_CREATE_MISSED" => AuditEventType.MonatsbelegAutoCreateMissed,
                 _ => AuditEventType.Other
             };
         }

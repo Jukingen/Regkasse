@@ -20,8 +20,13 @@ public sealed class MonatsbelegOpsOptions
     /// <summary>Hosted poll interval in minutes (minimum 5). Default 15. Wins over <see cref="CheckIntervalHours"/>.</summary>
     public int CheckIntervalMinutes { get; set; } = 15;
 
-    /// <summary>Vienna calendar day (inclusive) through which a missing previous-month receipt is still auto-created.</summary>
-    public int CatchUpThroughDay { get; set; } = 7;
+    /// <summary>
+    /// Inclusive Vienna calendar day for auto-create catch-up. Default 14.
+    /// RKSV still requires create within 7 days of month end; days 8–14 are a product
+    /// catch-up (late, still TSE-signed, no backdating). Day 15+ does not auto-create.
+    /// Distinct from <c>GracePeriod</c> sales-block days (same number, different rule).
+    /// </summary>
+    public int CatchUpThroughDay { get; set; } = 14;
 
     /// <summary>When false, in-sweep retries do not sleep (tests).</summary>
     public bool RetryBackoffEnabled { get; set; } = true;
