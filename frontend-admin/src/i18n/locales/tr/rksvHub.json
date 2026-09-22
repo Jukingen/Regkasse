@@ -1138,6 +1138,8 @@
     "missedAlertTitle": "Auto-Monatsbeleg penceresi kaçırıldı",
     "missedAlertBody": "Otomatik catch-up penceresi (gün 1–14) kapandı. Önceki ayın Monatsbeleg'i hâlâ eksik. Lütfen force ile şimdi oluşturun.",
     "createNowForce": "Şimdi oluştur (force)",
+    "missingPreviousTitle": "Önceki ayın Monatsbeleg'i eksik",
+    "missingPreviousBody": "En az bir kasada kapanmış önceki ayın Monatsbeleg'i yok. Lütfen force ile şimdi oluşturun.",
     "forbiddenTitle": "Yetki yok",
     "forbiddenDescription": "Monatsbeleg listesini görmek için yetki gerekir.",
     "loadErrorTitle": "Monatsbeleg listesi yüklenemedi",

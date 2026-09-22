@@ -461,7 +461,13 @@
     "pendingMonatsbeleg": "{{count}} kasa için Monatsbeleg eksik",
     "pendingMonatsbelegPlural": "{{count}} kasa için Monatsbeleg eksik",
     "pendingMonatsbelegDescription": "Lütfen bekleyen aylık belgeleri oluşturun.",
-    "createNow": "Eksikleri tamamla"
+    "createNow": "Eksikleri tamamla",
+    "openMonatsbelegRequests": {
+      "title": "Açık Monatsbeleg talepleri",
+      "count": "Talepler (7 gün)",
+      "empty": "Son 7 günde açık talep yok.",
+      "cta": "Monatsbeleg sayfasını aç"
+    }
   },
   "dailyClosing": {
     "title": "Gün sonu",

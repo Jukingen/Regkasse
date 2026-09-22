@@ -7,6 +7,7 @@ import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Dashboard } from '@/features/dashboard/components/Dashboard';
 import { MeinKontoQuickAccessCard } from '@/features/dashboard/components/MeinKontoQuickAccessCard';
+import { OpenMonatsbelegRequestsCard } from '@/features/dashboard/components/OpenMonatsbelegRequestsCard';
 import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
@@ -107,6 +108,8 @@ export function ManagerDashboard() {
           style={{ marginBottom: 16 }}
         />
       ) : null}
+
+      <OpenMonatsbelegRequestsCard />
 
       <MeinKontoQuickAccessCard />
 

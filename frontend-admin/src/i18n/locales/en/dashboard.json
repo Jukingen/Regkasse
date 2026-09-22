@@ -461,7 +461,13 @@
     "pendingMonatsbeleg": "Monatsbeleg missing for {{count}} register",
     "pendingMonatsbelegPlural": "Monatsbeleg missing for {{count}} registers",
     "pendingMonatsbelegDescription": "Please create the outstanding monthly receipts.",
-    "createNow": "Catch up now"
+    "createNow": "Catch up now",
+    "openMonatsbelegRequests": {
+      "title": "Open Monatsbeleg requests",
+      "count": "Requests (7 days)",
+      "empty": "No open requests in the last 7 days.",
+      "cta": "Open Monatsbelege"
+    }
   },
   "dailyClosing": {
     "title": "Daily closing",

@@ -1138,6 +1138,8 @@
     "missedAlertTitle": "Auto-Monatsbeleg window missed",
     "missedAlertBody": "The automatic catch-up window (days 1–14) has closed. The previous-month Monatsbeleg is still missing. Create it now with force.",
     "createNowForce": "Create now (force)",
+    "missingPreviousTitle": "Previous-month Monatsbeleg missing",
+    "missingPreviousBody": "At least one register is still missing the previous-month Monatsbeleg. Create it now with force.",
     "forbiddenTitle": "Access denied",
     "forbiddenDescription": "You need permission to view Monatsbelege.",
     "loadErrorTitle": "Monatsbelege could not be loaded",

@@ -8,6 +8,9 @@ import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
+import { MissingPreviousMonatsbelegAlert } from '@/features/rksv/components/MissingPreviousMonatsbelegAlert';
+import { useMonatsbelegStatus } from '@/features/rksv/hooks/useMonatsbeleg';
+import { anyRegisterLastMonthMissing } from '@/features/rksv/utils/anyRegisterLastMonthMissing';
 import { getViennaCalendarYearMonth } from '@/shared/utils/viennaCalendar';
 
 import { TableSkeleton } from '@/components/Skeleton';
@@ -89,6 +92,8 @@ export function MonatsbelegList() {
     queryFn: ({ signal }) => fetchMonatsbelege(listParams, signal),
     enabled: allowed,
   });
+  const statusOverview = useMonatsbelegStatus({ enabled: allowed });
+  const missingPrevious = anyRegisterLastMonthMissing(statusOverview.data);
 
   const forceTarget = useMemo(() => {
     const failed = (query.data?.items ?? []).find((r) => r.status === 'failed');
@@ -235,6 +240,11 @@ export function MonatsbelegList() {
             </Button>
           </Space>
         }
+      />
+      <MissingPreviousMonatsbelegAlert
+        visible={missingPrevious}
+        canCreate={canCreateMonatsbeleg}
+        onCreateNow={() => setForceCreateOpen(true)}
       />
       {query.data?.hasFailedAutoCreates || query.data?.hasMissedAutoCreates ? (
         <Alert

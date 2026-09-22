@@ -1138,6 +1138,8 @@
     "missedAlertTitle": "Auto-Monatsbeleg-Fenster verpasst",
     "missedAlertBody": "Das automatische Catch-up-Fenster (Tag 1–14) ist vorbei. Der Vormonats-Monatsbeleg fehlt noch. Bitte jetzt mit force erstellen.",
     "createNowForce": "Jetzt erstellen (force)",
+    "missingPreviousTitle": "Vormonats-Monatsbeleg fehlt",
+    "missingPreviousBody": "Mindestens eine Kasse hat für den abgeschlossenen Vormonat noch keinen Monatsbeleg. Bitte jetzt mit force erstellen.",
     "forbiddenTitle": "Keine Berechtigung",
     "forbiddenDescription": "Sie benötigen die Berechtigung, Monatsbelege anzuzeigen.",
     "loadErrorTitle": "Monatsbelege konnten nicht geladen werden",

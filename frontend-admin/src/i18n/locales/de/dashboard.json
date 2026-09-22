@@ -461,7 +461,13 @@
     "pendingMonatsbeleg": "Monatsbeleg fehlt für {{count}} Kasse",
     "pendingMonatsbelegPlural": "Monatsbeleg fehlt für {{count}} Kassen",
     "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
-    "createNow": "Jetzt nachholen"
+    "createNow": "Jetzt nachholen",
+    "openMonatsbelegRequests": {
+      "title": "Offene Monatsbeleg-Anfragen",
+      "count": "Anfragen (7 Tage)",
+      "empty": "Keine offenen Anfragen in den letzten 7 Tagen.",
+      "cta": "Monatsbelege öffnen"
+    }
   },
   "dailyClosing": {
     "title": "Tagesabschluss",
