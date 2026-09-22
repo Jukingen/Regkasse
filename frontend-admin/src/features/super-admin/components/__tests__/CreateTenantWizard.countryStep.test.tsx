@@ -216,20 +216,22 @@ describe('CreateTenantWizard country step', () => {
       const nameInput = screen.getByLabelText('Firmenname');
       const modal = nameInput.closest('.ant-modal') as HTMLElement;
 
-      await user.type(within(modal).getByLabelText('Firmenname'), 'Cafe Muster');
-      fireEvent.blur(within(modal).getByLabelText('Firmenname'));
-      await user.type(within(modal).getByLabelText('E-Mail (Kontakt)'), 'info@cafe-muster.at');
+      const companyName = within(modal).getByLabelText('Firmenname');
+      await user.click(companyName);
+      await user.paste('Cafe Muster');
+      fireEvent.blur(companyName);
+      const email = within(modal).getByLabelText('E-Mail (Kontakt)');
+      await user.click(email);
+      await user.paste('info@cafe-muster.at');
+      fireEvent.blur(email);
       const slugInput = within(modal).getByPlaceholderText('cafe-beispiel');
-      await user.clear(slugInput);
-      await user.type(slugInput, 'cafe-muster');
+      await user.click(slugInput);
+      await user.paste('cafe-muster');
       fireEvent.blur(slugInput);
 
-      await waitFor(
-        () => {
-          expect(within(modal).getByRole('button', { name: 'Kunden anlegen' })).not.toBeDisabled();
-        },
-        { timeout: 8_000 }
-      );
+      await waitFor(() => {
+        expect(within(modal).getByRole('button', { name: 'Kunden anlegen' })).not.toBeDisabled();
+      });
 
       await user.click(within(modal).getByRole('button', { name: 'Kunden anlegen' }));
 
@@ -245,7 +247,6 @@ describe('CreateTenantWizard country step', () => {
       expect(body.countryCode).toBe('AT');
       expect(body.vatRegime).toBe('AT_RKSV_STANDARD');
       expect(body.name).toBe('Cafe Muster');
-    },
-    20_000
+    }
   );
 });
