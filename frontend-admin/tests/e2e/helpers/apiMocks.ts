@@ -52,6 +52,33 @@ async function json(route: Route, status: number, body: unknown) {
   });
 }
 
+/** Session cookies live on 127.0.0.1; /me is called on the API origin. */
+async function hasAdminSession(
+  page: Page,
+  request: { headers: () => Record<string, string> }
+): Promise<boolean> {
+  const headers = request.headers();
+  const cookieHeader = headers.cookie ?? '';
+  const authorization = headers.authorization ?? '';
+  if (authorization.trim().length > 0) {
+    return true;
+  }
+  if (
+    cookieHeader.includes('rk_admin_edge_session=1') ||
+    cookieHeader.includes('access_token=') ||
+    cookieHeader.includes('rk_admin_access_token=')
+  ) {
+    return true;
+  }
+  const cookies = await page.context().cookies();
+  return cookies.some(
+    (cookie) =>
+      (cookie.name === 'rk_admin_edge_session' && cookie.value === '1') ||
+      cookie.name === 'access_token' ||
+      cookie.name === 'rk_admin_access_token'
+  );
+}
+
 /**
  * Intercepts backend API calls so CI E2E does not need a live ASP.NET + Postgres stack.
  * Live runs should skip this helper (`E2E_LIVE=1`).
@@ -115,6 +142,10 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/Auth/me' && method === 'GET') {
+      if (!(await hasAdminSession(page, request))) {
+        await json(route, 401, { message: 'Unauthorized' });
+        return;
+      }
       await json(route, 200, SUPER_ADMIN_ME);
       return;
     }
