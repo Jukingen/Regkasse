@@ -15,7 +15,10 @@
 #   SMOKE_LOGIN_IDENTIFIER / SMOKE_LOGIN_PASSWORD
 #
 # Variables:
-#   BACKEND_STAGING_API_BASE_URL (default https://api.staging.regkasse.at)
+#   BACKEND_STAGING_API_BASE_URL — required for staging smoke.
+#     Unset/empty: Deploy Staging still runs; smoke + rollback are skipped.
+#   BACKEND_STAGING_SMOKE_ENABLED — set to true to force staging smoke
+#     (uses the YAML default URL when BACKEND_STAGING_API_BASE_URL is empty).
 #   BACKEND_CANARY_API_BASE_URL  (default production API — canary tenants on prod host)
 #   BACKEND_PRODUCTION_API_BASE_URL (default https://api.regkasse.at)
 #   BACKEND_CANARY_TENANT_IDS (default canary) — used on release/* and v* auto canary

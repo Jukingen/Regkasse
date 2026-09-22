@@ -172,6 +172,8 @@ After every stage deploy (`deploy-backend-stage.yml`):
 - Optional auth: `SMOKE_LOGIN_IDENTIFIER` / `SMOKE_LOGIN_PASSWORD`
 - Detail: [`DEPLOYMENT_SMOKE_TEST.md`](DEPLOYMENT_SMOKE_TEST.md)
 
+Staging smoke runs when `BACKEND_STAGING_API_BASE_URL` is set, or when `BACKEND_STAGING_SMOKE_ENABLED` is `true`. If neither is set, the Deploy Staging job still succeeds and the smoke and rollback steps are skipped. Canary and production smoke are unchanged.
+
 ---
 
 ## Rollback automation
