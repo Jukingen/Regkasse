@@ -30,6 +30,8 @@ export type CreateMonatsbelegRequest = {
   year: number;
   month: number;
   reason?: string | null;
+  /** Query only — stripped from JSON body. Past Vienna months require `force=true`. */
+  force?: boolean;
 };
 
 export type CreateMonatsbelegResponse = {
@@ -43,10 +45,12 @@ export type CreateMonatsbelegResponse = {
 export async function postCreateMonatsbeleg(
   body: CreateMonatsbelegRequest
 ): Promise<CreateMonatsbelegResponse> {
-  return await apiClient.post<CreateMonatsbelegResponse>(
-    '/rksv/special-receipts/monatsbeleg',
-    body
-  );
+  const { force, ...payload } = body;
+  const path =
+    force === true
+      ? '/rksv/special-receipts/monatsbeleg?force=true'
+      : '/rksv/special-receipts/monatsbeleg';
+  return await apiClient.post<CreateMonatsbelegResponse>(path, payload);
 }
 
 /** POST /api/rksv/special-receipts/jahresbeleg */

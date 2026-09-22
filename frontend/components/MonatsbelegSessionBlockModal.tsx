@@ -40,7 +40,7 @@ export function MonatsbelegSessionBlockModal() {
 
   const onCreate = useCallback(() => {
     if (!registerId) return;
-    requestCreate({ cashRegisterId: registerId, year, month });
+    requestCreate({ cashRegisterId: registerId, year, month, force: true });
   }, [registerId, requestCreate, year, month]);
 
   const onNotifyManager = useCallback(async () => {

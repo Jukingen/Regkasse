@@ -15,6 +15,8 @@ export type PosMonatsbelegCreateArgs = {
   cashRegisterId: string;
   year: number;
   month: number;
+  /** Past Vienna months require backend `?force=true`. */
+  force?: boolean;
   /** Called after successful create + readiness refresh (e.g. reload banner status). */
   onAfterSuccess?: () => void | Promise<void>;
 };
@@ -47,6 +49,7 @@ export function usePosMonatsbelegCreate() {
           cashRegisterId: registerId,
           year: args.year,
           month: args.month,
+          force: args.force,
         });
         await refreshAsync();
         await args.onAfterSuccess?.();
