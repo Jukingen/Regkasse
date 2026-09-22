@@ -15,8 +15,8 @@ import {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { useNotify } from '@/hooks/useNotify';
+import { useI18n } from '@/i18n';
 import {
   updateTenantOperationMode,
   type AdminTenantDetail,
@@ -48,7 +48,7 @@ function toLocalInput(iso: string | null | undefined): Dayjs | null {
 }
 
 export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
-  const { t } = useTranslation('tenants');
+  const { t } = useI18n();
   const notify = useNotify();
   const queryClient = useQueryClient();
 
@@ -77,17 +77,17 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
     () => [
       {
         value: 'active',
-        label: t('detail.operationMode.options.active'),
+        label: t('tenants.detail.operationMode.options.active'),
         color: 'green',
       },
       {
         value: 'readonly',
-        label: t('detail.operationMode.options.readonly'),
+        label: t('tenants.detail.operationMode.options.readonly'),
         color: 'orange',
       },
       {
         value: 'maintenance',
-        label: t('detail.operationMode.options.maintenance'),
+        label: t('tenants.detail.operationMode.options.maintenance'),
         color: 'red',
       },
     ],
@@ -108,7 +108,7 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           mode === 'maintenance' ? (tenant.maintenanceStartedAt ?? null) : null,
       }),
     onSuccess: async () => {
-      notify.success(t('detail.operationMode.saveSuccess'));
+      notify.success(t('tenants.detail.operationMode.saveSuccess'));
       await queryClient.invalidateQueries({
         queryKey: [...TENANT_DETAIL_QUERY_KEY, tenant.id],
       });
@@ -133,11 +133,11 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
             : null)));
 
   return (
-    <Card title={t('detail.operationMode.title')} size="small">
+    <Card title={t('tenants.detail.operationMode.title')} size="small">
       <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <div>
           <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-            {t('detail.operationMode.description')}
+            {t('tenants.detail.operationMode.description')}
           </Text>
           <Select
             value={mode}
@@ -166,8 +166,8 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           <Alert
             type="warning"
             showIcon
-            title={t('detail.operationMode.readonlyAlertTitle')}
-            description={t('detail.operationMode.readonlyAlertDescription')}
+            title={t('tenants.detail.operationMode.readonlyAlertTitle')}
+            description={t('tenants.detail.operationMode.readonlyAlertDescription')}
           />
         )}
 
@@ -175,25 +175,25 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           <Alert
             type="warning"
             showIcon
-            title={t('detail.operationMode.maintenanceAlertTitle')}
+            title={t('tenants.detail.operationMode.maintenanceAlertTitle')}
             description={
               <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-                <Text>{t('detail.operationMode.maintenanceAlertDescription')}</Text>
+                <Text>{t('tenants.detail.operationMode.maintenanceAlertDescription')}</Text>
                 <TextArea
                   rows={3}
-                  placeholder={t('detail.operationMode.messagePlaceholder')}
+                  placeholder={t('tenants.detail.operationMode.messagePlaceholder')}
                   value={maintenanceMessage}
                   onChange={(e) => setMaintenanceMessage(e.target.value)}
                   maxLength={2000}
                   showCount
                 />
                 <Space wrap>
-                  <Text>{t('detail.operationMode.endsAtLabel')}</Text>
+                  <Text>{t('tenants.detail.operationMode.endsAtLabel')}</Text>
                   <DatePicker
                     showTime
                     value={maintenanceEnds}
                     onChange={(value) => setMaintenanceEnds(value)}
-                    placeholder={t('detail.operationMode.endsAtPlaceholder')}
+                    placeholder={t('tenants.detail.operationMode.endsAtPlaceholder')}
                   />
                 </Space>
               </Space>
@@ -207,7 +207,7 @@ export function TenantOperationModeCard({ tenant, onUpdated }: Props) {
           loading={mutation.isPending}
           disabled={!dirty && !mutation.isPending}
         >
-          {t('detail.operationMode.save')}
+          {t('tenants.detail.operationMode.save')}
         </Button>
       </Space>
     </Card>

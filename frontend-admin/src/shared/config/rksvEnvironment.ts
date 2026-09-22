@@ -19,7 +19,7 @@ export {
   getReleaseStageTagColor,
   getReleaseStageTagLabel,
   type ReleaseStage,
-} from '../../../../shared/constants/environment';
+} from '@/shared/constants/environment';
 
 export const RKSV_ENV_ACCEPTED_PUBLIC = ['TEST', 'PROD'] as const;
 

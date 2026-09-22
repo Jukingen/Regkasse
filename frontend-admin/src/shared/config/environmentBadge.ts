@@ -16,4 +16,4 @@ export {
   normalizeReleaseStage,
   readEnvironmentSnapshot,
   readRawReleaseStageFromConfig,
-} from '../../../../shared/constants/environment';
+} from '@/shared/constants/environment';

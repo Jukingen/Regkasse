@@ -3,8 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Card, Col, List, Row, Space, Statistic, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useTranslation } from 'react-i18next';
-
 import {
   getWeeklyTenantActivityReport,
   type ActivityAnomaly,
@@ -17,8 +15,7 @@ type Props = {
 };
 
 export function TenantActivityReport({ tenantId }: Props) {
-  const { t } = useTranslation('tenants');
-  const { formatLocale } = useI18n();
+  const { t, formatLocale } = useI18n();
 
   const { data: report, isLoading, isError } = useQuery({
     queryKey: ['tenant-activity-report', tenantId],
@@ -28,30 +25,30 @@ export function TenantActivityReport({ tenantId }: Props) {
 
   const columns: ColumnsType<ActivitySummary> = [
     {
-      title: t('detail.activityReport.columns.operationType'),
+      title: t('tenants.detail.activityReport.columns.operationType'),
       dataIndex: 'operationType',
       key: 'operationType',
     },
     {
-      title: t('detail.activityReport.columns.count'),
+      title: t('tenants.detail.activityReport.columns.count'),
       dataIndex: 'count',
       key: 'count',
       width: 100,
     },
     {
-      title: t('detail.activityReport.columns.users'),
+      title: t('tenants.detail.activityReport.columns.users'),
       dataIndex: 'users',
       key: 'users',
       width: 100,
     },
     {
-      title: t('detail.activityReport.columns.firstOccurrence'),
+      title: t('tenants.detail.activityReport.columns.firstOccurrence'),
       dataIndex: 'firstOccurrence',
       key: 'firstOccurrence',
       render: (value: string) => formatDateTime(value, formatLocale),
     },
     {
-      title: t('detail.activityReport.columns.lastOccurrence'),
+      title: t('tenants.detail.activityReport.columns.lastOccurrence'),
       dataIndex: 'lastOccurrence',
       key: 'lastOccurrence',
       render: (value: string) => formatDateTime(value, formatLocale),
@@ -61,14 +58,14 @@ export function TenantActivityReport({ tenantId }: Props) {
   const anomalyCount = report?.anomalies?.length ?? 0;
 
   return (
-    <Card title={t('detail.activityReport.title')} loading={isLoading}>
+    <Card title={t('tenants.detail.activityReport.title')} loading={isLoading}>
       {isError ? (
-        <Alert type="error" showIcon title={t('detail.activityReport.loadError')} />
+        <Alert type="error" showIcon title={t('tenants.detail.activityReport.loadError')} />
       ) : (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           {report?.period ? (
             <Typography.Text type="secondary">
-              {t('detail.activityReport.period', {
+              {t('tenants.detail.activityReport.period', {
                 from: formatDateTime(report.period.fromUtc, formatLocale),
                 to: formatDateTime(report.period.toUtc, formatLocale),
               })}
@@ -78,19 +75,19 @@ export function TenantActivityReport({ tenantId }: Props) {
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={8}>
               <Statistic
-                title={t('detail.activityReport.totalActivities')}
+                title={t('tenants.detail.activityReport.totalActivities')}
                 value={report?.totalActivities ?? 0}
               />
             </Col>
             <Col xs={24} sm={8}>
               <Statistic
-                title={t('detail.activityReport.uniqueUsers')}
+                title={t('tenants.detail.activityReport.uniqueUsers')}
                 value={report?.uniqueUsers ?? 0}
               />
             </Col>
             <Col xs={24} sm={8}>
               <Statistic
-                title={t('detail.activityReport.anomaliesDetected')}
+                title={t('tenants.detail.activityReport.anomaliesDetected')}
                 value={anomalyCount}
                 valueStyle={{ color: anomalyCount > 0 ? '#cf1322' : '#3f8600' }}
               />
@@ -103,11 +100,11 @@ export function TenantActivityReport({ tenantId }: Props) {
             dataSource={report?.activitySummary ?? []}
             columns={columns}
             pagination={false}
-            locale={{ emptyText: t('detail.activityReport.emptySummary') }}
+            locale={{ emptyText: t('tenants.detail.activityReport.emptySummary') }}
           />
 
           {anomalyCount > 0 ? (
-            <Card type="inner" title={t('detail.activityReport.anomaliesTitle')}>
+            <Card type="inner" title={t('tenants.detail.activityReport.anomaliesTitle')}>
               <List
                 dataSource={report?.anomalies ?? []}
                 renderItem={(anomaly: ActivityAnomaly) => (
@@ -126,7 +123,7 @@ export function TenantActivityReport({ tenantId }: Props) {
           ) : null}
 
           {(report?.recommendations?.length ?? 0) > 0 ? (
-            <Card type="inner" title={t('detail.activityReport.recommendationsTitle')}>
+            <Card type="inner" title={t('tenants.detail.activityReport.recommendationsTitle')}>
               <List
                 size="small"
                 dataSource={report?.recommendations ?? []}

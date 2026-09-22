@@ -6,7 +6,7 @@ import {
   getReleaseStageTagColor,
   getReleaseStageTagLabel,
   readEnvironmentSnapshot,
-} from '../../../../../shared/constants/environment';
+} from '@/shared/constants/environment';
 
 describe('environment badge config', () => {
   it('returns DEVELOPMENT badge for development snapshot', () => {
