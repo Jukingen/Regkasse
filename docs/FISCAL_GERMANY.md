@@ -87,6 +87,23 @@ Verify: TSS created via `POST /tss` and `PATCH` to `INITIALIZED`, client created
 
 ---
 
+## Staging smoke test
+
+Environment names (values stay out of git): `KassenSicherheit__ApiKey`, `KassenSicherheit__ApiSecret`, `KassenSicherheit__AdminPin`, `KASSENSICHERHEIT_SMOKE_ALLOW`.
+
+`npm run smoke:kassensicherheit-test` is a dry-run. It prints the seven HTTP steps and does not call fiskaly.
+
+Real HTTP requires both flags:
+
+```bash
+set KASSENSICHERHEIT_SMOKE_ALLOW=1
+node scripts/smoke/kassensicherheit-test-smoke.mjs --confirm
+```
+
+`--dry-run` is an explicit alias of the default. `--confirm` without the three credentials exits 1 and prints only the variable names. `--confirm` without `KASSENSICHERHEIT_SMOKE_ALLOW=1` exits 1 and does not send HTTP. Success output is the TSS id, client id, transaction id, and export `state`. Failures print the HTTP status and provider `code` only.
+
+---
+
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub

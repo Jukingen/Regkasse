@@ -44,6 +44,7 @@
     "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present",
     "clean": "node scripts/clean-artifacts.mjs",
     "seed:test-data": "node scripts/seed-test-data.mjs",
+    "smoke:kassensicherheit-test": "node scripts/smoke/kassensicherheit-test-smoke.mjs",
     "verify:api-client": "node scripts/verify-api-client.mjs",
     "verify:openapi": "node scripts/validate-critical-openapi-paths.mjs",
     "verify:permission-keys": "node scripts/verify-permission-keys.mjs",
