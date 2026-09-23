@@ -71,12 +71,18 @@ public sealed class TseCapacityPlanningServiceTests
     {
         await using var db = CreateDb();
         var (tenantId, registerId) = await SeedAsync(db);
+        // Fixtures must stay inside the 7-day lookback window regardless of UTC hour.
         var now = DateTime.UtcNow;
-
-        for (var d = 0; d < 7; d++)
+        for (var i = 0; i < 18; i++)
+            db.Receipts.Add(Receipt(tenantId, registerId, now.AddMinutes(-5 - i), "sig"));
+        for (var d = 1; d <= 6; d++)
         {
             for (var i = 0; i < 18; i++)
-                db.Receipts.Add(Receipt(tenantId, registerId, now.AddHours(-1).AddDays(-d).AddMinutes(-i), "sig"));
+                db.Receipts.Add(Receipt(
+                    tenantId,
+                    registerId,
+                    now.Date.AddDays(-d).AddHours(12).AddMinutes(i),
+                    "sig"));
         }
 
         await db.SaveChangesAsync();
