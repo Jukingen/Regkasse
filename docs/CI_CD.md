@@ -68,6 +68,9 @@ The root npm entry (`directory: /` in `.github/dependabot.yml`) updates the mono
 - Do not re-add an npm entry for `/frontend-admin`. That directory’s lockfile is not used by root `npm ci`.
 - POS (`/frontend`) and Sites (`/frontend-sites`) keep their own npm entries. Their CI runs `npm ci` in those directories against `frontend/package-lock.json` and `frontend-sites/package-lock.json`.
 - `scripts/` has `package.json` and no `package-lock.json`. It is not a workspace and not a Dependabot target. Add a `/scripts` npm entry only if `scripts/package-lock.json` appears later.
+- ImageSharp major updates are ignored on the NuGet `/backend` entry. ImageSharp 4.x requires a commercial Six Labors license key at Release build for a direct package reference; the repo stays on 3.1.x.
+- Expo and React Native pinned packages (`expo`, `expo-*`, `react-native`, `react-native-*`, `react`, `react-dom`) are excluded from POS auto-bumps. Sites excludes `next`, `react`, and `react-dom`. Expo SDK 56 stays on `react-native` 0.85.3.
+- The root minor/patch group excludes `react`, `react-dom`, `next`, `antd`, and `@ant-design/*`. Those belong to the Admin, POS, and Sites entries, not the workspace-root group.
 
 ---
 

@@ -23,9 +23,11 @@ updates:
           - minor
           - patch
         exclude-patterns:
-          - expo
-          - react
           - react-native
+          - 'react-native-*'
+          - expo
+          - 'expo-*'
+          - react
           - react-dom
 
   # --- npm: tenant websites ------------------------------------------------
@@ -43,6 +45,10 @@ updates:
         update-types:
           - minor
           - patch
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
 
   # npm workspaces. CI npm ci at repo root uses package-lock.json.
   # Do NOT re-add directory: /frontend-admin — its lock is not used by root npm ci.
@@ -85,6 +91,12 @@ updates:
         update-types:
           - minor
           - patch
+        exclude-patterns:
+          - react
+          - react-dom
+          - next
+          - antd
+          - '@ant-design/*'
     # Orval major upgrades need OpenAPI/client regen — review separately
     ignore:
       - dependency-name: orval
@@ -109,6 +121,10 @@ updates:
           - Microsoft.AspNetCore.*
           - Microsoft.EntityFrameworkCore.*
           - Npgsql*
+    # ImageSharp 4.x requires a Six Labors license key at Release build for direct refs.
+    ignore:
+      - dependency-name: SixLabors.ImageSharp
+        update-types: ['version-update:semver-major']
 
   # --- GitHub Actions ------------------------------------------------------
   - package-ecosystem: github-actions
