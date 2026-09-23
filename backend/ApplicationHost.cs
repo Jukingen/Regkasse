@@ -479,7 +479,11 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultTaxStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.TaxStrategyResolver>();
-        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.NotImplementedKassenSicherheitService>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitHttpClient, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitHttpClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedEn16931XmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();

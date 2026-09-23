@@ -46,4 +46,62 @@ public sealed class NotImplementedKassenSicherheitService : IKassenSicherheitSer
         throw new NotImplementedException(
             "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
     }
+
+    public Task<KassenSicherheitTransactionResult> StartTransactionAsync(
+        KassenSicherheitStartTransactionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureStubGate();
+        return Task.FromResult(NoOpTransaction());
+    }
+
+    public Task<KassenSicherheitTransactionResult> FinishTransactionAsync(
+        KassenSicherheitFinishTransactionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureStubGate();
+        return Task.FromResult(NoOpTransaction());
+    }
+
+    public Task<KassenSicherheitExportResult> ExportDsfinvkAsync(
+        KassenSicherheitExportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureStubGate();
+        return Task.FromResult(new KassenSicherheitExportResult(
+            Exported: false,
+            ExportId: null,
+            Provider: CountryFiscalLockEvaluator.SentinelNotConfigured));
+    }
+
+    private void EnsureStubGate()
+    {
+        if (!_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe))
+            throw new FeatureDisabledException(FeatureFlagNames.FiscalKassenSicherheitDe);
+
+        var provider = _options.Value.Provider?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(provider)
+            || string.Equals(provider, CountryFiscalLockEvaluator.SentinelNotConfigured, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        throw new NotImplementedException(
+            "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
+    }
+
+    private static KassenSicherheitTransactionResult NoOpTransaction() =>
+        new(
+            Completed: false,
+            TransactionId: null,
+            State: null,
+            TxRevision: null,
+            Signature: null,
+            Provider: CountryFiscalLockEvaluator.SentinelNotConfigured);
 }

@@ -13,4 +13,19 @@ public sealed class KassenSicherheitOptions
 
     /// <summary>Must stay false outside Development. Independent of <see cref="Provider"/>.</summary>
     public bool AllowSimulatedTse { get; set; }
+
+    /// <summary><c>TEST</c> for Development/Staging sandbox. <c>LIVE</c> is reserved for a later pilot.</summary>
+    public string Environment { get; set; } = string.Empty;
+
+    /// <summary>SIGN DE host. Not the Austrian <c>Fiskaly:ApiBaseUrl</c>.</summary>
+    public string ApiBaseUrl { get; set; } = string.Empty;
+
+    public string ApiKey { get; set; } = string.Empty;
+
+    public string ApiSecret { get; set; } = string.Empty;
+
+    public string AdminPin { get; set; } = string.Empty;
+
+    /// <summary>Per-request timeout in seconds. The client clamps this to 3–5.</summary>
+    public int HttpTimeoutSeconds { get; set; } = 5;
 }
