@@ -61,6 +61,16 @@ How automated build, test, image publish, deploy, smoke, and rollback fit togeth
 
 ---
 
+## Dependabot (monorepo)
+
+The root npm entry (`directory: /` in `.github/dependabot.yml`) updates the monorepo `package-lock.json` used by admin CI (`npm ci` at the repository root).
+
+- Do not re-add an npm entry for `/frontend-admin`. That directory’s lockfile is not used by root `npm ci`.
+- POS (`/frontend`) and Sites (`/frontend-sites`) keep their own npm entries. Their CI runs `npm ci` in those directories against `frontend/package-lock.json` and `frontend-sites/package-lock.json`.
+- `scripts/` has `package.json` and no `package-lock.json`. It is not a workspace and not a Dependabot target. Add a `/scripts` npm entry only if `scripts/package-lock.json` appears later.
+
+---
+
 ## Local / CI scripts
 
 | Script | Purpose |
