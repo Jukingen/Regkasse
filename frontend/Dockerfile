@@ -47,7 +47,6 @@ ENV EXPO_PUBLIC_API_BASE_URL=$EXPO_PUBLIC_API_BASE_URL \
     NODE_ENV=production \
     CI=1
 
-COPY shared/constants/environment.ts /shared/constants/environment.ts
 RUN npx expo export --platform web
 
 FROM nginx:1.27-alpine AS runner
