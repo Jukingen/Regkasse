@@ -67,6 +67,26 @@ Still open:
 
 ---
 
+## Staging setup (Faz 2)
+
+Obtain a fiskaly TEST API key and secret from a SIGN DE organization.
+
+Set these environment variables on the staging host. Do not commit the values.
+
+    KassenSicherheit__ApiKey=<test-key>
+    KassenSicherheit__ApiSecret=<test-secret>
+    KassenSicherheit__AdminPin=<test-pin>
+
+Deployed `appsettings.Staging.json` uses `Provider=fiskaly-de`, `Environment=TEST`, and `ApiBaseUrl=https://kassensichv-middleware.fiskaly.com/api/v2`. The key fields stay empty in git and are filled from the environment.
+
+SIGN DE and DSFinV-K are different hosts. Transactions use the SIGN DE middleware. A DSFinV-K export is `PUT https://dsfinvk.fiskaly.com/api/v1/exports/{export_id}` with `start_date`, `end_date`, and `format` (`tar` or `zip`). The response is JSON (`state=PENDING`, `_id`, `format`, `error.code`), not the archive. Download is a later `GET /exports/{export_id}/download`.
+
+Feature flag: in Super Admin FA, set a tenant override `Fiscal.KassenSicherheitDe=true` for the target DE tenant. Do not turn the flag on as a Production default.
+
+Verify: TSS created via `POST /tss` and `PATCH` to `INITIALIZED`, client created, transaction `ACTIVE` then `FINISHED`.
+
+---
+
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub

@@ -24,16 +24,14 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
                 return Json(HttpStatusCode.OK, """{"access_token":"tok-1","access_token_expires_in":120}""");
             }
 
-            if (path.Contains("/tx/", StringComparison.Ordinal) && request.Method == HttpMethod.Put)
+            if (path.Contains("/tx", StringComparison.Ordinal))
             {
-                var query = request.RequestUri?.Query ?? string.Empty;
-                Assert.Contains("tx_revision=", query, StringComparison.Ordinal);
                 return Json(HttpStatusCode.OK, """{"state":"ACTIVE","latest_revision":1,"signature":{"value":"sig-1"}}""");
             }
 
-            if (path.EndsWith("/export", StringComparison.Ordinal))
+            if (request.RequestUri?.Host == "dsfinvk.fiskaly.com")
             {
-                return Json(HttpStatusCode.OK, """{"export_id":"exp-1"}""");
+                return Json(HttpStatusCode.OK, """{"state":"PENDING","_id":"exp-1","format":"tar"}""");
             }
 
             return Json(HttpStatusCode.OK, """{"state":"ok"}""");
@@ -46,7 +44,8 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
             Guid.NewGuid(), "tss-1", "client-1", "tx-1", 1));
         var finish = await client.FinishTransactionAsync(new KassenSicherheitFinishTransactionRequest(
             Guid.NewGuid(), "tss-1", "client-1", "tx-1", 2, "process"));
-        var export = await client.ExportDsfinvkAsync(new KassenSicherheitExportRequest(Guid.NewGuid(), "tss-1"));
+        var export = await client.ExportDsfinvkAsync(new KassenSicherheitExportRequest(
+            Guid.NewGuid(), "exp-1", 1, 2, "client-1", "zip"));
 
         Assert.True(start.Completed);
         Assert.Equal("sig-1", start.Signature);
@@ -56,10 +55,9 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
         Assert.True(export.Exported);
         Assert.Equal("exp-1", export.ExportId);
         Assert.Equal(1, handler.Requests.Count(r => r.Uri.AbsolutePath.EndsWith("/auth", StringComparison.Ordinal)));
-        Assert.Contains(handler.Requests, r => r.Uri.Query.Contains("tx_revision=1", StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, r => r.Uri.Query.Contains("tx_revision=2", StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, r => r.Body.Contains("\"state\":\"FINISHED\"", StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, r => r.Body.Contains("\"type\":\"dsfinvk\"", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Post && r.Uri.AbsolutePath.EndsWith("/tx", StringComparison.Ordinal) && r.Body.Contains("\"state\":\"ACTIVE\"", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Patch && r.Uri.AbsolutePath.EndsWith("/tx/tx-1", StringComparison.Ordinal) && r.Body.Contains("\"state\":\"FINISHED\"", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Put && r.Uri.Host == "dsfinvk.fiskaly.com" && r.Uri.AbsolutePath.EndsWith("/exports/exp-1", StringComparison.Ordinal) && r.Body.Contains("\"format\":\"zip\"", StringComparison.Ordinal));
         Assert.All(handler.Requests.Where(r => !r.Uri.AbsolutePath.EndsWith("/auth", StringComparison.Ordinal)), r =>
             Assert.Equal("Bearer", r.AuthorizationScheme));
         var logged = string.Join('\n', logs.Messages);
@@ -80,10 +78,39 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
             new KassenSicherheitCreateTssRequest(Guid.NewGuid(), "tss-9", "dev"));
 
         Assert.Equal("INITIALIZED", tss.State);
-        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Put && r.Uri.AbsolutePath.EndsWith("/tss/tss-9", StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Post && r.Uri.AbsolutePath.EndsWith("/admin/auth", StringComparison.Ordinal) && r.Body.Contains(Pin, StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Patch);
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Post && r.Uri.AbsolutePath.EndsWith("/tss", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Patch && r.Uri.AbsolutePath.EndsWith("/tss/tss-9", StringComparison.Ordinal) && r.Body.Contains("INITIALIZED", StringComparison.Ordinal));
+        Assert.DoesNotContain(handler.Requests, r => r.Uri.AbsolutePath.Contains("admin/auth", StringComparison.Ordinal));
+        Assert.DoesNotContain(Pin, string.Join('\n', handler.Requests.Select(r => r.Body)), StringComparison.Ordinal);
         Assert.DoesNotContain(Pin, string.Join('\n', logs.Messages), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RealSignDeTest_RunsOnlyWhenStagingEnvEnabled()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("KASSENSICHERHEIT_SIGN_DE_TEST"), "1", StringComparison.Ordinal))
+            return;
+
+        var apiKey = Environment.GetEnvironmentVariable("KassenSicherheit__ApiKey");
+        var apiSecret = Environment.GetEnvironmentVariable("KassenSicherheit__ApiSecret");
+        if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiSecret))
+            throw new InvalidOperationException("SIGN DE TEST env is enabled but API credentials are missing.");
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var client = new FiskalyDeKassenSicherheitHttpClient(
+            http,
+            Microsoft.Extensions.Options.Options.Create(new KassenSicherheitOptions
+            {
+                Provider = "fiskaly-de",
+                Environment = "TEST",
+                ApiBaseUrl = "https://kassensichv-middleware.fiskaly.com/api/v2",
+                ApiKey = apiKey,
+                ApiSecret = apiSecret,
+                HttpTimeoutSeconds = 5,
+            }),
+            new CollectingLogger());
+        var auth = await client.AuthenticateAsync();
+        Assert.False(string.IsNullOrWhiteSpace(auth.AccessToken));
     }
 
     private static IOptions<KassenSicherheitOptions> Options() =>

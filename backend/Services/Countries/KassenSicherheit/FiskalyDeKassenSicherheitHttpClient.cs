@@ -13,6 +13,7 @@ namespace KasseAPI_Final.Services.Countries.KassenSicherheit;
 public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpClient
 {
     public const string ProviderId = "fiskaly-de";
+    public const string DsfinvkApiBaseUrl = "https://dsfinvk.fiskaly.com/api/v1";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -84,14 +85,11 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
     {
         ArgumentNullException.ThrowIfNull(request);
         RequireId(request.TssId, nameof(request.TssId));
-        if (string.IsNullOrWhiteSpace(_options.Value.AdminPin))
-            throw new InvalidOperationException("KassenSicherheit:AdminPin is required to initialize a TSS.");
 
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
-        var tssPath = "tss/" + Uri.EscapeDataString(request.TssId);
         using (var created = await SendAsync(
-            HttpMethod.Put,
-            tssPath,
+            HttpMethod.Post,
+            "tss",
             new { description = request.Description ?? string.Empty },
             bearer: true,
             cancellationToken).ConfigureAwait(false))
@@ -99,19 +97,9 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
             _ = created;
         }
 
-        using (var admin = await SendAsync(
-            HttpMethod.Post,
-            tssPath + "/admin/auth",
-            new { admin_pin = _options.Value.AdminPin },
-            bearer: true,
-            cancellationToken).ConfigureAwait(false))
-        {
-            _ = admin;
-        }
-
         using var initialized = await SendAsync(
             HttpMethod.Patch,
-            tssPath,
+            "tss/" + Uri.EscapeDataString(request.TssId),
             new { state = "INITIALIZED" },
             bearer: true,
             cancellationToken).ConfigureAwait(false);
@@ -129,9 +117,9 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         RequireId(request.ClientId, nameof(request.ClientId));
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
         using var response = await SendAsync(
-            HttpMethod.Put,
-            "tss/" + Uri.EscapeDataString(request.TssId) + "/client/" + Uri.EscapeDataString(request.ClientId),
-            new { serial_number = request.SerialNumber },
+            HttpMethod.Post,
+            "tss/" + Uri.EscapeDataString(request.TssId) + "/client",
+            new { serial_number = request.SerialNumber, client_id = request.ClientId },
             bearer: true,
             cancellationToken).ConfigureAwait(false);
         var root = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
@@ -148,12 +136,13 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
     {
         ArgumentNullException.ThrowIfNull(request);
         return await UpsertTransactionAsync(
+            HttpMethod.Post,
+            "tss/" + Uri.EscapeDataString(request.TssId) + "/tx",
             request.TssId,
             request.ClientId,
             request.TransactionId,
             request.TxRevision,
             state: "ACTIVE",
-            processData: null,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -162,13 +151,15 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        RequireId(request.TransactionId, nameof(request.TransactionId));
         return await UpsertTransactionAsync(
+            HttpMethod.Patch,
+            "tss/" + Uri.EscapeDataString(request.TssId) + "/tx/" + Uri.EscapeDataString(request.TransactionId),
             request.TssId,
             request.ClientId,
             request.TransactionId,
             request.TxRevision,
             state: "FINISHED",
-            processData: request.ProcessData,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -177,27 +168,31 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        RequireId(request.TssId, nameof(request.TssId));
+        RequireId(request.ExportId, nameof(request.ExportId));
+        if (request.EndDateUnix < request.StartDateUnix)
+            throw new ArgumentOutOfRangeException(nameof(request.EndDateUnix));
+        var format = string.IsNullOrWhiteSpace(request.Format) ? "tar" : request.Format.Trim();
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
-        using var response = await SendAsync(
-            HttpMethod.Post,
-            "tss/" + Uri.EscapeDataString(request.TssId) + "/export",
-            new { type = "dsfinvk" },
-            bearer: true,
-            cancellationToken).ConfigureAwait(false);
+        object body = string.IsNullOrWhiteSpace(request.ClientId)
+            ? new { start_date = request.StartDateUnix, end_date = request.EndDateUnix, format }
+            : new { start_date = request.StartDateUnix, end_date = request.EndDateUnix, format, client_id = request.ClientId };
+        var uri = new Uri(DsfinvkApiBaseUrl + "/exports/" + Uri.EscapeDataString(request.ExportId), UriKind.Absolute);
+        using var response = await SendAsync(HttpMethod.Put, uri, body, bearer: true, cancellationToken)
+            .ConfigureAwait(false);
         var root = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
-        var exportId = ReadString(root, "export_id") ?? ReadString(root, "id");
-        _logger.LogInformation("SIGN DE DSFinV-K export requested. TssId={TssId}", request.TssId);
+        var exportId = ReadString(root, "_id") ?? request.ExportId;
+        _logger.LogInformation("DSFinV-K export requested. ExportId={ExportId}", request.ExportId);
         return new KassenSicherheitExportResult(true, exportId, ProviderId);
     }
 
     private async Task<KassenSicherheitTransactionResult> UpsertTransactionAsync(
+        HttpMethod method,
+        string relativePath,
         string tssId,
         string clientId,
         string transactionId,
         int txRevision,
         string state,
-        string? processData,
         CancellationToken cancellationToken)
     {
         RequireId(tssId, nameof(tssId));
@@ -207,27 +202,12 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
             throw new ArgumentOutOfRangeException(nameof(txRevision));
 
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
-        var path = "tss/" + Uri.EscapeDataString(tssId)
-            + "/tx/" + Uri.EscapeDataString(transactionId)
-            + "?tx_revision=" + txRevision.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        object body = processData == null
-            ? new { state, client_id = clientId }
-            : new
-            {
-                state,
-                client_id = clientId,
-                schema = new
-                {
-                    raw = new
-                    {
-                        process_type = "Kassenbeleg-V1",
-                        process_data = processData,
-                    },
-                },
-            };
-
-        using var response = await SendAsync(HttpMethod.Put, path, body, bearer: true, cancellationToken)
-            .ConfigureAwait(false);
+        using var response = await SendAsync(
+            method,
+            relativePath,
+            new { state, client_id = clientId },
+            bearer: true,
+            cancellationToken).ConfigureAwait(false);
         var root = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation(
             "SIGN DE transaction upsert. TssId={TssId} TxId={TxId} State={State} TxRevision={TxRevision}",
@@ -244,14 +224,22 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
             Provider: ProviderId);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(
+    private Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string relativePath,
         object? body,
         bool? bearer,
+        CancellationToken cancellationToken) =>
+        SendAsync(method, BuildUri(relativePath), body, bearer, cancellationToken);
+
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpMethod method,
+        Uri uri,
+        object? body,
+        bool? bearer,
         CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(method, BuildUri(relativePath));
+        var request = new HttpRequestMessage(method, uri);
         if (bearer == true)
         {
             var auth = ReadCachedToken()
@@ -272,13 +260,15 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         var response = await _http.SendAsync(request, timeout.Token).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
+            var status = (int)response.StatusCode;
+            var providerCode = await ReadProviderCodeAsync(response, cancellationToken).ConfigureAwait(false);
             response.Dispose();
             _logger.LogWarning(
-                "SIGN DE HTTP failed. Method={Method} Status={Status}",
+                "SIGN DE HTTP failed. Method={Method} Status={Status} ProviderCode={ProviderCode}",
                 method.Method,
-                (int)response.StatusCode);
-            throw new HttpRequestException(
-                "SIGN DE request failed with status " + ((int)response.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                status,
+                providerCode);
+            throw new KassenSicherheitHttpException(status, providerCode);
         }
 
         return response;
@@ -345,6 +335,35 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         return root.ValueKind == JsonValueKind.Object
             && root.TryGetProperty(name, out var element)
             && element.TryGetInt32(out value);
+    }
+
+    private static async Task<string?> ReadProviderCodeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var text = response.Content == null
+            ? string.Empty
+            : await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            var direct = ReadString(root, "code");
+            if (!string.IsNullOrWhiteSpace(direct))
+                return direct;
+            if (root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty("error", out var error)
+                && error.ValueKind == JsonValueKind.Object)
+            {
+                return ReadString(error, "code");
+            }
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        return null;
     }
 
     private static void RequireId(string value, string name)

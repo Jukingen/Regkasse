@@ -52,7 +52,11 @@ public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
         return DispatchAsync(
             request.TenantId,
             cancellationToken,
-            onReady: ct => _http.StartTransactionAsync(request, ct),
+            onReady: async ct =>
+            {
+                await EnsureTssAndClientAsync(request.TenantId, request.TssId, request.ClientId, ct).ConfigureAwait(false);
+                return await _http.StartTransactionAsync(request, ct).ConfigureAwait(false);
+            },
             onNoOp: () => Task.FromResult(NoOpTransaction()));
     }
 
@@ -64,7 +68,11 @@ public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
         return DispatchAsync(
             request.TenantId,
             cancellationToken,
-            onReady: ct => _http.FinishTransactionAsync(request, ct),
+            onReady: async ct =>
+            {
+                await EnsureTssAndClientAsync(request.TenantId, request.TssId, request.ClientId, ct).ConfigureAwait(false);
+                return await _http.FinishTransactionAsync(request, ct).ConfigureAwait(false);
+            },
             onNoOp: () => Task.FromResult(NoOpTransaction()));
     }
 
@@ -105,6 +113,17 @@ public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
 
         throw new NotImplementedException(
             "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
+    }
+
+    private async Task EnsureTssAndClientAsync(Guid tenantId, string tssId, string clientId, CancellationToken cancellationToken)
+    {
+        await _http.AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+        await _http.CreateAndInitializeTssAsync(
+            new KassenSicherheitCreateTssRequest(tenantId, tssId),
+            cancellationToken).ConfigureAwait(false);
+        await _http.CreateClientAsync(
+            new KassenSicherheitCreateClientRequest(tenantId, tssId, clientId, clientId),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static KassenSicherheitTransactionResult NoOpTransaction() =>

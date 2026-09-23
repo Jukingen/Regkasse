@@ -57,12 +57,21 @@ public sealed class FiskalyDeKassenSicherheitServiceTests
     {
         var sut = Sut(flagOn: true, "fiskaly-de", out var http);
         var request = Start();
+        http.Setup(c => c.AuthenticateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitAuthResult("tok", DateTimeOffset.UtcNow.AddMinutes(5)));
+        http.Setup(c => c.CreateAndInitializeTssAsync(It.IsAny<KassenSicherheitCreateTssRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitTssResult("tss-1", "INITIALIZED"));
+        http.Setup(c => c.CreateClientAsync(It.IsAny<KassenSicherheitCreateClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitClientResult("client-1", null));
         http.Setup(c => c.StartTransactionAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly-de"));
 
         var result = await sut.StartTransactionAsync(request);
 
         Assert.True(result.Completed);
+        http.Verify(c => c.AuthenticateAsync(It.IsAny<CancellationToken>()), Times.Once);
+        http.Verify(c => c.CreateAndInitializeTssAsync(It.IsAny<KassenSicherheitCreateTssRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        http.Verify(c => c.CreateClientAsync(It.IsAny<KassenSicherheitCreateClientRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         http.Verify(c => c.StartTransactionAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -28,7 +28,11 @@ public sealed record KassenSicherheitFinishTransactionRequest(
 
 public sealed record KassenSicherheitExportRequest(
     Guid TenantId,
-    string TssId);
+    string ExportId,
+    long StartDateUnix,
+    long EndDateUnix,
+    string? ClientId = null,
+    string Format = "tar");
 
 public sealed record KassenSicherheitAuthResult(
     string AccessToken,
