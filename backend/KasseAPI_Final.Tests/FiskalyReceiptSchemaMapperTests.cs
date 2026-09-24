@@ -30,7 +30,7 @@ public sealed class FiskalyReceiptSchemaMapperTests
     {
         var rows = FiskalyReceiptSchemaMapper.FromTaxSets(RksvTaxSetAmounts.Zero);
         var row = Assert.Single(rows);
-        Assert.Equal("NULL", row.VatRate);
+        Assert.Equal("ZERO", row.VatRate);
         Assert.Equal(0m, row.Amount);
     }
 
@@ -60,10 +60,10 @@ public sealed class FiskalyReceiptSchemaMapperTests
 
         Assert.Equal("NORMAL", data.ReceiptType);
         Assert.Equal(0m, data.TotalAmount);
-        Assert.Equal("NULL", data.VatRate);
+        Assert.Equal("ZERO", data.VatRate);
         Assert.Equal(registerId.ToString("D"), data.CashRegisterId);
         var vat = Assert.Single(data.AmountsPerVatRate!);
-        Assert.Equal("NULL", vat.VatRate);
+        Assert.Equal("ZERO", vat.VatRate);
         Assert.Equal(0m, vat.Amount);
         var line = Assert.Single(data.LineItems!);
         Assert.Equal("0.00", line.PricePerUnit);

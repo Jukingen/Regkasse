@@ -364,6 +364,11 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            builder.Services.AddSingleton<IValidateOptions<FiskalyOptions>, FiskalyHostOptionsValidator>();
+            builder.Services.AddOptions<FiskalyOptions>().ValidateOnStart();
+        }
         builder.Services.AddScoped<FiskalyEnabledOverrideCache>();
         builder.Services.AddScoped<IFiskalySettingsService, FiskalySettingsService>();
         builder.Services.AddScoped<IFiskalySetupService, FiskalySetupService>();
@@ -1684,6 +1689,16 @@ internal static class ApplicationHost
         builder.Services.AddHttpContextAccessor();
 
         var app = builder.Build();
+
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            var fiskalyHost = app.Services.GetRequiredService<IOptions<FiskalyOptions>>().Value.BaseUrl;
+            var deHost = app.Services.GetRequiredService<IOptions<KassenSicherheitOptions>>().Value.ApiBaseUrl;
+            app.Logger.LogInformation(
+                "Fiskaly AT host = {FiskalyHost}; KassenSicherheit DE host = {KassenSicherheitHost}",
+                string.IsNullOrWhiteSpace(fiskalyHost) ? "(unset)" : fiskalyHost,
+                string.IsNullOrWhiteSpace(deHost) ? "(unset)" : deHost);
+        }
 
         QuestPDF.Settings.License = LicenseType.Community;
 

@@ -30,7 +30,8 @@ public static class FiskalyReceiptSchemaMapper
 
         if (rows.Count == 0)
         {
-            rows.Add(new FiskalyVatAmount { VatRate = "NULL", Amount = 0m });
+            // SIGN AT standard_v1 allows ZERO (not NULL). Empty/zero receipts must use ZERO.
+            rows.Add(new FiskalyVatAmount { VatRate = "ZERO", Amount = 0m });
         }
 
         return rows;
@@ -85,8 +86,8 @@ public static class FiskalyReceiptSchemaMapper
             CurrencyCode = DefaultCurrency,
             SchemaKind = FiskalyReceiptSchemaKinds.StandardV1,
             TotalAmount = 0m,
-            VatRate = "NULL",
-            AmountsPerVatRate = [new FiskalyVatAmount { VatRate = "NULL", Amount = 0m }],
+            VatRate = "ZERO",
+            AmountsPerVatRate = [new FiskalyVatAmount { VatRate = "ZERO", Amount = 0m }],
             LineItems =
             [
                 new FiskalyLineItem

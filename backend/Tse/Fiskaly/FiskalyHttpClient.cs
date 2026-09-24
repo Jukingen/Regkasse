@@ -47,6 +47,8 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
             _httpClient.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/");
 
+        _logger.LogInformation("fiskaly host={BaseAddress}", _httpClient.BaseAddress);
+
         RegisterConfiguredCertificates();
     }
 

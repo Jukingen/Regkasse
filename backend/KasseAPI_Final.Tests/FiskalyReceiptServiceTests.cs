@@ -248,7 +248,7 @@ public sealed class FiskalyReceiptServiceTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.Is<FiskalyTransactionData>(d =>
-                    d.ReceiptType == "NORMAL" && d.TotalAmount == 0m && d.VatRate == "NULL"),
+                    d.ReceiptType == "NORMAL" && d.TotalAmount == 0m && d.VatRate == "ZERO"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FiskalySignedReceipt(
                 remoteId,
