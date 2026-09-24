@@ -27,8 +27,8 @@ This document does **not** include bank submission or PDF QR rendering (Paket **
 | `SwitzerlandTaxStrategy.CalculateTax` | 8.1 / 2.6 / 3.8 via CountryTaxType + `CartMoneyHelper`. `CH_KLEINUNTERNEHMER` / `TaxExempt` → 0%. Reverse charge and OSS throw. No VIES |
 | `SwitzerlandInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (MWSTG keys) |
 | `ProjectFiscalTaxSets` / `AllocateReceiptNumberAsync` | `NotImplementedException` |
-| QR-Rechnung payload (SIX) | Shape: `IQrRechnungBuilder` returns IBAN / creditor / debtor / amount / currency / reference. CH/LI prefix only. No bank API |
-| QR-Rechnung PDF / QR image | Not implemented (`BuildPdfAsync` throws) |
+| QR-Rechnung payload (SIX) | IG 2.3 SPC text: IBAN mod-97, address type S, QRR / SCOR / NON. No bank API |
+| QR-Rechnung PDF / QR image | QuestPDF payment part + receipt; QRCoder matrix with Swiss cross |
 | Wiring into `InvoiceService` / `PaymentService` | Tax/invoice domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
 | **Paket 21 — CH QR bank submit** | **NOT STARTED** |
 

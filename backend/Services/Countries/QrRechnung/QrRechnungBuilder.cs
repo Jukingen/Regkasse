@@ -31,26 +31,38 @@ public sealed class QrRechnungBuilder : IQrRechnungBuilder
             throw new ArgumentException("QR-Rechnung currency is required.", nameof(request));
         }
 
-        return Task.FromResult(new QrRechnungPayload(
+        var currency = request.Currency.Trim().ToUpperInvariant();
+        if (currency is not "CHF" and not "EUR")
+        {
+            throw new ArgumentException("QR-Rechnung currency must be CHF or EUR.", nameof(request));
+        }
+
+        var referenceType = SwissQrEncoder.ResolveReferenceType(request.Reference, request.ReferenceType);
+        var reference = string.IsNullOrWhiteSpace(request.Reference)
+            ? null
+            : request.Reference.Trim().ToUpperInvariant();
+        SwissQrEncoder.Validate(iban, referenceType, reference, currency);
+
+        var payload = new QrRechnungPayload(
             Iban: iban,
             Creditor: request.Creditor,
             Debtor: request.Debtor,
             Amount: request.Amount,
-            Currency: request.Currency.Trim().ToUpperInvariant(),
-            Reference: request.Reference,
-            AdditionalInfo: request.AdditionalInfo));
+            Currency: currency,
+            Reference: reference,
+            AdditionalInfo: request.AdditionalInfo,
+            ReferenceType: referenceType,
+            SwissQrText: string.Empty);
+        var text = SwissQrEncoder.Encode(payload);
+        return Task.FromResult(payload with { SwissQrText = text });
     }
 
-    public Task<byte[]> BuildPdfAsync(
+    public async Task<byte[]> BuildPdfAsync(
         QrRechnungRequest request,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-        EnsureEnabled();
-
-        throw new NotImplementedException(
-            "QR-Rechnung PDF/QR image generation is not implemented. See docs/FISCAL_SWITZERLAND.md.");
+        var payload = await BuildPayloadAsync(request, cancellationToken).ConfigureAwait(false);
+        return QrRechnungPdf.Render(payload);
     }
 
     private void EnsureEnabled()

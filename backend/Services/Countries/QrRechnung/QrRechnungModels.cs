@@ -1,5 +1,13 @@
 namespace KasseAPI_Final.Services.Countries.QrRechnung;
 
+/// <summary>SIX QR-bill reference type (IG 2.3). QRR needs a QR-IBAN; SCOR and NON need an ordinary IBAN.</summary>
+public enum QrRechnungReferenceType
+{
+    Qrr,
+    Scor,
+    Non,
+}
+
 public sealed record QrRechnungParty(
     string Name,
     string? AddressLine1,
@@ -15,9 +23,13 @@ public sealed record QrRechnungRequest(
     decimal? Amount,
     string Currency,
     string? Reference,
-    string? AdditionalInfo);
+    string? AdditionalInfo,
+    QrRechnungReferenceType? ReferenceType = null);
 
-/// <summary>SIX QR-bill payload shape. No bank submission and no QR image.</summary>
+/// <summary>
+/// SIX QR-bill payload. <see cref="SwissQrText"/> is the SPC element list (IG 2.3, address type S).
+/// No bank submission.
+/// </summary>
 public sealed record QrRechnungPayload(
     string Iban,
     QrRechnungParty Creditor,
@@ -25,4 +37,6 @@ public sealed record QrRechnungPayload(
     decimal? Amount,
     string Currency,
     string? Reference,
-    string? AdditionalInfo);
+    string? AdditionalInfo,
+    QrRechnungReferenceType ReferenceType,
+    string SwissQrText);
