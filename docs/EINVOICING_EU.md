@@ -29,7 +29,7 @@ This document does **not** implement tax-authority or network submission (Paket 
 | `EuDefaultInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (EN 16931 keys) |
 | EN 16931 XML | UBL 2.1 invoice (`En16931UblXmlBuilder`) + core BR Schematron. No Peppol send |
 | XRechnung XML (DE CIUS) | Stub throws `NotImplementedException` (`IXrechnungXmlBuilder`); see [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| Peppol Access Point | **NOT STARTED** (Paket **22**) |
+| Peppol Access Point | Hosted client + mock. `Provider=not-configured` does not send. Own AP is rejected (Paket 83) |
 | OSS destination rate table (Paket 30-d) | **Shipped** in-code seed (`IOssVatRateRegistry`). Greek VAT-ID prefix `EL` aliases to `GR`. No AT `TaxTypes` fallback |
 | VIES client | Shipped as optional (`Vies.CheckEnabled`, default **off**); no live VIES in tests |
 | ViDA | Read-only checklist only; no timeline committed |

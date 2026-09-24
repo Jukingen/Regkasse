@@ -348,6 +348,8 @@ internal static class ApplicationHost
                 builder.Configuration.GetSection(MwstOptions.SectionName));
             builder.Services.Configure<QrRechnungOptions>(
                 builder.Configuration.GetSection(QrRechnungOptions.SectionName));
+            builder.Services.Configure<PeppolOptions>(
+                builder.Configuration.GetSection(PeppolOptions.SectionName));
             builder.Services.AddOptions<CountryFiscalLockOptions>()
                 .Configure<IConfiguration>((opts, cfg) =>
                 {
@@ -491,6 +493,10 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.En16931UblXmlBuilder>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionStore, KasseAPI_Final.Services.Countries.EInvoicing.InMemoryPeppolSubmissionStore>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.MockPeppolAccessPointClient>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionService, KasseAPI_Final.Services.Countries.EInvoicing.PeppolSubmissionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();

@@ -245,5 +245,14 @@ public enum AuditEventType
     /// <summary>Super Admin set Fiscal.MwstCh=false for the CH canary tenant.</summary>
     ChMwstCanaryRolledBack = 107,
 
+    /// <summary>EN 16931 Schematron passed. Peppol was not sent when the Access Point is unset.</summary>
+    EinvoiceValidated = 108,
+
+    /// <summary>Hosted or mock Peppol Access Point accepted the UBL invoice.</summary>
+    EinvoiceSubmitted = 109,
+
+    /// <summary>Schematron or Access Point rejected the invoice. Detail is rule ids or HTTP status, not the XML.</summary>
+    EinvoiceSubmissionFailed = 110,
+
     Other = 99
 }
