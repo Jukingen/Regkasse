@@ -1,3 +1,4 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -155,6 +156,41 @@ public sealed class TseApiGatewayServiceTests
         Assert.True(result.Attempts >= 2);
     }
 
+    [Fact]
+    public async Task RouteRequestAsync_HealthProbe_FiskalyUsesAustrianHost()
+    {
+        await using var db = CreateDb();
+        var svc = CreateService(db);
+
+        await svc.ConfigureGatewayAsync(new ConfigureTseGatewayRequestDto
+        {
+            Strategy = "RoundRobin",
+            RetryCount = 0,
+            Timeout = 2000,
+            Endpoints =
+            {
+                new ConfigureTseGatewayEndpointRequestDto
+                {
+                    Provider = "fiskaly",
+                    Endpoint = " ",
+                    Enabled = true,
+                    Weight = 1,
+                },
+            },
+        });
+
+        var result = await svc.RouteRequestAsync(new TseGatewayRequestDto
+        {
+            Operation = TseGatewayOperations.HealthProbe,
+            PreferredProvider = "fiskaly",
+        });
+
+        Assert.True(result.Success);
+        Assert.Equal("fiskaly", result.SelectedProvider);
+        Assert.Equal("https://rksv.fiskaly.com/api/v1", result.SelectedEndpoint);
+        Assert.DoesNotContain("kassensichv.io", result.SelectedEndpoint, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static TseApiGatewayService CreateService(
         AppDbContext db,
         Dictionary<string, bool>? readyByProvider = null)
@@ -194,6 +230,7 @@ public sealed class TseApiGatewayServiceTests
             factory.Object,
             new TseGatewayMetricsStore(),
             monitor.Object,
+            Options.Create(new FiskalyOptions()),
             NullLogger<TseApiGatewayService>.Instance);
     }
 
