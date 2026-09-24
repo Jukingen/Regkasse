@@ -101,9 +101,23 @@ public sealed class GermanyTaxStrategy : ITaxStrategy
         };
     }
 
+    /// <summary>
+    /// AT <see cref="RksvTaxSetAmounts"/> projection — not used for DE.
+    /// Use <see cref="ProjectDeFiscalTaxSets"/> for SIGN DE <c>standard_v1.receipt</c> buckets.
+    /// </summary>
     public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount) =>
         throw new NotImplementedException(
-            $"{CountryCode} tax behavior is not implemented (ProjectFiscalTaxSets). See {CountryStrategyDocs.Germany}.");
+            $"AT-only; use ProjectDeFiscalTaxSets. See {CountryStrategyDocs.Germany}");
+
+    /// <summary>
+    /// Maps DE CalculateTax tax_details to SIGN DE <c>amounts_per_vat_rate</c> (Paket 72).
+    /// Not part of <see cref="ITaxStrategy"/> — DE schema must not contaminate AT.
+    /// </summary>
+    public DeFiscalTaxProjection ProjectDeFiscalTaxSets(string? taxDetailsJson, decimal totalGross)
+    {
+        EnsureEnabled();
+        return DeTaxSetMapper.MapFromTaxDetailsJson(taxDetailsJson, totalGross);
+    }
 
     private void EnsureEnabled()
     {

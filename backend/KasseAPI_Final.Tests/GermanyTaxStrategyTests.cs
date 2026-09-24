@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
@@ -87,11 +88,51 @@ public sealed class GermanyTaxStrategyTests
     }
 
     [Fact]
-    public void ProjectFiscalTaxSets_ThrowsNotImplemented()
+    public void ProjectFiscalTaxSets_ThrowsNotImplemented_AtOnly()
     {
         var ex = Assert.Throws<NotImplementedException>(() =>
             Strategy().ProjectFiscalTaxSets("{}", 0m));
 
+        Assert.Contains("AT-only", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("ProjectDeFiscalTaxSets", ex.Message, StringComparison.Ordinal);
         Assert.Contains(CountryStrategyDocs.Germany, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProjectDeFiscalTaxSets_MapsCalculateTaxDetails()
+    {
+        var calc = Strategy().CalculateTax(
+            [
+                TaxLineItemInput.FromVatPercent(119m, 1, 19m),
+                TaxLineItemInput.FromVatPercent(107m, 1, 7m),
+            ],
+            DeContext());
+
+        var json = JsonSerializer.Serialize(calc.TaxDetails);
+        var projection = Strategy().ProjectDeFiscalTaxSets(json, calc.Totals.TotalGross);
+
+        Assert.Equal(2, projection.AmountsPerVatRate.Count);
+        Assert.Equal(DeVatRateNames.Normal, projection.AmountsPerVatRate[0].VatRate);
+        Assert.Equal("119.00", projection.AmountsPerVatRate[0].Amount);
+        Assert.Equal(DeVatRateNames.Reduced1, projection.AmountsPerVatRate[1].VatRate);
+        Assert.Equal("107.00", projection.AmountsPerVatRate[1].Amount);
+    }
+
+    [Fact]
+    public void ProjectDeFiscalTaxSets_Empty_YieldsNullZero()
+    {
+        var projection = Strategy().ProjectDeFiscalTaxSets("{}", 0m);
+
+        var only = Assert.Single(projection.AmountsPerVatRate);
+        Assert.Equal(new DeAmountPerVatRate(DeVatRateNames.Null, "0.00"), only);
+    }
+
+    [Fact]
+    public void ProjectDeFiscalTaxSets_FlagOff_ThrowsFeatureDisabled()
+    {
+        var ex = Assert.Throws<FeatureDisabledException>(() =>
+            Strategy(enabled: false).ProjectDeFiscalTaxSets("{}", 0m));
+
+        Assert.Equal(FeatureFlagNames.FiscalKassenSicherheitDe, ex.FeatureName);
     }
 }

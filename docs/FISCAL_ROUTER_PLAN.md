@@ -221,12 +221,14 @@ Prefer unit tests with mocked `ICountryStrategyContext` + flag service + signatu
 
 ---
 
-## 11. Open decisions (need approval before coding)
+## 11. Resolved decisions (2026-09-24)
 
-1. **71-b timing:** Ship AT-only router skeleton now, or wait until DE gates (§6) are done?
-2. **Error type:** Shared `FiscalSigningNotAvailableException` with `code` (`DE_FLAG_OFF`, `DE_NOT_READY`, `CH_NOT_IMPLEMENTED`) vs reuse existing TSE unavailable mapping?
-3. **Offline:** DE offline queue is out of scope until DE online signing works; confirm AT offline remains on existing TSE intent / offline-order systems only.
-4. **Sonderbelege:** Monatsbeleg / Nullbeleg stay AT-only (`ITseService` / RKSV controllers) — router for **payment** only unless a later package extends it.
+1. **71-b timing:** WAIT-FOR-GATES. Sequence: 72 → 73 → 74 → 75 → 76 → 77.
+2. **Error type:** New shared `FiscalSigningNotAvailableException` with `code`
+   (`DE_FLAG_OFF`, `DE_NOT_READY`, `CH_NOT_IMPLEMENTED`). AT keeps `TseUnavailableException`.
+3. **Offline:** DE offline out of scope until DE online signing works.
+   AT offline (legacy TSE intents + offline-orders) untouched. Router online-only.
+4. **Sonderbeleg:** AT-only, unchanged. Router for payment only.
 
 ---
 
