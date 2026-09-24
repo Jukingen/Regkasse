@@ -504,6 +504,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();
         // Invoice strategies depend on scoped services (sequence reservation, receipts) → scoped.
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.Germany.IDeReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.Germany.DeReceiptSequenceService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultInvoiceStrategy>();

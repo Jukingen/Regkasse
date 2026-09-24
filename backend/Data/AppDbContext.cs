@@ -271,6 +271,8 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptTaxLine> ReceiptTaxLines { get; set; }
         /// <summary>Per-register per-day sequence for BelegNr allocation (Sprint 1).</summary>
         public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
+        /// <summary>Per-register monotonic DE Belegnummer. Not the Austrian daily counter.</summary>
+        public DbSet<DeReceiptSequence> DeReceiptSequences { get; set; }
         /// <summary>Per-register TSE signature chain state; locked (FOR UPDATE) when generating signatures to avoid races.</summary>
         public DbSet<SignatureChainState> SignatureChainState { get; set; }
         /// <summary>Sprint 5: Legal hold on audit date ranges; cleanup skips records in active holds.</summary>

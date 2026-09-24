@@ -202,13 +202,13 @@ public sealed class CountryStrategyResolverTests
     }
 
     [Fact]
-    public async Task GermanyInvoiceStrategy_AllocateReceiptNumber_StillThrows()
+    public async Task GermanyInvoiceStrategy_AllocateReceiptNumber_WithoutService_Throws()
     {
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             new GermanyInvoiceStrategy().AllocateReceiptNumberAsync(
                 new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("not configured", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

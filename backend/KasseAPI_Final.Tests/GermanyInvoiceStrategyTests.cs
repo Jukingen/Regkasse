@@ -90,16 +90,22 @@ public sealed class GermanyInvoiceStrategyTests
     }
 
     [Fact]
-    public async Task AllocateReceiptNumberAsync_ThrowsNotImplemented()
+    public async Task AllocateReceiptNumberAsync_FlagOff_ThrowsFeatureDisabled()
     {
-        var strategy = new GermanyInvoiceStrategy();
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var strategy = new GermanyInvoiceStrategy(Flags(false, FeatureFlagNames.FiscalKassenSicherheitDe));
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() =>
             strategy.AllocateReceiptNumberAsync(new ReceiptNumberAllocationContext
             {
                 CashRegisterId = Guid.NewGuid(),
             }));
 
-        Assert.Contains(CountryStrategyDocs.Germany, ex.Message, StringComparison.Ordinal);
+        Assert.Equal(FeatureFlagNames.FiscalKassenSicherheitDe, ex.FeatureName);
+    }
+
+    [Fact]
+    public void FormatDeBelegNr_UsesSlugRegisterAndSequence()
+    {
+        Assert.Equal("DE-dev-1-1", DeReceiptSequenceService.FormatDeBelegNr("dev", "1", 1));
     }
 
     [Fact]

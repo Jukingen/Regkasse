@@ -1,4 +1,6 @@
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
+using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services.Countries.Vat;
@@ -148,19 +150,65 @@ public sealed class GermanyInvoiceStrategy : IInvoiceStrategy
     ];
 
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly IDeReceiptSequenceService? _sequences;
+    private readonly AppDbContext? _db;
 
-    public GermanyInvoiceStrategy(IFeatureFlagService? featureFlags = null)
+    public GermanyInvoiceStrategy(
+        IFeatureFlagService? featureFlags = null,
+        IDeReceiptSequenceService? sequences = null,
+        AppDbContext? db = null)
     {
         _featureFlags = featureFlags;
+        _sequences = sequences;
+        _db = db;
     }
 
     public string CountryCode => CountryProfileCodes.Germany;
 
-    public Task<string> AllocateReceiptNumberAsync(
+    public async Task<string> AllocateReceiptNumberAsync(
         ReceiptNumberAllocationContext context,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException(
-            $"{CountryCode} invoicing behavior is not implemented (AllocateReceiptNumberAsync). See {CountryStrategyDocs.Germany}.");
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureEnabled();
+        if (_sequences is null || _db is null)
+            throw new InvalidOperationException("DE receipt sequence service is not configured.");
+
+        var register = await _db.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == context.CashRegisterId && r.IsActive)
+            .Select(r => new { r.TenantId, r.RegisterNumber })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (register is null || string.IsNullOrWhiteSpace(register.RegisterNumber))
+            throw new KeyNotFoundException($"Active cash register '{context.CashRegisterId}' was not found.");
+
+        var slug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == register.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new InvalidOperationException($"Tenant slug missing for '{register.TenantId}'.");
+
+        var attempts = Math.Clamp(context.MaxAttempts, 1, 10);
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            var sequence = await _sequences.AllocateNextAsync(register.TenantId, context.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            var number = DeReceiptSequenceService.FormatDeBelegNr(slug, register.RegisterNumber, sequence);
+            var taken = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == context.CashRegisterId && p.IsActive && p.ReceiptNumber == number,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!taken)
+                return number;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not reserve a DE receipt number for cash register '{context.CashRegisterId}' after {attempts} attempt(s).");
+    }
 
     public Task<InvoiceDocument> BuildInvoiceDocumentAsync(
         PaymentDetails payment,
