@@ -320,7 +320,7 @@ public sealed class EuReverseChargeTests
     [Fact]
     public async Task AtTenant_EuReverseCharge_XmlBuilderStillGatedByFlag()
     {
-        IEn16931XmlBuilder builder = new NotImplementedEn16931XmlBuilder(FlagsOff());
+        IEn16931XmlBuilder builder = new En16931UblXmlBuilder(FlagsOff());
 
         var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() =>
             builder.BuildXmlAsync(new InvoiceDocumentDto { CountryCode = CountryProfileCodes.EuDefault }));

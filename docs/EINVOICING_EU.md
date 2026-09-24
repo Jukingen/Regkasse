@@ -27,7 +27,7 @@ This document does **not** implement tax-authority or network submission (Paket 
 | `EuDefaultTaxStrategy.CalculateTax` | Shape: reverse charge (valid buyer VAT-ID → 0%) / OSS (destination STANDARD rate) / NON_EU export (0%); AT buckets not used |
 | AT + `EU_REVERSE_CHARGE` | **Shipped** (Paket 12-c): both resolvers route to EuDefault regardless of country code. `EInvoicing.En16931` does **not** gate reverse-charge tax or disclosures. |
 | `EuDefaultInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (EN 16931 keys) |
-| EN 16931 XML | Stub throws `NotImplementedException` (`IEn16931XmlBuilder`) |
+| EN 16931 XML | UBL 2.1 invoice (`En16931UblXmlBuilder`) + core BR Schematron. No Peppol send |
 | XRechnung XML (DE CIUS) | Stub throws `NotImplementedException` (`IXrechnungXmlBuilder`); see [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
 | Peppol Access Point | **NOT STARTED** (Paket **22**) |
 | OSS destination rate table (Paket 30-d) | **Shipped** in-code seed (`IOssVatRateRegistry`). Greek VAT-ID prefix `EL` aliases to `GR`. No AT `TaxTypes` fallback |

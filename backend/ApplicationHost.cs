@@ -490,7 +490,7 @@ internal static class ApplicationHost
         });
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
-        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedEn16931XmlBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.En16931UblXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();

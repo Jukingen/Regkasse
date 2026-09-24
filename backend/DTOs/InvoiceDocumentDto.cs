@@ -28,4 +28,35 @@ public sealed class InvoiceDocumentDto
     public decimal GrossAmount { get; init; }
 
     public string Currency { get; init; } = "EUR";
+
+    public string? SellerName { get; init; }
+
+    public string? SellerStreet { get; init; }
+
+    public string? SellerCity { get; init; }
+
+    public string? SellerPostalCode { get; init; }
+
+    public string? SellerCountry { get; init; }
+
+    public string? BuyerName { get; init; }
+
+    public string? BuyerVatId { get; init; }
+
+    public string? BuyerStreet { get; init; }
+
+    public string? BuyerCity { get; init; }
+
+    public string? BuyerPostalCode { get; init; }
+
+    public string? BuyerCountry { get; init; }
+
+    /// <summary>UNTDID 5305: S, Z, AE, E, K, G, O.</summary>
+    public string VatCategory { get; init; } = "S";
+
+    public decimal VatPercent { get; init; }
+
+    public string? TaxExemptionReason { get; init; }
+
+    public string? TaxExemptionReasonCode { get; init; }
 }
