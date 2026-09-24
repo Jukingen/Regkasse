@@ -76,6 +76,7 @@ namespace KasseAPI_Final.Services
         private readonly ICountryStrategyContext _countryStrategyContext;
         private readonly ITaxStrategyResolver _taxStrategyResolver;
         private readonly ICountryTaxTypeRegistry _taxTypes;
+        private readonly Fiscal.IFiscalSignatureRouter _fiscalSignatureRouter;
 
         public PaymentService(
             AppDbContext context,
@@ -119,7 +120,8 @@ namespace KasseAPI_Final.Services
             ICountryStrategyContext? countryStrategyContext = null,
             ITaxStrategyResolver? taxStrategyResolver = null,
             ICountryProfileRegistry? countryProfileRegistry = null,
-            ICountryTaxTypeRegistry? countryTaxTypeRegistry = null)
+            ICountryTaxTypeRegistry? countryTaxTypeRegistry = null,
+            Fiscal.IFiscalSignatureRouter? fiscalSignatureRouter = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -164,6 +166,8 @@ namespace KasseAPI_Final.Services
                 ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
             _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
             _taxTypes = countryTaxTypeRegistry ?? new CountryTaxTypeRegistry();
+            _fiscalSignatureRouter = fiscalSignatureRouter
+                ?? new Fiscal.FiscalSignatureRouter(_featureFlags);
         }
 
         /// <summary>
@@ -1263,8 +1267,38 @@ namespace KasseAPI_Final.Services
                     };
                     FiscalDocumentCountryStamp.Apply(payment, countryBinding);
 
-                    // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
-                    if (effectiveTseRequired)
+                    if (countryBinding.Profile.FiscalSystem == FiscalSystem.MWST_CH)
+                    {
+                        try
+                        {
+                            var chSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
+                                    payment.TotalAmount,
+                                    preReceiptNumber));
+                            _logger.LogInformation(
+                                "CH MWST QR payload built for payment {PaymentId}; no TSE signature.",
+                                payment.Id);
+                            _ = chSign.SwissQrText;
+                        }
+                        catch (FeatureDisabledException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Swiss MWST is not enabled",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "CH_FLAG_OFF"
+                            };
+                        }
+                    }
+                    else if (effectiveTseRequired)
                     {
                         try
                         {
