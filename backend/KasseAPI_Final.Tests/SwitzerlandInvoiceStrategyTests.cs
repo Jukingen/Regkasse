@@ -57,7 +57,11 @@ public sealed class SwitzerlandInvoiceStrategyTests
         Assert.Contains("invoice.tax", keys);
         Assert.Contains("invoice.gross", keys);
         Assert.Contains("invoice.mwstBreakdown", keys);
+        Assert.Contains("invoice.kleinunternehmer", keys);
         Assert.All(disclosures, d => Assert.Equal("MWSTG", d.LegalBasis));
+        Assert.Equal(nameof(CompanySettings.VatId), disclosures.Single(d => d.Key == "seller.vatId").SourceField);
+        Assert.Equal(nameof(PaymentDetails.ReceiptNumber), disclosures.Single(d => d.Key == "invoice.number").SourceField);
+        Assert.Equal(nameof(PaymentDetails.CreatedAt), disclosures.Single(d => d.Key == "invoice.date").SourceField);
     }
 
     [Fact]

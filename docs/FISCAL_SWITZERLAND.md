@@ -24,7 +24,7 @@ This document does **not** include bank submission or PDF QR rendering (Paket **
 | Item | State |
 |------|--------|
 | `CountryProfile` CH seed | Shipped (CHE-… UID, `MWST_CH`, `QR_RECHNUNG`) |
-| `SwitzerlandTaxStrategy.CalculateTax` | Shape: CountryTaxType 8.1 / 2.6 / 3.8 + `CartMoneyHelper` line math; AT buckets not used |
+| `SwitzerlandTaxStrategy.CalculateTax` | 8.1 / 2.6 / 3.8 via CountryTaxType + `CartMoneyHelper`. `CH_KLEINUNTERNEHMER` / `TaxExempt` → 0%. Reverse charge and OSS throw. No VIES |
 | `SwitzerlandInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (MWSTG keys) |
 | `ProjectFiscalTaxSets` / `AllocateReceiptNumberAsync` | `NotImplementedException` |
 | QR-Rechnung payload (SIX) | Shape: `IQrRechnungBuilder` returns IBAN / creditor / debtor / amount / currency / reference. CH/LI prefix only. No bank API |

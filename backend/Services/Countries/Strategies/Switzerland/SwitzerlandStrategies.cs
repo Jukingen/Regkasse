@@ -46,6 +46,16 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
         ArgumentNullException.ThrowIfNull(context);
         EnsureEnabled();
 
+        if (context.VatRegime is VatRegime.EU_REVERSE_CHARGE or VatRegime.EU_OSS)
+        {
+            throw new ArgumentException(
+                "CH MWST does not apply reverse charge or OSS. Switzerland is outside the EU VAT area.",
+                nameof(context));
+        }
+
+        if (context.TaxExempt || context.VatRegime == VatRegime.CH_KLEINUNTERNEHMER)
+            return CalculateKleinunternehmer(lineItems);
+
         var catalog = _taxTypes.Get(CountryProfileCodes.Switzerland);
         var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
         var taxDetails = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -80,6 +90,33 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
         };
     }
 
+    /// <summary>
+    /// MWST small-business exemption: gross stays gross, tax is zero. Buyer VAT-ID is ignored
+    /// (no reverse charge, no VIES).
+    /// </summary>
+    private static TaxCalculationResult CalculateKleinunternehmer(IReadOnlyList<TaxLineItemInput> lineItems)
+    {
+        var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
+        decimal tax = 0m;
+        foreach (var item in lineItems)
+        {
+            var line = CartMoneyHelper.ComputeLine(item.UnitPriceGross, item.Quantity, 0m);
+            lines.Add(line);
+            tax += line.LineTax;
+        }
+
+        return new TaxCalculationResult
+        {
+            Lines = lines,
+            TaxSummary = CountryRateTaxSummary.FromLineRates(lines),
+            Totals = CountryRateTaxSummary.Totals(lines),
+            TaxDetails = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            {
+                [CountryTaxTypeCodes.Zero] = tax,
+            },
+        };
+    }
+
     public VatIdValidationResult ValidateVatId(string? vatId, CountryProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -91,6 +128,12 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
     {
         ArgumentNullException.ThrowIfNull(company);
         EnsureEnabled();
+        if (company.VatRegime is VatRegime.EU_REVERSE_CHARGE or VatRegime.EU_OSS)
+        {
+            throw new ArgumentException(
+                "CH MWST does not apply reverse charge or OSS.",
+                nameof(company));
+        }
 
         return new InvoiceFieldRequirements
         {
@@ -135,6 +178,7 @@ public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
         new("invoice.tax", "MWSTG", nameof(PaymentDetails.TaxAmount)),
         new("invoice.gross", "MWSTG", nameof(PaymentDetails.TotalAmount)),
         new("invoice.mwstBreakdown", "MWSTG", nameof(PaymentDetails.TaxDetails)),
+        new("invoice.kleinunternehmer", "MWSTG", nameof(CompanySettings.TaxExempt)),
     ];
 
     private readonly IFeatureFlagService? _featureFlags;

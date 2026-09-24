@@ -74,6 +74,86 @@ public sealed class SwitzerlandTaxStrategyTests
     }
 
     [Fact]
+    public void CalculateTax_Kleinunternehmer_ChargesZero_AndIgnoresBuyerVatId()
+    {
+        var gross = 108.1m;
+        var expected = CartMoneyHelper.ComputeLine(gross, 1, 0m);
+        var context = new TaxCalculationContext
+        {
+            CountryProfile = Profiles.Get(CountryProfileCodes.Switzerland),
+            VatRegime = VatRegime.CH_KLEINUNTERNEHMER,
+            TaxExempt = true,
+            BuyerVatId = "CHE-123.456.789 MWST",
+        };
+
+        var result = Strategy().CalculateTax(
+            [TaxLineItemInput.FromVatPercent(gross, 1, 8.1m)],
+            context);
+
+        Assert.Equal(expected, result.Lines[0]);
+        Assert.Equal(0m, result.Totals.TotalVat);
+        Assert.Equal(gross, result.Totals.TotalGross);
+        Assert.Equal(0m, result.TaxDetails[CountryTaxTypeCodes.Zero]);
+    }
+
+    [Fact]
+    public void CalculateTax_TaxExempt_ChargesZero()
+    {
+        var context = new TaxCalculationContext
+        {
+            CountryProfile = Profiles.Get(CountryProfileCodes.Switzerland),
+            VatRegime = VatRegime.CH_MWST_STANDARD,
+            TaxExempt = true,
+        };
+
+        var result = Strategy().CalculateTax(
+            [TaxLineItemInput.FromVatPercent(102.6m, 1, 2.6m)],
+            context);
+
+        Assert.Equal(0m, result.Totals.TotalVat);
+        Assert.Equal(102.6m, result.Totals.TotalNet);
+    }
+
+    [Fact]
+    public void CalculateTax_ReverseCharge_Throws()
+    {
+        var context = new TaxCalculationContext
+        {
+            CountryProfile = Profiles.Get(CountryProfileCodes.Switzerland),
+            VatRegime = VatRegime.EU_REVERSE_CHARGE,
+            TaxExempt = false,
+            BuyerVatId = "DE123456789",
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Strategy().CalculateTax(
+                [TaxLineItemInput.FromVatPercent(108.1m, 1, 8.1m)],
+                context));
+
+        Assert.Contains("reverse charge", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CalculateTax_BuyerVatId_DoesNotZeroStandardMwst()
+    {
+        var expected = CartMoneyHelper.ComputeLine(108.1m, 1, 8.1m);
+        var context = new TaxCalculationContext
+        {
+            CountryProfile = Profiles.Get(CountryProfileCodes.Switzerland),
+            VatRegime = VatRegime.CH_MWST_STANDARD,
+            TaxExempt = false,
+            BuyerVatId = "CHE-123.456.789 MWST",
+        };
+
+        var result = Strategy().CalculateTax(
+            [TaxLineItemInput.FromVatPercent(108.1m, 1, 8.1m)],
+            context);
+
+        Assert.Equal(expected.LineTax, result.Totals.TotalVat);
+        Assert.Equal(expected.LineTax, result.TaxDetails[CountryTaxTypeCodes.Standard]);
+    }
+
+    [Fact]
     public void CalculateTax_RejectsRksvTaxTypeLines()
     {
         var ex = Assert.Throws<ArgumentException>(() =>
