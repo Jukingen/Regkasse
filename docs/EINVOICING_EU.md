@@ -33,7 +33,7 @@ This document does **not** implement tax-authority or network submission (Paket 
 | OSS destination rate table (Paket 30-d) | **Shipped** in-code seed (`IOssVatRateRegistry`). Greek VAT-ID prefix `EL` aliases to `GR`. No AT `TaxTypes` fallback |
 | VIES client | Shipped as optional (`Vies.CheckEnabled`, default **off**); no live VIES in tests |
 | ViDA | Read-only checklist only; no timeline committed |
-| Wiring into `InvoiceService` / `PaymentService` | Tax/invoice domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
+| Wiring into `InvoiceService` / `PaymentService` | `EU_DEFAULT` sales use the fiscal router (`EN_16931` + Peppol). AT TSE is unchanged. Flag off → `EU_FLAG_OFF` |
 
 Feature-flag gates: `EInvoicing.En16931`, `EInvoicing.XRechnung` (DE CIUS), `Vies.CheckEnabled` (default **off**). `Fiscal.RksvAt` stays **off** for `EU_DEFAULT`. Reverse-charge **tax** does not require `EInvoicing.En16931`.
 

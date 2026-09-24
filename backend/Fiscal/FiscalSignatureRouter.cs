@@ -2,7 +2,10 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Services.Countries.EInvoicing;
 using KasseAPI_Final.Services.Countries.QrRechnung;
+using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Countries.Vat;
@@ -15,7 +18,10 @@ public sealed record FiscalSignatureContext(
     CountryStrategyBinding Binding,
     IReadOnlyList<TaxLineItemInput> LineItems,
     decimal TotalGross,
-    string ReceiptNumber);
+    string ReceiptNumber,
+    string? BuyerName = null,
+    string? BuyerVatId = null,
+    string? BuyerCountry = null);
 
 /// <summary>
 /// Country signing dispatch. Austria stays on <see cref="FiscalTseSigning"/>.
@@ -32,7 +38,9 @@ public sealed record FiscalSignatureResult(
     string Provider,
     string? Signature,
     string? SwissQrText,
-    decimal TotalVat);
+    decimal TotalVat,
+    string? UblXml = null,
+    string? PeppolStatus = null);
 
 public sealed class ChMwstCanaryRejectedException : InvalidOperationException
 {
@@ -45,20 +53,38 @@ public sealed class ChMwstCanaryRejectedException : InvalidOperationException
 public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
 {
     public const string ChProvider = "CH_MWST";
+    public const string EuProvider = "EN_16931";
 
     private readonly IFeatureFlagService? _featureFlags;
     private readonly SwitzerlandTaxStrategy _tax;
     private readonly IQrRechnungBuilder _qr;
     private readonly MwstOptions? _mwst;
+    private readonly IEn16931XmlBuilder _ubl;
+    private readonly IPeppolSubmissionService _peppol;
+    private readonly EuDefaultTaxStrategy _euTax;
 
     public FiscalSignatureRouter(
         IFeatureFlagService? featureFlags,
         SwitzerlandTaxStrategy? tax = null,
         IQrRechnungBuilder? qr = null,
-        IOptions<MwstOptions>? mwst = null)
+        IOptions<MwstOptions>? mwst = null,
+        IEn16931XmlBuilder? ubl = null,
+        IPeppolSubmissionService? peppol = null)
     {
         _featureFlags = featureFlags;
         _mwst = mwst?.Value;
+        _ubl = ubl ?? new En16931UblXmlBuilder(featureFlags);
+        _euTax = new EuDefaultTaxStrategy(
+            new CountryProfileRegistry(),
+            new VatIdValidator(new DisabledViesClient()),
+            featureFlags);
+        var peppolOptions = Options.Create(new PeppolOptions());
+        _peppol = peppol ?? new PeppolSubmissionService(
+            _ubl,
+            peppolOptions,
+            new MockPeppolAccessPointClient(),
+            new HostedPeppolAccessPointClient(peppolOptions, new HttpClient()),
+            new InMemoryPeppolSubmissionStore());
         _tax = tax ?? new SwitzerlandTaxStrategy(
             new CountryTaxTypeRegistry(),
             new VatIdValidator(new DisabledViesClient()),
@@ -71,10 +97,13 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        if (context.Binding.Profile.Code == CountryProfileCodes.EuDefault)
+            return await SignEuAsync(context, cancellationToken).ConfigureAwait(false);
+
         if (context.Binding.Profile.FiscalSystem != FiscalSystem.MWST_CH)
         {
             throw new InvalidOperationException(
-                "Only CH MWST is routed here. Austrian TSE stays on FiscalTseSigning.");
+                "Only CH MWST and EU_DEFAULT are routed here. Austrian TSE stays on FiscalTseSigning.");
         }
 
         if (_featureFlags is not null
@@ -125,5 +154,71 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             Signature: null,
             payload.SwissQrText,
             tax.Totals.TotalVat);
+    }
+
+    private async Task<FiscalSignatureResult> SignEuAsync(
+        FiscalSignatureContext context,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = context.Binding.Settings.TenantId.ToString("D");
+        if (_featureFlags is not null
+            && !_featureFlags.IsEnabled(FeatureFlagNames.EInvoicingEn16931, tenantId))
+        {
+            throw new FeatureDisabledException(FeatureFlagNames.EInvoicingEn16931);
+        }
+
+        var tax = _euTax.CalculateTax(
+            context.LineItems,
+            new TaxCalculationContext
+            {
+                CountryProfile = context.Binding.Profile,
+                VatRegime = context.Binding.VatRegime,
+                TaxExempt = context.Binding.Settings.TaxExempt,
+                BuyerVatId = context.BuyerVatId,
+            });
+
+        var settings = context.Binding.Settings;
+        var sellerCountry = settings.Country is { Length: 2 } code
+            ? code.ToUpperInvariant()
+            : "DE";
+        var category = tax.Totals.TotalVat == 0m ? "AE" : "S";
+        var net = context.TotalGross - tax.Totals.TotalVat;
+        var document = new InvoiceDocumentDto
+        {
+            CountryCode = CountryProfileCodes.EuDefault,
+            SellerName = settings.CompanyName,
+            SellerVatId = settings.VatId,
+            SellerCountry = sellerCountry,
+            BuyerName = string.IsNullOrWhiteSpace(context.BuyerName) ? "EU buyer" : context.BuyerName,
+            BuyerVatId = context.BuyerVatId,
+            BuyerCountry = string.IsNullOrWhiteSpace(context.BuyerCountry) ? "DE" : context.BuyerCountry,
+            InvoiceNumber = context.ReceiptNumber,
+            InvoiceDate = DateTime.UtcNow,
+            Currency = string.IsNullOrWhiteSpace(settings.Currency) ? "EUR" : settings.Currency,
+            NetAmount = net,
+            TaxAmount = tax.Totals.TotalVat,
+            GrossAmount = context.TotalGross,
+            VatCategory = category,
+            VatPercent = net == 0m ? 0m : decimal.Round(tax.Totals.TotalVat / net * 100m, 2),
+            TaxExemptionReason = category == "AE" ? "Reverse charge" : null,
+            TaxExemptionReasonCode = category == "AE" ? "VATEX-EU-AE" : null,
+        };
+
+        var submission = await _peppol.SubmitAsync(
+            settings.TenantId,
+            document,
+            context.BuyerVatId,
+            cancellationToken).ConfigureAwait(false);
+
+        if (submission.Status == PeppolSubmissionStatus.Failed)
+            throw new InvalidOperationException(submission.Detail ?? "EN 16931 submission failed.");
+
+        return new FiscalSignatureResult(
+            EuProvider,
+            Signature: null,
+            SwissQrText: null,
+            tax.Totals.TotalVat,
+            UblXml: null,
+            PeppolStatus: submission.Status.ToString());
     }
 }

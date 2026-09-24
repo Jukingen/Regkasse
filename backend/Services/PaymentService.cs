@@ -1328,6 +1328,38 @@ namespace KasseAPI_Final.Services
                             };
                         }
                     }
+                    else if (countryBinding.Profile.Code == CountryProfileCodes.EuDefault)
+                    {
+                        try
+                        {
+                            var euSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
+                                    payment.TotalAmount,
+                                    preReceiptNumber));
+                            _logger.LogInformation(
+                                "EN_16931 Peppol path. TenantId={TenantId} Receipt={Receipt} Status={Status}",
+                                countryBinding.Settings.TenantId,
+                                preReceiptNumber,
+                                euSign.PeppolStatus);
+                        }
+                        catch (FeatureDisabledException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "EN 16931 is not enabled",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "EU_FLAG_OFF"
+                            };
+                        }
+                    }
                     else if (effectiveTseRequired)
                     {
                         try
