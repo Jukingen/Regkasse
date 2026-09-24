@@ -20,6 +20,7 @@ export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
   '/admin/digital',
   '/admin/cash-registers',
   '/admin/rksv/config',
+  '/admin/mwst',
 ] as const;
 
 export function isPathAllowedWithoutTenant(pathname: string | null | undefined): boolean {

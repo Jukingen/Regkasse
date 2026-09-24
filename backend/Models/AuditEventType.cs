@@ -239,5 +239,11 @@ public enum AuditEventType
     /// </summary>
     MonatsbelegAutoCreateMissed = 105,
 
+    /// <summary>CH canary built an MWST QR payload. No TSE signature. IBAN is not stored.</summary>
+    ChMwstQrBuilt = 106,
+
+    /// <summary>Super Admin set Fiscal.MwstCh=false for the CH canary tenant.</summary>
+    ChMwstCanaryRolledBack = 107,
+
     Other = 99
 }

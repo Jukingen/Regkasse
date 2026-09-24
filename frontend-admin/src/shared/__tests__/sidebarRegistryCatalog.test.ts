@@ -157,6 +157,7 @@ describe('sidebarRegistryCatalog', () => {
       expect.arrayContaining([
         'adminTseManagement',
         'adminRksvRuntimeConfig',
+        'adminMwst',
         'superAdminApprovals',
         'adminTseLogs',
         'superAdminDeployments',

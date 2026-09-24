@@ -70,6 +70,9 @@ public enum ActivityEventType
     /// <summary>GDPR data export ZIP is ready; download link issued (7-day expiry).</summary>
     DataExportReady = 92,
 
+    /// <summary>CH canary MWST QR payload built. No secrets.</summary>
+    ChMwstQrBuilt = 110,
+
     /// <summary>Custom role created (permission management).</summary>
     RoleCreated = 100,
     /// <summary>Custom role deleted.</summary>

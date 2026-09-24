@@ -1164,6 +1164,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'SafetyCertificateOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
   },
+  adminMwst: {
+    id: 'adminMwst',
+    menuKey: '/admin/mwst',
+    href: '/admin/mwst',
+    labelKey: 'nav.adminMwst',
+    icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
   adminTseFailover: {
     id: 'adminTseFailover',
     menuKey: '/admin/tse/failover',
@@ -1907,7 +1915,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.securityTse,
         labelKey: 'nav.securityTse',
         icon: 'SafetyCertificateOutlined',
-        catalogIds: ['superAdminApprovals', 'adminRksvRuntimeConfig'],
+        catalogIds: ['superAdminApprovals', 'adminRksvRuntimeConfig', 'adminMwst'],
         childGroups: [
           {
             menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,

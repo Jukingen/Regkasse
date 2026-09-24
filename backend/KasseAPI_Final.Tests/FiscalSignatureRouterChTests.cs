@@ -1,9 +1,11 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.FeatureFlags;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -62,5 +64,16 @@ public sealed class FiscalSignatureRouterChTests
         var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() => router.SignAsync(Context()));
 
         Assert.Equal(FeatureFlagNames.FiscalMwstCh, ex.FeatureName);
+    }
+
+    [Fact]
+    public async Task ChTenant_OtherThanCanary_Throws()
+    {
+        var router = new FiscalSignatureRouter(
+            Flags(true),
+            mwst: Options.Create(new MwstOptions { CanaryTenantId = Guid.NewGuid().ToString("D") }));
+
+        var ex = await Assert.ThrowsAsync<ChMwstCanaryRejectedException>(() => router.SignAsync(Context()));
+        Assert.Contains("canary", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

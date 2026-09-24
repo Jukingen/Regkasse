@@ -1281,9 +1281,27 @@ namespace KasseAPI_Final.Services
                                     payment.TotalAmount,
                                     preReceiptNumber));
                             _logger.LogInformation(
-                                "CH MWST QR payload built for payment {PaymentId}; no TSE signature.",
-                                payment.Id);
-                            _ = chSign.SwissQrText;
+                                "CH_MWST QR built. TenantId={TenantId} Receipt={Receipt} Provider={Provider} Vat={Vat}",
+                                countryBinding.Settings.TenantId,
+                                preReceiptNumber,
+                                chSign.Provider,
+                                chSign.TotalVat);
+                            try
+                            {
+                                await _auditLogService.LogSystemOperationAsync(
+                                    action: "CH_MWST_QR_BUILT",
+                                    entityType: "Payment",
+                                    userId: userId,
+                                    userRole: "Cashier",
+                                    description: "CH MWST QR payload built for canary tenant",
+                                    actionType: AuditEventType.ChMwstQrBuilt,
+                                    entityId: payment.Id,
+                                    tenantId: countryBinding.Settings.TenantId);
+                            }
+                            catch (Exception auditEx)
+                            {
+                                _logger.LogWarning(auditEx, "CH_MWST audit write failed for {Receipt}", preReceiptNumber);
+                            }
                         }
                         catch (FeatureDisabledException ex)
                         {
@@ -1295,6 +1313,18 @@ namespace KasseAPI_Final.Services
                                 Message = "Swiss MWST is not enabled",
                                 Errors = { ex.Message },
                                 DiagnosticCode = "CH_FLAG_OFF"
+                            };
+                        }
+                        catch (Fiscal.ChMwstCanaryRejectedException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Swiss MWST canary rejected the tenant",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "CH_NOT_CANARY"
                             };
                         }
                     }

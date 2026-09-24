@@ -240,6 +240,7 @@ export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
   '/admin/support',
   '/admin/tse-management',
   '/admin/rksv/config',
+  '/admin/mwst',
   '/admin/tse/failover',
   '/admin/tse/resource-pools',
   '/admin/tse/incidents',

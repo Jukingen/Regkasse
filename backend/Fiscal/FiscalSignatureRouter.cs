@@ -1,3 +1,4 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
@@ -6,6 +7,7 @@ using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.FeatureFlags;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Fiscal;
 
@@ -32,6 +34,14 @@ public sealed record FiscalSignatureResult(
     string? SwissQrText,
     decimal TotalVat);
 
+public sealed class ChMwstCanaryRejectedException : InvalidOperationException
+{
+    public ChMwstCanaryRejectedException()
+        : base("CH MWST is limited to the configured canary tenant.")
+    {
+    }
+}
+
 public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
 {
     public const string ChProvider = "CH_MWST";
@@ -39,13 +49,16 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
     private readonly IFeatureFlagService? _featureFlags;
     private readonly SwitzerlandTaxStrategy _tax;
     private readonly IQrRechnungBuilder _qr;
+    private readonly MwstOptions? _mwst;
 
     public FiscalSignatureRouter(
         IFeatureFlagService? featureFlags,
         SwitzerlandTaxStrategy? tax = null,
-        IQrRechnungBuilder? qr = null)
+        IQrRechnungBuilder? qr = null,
+        IOptions<MwstOptions>? mwst = null)
     {
         _featureFlags = featureFlags;
+        _mwst = mwst?.Value;
         _tax = tax ?? new SwitzerlandTaxStrategy(
             new CountryTaxTypeRegistry(),
             new VatIdValidator(new DisabledViesClient()),
@@ -68,6 +81,15 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             && !_featureFlags.IsEnabled(FeatureFlagNames.FiscalMwstCh, context.Binding.Settings.TenantId.ToString("D")))
         {
             throw new FeatureDisabledException(FeatureFlagNames.FiscalMwstCh);
+        }
+
+        if (_mwst is not null)
+        {
+            if (!Guid.TryParse(_mwst.CanaryTenantId, out var canary)
+                || canary != context.Binding.Settings.TenantId)
+            {
+                throw new ChMwstCanaryRejectedException();
+            }
         }
 
         var tax = _tax.CalculateTax(

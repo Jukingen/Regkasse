@@ -118,6 +118,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/mwst': [PERMISSIONS.SYSTEM_CRITICAL],
 
   // Backup (legacy redirect)
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,

@@ -350,6 +350,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.securityTse]: [
     '/admin/approvals',
     '/admin/rksv/config',
+    '/admin/mwst',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -431,6 +432,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.system]: [
     '/admin/approvals',
     '/admin/rksv/config',
+    '/admin/mwst',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -631,6 +633,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/approvals/') ||
     p === '/admin/rksv/config' ||
     p.startsWith('/admin/rksv/config/') ||
+    p === '/admin/mwst' ||
+    p.startsWith('/admin/mwst/') ||
     p === '/admin/tse-management' ||
     p.startsWith('/admin/tse-management/') ||
     p === '/admin/tse/failover' ||

@@ -256,6 +256,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/risk-dashboard': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse-management': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/mwst': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/failover': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/resource-pools': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/incidents': [PERMISSIONS.SYSTEM_CRITICAL],

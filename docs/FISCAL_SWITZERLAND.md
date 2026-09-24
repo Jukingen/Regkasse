@@ -36,7 +36,9 @@ Feature-flag gates: `Fiscal.MwstCh` (country-profile default **on** for CH), `EI
 
 Simulated or fake CH fiscal modes are rejected at host startup (`CountryFiscalLockEvaluator`).
 
-Super Admin may **create** a CH tenant. Do not take Production CH POS sales. Cutover: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md).
+Super Admin may **create** a CH tenant. Production POS sales stay off until one canary is set.
+
+**Canary (Paket 81):** `Mwst:CanaryTenantId` empty denies every tenant. Set `Mwst__CanaryTenantId` to one CH mandant. `KassenSicherheit:Provider` stays `not-configured` (unused for CH). `Mwst:UseTestEndpoint` stays false. Rollback: FA `/admin/mwst` sets `Fiscal.MwstCh=false` for that tenant (`AuditEventType.ChMwstCanaryRolledBack`). A built QR writes `ChMwstQrBuilt` and an information log `CH_MWST`. Country-profile default for `Fiscal.MwstCh` stays on for `MWST_CH`; the canary id is the live lock.
 
 ---
 
