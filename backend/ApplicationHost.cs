@@ -344,6 +344,8 @@ internal static class ApplicationHost
 
             builder.Services.Configure<KassenSicherheitOptions>(
                 builder.Configuration.GetSection(KassenSicherheitOptions.SectionName));
+            builder.Services.AddSingleton<IValidateOptions<KassenSicherheitOptions>, KassenSicherheitHostOptionsValidator>();
+            builder.Services.AddOptions<KassenSicherheitOptions>().ValidateOnStart();
             builder.Services.Configure<MwstOptions>(
                 builder.Configuration.GetSection(MwstOptions.SectionName));
             builder.Services.Configure<QrRechnungOptions>(
