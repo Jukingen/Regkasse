@@ -295,5 +295,15 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         [Column("preorder_cancellation_policy_text")]
         public string? PreorderCancellationPolicyText { get; set; }
+
+        /// <summary>Fiskaly SIGN DE TSS id. Null until a canary tenant is configured.</summary>
+        [Column("de_tss_id")]
+        [MaxLength(64)]
+        public string? DeTssId { get; set; }
+
+        /// <summary>Fiskaly SIGN DE client id. Null until a canary tenant is configured.</summary>
+        [Column("de_client_id")]
+        [MaxLength(64)]
+        public string? DeClientId { get; set; }
     }
 }

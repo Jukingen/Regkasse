@@ -1,3 +1,5 @@
+using KasseAPI_Final.Services.Countries.Strategies.Germany;
+
 namespace KasseAPI_Final.Services.Countries.KassenSicherheit;
 
 public sealed record KassenSicherheitCreateTssRequest(
@@ -24,7 +26,9 @@ public sealed record KassenSicherheitFinishTransactionRequest(
     string ClientId,
     string TransactionId,
     int TxRevision,
-    string? ProcessData = null);
+    string? ProcessData = null,
+    DeReceiptPayload? Receipt = null,
+    string? Belegnummer = null);
 
 public sealed record KassenSicherheitExportRequest(
     Guid TenantId,

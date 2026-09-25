@@ -1434,7 +1434,10 @@ namespace KasseAPI_Final.Services
                                 payment.TotalAmount,
                                 preReceiptNumber,
                                 CashRegisterId: cashRegisterId,
-                                RegisterNumber: registerNumber));
+                                RegisterNumber: registerNumber,
+                                TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
+                                PaymentMethodRaw: payment.PaymentMethodRaw));
+                        payment.CountryCodeAtIssue = "DE";
                     }
 
                     var companyAddress = payment.CompanyAddress

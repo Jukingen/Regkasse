@@ -160,7 +160,8 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
             request.TransactionId,
             request.TxRevision,
             state: "FINISHED",
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            body: request.Receipt is null ? null : BuildFinishBody(request)).ConfigureAwait(false);
     }
 
     public async Task<KassenSicherheitExportResult> ExportDsfinvkAsync(
@@ -185,6 +186,38 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         return new KassenSicherheitExportResult(true, exportId, ProviderId);
     }
 
+    private static object BuildFinishBody(KassenSicherheitFinishTransactionRequest request)
+    {
+        var receipt = request.Receipt!.StandardV1.Receipt;
+        return new
+        {
+            state = "FINISHED",
+            client_id = request.ClientId,
+            schema = new
+            {
+                standard_v1 = new
+                {
+                    receipt = new
+                    {
+                        receipt_type = receipt.ReceiptType,
+                        amounts_per_vat_rate = receipt.AmountsPerVatRate
+                            .Select(row => new { vat_rate = row.VatRate, amount = row.Amount })
+                            .ToArray(),
+                        amounts_per_payment_type = receipt.AmountsPerPaymentType
+                            .Select(row => new
+                            {
+                                payment_type = row.PaymentType,
+                                amount = row.Amount,
+                                currency_code = row.CurrencyCode,
+                            })
+                            .ToArray(),
+                    },
+                },
+            },
+            metadata = new { belegnummer = request.Belegnummer ?? request.Receipt.Belegnummer },
+        };
+    }
+
     private async Task<KassenSicherheitTransactionResult> UpsertTransactionAsync(
         HttpMethod method,
         string relativePath,
@@ -193,7 +226,8 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         string transactionId,
         int txRevision,
         string state,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? body = null)
     {
         RequireId(tssId, nameof(tssId));
         RequireId(clientId, nameof(clientId));
@@ -205,7 +239,7 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         using var response = await SendAsync(
             method,
             relativePath,
-            new { state, client_id = clientId },
+            body ?? new { state, client_id = clientId },
             bearer: true,
             cancellationToken).ConfigureAwait(false);
         var root = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);

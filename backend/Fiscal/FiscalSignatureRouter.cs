@@ -8,6 +8,8 @@ using KasseAPI_Final.Services.Countries.EInvoicing;
 using KasseAPI_Final.Services.Countries.QrRechnung;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Strategies;
+using KasseAPI_Final.Services.Countries.KassenSicherheit;
+using KasseAPI_Final.Services.Countries.Strategies.Germany;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.FeatureFlags;
@@ -29,7 +31,8 @@ public sealed record FiscalSignatureContext(
     string? PrevSignatureValue = null,
     DateTime? Timestamp = null,
     string? TaxDetailsJson = null,
-    IDbContextTransaction? DbTransaction = null);
+    IDbContextTransaction? DbTransaction = null,
+    string? PaymentMethodRaw = null);
 
 /// <summary>
 /// Country signing dispatch. Austria calls <see cref="ITseService"/>; Germany is gated
@@ -63,11 +66,14 @@ public sealed class ChMwstCanaryRejectedException : InvalidOperationException
 public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
 {
     public const string AtProvider = "AT_FISKALY";
+    public const string DeProvider = "DE_KASSENSICHERHEIT";
     public const string ChProvider = "CH_MWST";
     public const string EuProvider = "EN_16931";
 
     private readonly IFeatureFlagService? _featureFlags;
     private readonly ITseService? _tse;
+    private readonly IKassenSicherheitService? _kassen;
+    private readonly DeReceiptPayloadMapper _deReceipt;
     private readonly SwitzerlandTaxStrategy _tax;
     private readonly IQrRechnungBuilder _qr;
     private readonly MwstOptions? _mwst;
@@ -82,10 +88,18 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         IOptions<MwstOptions>? mwst = null,
         IEn16931XmlBuilder? ubl = null,
         IPeppolSubmissionService? peppol = null,
-        ITseService? tse = null)
+        ITseService? tse = null,
+        IKassenSicherheitService? kassen = null,
+        DeReceiptPayloadMapper? deReceipt = null)
     {
         _featureFlags = featureFlags;
         _tse = tse;
+        _kassen = kassen;
+        _deReceipt = deReceipt ?? new DeReceiptPayloadMapper(
+            new GermanyTaxStrategy(
+                new CountryTaxTypeRegistry(),
+                new VatIdValidator(new DisabledViesClient()),
+                featureFlags));
         _mwst = mwst?.Value;
         _ubl = ubl ?? new En16931UblXmlBuilder(featureFlags);
         _euTax = new EuDefaultTaxStrategy(
@@ -118,7 +132,7 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             return await SignAtAsync(context).ConfigureAwait(false);
 
         if (context.Binding.Profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE)
-            throw SignDeUnavailable(context);
+            return await SignDeAsync(context, cancellationToken).ConfigureAwait(false);
 
         if (context.Binding.Profile.FiscalSystem != FiscalSystem.MWST_CH)
         {
@@ -208,18 +222,73 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             CertificateThumbprint: sig.CertificateThumbprint);
     }
 
-    private FiscalSigningNotAvailableException SignDeUnavailable(FiscalSignatureContext context)
+    private async Task<FiscalSignatureResult> SignDeAsync(
+        FiscalSignatureContext context,
+        CancellationToken cancellationToken)
     {
         var tenantId = context.Binding.Settings.TenantId.ToString("D");
         if (_featureFlags is null
             || !_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenantId))
         {
-            return new FiscalSigningNotAvailableException(
+            throw new FiscalSigningNotAvailableException(
                 FiscalSigningNotAvailableException.DeFlagOff);
         }
 
-        return new FiscalSigningNotAvailableException(
-            FiscalSigningNotAvailableException.DeNotReady);
+        var settings = context.Binding.Settings;
+        var tssId = RequireDeId(settings.DeTssId, "KassenSicherheit__TssId");
+        var clientId = RequireDeId(settings.DeClientId, "KassenSicherheit__ClientId");
+        if (_kassen is null)
+            throw new InvalidOperationException("DE KassenSicherheit service is not configured.");
+
+        var transactionId = Guid.NewGuid().ToString("N");
+        var started = await _kassen.StartTransactionAsync(
+            new KassenSicherheitStartTransactionRequest(
+                settings.TenantId,
+                tssId,
+                clientId,
+                transactionId),
+            cancellationToken).ConfigureAwait(false);
+
+        using var taxDoc = System.Text.Json.JsonDocument.Parse(
+            string.IsNullOrWhiteSpace(context.TaxDetailsJson) ? "{}" : context.TaxDetailsJson);
+        var draft = new PaymentDetails
+        {
+            TotalAmount = context.TotalGross,
+            ReceiptNumber = context.ReceiptNumber,
+            TaxDetails = taxDoc,
+            PaymentMethodRaw = context.PaymentMethodRaw,
+        };
+        var payload = _deReceipt.FromPayment(draft);
+        var finishRevision = (started.TxRevision ?? 1) + 1;
+        var finished = await _kassen.FinishTransactionAsync(
+            new KassenSicherheitFinishTransactionRequest(
+                settings.TenantId,
+                tssId,
+                clientId,
+                started.TransactionId ?? transactionId,
+                finishRevision,
+                Receipt: payload,
+                Belegnummer: payload.Belegnummer),
+            cancellationToken).ConfigureAwait(false);
+
+        return new FiscalSignatureResult(
+            DeProvider,
+            finished.Signature,
+            SwissQrText: null,
+            TotalVat: 0m);
+    }
+
+    private static string RequireDeId(string? fromSettings, string envName)
+    {
+        if (!string.IsNullOrWhiteSpace(fromSettings))
+            return fromSettings.Trim();
+
+        var fromEnv = Environment.GetEnvironmentVariable(envName);
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+            return fromEnv.Trim();
+
+        throw new FiscalSigningNotAvailableException(
+            FiscalSigningNotAvailableException.DeNotConfigured);
     }
 
     private async Task<FiscalSignatureResult> SignEuAsync(

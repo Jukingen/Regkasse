@@ -55,7 +55,7 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
         Assert.True(export.Exported);
         Assert.Equal("exp-1", export.ExportId);
         Assert.Equal(1, handler.Requests.Count(r => r.Uri.AbsolutePath.EndsWith("/auth", StringComparison.Ordinal)));
-        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Post && r.Uri.AbsolutePath.EndsWith("/tx", StringComparison.Ordinal) && r.Body.Contains("\"state\":\"ACTIVE\"", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Post && r.Uri.AbsolutePath.EndsWith("/tx", StringComparison.Ordinal) && r.Body.Contains("\"state\":\"ACTIVE\"", StringComparison.Ordinal) && r.Body.Contains("\"client_id\":\"client-1\"", StringComparison.Ordinal) && !r.Body.Contains("standard_v1", StringComparison.Ordinal));
         Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Patch && r.Uri.AbsolutePath.EndsWith("/tx/tx-1", StringComparison.Ordinal) && r.Body.Contains("\"state\":\"FINISHED\"", StringComparison.Ordinal));
         Assert.Contains(handler.Requests, r => r.Method == HttpMethod.Put && r.Uri.Host == "dsfinvk.fiskaly.com" && r.Uri.AbsolutePath.EndsWith("/exports/exp-1", StringComparison.Ordinal) && r.Body.Contains("\"format\":\"zip\"", StringComparison.Ordinal));
         Assert.All(handler.Requests.Where(r => !r.Uri.AbsolutePath.EndsWith("/auth", StringComparison.Ordinal)), r =>
@@ -64,6 +64,46 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
         Assert.DoesNotContain(Secret, logged, StringComparison.Ordinal);
         Assert.DoesNotContain(Pin, logged, StringComparison.Ordinal);
         Assert.DoesNotContain("tok-1", logged, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Finish_WithReceipt_SendsStandardV1AndBelegnummer()
+    {
+        var handler = new RecordingHandler(request =>
+        {
+            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            if (path.EndsWith("/auth", StringComparison.Ordinal))
+                return Json(HttpStatusCode.OK, """{"access_token":"tok-finish","access_token_expires_in":120}""");
+            return Json(HttpStatusCode.OK, """{"state":"FINISHED","latest_revision":2,"signature":{"value":"sig-de"}}""");
+        });
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        var client = new FiskalyDeKassenSicherheitHttpClient(http, Options(), new CollectingLogger());
+        var payload = new KasseAPI_Final.Services.Countries.Strategies.Germany.DeReceiptPayload(
+            new KasseAPI_Final.Services.Countries.Strategies.Germany.DeStandardV1(
+                new KasseAPI_Final.Services.Countries.Strategies.Germany.DeReceipt(
+                    "RECEIPT",
+                    [new KasseAPI_Final.Services.Countries.Strategies.Germany.DeAmountPerVatRate("NORMAL", "119.00")],
+                    [new KasseAPI_Final.Services.Countries.Strategies.Germany.DeAmountPerPaymentType("CASH", "119.00", "EUR")])),
+            Raw: null,
+            Belegnummer: "DE-dev-1-1");
+
+        await client.AuthenticateAsync();
+        var finish = await client.FinishTransactionAsync(new KassenSicherheitFinishTransactionRequest(
+            Guid.NewGuid(),
+            "tss-1",
+            "client-1",
+            "tx-1",
+            2,
+            Receipt: payload,
+            Belegnummer: payload.Belegnummer));
+
+        Assert.Equal("sig-de", finish.Signature);
+        var body = handler.Requests.Single(r => r.Method == HttpMethod.Patch).Body;
+        Assert.Contains("\"standard_v1\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"receipt_type\":\"RECEIPT\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"vat_rate\":\"NORMAL\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"belegnummer\":\"DE-dev-1-1\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"raw\"", body, StringComparison.Ordinal);
     }
 
     [Fact]

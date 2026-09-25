@@ -7,6 +7,7 @@ public sealed class FiscalSigningNotAvailableException : InvalidOperationExcepti
 {
     public const string DeFlagOff = "DE_FLAG_OFF";
     public const string DeNotReady = "DE_NOT_READY";
+    public const string DeNotConfigured = "DE_NOT_CONFIGURED";
     public const string ChNotImplemented = "CH_NOT_IMPLEMENTED";
 
     public FiscalSigningNotAvailableException(string code)

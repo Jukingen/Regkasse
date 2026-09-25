@@ -8,6 +8,7 @@ using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Austria;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
+using KasseAPI_Final.Services.Countries.KassenSicherheit;
 using KasseAPI_Final.Services.Countries.Strategies.Germany;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.FeatureFlags;
@@ -281,19 +282,64 @@ public sealed class CountryCallSiteMigrationTests
     }
 
     [Fact]
-    public async Task DePayment_FlagOn_ReturnsDeNotReady()
+    public async Task DePayment_FlagOn_MissingIds_ReturnsDeNotConfigured()
+    {
+        var previousTss = Environment.GetEnvironmentVariable("KassenSicherheit__TssId");
+        var previousClient = Environment.GetEnvironmentVariable("KassenSicherheit__ClientId");
+        Environment.SetEnvironmentVariable("KassenSicherheit__TssId", null);
+        Environment.SetEnvironmentVariable("KassenSicherheit__ClientId", null);
+        try
+        {
+            var flags = new Mock<IFeatureFlagService>();
+            flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
+                .Returns(true);
+
+            var result = await CreateDePaymentAsync(flags.Object);
+
+            Assert.False(result.Success);
+            Assert.Contains(FiscalSigningNotAvailableException.DeNotConfigured, result.Errors);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KassenSicherheit__TssId", previousTss);
+            Environment.SetEnvironmentVariable("KassenSicherheit__ClientId", previousClient);
+        }
+    }
+
+    [Fact]
+    public async Task DePayment_FlagOn_WithIds_StampsDe_AndFinishes()
     {
         var flags = new Mock<IFeatureFlagService>();
         flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
             .Returns(true);
+        var kassen = new Mock<IKassenSicherheitService>();
+        kassen.Setup(x => x.StartTransactionAsync(
+                It.IsAny<KassenSicherheitStartTransactionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly"));
+        kassen.Setup(x => x.FinishTransactionAsync(
+                It.IsAny<KassenSicherheitFinishTransactionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "FINISHED", 2, "sig-de", "fiskaly"));
+        var router = new FiscalSignatureRouter(flags.Object, kassen: kassen.Object);
 
-        var result = await CreateDePaymentAsync(flags.Object);
+        var result = await CreateDePaymentAsync(flags.Object, router, "tss-1", "client-1");
 
-        Assert.False(result.Success);
-        Assert.Contains(FiscalSigningNotAvailableException.DeNotReady, result.Errors);
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Equal("DE", result.Payment!.CountryCodeAtIssue);
+        kassen.Verify(x => x.StartTransactionAsync(
+            It.IsAny<KassenSicherheitStartTransactionRequest>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        kassen.Verify(x => x.FinishTransactionAsync(
+            It.Is<KassenSicherheitFinishTransactionRequest>(r => r.Receipt != null && r.Belegnummer != null),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private static async Task<PaymentResult> CreateDePaymentAsync(IFeatureFlagService flags)
+    private static async Task<PaymentResult> CreateDePaymentAsync(
+        IFeatureFlagService flags,
+        IFiscalSignatureRouter? router = null,
+        string? deTssId = null,
+        string? deClientId = null)
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();
         var (customerId, _, registerId, categoryId) =
@@ -305,6 +351,9 @@ public sealed class CountryCallSiteMigrationTests
             119m,
             TaxTypes.Standard);
         SeedCountrySettings(ctx, CountryProfileCodes.Germany, VatRegime.DE_USTG_STANDARD, "DE123456789");
+        var settings = ctx.CompanySettings.Local.Single();
+        settings.DeTssId = deTssId;
+        settings.DeClientId = deClientId;
         await ctx.SaveChangesAsync();
 
         var pay = PaymentServiceCoverageHarness.CreatePaymentService(
@@ -312,6 +361,7 @@ public sealed class CountryCallSiteMigrationTests
             new PaymentServiceCoverageHarness.Options
             {
                 FeatureFlags = flags,
+                FiscalRouter = router,
                 CompanyProfile = new CompanyProfileOptions
                 {
                     CompanyName = "DE GmbH",

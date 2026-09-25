@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
@@ -53,6 +54,7 @@ internal static class PaymentServiceCoverageHarness
         public KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService? FeatureFlags { get; init; }
         public CompanyProfileOptions? CompanyProfile { get; init; }
         public KasseAPI_Final.Services.Limits.ITenantLimitGuard? TenantLimitGuard { get; init; }
+        public IFiscalSignatureRouter? FiscalRouter { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -227,7 +229,8 @@ internal static class PaymentServiceCoverageHarness
                 : Microsoft.Extensions.Options.Options.Create(options.LicenseOptions),
             cardPaymentService: options.Card,
             featureFlags: options.FeatureFlags,
-            tenantLimitGuard: options.TenantLimitGuard);
+            tenantLimitGuard: options.TenantLimitGuard,
+            fiscalSignatureRouter: options.FiscalRouter);
     }
 
     public static Mock<IAuditLogService> CreateAuditMock()
