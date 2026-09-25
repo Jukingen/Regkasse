@@ -69,6 +69,7 @@ public sealed class AppDbContextTenantModelTests
         {
             "ActivityEventRead.ActivityEvent -> ActivityEvent",
             "CashRegisterTransaction.CashRegister -> CashRegister",
+            "DeReceiptSequence.CashRegister -> CashRegister",
             "OnlineOrderItem.OnlineOrder -> OnlineOrder",
             "PaymentDetails.CashRegister -> CashRegister",
             "RksvSpecialReceiptFinanzOnlineSubmission.(no-nav) -> CashRegister",

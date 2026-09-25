@@ -4673,6 +4673,31 @@ namespace KasseAPI_Final.Data
                     .HasMaxLength(VatRegimeNames.MaxLength);
             });
 
+            builder.Entity<DeReceiptSequence>(entity =>
+            {
+                entity.ToTable("de_receipt_sequences");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.NextSequence).IsRequired();
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.CashRegisterId).IsUnique()
+                    .HasDatabaseName("IX_de_receipt_sequences_cash_register_id");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_de_receipt_sequences_tenant_id");
+            });
+
             // Receipt sequence: one row per (CashRegisterId, date).
             builder.Entity<ReceiptSequence>(entity =>
             {

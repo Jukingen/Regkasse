@@ -17,8 +17,14 @@ public class DeReceiptSequence
     [Column("tenant_id")]
     public Guid TenantId { get; set; }
 
+    [ForeignKey(nameof(TenantId))]
+    public Tenant? Tenant { get; set; }
+
     [Column("cash_register_id")]
     public Guid CashRegisterId { get; set; }
+
+    [ForeignKey(nameof(CashRegisterId))]
+    public CashRegister? CashRegister { get; set; }
 
     [Column("next_sequence")]
     public int NextSequence { get; set; }
