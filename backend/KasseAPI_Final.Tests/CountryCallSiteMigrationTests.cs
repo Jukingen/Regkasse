@@ -1,4 +1,5 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
@@ -258,6 +259,72 @@ public sealed class CountryCallSiteMigrationTests
         Assert.Equal(121m, result.Payment!.TotalAmount);
         Assert.Equal(0m, result.Payment.TaxAmount);
         Assert.Equal(0m, result.Payment.TaxDetails.RootElement.GetProperty("0").GetDecimal());
+    }
+
+    [Fact]
+    public async Task DePayment_RouterFlagOff_ReturnsDeFlagOff()
+    {
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(
+                FeatureFlagNames.FiscalKassenSicherheitDe,
+                It.Is<string?>(id => string.IsNullOrEmpty(id))))
+            .Returns(true);
+        flags.Setup(f => f.IsEnabled(
+                FeatureFlagNames.FiscalKassenSicherheitDe,
+                It.Is<string?>(id => !string.IsNullOrEmpty(id))))
+            .Returns(false);
+
+        var result = await CreateDePaymentAsync(flags.Object);
+
+        Assert.False(result.Success);
+        Assert.Contains(FiscalSigningNotAvailableException.DeFlagOff, result.Errors);
+    }
+
+    [Fact]
+    public async Task DePayment_FlagOn_ReturnsDeNotReady()
+    {
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
+            .Returns(true);
+
+        var result = await CreateDePaymentAsync(flags.Object);
+
+        Assert.False(result.Success);
+        Assert.Contains(FiscalSigningNotAvailableException.DeNotReady, result.Errors);
+    }
+
+    private static async Task<PaymentResult> CreateDePaymentAsync(IFeatureFlagService flags)
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, _, registerId, categoryId) =
+            await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx, unitPrice: 119m);
+        var productId = await PaymentServiceCoverageHarness.AddProductAsync(
+            ctx,
+            categoryId,
+            "DE item",
+            119m,
+            TaxTypes.Standard);
+        SeedCountrySettings(ctx, CountryProfileCodes.Germany, VatRegime.DE_USTG_STANDARD, "DE123456789");
+        await ctx.SaveChangesAsync();
+
+        var pay = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                FeatureFlags = flags,
+                CompanyProfile = new CompanyProfileOptions
+                {
+                    CompanyName = "DE GmbH",
+                    TaxNumber = "DE123456789",
+                    Street = "S",
+                    ZipCode = "10115",
+                    City = "Berlin",
+                },
+            });
+
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId, total: 119m);
+        request.Steuernummer = "DE123456789";
+        return await pay.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
     }
 
     [Fact]

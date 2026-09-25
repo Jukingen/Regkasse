@@ -167,7 +167,7 @@ namespace KasseAPI_Final.Services
             _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
             _taxTypes = countryTaxTypeRegistry ?? new CountryTaxTypeRegistry();
             _fiscalSignatureRouter = fiscalSignatureRouter
-                ?? new Fiscal.FiscalSignatureRouter(_featureFlags);
+                ?? new Fiscal.FiscalSignatureRouter(_featureFlags, tse: _tseService);
         }
 
         /// <summary>
@@ -1361,26 +1361,30 @@ namespace KasseAPI_Final.Services
                             };
                         }
                     }
-                    else if (effectiveTseRequired)
+                    else if (countryBinding.Profile.FiscalSystem == FiscalSystem.RKSV_AT && effectiveTseRequired)
                     {
                         try
                         {
-                            var sigResult = await FiscalTseSigning.SignAsync(
-                                _tseService,
-                                new FiscalSigningRequest(
-                                    cashRegisterId,
-                                    preReceiptNumber,
+                            var atSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
                                     payment.TotalAmount,
-                                    registerNumber,
+                                    preReceiptNumber,
+                                    CashRegisterId: cashRegisterId,
+                                    RegisterNumber: registerNumber,
                                     TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
                                     DbTransaction: transaction));
-                            payment.TseSignature = sigResult.CompactJws;
-                            payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
-                            payment.CertificateThumbprint = sigResult.CertificateThumbprint;
+                            payment.TseSignature = atSign.Signature;
+                            payment.PrevSignatureValueUsed = atSign.PrevSignatureValue;
+                            payment.CertificateThumbprint = atSign.CertificateThumbprint;
                             _logger.LogInformation(
                                 "TSE signature generated for payment {PaymentId} provider={Provider}",
                                 payment.Id,
-                                sigResult.SigningProvider);
+                                atSign.Provider);
                         }
                         catch (TseUnavailableException ex)
                         {
@@ -1417,6 +1421,20 @@ namespace KasseAPI_Final.Services
                                 Errors = { "TSE signature generation failed" }
                             };
                         }
+                    }
+                    else if (countryBinding.Profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE)
+                    {
+                        await _fiscalSignatureRouter.SignAsync(
+                            new Fiscal.FiscalSignatureContext(
+                                countryBinding,
+                                taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                    line.UnitPriceGross,
+                                    1,
+                                    line.TaxRate * 100m)).ToList(),
+                                payment.TotalAmount,
+                                preReceiptNumber,
+                                CashRegisterId: cashRegisterId,
+                                RegisterNumber: registerNumber));
                     }
 
                     var companyAddress = payment.CompanyAddress
