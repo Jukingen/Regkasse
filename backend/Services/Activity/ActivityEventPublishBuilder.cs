@@ -165,6 +165,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.TseAutoScaleRecommended => "TSE auto-scaling — recommendation / soft apply",
             ActivityEventType.TseAnomalyDetected => "TSE anomaly detected (statistical baseline)",
             ActivityEventType.TseAutoHealExecuted => "TSE auto-healing — recovery action executed",
+            ActivityEventType.KsDeTxFinished => "DE KassenSicherheit transaction finished",
             _ => type.ToString(),
         };
 

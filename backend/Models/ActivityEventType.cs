@@ -248,4 +248,7 @@ public enum ActivityEventType
 
     /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
     TenantCountryChanged = 251,
+
+    /// <summary>DE KassenSicherheit transaction finished. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxFinished = 252,
 }

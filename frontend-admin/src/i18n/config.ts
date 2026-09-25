@@ -19,6 +19,7 @@ import deDigital from './locales/de/digital.json';
 import deErrors from './locales/de/errors.json';
 import deFeedback from './locales/de/feedback.json';
 import deFeatureFlags from './locales/de/featureFlags.json';
+import deKassenSicherheit from './locales/de/kassenSicherheit.json';
 import deDeployments from './locales/de/deployments.json';
 import deDatabaseMigrations from './locales/de/databaseMigrations.json';
 import deMaintenance from './locales/de/maintenance.json';
@@ -107,6 +108,7 @@ import enDigital from './locales/en/digital.json';
 import enErrors from './locales/en/errors.json';
 import enFeedback from './locales/en/feedback.json';
 import enFeatureFlags from './locales/en/featureFlags.json';
+import enKassenSicherheit from './locales/en/kassenSicherheit.json';
 import enDeployments from './locales/en/deployments.json';
 import enDatabaseMigrations from './locales/en/databaseMigrations.json';
 import enMaintenance from './locales/en/maintenance.json';
@@ -195,6 +197,7 @@ import trDigital from './locales/tr/digital.json';
 import trErrors from './locales/tr/errors.json';
 import trFeedback from './locales/tr/feedback.json';
 import trFeatureFlags from './locales/tr/featureFlags.json';
+import trKassenSicherheit from './locales/tr/kassenSicherheit.json';
 import trDeployments from './locales/tr/deployments.json';
 import trDatabaseMigrations from './locales/tr/databaseMigrations.json';
 import trMaintenance from './locales/tr/maintenance.json';
@@ -296,6 +299,7 @@ const catalogs = {
     feedback: deFeedback,
     communication: deCommunication,
     featureFlags: deFeatureFlags,
+    kassenSicherheit: deKassenSicherheit,
     deployments: deDeployments,
     databaseMigrations: deDatabaseMigrations,
     maintenance: deMaintenance,
@@ -386,6 +390,7 @@ const catalogs = {
     feedback: enFeedback,
     communication: enCommunication,
     featureFlags: enFeatureFlags,
+    kassenSicherheit: enKassenSicherheit,
     deployments: enDeployments,
     databaseMigrations: enDatabaseMigrations,
     maintenance: enMaintenance,
@@ -476,6 +481,7 @@ const catalogs = {
     feedback: trFeedback,
     communication: trCommunication,
     featureFlags: trFeatureFlags,
+    kassenSicherheit: trKassenSicherheit,
     deployments: trDeployments,
     databaseMigrations: trDatabaseMigrations,
     maintenance: trMaintenance,

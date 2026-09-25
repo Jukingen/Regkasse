@@ -112,6 +112,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.TseAutoScaleRecommended => ActivitySeverityNames.Info,
             ActivityEventType.TseAnomalyDetected => ActivitySeverityNames.Warning,
             ActivityEventType.TseAutoHealExecuted => ActivitySeverityNames.Info,
+            ActivityEventType.KsDeTxFinished => ActivitySeverityNames.Info,
             _ => ActivitySeverityNames.Info,
         };
 

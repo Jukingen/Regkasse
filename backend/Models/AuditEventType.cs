@@ -233,6 +233,18 @@ public enum AuditEventType
     /// </summary>
     TenantCountryChangedHistoricalPreserved = 98,
 
+    /// <summary>DE canary: TSS or client id stored on company settings for the first time. No API secrets.</summary>
+    KsDeTssCreated = 100,
+
+    /// <summary>DE SIGN start. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxStarted = 101,
+
+    /// <summary>DE SIGN finish. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxFinished = 102,
+
+    /// <summary>DSFinV-K export requested. This package records PENDING only.</summary>
+    KsDeExportCreated = 103,
+
     /// <summary>
     /// Auto-Monatsbeleg catch-up window closed with previous-month receipt still missing.
     /// Numeric 105: 99 is reserved for <see cref="Other"/>.

@@ -351,6 +351,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/approvals',
     '/admin/rksv/config',
     '/admin/mwst',
+    '/admin/kassensicherheit',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -433,6 +434,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/approvals',
     '/admin/rksv/config',
     '/admin/mwst',
+    '/admin/kassensicherheit',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -635,6 +637,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/rksv/config/') ||
     p === '/admin/mwst' ||
     p.startsWith('/admin/mwst/') ||
+    p === '/admin/kassensicherheit' ||
+    p.startsWith('/admin/kassensicherheit/') ||
     p === '/admin/tse-management' ||
     p.startsWith('/admin/tse-management/') ||
     p === '/admin/tse/failover' ||

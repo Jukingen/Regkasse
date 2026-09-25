@@ -212,6 +212,7 @@
   "adminTseManagement": "TSE yönetimi",
   "rksvRuntimeConfig": "RKSV işletim modu",
   "adminMwst": "MWST canary (CH)",
+  "adminKassenSicherheit": "KassenSicherheit (DE)",
   "mwstCanaryTitle": "İsviçre MWST canary",
   "mwstCanaryBody": "Yalnızca bir mandant. Geri alma Fiscal.MwstCh değerini false yapar. TSE yok.",
   "mwstFlag": "Fiscal.MwstCh",

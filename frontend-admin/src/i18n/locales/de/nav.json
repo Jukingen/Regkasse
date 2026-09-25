@@ -212,6 +212,7 @@
   "adminTseManagement": "TSE-Verwaltung",
   "rksvRuntimeConfig": "RKSV-Betriebsmodus",
   "adminMwst": "MWST Canary (CH)",
+  "adminKassenSicherheit": "KassenSicherheit (DE)",
   "mwstCanaryTitle": "Schweiz MWST Canary",
   "mwstCanaryBody": "Nur ein Mandant. Rollback setzt Fiscal.MwstCh auf false. Kein TSE.",
   "mwstFlag": "Fiscal.MwstCh",
