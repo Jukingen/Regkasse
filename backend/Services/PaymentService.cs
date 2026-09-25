@@ -1340,7 +1340,8 @@ namespace KasseAPI_Final.Services
                                         1,
                                         line.TaxRate * 100m)).ToList(),
                                     payment.TotalAmount,
-                                    preReceiptNumber));
+                                    preReceiptNumber,
+                                    BuyerVatId: request.Steuernummer));
                             _logger.LogInformation(
                                 "EN_16931 Peppol path. TenantId={TenantId} Receipt={Receipt} Status={Status}",
                                 countryBinding.Settings.TenantId,

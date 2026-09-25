@@ -1,4 +1,5 @@
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
@@ -231,6 +232,10 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         {
             throw new FeatureDisabledException(FeatureFlagNames.EInvoicingEn16931);
         }
+
+        if (context.Binding.VatRegime == VatRegime.EU_REVERSE_CHARGE
+            && string.IsNullOrEmpty(context.BuyerVatId))
+            throw new VatIdShapeInvalidException();
 
         var tax = _euTax.CalculateTax(
             context.LineItems,
