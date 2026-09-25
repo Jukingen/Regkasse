@@ -10,6 +10,7 @@ using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.FeatureFlags;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Fiscal;
@@ -21,11 +22,17 @@ public sealed record FiscalSignatureContext(
     string ReceiptNumber,
     string? BuyerName = null,
     string? BuyerVatId = null,
-    string? BuyerCountry = null);
+    string? BuyerCountry = null,
+    Guid? CashRegisterId = null,
+    string? RegisterNumber = null,
+    string? PrevSignatureValue = null,
+    DateTime? Timestamp = null,
+    string? TaxDetailsJson = null,
+    IDbContextTransaction? DbTransaction = null);
 
 /// <summary>
-/// Country signing dispatch. Austria stays on <see cref="FiscalTseSigning"/>.
-/// Switzerland has no TSE: MWST plus a QR-bill payload, signature left empty.
+/// Country signing dispatch. Austria calls <see cref="ITseService"/>; Germany is gated
+/// and not signed here. Switzerland has no TSE: MWST plus a QR-bill payload.
 /// </summary>
 public interface IFiscalSignatureRouter
 {
@@ -40,7 +47,9 @@ public sealed record FiscalSignatureResult(
     string? SwissQrText,
     decimal TotalVat,
     string? UblXml = null,
-    string? PeppolStatus = null);
+    string? PeppolStatus = null,
+    string? PrevSignatureValue = null,
+    string? CertificateThumbprint = null);
 
 public sealed class ChMwstCanaryRejectedException : InvalidOperationException
 {
@@ -52,10 +61,12 @@ public sealed class ChMwstCanaryRejectedException : InvalidOperationException
 
 public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
 {
+    public const string AtProvider = "AT_FISKALY";
     public const string ChProvider = "CH_MWST";
     public const string EuProvider = "EN_16931";
 
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly ITseService? _tse;
     private readonly SwitzerlandTaxStrategy _tax;
     private readonly IQrRechnungBuilder _qr;
     private readonly MwstOptions? _mwst;
@@ -69,9 +80,11 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         IQrRechnungBuilder? qr = null,
         IOptions<MwstOptions>? mwst = null,
         IEn16931XmlBuilder? ubl = null,
-        IPeppolSubmissionService? peppol = null)
+        IPeppolSubmissionService? peppol = null,
+        ITseService? tse = null)
     {
         _featureFlags = featureFlags;
+        _tse = tse;
         _mwst = mwst?.Value;
         _ubl = ubl ?? new En16931UblXmlBuilder(featureFlags);
         _euTax = new EuDefaultTaxStrategy(
@@ -99,6 +112,12 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         ArgumentNullException.ThrowIfNull(context);
         if (context.Binding.Profile.Code == CountryProfileCodes.EuDefault)
             return await SignEuAsync(context, cancellationToken).ConfigureAwait(false);
+
+        if (context.Binding.Profile.FiscalSystem == FiscalSystem.RKSV_AT)
+            return await SignAtAsync(context).ConfigureAwait(false);
+
+        if (context.Binding.Profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE)
+            throw SignDeUnavailable(context);
 
         if (context.Binding.Profile.FiscalSystem != FiscalSystem.MWST_CH)
         {
@@ -154,6 +173,52 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             Signature: null,
             payload.SwissQrText,
             tax.Totals.TotalVat);
+    }
+
+    private async Task<FiscalSignatureResult> SignAtAsync(FiscalSignatureContext context)
+    {
+        if (context.CashRegisterId is null || string.IsNullOrEmpty(context.RegisterNumber))
+        {
+            throw new InvalidOperationException(
+                "AT branch requires cashRegisterId and registerNumber");
+        }
+
+        if (_tse is null)
+        {
+            throw new InvalidOperationException("AT TSE service is not configured.");
+        }
+
+        var sig = await _tse.CreateInvoiceSignatureAsync(
+            context.CashRegisterId.Value,
+            context.ReceiptNumber,
+            context.TotalGross,
+            context.RegisterNumber,
+            context.PrevSignatureValue,
+            context.Timestamp,
+            context.TaxDetailsJson,
+            context.DbTransaction).ConfigureAwait(false);
+
+        return new FiscalSignatureResult(
+            AtProvider,
+            sig.CompactJws,
+            SwissQrText: null,
+            TotalVat: 0m,
+            PrevSignatureValue: sig.PrevSignatureValueUsed,
+            CertificateThumbprint: sig.CertificateThumbprint);
+    }
+
+    private FiscalSigningNotAvailableException SignDeUnavailable(FiscalSignatureContext context)
+    {
+        var tenantId = context.Binding.Settings.TenantId.ToString("D");
+        if (_featureFlags is null
+            || !_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenantId))
+        {
+            return new FiscalSigningNotAvailableException(
+                FiscalSigningNotAvailableException.DeFlagOff);
+        }
+
+        return new FiscalSigningNotAvailableException(
+            FiscalSigningNotAvailableException.DeNotReady);
     }
 
     private async Task<FiscalSignatureResult> SignEuAsync(
