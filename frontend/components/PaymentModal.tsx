@@ -38,6 +38,7 @@ import {
   type BenefitEligibilityPreviewResponse,
 } from '../services/api/customerService';
 import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
+import { showAlert } from '../utils/alert';
 import { validateAmount } from '../utils/validation';
 import {
   PAYMENT_COVERAGE_TOLERANCE_EUR,
@@ -1172,7 +1173,7 @@ export default function PaymentModal({
           message: cartErr instanceof Error ? cartErr.message : String(cartErr),
         });
         logPay('Guard exit: cart fetch');
-        Alert.alert(
+        showAlert(
           'Debug Error',
           `Failed at: Warenkorb laden � ${cartErr instanceof Error ? cartErr.message : String(cartErr)}`
         );
@@ -1221,7 +1222,7 @@ export default function PaymentModal({
                 : code === 'HOSTED_PAGE_OPEN_FAILED'
                   ? t('checkout:posFlow.payment.onlinePayment.openFailed')
                   : t('checkout:posFlow.payment.onlinePayment.failed');
-          Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), message);
+          showAlert(t('checkout:posFlow.payment.alerts.errorTitle'), message);
           setPurchaseState('input');
           onlinePaymentStoreActions.reset();
           return;
@@ -1394,7 +1395,7 @@ export default function PaymentModal({
         debugPosPaymentTrace('cart_reset_complete', {});
       } catch (resetErr) {
         console.warn('[CART] Reset warning:', resetErr);
-        Alert.alert(
+        showAlert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
           t('checkout:posFlow.payment.errors.completeCartFailed')
         );
@@ -1431,7 +1432,7 @@ export default function PaymentModal({
           : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED'
             ? t('checkout:posFlow.payment.alerts.hintTitle')
             : t('checkout:posFlow.payment.alerts.errorTitle');
-      Alert.alert(title, message);
+      showAlert(title, message);
     } finally {
       setPaymentBusy(false);
     }
@@ -1496,7 +1497,7 @@ export default function PaymentModal({
       } catch {
         setFiscalTseGateOk(false);
         registerPosTseStatusCheckOutcome(false);
-        Alert.alert(
+        showAlert(
           t('checkout:posFlow.payment.alerts.errorTitle'),
           t('checkout:posFlow.payment.tseGate.unavailable')
         );
