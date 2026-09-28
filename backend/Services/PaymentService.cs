@@ -1424,7 +1424,7 @@ namespace KasseAPI_Final.Services
                     }
                     else if (countryBinding.Profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE)
                     {
-                        await _fiscalSignatureRouter.SignAsync(
+                        var deSign = await _fiscalSignatureRouter.SignAsync(
                             new Fiscal.FiscalSignatureContext(
                                 countryBinding,
                                 taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
@@ -1437,6 +1437,9 @@ namespace KasseAPI_Final.Services
                                 RegisterNumber: registerNumber,
                                 TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
                                 PaymentMethodRaw: payment.PaymentMethodRaw));
+                        payment.TseSignature = deSign.Signature;
+                        payment.PrevSignatureValueUsed = deSign.PrevSignatureValue;
+                        payment.CertificateThumbprint = deSign.CertificateThumbprint;
                         payment.CountryCodeAtIssue = "DE";
                     }
 

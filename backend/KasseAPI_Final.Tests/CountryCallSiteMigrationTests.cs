@@ -335,6 +335,49 @@ public sealed class CountryCallSiteMigrationTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task DePayment_FlagOn_WithIds_PersistsTseSignature()
+    {
+        var (flags, router) = DeFlagOnRouter("sig-de");
+        var result = await CreateDePaymentAsync(flags.Object, router, "tss-1", "client-1");
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Equal("sig-de", result.TseSignature);
+        Assert.Equal("sig-de", result.Payment!.TseSignature);
+        Assert.Equal("DE", result.Payment.CountryCodeAtIssue);
+    }
+
+    [Fact]
+    public async Task DePayment_FlagOn_WithIds_ReceiptIncludesSignature()
+    {
+        var (flags, router) = DeFlagOnRouter("sig-de");
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var result = await CreateDePaymentAsync(ctx, flags.Object, router, "tss-1", "client-1");
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        var receipt = await ctx.Receipts.SingleAsync();
+        Assert.Equal("sig-de", receipt.SignatureValue);
+        Assert.Null(result.Payment!.PrevSignatureValueUsed);
+        Assert.Null(result.Payment.CertificateThumbprint);
+    }
+
+    private static (Mock<IFeatureFlagService> Flags, FiscalSignatureRouter Router) DeFlagOnRouter(string signature)
+    {
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
+            .Returns(true);
+        var kassen = new Mock<IKassenSicherheitService>();
+        kassen.Setup(x => x.StartTransactionAsync(
+                It.IsAny<KassenSicherheitStartTransactionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly"));
+        kassen.Setup(x => x.FinishTransactionAsync(
+                It.IsAny<KassenSicherheitFinishTransactionRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "FINISHED", 2, signature, "fiskaly"));
+        return (flags, new FiscalSignatureRouter(flags.Object, kassen: kassen.Object));
+    }
+
     private static async Task<PaymentResult> CreateDePaymentAsync(
         IFeatureFlagService flags,
         IFiscalSignatureRouter? router = null,
@@ -342,6 +385,16 @@ public sealed class CountryCallSiteMigrationTests
         string? deClientId = null)
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        return await CreateDePaymentAsync(ctx, flags, router, deTssId, deClientId);
+    }
+
+    private static async Task<PaymentResult> CreateDePaymentAsync(
+        AppDbContext ctx,
+        IFeatureFlagService flags,
+        IFiscalSignatureRouter? router = null,
+        string? deTssId = null,
+        string? deClientId = null)
+    {
         var (customerId, _, registerId, categoryId) =
             await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx, unitPrice: 119m);
         var productId = await PaymentServiceCoverageHarness.AddProductAsync(
