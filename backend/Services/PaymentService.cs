@@ -13,6 +13,9 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.Strategies;
+using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
+using KasseAPI_Final.Services.Countries.Strategies.Germany;
+using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
@@ -23,6 +26,7 @@ using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
@@ -77,6 +81,9 @@ namespace KasseAPI_Final.Services
         private readonly ITaxStrategyResolver _taxStrategyResolver;
         private readonly ICountryTaxTypeRegistry _taxTypes;
         private readonly Fiscal.IFiscalSignatureRouter _fiscalSignatureRouter;
+        private readonly IDeReceiptSequenceService? _deReceiptSequenceService;
+        private readonly IChReceiptSequenceService? _chReceiptSequenceService;
+        private readonly IEuReceiptSequenceService? _euReceiptSequenceService;
 
         public PaymentService(
             AppDbContext context,
@@ -121,7 +128,10 @@ namespace KasseAPI_Final.Services
             ITaxStrategyResolver? taxStrategyResolver = null,
             ICountryProfileRegistry? countryProfileRegistry = null,
             ICountryTaxTypeRegistry? countryTaxTypeRegistry = null,
-            Fiscal.IFiscalSignatureRouter? fiscalSignatureRouter = null)
+            Fiscal.IFiscalSignatureRouter? fiscalSignatureRouter = null,
+            IDeReceiptSequenceService? deSequenceService = null,
+            IChReceiptSequenceService? chSequenceService = null,
+            IEuReceiptSequenceService? euSequenceService = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -168,6 +178,72 @@ namespace KasseAPI_Final.Services
             _taxTypes = countryTaxTypeRegistry ?? new CountryTaxTypeRegistry();
             _fiscalSignatureRouter = fiscalSignatureRouter
                 ?? new Fiscal.FiscalSignatureRouter(_featureFlags, tse: _tseService);
+            _deReceiptSequenceService = deSequenceService;
+            _chReceiptSequenceService = chSequenceService;
+            _euReceiptSequenceService = euSequenceService;
+        }
+
+        private async Task<string> AllocateCountryBelegNrAsync(
+            CountryStrategyBinding countryBinding,
+            IDbContextTransaction transaction,
+            Guid cashRegisterId,
+            string registerNumber)
+        {
+            if (countryBinding.Profile.Code == CountryProfileCodes.EuDefault)
+                return await FormatFromSequenceAsync(
+                    _euReceiptSequenceService,
+                    EuReceiptSequenceService.FormatEuBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber);
+
+            return countryBinding.Profile.FiscalSystem switch
+            {
+                FiscalSystem.RKSV_AT => await _receiptSequenceService
+                    .AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow),
+                FiscalSystem.KASSENSICHERHEIT_DE => await FormatFromSequenceAsync(
+                    _deReceiptSequenceService,
+                    DeReceiptSequenceService.FormatDeBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber),
+                FiscalSystem.MWST_CH => await FormatFromSequenceAsync(
+                    _chReceiptSequenceService,
+                    ChReceiptSequenceService.FormatChBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber),
+                _ => throw new InvalidOperationException($"No sequence service for {countryBinding.Profile.Code}"),
+            };
+        }
+
+        private async Task<string> FormatFromSequenceAsync(
+            object? sequenceService,
+            Func<string, string, int, string> formatter,
+            CountryStrategyBinding countryBinding,
+            Guid cashRegisterId,
+            string registerNumber)
+        {
+            if (sequenceService is null)
+                throw new InvalidOperationException($"Sequence service missing for {countryBinding.Profile.Code}");
+
+            var tenantId = countryBinding.Settings.TenantId;
+            var seq = await (sequenceService switch
+            {
+                IDeReceiptSequenceService de => de.AllocateNextAsync(tenantId, cashRegisterId),
+                IChReceiptSequenceService ch => ch.AllocateNextAsync(tenantId, cashRegisterId),
+                IEuReceiptSequenceService eu => eu.AllocateNextAsync(tenantId, cashRegisterId),
+                _ => throw new InvalidOperationException("Unknown sequence service type"),
+            });
+
+            var slug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(slug))
+                throw new InvalidOperationException($"Tenant slug missing for '{tenantId}'.");
+
+            return formatter(slug, registerNumber, seq);
         }
 
         /// <summary>
@@ -1212,7 +1288,7 @@ namespace KasseAPI_Final.Services
                     // Sprint 1: Allocate BelegNr within this transaction so it commits or rolls back with payment/invoice/receipt/stock.
                     var preReceiptNumber = !string.IsNullOrWhiteSpace(request.ReservedReceiptNumber)
                         ? request.ReservedReceiptNumber.Trim()
-                        : await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow);
+                        : await AllocateCountryBelegNrAsync(countryBinding, transaction, cashRegisterId, registerNumber);
 
                     if (!string.IsNullOrWhiteSpace(request.ReservedReceiptNumber))
                     {
@@ -2496,7 +2572,7 @@ namespace KasseAPI_Final.Services
             try
             {
                 var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(dbTx, cashRegisterId, registerNumber, DateTime.UtcNow);
+                stornoBelegNr = await AllocateCountryBelegNrAsync(countryBinding, dbTx, cashRegisterId, registerNumber);
 
                 var storno = new PaymentDetails
                 {
@@ -2985,7 +3061,7 @@ namespace KasseAPI_Final.Services
                 try
                 {
                     var effectiveTenantIdForRefund = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                    refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(refundTx, refundCashRegisterId, refundRegisterNumber, DateTime.UtcNow);
+                    refundBelegNr = await AllocateCountryBelegNrAsync(countryBinding, refundTx, refundCashRegisterId, refundRegisterNumber);
 
                     var refund = new PaymentDetails
                     {
