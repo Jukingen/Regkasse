@@ -1,3 +1,4 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.DTOs;
@@ -18,6 +19,7 @@ using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -427,6 +429,87 @@ public sealed class CountryCallSiteMigrationTests
 
         var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId, total: 119m);
         request.Steuernummer = "DE123456789";
+        return await pay.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+    }
+
+    [Fact]
+    public async Task ChPayment_FlagOn_Canary_PersistsSwissQrText()
+    {
+        var (flags, router) = ChCanaryRouter(SystemTenantIds.Platform, mwstEnabled: true);
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var result = await CreateChPaymentAsync(ctx, flags.Object, router);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.StartsWith("SPC\n", result.Payment!.SwissQrText, StringComparison.Ordinal);
+        var stored = await ctx.PaymentDetails.SingleAsync();
+        Assert.Equal(result.Payment.SwissQrText, stored.SwissQrText);
+        Assert.StartsWith("SPC\n", stored.SwissQrText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ChPayment_FlagOff_DoesNotPersistQrText()
+    {
+        var (flags, router) = ChCanaryRouter(SystemTenantIds.Platform, mwstEnabled: false);
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var result = await CreateChPaymentAsync(ctx, flags.Object, router);
+
+        Assert.False(result.Success);
+        Assert.Equal("CH_FLAG_OFF", result.DiagnosticCode);
+        Assert.Empty(ctx.PaymentDetails.Local);
+        var stored = await ctx.PaymentDetails.SingleOrDefaultAsync();
+        Assert.Null(stored?.SwissQrText);
+    }
+
+    private static (Mock<IFeatureFlagService> Flags, FiscalSignatureRouter Router) ChCanaryRouter(
+        Guid canaryTenantId,
+        bool mwstEnabled)
+    {
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalMwstCh, It.IsAny<string?>()))
+            .Returns(mwstEnabled);
+        var router = new FiscalSignatureRouter(
+            flags.Object,
+            mwst: Options.Create(new MwstOptions { CanaryTenantId = canaryTenantId.ToString("D") }));
+        return (flags, router);
+    }
+
+    private static async Task<PaymentResult> CreateChPaymentAsync(
+        AppDbContext ctx,
+        IFeatureFlagService flags,
+        IFiscalSignatureRouter router)
+    {
+        var (customerId, _, registerId, categoryId) =
+            await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx, unitPrice: 108.1m);
+        var productId = await PaymentServiceCoverageHarness.AddProductAsync(
+            ctx,
+            categoryId,
+            "CH item",
+            108.1m,
+            TaxTypes.Standard);
+        SeedCountrySettings(ctx, CountryProfileCodes.Switzerland, VatRegime.CH_MWST_STANDARD, "CHE-123.456.789 MWST");
+        var settings = ctx.CompanySettings.Local.Single();
+        settings.BankAccountNumber = "CH9300762011623852957";
+        settings.CompanyAddress = "Bahnhofstrasse 1";
+        await ctx.SaveChangesAsync();
+
+        var pay = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                FeatureFlags = flags,
+                FiscalRouter = router,
+                CompanyProfile = new CompanyProfileOptions
+                {
+                    CompanyName = "CH GmbH",
+                    TaxNumber = "CHE-123.456.789 MWST",
+                    Street = "Bahnhofstrasse 1",
+                    ZipCode = "8001",
+                    City = "Zürich",
+                },
+            });
+
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId, total: 108.1m);
+        request.Steuernummer = "CHE-123.456.789 MWST";
         return await pay.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
     }
 

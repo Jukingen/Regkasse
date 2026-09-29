@@ -1280,6 +1280,7 @@ namespace KasseAPI_Final.Services
                                         line.TaxRate * 100m)).ToList(),
                                     payment.TotalAmount,
                                     preReceiptNumber));
+                            payment.SwissQrText = chSign.SwissQrText;
                             _logger.LogInformation(
                                 "CH_MWST QR built. TenantId={TenantId} Receipt={Receipt} Provider={Provider} Vat={Vat}",
                                 countryBinding.Settings.TenantId,

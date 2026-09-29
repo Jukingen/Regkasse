@@ -71,6 +71,11 @@ namespace KasseAPI_Final.Models
         [Column("country_code_at_issue")]
         public string? CountryCodeAtIssue { get; set; }
 
+        /// <summary>SIX QR-bill SPC payload frozen at issue time for CH MWST. Null for other countries.</summary>
+        [MaxLength(1000)]
+        [Column("swiss_qr_text", TypeName = "character varying(1000)")]
+        public string? SwissQrText { get; set; }
+
         /// <summary>VAT regime frozen at issue time. Null on legacy rows.</summary>
         [Column("vat_regime_at_issue")]
         public VatRegime? VatRegimeAtIssue { get; set; }
