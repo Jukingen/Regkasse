@@ -506,6 +506,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.Germany.IDeReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.Germany.DeReceiptSequenceService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.Switzerland.IChReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.Switzerland.ChReceiptSequenceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.EuDefault.IEuReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuReceiptSequenceService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandInvoiceStrategy>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultInvoiceStrategy>();

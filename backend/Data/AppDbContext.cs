@@ -275,6 +275,8 @@ namespace KasseAPI_Final.Data
         public DbSet<DeReceiptSequence> DeReceiptSequences { get; set; }
         /// <summary>Per-register monotonic CH Belegnummer. Not the Austrian daily counter.</summary>
         public DbSet<ChReceiptSequence> ChReceiptSequences { get; set; }
+        /// <summary>Per-register monotonic EU Belegnummer. Not the Austrian daily counter.</summary>
+        public DbSet<EuReceiptSequence> EuReceiptSequences { get; set; }
         /// <summary>Per-register TSE signature chain state; locked (FOR UPDATE) when generating signatures to avoid races.</summary>
         public DbSet<SignatureChainState> SignatureChainState { get; set; }
         /// <summary>Sprint 5: Legal hold on audit date ranges; cleanup skips records in active holds.</summary>
@@ -4723,6 +4725,31 @@ namespace KasseAPI_Final.Data
                     .HasDatabaseName("IX_ch_receipt_sequences_cash_register_id");
                 entity.HasIndex(e => e.TenantId)
                     .HasDatabaseName("IX_ch_receipt_sequences_tenant_id");
+            });
+
+            builder.Entity<EuReceiptSequence>(entity =>
+            {
+                entity.ToTable("eu_receipt_sequences");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.NextSequence).IsRequired();
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.CashRegisterId).IsUnique()
+                    .HasDatabaseName("IX_eu_receipt_sequences_cash_register_id");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_eu_receipt_sequences_tenant_id");
             });
 
             // Receipt sequence: one row per (CashRegisterId, date).
