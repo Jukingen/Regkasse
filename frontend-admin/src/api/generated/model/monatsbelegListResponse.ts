@@ -9,6 +9,7 @@ import type { MonatsbelegListRowDto } from './monatsbelegListRowDto';
 
 export interface MonatsbelegListResponse {
   hasFailedAutoCreates?: boolean;
+  hasMissedAutoCreates?: boolean;
   /** @nullable */
   items?: MonatsbelegListRowDto[] | null;
   total?: number;

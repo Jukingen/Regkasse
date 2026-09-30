@@ -11,16 +11,16 @@ export type RestoreDrillFailureCategory = typeof RestoreDrillFailureCategory[key
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RestoreDrillFailureCategory = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
-  NUMBER_7: 7,
-  NUMBER_8: 8,
-  NUMBER_9: 9,
-  NUMBER_10: 10,
-  NUMBER_99: 99,
+  None: 0,
+  ArtifactResolution: 1,
+  PgRestoreList: 2,
+  IsolatedPgRestore: 3,
+  PostRestoreContinuitySql: 4,
+  FiscalSqlScript: 5,
+  LiveOperationalIntegrity: 6,
+  Configuration: 7,
+  CancelledOrTimeout: 8,
+  ApplicationSmokeProbe: 9,
+  RestoredDatabaseApplicationSmoke: 10,
+  UnhandledException: 99,
 } as const;

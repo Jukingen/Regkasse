@@ -11,7 +11,7 @@ export type BackupTriggerSource = typeof BackupTriggerSource[keyof typeof Backup
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupTriggerSource = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  Manual: 0,
+  Scheduled: 1,
+  OperatorApi: 2,
 } as const;

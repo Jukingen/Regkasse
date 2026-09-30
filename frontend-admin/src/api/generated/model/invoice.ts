@@ -90,6 +90,14 @@ export interface Invoice {
   customerTaxNumber?: string | null;
   documentType?: DocumentType;
   dueDate: string;
+  /** @nullable */
+  einvoiceValidationPassed?: boolean | null;
+  /**
+   * @minLength 0
+   * @maxLength 500
+   * @nullable
+   */
+  einvoiceValidationRuleIds?: string | null;
   id?: string;
   /** @nullable */
   invoiceDataProvenance?: string | null;

@@ -27,7 +27,7 @@ export interface CreateAdminTenantRequest {
   cashRegisterNumber?: string | null;
   /**
    * @minLength 1
-   * @maxLength 32
+   * @pattern ^[A-Za-z]{2}$
    */
   countryCode: string;
   /**

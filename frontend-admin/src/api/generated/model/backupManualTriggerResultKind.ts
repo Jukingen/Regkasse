@@ -11,7 +11,7 @@ export type BackupManualTriggerResultKind = typeof BackupManualTriggerResultKind
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupManualTriggerResultKind = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  NewRunQueued: 0,
+  IdempotentReplay: 1,
+  DuplicateActiveManualPrevented: 2,
 } as const;

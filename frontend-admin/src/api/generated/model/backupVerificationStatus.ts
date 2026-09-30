@@ -11,7 +11,7 @@ export type BackupVerificationStatus = typeof BackupVerificationStatus[keyof typ
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupVerificationStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  Pending: 0,
+  Passed: 1,
+  Failed: 2,
 } as const;

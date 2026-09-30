@@ -11,10 +11,10 @@ export type CustomerCategory = typeof CustomerCategory[keyof typeof CustomerCate
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CustomerCategory = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
+  Regular: 0,
+  VIP: 1,
+  Premium: 2,
+  Corporate: 3,
+  Student: 4,
+  Senior: 5,
 } as const;

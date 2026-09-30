@@ -11,6 +11,6 @@ export type BackupStrategyKind = typeof BackupStrategyKind[keyof typeof BackupSt
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupStrategyKind = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
+  Tenant: 0,
+  System: 1,
 } as const;

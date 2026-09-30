@@ -11,12 +11,12 @@ export type TransactionType = typeof TransactionType[keyof typeof TransactionTyp
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const TransactionType = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
-  NUMBER_7: 7,
-  NUMBER_8: 8,
+  Open: 1,
+  Close: 2,
+  Restock: 3,
+  Sale: 4,
+  Adjustment: 5,
+  Loss: 6,
+  Return: 7,
+  Transfer: 8,
 } as const;

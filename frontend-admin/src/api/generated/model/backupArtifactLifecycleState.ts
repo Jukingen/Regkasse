@@ -11,8 +11,8 @@ export type BackupArtifactLifecycleState = typeof BackupArtifactLifecycleState[k
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupArtifactLifecycleState = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  Staging: 0,
+  StagingVerified: 1,
+  ExternalCopyVerified: 2,
+  ExternalCopyFailed: 3,
 } as const;

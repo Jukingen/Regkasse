@@ -11,10 +11,10 @@ export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PaymentMethod = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
+  Cash: 0,
+  Card: 1,
+  BankTransfer: 2,
+  Check: 3,
+  Voucher: 4,
+  Mobile: 5,
 } as const;

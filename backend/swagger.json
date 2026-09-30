@@ -4715,6 +4715,103 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/ch-qr-gap-acceptance": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChQrGapAcceptanceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptChQrGapsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChQrGapAcceptanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/countries": {
       "get": {
         "tags": [
@@ -8410,6 +8507,123 @@
         }
       }
     },
+    "/api/admin/kassensicherheit/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KassenSicherheitStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/kassensicherheit/config": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KassenSicherheitConfigRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KassenSicherheitStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/kassensicherheit/recent-transactions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KassenSicherheitRecentTransactionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/kassensicherheit/export-dsfinvk": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KassenSicherheitExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KassenSicherheitExportResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/license/activation-attempts": {
       "get": {
         "tags": [
@@ -10509,6 +10723,84 @@
         }
       }
     },
+    "/api/admin/mwst/canary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MwstCanaryStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/mwst/canary/rollback": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MwstCanaryStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/mwst/tenants/{tenantId}/rates": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChMwstEffectiveRatesDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/offline-monitoring/status": {
       "get": {
         "tags": [
@@ -12281,6 +12573,97 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaymentReversalPolicyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/peppol/participants/{tenantId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PeppolParticipantDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/peppol/participants": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPeppolParticipantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeppolParticipantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -22993,6 +23376,53 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/country-impact": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountryChangeImpactDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -48611,6 +49041,19 @@
   },
   "components": {
     "schemas": {
+      "AcceptChQrGapsRequest": {
+        "type": "object",
+        "properties": {
+          "acceptedGaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AcceptOnlineOrderResponseDto": {
         "type": "object",
         "properties": {
@@ -48806,8 +49249,7 @@
             "format": "uuid"
           },
           "type": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/ActivityEventType"
           },
           "severity": {
             "type": "string",
@@ -48856,6 +49298,387 @@
           }
         },
         "additionalProperties": false
+      },
+      "ActivityEventType": {
+        "enum": [
+          "UserCreated",
+          "UserUpdated",
+          "UserDeleted",
+          "CashRegisterOpened",
+          "CashRegisterClosed",
+          "CashRegisterDecommissioned",
+          "CashRegisterOpenRequested",
+          "CashRegisterOpenRequestApproved",
+          "CashRegisterOpenRequestDenied",
+          "LicenseExpiringSoon",
+          "LicenseExpired",
+          "OfflineQueueGrowing",
+          "OfflineOrdersBacklogGrowing",
+          "OfflineOrdersExpiringSoon",
+          "OfflineSyncStalled",
+          "FinanzOnlineSubmissionFailed",
+          "BackupFailed",
+          "BackupSucceeded",
+          "RestoreDrillFailed",
+          "RestoreDrillSucceeded",
+          "SuspiciousHighValuePayment",
+          "SuspiciousMultipleStornos",
+          "SuspiciousMultipleRefunds",
+          "SuspiciousUnusualTime",
+          "SuspiciousSameCardMultiple",
+          "SuspiciousRapidTransactions",
+          "DailyClosingBackdatedCreated",
+          "DailyClosingPendingReminder",
+          "DailyClosingAutoCreated",
+          "DailyClosingOpenOrdersWarning",
+          "MonatsbelegMissingReminder",
+          "MonatsbelegAutoCreated",
+          "MonatsbelegManagerContacted",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "OnlineOrderPushedToPos",
+          "OnlineOrderPaid",
+          "OnlineOrderStatusChanged",
+          "OnlineOrderConfirmed",
+          "JahresbelegFonReminder",
+          "MonatsbelegAutoCreateMissed",
+          "DigitalServiceRequested",
+          "DataAccessDeleteRequested",
+          "DataExportReady",
+          "RoleCreated",
+          "RoleDeleted",
+          "RolePermissionsUpdated",
+          "UserPermissionOverridesChanged",
+          "SystemPermissionChange",
+          "PermissionRequested",
+          "ChMwstQrBuilt",
+          "PermissionRequestApproved",
+          "PermissionRequestRejected",
+          "UserPermissionOverrideExpiringSoon",
+          "UserPermissionOverrideExpired",
+          "TenantSettingsChangeRequested",
+          "TenantSettingsChangeApproved",
+          "TenantSettingsChangeRejected",
+          "TenantSettingsChangeReverted",
+          "RiskAnomalyDetected",
+          "RiskScoreResolved",
+          "CriticalActionApprovalRequested",
+          "CriticalActionApprovalApproved",
+          "CriticalActionApprovalRejected",
+          "MaintenanceUpcoming",
+          "MaintenanceForceDisplayEnabled",
+          "MaintenanceStarted",
+          "TseFailoverActivated",
+          "TseFailoverNoBackup",
+          "TseFailoverReverted",
+          "TseFailoverStarted",
+          "TseFailoverFailed",
+          "TseFailoverBackupLowHealth",
+          "TseCertificateExpiringSoon",
+          "TseCertificateExpired",
+          "TseCertificateRenewed",
+          "TseCertificateRenewalScheduled",
+          "SignaturkarteProgramReminder",
+          "SignaturkarteProgramOverdue",
+          "TseAusfallEnqueueSuggested",
+          "TseAusfallReported",
+          "TseWiederinbetriebnahmeReported",
+          "TsePerformanceSlow",
+          "TsePerformanceHighErrorRate",
+          "TseCostAnomaly",
+          "TsePredictiveFailureRisk",
+          "TseIncidentCreated",
+          "TseIncidentResolved",
+          "TseSlaViolation",
+          "TseCapacityNearLimit",
+          "TseDrDrillCompleted",
+          "TseAutoScaleRecommended",
+          "TseAnomalyDetected",
+          "TseAutoHealExecuted",
+          "DepExportDueSoon",
+          "DepExportOverdue",
+          "DepExportValidationFailed",
+          "CanaryTenantErrors",
+          "CanaryTenantHighErrorRate",
+          "TrialStarted",
+          "TrialExpiringSoon",
+          "TrialExpired",
+          "TrialConverted",
+          "TrialDeleted",
+          "TrialExtended",
+          "SupportTicketCreated",
+          "SupportTicketStaffReplied",
+          "SupportTicketTenantReplied",
+          "SupportTicketResolved",
+          "SupportTicketClosed",
+          "LimitApproaching",
+          "LimitExceeded",
+          "RksvRuntimeConfigChanged",
+          "TenantCountryChanged",
+          "KsDeTxFinished",
+          "QrRechnungPayloadBuilt",
+          "QrRechnungPdfGenerated",
+          "TenantCountryChangedHistoricalPreserved",
+          "EinvoiceValidated",
+          "EinvoiceSubmitted",
+          "EinvoiceSubmissionFailed",
+          "PeppolParticipantRegistered",
+          "ChQrKnownGapsAccepted",
+          "ChQrKnownGapsOutstanding"
+        ],
+        "type": "string",
+        "x-enum-varnames": [
+          "UserCreated",
+          "UserUpdated",
+          "UserDeleted",
+          "CashRegisterOpened",
+          "CashRegisterClosed",
+          "CashRegisterDecommissioned",
+          "CashRegisterOpenRequested",
+          "CashRegisterOpenRequestApproved",
+          "CashRegisterOpenRequestDenied",
+          "LicenseExpiringSoon",
+          "LicenseExpired",
+          "OfflineQueueGrowing",
+          "OfflineOrdersBacklogGrowing",
+          "OfflineOrdersExpiringSoon",
+          "OfflineSyncStalled",
+          "FinanzOnlineSubmissionFailed",
+          "BackupFailed",
+          "BackupSucceeded",
+          "RestoreDrillFailed",
+          "RestoreDrillSucceeded",
+          "SuspiciousHighValuePayment",
+          "SuspiciousMultipleStornos",
+          "SuspiciousMultipleRefunds",
+          "SuspiciousUnusualTime",
+          "SuspiciousSameCardMultiple",
+          "SuspiciousRapidTransactions",
+          "DailyClosingBackdatedCreated",
+          "DailyClosingPendingReminder",
+          "DailyClosingAutoCreated",
+          "DailyClosingOpenOrdersWarning",
+          "MonatsbelegMissingReminder",
+          "MonatsbelegAutoCreated",
+          "MonatsbelegManagerContacted",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "OnlineOrderPushedToPos",
+          "OnlineOrderPaid",
+          "OnlineOrderStatusChanged",
+          "OnlineOrderConfirmed",
+          "JahresbelegFonReminder",
+          "MonatsbelegAutoCreateMissed",
+          "DigitalServiceRequested",
+          "DataAccessDeleteRequested",
+          "DataExportReady",
+          "RoleCreated",
+          "RoleDeleted",
+          "RolePermissionsUpdated",
+          "UserPermissionOverridesChanged",
+          "SystemPermissionChange",
+          "PermissionRequested",
+          "ChMwstQrBuilt",
+          "PermissionRequestApproved",
+          "PermissionRequestRejected",
+          "UserPermissionOverrideExpiringSoon",
+          "UserPermissionOverrideExpired",
+          "TenantSettingsChangeRequested",
+          "TenantSettingsChangeApproved",
+          "TenantSettingsChangeRejected",
+          "TenantSettingsChangeReverted",
+          "RiskAnomalyDetected",
+          "RiskScoreResolved",
+          "CriticalActionApprovalRequested",
+          "CriticalActionApprovalApproved",
+          "CriticalActionApprovalRejected",
+          "MaintenanceUpcoming",
+          "MaintenanceForceDisplayEnabled",
+          "MaintenanceStarted",
+          "TseFailoverActivated",
+          "TseFailoverNoBackup",
+          "TseFailoverReverted",
+          "TseFailoverStarted",
+          "TseFailoverFailed",
+          "TseFailoverBackupLowHealth",
+          "TseCertificateExpiringSoon",
+          "TseCertificateExpired",
+          "TseCertificateRenewed",
+          "TseCertificateRenewalScheduled",
+          "SignaturkarteProgramReminder",
+          "SignaturkarteProgramOverdue",
+          "TseAusfallEnqueueSuggested",
+          "TseAusfallReported",
+          "TseWiederinbetriebnahmeReported",
+          "TsePerformanceSlow",
+          "TsePerformanceHighErrorRate",
+          "TseCostAnomaly",
+          "TsePredictiveFailureRisk",
+          "TseIncidentCreated",
+          "TseIncidentResolved",
+          "TseSlaViolation",
+          "TseCapacityNearLimit",
+          "TseDrDrillCompleted",
+          "TseAutoScaleRecommended",
+          "TseAnomalyDetected",
+          "TseAutoHealExecuted",
+          "DepExportDueSoon",
+          "DepExportOverdue",
+          "DepExportValidationFailed",
+          "CanaryTenantErrors",
+          "CanaryTenantHighErrorRate",
+          "TrialStarted",
+          "TrialExpiringSoon",
+          "TrialExpired",
+          "TrialConverted",
+          "TrialDeleted",
+          "TrialExtended",
+          "SupportTicketCreated",
+          "SupportTicketStaffReplied",
+          "SupportTicketTenantReplied",
+          "SupportTicketResolved",
+          "SupportTicketClosed",
+          "LimitApproaching",
+          "LimitExceeded",
+          "RksvRuntimeConfigChanged",
+          "TenantCountryChanged",
+          "KsDeTxFinished",
+          "QrRechnungPayloadBuilt",
+          "QrRechnungPdfGenerated",
+          "TenantCountryChangedHistoricalPreserved",
+          "EinvoiceValidated",
+          "EinvoiceSubmitted",
+          "EinvoiceSubmissionFailed",
+          "PeppolParticipantRegistered",
+          "ChQrKnownGapsAccepted",
+          "ChQrKnownGapsOutstanding"
+        ],
+        "x-enumNames": [
+          "UserCreated",
+          "UserUpdated",
+          "UserDeleted",
+          "CashRegisterOpened",
+          "CashRegisterClosed",
+          "CashRegisterDecommissioned",
+          "CashRegisterOpenRequested",
+          "CashRegisterOpenRequestApproved",
+          "CashRegisterOpenRequestDenied",
+          "LicenseExpiringSoon",
+          "LicenseExpired",
+          "OfflineQueueGrowing",
+          "OfflineOrdersBacklogGrowing",
+          "OfflineOrdersExpiringSoon",
+          "OfflineSyncStalled",
+          "FinanzOnlineSubmissionFailed",
+          "BackupFailed",
+          "BackupSucceeded",
+          "RestoreDrillFailed",
+          "RestoreDrillSucceeded",
+          "SuspiciousHighValuePayment",
+          "SuspiciousMultipleStornos",
+          "SuspiciousMultipleRefunds",
+          "SuspiciousUnusualTime",
+          "SuspiciousSameCardMultiple",
+          "SuspiciousRapidTransactions",
+          "DailyClosingBackdatedCreated",
+          "DailyClosingPendingReminder",
+          "DailyClosingAutoCreated",
+          "DailyClosingOpenOrdersWarning",
+          "MonatsbelegMissingReminder",
+          "MonatsbelegAutoCreated",
+          "MonatsbelegManagerContacted",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "OnlineOrderPushedToPos",
+          "OnlineOrderPaid",
+          "OnlineOrderStatusChanged",
+          "OnlineOrderConfirmed",
+          "JahresbelegFonReminder",
+          "MonatsbelegAutoCreateMissed",
+          "DigitalServiceRequested",
+          "DataAccessDeleteRequested",
+          "DataExportReady",
+          "RoleCreated",
+          "RoleDeleted",
+          "RolePermissionsUpdated",
+          "UserPermissionOverridesChanged",
+          "SystemPermissionChange",
+          "PermissionRequested",
+          "ChMwstQrBuilt",
+          "PermissionRequestApproved",
+          "PermissionRequestRejected",
+          "UserPermissionOverrideExpiringSoon",
+          "UserPermissionOverrideExpired",
+          "TenantSettingsChangeRequested",
+          "TenantSettingsChangeApproved",
+          "TenantSettingsChangeRejected",
+          "TenantSettingsChangeReverted",
+          "RiskAnomalyDetected",
+          "RiskScoreResolved",
+          "CriticalActionApprovalRequested",
+          "CriticalActionApprovalApproved",
+          "CriticalActionApprovalRejected",
+          "MaintenanceUpcoming",
+          "MaintenanceForceDisplayEnabled",
+          "MaintenanceStarted",
+          "TseFailoverActivated",
+          "TseFailoverNoBackup",
+          "TseFailoverReverted",
+          "TseFailoverStarted",
+          "TseFailoverFailed",
+          "TseFailoverBackupLowHealth",
+          "TseCertificateExpiringSoon",
+          "TseCertificateExpired",
+          "TseCertificateRenewed",
+          "TseCertificateRenewalScheduled",
+          "SignaturkarteProgramReminder",
+          "SignaturkarteProgramOverdue",
+          "TseAusfallEnqueueSuggested",
+          "TseAusfallReported",
+          "TseWiederinbetriebnahmeReported",
+          "TsePerformanceSlow",
+          "TsePerformanceHighErrorRate",
+          "TseCostAnomaly",
+          "TsePredictiveFailureRisk",
+          "TseIncidentCreated",
+          "TseIncidentResolved",
+          "TseSlaViolation",
+          "TseCapacityNearLimit",
+          "TseDrDrillCompleted",
+          "TseAutoScaleRecommended",
+          "TseAnomalyDetected",
+          "TseAutoHealExecuted",
+          "DepExportDueSoon",
+          "DepExportOverdue",
+          "DepExportValidationFailed",
+          "CanaryTenantErrors",
+          "CanaryTenantHighErrorRate",
+          "TrialStarted",
+          "TrialExpiringSoon",
+          "TrialExpired",
+          "TrialConverted",
+          "TrialDeleted",
+          "TrialExtended",
+          "SupportTicketCreated",
+          "SupportTicketStaffReplied",
+          "SupportTicketTenantReplied",
+          "SupportTicketResolved",
+          "SupportTicketClosed",
+          "LimitApproaching",
+          "LimitExceeded",
+          "RksvRuntimeConfigChanged",
+          "TenantCountryChanged",
+          "KsDeTxFinished",
+          "QrRechnungPayloadBuilt",
+          "QrRechnungPdfGenerated",
+          "TenantCountryChangedHistoricalPreserved",
+          "EinvoiceValidated",
+          "EinvoiceSubmitted",
+          "EinvoiceSubmissionFailed",
+          "PeppolParticipantRegistered",
+          "ChQrKnownGapsAccepted",
+          "ChQrKnownGapsOutstanding"
+        ]
       },
       "ActivityReportDateRangeDto": {
         "type": "object",
@@ -51763,7 +52586,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Pwa",
+          "Native"
+        ],
+        "x-enumNames": [
+          "Pwa",
+          "Native"
+        ]
       },
       "AppVersionResponseDto": {
         "type": "object",
@@ -52015,7 +52846,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "PercentageDiscount",
+          "FreeAllowance",
+          "BuyXGetY"
+        ],
+        "x-enumNames": [
+          "PercentageDiscount",
+          "FreeAllowance",
+          "BuyXGetY"
+        ]
       },
       "ApprovalActionTypeCountDto": {
         "type": "object",
@@ -52385,10 +53226,254 @@
           96,
           97,
           98,
-          99
+          99,
+          100,
+          101,
+          102,
+          103,
+          105,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "UserCreated",
+          "UserUpdated",
+          "UserRoleChanged",
+          "UserDeactivated",
+          "UserReactivated",
+          "PasswordResetForced",
+          "ChangeOwnPassword",
+          "UserPasswordReset",
+          "RolePermissionsUpdated",
+          "RoleDeleted",
+          "LoginSuccess",
+          "UserLogout",
+          "UserDeleted",
+          "LoginFailed",
+          "UserTenantMembershipChanged",
+          "UserNameChanged",
+          "RestoreRequested",
+          "RestoreApproved",
+          "RestoreRejected",
+          "RestoreCompleted",
+          "RestoreFailed",
+          "CategoryUpdated",
+          "CategoryDemoReset",
+          "InvoiceResent",
+          "UserPermissionOverridesChanged",
+          "LicenseRenewed",
+          "LicenseExtended",
+          "LicenseUpdated",
+          "ReportPdfDownloaded",
+          "RoleCreated",
+          "PermissionConfigBackupRestored",
+          "PermissionConfigBackupCreated",
+          "FileDownloaded",
+          "SystemBackupDownloaded",
+          "AuditLogExportDownloaded",
+          "GdprDataExportDownloaded",
+          "SensitiveExportApprovalRequested",
+          "SensitiveExportApprovalApproved",
+          "SensitiveExportApprovalRejected",
+          "OperationUndone",
+          "ProductPriceChanged",
+          "ProductCatalogVersionCreated",
+          "RksvDepExportCreated",
+          "RksvDepExportDownloaded",
+          "RksvDepExportArchived",
+          "RksvDepExportPurged",
+          "RksvDepExportValidated",
+          "RksvDepExportFailed",
+          "LicenseRenewalPageViewed",
+          "SignaturkarteProgramMarkedCompliant",
+          "SignaturkarteProgramReminderSent",
+          "RksvAusfallEpisodeCreated",
+          "RksvAusfallEpisodeEnqueued",
+          "RksvAusfallMarkedManualPortal",
+          "RksvAusfallSuggestionCancelled",
+          "FeatureFlagChanged",
+          "DeploymentStarted",
+          "DeploymentSucceeded",
+          "DeploymentFailed",
+          "DeploymentRollback",
+          "DeploymentComplianceApproved",
+          "SystemCacheCleared",
+          "TrialConvertedToPaid",
+          "FiskalySettingsChanged",
+          "FiskalyFonAuthenticated",
+          "FiskalyScuInitialized",
+          "FiskalyCashRegisterInitialized",
+          "FiskalyTestReceiptSigned",
+          "LicenseActivated",
+          "LicenseRevoked",
+          "LicenseActivationFailed",
+          "LicensePreviewed",
+          "FinanzOnlineOutboxSettingsChanged",
+          "UserForceLogout",
+          "UserSessionTerminated",
+          "RksvRuntimeConfigChanged",
+          "FiskalyCancellationReceiptSigned",
+          "FiskalyReceiptOperationFailed",
+          "FiskalyReceiptSigned",
+          "FiskalyOperationRetried",
+          "FiskalyBatchCompleted",
+          "FiskalyErrorReviewUpdated",
+          "BackupRetentionPolicyUpdated",
+          "BackupMovedToColdStorage",
+          "BackupLegalHoldChanged",
+          "BackupCreated",
+          "BackupDownloaded",
+          "BackupVerified",
+          "CashRegisterOpenRequested",
+          "CashRegisterOpenRequestApproved",
+          "CashRegisterOpenRequestDenied",
+          "MonatsbelegManagerContacted",
+          "MonatsbelegPolicyChanged",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "TenantCreatedWithCountry",
+          "TenantCountryChanged",
+          "TenantCountryChangedHistoricalPreserved",
+          "Other",
+          "KsDeTssCreated",
+          "KsDeTxStarted",
+          "KsDeTxFinished",
+          "KsDeExportCreated",
+          "MonatsbelegAutoCreateMissed",
+          "ChMwstQrBuilt",
+          "ChMwstCanaryRolledBack",
+          "EinvoiceValidated",
+          "EinvoiceSubmitted",
+          "EinvoiceSubmissionFailed",
+          "QrRechnungPayloadBuilt",
+          "QrRechnungPdfGenerated",
+          "PeppolParticipantRegistered",
+          "ChQrKnownGapsAccepted"
+        ],
+        "x-enumNames": [
+          "UserCreated",
+          "UserUpdated",
+          "UserRoleChanged",
+          "UserDeactivated",
+          "UserReactivated",
+          "PasswordResetForced",
+          "ChangeOwnPassword",
+          "UserPasswordReset",
+          "RolePermissionsUpdated",
+          "RoleDeleted",
+          "LoginSuccess",
+          "UserLogout",
+          "UserDeleted",
+          "LoginFailed",
+          "UserTenantMembershipChanged",
+          "UserNameChanged",
+          "RestoreRequested",
+          "RestoreApproved",
+          "RestoreRejected",
+          "RestoreCompleted",
+          "RestoreFailed",
+          "CategoryUpdated",
+          "CategoryDemoReset",
+          "InvoiceResent",
+          "UserPermissionOverridesChanged",
+          "LicenseRenewed",
+          "LicenseExtended",
+          "LicenseUpdated",
+          "ReportPdfDownloaded",
+          "RoleCreated",
+          "PermissionConfigBackupRestored",
+          "PermissionConfigBackupCreated",
+          "FileDownloaded",
+          "SystemBackupDownloaded",
+          "AuditLogExportDownloaded",
+          "GdprDataExportDownloaded",
+          "SensitiveExportApprovalRequested",
+          "SensitiveExportApprovalApproved",
+          "SensitiveExportApprovalRejected",
+          "OperationUndone",
+          "ProductPriceChanged",
+          "ProductCatalogVersionCreated",
+          "RksvDepExportCreated",
+          "RksvDepExportDownloaded",
+          "RksvDepExportArchived",
+          "RksvDepExportPurged",
+          "RksvDepExportValidated",
+          "RksvDepExportFailed",
+          "LicenseRenewalPageViewed",
+          "SignaturkarteProgramMarkedCompliant",
+          "SignaturkarteProgramReminderSent",
+          "RksvAusfallEpisodeCreated",
+          "RksvAusfallEpisodeEnqueued",
+          "RksvAusfallMarkedManualPortal",
+          "RksvAusfallSuggestionCancelled",
+          "FeatureFlagChanged",
+          "DeploymentStarted",
+          "DeploymentSucceeded",
+          "DeploymentFailed",
+          "DeploymentRollback",
+          "DeploymentComplianceApproved",
+          "SystemCacheCleared",
+          "TrialConvertedToPaid",
+          "FiskalySettingsChanged",
+          "FiskalyFonAuthenticated",
+          "FiskalyScuInitialized",
+          "FiskalyCashRegisterInitialized",
+          "FiskalyTestReceiptSigned",
+          "LicenseActivated",
+          "LicenseRevoked",
+          "LicenseActivationFailed",
+          "LicensePreviewed",
+          "FinanzOnlineOutboxSettingsChanged",
+          "UserForceLogout",
+          "UserSessionTerminated",
+          "RksvRuntimeConfigChanged",
+          "FiskalyCancellationReceiptSigned",
+          "FiskalyReceiptOperationFailed",
+          "FiskalyReceiptSigned",
+          "FiskalyOperationRetried",
+          "FiskalyBatchCompleted",
+          "FiskalyErrorReviewUpdated",
+          "BackupRetentionPolicyUpdated",
+          "BackupMovedToColdStorage",
+          "BackupLegalHoldChanged",
+          "BackupCreated",
+          "BackupDownloaded",
+          "BackupVerified",
+          "CashRegisterOpenRequested",
+          "CashRegisterOpenRequestApproved",
+          "CashRegisterOpenRequestDenied",
+          "MonatsbelegManagerContacted",
+          "MonatsbelegPolicyChanged",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "TenantCreatedWithCountry",
+          "TenantCountryChanged",
+          "TenantCountryChangedHistoricalPreserved",
+          "Other",
+          "KsDeTssCreated",
+          "KsDeTxStarted",
+          "KsDeTxFinished",
+          "KsDeExportCreated",
+          "MonatsbelegAutoCreateMissed",
+          "ChMwstQrBuilt",
+          "ChMwstCanaryRolledBack",
+          "EinvoiceValidated",
+          "EinvoiceSubmitted",
+          "EinvoiceSubmissionFailed",
+          "QrRechnungPayloadBuilt",
+          "QrRechnungPdfGenerated",
+          "PeppolParticipantRegistered",
+          "ChQrKnownGapsAccepted"
+        ]
       },
       "AuditExportJobStatus": {
         "enum": [
@@ -52398,7 +53483,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Failed"
+        ],
+        "x-enumNames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Failed"
+        ]
       },
       "AuditExportJobStatusDto": {
         "type": "object",
@@ -53000,7 +54097,33 @@
           10
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Success",
+          "Failed",
+          "Pending",
+          "Cancelled",
+          "InProgress",
+          "Timeout",
+          "ValidationError",
+          "AuthorizationError",
+          "SystemError",
+          "Warning",
+          "Error"
+        ],
+        "x-enumNames": [
+          "Success",
+          "Failed",
+          "Pending",
+          "Cancelled",
+          "InProgress",
+          "Timeout",
+          "ValidationError",
+          "AuthorizationError",
+          "SystemError",
+          "Warning",
+          "Error"
+        ]
       },
       "AuditLogsResponse": {
         "type": "object",
@@ -53277,7 +54400,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Staging",
+          "StagingVerified",
+          "ExternalCopyVerified",
+          "ExternalCopyFailed"
+        ],
+        "x-enumNames": [
+          "Staging",
+          "StagingVerified",
+          "ExternalCopyVerified",
+          "ExternalCopyFailed"
+        ]
       },
       "BackupArtifactPipelinePolicyResponseDto": {
         "type": "object",
@@ -53396,7 +54531,23 @@
           5
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "LogicalDump",
+          "PhysicalBaseBackup",
+          "WalArchiveWindow",
+          "GlobalsDump",
+          "VerificationManifest",
+          "BackupLog"
+        ],
+        "x-enumNames": [
+          "LogicalDump",
+          "PhysicalBaseBackup",
+          "WalArchiveWindow",
+          "GlobalsDump",
+          "VerificationManifest",
+          "BackupLog"
+        ]
       },
       "BackupChainItemDto": {
         "type": "object",
@@ -54596,7 +55747,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "NewRunQueued",
+          "IdempotentReplay",
+          "DuplicateActiveManualPrevented"
+        ],
+        "x-enumNames": [
+          "NewRunQueued",
+          "IdempotentReplay",
+          "DuplicateActiveManualPrevented"
+        ]
       },
       "BackupManualVerifyResponseDto": {
         "type": "object",
@@ -55217,7 +56378,25 @@
           6
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Queued",
+          "Running",
+          "AwaitingVerification",
+          "Succeeded",
+          "Failed",
+          "VerificationFailed",
+          "Cancelled"
+        ],
+        "x-enumNames": [
+          "Queued",
+          "Running",
+          "AwaitingVerification",
+          "Succeeded",
+          "Failed",
+          "VerificationFailed",
+          "Cancelled"
+        ]
       },
       "BackupScheduleConfigurationDto": {
         "type": "object",
@@ -55258,7 +56437,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Daily",
+          "Weekly",
+          "Monthly",
+          "Custom"
+        ],
+        "x-enumNames": [
+          "Daily",
+          "Weekly",
+          "Monthly",
+          "Custom"
+        ]
       },
       "BackupScheduleLatestRunSummaryDto": {
         "type": "object",
@@ -55495,7 +56686,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Hot",
+          "Warm",
+          "Cold"
+        ],
+        "x-enumNames": [
+          "Hot",
+          "Warm",
+          "Cold"
+        ]
       },
       "BackupStorageTierCostRowDto": {
         "type": "object",
@@ -55533,7 +56734,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Tenant",
+          "System"
+        ],
+        "x-enumNames": [
+          "Tenant",
+          "System"
+        ]
       },
       "BackupTableRowCountDto": {
         "type": "object",
@@ -55657,7 +56866,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Manual",
+          "Scheduled",
+          "OperatorApi"
+        ],
+        "x-enumNames": [
+          "Manual",
+          "Scheduled",
+          "OperatorApi"
+        ]
       },
       "BackupVerificationReportDto": {
         "type": "object",
@@ -55762,7 +56981,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Pending",
+          "Passed",
+          "Failed"
+        ],
+        "x-enumNames": [
+          "Pending",
+          "Passed",
+          "Failed"
+        ]
       },
       "BankingInfo": {
         "type": "object",
@@ -56228,7 +57457,21 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Cancelled",
+          "Failed"
+        ],
+        "x-enumNames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Cancelled",
+          "Failed"
+        ]
       },
       "BulkImportJobStatusDto": {
         "type": "object",
@@ -56456,7 +57699,23 @@
           99
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "CustomerRequest",
+          "WrongItem",
+          "PriceMismatch",
+          "Duplicate",
+          "TechnicalError",
+          "Other"
+        ],
+        "x-enumNames": [
+          "CustomerRequest",
+          "WrongItem",
+          "PriceMismatch",
+          "Duplicate",
+          "TechnicalError",
+          "Other"
+        ]
       },
       "CancellationResponse": {
         "type": "object",
@@ -56842,7 +58101,19 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Active",
+          "Completed",
+          "Cancelled",
+          "Expired"
+        ],
+        "x-enumNames": [
+          "Active",
+          "Completed",
+          "Cancelled",
+          "Expired"
+        ]
       },
       "CashRegister": {
         "required": [
@@ -57706,6 +58977,106 @@
         },
         "additionalProperties": false
       },
+      "ChMwstEffectiveRatesDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "applies": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "rates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChMwstRateDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChMwstRateDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChQrGapAcceptanceDto": {
+        "type": "object",
+        "properties": {
+          "acceptedGaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "acceptedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "acceptedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChQrGapAcceptanceResponse": {
+        "type": "object",
+        "properties": {
+          "knownGaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChQrKnownGapDto"
+            },
+            "nullable": true
+          },
+          "acceptance": {
+            "$ref": "#/components/schemas/ChQrGapAcceptanceDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChQrKnownGapDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "present": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -57731,7 +59102,17 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "TaxRate",
+          "Currency",
+          "ProductPrice"
+        ],
+        "x-enumNames": [
+          "TaxRate",
+          "Currency",
+          "ProductPrice"
+        ]
       },
       "ClearCacheRequest": {
         "type": "object",
@@ -58333,6 +59714,16 @@
             "maxLength": 500,
             "type": "string",
             "nullable": true
+          },
+          "deTssId": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
+          },
+          "deClientId": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -58676,6 +60067,72 @@
         },
         "additionalProperties": false
       },
+      "CountryChangeImpactDto": {
+        "type": "object",
+        "properties": {
+          "affectedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "incompatibleRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CountryFiscalFlagDto": {
+        "required": [
+          "enabled",
+          "locked",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CountryFiscalSectionDto": {
+        "required": [
+          "flags",
+          "helperKey",
+          "id",
+          "titleKey"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "titleKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "helperKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountryFiscalFlagDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CountryProfileSummaryDto": {
         "required": [
           "allowedVatRegimes",
@@ -58683,8 +60140,11 @@
           "currency",
           "defaultLocale",
           "eInvoicingStandards",
+          "fiscalSections",
           "fiscalSystem",
-          "name"
+          "fiscalSystemLabel",
+          "name",
+          "vatIdPattern"
         ],
         "type": "object",
         "properties": {
@@ -58718,6 +60178,21 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VatRegime"
+            },
+            "nullable": true
+          },
+          "vatIdPattern": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiscalSystemLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "fiscalSections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountryFiscalSectionDto"
             },
             "nullable": true
           }
@@ -58782,8 +60257,8 @@
             "type": "string"
           },
           "countryCode": {
-            "maxLength": 32,
             "minLength": 1,
+            "pattern": "^[A-Za-z]{2}$",
             "type": "string"
           },
           "vatRegime": {
@@ -59978,7 +61453,6 @@
             "format": "double"
           },
           "steuernummer": {
-            "pattern": "^ATU\\d{8}$",
             "type": "string",
             "nullable": true
           },
@@ -60915,7 +62389,35 @@
           12
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "SchlussbelegCreation",
+          "TenantDeletion",
+          "TenantArchive",
+          "LicenseChange",
+          "CurrencyChange",
+          "CountryChange",
+          "DeleteAllProducts",
+          "DecommissionRegister",
+          "BackupDisable",
+          "FiscalExportDelete",
+          "UserRoleChange",
+          "MassPermissionUpdate"
+        ],
+        "x-enumNames": [
+          "SchlussbelegCreation",
+          "TenantDeletion",
+          "TenantArchive",
+          "LicenseChange",
+          "CurrencyChange",
+          "CountryChange",
+          "DeleteAllProducts",
+          "DecommissionRegister",
+          "BackupDisable",
+          "FiscalExportDelete",
+          "UserRoleChange",
+          "MassPermissionUpdate"
+        ]
       },
       "CriticalUserDto": {
         "type": "object",
@@ -61336,7 +62838,23 @@
           5
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Regular",
+          "VIP",
+          "Premium",
+          "Corporate",
+          "Student",
+          "Senior"
+        ],
+        "x-enumNames": [
+          "Regular",
+          "VIP",
+          "Premium",
+          "Corporate",
+          "Student",
+          "Senior"
+        ]
       },
       "CustomerDigitalServiceDto": {
         "required": [
@@ -61419,7 +62937,17 @@
           "WalkIn",
           "EmployeeBenefitSubject"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "Registered",
+          "WalkIn",
+          "EmployeeBenefitSubject"
+        ],
+        "x-enumNames": [
+          "Registered",
+          "WalkIn",
+          "EmployeeBenefitSubject"
+        ]
       },
       "CustomerPaymentMethod": {
         "enum": [
@@ -61429,7 +62957,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Cash",
+          "Card",
+          "Voucher",
+          "Mobile"
+        ],
+        "x-enumNames": [
+          "Cash",
+          "Card",
+          "Voucher",
+          "Mobile"
+        ]
       },
       "CustomerQrLookupRequest": {
         "required": [
@@ -62144,7 +63684,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "View",
+          "Export",
+          "Delete"
+        ],
+        "x-enumNames": [
+          "View",
+          "Export",
+          "Delete"
+        ]
       },
       "DataRightsRequestTypeCatalogItemDto": {
         "type": "object",
@@ -62403,7 +63953,21 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Failed",
+          "Cancelled"
+        ],
+        "x-enumNames": [
+          "Queued",
+          "Running",
+          "Completed",
+          "Failed",
+          "Cancelled"
+        ]
       },
       "DemoImportJobStatusDto": {
         "type": "object",
@@ -63698,7 +65262,19 @@
           "Completed",
           "Failed"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "Pending",
+          "Processing",
+          "Completed",
+          "Failed"
+        ],
+        "x-enumNames": [
+          "Pending",
+          "Processing",
+          "Completed",
+          "Failed"
+        ]
       },
       "DepExportStatusResponse": {
         "type": "object",
@@ -64481,7 +66057,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Invoice",
+          "CreditNote"
+        ],
+        "x-enumNames": [
+          "Invoice",
+          "CreditNote"
+        ]
       },
       "DownloadHistoryAnalyticsDto": {
         "type": "object",
@@ -64857,7 +66441,19 @@
           "QR_RECHNUNG",
           "EN_16931"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "ZUGFERD",
+          "XRECHNUNG",
+          "QR_RECHNUNG",
+          "EN_16931"
+        ],
+        "x-enumNames": [
+          "ZUGFERD",
+          "XRECHNUNG",
+          "QR_RECHNUNG",
+          "EN_16931"
+        ]
       },
       "ElmahErrorListItemDto": {
         "type": "object",
@@ -66685,7 +68281,19 @@
           "KASSENSICHERHEIT_DE",
           "MWST_CH"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "NONE",
+          "RKSV_AT",
+          "KASSENSICHERHEIT_DE",
+          "MWST_CH"
+        ],
+        "x-enumNames": [
+          "NONE",
+          "RKSV_AT",
+          "KASSENSICHERHEIT_DE",
+          "MWST_CH"
+        ]
       },
       "FiskalyCashRegisterSetupDto": {
         "type": "object",
@@ -68557,6 +70165,16 @@
           "vatRegimeAtIssue": {
             "$ref": "#/components/schemas/VatRegime"
           },
+          "einvoiceValidationPassed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "einvoiceValidationRuleIds": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
           "tseSignature": {
             "minLength": 1,
             "type": "string"
@@ -68718,7 +70336,27 @@
           7
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Draft",
+          "Sent",
+          "Paid",
+          "PartiallyPaid",
+          "Unpaid",
+          "Overdue",
+          "Cancelled",
+          "CreditNote"
+        ],
+        "x-enumNames": [
+          "Draft",
+          "Sent",
+          "Paid",
+          "PartiallyPaid",
+          "Unpaid",
+          "Overdue",
+          "Cancelled",
+          "CreditNote"
+        ]
       },
       "IssueVoucherRequest": {
         "required": [
@@ -69799,6 +71437,98 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KassenSicherheitConfigRequest": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deTssId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deClientId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KassenSicherheitExportRequest": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "KassenSicherheitExportResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KassenSicherheitRecentTransactionDto": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "KassenSicherheitStatusDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "flagEnabled": {
+            "type": "boolean"
+          },
+          "hasTenantOverride": {
+            "type": "boolean"
+          },
+          "deTssId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deClientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -71367,7 +73097,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Days1",
+          "Days7",
+          "Days30",
+          "Expired"
+        ],
+        "x-enumNames": [
+          "Days1",
+          "Days7",
+          "Days30",
+          "Expired"
+        ]
       },
       "LicenseTestScenarioRequest": {
         "required": [
@@ -71397,7 +73139,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Tenant",
+          "Deployment",
+          "Both"
+        ],
+        "x-enumNames": [
+          "Tenant",
+          "Deployment",
+          "Both"
+        ]
       },
       "LicenseTestSetExpiryRequest": {
         "type": "object",
@@ -71550,7 +73302,19 @@
           "Business",
           "Plus"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "Trial",
+          "Starter",
+          "Business",
+          "Plus"
+        ],
+        "x-enumNames": [
+          "Trial",
+          "Starter",
+          "Business",
+          "Plus"
+        ]
       },
       "LimitActivityDto": {
         "type": "object",
@@ -72419,6 +74183,9 @@
           "hasFailedAutoCreates": {
             "type": "boolean"
           },
+          "hasMissedAutoCreates": {
+            "type": "boolean"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -73284,6 +75051,26 @@
         },
         "additionalProperties": false
       },
+      "MwstCanaryStatusDto": {
+        "type": "object",
+        "properties": {
+          "canaryTenantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "flagEnabled": {
+            "type": "boolean"
+          },
+          "useTestEndpoint": {
+            "type": "boolean"
+          },
+          "kassenSicherheitProvider": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "NonRksvDataStatus": {
         "type": "object",
         "properties": {
@@ -73459,6 +75246,9 @@
               "JahresbelegFonReminder": {
                 "type": "boolean"
               },
+              "MonatsbelegAutoCreateMissed": {
+                "type": "boolean"
+              },
               "DigitalServiceRequested": {
                 "type": "boolean"
               },
@@ -73484,6 +75274,9 @@
                 "type": "boolean"
               },
               "PermissionRequested": {
+                "type": "boolean"
+              },
+              "ChMwstQrBuilt": {
                 "type": "boolean"
               },
               "PermissionRequestApproved": {
@@ -73673,6 +75466,36 @@
                 "type": "boolean"
               },
               "TenantCountryChanged": {
+                "type": "boolean"
+              },
+              "KsDeTxFinished": {
+                "type": "boolean"
+              },
+              "QrRechnungPayloadBuilt": {
+                "type": "boolean"
+              },
+              "QrRechnungPdfGenerated": {
+                "type": "boolean"
+              },
+              "TenantCountryChangedHistoricalPreserved": {
+                "type": "boolean"
+              },
+              "EinvoiceValidated": {
+                "type": "boolean"
+              },
+              "EinvoiceSubmitted": {
+                "type": "boolean"
+              },
+              "EinvoiceSubmissionFailed": {
+                "type": "boolean"
+              },
+              "PeppolParticipantRegistered": {
+                "type": "boolean"
+              },
+              "ChQrKnownGapsAccepted": {
+                "type": "boolean"
+              },
+              "ChQrKnownGapsOutstanding": {
                 "type": "boolean"
               }
             },
@@ -73802,6 +75625,9 @@
               "JahresbelegFonReminder": {
                 "type": "string"
               },
+              "MonatsbelegAutoCreateMissed": {
+                "type": "string"
+              },
               "DigitalServiceRequested": {
                 "type": "string"
               },
@@ -73827,6 +75653,9 @@
                 "type": "string"
               },
               "PermissionRequested": {
+                "type": "string"
+              },
+              "ChMwstQrBuilt": {
                 "type": "string"
               },
               "PermissionRequestApproved": {
@@ -74016,6 +75845,36 @@
                 "type": "string"
               },
               "TenantCountryChanged": {
+                "type": "string"
+              },
+              "KsDeTxFinished": {
+                "type": "string"
+              },
+              "QrRechnungPayloadBuilt": {
+                "type": "string"
+              },
+              "QrRechnungPdfGenerated": {
+                "type": "string"
+              },
+              "TenantCountryChangedHistoricalPreserved": {
+                "type": "string"
+              },
+              "EinvoiceValidated": {
+                "type": "string"
+              },
+              "EinvoiceSubmitted": {
+                "type": "string"
+              },
+              "EinvoiceSubmissionFailed": {
+                "type": "string"
+              },
+              "PeppolParticipantRegistered": {
+                "type": "string"
+              },
+              "ChQrKnownGapsAccepted": {
+                "type": "string"
+              },
+              "ChQrKnownGapsOutstanding": {
                 "type": "string"
               }
             },
@@ -75904,7 +77763,25 @@
           7
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Pending",
+          "Confirmed",
+          "InProgress",
+          "Ready",
+          "Delivered",
+          "Cancelled",
+          "Completed"
+        ],
+        "x-enumNames": [
+          "Pending",
+          "Confirmed",
+          "InProgress",
+          "Ready",
+          "Delivered",
+          "Cancelled",
+          "Completed"
+        ]
       },
       "OrphanRefundsDto": {
         "type": "object",
@@ -76659,7 +78536,23 @@
           5
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Cash",
+          "Card",
+          "BankTransfer",
+          "Check",
+          "Voucher",
+          "Mobile"
+        ],
+        "x-enumNames": [
+          "Cash",
+          "Card",
+          "BankTransfer",
+          "Check",
+          "Voucher",
+          "Mobile"
+        ]
       },
       "PaymentMethodBucketDto": {
         "type": "object",
@@ -76863,7 +78756,15 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Cancel",
+          "Refund"
+        ],
+        "x-enumNames": [
+          "Cancel",
+          "Refund"
+        ]
       },
       "PaymentReversalPolicyDto": {
         "type": "object",
@@ -77226,6 +79127,32 @@
               "$ref": "#/components/schemas/StaffingRecommendationDto"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeppolParticipantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "apEnvironment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -78837,7 +80764,19 @@
           "passed",
           "inconclusive"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "notExecuted",
+          "failed",
+          "passed",
+          "inconclusive"
+        ],
+        "x-enumNames": [
+          "notExecuted",
+          "failed",
+          "passed",
+          "inconclusive"
+        ]
       },
       "PreorderDto": {
         "type": "object",
@@ -79390,7 +81329,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "FixedGrossPrice",
+          "PercentOffList"
+        ],
+        "x-enumNames": [
+          "FixedGrossPrice",
+          "PercentOffList"
+        ]
       },
       "PricingRuleAdminDto": {
         "type": "object",
@@ -79470,7 +81417,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Product",
+          "Category"
+        ],
+        "x-enumNames": [
+          "Product",
+          "Category"
+        ]
       },
       "PrintRoutingContext": {
         "type": "object",
@@ -81665,7 +83620,21 @@
           99
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "CustomerComplaint",
+          "WrongProduct",
+          "QualityIssue",
+          "Overcharged",
+          "Other"
+        ],
+        "x-enumNames": [
+          "CustomerComplaint",
+          "WrongProduct",
+          "QualityIssue",
+          "Overcharged",
+          "Other"
+        ]
       },
       "RefundResponse": {
         "type": "object",
@@ -81751,6 +83720,24 @@
         },
         "additionalProperties": false
       },
+      "RegisterPeppolParticipantRequest": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "apEnvironment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RegisterStatus": {
         "enum": [
           1,
@@ -81760,7 +83747,21 @@
           5
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Closed",
+          "Open",
+          "Maintenance",
+          "Disabled",
+          "Decommissioned"
+        ],
+        "x-enumNames": [
+          "Closed",
+          "Open",
+          "Maintenance",
+          "Disabled",
+          "Decommissioned"
+        ]
       },
       "RegisterTseWebhookRequestDto": {
         "type": "object",
@@ -82676,7 +84677,35 @@
           99
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "None",
+          "ArtifactResolution",
+          "PgRestoreList",
+          "IsolatedPgRestore",
+          "PostRestoreContinuitySql",
+          "FiscalSqlScript",
+          "LiveOperationalIntegrity",
+          "Configuration",
+          "CancelledOrTimeout",
+          "ApplicationSmokeProbe",
+          "RestoredDatabaseApplicationSmoke",
+          "UnhandledException"
+        ],
+        "x-enumNames": [
+          "None",
+          "ArtifactResolution",
+          "PgRestoreList",
+          "IsolatedPgRestore",
+          "PostRestoreContinuitySql",
+          "FiscalSqlScript",
+          "LiveOperationalIntegrity",
+          "Configuration",
+          "CancelledOrTimeout",
+          "ApplicationSmokeProbe",
+          "RestoredDatabaseApplicationSmoke",
+          "UnhandledException"
+        ]
       },
       "RestoreDrillResultDto": {
         "type": "object",
@@ -82742,7 +84771,31 @@
           100
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "None",
+          "ArtifactDiscovered",
+          "PgRestoreListPassed",
+          "RestoreAttemptPassed",
+          "PostRestoreContinuitySqlPassed",
+          "RestoredDatabaseApplicationSmokePassed",
+          "FiscalSqlScriptPassed",
+          "LiveOperationalIntegrityPassed",
+          "ApplicationSmokePassed",
+          "Completed"
+        ],
+        "x-enumNames": [
+          "None",
+          "ArtifactDiscovered",
+          "PgRestoreListPassed",
+          "RestoreAttemptPassed",
+          "PostRestoreContinuitySqlPassed",
+          "RestoredDatabaseApplicationSmokePassed",
+          "FiscalSqlScriptPassed",
+          "LiveOperationalIntegrityPassed",
+          "ApplicationSmokePassed",
+          "Completed"
+        ]
       },
       "RestorePointValidationResultDto": {
         "type": "object",
@@ -82819,7 +84872,27 @@
           "lastKnownGoodL5HttpSmokeProven",
           "lastKnownGoodL5aRestoredDbSmokeProven"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "latestBackupRun",
+          "latestPgDumpSucceededBackupRun",
+          "latestPgDumpSucceededArtifact",
+          "latestRestoreDrillAttempt",
+          "latestRestoreDrillSucceeded",
+          "lastKnownGoodL4ContinuityProven",
+          "lastKnownGoodL5HttpSmokeProven",
+          "lastKnownGoodL5aRestoredDbSmokeProven"
+        ],
+        "x-enumNames": [
+          "latestBackupRun",
+          "latestPgDumpSucceededBackupRun",
+          "latestPgDumpSucceededArtifact",
+          "latestRestoreDrillAttempt",
+          "latestRestoreDrillSucceeded",
+          "lastKnownGoodL4ContinuityProven",
+          "lastKnownGoodL5HttpSmokeProven",
+          "lastKnownGoodL5aRestoredDbSmokeProven"
+        ]
       },
       "RestoreProofMilestoneSnapshotDto": {
         "type": "object",
@@ -83487,7 +85560,19 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Queued",
+          "Running",
+          "Succeeded",
+          "Failed"
+        ],
+        "x-enumNames": [
+          "Queued",
+          "Running",
+          "Succeeded",
+          "Failed"
+        ]
       },
       "RestoreVerificationTriggerOrchestrationState": {
         "enum": [
@@ -83496,7 +85581,17 @@
           2
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "NewlyQueued",
+          "ExistingByIdempotencyKey",
+          "ExistingActiveRunReturned"
+        ],
+        "x-enumNames": [
+          "NewlyQueued",
+          "ExistingByIdempotencyKey",
+          "ExistingActiveRunReturned"
+        ]
       },
       "RestoreVerificationTriggerResponseDto": {
         "required": [
@@ -83529,7 +85624,15 @@
           1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Manual",
+          "Scheduled"
+        ],
+        "x-enumNames": [
+          "Manual",
+          "Scheduled"
+        ]
       },
       "RetentionReport": {
         "required": [
@@ -84482,7 +86585,23 @@
           99
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Unspecified",
+          "Food",
+          "Beverage",
+          "AlcoholicBeverage",
+          "Tobacco",
+          "Other"
+        ],
+        "x-enumNames": [
+          "Unspecified",
+          "Food",
+          "Beverage",
+          "AlcoholicBeverage",
+          "Tobacco",
+          "Other"
+        ]
       },
       "RksvReminderJahresbelegDto": {
         "required": [
@@ -86490,7 +88609,21 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "InStock",
+          "OutOfStock",
+          "LowStock",
+          "Overstock",
+          "All"
+        ],
+        "x-enumNames": [
+          "InStock",
+          "OutOfStock",
+          "LowStock",
+          "Overstock",
+          "All"
+        ]
       },
       "StornoReason": {
         "enum": [
@@ -86501,7 +88634,21 @@
           -1
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "FalscherBetrag",
+          "KundeStorniert",
+          "TechnischerFehler",
+          "Anderes",
+          "None"
+        ],
+        "x-enumNames": [
+          "FalscherBetrag",
+          "KundeStorniert",
+          "TechnischerFehler",
+          "Anderes",
+          "None"
+        ]
       },
       "StornoRequest": {
         "required": [
@@ -87142,7 +89289,19 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical"
+        ],
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical"
+        ]
       },
       "SuspiciousAlertStatus": {
         "enum": [
@@ -87151,7 +89310,17 @@
           3
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Open",
+          "Acknowledged",
+          "Dismissed"
+        ],
+        "x-enumNames": [
+          "Open",
+          "Acknowledged",
+          "Dismissed"
+        ]
       },
       "SuspiciousAlertType": {
         "enum": [
@@ -87163,7 +89332,23 @@
           6
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "HighValue",
+          "MultipleStornos",
+          "MultipleRefunds",
+          "UnusualTime",
+          "SameCardMultiple",
+          "RapidTransactions"
+        ],
+        "x-enumNames": [
+          "HighValue",
+          "MultipleStornos",
+          "MultipleRefunds",
+          "UnusualTime",
+          "SameCardMultiple",
+          "RapidTransactions"
+        ]
       },
       "SuspiciousAlertsListResponseDto": {
         "type": "object",
@@ -88756,7 +90941,21 @@
           4
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Standard",
+          "Reduced",
+          "ReducedNew",
+          "Middle",
+          "Zero"
+        ],
+        "x-enumNames": [
+          "Standard",
+          "Reduced",
+          "ReducedNew",
+          "Middle",
+          "Zero"
+        ]
       },
       "TaxHistoryItemDto": {
         "type": "object",
@@ -88930,7 +91129,21 @@
           5
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Standard",
+          "Reduced",
+          "Special",
+          "ZeroRate",
+          "ReducedNew"
+        ],
+        "x-enumNames": [
+          "Standard",
+          "Reduced",
+          "Special",
+          "ZeroRate",
+          "ReducedNew"
+        ]
       },
       "Tenant": {
         "required": [
@@ -90918,7 +93131,23 @@
           "Cancelled",
           "Archived"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "Lead",
+          "InOnboarding",
+          "Active",
+          "Suspended",
+          "Cancelled",
+          "Archived"
+        ],
+        "x-enumNames": [
+          "Lead",
+          "InOnboarding",
+          "Active",
+          "Suspended",
+          "Cancelled",
+          "Archived"
+        ]
       },
       "TenantTseDeviceStatusDto": {
         "type": "object",
@@ -91262,7 +93491,27 @@
           8
         ],
         "type": "integer",
-        "format": "int32"
+        "format": "int32",
+        "x-enum-varnames": [
+          "Open",
+          "Close",
+          "Restock",
+          "Sale",
+          "Adjustment",
+          "Loss",
+          "Return",
+          "Transfer"
+        ],
+        "x-enumNames": [
+          "Open",
+          "Close",
+          "Restock",
+          "Sale",
+          "Adjustment",
+          "Loss",
+          "Return",
+          "Transfer"
+        ]
       },
       "TransferInventoryRequest": {
         "type": "object",
@@ -91372,7 +93621,17 @@
           "Weekly",
           "Monthly"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "Daily",
+          "Weekly",
+          "Monthly"
+        ],
+        "x-enumNames": [
+          "Daily",
+          "Weekly",
+          "Monthly"
+        ]
       },
       "TrendSummary": {
         "type": "object",
@@ -101537,7 +103796,27 @@
           "EU_OSS",
           "NON_EU"
         ],
-        "type": "string"
+        "type": "string",
+        "x-enum-varnames": [
+          "AT_RKSV_STANDARD",
+          "DE_USTG_STANDARD",
+          "DE_KLEINUNTERNEHMER",
+          "CH_MWST_STANDARD",
+          "CH_KLEINUNTERNEHMER",
+          "EU_REVERSE_CHARGE",
+          "EU_OSS",
+          "NON_EU"
+        ],
+        "x-enumNames": [
+          "AT_RKSV_STANDARD",
+          "DE_USTG_STANDARD",
+          "DE_KLEINUNTERNEHMER",
+          "CH_MWST_STANDARD",
+          "CH_KLEINUNTERNEHMER",
+          "EU_REVERSE_CHARGE",
+          "EU_OSS",
+          "NON_EU"
+        ]
       },
       "VerifyAdminVoucherCodeRequest": {
         "required": [
@@ -102193,6 +104472,9 @@
       "name": "AdminCashRegisters"
     },
     {
+      "name": "AdminChQrGapAcceptance"
+    },
+    {
       "name": "AdminCountries"
     },
     {
@@ -102259,6 +104541,9 @@
       "name": "AdminJahresbelegClosing"
     },
     {
+      "name": "AdminKassenSicherheit"
+    },
+    {
       "name": "AdminLicense"
     },
     {
@@ -102272,6 +104557,12 @@
     },
     {
       "name": "AdminMonatsbelegClosing"
+    },
+    {
+      "name": "AdminMwstCanary"
+    },
+    {
+      "name": "AdminMwstRates"
     },
     {
       "name": "AdminOfflineMonitoring"
@@ -102305,6 +104596,9 @@
     },
     {
       "name": "AdminPayments"
+    },
+    {
+      "name": "AdminPeppolParticipants"
     },
     {
       "name": "AdminPermissionAnalytics"

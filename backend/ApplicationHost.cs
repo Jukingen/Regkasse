@@ -474,6 +474,7 @@ internal static class ApplicationHost
         // Country profiles / tax-type rates are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryTaxTypeRegistry, KasseAPI_Final.Services.Countries.CountryTaxTypeRegistry>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.IChMwstEffectiveRates, KasseAPI_Final.Services.Countries.ChMwstEffectiveRates>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.IOssVatRateRegistry, KasseAPI_Final.Services.Countries.OssVatRateRegistry>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Vat.IViesClient, KasseAPI_Final.Services.Countries.Vat.DisabledViesClient>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Vat.IVatIdValidator, KasseAPI_Final.Services.Countries.Vat.VatIdValidator>();
@@ -492,9 +493,17 @@ internal static class ApplicationHost
         {
             client.Timeout = TimeSpan.FromSeconds(5);
         });
-        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.SoftKassenSicherheitService>();
+        }
+        else
+        {
+            builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
+        }
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.En16931UblXmlBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931InvoiceValidationService, KasseAPI_Final.Services.Countries.EInvoicing.En16931InvoiceValidationService>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionStore, KasseAPI_Final.Services.Countries.EInvoicing.InMemoryPeppolSubmissionStore>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.MockPeppolAccessPointClient>();
         builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>();
@@ -1136,6 +1145,7 @@ internal static class ApplicationHost
 
             c.SchemaFilter<KasseAPI_Final.Swagger.TaxTypeSchemaFilter>();
             c.SchemaFilter<KasseAPI_Final.Swagger.TagesabschlussSchemaRequiredFilter>();
+            c.SchemaFilter<KasseAPI_Final.Swagger.EnumVarnamesSchemaFilter>();
             c.OperationFilter<SignatureDebugSwaggerExamples>();
             c.OperationFilter<KasseAPI_Final.Swagger.PosAdminTagsAndDeprecationFilter>();
             c.OperationFilter<KasseAPI_Final.Swagger.SingleJsonContentTypeOperationFilter>();

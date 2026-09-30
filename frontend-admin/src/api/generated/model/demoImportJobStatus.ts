@@ -11,9 +11,9 @@ export type DemoImportJobStatus = typeof DemoImportJobStatus[keyof typeof DemoIm
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const DemoImportJobStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  Queued: 0,
+  Running: 1,
+  Completed: 2,
+  Failed: 3,
+  Cancelled: 4,
 } as const;

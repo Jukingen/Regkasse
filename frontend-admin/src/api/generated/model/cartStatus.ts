@@ -11,8 +11,8 @@ export type CartStatus = typeof CartStatus[keyof typeof CartStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CartStatus = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  Active: 1,
+  Completed: 2,
+  Cancelled: 3,
+  Expired: 4,
 } as const;

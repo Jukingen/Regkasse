@@ -11,9 +11,9 @@ export type RefundReasonCode = typeof RefundReasonCode[keyof typeof RefundReason
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RefundReasonCode = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_99: 99,
+  CustomerComplaint: 1,
+  WrongProduct: 2,
+  QualityIssue: 3,
+  Overcharged: 4,
+  Other: 99,
 } as const;

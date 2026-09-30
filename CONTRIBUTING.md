@@ -166,7 +166,11 @@ Treat with extra care (tests + review): payments, TSE/RKSV signature chain, vouc
 1. Read nearby code and the package README before editing.
 2. Prefer minimal diffs; do not mix unrelated refactors.
 3. Keep schema changes additive; never edit committed EF migrations.
-4. After OpenAPI changes: regenerate FA client (`npm run generate:api` in `frontend-admin`, then `npm run verify:api-client` from root).
+4. After OpenAPI changes: regenerate `backend/swagger.json` (`node scripts/generate-backend-openapi.mjs`) before the FA client (`npm run generate:api` in `frontend-admin`, then `npm run verify:api-client` from root). Backend route or DTO changes must refresh swagger first; generating the client against a stale swagger leaves CI drift.
+
+### API client (OpenAPI → Orval)
+
+When adding a C# enum that appears in the API, ensure it has `x-enum-varnames` emitted by `EnumVarnamesSchemaFilter`; the CI test `GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames` fails otherwise.
 5. For medium/large work: short plan, affected files, risks, compatibility, test strategy.
 
 ## Validation before PR

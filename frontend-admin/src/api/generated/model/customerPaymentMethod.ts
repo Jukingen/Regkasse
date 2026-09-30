@@ -11,8 +11,8 @@ export type CustomerPaymentMethod = typeof CustomerPaymentMethod[keyof typeof Cu
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CustomerPaymentMethod = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  Cash: 0,
+  Card: 1,
+  Voucher: 2,
+  Mobile: 3,
 } as const;

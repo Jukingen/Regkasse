@@ -11,12 +11,12 @@ export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const InvoiceStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
-  NUMBER_7: 7,
+  Draft: 0,
+  Sent: 1,
+  Paid: 2,
+  PartiallyPaid: 3,
+  Unpaid: 4,
+  Overdue: 5,
+  Cancelled: 6,
+  CreditNote: 7,
 } as const;

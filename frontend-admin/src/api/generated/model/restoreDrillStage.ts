@@ -11,14 +11,14 @@ export type RestoreDrillStage = typeof RestoreDrillStage[keyof typeof RestoreDri
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RestoreDrillStage = {
-  NUMBER_0: 0,
-  NUMBER_10: 10,
-  NUMBER_20: 20,
-  NUMBER_30: 30,
-  NUMBER_40: 40,
-  NUMBER_45: 45,
-  NUMBER_50: 50,
-  NUMBER_60: 60,
-  NUMBER_70: 70,
-  NUMBER_100: 100,
+  None: 0,
+  ArtifactDiscovered: 10,
+  PgRestoreListPassed: 20,
+  RestoreAttemptPassed: 30,
+  PostRestoreContinuitySqlPassed: 40,
+  RestoredDatabaseApplicationSmokePassed: 45,
+  FiscalSqlScriptPassed: 50,
+  LiveOperationalIntegrityPassed: 60,
+  ApplicationSmokePassed: 70,
+  Completed: 100,
 } as const;

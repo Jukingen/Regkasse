@@ -11,6 +11,6 @@ export type PricingRuleActionType = typeof PricingRuleActionType[keyof typeof Pr
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PricingRuleActionType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
+  FixedGrossPrice: 0,
+  PercentOffList: 1,
 } as const;

@@ -11,9 +11,9 @@ export type StockFilterType = typeof StockFilterType[keyof typeof StockFilterTyp
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const StockFilterType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  InStock: 0,
+  OutOfStock: 1,
+  LowStock: 2,
+  Overstock: 3,
+  All: 4,
 } as const;

@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { ActivityDtoMetadata } from './activityDtoMetadata';
+import type { ActivityEventType } from './activityEventType';
 
 export interface ActivityDto {
   /** @nullable */
@@ -29,6 +30,5 @@ export interface ActivityDto {
   severity?: string | null;
   /** @nullable */
   title?: string | null;
-  /** @nullable */
-  type?: string | null;
+  type?: ActivityEventType;
 }

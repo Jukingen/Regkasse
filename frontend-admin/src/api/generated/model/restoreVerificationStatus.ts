@@ -11,8 +11,8 @@ export type RestoreVerificationStatus = typeof RestoreVerificationStatus[keyof t
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RestoreVerificationStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  Queued: 0,
+  Running: 1,
+  Succeeded: 2,
+  Failed: 3,
 } as const;

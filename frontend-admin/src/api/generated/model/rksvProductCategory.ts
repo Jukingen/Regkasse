@@ -11,10 +11,10 @@ export type RksvProductCategory = typeof RksvProductCategory[keyof typeof RksvPr
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RksvProductCategory = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_99: 99,
+  Unspecified: 0,
+  Food: 1,
+  Beverage: 2,
+  AlcoholicBeverage: 3,
+  Tobacco: 4,
+  Other: 99,
 } as const;

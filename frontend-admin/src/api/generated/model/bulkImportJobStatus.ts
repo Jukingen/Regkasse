@@ -11,9 +11,9 @@ export type BulkImportJobStatus = typeof BulkImportJobStatus[keyof typeof BulkIm
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BulkImportJobStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  Queued: 0,
+  Running: 1,
+  Completed: 2,
+  Cancelled: 3,
+  Failed: 4,
 } as const;

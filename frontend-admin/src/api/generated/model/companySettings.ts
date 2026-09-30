@@ -135,6 +135,11 @@ export interface CompanySettings {
    */
   decimalPlaces?: number;
   /**
+   * @maxLength 64
+   * @nullable
+   */
+  deClientId?: string | null;
+  /**
    * @minLength 1
    * @maxLength 50
    */
@@ -144,6 +149,11 @@ export interface CompanySettings {
    * @nullable
    */
   defaultTseDeviceId?: string | null;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  deTssId?: string | null;
   /** @nullable */
   email?: string | null;
   /**

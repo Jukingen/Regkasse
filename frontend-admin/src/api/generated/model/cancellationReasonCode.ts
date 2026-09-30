@@ -11,10 +11,10 @@ export type CancellationReasonCode = typeof CancellationReasonCode[keyof typeof 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CancellationReasonCode = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_99: 99,
+  CustomerRequest: 1,
+  WrongItem: 2,
+  PriceMismatch: 3,
+  Duplicate: 4,
+  TechnicalError: 5,
+  Other: 99,
 } as const;

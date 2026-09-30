@@ -11,9 +11,9 @@ export type TaxGroupType = typeof TaxGroupType[keyof typeof TaxGroupType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const TaxGroupType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  Standard: 0,
+  Reduced: 1,
+  ReducedNew: 2,
+  Middle: 3,
+  Zero: 4,
 } as const;

@@ -11,9 +11,9 @@ export type RegisterStatus = typeof RegisterStatus[keyof typeof RegisterStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RegisterStatus = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
+  Closed: 1,
+  Open: 2,
+  Maintenance: 3,
+  Disabled: 4,
+  Decommissioned: 5,
 } as const;

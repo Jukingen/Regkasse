@@ -2,6 +2,7 @@ namespace KasseAPI_Final.Models;
 
 /// <summary>
 /// Admin activity feed / notification event kinds (FA bell, email, webhook).
+/// <see cref="DTOs.ActivityDto.Type"/> serializes the member name (<c>UserCreated</c>).
 /// </summary>
 public enum ActivityEventType
 {
@@ -251,4 +252,28 @@ public enum ActivityEventType
 
     /// <summary>DE KassenSicherheit transaction finished. Declared here; fired from the fiscal signature router.</summary>
     KsDeTxFinished = 252,
+
+    /// <summary>CH QR-Rechnung payload built. Metadata is a hash, not the SPC text.</summary>
+    QrRechnungPayloadBuilt = 253,
+
+    /// <summary>CH QR-Rechnung PDF rendered. Metadata is a relative path, not the PDF bytes.</summary>
+    QrRechnungPdfGenerated = 254,
+
+    /// <summary>
+    /// Country change left historical invoices, receipts, and payments stamped with the issue-time country.
+    /// Audit counterpart is <c>AuditEventType.TenantCountryChangedHistoricalPreserved</c> (98).
+    /// </summary>
+    TenantCountryChangedHistoricalPreserved = 255,
+
+    /// <summary>EN 16931 Schematron passed. Audit counterpart is 108.</summary>
+    EinvoiceValidated = 256,
+
+    /// <summary>Access point accepted the invoice. Audit counterpart is 109. Does not open Peppol HTTP by itself.</summary>
+    EinvoiceSubmitted = 257,
+
+    /// <summary>Schematron or access point rejected the invoice. Audit counterpart is 110.</summary>
+    EinvoiceSubmissionFailed = 258,
+
+    /// <summary>Super Admin stored a Peppol participant id. No credential. Audit counterpart is 113.</summary>
+    PeppolParticipantRegistered = 259,
 }

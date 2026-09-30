@@ -11,11 +11,11 @@ export type BackupRunStatus = typeof BackupRunStatus[keyof typeof BackupRunStatu
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupRunStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
+  Queued: 0,
+  Running: 1,
+  AwaitingVerification: 2,
+  Succeeded: 3,
+  Failed: 4,
+  VerificationFailed: 5,
+  Cancelled: 6,
 } as const;

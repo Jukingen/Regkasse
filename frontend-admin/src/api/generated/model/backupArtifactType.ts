@@ -11,10 +11,10 @@ export type BackupArtifactType = typeof BackupArtifactType[keyof typeof BackupAr
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupArtifactType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
+  LogicalDump: 0,
+  PhysicalBaseBackup: 1,
+  WalArchiveWindow: 2,
+  GlobalsDump: 3,
+  VerificationManifest: 4,
+  BackupLog: 5,
 } as const;

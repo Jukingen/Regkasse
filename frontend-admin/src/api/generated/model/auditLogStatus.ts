@@ -11,15 +11,15 @@ export type AuditLogStatus = typeof AuditLogStatus[keyof typeof AuditLogStatus];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AuditLogStatus = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
-  NUMBER_7: 7,
-  NUMBER_8: 8,
-  NUMBER_9: 9,
-  NUMBER_10: 10,
+  Success: 0,
+  Failed: 1,
+  Pending: 2,
+  Cancelled: 3,
+  InProgress: 4,
+  Timeout: 5,
+  ValidationError: 6,
+  AuthorizationError: 7,
+  SystemError: 8,
+  Warning: 9,
+  Error: 10,
 } as const;

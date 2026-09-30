@@ -11,7 +11,7 @@ export type AppliedBenefitKind = typeof AppliedBenefitKind[keyof typeof AppliedB
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AppliedBenefitKind = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  PercentageDiscount: 0,
+  FreeAllowance: 1,
+  BuyXGetY: 2,
 } as const;

@@ -11,6 +11,6 @@ export type PaymentReversalOperation = typeof PaymentReversalOperation[keyof typ
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PaymentReversalOperation = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  Cancel: 1,
+  Refund: 2,
 } as const;

@@ -11,6 +11,6 @@ export type AppType = typeof AppType[keyof typeof AppType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AppType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
+  Pwa: 0,
+  Native: 1,
 } as const;

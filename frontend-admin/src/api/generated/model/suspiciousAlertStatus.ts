@@ -11,7 +11,7 @@ export type SuspiciousAlertStatus = typeof SuspiciousAlertStatus[keyof typeof Su
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const SuspiciousAlertStatus = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  Open: 1,
+  Acknowledged: 2,
+  Dismissed: 3,
 } as const;

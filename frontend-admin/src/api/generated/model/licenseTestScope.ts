@@ -11,7 +11,7 @@ export type LicenseTestScope = typeof LicenseTestScope[keyof typeof LicenseTestS
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const LicenseTestScope = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  Tenant: 0,
+  Deployment: 1,
+  Both: 2,
 } as const;

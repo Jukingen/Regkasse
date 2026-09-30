@@ -20,6 +20,9 @@ export type NotificationConfigEnabledEvents = {
   CashRegisterOpenRequestApproved?: boolean;
   CashRegisterOpenRequestDenied?: boolean;
   CashRegisterOpenRequested?: boolean;
+  ChMwstQrBuilt?: boolean;
+  ChQrKnownGapsAccepted?: boolean;
+  ChQrKnownGapsOutstanding?: boolean;
   CriticalActionApprovalApproved?: boolean;
   CriticalActionApprovalRejected?: boolean;
   CriticalActionApprovalRequested?: boolean;
@@ -33,8 +36,12 @@ export type NotificationConfigEnabledEvents = {
   DepExportOverdue?: boolean;
   DepExportValidationFailed?: boolean;
   DigitalServiceRequested?: boolean;
+  EinvoiceSubmissionFailed?: boolean;
+  EinvoiceSubmitted?: boolean;
+  EinvoiceValidated?: boolean;
   FinanzOnlineSubmissionFailed?: boolean;
   JahresbelegFonReminder?: boolean;
+  KsDeTxFinished?: boolean;
   LicenseExpired?: boolean;
   LicenseExpiringSoon?: boolean;
   LimitApproaching?: boolean;
@@ -44,6 +51,7 @@ export type NotificationConfigEnabledEvents = {
   MaintenanceUpcoming?: boolean;
   MonatsbelegAutoCreated?: boolean;
   MonatsbelegAutoCreateFailed?: boolean;
+  MonatsbelegAutoCreateMissed?: boolean;
   MonatsbelegCreated?: boolean;
   MonatsbelegManagerContacted?: boolean;
   MonatsbelegMissingReminder?: boolean;
@@ -55,9 +63,12 @@ export type NotificationConfigEnabledEvents = {
   OnlineOrderPaid?: boolean;
   OnlineOrderPushedToPos?: boolean;
   OnlineOrderStatusChanged?: boolean;
+  PeppolParticipantRegistered?: boolean;
   PermissionRequestApproved?: boolean;
   PermissionRequested?: boolean;
   PermissionRequestRejected?: boolean;
+  QrRechnungPayloadBuilt?: boolean;
+  QrRechnungPdfGenerated?: boolean;
   RestoreDrillFailed?: boolean;
   RestoreDrillSucceeded?: boolean;
   RiskAnomalyDetected?: boolean;
@@ -81,6 +92,7 @@ export type NotificationConfigEnabledEvents = {
   SuspiciousUnusualTime?: boolean;
   SystemPermissionChange?: boolean;
   TenantCountryChanged?: boolean;
+  TenantCountryChangedHistoricalPreserved?: boolean;
   TenantSettingsChangeApproved?: boolean;
   TenantSettingsChangeRejected?: boolean;
   TenantSettingsChangeRequested?: boolean;

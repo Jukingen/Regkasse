@@ -49,10 +49,7 @@ export interface CreatePaymentRequest {
    * @nullable
    */
   reservedReceiptNumber?: string | null;
-  /**
-   * @nullable
-   * @pattern ^ATU\d{8}$
-   */
+  /** @nullable */
   steuernummer?: string | null;
   stornoReason?: StornoReason;
   tableNumber: number;

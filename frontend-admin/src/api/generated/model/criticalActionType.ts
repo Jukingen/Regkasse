@@ -11,16 +11,16 @@ export type CriticalActionType = typeof CriticalActionType[keyof typeof Critical
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CriticalActionType = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
-  NUMBER_7: 7,
-  NUMBER_8: 8,
-  NUMBER_9: 9,
-  NUMBER_10: 10,
-  NUMBER_11: 11,
-  NUMBER_12: 12,
+  SchlussbelegCreation: 1,
+  TenantDeletion: 2,
+  TenantArchive: 3,
+  LicenseChange: 4,
+  CurrencyChange: 5,
+  CountryChange: 6,
+  DeleteAllProducts: 7,
+  DecommissionRegister: 8,
+  BackupDisable: 9,
+  FiscalExportDelete: 10,
+  UserRoleChange: 11,
+  MassPermissionUpdate: 12,
 } as const;

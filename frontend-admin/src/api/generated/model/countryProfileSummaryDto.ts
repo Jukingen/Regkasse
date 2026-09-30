@@ -7,6 +7,7 @@
  */
 import type { VatRegime } from './vatRegime';
 import type { EInvoicingStandard } from './eInvoicingStandard';
+import type { CountryFiscalSectionDto } from './countryFiscalSectionDto';
 import type { FiscalSystem } from './fiscalSystem';
 
 export interface CountryProfileSummaryDto {
@@ -20,7 +21,13 @@ export interface CountryProfileSummaryDto {
   defaultLocale: string | null;
   /** @nullable */
   eInvoicingStandards: EInvoicingStandard[] | null;
+  /** @nullable */
+  fiscalSections: CountryFiscalSectionDto[] | null;
   fiscalSystem: FiscalSystem;
   /** @nullable */
+  fiscalSystemLabel: string | null;
+  /** @nullable */
   name: string | null;
+  /** @nullable */
+  vatIdPattern: string | null;
 }

@@ -11,8 +11,8 @@ export type LicenseTestScenario = typeof LicenseTestScenario[keyof typeof Licens
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const LicenseTestScenario = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  Days1: 0,
+  Days7: 1,
+  Days30: 2,
+  Expired: 3,
 } as const;

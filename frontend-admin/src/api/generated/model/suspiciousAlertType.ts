@@ -11,10 +11,10 @@ export type SuspiciousAlertType = typeof SuspiciousAlertType[keyof typeof Suspic
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const SuspiciousAlertType = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
-  NUMBER_5: 5,
-  NUMBER_6: 6,
+  HighValue: 1,
+  MultipleStornos: 2,
+  MultipleRefunds: 3,
+  UnusualTime: 4,
+  SameCardMultiple: 5,
+  RapidTransactions: 6,
 } as const;

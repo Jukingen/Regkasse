@@ -11,7 +11,7 @@ export type RestoreVerificationTriggerOrchestrationState = typeof RestoreVerific
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RestoreVerificationTriggerOrchestrationState = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  NewlyQueued: 0,
+  ExistingByIdempotencyKey: 1,
+  ExistingActiveRunReturned: 2,
 } as const;

@@ -11,7 +11,7 @@ export type BackupStorageTier = typeof BackupStorageTier[keyof typeof BackupStor
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BackupStorageTier = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  Hot: 0,
+  Warm: 1,
+  Cold: 2,
 } as const;

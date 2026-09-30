@@ -11,6 +11,6 @@ export type PricingRuleTargetScope = typeof PricingRuleTargetScope[keyof typeof 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PricingRuleTargetScope = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
+  Product: 0,
+  Category: 1,
 } as const;

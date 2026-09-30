@@ -11,9 +11,9 @@ export type StornoReason = typeof StornoReason[keyof typeof StornoReason];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const StornoReason = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_MINUS_1: -1,
+  FalscherBetrag: 0,
+  KundeStorniert: 1,
+  TechnischerFehler: 2,
+  Anderes: 3,
+  None: -1,
 } as const;

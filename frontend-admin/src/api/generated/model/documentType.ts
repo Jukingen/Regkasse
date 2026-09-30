@@ -11,6 +11,6 @@ export type DocumentType = typeof DocumentType[keyof typeof DocumentType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const DocumentType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
+  Invoice: 0,
+  CreditNote: 1,
 } as const;

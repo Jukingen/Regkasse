@@ -20,6 +20,9 @@ export type NotificationConfigSeverityThreshold = {
   CashRegisterOpenRequestApproved?: string;
   CashRegisterOpenRequestDenied?: string;
   CashRegisterOpenRequested?: string;
+  ChMwstQrBuilt?: string;
+  ChQrKnownGapsAccepted?: string;
+  ChQrKnownGapsOutstanding?: string;
   CriticalActionApprovalApproved?: string;
   CriticalActionApprovalRejected?: string;
   CriticalActionApprovalRequested?: string;
@@ -33,8 +36,12 @@ export type NotificationConfigSeverityThreshold = {
   DepExportOverdue?: string;
   DepExportValidationFailed?: string;
   DigitalServiceRequested?: string;
+  EinvoiceSubmissionFailed?: string;
+  EinvoiceSubmitted?: string;
+  EinvoiceValidated?: string;
   FinanzOnlineSubmissionFailed?: string;
   JahresbelegFonReminder?: string;
+  KsDeTxFinished?: string;
   LicenseExpired?: string;
   LicenseExpiringSoon?: string;
   LimitApproaching?: string;
@@ -44,6 +51,7 @@ export type NotificationConfigSeverityThreshold = {
   MaintenanceUpcoming?: string;
   MonatsbelegAutoCreated?: string;
   MonatsbelegAutoCreateFailed?: string;
+  MonatsbelegAutoCreateMissed?: string;
   MonatsbelegCreated?: string;
   MonatsbelegManagerContacted?: string;
   MonatsbelegMissingReminder?: string;
@@ -55,9 +63,12 @@ export type NotificationConfigSeverityThreshold = {
   OnlineOrderPaid?: string;
   OnlineOrderPushedToPos?: string;
   OnlineOrderStatusChanged?: string;
+  PeppolParticipantRegistered?: string;
   PermissionRequestApproved?: string;
   PermissionRequested?: string;
   PermissionRequestRejected?: string;
+  QrRechnungPayloadBuilt?: string;
+  QrRechnungPdfGenerated?: string;
   RestoreDrillFailed?: string;
   RestoreDrillSucceeded?: string;
   RiskAnomalyDetected?: string;
@@ -81,6 +92,7 @@ export type NotificationConfigSeverityThreshold = {
   SuspiciousUnusualTime?: string;
   SystemPermissionChange?: string;
   TenantCountryChanged?: string;
+  TenantCountryChangedHistoricalPreserved?: string;
   TenantSettingsChangeApproved?: string;
   TenantSettingsChangeRejected?: string;
   TenantSettingsChangeRequested?: string;

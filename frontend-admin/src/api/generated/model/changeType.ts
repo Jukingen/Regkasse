@@ -11,7 +11,7 @@ export type ChangeType = typeof ChangeType[keyof typeof ChangeType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ChangeType = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
+  TaxRate: 1,
+  Currency: 2,
+  ProductPrice: 3,
 } as const;

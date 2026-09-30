@@ -11,7 +11,7 @@ export type DataRequestType = typeof DataRequestType[keyof typeof DataRequestTyp
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const DataRequestType = {
-  NUMBER_0: 0,
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+  View: 0,
+  Export: 1,
+  Delete: 2,
 } as const;

@@ -11,8 +11,8 @@ export type SuspiciousAlertSeverity = typeof SuspiciousAlertSeverity[keyof typeo
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const SuspiciousAlertSeverity = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
-  NUMBER_4: 4,
+  Low: 1,
+  Medium: 2,
+  High: 3,
+  Critical: 4,
 } as const;
