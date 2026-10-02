@@ -589,8 +589,54 @@ export class OfflineOrderManager {
     return await this.storage.getPendingOrders();
   }
 
+  async listAllOrders(): Promise<OfflineOrder[]> {
+    return await this.storage.listAll();
+  }
+
   async getOrder(id: string): Promise<OfflineOrder | null> {
     return await this.storage.getOrder(id);
+  }
+
+  /** Manual retry for one local order snapshot (pending or failed). Persistence format unchanged. */
+  async retryOrderById(id: string): Promise<SyncResult> {
+    const order = await this.storage.getOrder(id);
+    if (!order || order.status === 'synced') {
+      return { success: false, message: 'not_retryable' };
+    }
+    if (this.currentReplay) {
+      return { success: false, message: 'Sync in progress' };
+    }
+    if (!(await this.isOnline())) {
+      return { success: false, message: 'Offline' };
+    }
+    this.currentReplay = true;
+    try {
+      return await this.sendOrdersToBackend([order]);
+    } finally {
+      this.currentReplay = false;
+    }
+  }
+
+  /** Manual bulk retry of pending + failed local order snapshots. */
+  async retryPendingAndFailedOrders(): Promise<SyncResult> {
+    if (this.currentReplay) {
+      return { success: false, message: 'Sync in progress' };
+    }
+    if (!(await this.isOnline())) {
+      return { success: false, message: 'Offline' };
+    }
+    const retryable = (await this.storage.listAll()).filter(
+      (order) => order.status === 'pending' || order.status === 'failed'
+    );
+    if (retryable.length === 0) {
+      return { success: true, message: 'No pending orders' };
+    }
+    this.currentReplay = true;
+    try {
+      return await this.sendOrdersToBackend(retryable);
+    } finally {
+      this.currentReplay = false;
+    }
   }
 }
 

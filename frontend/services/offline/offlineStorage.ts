@@ -27,6 +27,8 @@ export interface OfflineOrder {
 export interface IOfflineStorage {
   saveOrder(order: OfflineOrder): Promise<void>;
   getPendingOrders(): Promise<OfflineOrder[]>;
+  /** Read-only listing of every local row (pending, failed, synced). Does not change persistence. */
+  listAll(): Promise<OfflineOrder[]>;
   getOrder(id: string): Promise<OfflineOrder | null>;
   deleteOrder(id: string): Promise<void>;
   updateOrderStatus(id: string, status: string): Promise<void>;
@@ -67,6 +69,10 @@ export class AsyncStorageAdapter implements IOfflineStorage {
   async getPendingOrders(): Promise<OfflineOrder[]> {
     const orders = await readAllFromAsyncStorage();
     return sortByCreatedAt(orders.filter((o) => o.status === 'pending'));
+  }
+
+  async listAll(): Promise<OfflineOrder[]> {
+    return sortByCreatedAt(await readAllFromAsyncStorage());
   }
 
   async getOrder(id: string): Promise<OfflineOrder | null> {
@@ -177,6 +183,13 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
     return await this.withStore('readonly', async (store) => {
       const index = store.index('status');
       const rows = await idbRequest(index.getAll('pending'));
+      return sortByCreatedAt(rows as OfflineOrder[]);
+    });
+  }
+
+  async listAll(): Promise<OfflineOrder[]> {
+    return await this.withStore('readonly', async (store) => {
+      const rows = await idbRequest(store.getAll());
       return sortByCreatedAt(rows as OfflineOrder[]);
     });
   }

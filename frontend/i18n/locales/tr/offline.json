@@ -1,0 +1,9 @@
+{
+  "limit": {
+    "used": "{{limit}} çevrimdışı işlemin {{current}}'i kullanıldı",
+    "title": "Çevrimdışı limit doldu",
+    "body": "Çevrimdışı limit doldu. Senkronizasyon tamamlanana kadar satışlar durduruldu.",
+    "retryNow": "Şimdi senkronize et",
+    "cancel": "İptal"
+  }
+}
