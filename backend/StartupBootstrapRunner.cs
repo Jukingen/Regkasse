@@ -15,12 +15,20 @@ namespace KasseAPI_Final
     {
         /// <summary>
         /// Runs the full bootstrap sequence using services from the given scope.
-        /// Execution order and semantics match the previous inline implementation in Program.cs.
+        /// Pending migrations are logged first. Outside Development they block startup
+        /// before <c>Database.Migrate()</c>; Development warns and then migrates.
         /// </summary>
         /// <param name="serviceProvider">Scoped service provider (e.g. from app.Services.CreateScope()).</param>
         public static async Task RunAsync(IServiceProvider serviceProvider)
         {
             var db = serviceProvider.GetRequiredService<AppDbContext>();
+            var webEnv = serviceProvider.GetRequiredService<IWebHostEnvironment>();
+            var startupLogger = serviceProvider.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("KasseAPI_Final.StartupBootstrapRunner");
+
+            var pendingBeforeMigrate = (await db.Database.GetPendingMigrationsAsync()).ToList();
+            StartupMigrationGuard.Enforce(pendingBeforeMigrate, webEnv, startupLogger);
+
             db.Database.Migrate();
 
             var context = serviceProvider.GetRequiredService<AppDbContext>();
@@ -50,7 +58,6 @@ namespace KasseAPI_Final
 
             await RoleSeedData.SeedRolesAsync(roleManager);
             var tenantMembershipProvisioner = serviceProvider.GetRequiredService<IUserTenantMembershipProvisioner>();
-            var webEnv = serviceProvider.GetRequiredService<IWebHostEnvironment>();
             await UserSeedData.SeedUsersAsync(userManager, tenantMembershipProvisioner, webEnv);
 
             var userSeedLogger = serviceProvider.GetRequiredService<ILoggerFactory>()
