@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { CreateMonatsbelegRequest } from '@/api/generated/model';
 import { postApiRksvSpecialReceiptsMonatsbeleg } from '@/api/generated/rksv-special-receipts/rksv-special-receipts';
+import { monatsbelegeListQueryKey } from '@/features/rksv/api/monatsbelege';
 import { monatsbelegQueryKeys } from '@/features/rksv/hooks/useMonatsbeleg';
 import type { CreateMonatsbelegResponseExtended } from '@/features/rksv/types/createMonatsbelegResponseExtended';
 
@@ -23,6 +24,7 @@ export function useCreateMonatsbeleg() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: monatsbelegQueryKeys.statusOverview }),
+        queryClient.invalidateQueries({ queryKey: monatsbelegeListQueryKey }),
         queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.operations.reminderOverview }),
         queryClient.invalidateQueries({ queryKey: ['rksv-sonderbelege-recent-special'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/Receipts/list'] }),

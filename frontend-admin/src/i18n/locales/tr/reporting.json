@@ -48,7 +48,8 @@
     },
     "reportStatus": {
       "Finalized": "Kesinlestirildi",
-      "Provisional": "Gecici"
+      "Provisional": "Gecici",
+      "Corrected": "Duzeltildi"
     },
     "emptyDash": "—"
   },
@@ -59,9 +60,39 @@
       "columnDate": "Tarih",
       "intro": "Gecici raporlar sonlandirmaya kadar yeniden hesaplanabilir. Kesinlestirilmis snapshot'lar degismez; duzeltmeler yeni rapor satiri olusturur.",
       "generateButton": "Bitis tarihi icin gunluk rapor olustur/guncelle",
+      "exportCsv": "CSV disa aktar",
+      "bulkFinalize": "Secimi sonlandir",
+      "bulkFinalizeConfirmTitle": "Gunluk raporlar sonlandirilsin mi?",
+      "bulkFinalizeConfirmBody": "{{count}} gecici gunluk rapor sonlandirilacak. Bu adim geri alinamaz.",
+      "statusFilter": "Durum",
+      "statusAll": "Tum durumlar",
+      "emptyTitle": "Bu donemde gunluk rapor yok",
+      "emptyDescription": "Secilen bitis tarihi ve kasa icin gecici bir gunluk rapor olusturun.",
+      "emptyGenerateCta": "Gunluk rapor olustur",
+      "csv": {
+        "date": "Tarih",
+        "register": "Kasa",
+        "status": "Durum",
+        "gross": "Brut",
+        "submission": "Gonderim"
+      },
       "messages": {
-        "generateSuccess": "Gunluk rapor olusturuldu veya guncellendi."
+        "generateSuccess": "Gunluk rapor olusturuldu veya guncellendi.",
+        "csvSuccess": "CSV disa aktarildi.",
+        "bulkFinalizeSuccess": "Secilen gunluk raporlar sonlandirildi.",
+        "bulkFinalizeNone": "Lutfen en az bir gecici gunluk rapor secin."
       }
+    },
+    "error": {
+      "list": "Gunluk raporlar yuklenemedi.",
+      "detail": "Gunluk rapor yuklenemedi.",
+      "generate": "Olusturma basarisiz.",
+      "finalize": "Sonlandirma basarisiz.",
+      "csv": "CSV disa aktarma basarisiz.",
+      "pdfGenerate": "PDF olusturulamadi.",
+      "pdfDownload": "PDF indirilemedi.",
+      "pdfNotStored": "Kayitli PDF yok. Once “PDF olustur” kullanin.",
+      "bulkFinalize": "Toplu sonlandirma basarisiz."
     },
     "detail": {
       "loading": "Yukleniyor…",
@@ -78,6 +109,8 @@
       },
       "actions": {
         "finalize": "Sonlandir",
+        "generatePdf": "PDF olustur",
+        "downloadPdf": "PDF indir",
         "finanzOnline": "FinanzOnline (outbox)",
         "correction": "Duzeltme (yeni rapor)",
         "backToList": "Listeye don"
@@ -98,6 +131,8 @@
         "taxBreakdown": "Vergi detayi",
         "paymentMethods": "Odeme yontemleri",
         "reconciliation": "Mutabakat / notlar",
+        "finanzOnline": "FinanzOnline gonderimi",
+        "auditTrail": "Denetim izi",
         "trace": "Iz (uyum)",
         "traceBody": "Ham kimlikler kisaltilmis saklanir; hash izlenebilirlik icindir.",
         "history": "Gecmis"
@@ -134,6 +169,12 @@
         "dayClosedRksv": "RKSV'de gun kapandi",
         "yes": "Evet",
         "no": "Hayir"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Bu takvim gununde faturasiz odeme satirlari.",
+        "unknownMethodLines": "Tanimlanamayan odeme yontemine sahip satirlar.",
+        "offlineLinked": "Cevrimdisi kuyruktan baglanan odemeler.",
+        "dayClosedRksv": "Bu takvim gunu icin RKSV gun sonu var mi."
       },
       "history": {
         "loading": "Gecmis yukleniyor…",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useParams, useRouter } from 'next/navigation';
 /**
@@ -16,6 +16,12 @@ import {
   FormalReportProfileLanguageCue,
 } from '@/components/reporting/FormalReportLanguageNotice';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
+import { TagesberichtReconciliationFlags } from '@/features/reporting/tagesbericht/TagesberichtReconciliationFlags';
+import { TagesberichtSummaryCards } from '@/features/reporting/tagesbericht/TagesberichtSummaryCards';
+import { printTagesberichtSummary } from '@/features/reporting/tagesbericht/tagesberichtPrint';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { formatCurrency, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
@@ -173,7 +179,7 @@ export default function TagesberichtDetailPage() {
       message.success(td('messages.finalizeSuccess'));
       qc.invalidateQueries({ queryKey: ['tagesbericht', id] });
     },
-    onError: () => message.error(td('messages.finalizeError')),
+    onError: () => message.error(t('reporting.tagesbericht.error.finalize')),
   });
 
   const submitMut = useMutation({
@@ -240,7 +246,9 @@ export default function TagesberichtDetailPage() {
     return <Typography.Paragraph>{td('loading')}</Typography.Paragraph>;
   }
   if (detailQ.isError || !detailQ.data) {
-    return <Typography.Paragraph type="danger">{td('loadError')}</Typography.Paragraph>;
+    return (
+      <Alert type="error" showIcon title={t('reporting.tagesbericht.error.detail')} />
+    );
   }
 
   const d = detailQ.data;
@@ -269,6 +277,52 @@ export default function TagesberichtDetailPage() {
         ]}
         actions={
           <Space wrap>
+            {canExport ? (
+              <Button
+                onClick={() => {
+                  const ok = printTagesberichtSummary({
+                    title: t('reporting.tagesbericht.detail.pageTitle', { date: businessDate }),
+                    dateLabel: businessDate,
+                    gross: `${td('labels.gross')}: ${formatCurrency(d.summary.grossSalesAmount, formatLocale)}`,
+                    tax: `${td('labels.taxTotal')}: ${formatCurrency(d.summary.taxTotalAmount, formatLocale)}`,
+                    payments: d.summary.paymentMethodBreakdown
+                      .map(
+                        (row) =>
+                          `${row.displayLabel || row.methodKey}: ${formatCurrency(row.totalAmount, formatLocale)}`
+                      )
+                      .join(', '),
+                  });
+                  if (!ok) message.error(t('reporting.tagesbericht.error.pdfGenerate'));
+                }}
+              >
+                {td('actions.generatePdf')}
+              </Button>
+            ) : null}
+            {canExport ? (
+              <Button
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const lang = (formatLocale ?? 'de').split('-')[0] || 'de';
+                      const blob = await downloadReportPdf('tagesbericht', id, { language: lang });
+                      triggerReportPdfBlobDownload(
+                        blob,
+                        buildReportFileName({
+                          reportType: 'tagesbericht',
+                          tenantSlug: getEffectiveTenantSlug(),
+                          businessDate,
+                        })
+                      );
+                      message.success(t('reporting.storedPdf.success'));
+                    } catch {
+                      message.error(t('reporting.tagesbericht.error.pdfNotStored'));
+                    }
+                  })();
+                }}
+              >
+                {td('actions.downloadPdf')}
+              </Button>
+            ) : null}
             {canExport && d.reportStatus === 'Provisional' ? (
               <Button
                 type="primary"
@@ -408,6 +462,24 @@ export default function TagesberichtDetailPage() {
         </Descriptions>
       </Card>
 
+      <div style={{ marginBottom: 16 }}>
+        <TagesberichtSummaryCards
+          grossLabel={td('labels.gross')}
+          taxLabel={td('cards.taxBreakdown')}
+          paymentsLabel={td('cards.paymentMethods')}
+          grossAmount={d.summary.grossSalesAmount}
+          taxTotalAmount={d.summary.taxTotalAmount}
+          paymentRows={d.summary.paymentMethodBreakdown}
+          taxRows={d.summary.taxBreakdown}
+          formatLocale={formatLocale}
+          methodColumn={td('labels.method')}
+          linesColumn={td('labels.lines')}
+          sumColumn={td('labels.sum')}
+          taxBucketColumn={td('labels.taxBucket')}
+          taxAmountColumn={td('labels.taxAmount')}
+        />
+      </div>
+
       <Card title={td('cards.sums')} style={{ marginBottom: 16 }}>
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label={td('labels.gross')}>
@@ -428,6 +500,29 @@ export default function TagesberichtDetailPage() {
           <Descriptions.Item label={td('labels.stornoLines')}>
             {d.summary.stornoRowCount}
           </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card title={td('cards.finanzOnline')} style={{ marginBottom: 16 }}>
+        <Descriptions column={1} size="small" bordered>
+          <Descriptions.Item label={td('labels.submission')}>
+            <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>
+            {d.submission.outboxStatus ? (
+              <Tag title={backendApiTooltip}>{d.submission.outboxStatus}</Tag>
+            ) : null}
+          </Descriptions.Item>
+          {operatorHintResolved ? (
+            <Descriptions.Item label={td('labels.remediation')}>
+              <Typography.Text title={fiscalTooltip(operatorHintResolved.contentLang)}>
+                {operatorHintResolved.text}
+              </Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.submission.externalReferenceId ? (
+            <Descriptions.Item label={td('labels.reference')}>
+              {d.submission.externalReferenceId}
+            </Descriptions.Item>
+          ) : null}
         </Descriptions>
       </Card>
 
@@ -455,34 +550,37 @@ export default function TagesberichtDetailPage() {
         />
       </Card>
 
-      <Card title={td('cards.reconciliation')} style={{ marginBottom: 16 }}>
-        <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label={td('labels.paymentsWithoutInvoice')}>
-            {d.summary.reconciliation.paymentsWithoutInvoiceCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.unknownMethodLines')}>
-            {d.summary.reconciliation.unknownPaymentMethodRowCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.offlineLinked')}>
-            {d.summary.reconciliation.offlineLinkedPaymentCount}
-          </Descriptions.Item>
-          <Descriptions.Item label={td('labels.dayClosedRksv')}>
-            {d.summary.reconciliation.dayClosedInRksv ? td('labels.yes') : td('labels.no')}
-          </Descriptions.Item>
-        </Descriptions>
-        {d.summary.warnings?.length ? (
-          <ul>
-            {d.summary.warnings.map((w) => (
-              <li key={w}>
-                {/* Server warning strings shown as-is. */}
-                <Typography.Text type="warning" title={backendApiTooltip}>
-                  {w}
-                </Typography.Text>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </Card>
+      <TagesberichtReconciliationFlags
+        title={td('cards.reconciliation')}
+        warningTooltip={backendApiTooltip}
+        warnings={d.summary.warnings}
+        flags={[
+          {
+            key: 'paymentsWithoutInvoice',
+            label: td('labels.paymentsWithoutInvoice'),
+            tooltip: td('reconciliationTooltips.paymentsWithoutInvoice'),
+            value: String(d.summary.reconciliation.paymentsWithoutInvoiceCount),
+          },
+          {
+            key: 'unknownMethod',
+            label: td('labels.unknownMethodLines'),
+            tooltip: td('reconciliationTooltips.unknownMethodLines'),
+            value: String(d.summary.reconciliation.unknownPaymentMethodRowCount),
+          },
+          {
+            key: 'offlineLinked',
+            label: td('labels.offlineLinked'),
+            tooltip: td('reconciliationTooltips.offlineLinked'),
+            value: String(d.summary.reconciliation.offlineLinkedPaymentCount),
+          },
+          {
+            key: 'dayClosed',
+            label: td('labels.dayClosedRksv'),
+            tooltip: td('reconciliationTooltips.dayClosedRksv'),
+            value: d.summary.reconciliation.dayClosedInRksv ? td('labels.yes') : td('labels.no'),
+          },
+        ]}
+      />
 
       {showTrace ? (
         <Card title={td('cards.trace')}>
@@ -490,7 +588,7 @@ export default function TagesberichtDetailPage() {
         </Card>
       ) : null}
 
-      <Card title={td('cards.history')} style={{ marginTop: 16 }}>
+      <Card title={td('cards.auditTrail')} style={{ marginTop: 16 }}>
         {historyQ.isLoading ? (
           <Typography.Text type="secondary">{td('history.loading')}</Typography.Text>
         ) : historyQ.data?.items?.length ? (

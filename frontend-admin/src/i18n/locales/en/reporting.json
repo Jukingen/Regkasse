@@ -48,7 +48,8 @@
     },
     "reportStatus": {
       "Finalized": "Finalized",
-      "Provisional": "Provisional"
+      "Provisional": "Provisional",
+      "Corrected": "Corrected"
     },
     "emptyDash": "—"
   },
@@ -59,9 +60,39 @@
       "columnDate": "Date",
       "intro": "Provisional reports can be recalculated until finalization. Finalized snapshots are immutable; corrections create a new report row.",
       "generateButton": "Generate/update daily report for end date",
+      "exportCsv": "Export CSV",
+      "bulkFinalize": "Finalize selection",
+      "bulkFinalizeConfirmTitle": "Finalize daily reports?",
+      "bulkFinalizeConfirmBody": "{{count}} provisional daily reports will be finalized. This step cannot be undone.",
+      "statusFilter": "Status",
+      "statusAll": "All statuses",
+      "emptyTitle": "No daily reports in this period",
+      "emptyDescription": "Generate a provisional daily report for the selected end date and cash register.",
+      "emptyGenerateCta": "Generate daily report",
+      "csv": {
+        "date": "Date",
+        "register": "Register",
+        "status": "Status",
+        "gross": "Gross",
+        "submission": "Submission"
+      },
       "messages": {
-        "generateSuccess": "Daily report generated or updated."
+        "generateSuccess": "Daily report generated or updated.",
+        "csvSuccess": "CSV exported.",
+        "bulkFinalizeSuccess": "Selected daily reports were finalized.",
+        "bulkFinalizeNone": "Select at least one provisional daily report."
       }
+    },
+    "error": {
+      "list": "Daily reports could not be loaded.",
+      "detail": "The daily report could not be loaded.",
+      "generate": "Generation failed.",
+      "finalize": "Finalization failed.",
+      "csv": "CSV export failed.",
+      "pdfGenerate": "PDF could not be generated.",
+      "pdfDownload": "PDF could not be downloaded.",
+      "pdfNotStored": "No stored PDF is available. Use “Generate PDF” first.",
+      "bulkFinalize": "Bulk finalization failed."
     },
     "detail": {
       "loading": "Loading…",
@@ -78,6 +109,8 @@
       },
       "actions": {
         "finalize": "Finalize",
+        "generatePdf": "Generate PDF",
+        "downloadPdf": "Download PDF",
         "finanzOnline": "FinanzOnline (outbox)",
         "correction": "Correction (new report)",
         "backToList": "Back to list"
@@ -98,6 +131,8 @@
         "taxBreakdown": "Tax breakdown",
         "paymentMethods": "Payment methods",
         "reconciliation": "Reconciliation / notes",
+        "finanzOnline": "FinanzOnline submission",
+        "auditTrail": "Audit trail",
         "trace": "Trace (compliance)",
         "traceBody": "Raw IDs are stored truncated; the hash supports traceability.",
         "history": "History"
@@ -134,6 +169,12 @@
         "dayClosedRksv": "Day closed in RKSV",
         "yes": "Yes",
         "no": "No"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Payment rows without a linked invoice on this calendar day.",
+        "unknownMethodLines": "Payment rows without a recognized payment method.",
+        "offlineLinked": "Payments linked from the offline queue.",
+        "dayClosedRksv": "Whether an RKSV daily closing exists for this calendar day."
       },
       "history": {
         "loading": "Loading history…",

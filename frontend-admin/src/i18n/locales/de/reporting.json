@@ -48,7 +48,8 @@
     },
     "reportStatus": {
       "Finalized": "Finalisiert",
-      "Provisional": "Provisorisch"
+      "Provisional": "Provisorisch",
+      "Corrected": "Korrigiert"
     },
     "emptyDash": "—"
   },
@@ -59,9 +60,39 @@
       "columnDate": "Datum",
       "intro": "Provisorische Berichte können bis zur Finalisierung neu berechnet werden. Finalisierte Snapshots sind unveränderlich; Korrekturen erzeugen eine neue Berichtszeile.",
       "generateButton": "Tagesbericht für Enddatum erzeugen/aktualisieren",
+      "exportCsv": "CSV exportieren",
+      "bulkFinalize": "Auswahl finalisieren",
+      "bulkFinalizeConfirmTitle": "Tagesberichte finalisieren?",
+      "bulkFinalizeConfirmBody": "{{count}} provisorische Tagesberichte werden finalisiert. Dieser Schritt kann nicht rückgängig gemacht werden.",
+      "statusFilter": "Status",
+      "statusAll": "Alle Status",
+      "emptyTitle": "Keine Tagesberichte in diesem Zeitraum",
+      "emptyDescription": "Erzeugen Sie einen provisorischen Tagesbericht für das gewählte Enddatum und die gewählte Kasse.",
+      "emptyGenerateCta": "Tagesbericht erzeugen",
+      "csv": {
+        "date": "Datum",
+        "register": "Kasse",
+        "status": "Status",
+        "gross": "Brutto",
+        "submission": "Übermittlung"
+      },
       "messages": {
-        "generateSuccess": "Tagesbericht erzeugt oder aktualisiert."
+        "generateSuccess": "Tagesbericht erzeugt oder aktualisiert.",
+        "csvSuccess": "CSV exportiert.",
+        "bulkFinalizeSuccess": "Ausgewählte Tagesberichte wurden finalisiert.",
+        "bulkFinalizeNone": "Bitte mindestens einen provisorischen Tagesbericht auswählen."
       }
+    },
+    "error": {
+      "list": "Tagesberichte konnten nicht geladen werden.",
+      "detail": "Tagesbericht konnte nicht geladen werden.",
+      "generate": "Erzeugung fehlgeschlagen.",
+      "finalize": "Finalisierung fehlgeschlagen.",
+      "csv": "CSV-Export fehlgeschlagen.",
+      "pdfGenerate": "PDF konnte nicht erzeugt werden.",
+      "pdfDownload": "PDF konnte nicht heruntergeladen werden.",
+      "pdfNotStored": "Kein gespeichertes PDF vorhanden. Bitte zuerst „PDF erzeugen“ verwenden.",
+      "bulkFinalize": "Sammelfinalisierung fehlgeschlagen."
     },
     "detail": {
       "loading": "Laden…",
@@ -78,6 +109,8 @@
       },
       "actions": {
         "finalize": "Finalisieren",
+        "generatePdf": "PDF erzeugen",
+        "downloadPdf": "PDF herunterladen",
         "finanzOnline": "FinanzOnline (Outbox)",
         "correction": "Korrektur (neuer Bericht)",
         "backToList": "Zur Liste"
@@ -98,6 +131,8 @@
         "taxBreakdown": "Steueraufschlüsselung",
         "paymentMethods": "Zahlungsarten",
         "reconciliation": "Abstimmung / Hinweise",
+        "finanzOnline": "FinanzOnline-Übermittlung",
+        "auditTrail": "Prüfpfad",
         "trace": "Trace (Compliance)",
         "traceBody": "Roh-IDs sind gekürzt gespeichert; Hash dient der Nachvollziehbarkeit.",
         "history": "Verlauf"
@@ -134,6 +169,12 @@
         "dayClosedRksv": "Tag in RKSV geschlossen",
         "yes": "Ja",
         "no": "Nein"
+      },
+      "reconciliationTooltips": {
+        "paymentsWithoutInvoice": "Zahlungszeilen ohne verknüpfte Rechnung in diesem Kalendertag.",
+        "unknownMethodLines": "Zahlungszeilen ohne erkannte Zahlungsart.",
+        "offlineLinked": "Zahlungen, die aus der Offline-Warteschlange verknüpft wurden.",
+        "dayClosedRksv": "Ob für diesen Kalendertag ein RKSV-Tagesabschluss existiert."
       },
       "history": {
         "loading": "Lade Verlauf…",

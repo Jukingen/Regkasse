@@ -1,7 +1,9 @@
+import { ActivityEventType } from '@/api/generated/model/activityEventType';
+
 /** GET /api/admin/activities has no type filter; this is the list ceiling (pagination is separate). */
 export const MONATSBELEG_ACTIVITY_LIST_LIMIT = 50;
 
-export const MONATSBELEG_MANAGER_CONTACTED_TYPE = 'MonatsbelegManagerContacted';
+export const MONATSBELEG_MANAGER_CONTACTED_TYPE = ActivityEventType.MonatsbelegManagerContacted;
 
 export const MONATSBELEG_MANAGER_CONTACTED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
