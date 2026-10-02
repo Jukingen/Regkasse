@@ -1,13 +1,9 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace KasseAPI_Final.Migrations;
 
-[DbContext(typeof(AppDbContext))]
-[Migration("20260812220000_AddSupportTickets")]
 public partial class AddSupportTickets : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

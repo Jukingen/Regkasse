@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Key/value tenant_settings for feature-flag overrides (and future settings).</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260729230000_AddTenantSettings")]
 public partial class AddTenantSettings : Migration
 {
     /// <inheritdoc />

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -9,8 +7,6 @@ namespace KasseAPI_Final.Migrations;
 /// <summary>
 /// RKSV catalog versioning: archive superseded products and link successors via original_product_id.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725150000_AddProductCatalogVersioning")]
 public partial class AddProductCatalogVersioning : Migration
 {
     /// <inheritdoc />

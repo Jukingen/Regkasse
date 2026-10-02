@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// (<c>REGK-XXXXX-XXXXX-XXXXX</c>) to the unified format
 /// <c>REGK-yyyyMMdd-{slug}-{8}</c> (system slug for issued licenses, tenant slug for sales).
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260813150000_MigrateLicensesToUnifiedFormat")]
 public partial class MigrateLicensesToUnifiedFormat : Migration
 {
     /// <inheritdoc />

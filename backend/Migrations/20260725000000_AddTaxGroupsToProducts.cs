@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// ensuring system tax groups exist per tenant, then enforces NOT NULL.
 /// Column/FK were introduced in <see cref="AddProductTaxGroupId"/>.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725000000_AddTaxGroupsToProducts")]
 public partial class AddTaxGroupsToProducts : Migration
 {
     /// <inheritdoc />

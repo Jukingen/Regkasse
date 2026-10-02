@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Per-tenant deployment_history for canary progressive rollouts.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260729260000_AddDeploymentHistory")]
 public partial class AddDeploymentHistory : Migration
 {
     /// <inheritdoc />

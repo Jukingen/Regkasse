@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -9,8 +7,6 @@ namespace KasseAPI_Final.Migrations;
 /// <summary>
 /// Idempotent webhook inbox for payment gateways. Does not create fiscal <c>payment_details</c>.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260826190000_CreateGatewayWebhookEvents")]
 public partial class CreateGatewayWebhookEvents : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

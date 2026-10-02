@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// DEP §7 download fix: opaque 24h download tokens, hot-file expiry, last-download stamp,
 /// and wider <c>storage_path</c> for on-disk JSON under <c>App_Data/dep-exports</c>.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260807120000_AddDepExportHistoryDownloadToken")]
 public partial class AddDepExportHistoryDownloadToken : Migration
 {
     /// <inheritdoc />

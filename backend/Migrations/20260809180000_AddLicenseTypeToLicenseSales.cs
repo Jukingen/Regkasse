@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -9,8 +7,6 @@ namespace KasseAPI_Final.Migrations;
 /// <summary>
 /// Adds nullable <c>license_type</c> to <c>license_sales</c> and backfills existing rows to Starter (1).
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260809180000_AddLicenseTypeToLicenseSales")]
 public partial class AddLicenseTypeToLicenseSales : Migration
 {
     /// <inheritdoc />

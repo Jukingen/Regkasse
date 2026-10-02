@@ -1,6 +1,4 @@
 using System;
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,8 +6,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>FON Ausfall / Wiederinbetriebnahme episode table.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260729220000_AddRksvAusfallEpisodes")]
 public partial class AddRksvAusfallEpisodes : Migration
 {
     /// <inheritdoc />

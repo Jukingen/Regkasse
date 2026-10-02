@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// Persistence remains this table (later renamed to <c>gateway_payment_intents</c>).
 /// Does not create <c>online_payments</c>. Idempotent for DBs that already have the columns.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260826140000_AddCardPaymentGatewayIntentColumns")]
 public partial class AddCardPaymentGatewayIntentColumns : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

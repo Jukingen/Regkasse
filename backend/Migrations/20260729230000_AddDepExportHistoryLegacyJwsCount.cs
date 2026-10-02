@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>P2-2: track pre-F5 legacy JWS count on DEP export history for Prüftool compatibility UI.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260729230000_AddDepExportHistoryLegacyJwsCount")]
 public partial class AddDepExportHistoryLegacyJwsCount : Migration
 {
     /// <inheritdoc />

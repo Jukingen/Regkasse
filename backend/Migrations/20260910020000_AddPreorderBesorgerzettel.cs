@@ -1,6 +1,4 @@
 using System;
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,8 +6,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations
 {
     /// <inheritdoc />
-    [DbContext(typeof(AppDbContext))]
-    [Migration("20260910020000_AddPreorderBesorgerzettel")]
     public partial class AddPreorderBesorgerzettel : Migration
     {
         /// <inheritdoc />

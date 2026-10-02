@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Optional product → tax_groups FK for flexible MwSt catalog selection.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260724130000_AddProductTaxGroupId")]
 public partial class AddProductTaxGroupId : Migration
 {
     /// <inheritdoc />

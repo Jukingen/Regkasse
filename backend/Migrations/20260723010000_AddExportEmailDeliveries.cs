@@ -1,13 +1,9 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace KasseAPI_Final.Migrations;
 
-[DbContext(typeof(AppDbContext))]
-[Migration("20260723010000_AddExportEmailDeliveries")]
 public partial class AddExportEmailDeliveries : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

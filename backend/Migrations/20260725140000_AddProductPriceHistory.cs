@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>RKSV product price history journal and versioned price snapshots.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725140000_AddProductPriceHistory")]
 public partial class AddProductPriceHistory : Migration
 {
     /// <inheritdoc />

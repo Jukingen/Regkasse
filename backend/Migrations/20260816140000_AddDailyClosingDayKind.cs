@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// Daily closings. Does not rename <c>ClosingType</c> (Daily/Monthly/Yearly).
 /// <c>TransactionCount</c> already exists.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260816140000_AddDailyClosingDayKind")]
 public partial class AddDailyClosingDayKind : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

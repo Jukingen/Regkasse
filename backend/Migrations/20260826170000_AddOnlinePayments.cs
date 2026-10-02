@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Safety net: never persist a separate <c>online_payments</c> table.
 /// All hosted-payment state lives on <c>gateway_payment_intents</c>.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260826170000_AddOnlinePayments")]
 public partial class AddOnlinePayments : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

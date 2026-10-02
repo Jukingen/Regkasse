@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <inheritdoc />
-[DbContext(typeof(AppDbContext))]
-[Migration("20260723290000_AddTseResourcePools")]
 public partial class AddTseResourcePools : Migration
 {
     /// <inheritdoc />

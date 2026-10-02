@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Persist automatic DEP export validation status on history rows.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725170000_AddDepExportHistoryValidation")]
 public partial class AddDepExportHistoryValidation : Migration
 {
     /// <inheritdoc />

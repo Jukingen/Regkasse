@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -9,8 +7,6 @@ namespace KasseAPI_Final.Migrations;
 /// <summary>
 /// Konfigurierbare Zahlungsarten für POS + Admin; Legacy-Mapping 0–5 bleibt kompatibel mit payment_details.PaymentMethod (varchar).
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260327120000_AddPaymentMethodDefinitions")]
 public partial class AddPaymentMethodDefinitions : Migration
 {
     /// <inheritdoc />

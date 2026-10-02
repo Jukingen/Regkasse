@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Persisted snapshots for DEP export compliance score history.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725190000_AddDepExportComplianceScores")]
 public partial class AddDepExportComplianceScores : Migration
 {
     /// <inheritdoc />

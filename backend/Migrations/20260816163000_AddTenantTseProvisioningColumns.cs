@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Stores Fiskaly SIGN AT SCU id and TSE provisioning outcome on the tenant row
 /// so Super Admin can see whether create-tenant used Fiskaly or Soft TSE fallback.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260816163000_AddTenantTseProvisioningColumns")]
 public partial class AddTenantTseProvisioningColumns : Migration
 {
     /// <inheritdoc />

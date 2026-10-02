@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// Existing rows stay null (legacy). Country change must not rewrite these columns —
 /// see <c>docs/COUNTRIES.md</c> § Historical Invoice Preservation.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260921180000_AddFiscalDocumentCountryAtIssueSnapshots")]
 public partial class AddFiscalDocumentCountryAtIssueSnapshots : Migration
 {
     /// <inheritdoc />

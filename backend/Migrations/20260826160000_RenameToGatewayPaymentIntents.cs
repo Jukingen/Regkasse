@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// card/PayPal intents). Does not create <c>online_payments</c> or webhook-event rows.
 /// Idempotent if the rename already happened.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260826160000_RenameToGatewayPaymentIntents")]
 public partial class RenameToGatewayPaymentIntents : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

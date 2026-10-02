@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Tenant-scoped Austrian MwSt tax group catalog (flexible rates including 4.9% / 13%).</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260724120000_AddTaxGroups")]
 public partial class AddTaxGroups : Migration
 {
     /// <inheritdoc />

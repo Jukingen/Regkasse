@@ -1,6 +1,4 @@
 using System;
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,8 +6,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Legal 7-year retention policy singleton, backup legal hold, and cold-archive locators.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260906160000_AddBackupRetentionPolicyAndLegalHold")]
 public partial class AddBackupRetentionPolicyAndLegalHold : Migration
 {
     /// <inheritdoc />

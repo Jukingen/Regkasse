@@ -1,6 +1,4 @@
 using System;
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,8 +6,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Tenant-scoped Fiskaly FA operation history (list, detail, retry).</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260828200000_AddFiskalyOperationHistory")]
 public partial class AddFiskalyOperationHistory : Migration
 {
     /// <inheritdoc />

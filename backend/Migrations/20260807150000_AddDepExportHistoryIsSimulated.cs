@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Persist simulation metadata on DEP §7 history rows so FA can badge exports
 /// created under RKSV demo / Soft TSE (signatures not legally binding).
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260807150000_AddDepExportHistoryIsSimulated")]
 public partial class AddDepExportHistoryIsSimulated : Migration
 {
     /// <inheritdoc />

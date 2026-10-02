@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Tracks license sales that originated from SaaS trial conversion.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260812190000_AddLicenseSaleTrialConversionColumns")]
 public partial class AddLicenseSaleTrialConversionColumns : Migration
 {
     /// <inheritdoc />

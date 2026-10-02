@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Period-based DEP export compliance tracking (yearly / quarterly / monthly obligations).
 /// Distinct from cron table dep_export_schedules.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725160000_AddDepExportCompliancePeriods")]
 public partial class AddDepExportCompliancePeriods : Migration
 {
     /// <inheritdoc />

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Append-only DEP export lifecycle audit trail.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260725200000_AddDepExportAuditEntries")]
 public partial class AddDepExportAuditEntries : Migration
 {
     /// <inheritdoc />

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,8 +9,6 @@ namespace KasseAPI_Final.Migrations;
 /// This migration previously lacked <see cref="MigrationAttribute"/>, so EF never applied it
 /// even though later snapshots already included the column.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260723280000_AddTseHealthSampleResponseTimeMs")]
 public partial class AddTseHealthSampleResponseTimeMs : Migration
 {
     /// <inheritdoc />

@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Additive SaaS trial management columns on <c>tenants</c>.
 /// <c>trial_status</c> is nullable (no default) so existing non-trial tenants stay unset.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260812180000_AddTrialManagementColumns")]
 public partial class AddTrialManagementColumns : Migration
 {
     /// <inheritdoc />

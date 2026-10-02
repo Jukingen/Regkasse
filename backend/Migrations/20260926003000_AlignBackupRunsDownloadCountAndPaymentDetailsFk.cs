@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -12,8 +10,6 @@ namespace KasseAPI_Final.Migrations;
 /// <c>payment_details."CustomerId"</c> was ON DELETE NO ACTION (omitted in
 /// <c>20250814051845_FixRelationshipMappings</c>). The model is Restrict.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260926003000_AlignBackupRunsDownloadCountAndPaymentDetailsFk")]
 public partial class AlignBackupRunsDownloadCountAndPaymentDetailsFk : Migration
 {
     /// <inheritdoc />

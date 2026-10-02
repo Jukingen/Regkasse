@@ -1,13 +1,9 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace KasseAPI_Final.Migrations;
 
-[DbContext(typeof(AppDbContext))]
-[Migration("20260817120000_AddSubscriptionInvoicePaymentFields")]
 public partial class AddSubscriptionInvoicePaymentFields : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

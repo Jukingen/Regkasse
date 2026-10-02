@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,8 +8,6 @@ namespace KasseAPI_Final.Migrations;
 /// Additive country/billing columns on <c>company_settings</c>. The existing <c>country</c> column stays
 /// the operating country and is not touched — see <c>docs/COUNTRIES.md</c>.
 /// </summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260916110000_AddCompanySettingsCountryBilling")]
 public partial class AddCompanySettingsCountryBilling : Migration
 {
     /// <inheritdoc />

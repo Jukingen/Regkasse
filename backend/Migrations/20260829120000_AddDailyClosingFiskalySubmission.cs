@@ -1,5 +1,3 @@
-using KasseAPI_Final.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,8 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations;
 
 /// <summary>Fiskaly SIGN AT marker-receipt columns on DailyClosings.</summary>
-[DbContext(typeof(AppDbContext))]
-[Migration("20260829120000_AddDailyClosingFiskalySubmission")]
 public partial class AddDailyClosingFiskalySubmission : Migration
 {
     /// <inheritdoc />
