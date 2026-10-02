@@ -173,6 +173,20 @@
     "price": "Fiyat (EUR)",
     "priceRequired": "Fiyat girin",
     "cost": "Maliyet (EUR)",
+    "durationMinutes": "Sure (dakika)",
+    "staff": "Personel",
+    "staffPlaceholder": "Personel secin",
+    "imeiTracked": "IMEI takipli",
+    "isTicket": "Bilet",
+    "imeiList": "IMEI stogu",
+    "imeiListEmpty": "IMEI kaydi yok.",
+    "imeiColumn": "IMEI",
+    "imeiStatus": "Durum",
+    "imeiStatusValue": {
+      "InStock": "Stokta",
+      "Sold": "Satildi",
+      "Returned": "Iade"
+    },
     "taxType": "Vergi turu",
     "taxTypeRequired": "Vergi turu secin",
     "taxTypePlaceholder": "Vergi turu secin",
@@ -268,5 +282,27 @@
     "stockUpdateError": "Stok güncellenemedi.",
     "modifierGroupsLoadFailed": "Ek urun gruplari yuklenemedi.",
     "categoryPickRequired": "Lutfen bir kategori secin."
+  },
+  "ticketRedemptions": {
+    "title": "Bilet kullanımları",
+    "subtitle": "Yalnızca hash gösterimi. Açık bilet kodu saklanmaz.",
+    "statusFilter": "Durum",
+    "tenantFilter": "Kiracı",
+    "allStatuses": "Tüm durumlar",
+    "allTenants": "Tüm kiracılar",
+    "loadError": "Kullanımlar yüklenemedi.",
+    "empty": "Bilet bulunamadı.",
+    "colCode": "Kod (hash)",
+    "colTenant": "Kiracı",
+    "colStatus": "Durum",
+    "colValidUntil": "Geçerlilik",
+    "colRedeemedAt": "Kullanım zamanı",
+    "colRedeemedBy": "Kullanan",
+    "status": {
+      "Valid": "Geçerli",
+      "Redeemed": "Kullanıldı",
+      "Cancelled": "İptal",
+      "Expired": "Süresi doldu"
+    }
   }
 }

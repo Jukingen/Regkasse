@@ -55,6 +55,7 @@ function getActivityTypeTagColor(type: string, severity: ActivitySeverity): stri
     OnlineOrderConfirmed: 'blue',
     LicenseExpiringSoon: 'gold',
     LimitApproaching: 'gold',
+    OfflineQueueApproachingLimit: 'gold',
     LimitExceeded: 'red',
     LicenseExpired: 'red',
     FinanzOnlineSubmissionFailed: 'red',

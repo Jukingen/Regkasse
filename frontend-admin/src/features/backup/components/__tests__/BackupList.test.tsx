@@ -79,7 +79,7 @@ describe('BackupList', () => {
           createdAt: '2026-07-03T15:01:00Z',
           tenantSlug: 'dev',
           isFake: true,
-          status: BackupRunStatus.NUMBER_3,
+          status: BackupRunStatus.Succeeded,
           durationSeconds: 180,
           durationFormatted: '3m',
         },

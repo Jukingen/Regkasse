@@ -276,7 +276,8 @@ namespace KasseAPI_Final.Controllers
                             showDemoLabel = _rksvEnvironment.ShowDemoLabel(),
                             qrPayload = result.QrPayload,
                             receiptNumber = result.Payment?.ReceiptNumber
-                        }
+                        },
+                        issuedTickets = result.IssuedTickets
                     };
                     return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id },
                         responseData);

@@ -25,6 +25,10 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/license/dashboard',
 }));
 
+vi.mock('@/features/tenancy/hooks/useCountries', () => ({
+  useCountries: () => ({ data: undefined, isError: false }),
+}));
+
 vi.mock('@/components/admin-layout/AdminPageHeader', () => ({
   AdminPageHeader: ({
     title,

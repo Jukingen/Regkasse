@@ -124,4 +124,9 @@ export const AuditEventType = {
   QrRechnungPdfGenerated: 112,
   PeppolParticipantRegistered: 113,
   ChQrKnownGapsAccepted: 114,
+  EinvoiceAckReceived: 115,
+  QrRechnungPdfDownloaded: 116,
+  QrRechnungBankUploadConfirmed: 117,
+  EinvoiceSubmissionRetry: 118,
+  TenantVerticalProfileChanged: 119,
 } as const;

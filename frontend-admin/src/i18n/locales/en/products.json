@@ -173,6 +173,20 @@
     "price": "Price (€)",
     "priceRequired": "Please enter price",
     "cost": "Cost (€)",
+    "durationMinutes": "Duration (minutes)",
+    "staff": "Staff",
+    "staffPlaceholder": "Select staff",
+    "imeiTracked": "IMEI tracked",
+    "isTicket": "Ticket",
+    "imeiList": "IMEI stock",
+    "imeiListEmpty": "No IMEI recorded.",
+    "imeiColumn": "IMEI",
+    "imeiStatus": "Status",
+    "imeiStatusValue": {
+      "InStock": "In stock",
+      "Sold": "Sold",
+      "Returned": "Returned"
+    },
     "taxType": "Tax type",
     "taxTypeRequired": "Select tax type",
     "taxTypePlaceholder": "Select tax type",
@@ -268,5 +282,27 @@
     "stockUpdateError": "Could not update stock.",
     "modifierGroupsLoadFailed": "Could not load add-on groups.",
     "categoryPickRequired": "Please select a category."
+  },
+  "ticketRedemptions": {
+    "title": "Ticket redemptions",
+    "subtitle": "Hashed display only. The plaintext ticket code is not stored.",
+    "statusFilter": "Status",
+    "tenantFilter": "Tenant",
+    "allStatuses": "All statuses",
+    "allTenants": "All tenants",
+    "loadError": "Could not load redemptions.",
+    "empty": "No tickets found.",
+    "colCode": "Code (hash)",
+    "colTenant": "Tenant",
+    "colStatus": "Status",
+    "colValidUntil": "Valid until",
+    "colRedeemedAt": "Redeemed at",
+    "colRedeemedBy": "Redeemed by",
+    "status": {
+      "Valid": "Valid",
+      "Redeemed": "Redeemed",
+      "Cancelled": "Cancelled",
+      "Expired": "Expired"
+    }
   }
 }

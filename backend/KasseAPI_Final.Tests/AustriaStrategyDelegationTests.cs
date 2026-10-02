@@ -265,6 +265,7 @@ public sealed class AustriaStrategyDelegationTests
 
         Assert.Equal(CountryProfileCodes.Austria, document.CountryCode);
         Assert.Same(expected, document.Receipt);
+        Assert.Null(document.QrRechnung);
         receipts.Verify(x => x.GenerateReceiptAsync(payment), Times.Once);
     }
 

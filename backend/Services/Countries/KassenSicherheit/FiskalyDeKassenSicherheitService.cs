@@ -6,7 +6,9 @@ namespace KasseAPI_Final.Services.Countries.KassenSicherheit;
 
 /// <summary>
 /// SIGN DE sandbox service. Calls the HTTP client only when the flag is on and
-/// <c>Provider=fiskaly-de</c>. Not wired into <c>PaymentService</c>.
+/// <c>Provider=fiskaly-de</c>. Reached from <c>PaymentService</c> via
+/// <c>IFiscalSignatureRouter.SignAsync</c> → <c>SignDeAsync</c>. Start/Finish/Export
+/// HTTP methods are implemented but not exposed on <c>IKassenSicherheitService</c>.
 /// </summary>
 public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
 {
@@ -25,23 +27,18 @@ public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
     }
 
     /// <summary>
-    /// Not the DE transaction path. <c>fiskaly-de</c> uses
-    /// <see cref="StartTransactionAsync"/> and <see cref="FinishTransactionAsync"/>.
+    /// Upserts a SIGN DE transaction. <c>PaymentService</c> reaches it through
+    /// <c>FiscalSignatureRouter.SignDeAsync</c>, not by calling this type directly.
     /// </summary>
     public Task<KassenSicherheitSignResult> SignAsync(
         KassenSicherheitSignRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return DispatchAsync(
+        return CallFiskalyAsync(
             request.TenantId,
             cancellationToken,
-            onReady: _ => throw new NotImplementedException(
-                "DE KassenSicherheit does not use SignAsync. Use StartTransactionAsync and FinishTransactionAsync."),
-            onNoOp: () => Task.FromResult(new KassenSicherheitSignResult(
-                Signed: false,
-                Signature: null,
-                Provider: CountryFiscalLockEvaluator.SentinelNotConfigured)));
+            () => _http.SignAsync(request, cancellationToken));
     }
 
     public Task<KassenSicherheitTransactionResult> StartTransactionAsync(
@@ -113,6 +110,42 @@ public sealed class FiskalyDeKassenSicherheitService : IKassenSicherheitService
 
         throw new NotImplementedException(
             "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
+    }
+
+    public Task<KassenSicherheitStatusResult> GetStatusAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        return CallFiskalyAsync(
+            tenantId,
+            cancellationToken,
+            () => _http.GetStatusAsync(tenantId, cancellationToken));
+    }
+
+    public Task<KassenSicherheitCertificateChainResult> GetCertificateChainAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        return CallFiskalyAsync(
+            tenantId,
+            cancellationToken,
+            () => _http.GetCertificateChainAsync(tenantId, cancellationToken));
+    }
+
+    private Task<T> CallFiskalyAsync<T>(
+        Guid tenantId,
+        CancellationToken cancellationToken,
+        Func<Task<T>> call)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_featureFlags.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenantId.ToString("D")))
+            throw new FeatureDisabledException(FeatureFlagNames.FiscalKassenSicherheitDe);
+
+        var provider = _options.Value.Provider?.Trim() ?? string.Empty;
+        if (!string.Equals(provider, FiskalyDeKassenSicherheitHttpClient.ProviderId, StringComparison.OrdinalIgnoreCase))
+            throw new KassenSicherheitNotConfiguredException();
+
+        return call();
     }
 
     private async Task EnsureTssAndClientAsync(Guid tenantId, string tssId, string clientId, CancellationToken cancellationToken)

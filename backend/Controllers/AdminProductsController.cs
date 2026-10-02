@@ -582,6 +582,10 @@ namespace KasseAPI_Final.Controllers
             existing.StockQuantity = incoming.StockQuantity;
             existing.MinStockLevel = incoming.MinStockLevel;
             existing.Unit = incoming.Unit;
+            existing.DurationMinutes = incoming.DurationMinutes;
+            existing.StaffId = incoming.StaffId;
+            existing.ImeiTracked = incoming.ImeiTracked;
+            existing.IsTicket = incoming.IsTicket;
             existing.Cost = incoming.Cost;
             existing.Barcode = incoming.Barcode;
             existing.ImageUrl = incoming.ImageUrl;

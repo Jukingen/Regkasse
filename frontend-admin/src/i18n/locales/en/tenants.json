@@ -562,9 +562,47 @@
     "pendingBody": "A website request is already pending review.",
     "pendingBodyWithNote": "A website request is already pending review ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS profile",
+    "subtitle": "Configure POS capabilities and optional data fields for this tenant.",
+    "accessDenied": "Only Super Administrators may manage POS profiles.",
+    "selectorTitle": "Select profile",
+    "selectorHelp": "The profile provides the default capabilities and POS layout.",
+    "profileLabel": "POS profile",
+    "profilePlaceholder": "Select a profile",
+    "overrideTitle": "Tenant overrides",
+    "posFeaturesTitle": "POS features",
+    "customFieldsTitle": "Optional data fields",
+    "customerFields": "Customer fields",
+    "productFields": "Product fields",
+    "customerFieldPlaceholder": "Add customer field",
+    "productFieldPlaceholder": "Add product field",
+    "addField": "Add",
+    "noCustomFields": "No additional fields.",
+    "noFeatures": "This profile has no POS features.",
+    "save": "Save profile",
+    "saveSuccess": "POS profile saved.",
+    "saveError": "Could not save the POS profile.",
+    "loadError": "Could not load the POS profile.",
+    "features": {
+      "tables": "Tables",
+      "kitchenDisplay": "Kitchen display",
+      "patientRecord": "Patient record",
+      "serviceDuration": "Service duration",
+      "appointment": "Appointments",
+      "imeiTracking": "IMEI tracking",
+      "routeTracking": "Route tracking",
+      "roomTracking": "Room/seat tracking",
+      "ticketScan": "Ticket scan"
+    },
+    "taxiTariffTitle": "Taxi tariff",
+    "taxiTariffHelp": "Per-kilometre tariff used as a POS fare suggestion. The fiscal receipt amount remains the cart service line.",
+    "taxiTariffLabel": "Tariff per kilometre (EUR)"
+  },
   "columns": {
     "name": "Tenant",
     "slug": "Subdomain",
+    "profile": "Profile",
     "email": "Contact email",
     "status": "Status",
     "adminUser": "Admin user",
@@ -625,6 +663,24 @@
     "title": "Add new customer (tenant)",
     "subtitle": "Technical setup (register, demo data, administrator) runs automatically.",
     "submit": "Create customer",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Locked on for Austria. This switch cannot be turned off."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "German cash-register module. The switch can be changed per tenant."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "Swiss QR bill. The switch can be changed per tenant."
+      },
+      "en16931": {
+        "title": "E-invoice (EN 16931)",
+        "helper": "UBL sketch for the EU default profile. No network submission."
+      }
+    },
     "wizard": {
       "next": "Next",
       "back": "Back",
@@ -914,7 +970,10 @@
       "users": "Users",
       "registers": "Registers",
       "license": "License",
+      "verticalProfile": "POS profile",
       "limits": "Limits",
+      "kitchen": "Kitchen",
+      "rooms": "Rooms",
       "settings": "Settings"
     },
     "overview": {
@@ -1673,5 +1732,93 @@
   },
   "list": {
     "pageTitle": "Tenants"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung print gaps",
+    "description": "Record which open print gaps are acceptable for this tenant. This record does not change the PDF and does not enable bank submission.",
+    "save": "Save",
+    "saved": "Gap acceptance saved.",
+    "invalidGaps": "One or more gap ids are not in the known catalog.",
+    "loadFailed": "Could not load QR print-gap acceptance.",
+    "outstandingWarning": "These print features are not part of the current QR-Rechnung output. The operator must confirm they are acceptable for this tenant.",
+    "gap": {
+      "officialSwissCross": "Official 7 mm Swiss cross with a white border",
+      "fontEmbeddingLiberationArial": "Embedded Liberation Sans or Arial",
+      "pain001": "pain.001 credit-transfer file",
+      "bankScan": "Bank scan of the printed bill",
+      "perforationLine": "Perforation mark between receipt and payment part"
+    }
+  },
+  "kitchen": {
+    "title": "Kitchen",
+    "subtitle": "Kitchen orders and display settings for this tenant.",
+    "unavailable": "The current POS profile has no kitchen display.",
+    "settingsTitle": "Settings",
+    "autoClear": "Auto-clear (minutes)",
+    "autoClearHelp": "How long ready tickets may stay visible before they can be hidden.",
+    "sound": "Sound on new order",
+    "soundHelp": "The KDS may play a cue when the device allows it.",
+    "save": "Save",
+    "saved": "Kitchen settings saved.",
+    "saveFailed": "Kitchen settings could not be saved.",
+    "readOnly": "Read-only — settings.manage is required to save.",
+    "liveTitle": "Open kitchen orders",
+    "empty": "No kitchen orders.",
+    "colTable": "Table",
+    "colStatus": "Status",
+    "colNotes": "Notes",
+    "colItems": "Items",
+    "takeAway": "Take away",
+    "analyticsTitle": "Analytics",
+    "avgPrep": "Average prep time",
+    "avgPrepValue": "{{minutes}} min",
+    "ordersPerHour": "Orders per hour (24h)",
+    "lastHour": "Orders in the last hour",
+    "status": {
+      "Pending": "Pending",
+      "InPreparation": "In preparation",
+      "Ready": "Ready",
+      "Served": "Served",
+      "Cancelled": "Cancelled"
+    }
+  },
+  "lodging": {
+    "title": "Rooms",
+    "subtitle": "Room list and guest folios for lodging.",
+    "unavailable": "The current POS profile is not lodging.",
+    "roomsTitle": "Rooms",
+    "foliosTitle": "Guest folios",
+    "create": "Add room",
+    "createSuccess": "Room saved.",
+    "createFailed": "The room could not be created.",
+    "numberRequired": "Room number is required.",
+    "typeRequired": "Room type is required.",
+    "readOnly": "Read-only — product.manage is required to add rooms.",
+    "loadError": "Rooms or folios could not be loaded.",
+    "emptyRooms": "No rooms.",
+    "emptyFolios": "No guest folios.",
+    "colNumber": "Number",
+    "colType": "Type",
+    "colCapacity": "Capacity",
+    "colStatus": "Occupancy",
+    "colRoom": "Room",
+    "colCustomer": "Guest",
+    "colCheckIn": "Check-in",
+    "colCheckOut": "Check-out",
+    "colBalance": "Balance",
+    "colFolioStatus": "Status",
+    "occupied": "Occupied",
+    "free": "Free",
+    "open": "Open",
+    "closed": "Closed",
+    "analyticsTitle": "Occupancy",
+    "occupancy": "Occupancy",
+    "averageStay": "Average stay (days)",
+    "status": {
+      "Available": "Available",
+      "Occupied": "Occupied",
+      "Cleaning": "Cleaning",
+      "Maintenance": "Maintenance"
+    }
   }
 }

@@ -43,4 +43,8 @@ export interface AdminTenantListItemDto {
   /** @nullable */
   updatedAt?: string | null;
   userCount?: number;
+  /** @nullable */
+  verticalProfileId?: string | null;
+  /** @nullable */
+  verticalProfileName?: string | null;
 }

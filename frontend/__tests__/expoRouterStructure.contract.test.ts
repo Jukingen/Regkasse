@@ -29,6 +29,7 @@ describe('expo-router structure contract', () => {
     expect(exists('(tabs)/cash-register.tsx')).toBe(true);
     expect(exists('(tabs)/cart.tsx')).toBe(true);
     expect(exists('(tabs)/receipt-list.tsx')).toBe(true);
+    expect(exists('(tabs)/ticket-validate.tsx')).toBe(true);
     expect(exists('(tabs)/settings.tsx')).toBe(true);
     expect(exists('(tabs)/admin-menu.tsx')).toBe(true);
     expect(exists('(tabs)/fiskaly-operations.tsx')).toBe(true);
@@ -39,6 +40,8 @@ describe('expo-router structure contract', () => {
     expect(exists('(screens)/SplitScreen.tsx')).toBe(true);
     expect(exists('(screens)/offline-queue.tsx')).toBe(true);
     expect(exists('(screens)/license-activate.tsx')).toBe(true);
+    expect(exists('(screens)/kitchen-display.tsx')).toBe(true);
+    expect(exists('(tabs)/kitchen-display.tsx')).toBe(true);
     expect(exists('online-payment/callback.tsx')).toBe(true);
   });
 
@@ -73,6 +76,8 @@ describe('expo-router structure contract', () => {
     );
     expect(userMenu).toContain("router.push('/(tabs)/receipt-list'");
     expect(userMenu).toContain("hasPermission(user, 'sale.view')");
+    expect(userMenu).toContain("router.push('/(tabs)/kitchen-display'");
+    expect(userMenu).toContain('posFeatures.kitchenDisplay');
 
     const cashRegister = fs.readFileSync(path.join(appRoot, '(tabs)/cash-register.tsx'), 'utf8');
     expect(cashRegister).toContain("router.push('/(tabs)/receipt-list'");

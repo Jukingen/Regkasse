@@ -8,7 +8,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useGetApiAdminRestoreVerificationRuns } from '@/api/generated/admin-restore-verification/admin-restore-verification';
 import {
   type RestoreVerificationRunResponseDto,
-  RestoreVerificationRunResponseDtoStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import { RecentRestoreDrillsTable } from '@/features/backup-dr/components/RecentRestoreDrillsTable';
 import {
@@ -72,7 +72,7 @@ export function BackupRecentRestoreDrillsTable({
         key: 'status',
         render: (s: number | undefined, row: RestoreVerificationRunResponseDto) => {
           const listInterp =
-            s === RestoreVerificationRunResponseDtoStatus.NUMBER_3 &&
+            s === RestoreVerificationStatus.Failed &&
             row.failureCode === PG_RESTORE_LIST_FAILED
               ? interpretPgRestoreListFailure({
                   run: row,

@@ -68,11 +68,11 @@ export interface RestoreReadinessViewModel {
 }
 
 export function mapRestoreDrillBadgeStatus(status: number | undefined): RestoreDrillBadgeStatus {
-  if (status === RestoreVerificationStatus.NUMBER_2) return 'success';
-  if (status === RestoreVerificationStatus.NUMBER_3) return 'error';
+  if (status === RestoreVerificationStatus.Succeeded) return 'success';
+  if (status === RestoreVerificationStatus.Failed) return 'error';
   if (
-    status === RestoreVerificationStatus.NUMBER_0 ||
-    status === RestoreVerificationStatus.NUMBER_1
+    status === RestoreVerificationStatus.Queued ||
+    status === RestoreVerificationStatus.Running
   ) {
     return 'processing';
   }

@@ -36,7 +36,9 @@ export type NotificationConfigSeverityThreshold = {
   DepExportOverdue?: string;
   DepExportValidationFailed?: string;
   DigitalServiceRequested?: string;
+  EinvoiceAckReceived?: string;
   EinvoiceSubmissionFailed?: string;
+  EinvoiceSubmissionRetry?: string;
   EinvoiceSubmitted?: string;
   EinvoiceValidated?: string;
   FinanzOnlineSubmissionFailed?: string;
@@ -57,6 +59,7 @@ export type NotificationConfigSeverityThreshold = {
   MonatsbelegMissingReminder?: string;
   OfflineOrdersBacklogGrowing?: string;
   OfflineOrdersExpiringSoon?: string;
+  OfflineQueueApproachingLimit?: string;
   OfflineQueueGrowing?: string;
   OfflineSyncStalled?: string;
   OnlineOrderConfirmed?: string;

@@ -73,6 +73,10 @@ public sealed class ProductOperationSnapshot
     public int StockQuantity { get; set; }
     public int MinStockLevel { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public int? DurationMinutes { get; set; }
+    public string? StaffId { get; set; }
+    public bool ImeiTracked { get; set; }
+    public bool IsTicket { get; set; }
     public decimal Cost { get; set; }
     public string Barcode { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
@@ -93,8 +97,16 @@ public sealed class CustomerOperationSnapshot
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string? AddressStreet { get; set; }
+    public string? AddressPostalCode { get; set; }
+    public string? AddressCity { get; set; }
+    public string? AddressNotes { get; set; }
     public string TaxNumber { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string? PetName { get; set; }
+    public string? PetSpecies { get; set; }
+    public string? PetBreed { get; set; }
+    public DateOnly? PetBirthDate { get; set; }
     public bool IsVip { get; set; }
     public bool IsActive { get; set; }
     public decimal DiscountPercentage { get; set; }

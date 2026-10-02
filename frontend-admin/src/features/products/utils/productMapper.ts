@@ -169,6 +169,14 @@ export interface ApiProduct {
   barcode?: string | null;
   Cost?: number;
   cost?: number;
+  DurationMinutes?: number | null;
+  durationMinutes?: number | null;
+  StaffId?: string | null;
+  staffId?: string | null;
+  ImeiTracked?: boolean;
+  imeiTracked?: boolean;
+  IsTicket?: boolean;
+  isTicket?: boolean;
   CreatedAt?: string;
   createdAt?: string;
   UpdatedAt?: string;
@@ -229,11 +237,15 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Pr
     isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
     barcode: apiProduct.Barcode || apiProduct.barcode || '',
     cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
+    durationMinutes: apiProduct.DurationMinutes ?? apiProduct.durationMinutes ?? null,
+    staffId: apiProduct.StaffId ?? apiProduct.staffId ?? null,
+    imeiTracked: Boolean(apiProduct.ImeiTracked ?? apiProduct.imeiTracked),
+    isTicket: Boolean(apiProduct.IsTicket ?? apiProduct.isTicket),
     createdAt: apiProduct.CreatedAt || apiProduct.createdAt || new Date().toISOString(),
     updatedAt: apiProduct.UpdatedAt || apiProduct.updatedAt,
     createdBy: apiProduct.CreatedBy || apiProduct.createdBy,
     updatedBy: apiProduct.UpdatedBy || apiProduct.updatedBy,
-  };
+  } as Product;
 };
 
 function normalizeImageUrlForApi(v: unknown): string | null {
@@ -312,6 +324,14 @@ export const mapUiProductToApi = (
     minStockLevel: Number(uiProduct.minStockLevel ?? 0),
     unit: uiProduct.unit || 'pcs',
     cost: Number(uiProduct.cost ?? 0),
+    durationMinutes: (() => {
+      if (uiProduct.durationMinutes == null) return null;
+      const duration = Number(uiProduct.durationMinutes);
+      return Number.isFinite(duration) && duration > 0 ? duration : null;
+    })(),
+    staffId: trimToNull(uiProduct.staffId),
+    imeiTracked: Boolean((uiProduct as Product & { imeiTracked?: boolean }).imeiTracked),
+    isTicket: Boolean((uiProduct as Product & { isTicket?: boolean }).isTicket),
     isActive: uiProduct.isActive ?? true,
     barcode: uiProduct.barcode ?? '',
     imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),

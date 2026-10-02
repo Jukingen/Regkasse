@@ -5,7 +5,15 @@ import {
   formatCountryDate,
   formatCountryNumber,
   getCountryFormatProfile,
+  resolveCountryFormatProfile,
 } from '@/lib/countryFormatProfiles';
+
+/** Stand-in for `GET /api/admin/countries`. */
+const COUNTRIES_API = [
+  { code: 'AT', currency: 'EUR', defaultLocale: 'de-DE' },
+  { code: 'DE', currency: 'EUR', defaultLocale: 'de-DE' },
+  { code: 'CH', currency: 'CHF', defaultLocale: 'de-CH' },
+];
 
 describe('countryFormatProfiles', () => {
   it('formats AT calendar dates as DD.MM.YYYY', () => {
@@ -40,5 +48,41 @@ describe('countryFormatProfiles', () => {
 
   it('formats AT currency with euro suffix', () => {
     expect(formatCountryCurrency(12.5, getCountryFormatProfile('AT'))).toBe('12,50 €');
+  });
+
+  it('formats EUR without branching on AT or DE country codes', () => {
+    expect(
+      formatCountryCurrency(12.5, {
+        code: 'XX',
+        locale: 'en',
+        currency: 'EUR',
+        timeZone: 'UTC',
+        dateFormat: 'YYYY-MM-DD',
+        decimalSeparator: '.',
+        thousandsSeparator: ',',
+      })
+    ).toBe('12.50 €');
+  });
+
+  it('uses the countries API currency and locale when the catalog is loaded', () => {
+    const de = resolveCountryFormatProfile('DE', [
+      ...COUNTRIES_API.slice(0, 1),
+      { code: 'DE', currency: 'EUR', defaultLocale: 'de-DE' },
+      COUNTRIES_API[2],
+    ]);
+    expect(de.currency).toBe('EUR');
+    expect(de.locale).toBe('de-DE');
+    expect(de.timeZone).toBe('Europe/Berlin');
+    const overridden = resolveCountryFormatProfile('DE', [
+      { code: 'DE', currency: 'EUR', defaultLocale: 'fr-DE' },
+    ]);
+    expect(overridden.locale).toBe('fr-DE');
+    expect(overridden.timeZone).toBe('Europe/Berlin');
+  });
+
+  it('keeps the local map only when the countries API payload is unavailable', () => {
+    expect(resolveCountryFormatProfile('CH', null).currency).toBe('CHF');
+    expect(resolveCountryFormatProfile('CH', null).locale).toBe('de-CH');
+    expect(resolveCountryFormatProfile('DE', undefined).timeZone).toBe('Europe/Berlin');
   });
 });

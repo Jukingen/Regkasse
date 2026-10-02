@@ -19,6 +19,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
     private readonly IAuditLogService _auditLog;
     private readonly ILogger<FeatureFlagService> _logger;
     private readonly ICountryProfileRegistry _countries;
+    private readonly IOptions<PeppolOptions>? _peppol;
     private readonly ConcurrentDictionary<string, byte> _cacheKeys = new(StringComparer.Ordinal);
 
     public FeatureFlagService(
@@ -27,7 +28,8 @@ public sealed class FeatureFlagService : IFeatureFlagService
         IMemoryCache cache,
         IAuditLogService auditLog,
         ILogger<FeatureFlagService> logger,
-        ICountryProfileRegistry countries)
+        ICountryProfileRegistry countries,
+        IOptions<PeppolOptions>? peppol = null)
     {
         _dbFactory = dbFactory;
         _options = options;
@@ -35,6 +37,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
         _auditLog = auditLog;
         _logger = logger;
         _countries = countries;
+        _peppol = peppol;
     }
 
     public bool IsEnabled(string featureName, string? tenantId = null)
@@ -66,11 +69,13 @@ public sealed class FeatureFlagService : IFeatureFlagService
             throw new ArgumentException($"Unknown feature flag '{featureName}'.", nameof(featureName));
 
         var tenantGuid = ParseTenantId(tenantId);
-        if (!enabled && name == FeatureFlagNames.FiscalRksvAt && tenantGuid is Guid lockTenant)
+        if (name == FeatureFlagNames.FiscalRksvAt && tenantGuid is Guid rksvTenant)
         {
-            var profile = await LoadProfileAsync(lockTenant, cancellationToken).ConfigureAwait(false);
-            if (CountryFeatureFlagDefaults.IsRksvAtLocked(name, profile))
+            var profile = await LoadProfileAsync(rksvTenant, cancellationToken).ConfigureAwait(false);
+            if (!enabled && CountryFeatureFlagDefaults.IsRksvAtLocked(name, profile))
                 throw new FeatureFlagLockedException(name);
+            if (enabled && profile.FiscalSystem != FiscalSystem.RKSV_AT)
+                throw new FeatureFlagCountryRejectedException(name, profile.Code);
         }
 
         var key = FeatureFlagNames.SettingsKey(name);
@@ -211,7 +216,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
         return list;
     }
 
-    private FlagResolution Resolve(
+    internal FlagResolution Resolve(
         string canonicalName,
         Guid? tenantId,
         TenantSetting? tenantRow,
@@ -219,6 +224,9 @@ public sealed class FeatureFlagService : IFeatureFlagService
         CountryProfile? profile,
         bool loadFromDb)
     {
+        if (FeatureFlagNames.Reserved.Contains(canonicalName, StringComparer.Ordinal))
+            return ResolveReserved(canonicalName, tenantId);
+
         var configDefault = GetConfigDefault(canonicalName);
         var isExperimental = FeatureFlagNames.IsExperimental(canonicalName);
         var key = FeatureFlagNames.SettingsKey(canonicalName);
@@ -341,6 +349,26 @@ public sealed class FeatureFlagService : IFeatureFlagService
         return Guid.TryParse(tenantId.Trim(), out var g) && g != Guid.Empty ? g : null;
     }
 
+    private FlagResolution ResolveReserved(string canonicalName, Guid? tenantId)
+    {
+        if (!string.Equals(canonicalName, FeatureFlagNames.EInvoicingPeppol, StringComparison.Ordinal))
+            return new FlagResolution(false, FeatureFlagSources.Reserved, OverrideValue: null, ConfigDefault: false);
+
+        var exit = _peppol?.Value.ReservedExit;
+        if (exit is not { Enabled: true })
+            return new FlagResolution(false, FeatureFlagSources.Reserved, OverrideValue: null, ConfigDefault: false);
+
+        if (tenantId is Guid tenant
+            && Guid.TryParse(exit.CanaryTenantId, out var canary)
+            && canary != Guid.Empty
+            && canary == tenant)
+        {
+            return new FlagResolution(true, FeatureFlagSources.ReservedExitCanary, OverrideValue: null, ConfigDefault: false);
+        }
+
+        return new FlagResolution(false, FeatureFlagSources.ReservedExit, OverrideValue: null, ConfigDefault: false);
+    }
+
     private static bool TryParseBool(string? raw, out bool value)
     {
         value = false;
@@ -363,7 +391,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
         return false;
     }
 
-    private readonly record struct FlagResolution(
+    internal readonly record struct FlagResolution(
         bool Enabled,
         string Source,
         bool? OverrideValue,

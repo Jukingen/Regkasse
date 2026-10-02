@@ -8,7 +8,7 @@ import type {
   BackupArtifactResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
-import type { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
+import type { BackupArtifactLifecycleState } from '@/api/generated/model/backupArtifactLifecycleState';
 
 export type ConfigurationHealthUiKind = 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
 
@@ -57,7 +57,7 @@ export function restoreReadinessStatisticValueStyle(
   return undefined;
 }
 
-/** BackupRunResponseDtoStatus.NUMBER_3 — Succeeded; keep literal to avoid coupling tests to Orval enums. */
+/** Same value as `BackupRunStatus.Succeeded`. Literal so this mapper does not import the generated enum. */
 const BackupRunSucceededStatus = 3;
 
 /** Matches backend Fake / ProductionStub — fallback when isSimulatedExecution is missing on DTO. */
@@ -155,7 +155,7 @@ export function mapArtifactsToExternalCopyVariant(
   if (!artifacts?.length) return 'unknown';
   const stateList = artifacts
     .map((a) => a.lifecycleState)
-    .filter((s): s is BackupArtifactResponseDtoLifecycleState => s !== undefined && s !== null);
+    .filter((s): s is BackupArtifactLifecycleState => s !== undefined && s !== null);
   const states = new Set(stateList);
   if (states.has(3)) {
     if (states.size === 1) return 'failed';

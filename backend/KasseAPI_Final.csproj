@@ -90,6 +90,12 @@
     <Content Update="Data\demo-products.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Services\Countries\QrRechnung\ChQrKnownGaps.json">
+      <LogicalName>KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGaps.json</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <!-- Align embedded resource names with AddLocalization(ResourcesPath = "Resources"). -->
   <ItemGroup>
     <EmbeddedResource Update="Resources\ErrorMessages.resx">

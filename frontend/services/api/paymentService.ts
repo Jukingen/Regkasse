@@ -18,7 +18,9 @@ import {
   posPaymentInitiateStatusPath,
 } from './posPaymentPaths';
 import { logger } from '../../lib/logger';
+import i18n from '../../i18n';
 import { isHostedOnlinePaymentMethod } from '../payment/onlinePaymentMethods';
+import { isOfflineQueueAtCap } from '../../utils/offlineQueueLimit';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
 import type { CustomerKind } from '../../types/customerKind';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
@@ -27,6 +29,7 @@ import { normalizePosPaymentItemsForRequest } from '../../utils/paymentTaxType';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
 import { saveOfflineOrderSnapshot } from '../offline/offlineOrderManager';
+import { resolveEffectiveOfflineTenantLimit } from '../offline/offlineTenantLimit';
 import {
   enqueuePendingPayment,
   syncPendingPaymentQueue as flushPendingPaymentQueue,
@@ -72,6 +75,8 @@ export interface PaymentItem {
   productId: string;
   quantity: number;
   taxType: 'standard' | 'reduced' | 'special';
+  /** Required for IMEI-tracked catalog products. Not part of the RKSV payload. */
+  imei?: string;
 }
 
 // Backend'deki CreatePaymentRequest ile uyumlu
@@ -121,6 +126,16 @@ export interface PaymentRequest {
   preorderRemainingAmount?: number;
   /** Existing Vorbestellung to apply this sale as Restzahlung. */
   preorderBalanceOrderId?: string;
+  /** Optional non-fiscal prescription reference (vet). Not part of the RKSV payload. */
+  prescriptionReference?: string;
+  /** Optional taxi trip origin. Accepted only for the taxi vertical profile. */
+  routeFrom?: string;
+  /** Optional taxi trip destination. */
+  routeTo?: string;
+  /** Optional taxi distance in kilometres. */
+  routeKm?: number;
+  /** Optional taxi trip start (UTC). */
+  tripStartedAtUtc?: string;
 }
 
 /** Backend'den gelen TSE/QR bilgisi - payment.tse */
@@ -149,11 +164,15 @@ export interface PaymentResponse {
   offlineTransactionId?: string;
   error?: string;
   message?: string;
+  /** Present on LIMIT_EXCEEDED (server 409 or local offline-queue cap). */
+  limitKey?: string;
   /** From POST /api/pos/payment failure envelope (`details.diagnosticCode`). */
   diagnosticCode?: string;
   tseSignature?: string;
   /** TSE / QR info from POST /api/pos/payment response */
   tse?: PaymentTseInfo;
+  /** Plaintext ticket codes for print. Never mix with RKSV QR. */
+  issuedTickets?: Array<{ code: string; displayCode?: string; validUntilUtc?: string | null }>;
   /** When false, payment succeeded but invoice was not persisted — operator attention required. */
   invoicePersisted?: boolean;
 }
@@ -582,6 +601,24 @@ class PaymentService {
             invoicePersisted: false,
           };
         }
+        const localPending = await getPendingPaymentQueue();
+        const offlineCap = await resolveEffectiveOfflineTenantLimit(localPending.length);
+        if (isOfflineQueueAtCap(offlineCap.current, offlineCap.limit)) {
+          debugPosPaymentTrace('payment_api_transport_offline_limit', offlineCap);
+          return {
+            success: false,
+            isSynced: false,
+            fiscalStatus: 'FAILED',
+            paymentId: '',
+            error: 'LIMIT_EXCEEDED',
+            limitKey: 'maxOfflineTransactions',
+            message: i18n.t('payment:errors.limitOfflineQueue', {
+              current: offlineCap.current,
+              limit: offlineCap.limit,
+            }),
+            invoicePersisted: false,
+          };
+        }
         // Full cart snapshot on offline_orders (OfflineOrderManager.saveOrder) before
         // the legacy non-fiscal pending-payment queue. Do not call the React hook here.
         if (OFFLINE_CONFIG.ENABLE_OFFLINE_ORDERS && (req.items?.length ?? 0) > 0) {
@@ -710,6 +747,27 @@ class PaymentService {
         }
       : undefined;
 
+    const issuedRaw =
+      raw?.issuedTickets ??
+      raw?.IssuedTickets ??
+      raw?.data?.issuedTickets ??
+      raw?.data?.IssuedTickets ??
+      raw?.data?.Data?.issuedTickets;
+    const issuedTickets = Array.isArray(issuedRaw)
+      ? issuedRaw
+          .map((item) => {
+            const row = item as Record<string, unknown>;
+            const code = String(row.code ?? row.Code ?? '').trim();
+            if (!code) return null;
+            return {
+              code,
+              displayCode: String(row.displayCode ?? row.DisplayCode ?? ''),
+              validUntilUtc: (row.validUntilUtc ?? row.ValidUntilUtc ?? null) as string | null,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null)
+      : undefined;
+
     const invoicePersisted = raw?.invoicePersisted !== false;
 
     const nonFiscalOfflineQueued =
@@ -746,6 +804,7 @@ class PaymentService {
       diagnosticCode,
       tseSignature,
       tse,
+      issuedTickets,
       invoicePersisted,
       error: success ? undefined : message,
     };

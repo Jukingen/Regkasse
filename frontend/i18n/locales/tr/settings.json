@@ -365,6 +365,18 @@
     "copiedMessage": "{{label}} panoya kopyalandı.",
     "offlineQueueIdLabel": "Çevrimdışı kuyruk ID",
     "supportHandoffLabel": "Destek aktarımı",
-    "shareReplayTitle": "Destek: replay batch"
+    "shareReplayTitle": "Destek: replay batch",
+    "retryAll": "Tumunu tekrar dene",
+    "deleteItem": "Sil",
+    "deleteConfirmTitle": "Kayit silinsin mi?",
+    "deleteConfirmMessage": "Yalnizca mali olmayan yerel kayitlar silinebilir.",
+    "deleteFiscalBlockedTitle": "Silme yok",
+    "deleteFiscalBlocked": "Mali cevrimdisi kayitlar silinemez.",
+    "lastSuccessfulSync": "Son basarili senkron: {{time}}",
+    "lastSuccessfulSyncNever": "henuz yok",
+    "nextRetry": "Sonraki otomatik deneme: {{time}}",
+    "nextRetryNone": "Otomatik deneme planlanmadi.",
+    "sourceOrder": "Siparis anlik goruntusu",
+    "sourceTransaction": "Odeme niyeti"
   }
 }

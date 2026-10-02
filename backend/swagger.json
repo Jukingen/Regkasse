@@ -4812,6 +4812,119 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/ch-qr-invoices/{invoiceId}/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/ch-qr-invoices/{invoiceId}/upload-confirmation": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChQrBankUploadConfirmationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/countries": {
       "get": {
         "tags": [
@@ -12654,6 +12767,118 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/peppol/submissions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeppolSubmissionListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/peppol/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeppolSubmissionDetailDto"
                 }
               }
             }
@@ -24504,6 +24729,103 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/vertical-profile": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveVerticalProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantVerticalProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveVerticalProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/trials": {
       "get": {
         "tags": [
@@ -31954,6 +32276,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/vertical-profiles": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VerticalProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/vertical-profiles/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerticalProfileDto"
                 }
               }
             }
@@ -42226,6 +42609,64 @@
         }
       }
     },
+    "/api/pos/customers": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePosCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosCustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/customers/by-qr": {
       "get": {
         "tags": [
@@ -43812,6 +44253,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/vertical-profile": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveVerticalProfileDto"
                 }
               }
             }
@@ -49316,6 +49786,7 @@
           "OfflineOrdersBacklogGrowing",
           "OfflineOrdersExpiringSoon",
           "OfflineSyncStalled",
+          "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
           "BackupFailed",
           "BackupSucceeded",
@@ -49424,7 +49895,9 @@
           "EinvoiceSubmissionFailed",
           "PeppolParticipantRegistered",
           "ChQrKnownGapsAccepted",
-          "ChQrKnownGapsOutstanding"
+          "ChQrKnownGapsOutstanding",
+          "EinvoiceAckReceived",
+          "EinvoiceSubmissionRetry"
         ],
         "type": "string",
         "x-enum-varnames": [
@@ -49443,6 +49916,7 @@
           "OfflineOrdersBacklogGrowing",
           "OfflineOrdersExpiringSoon",
           "OfflineSyncStalled",
+          "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
           "BackupFailed",
           "BackupSucceeded",
@@ -49551,7 +50025,9 @@
           "EinvoiceSubmissionFailed",
           "PeppolParticipantRegistered",
           "ChQrKnownGapsAccepted",
-          "ChQrKnownGapsOutstanding"
+          "ChQrKnownGapsOutstanding",
+          "EinvoiceAckReceived",
+          "EinvoiceSubmissionRetry"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -49569,6 +50045,7 @@
           "OfflineOrdersBacklogGrowing",
           "OfflineOrdersExpiringSoon",
           "OfflineSyncStalled",
+          "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
           "BackupFailed",
           "BackupSucceeded",
@@ -49677,7 +50154,9 @@
           "EinvoiceSubmissionFailed",
           "PeppolParticipantRegistered",
           "ChQrKnownGapsAccepted",
-          "ChQrKnownGapsOutstanding"
+          "ChQrKnownGapsOutstanding",
+          "EinvoiceAckReceived",
+          "EinvoiceSubmissionRetry"
         ]
       },
       "ActivityReportDateRangeDto": {
@@ -51916,6 +52395,14 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "verticalProfileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "verticalProfileName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -53240,7 +53727,12 @@
           111,
           112,
           113,
-          114
+          114,
+          115,
+          116,
+          117,
+          118,
+          119
         ],
         "type": "integer",
         "format": "int32",
@@ -53357,7 +53849,12 @@
           "QrRechnungPayloadBuilt",
           "QrRechnungPdfGenerated",
           "PeppolParticipantRegistered",
-          "ChQrKnownGapsAccepted"
+          "ChQrKnownGapsAccepted",
+          "EinvoiceAckReceived",
+          "QrRechnungPdfDownloaded",
+          "QrRechnungBankUploadConfirmed",
+          "EinvoiceSubmissionRetry",
+          "TenantVerticalProfileChanged"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -53472,7 +53969,12 @@
           "QrRechnungPayloadBuilt",
           "QrRechnungPdfGenerated",
           "PeppolParticipantRegistered",
-          "ChQrKnownGapsAccepted"
+          "ChQrKnownGapsAccepted",
+          "EinvoiceAckReceived",
+          "QrRechnungPdfDownloaded",
+          "QrRechnungBankUploadConfirmed",
+          "EinvoiceSubmissionRetry",
+          "TenantVerticalProfileChanged"
         ]
       },
       "AuditExportJobStatus": {
@@ -59027,6 +59529,24 @@
         },
         "additionalProperties": false
       },
+      "ChQrBankUploadConfirmationRequest": {
+        "type": "object",
+        "properties": {
+          "uploadedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "uploadedAtUtc": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankReference": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ChQrGapAcceptanceDto": {
         "type": "object",
         "properties": {
@@ -59564,6 +60084,11 @@
             "maxLength": 2,
             "minLength": 1,
             "type": "string"
+          },
+          "verticalProfileId": {
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
           },
           "billingCountry": {
             "maxLength": 2,
@@ -61550,6 +62075,39 @@
         },
         "additionalProperties": false
       },
+      "CreatePosCustomerRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 100,
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "phone": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "petData": {
+            "$ref": "#/components/schemas/PosCustomerPetDataDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreatePricingRuleRequest": {
         "required": [
           "actionType",
@@ -62709,6 +63267,9 @@
             "type": "string",
             "nullable": true
           },
+          "petData": {
+            "$ref": "#/components/schemas/CustomerPetData"
+          },
           "isVip": {
             "type": "boolean"
           },
@@ -62970,6 +63531,32 @@
           "Voucher",
           "Mobile"
         ]
+      },
+      "CustomerPetData": {
+        "type": "object",
+        "properties": {
+          "petName": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petSpecies": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petBreed": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petBirthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "CustomerQrLookupRequest": {
         "required": [
@@ -66454,6 +67041,28 @@
           "QR_RECHNUNG",
           "EN_16931"
         ]
+      },
+      "EffectiveVerticalProfileDto": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "posFeatures": { },
+          "requiredFields": { },
+          "optionalFields": { },
+          "posLayout": {
+            "type": "string",
+            "nullable": true
+          },
+          "overrides": { }
+        },
+        "additionalProperties": false
       },
       "ElmahErrorListItemDto": {
         "type": "object",
@@ -75162,6 +75771,9 @@
               "OfflineQueueGrowing": {
                 "type": "boolean"
               },
+              "OfflineQueueApproachingLimit": {
+                "type": "boolean"
+              },
               "OfflineOrdersBacklogGrowing": {
                 "type": "boolean"
               },
@@ -75496,6 +76108,12 @@
                 "type": "boolean"
               },
               "ChQrKnownGapsOutstanding": {
+                "type": "boolean"
+              },
+              "EinvoiceAckReceived": {
+                "type": "boolean"
+              },
+              "EinvoiceSubmissionRetry": {
                 "type": "boolean"
               }
             },
@@ -75541,6 +76159,9 @@
               "OfflineQueueGrowing": {
                 "type": "string"
               },
+              "OfflineQueueApproachingLimit": {
+                "type": "string"
+              },
               "OfflineOrdersBacklogGrowing": {
                 "type": "string"
               },
@@ -75875,6 +76496,12 @@
                 "type": "string"
               },
               "ChQrKnownGapsOutstanding": {
+                "type": "string"
+              },
+              "EinvoiceAckReceived": {
+                "type": "string"
+              },
+              "EinvoiceSubmissionRetry": {
                 "type": "string"
               }
             },
@@ -79153,6 +79780,143 @@
           "createdAtUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "legalEntityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eIdentifierScheme": {
+            "type": "string",
+            "nullable": true
+          },
+          "eIdentifierValue": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeppolSubmissionDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ackedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerMessageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "invoiceHref": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeppolSubmissionListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeppolSubmissionRowDto"
+            },
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeppolSubmissionRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ackedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerMessageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -80337,6 +81101,35 @@
           "loyaltyPoints": {
             "type": "integer",
             "format": "int32"
+          },
+          "petData": {
+            "$ref": "#/components/schemas/PosCustomerPetDataDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PosCustomerPetDataDto": {
+        "type": "object",
+        "properties": {
+          "petName": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petSpecies": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petBreed": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "petBirthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -81636,6 +82429,18 @@
             "minLength": 1,
             "type": "string"
           },
+          "durationMinutes": {
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "staffId": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
           "cost": {
             "maximum": 1.7976931348623157E+308,
             "minimum": 0,
@@ -81886,6 +82691,15 @@
             "nullable": true
           },
           "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "staffId": {
             "type": "string",
             "nullable": true
           },
@@ -83732,6 +84546,18 @@
             "nullable": true
           },
           "apEnvironment": {
+            "type": "string",
+            "nullable": true
+          },
+          "legalEntityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eIdentifierScheme": {
+            "type": "string",
+            "nullable": true
+          },
+          "eIdentifierValue": {
             "type": "string",
             "nullable": true
           }
@@ -102376,6 +103202,21 @@
         },
         "additionalProperties": false
       },
+      "UpdateTenantVerticalProfileRequest": {
+        "required": [
+          "profileId"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "overrides": { }
+        },
+        "additionalProperties": false
+      },
       "UpdateTseIncidentStatusRequestDto": {
         "type": "object",
         "properties": {
@@ -103903,6 +104744,27 @@
         },
         "additionalProperties": false
       },
+      "VerticalProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "posFeatures": { },
+          "requiredFields": { },
+          "optionalFields": { },
+          "posLayout": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "VoidInvoiceRequest": {
         "type": "object",
         "properties": {
@@ -104475,6 +105337,9 @@
       "name": "AdminChQrGapAcceptance"
     },
     {
+      "name": "AdminChQrInvoiceOperator"
+    },
+    {
       "name": "AdminCountries"
     },
     {
@@ -104599,6 +105464,9 @@
     },
     {
       "name": "AdminPeppolParticipants"
+    },
+    {
+      "name": "AdminPeppolSubmissions"
     },
     {
       "name": "AdminPermissionAnalytics"
@@ -104733,6 +105601,9 @@
       "name": "AdminTenantUsers"
     },
     {
+      "name": "AdminTenantVerticalProfile"
+    },
+    {
       "name": "AdminTrials"
     },
     {
@@ -104821,6 +105692,9 @@
     },
     {
       "name": "AdminUsers"
+    },
+    {
+      "name": "AdminVerticalProfiles"
     },
     {
       "name": "AdminVouchers"
@@ -105013,6 +105887,9 @@
     },
     {
       "name": "PosTse"
+    },
+    {
+      "name": "PosVerticalProfile"
     },
     {
       "name": "PosVoucher"

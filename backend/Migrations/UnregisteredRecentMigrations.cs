@@ -1,6 +1,6 @@
 namespace KasseAPI_Final.Migrations;
 
-// Superseded. Each migration class now has its own *.Designer.cs with
-// [Migration] and [DbContext(typeof(AppDbContext))].
-// Remove this file in a follow-up; it is intentionally empty so the
-// partial classes are not declared twice.
+// DELETE in a follow-up commit. Do not delete in the attribute-guard change.
+// Workaround superseded: every migration class now has [Migration] and
+// [DbContext(typeof(AppDbContext))] on its *.Designer.cs partial.
+// This file stays empty so those partial classes are not declared twice.

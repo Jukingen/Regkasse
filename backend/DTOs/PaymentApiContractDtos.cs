@@ -71,6 +71,11 @@ public sealed class PaymentCreateSuccessData
     /// <summary>Offline intent row id when NonFiscalOfflineQueued is true.</summary>
     [JsonPropertyName("offlineTransactionId")]
     public Guid? OfflineTransactionId { get; set; }
+
+    /// <summary>Plaintext ticket codes for print only. Not part of the RKSV QR payload.</summary>
+    [JsonPropertyName("issuedTickets")]
+    public IReadOnlyList<KasseAPI_Final.Services.Tickets.IssuedTicketDto> IssuedTickets { get; set; } =
+        Array.Empty<KasseAPI_Final.Services.Tickets.IssuedTicketDto>();
 }
 
 public sealed class PaymentCreateTseData

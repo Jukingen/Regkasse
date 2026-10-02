@@ -251,7 +251,7 @@ public static class AppPermissions
     public const string FinanzOnlineManage = "finanzonline.manage";
     public const string FinanzOnlineSubmit = "finanzonline.submit";
 
-    // --- Kitchen (order display / status updates; GRANT_ONLY until KDS endpoints gate these) ---
+    // --- Kitchen display (KDS). List uses view; status patches use update. ---
     public const string KitchenView = "kitchen.view";
     public const string KitchenUpdate = "kitchen.update";
 

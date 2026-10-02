@@ -391,6 +391,7 @@
           "LimitApproaching",
           "LimitExceeded",
           "OfflineQueueGrowing",
+          "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
           "BackupFailed",
           "BackupSucceeded",
@@ -411,6 +412,30 @@
           "OnlineOrderPaid",
           "OnlineOrderStatusChanged",
           "OnlineOrderConfirmed"
+        ]
+      },
+      {
+        "id": "activity.events",
+        "description": "Activity feed titles and descriptions for country, QR-Rechnung, e-invoice, and Peppol events",
+        "staticPrefix": "activity.events",
+        "suffixes": [
+          "unknown.title",
+          "TenantCountryChanged.title",
+          "TenantCountryChanged.description",
+          "TenantCountryChangedHistoricalPreserved.title",
+          "TenantCountryChangedHistoricalPreserved.description",
+          "QrRechnungPayloadBuilt.title",
+          "QrRechnungPayloadBuilt.description",
+          "QrRechnungPdfGenerated.title",
+          "QrRechnungPdfGenerated.description",
+          "PeppolParticipantRegistered.title",
+          "PeppolParticipantRegistered.description",
+          "EinvoiceValidated.title",
+          "EinvoiceValidated.description",
+          "EinvoiceSubmitted.title",
+          "EinvoiceSubmitted.description",
+          "EinvoiceSubmissionFailed.title",
+          "EinvoiceSubmissionFailed.description"
         ]
       },
       {
@@ -560,6 +585,27 @@
         "description": "Backdated Tagesabschluss reason presets",
         "staticPrefix": "tagesabschluss.backdated.reasons",
         "suffixes": ["forgot", "technical", "staff", "other"]
+      },
+      {
+        "id": "peppol.submissions.status",
+        "description": "Peppol outbox status labels",
+        "staticPrefix": "peppol.submissions.status",
+        "suffixes": ["Queued", "Sent", "Ack", "Failed"]
+      },
+      {
+        "id": "peppol.submissions.failure",
+        "description": "Peppol outbox failure_reason hints. Hyphens in the stored code are underscores in the key.",
+        "staticPrefix": "peppol.submissions.failure",
+        "suffixes": [
+          "peppol_reserved",
+          "peppol_participant_not_configured",
+          "peppol_live_not_allowed",
+          "peppol_ack_timeout",
+          "peppol_ack_error",
+          "storecove_http_400",
+          "storecove_http_5xx",
+          "unknown"
+        ]
       }
     ]
   }

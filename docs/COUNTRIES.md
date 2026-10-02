@@ -1,13 +1,13 @@
 # Countries and fiscal regimes
 
-**Last updated:** 2026-09-21  
+**Last updated:** 2026-09-29  
 **Related:** [`AGENTS.md`](../AGENTS.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) (stub) · [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) (stub) · [`EINVOICING_EU.md`](EINVOICING_EU.md) (stub) · [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) · [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md)
 
 This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, or ViDA compliance.
 
 ## Current state (as of HEAD)
 
-Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). Offline BelegNr allocation goes through `IInvoiceStrategy` (Paket 30-b). AT + `EU_REVERSE_CHARGE` routes to the EU_DEFAULT strategies (Paket 12-c). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`, Paket 14). Country change after signed fiscal data is allowed: historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). DE/CH/EU modules are shape-only and not production-ready; flags still gate them (`FeatureDisabledException` when off). This is not a claim of KassenSichV, MWST, or EN 16931 compliance. Production apply order: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md). Remaining work: [§16](#16-remaining-gaps).
+Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoiceStrategy` are adapters and keep AT receipt/tax output. Paket 30-c wires DE/CH/EU tax and invoice strategies into `PaymentService` and `InvoiceService`; `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). Offline BelegNr allocation goes through `IInvoiceStrategy` (Paket 30-b). AT + `EU_REVERSE_CHARGE` routes to the EU_DEFAULT strategies (Paket 12-c). The Super Admin create-tenant wizard is two-step (country → form) and consumes `GET /api/admin/countries`. Super Admin tenant detail shows a Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`, Paket 14). Country change after signed fiscal data is allowed only when no signed document was issued under a different fiscal system; otherwise `AdminTenantService.UpdateCountryAsync` returns `FISCAL_COUNTRY_CHANGE_INVALID`. Historical `invoices` / `receipts` / `payment_details` keep `CountryCodeAtIssue` / `VatRegimeAtIssue` and are not rewritten (Paket 16). Shape (AT fallback via `GetOrDefault`, VAT-ID seeds in `VatIdPatterns`) is separate from what is implemented (DE SIGN HTTP in `FiskalyDeKassenSicherheitService`, CH PDF in `QrRechnungPdf`, EU validator in `En16931Schematron`) and from what stays gated (`FeatureFlagService` / `CountryFiscalLockEvaluator`). None of DE, CH, or EU is a production fiscal path. This is not a claim of KassenSichV, MWST, or EN 16931 compliance. Production apply order: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md). Remaining work: [§16](#16-remaining-gaps).
 
 ### Shipped since Paket 19
 
@@ -27,9 +27,9 @@ Austria remains the production fiscal path: `AustriaTaxStrategy` / `AustriaInvoi
 | Country | Fiscal System | Status | Notes |
 |---------|---------------|--------|-------|
 | **AT** | RKSV / TSE / FinanzOnline | **Production (live SoT)**; adapter called | Current behavior unchanged; `AustriaTaxStrategy` / `AustriaInvoiceStrategy` delegate to the existing services and are pinned by the baseline regression suite in [§11](#11-testing-strategy) |
-| **DE** | KassenSicherheit (planned) | Domain wired (Paket 30-c); no DE TSE provider | `GermanyTaxStrategy` / `GermanyInvoiceStrategy` shape; RKSV special receipts and TSE tax-sets throw `NotSupportedException`. Paket **20** not started. See [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| **CH** | MWST + QR-Rechnung (planned) | Domain wired (Paket 30-c); QR payload shape only | `SwitzerlandTaxStrategy` / `SwitzerlandInvoiceStrategy` shape; no bank submit. Paket **21** not started. See [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
-| **EU_DEFAULT** | EN 16931 (planned) | Registry-only, **not tenant-selectable**; domain wired (Paket 30-c) | Reverse charge used by AT (Paket 12-c). No Peppol. Paket **22** not started. See [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+| **DE** | KassenSicherheit | **Partial** | Contract, Development `SoftKassenSicherheitService`, and fiskaly-de HTTP. `PaymentService` calls `IFiscalSignatureRouter`. Not a live TSE. See [§16](#16-remaining-gaps) and [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
+| **CH** | MWST + QR-Rechnung | **Partial** | MWST calculation and QR payload/PDF exist. Bank submit stays off. See [§16](#16-remaining-gaps) and [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
+| **EU_DEFAULT** | EN 16931 | Registry-only, **not tenant-selectable**; **Partial** | UBL sketch plus embedded Schematron. Peppol send is not the default path. See [§16](#16-remaining-gaps) and [`EINVOICING_EU.md`](EINVOICING_EU.md) |
 
 `EU_DEFAULT` is a fallback profile identifier, not an ISO 3166-1 alpha-2 code. It must never appear in the Super Admin create-tenant country list.
 
@@ -134,7 +134,7 @@ Deliberately **out** of `IInvoiceStrategy`: TSE signing input, RKSV §9 machine 
 | Path | Allocator | In `IInvoiceStrategy`? |
 |------|-----------|------------------------|
 | Online payment, storno, refund, all Sonderbelege | `IReceiptSequenceService.AllocateNextBelegNrInTransactionAsync` (bound to the caller's `IDbContextTransaction`) | **No** — stays outside the country layer so no EF transaction leaks into a country-neutral contract |
-| Offline order replay | `ISequenceReservationService.ReserveNextReceiptNumberAsync` | Yes — Paket 30-b: `OfflineOrderService` calls `IInvoiceStrategy.AllocateReceiptNumberAsync`; Austria delegates to this service (`FormatBelegNr`). DE/CH/EU still throw `NotImplementedException`. |
+| Offline order replay | `ISequenceReservationService.ReserveNextReceiptNumberAsync` | Yes — Paket 30-b: `OfflineOrderService` calls `IInvoiceStrategy.AllocateReceiptNumberAsync`; Austria delegates to this service (`FormatBelegNr`). DE uses `de_receipt_sequences`. CH uses `ch_receipt_sequences`. EU still throws `NotImplementedException`. |
 
 Do not "fix" this by adding a transaction parameter to the interface without a separate decision.
 
@@ -150,7 +150,21 @@ Resolution order (Paket 12-c): (1) profile must `Supports` the regime; (2) AT + 
 
 Lifetimes: tax strategies and their resolver are singletons (stateless delegators); invoice strategies and their resolver are **scoped**, because the Austrian one depends on scoped `ISequenceReservationService` and `IReceiptService`.
 
-Non-AT `CalculateTax` / disclosures / `InvoiceDocumentDto` shape are implemented. `ProjectFiscalTaxSets` and `AllocateReceiptNumberAsync` still throw `NotImplementedException` on DE/CH/EU. TSE tax-sets and RKSV special receipts throw `NotSupportedException` for non-AT countries, so they cannot silently enable Austrian TSE signing.
+Non-AT `CalculateTax` / disclosures / `InvoiceDocumentDto` shape are implemented. DE and CH `ProjectFiscalTaxSets` and `AllocateReceiptNumberAsync` are implemented from their own catalogs and sequence tables. EU still throws `NotImplementedException`. TSE tax-sets and RKSV special receipts throw `NotSupportedException` for non-AT countries, so they cannot silently enable Austrian TSE signing.
+
+Country gates live on `FeatureFlagNames`. Defaults below are the country-profile result when no tenant or global override is stored. `EInvoicing.Peppol` is declared only (`Reserved`); it is not resolved and stays off.
+
+| Flag | AT | DE | CH | EU_DEFAULT | Can be disabled |
+|------|----|----|----|------------|-----------------|
+| `Fiscal.RksvAt` | On, **locked** | Off | Off | Off | No for AT. Other countries are already off; the lock applies only when the profile fiscal system is `RKSV_AT`. |
+| `Fiscal.KassenSicherheitDe` | Off | Off | Off | Off | Yes (tenant override). Profile default is off even for DE. |
+| `Fiscal.MwstCh` | Off | Off | On | Off | Yes (tenant override) |
+| `EInvoicing.Zugferd` | Off | Off | Off | Off | Yes. Not country-derived; a tenant override may turn it on. |
+| `EInvoicing.XRechnung` | Off | Off | Off | Off | Yes. Not country-derived; a tenant override may turn it on. |
+| `EInvoicing.QrRechnung` | Off | Off | On | Off | Yes (tenant override) |
+| `EInvoicing.En16931` | Off | Off | Off | On | Yes (tenant override). Does not gate reverse-charge tax or disclosures. |
+| `Vies.CheckEnabled` | Off | Off | Off | Off | Yes. Not country-derived. |
+| `EInvoicing.Peppol` | Off | Off | Off | Off | Not wired. Stays off until a later phase adds it to resolution. |
 
 ---
 
@@ -167,7 +181,7 @@ Flags do **not** live on `company_settings`. Country is read from `CompanySettin
 | Flag | Default |
 |------|---------|
 | `Fiscal.RksvAt` | On for AT; **locked on** (cannot be turned off). No `FeatureFlagsOptions` property — never an appsettings `false` default. |
-| `Fiscal.KassenSicherheitDe` | On for DE profile (`FiscalSystem.KASSENSICHERHEIT_DE`); off otherwise. Tenant override allowed. |
+| `Fiscal.KassenSicherheitDe` | Off for every profile, including DE. A pilot turns it on with a tenant override. |
 | `Fiscal.MwstCh` | On for CH profile (`FiscalSystem.MWST_CH`); off otherwise. Tenant override allowed. |
 | `EInvoicing.Zugferd` / `EInvoicing.XRechnung` | **Always default off** (DE builders are skeletons). Tenant override to `true` is allowed. |
 | `EInvoicing.QrRechnung` | On when the profile lists `QR_RECHNUNG` (CH). |
@@ -456,28 +470,134 @@ Stamping happens at issue time from `CompanySettings` (via `ICountryStrategyCont
 
 ### 15.2 Country change
 
-After signed fiscal data exists, country change is **allowed**. Historical rows keep their original `CountryCodeAtIssue` / `VatRegimeAtIssue`. New receipts issued after the change stamp the **new** country.
+A country change is **rejected** (`FISCAL_COUNTRY_CHANGE_INVALID`, HTTP 409) when the tenant already has signed fiscal documents issued under a different fiscal system (for example an Austrian TSE-signed receipt when moving to DE). Those rows are not rewritten.
 
-Audit:
+When the change is allowed, historical invoices, receipts, and payments keep `CountryCodeAtIssue` / `VatRegimeAtIssue`. New receipts issued after the change stamp the **new** country. Moving off Austria also forces the tenant `Fiscal.RksvAt` override to `false`.
 
-- `TENANT_COUNTRY_CHANGED` (`AuditEventType.TenantCountryChanged`) — the operating-country / regime change itself.
+Audit on a successful change:
+
+- `TENANT_COUNTRY_CHANGED` (`AuditEventType.TenantCountryChanged`) — old/new country and `correlationId`.
 - `TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED` (`AuditEventType.TenantCountryChangedHistoricalPreserved`) — `newValues.affectedRowCount` is the number of existing invoice + receipt + payment_details rows that were left untouched.
 
-The Admin confirmation modal warns: "Historical invoices are preserved under the original country regime."
-
-`COUNTRY_LOCKED_FISCAL` is no longer returned on this path. Do not backfill historical snapshots from the live country after a change.
+The Admin confirmation modal shows that affected-row count before the save. `COUNTRY_LOCKED_FISCAL` is no longer returned on this path. Do not backfill historical snapshots from the live country after a change.
 
 ---
 
 ## 16. Remaining gaps
 
-Packages **20**, **21**, and **22** are **NOT STARTED**. Paket **30-d** is done. Do not treat CountryProfile seeds, tax-strategy shape, or FA country UI as production DE/CH/EU fiscal.
+Status below is what the code does today. A decision record or plan is not an implementation. Do not treat CountryProfile seeds, a Development fake signer, or the FA country UI as a production fiscal path for DE, CH, or EU.
 
-| Paket | Scope | Status | Doc |
-|-------|--------|--------|-----|
-| **20** | German TSE / KassenSicherheit **provider** (device provisioning, signing, chain). `IKassenSicherheitService` stays a stub. | **NOT STARTED** (decision: [`FISCAL_GERMANY_PROVIDER_DECISION.md`](FISCAL_GERMANY_PROVIDER_DECISION.md) — fiskaly SIGN DE) | [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) |
-| **21** | Swiss QR-Rechnung **PDF / bank-compatible payload** (no bank HTTP API). `BuildPdfAsync` throws. | **NOT STARTED** (plan: [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) — SIX IG **2.3**) | [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) |
-| **22** | EU **Peppol** transport / tax-authority submission. EN 16931 XML builders still throw. | **NOT STARTED** (plan: [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) — UBL 2.1, hosted AP, validator-first) | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
-| **30-d** | OSS destination STANDARD rates. In-code seed of 14 countries (AT 20, DE 19, FR 20, IT 22, NL 21, ES 21, PL 23, BE 21, IE 23, PT 23, SE 25, DK 25, FI **25.5**, GR 24). Greek VAT-ID prefix `EL` aliases to `GR`. No AT `TaxTypes` fallback. AT + `EU_OSS` remains unsupported. | **DONE** | [`EINVOICING_EU.md`](EINVOICING_EU.md) |
+Paket 30-d (OSS destination STANDARD rates) stays **Done**: `OssVatRates` / `IOssVatRateRegistry`, 14 countries, FI 25.5, Greek VAT-ID prefix `EL` → `GR`. Only `EuDefaultTaxStrategy.CalculateOss` calls it. AT + `EU_OSS` throws. See [`EINVOICING_EU.md`](EINVOICING_EU.md).
 
-Also still open (not numbered packages): Playwright E2E for the create-tenant country step; live VIES network tests (client is mocked; flag default off).
+### 16.1 Paket 20, 21, and 22
+
+| Package | Sub-feature | Status | File | Notes | Blocking gate |
+|---------|-------------|--------|------|-------|----------------|
+| 20 | `SignAsync` outbound HTTP | Implemented | `FiskalyDeKassenSicherheitService` | `Provider=fiskaly-de` calls `IKassenSicherheitHttpClient`. No invented signature. | `KassenSicherheit:Provider=fiskaly-de` plus a `Fiscal.KassenSicherheitDe` tenant override. Profile default is off. |
+| 20 | `GetStatusAsync` outbound HTTP | Implemented | `FiskalyDeKassenSicherheitService` | `GET tss/{tenant}`. Ready only when the response state is `INITIALIZED`. | Same as `SignAsync`. |
+| 20 | `GetCertificateChainAsync` outbound HTTP | Implemented | `FiskalyDeKassenSicherheitService` | Leaf from `certificate`, then `certificate_chain`. | Same as `SignAsync`. |
+| 20 | Provider other than `fiskaly-de` on those three methods | Implemented | `KassenSicherheitNotConfiguredException` | Explicit error. No AT TSE fallback. | `KassenSicherheit:Provider` left at `not-configured`. |
+| 20 | Start / finish / DSFinV-K export HTTP | Implemented | `FiskalyDeKassenSicherheitHttpClient` | `not-configured` is a no-op on this path. Any other provider throws `NotImplementedException`. `SignDeAsync` does not call these methods. | Same as `SignAsync`, plus `KassenSicherheit:PilotMode=true` (TEST host and `Environment=TEST` only). |
+| 20 | DSFinV-K download | Not started | `ExportDsfinvkAsync` | PUT `/exports/{id}` only. No download method. | Not implemented; PUT-only. |
+| 20 | Development signer | Implemented | `SoftKassenSicherheitService` | Registered only when the host is Development. Pseudo-JWS. No TSE HTTP. | `ApplicationHost` `IsDevelopment()` branch. Not registered in Production. |
+| 20 | `SignAsync` reached from payment | Implemented | `PaymentService`, `FiscalSignatureRouter.SignDeAsync` | Payment calls the router. The DE branch calls `IKassenSicherheitService.SignAsync`. | `Fiscal.KassenSicherheitDe`. Profile default is off. A tenant override is required. Off → `DE_FLAG_OFF`. Missing TSS/client id → `DE_NOT_CONFIGURED`. |
+| 20 | DE signature persistence separate from RKSV JWS | Implemented | `DeTseSignature`, `FiscalSignatureRouter.SignDeAsync` | Table `de_tse_signatures` (migration `20260929114500_AddDeTseSignaturePersistence`). `payment_details.TseSignature` stays null for DE. | Same as payment wiring: `Fiscal.KassenSicherheitDe` tenant override, plus `Provider=fiskaly-de`. |
+| 20 | DE offline signing | Out of scope | [`FISCAL_ROUTER_PLAN.md`](FISCAL_ROUTER_PLAN.md) §13 | Unreachable middleware blocks the sale. No DE offline queue. | Out of scope (decision §13). |
+| 21 | QR payload (SPC `0200`, address type S, mod-97) | Implemented | `QrRechnungBuilder`, `SwissQrEncoder` | `QRR` / `SCOR` / `NON`. No bank HTTP. | `EInvoicing.QrRechnung`. Profile default is on for CH when the seed lists `QR_RECHNUNG`. |
+| 21 | PDF (Empfangsschein + Zahlteil + Swiss QR) | Implemented | `QrRechnungPdf` via `QrRechnungBuilder.BuildPdfAsync` | QuestPDF + QRCoder. Not a measured SIX print overlay. Bytes are not written to disk. | `EInvoicing.QrRechnung`. Profile default is on for CH. |
+| 21 | Official Swiss cross | Not started | `ChQrKnownGaps.json` `official-swiss-cross` | `SwissCrossMatrix` paints modules. It is not the 7 mm cross with a white border. | `ChQrKnownGapsTests` fixture (`present: false`). |
+| 21 | Font embedding | Not started | `ChQrKnownGaps.json` `font-embedding-liberation-arial` | Default QuestPDF font. No Liberation Sans or Arial embed. | Same fixture. |
+| 21 | pain.001 / bank scan | Not started | `ChQrKnownGaps.json` `pain001`, `bank-scan` | No credit-transfer file and no scan of the printed bill. | Same fixture. |
+| 21 | Audit `QrRechnungPayloadBuilt` / `QrRechnungPdfGenerated` | Implemented | `QrRechnungBuilder`, `AuditEventType` 111 and 112 | SHA-256 of the SPC text, invoice id, tenant id, `correlation_id`. The IBAN is not logged. | `EInvoicing.QrRechnung`. |
+| 21 | Per-tenant known-gap acceptance | Implemented | `ChQrGapAcceptanceService`, `Fiscal.ChQrKnownGapsAccepted` | Records which `ChQrKnownGaps.json` ids the operator acknowledged. Does not change the PDF and does not enable bank submission. Open gaps that are not accepted log a warning and activity `ChQrKnownGapsOutstanding` (261). FA also shows that list on the invoice detail, the invoice preview, and the credit-note create dialog. The invoice is not blocked. | Audit `ChQrKnownGapsAccepted` (114). Activity `ChQrKnownGapsAccepted` (260). `POST/GET /api/admin/tenants/{tenantId}/ch-qr-gap-acceptance` (`system.critical`). |
+| 21 | `qr_rechnung_documents` table | Not needed | — | No payload table. The audit hash is the record. | Not needed (decision: audit hash is enough). |
+| 21 | Bank submission | Not started | `QrRechnungBankSubmitOptions` | Option D remains (print/PDF only; no bank client). Option A is the operator workaround: download the PDF and upload it in the bank portal (`QrRechnungPdfDownloaded` 116, `QrRechnungBankUploadConfirmed` 117). Option B (EBICS / pain.001) is out of scope ([decision](FISCAL_SWITZERLAND_QR_PLAN.md#option-b-decision-2026-09-30)). Not a SIX or MWST compliance claim. | `QrRechnung:BankSubmit:Enabled` stays false. `CountryFiscalLockEvaluator` rejects `true` in Production and Staging. |
+| 21 | `ProjectFiscalTaxSets` | Implemented | `SwitzerlandTaxStrategy`, `ChTaxSetMapper` | Rates from `ICountryTaxTypeRegistry.Get("CH")`. Empty catalog throws. No AT fallback. | `Fiscal.MwstCh` off → `FeatureDisabledException`. |
+| 21 | `AllocateReceiptNumberAsync` | Implemented | `SwitzerlandInvoiceStrategy`, `ChReceiptSequenceService` | `ch_receipt_sequences`. Format `CH-{slug}-{register}-{seq}`. Collision check on `payment_details`. | Missing `IChReceiptSequenceService` → `InvalidOperationException`. No AT sequence. |
+| 22 | UBL 2.1 sketch for `EU_DEFAULT` | Implemented | `En16931UblXmlBuilder` | `CountryStrategyContext.SelectEn16931Builder` returns it only for `EU_DEFAULT`. | `EInvoicing.En16931`. Profile default is on for `EU_DEFAULT`. That code is not a selectable tenant country. |
+| 22 | Schematron subset | Implemented | `En16931Schematron` | Embedded BR rules listed in [`EINVOICING_EU.md`](EINVOICING_EU.md). | Same as the UBL builder. `En16931InvoiceValidationService` returns null when the flag is off. |
+| 22 | Persist validation result | Implemented | `En16931InvoiceValidationService` | Nullable `invoices.einvoice_validation_passed` and `einvoice_validation_rule_ids`. No historical backfill. | `EInvoicing.En16931`. |
+| 22 | Audit `EinvoiceValidated` | Implemented | `AuditEventType` 108 | Fail stores rule ids, not the UBL document. | `EInvoicing.En16931`. |
+| 22 | XRechnung XML | Stub-throws | `NotImplementedXrechnungXmlBuilder` | Flag on → `EInvoicingNotSupportedForCountryException`. Flag off → `FeatureDisabledException`. | `EInvoicing.XRechnung`. Off by default. Not a country-profile default. |
+| 22 | ZUGFeRD XML | Stub-throws | `NotImplementedZugferdXmlBuilder` | Same flag pattern as XRechnung. | `EInvoicing.Zugferd`. Off by default. Not a country-profile default. |
+| 22 | Peppol Access Point send | Not started as a default path | `PeppolSubmissionService`, `HostedPeppolAccessPointClient` | Reserved. A non-canary provider writes `einvoice_submissions` `Queued` / `peppol-reserved` and does not call the Access Point. | `EInvoicing.Peppol` (Reserved) plus `Peppol:ReservedExit:Enabled`. Not in `FeatureFlagNames.All`. |
+| 22 | Storecove Access Point | Partial | `StorecovePeppolAccessPointClient`, `PeppolStorecoveOptionsValidator` | 22-b-2 calls it for the canary tenant only, and only when `Peppol:Storecove:Environment` is exactly `TEST`. Any other value throws `peppol-live-not-allowed` before HTTP. `LIVE` plus `Peppol:ReservedExit:Enabled=true` fails startup. HTTP 2xx is `Sent`, not an ACK. Not a Peppol or EN 16931 compliance claim. | `Peppol:Provider=storecove` is not the default. `EInvoicing.Peppol` stays Reserved. |
+| 22-b | Peppol canary submission | 22-b-1 through 22-b-4 done; 22-b-5 not started | [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md#peppol-canary-package-breakdown-22-b-1-through-22-b-5) | ACK is a TEST poll (`PeppolAckPollingService`). `Peppol:AckPollInterval` defaults to 0. `state=DELIVERED` with a matching `guid` sets `Ack`. Audit `EinvoiceAckReceived` is 115. Activity `EinvoiceAckReceived` is 262. Transient `state=ERROR` codes `STORE_INTERNAL`, `TIMEOUT`, and `RATE_LIMIT` retry on `Peppol:AckRetryIntervalsSeconds` (default 300s then 1800s) and increment `provider_attempt_count`. Audit `EinvoiceSubmissionRetry` is 118. Activity `EinvoiceSubmissionRetry` is 263 (Warning). A third transient error is `peppol-ack-retries-exhausted`. `REJECTED`, `INVALID`, and any other `ERROR` fail immediately. 22-b-4 is `PeppolCanaryEndToEndTests` (mocked Access Point, no Storecove socket) plus manual `npm run smoke:peppol-test`. The outbox is read-only at `GET /api/admin/peppol/submissions` and FA `/admin/peppol/submissions` (`system.critical`). Not a webhook. Not LIVE. Not a Peppol or EN 16931 compliance claim. | `EInvoicing.Peppol` stays Reserved until 22-b-5, and only after a verified ACK. |
+| 22 | Peppol participant registry | Implemented, no send | `peppol_participants`, `AdminPeppolParticipantsController` | `POST/GET /api/admin/peppol/participants`. Optional `legal_entity_id`, `eidentifier_scheme`, `eidentifier_value` (`20260930060830_AddPeppolParticipantIdentity`, operator-supplied, not derived from a VAT id). No credential column. Cross-tenant GET is 404. Audit `PeppolParticipantRegistered` (113). | `system.critical`. |
+| 22 | Full KoSIT / Peppol Schematron packs, CII | Not started | — | Those files are not in the repo. | No flag loads them. |
+
+### What is production-ready
+
+| Country | Readiness | What the code actually runs |
+|---------|-----------|-----------------------------|
+| **AT** | Production | Live RKSV / TSE / FinanzOnline path. `AustriaTaxStrategy` and `AustriaInvoiceStrategy` delegate to the existing services. |
+| **DE** | Partial | Contract plus SIGN DE HTTP skeleton (`FiskalyDeKassenSicherheitService`) and the Development fake (`SoftKassenSicherheitService`). The payment router can call `SignAsync`. This is not a live TSE. |
+| **CH** | Partial | MWST calculation, `ChTaxSetMapper`, `ch_receipt_sequences`, QR payload, and PDF. Bank submit stays off. |
+| **EU** | Partial | UBL sketch plus the embedded validator. `EU_DEFAULT` is not a selectable tenant country. No submission. |
+
+### Known gaps
+
+**DE**
+
+- `FiskalyDeKassenSicherheitService` start/finish/export: `Provider` other than `fiskaly-de` and `not-configured` throws `NotImplementedException`. Sign, status, and certificate use `KassenSicherheitNotConfiguredException` instead.
+- `NotImplementedKassenSicherheitService` throws `NotImplementedException` for any provider other than the `not-configured` no-op. It is not the host registration (`Soft` in Development, `FiskalyDe` otherwise).
+- `SoftKassenSicherheitService.SignAsync` returns a pseudo-JWS. It does not call a TSE.
+- `NotImplementedZugferdXmlBuilder.BuildXmlAsync` throws `EInvoicingNotSupportedForCountryException` when `EInvoicing.Zugferd` is on.
+- `NotImplementedXrechnungXmlBuilder.BuildXmlAsync` throws `EInvoicingNotSupportedForCountryException` when `EInvoicing.XRechnung` is on.
+- `TseService` tax-set projection throws `NotSupportedException` when the profile is not Austria.
+- `RksvSpecialReceiptService` throws `NotSupportedException` when the profile is not Austria.
+
+**CH**
+
+- No type submits a QR-Rechnung to a bank. `QrRechnungBuilder.BuildPdfAsync` stops at PDF bytes. `QrRechnung:BankSubmit:Enabled=true` fails startup outside Development.
+
+**EU**
+
+- `EuDefaultTaxStrategy.ProjectFiscalTaxSets` throws `NotImplementedException`.
+- `EuDefaultInvoiceStrategy.AllocateReceiptNumberAsync` throws `NotImplementedException`.
+- `NotImplementedEn16931XmlBuilder.BuildXmlAsync` throws `NotImplementedException`. DI selects `En16931UblXmlBuilder` instead.
+- `NotImplementedXrechnungXmlBuilder` and `NotImplementedZugferdXmlBuilder` throw `EInvoicingNotSupportedForCountryException` when their flags are on.
+- `PeppolSubmissionService.SubmitAsync` returns status `Validated` and detail `not-sent` when `EInvoicing.En16931` is off, and again when the provider is `not-configured`.
+- `HostedPeppolAccessPointClient.SendAsync` throws `PeppolAccessPointNotConfiguredException` unless mode and provider are both `hosted`.
+
+**AT (country-layer limits, not the live RKSV path)**
+
+- `TaxStrategyResolver` and `InvoiceStrategyResolver` throw `ArgumentException` (`AT tenant + EU_OSS is not supported`) for Austria plus `EU_OSS`.
+
+### 16.2 What OSS “done” means
+
+`IOssVatRateRegistry` (`OssVatRates` seed, not a database table and not a second VAT-ID column) supplies the destination STANDARD percent only when `EuDefaultTaxStrategy.CalculateOss` runs for `VatRegime.EU_OSS`. Domestic AT (`AustriaTaxStrategy`), DE, and CH calculations do not call it. An Austrian mandant still cannot use `EU_OSS`.
+
+Filing an OSS return, OSS registration, and a live VIES check are not in this paket. The seed is a rate lookup for the invoice calculation.
+
+The mocked create-tenant country step has a Playwright spec (`frontend-admin/tests/e2e/tenant-create.spec.ts`). Mandanten-Admin sees the country card read-only on `/tenant/profile` (`GET /api/company/settings`, own ambient tenant). `/admin/tenants` stays `system.critical`. Live VIES network tests stay mocked; `Vies.CheckEnabled` defaults off.
+
+### 16.3 What a Super Admin must NOT do
+
+- Do not set `Fiscal.KassenSicherheitDe=true` for a DE tenant in Production. `CountryFeatureFlagDefaults.TryGet` returns false for that flag, including a DE profile. A real tenant stays off unless a tenant override is true. HTTP still requires `KassenSicherheit:Provider=fiskaly-de` (`FiskalyDeKassenSicherheitService.CallFiskalyAsync`).
+- Do not set `QrRechnung:BankSubmit:Enabled=true` in Production. `CountryFiscalLockEvaluator` rejects that value in Production and Staging (`ReasonQrBankSubmit`). There is no bank client. Option B (EBICS / pain.001) is out of scope; the operator uploads the PDF in their bank portal (Option A, audit 116 and 117).
+- Do not enable `EInvoicing.Peppol` as a resolved flag. It stays in `FeatureFlagNames.Reserved` and out of `FeatureFlagNames.All`. `Peppol:ReservedExit:Enabled=true` can mark one canary (`source=reserved_exit_canary`). `SubmitAsync` opens HTTP only for that tenant when `Peppol:Provider=storecove` and `Peppol:Storecove:Environment` is exactly `TEST`. Any other Storecove environment throws `peppol-live-not-allowed` before HTTP. `LIVE` with `ReservedExit:Enabled=true` fails startup. HTTP 2xx is `Sent`, not an ACK. See §16.4.
+- Do not change a tenant's country to DE, CH, or `EU_DEFAULT` when signed fiscal documents were issued under a different fiscal system. `AdminTenantService.UpdateCountryAsync` returns HTTP 409 and `AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid` (`FISCAL_COUNTRY_CHANGE_INVALID`).
+
+This is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, Peppol, or ViDA compliance.
+
+### 16.4 Reserved exit conditions
+
+| Flag | Where it sits | Exit |
+|------|----------------|------|
+| `EInvoicing.Peppol` | `FeatureFlagNames.Reserved`. Not in `All`. | Exit when `Peppol:ReservedExit:Enabled=true` for a canary and that canary submission is ACKed. 22-b-2 may open TEST HTTP for that tenant only. HTTP 2xx is not an ACK. The name stays Reserved until 22-b-5. |
+
+Reserved flags are enforced by `PeppolReservedFlagGuardTests` and `PeppolReservedExitTests`. Do not remove a Reserved name without a decision record. This section does not move `EInvoicing.Peppol` out of Reserved and does not set `Peppol:ReservedExit:Enabled`.
+
+Operational sequence ([`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md#peppol-canary-operations)):
+
+1. Ops sets `Peppol:ReservedExit:Enabled=true` in TEST only, with one real `CanaryTenantId`, `ApprovedBy=ops/<github-login>`, and `ApprovedAtUtc`. Any other tenant stays off and does not open HTTP.
+2. **Paket 22-b** ([breakdown](EINVOICING_EU_SUBMISSION_PLAN.md#peppol-canary-package-breakdown-22-b-1-through-22-b-5)): 22-b-1 Storecove client is in code. 22-b-2 is the canary `SubmitAsync` in TEST. 22-b-3 is done: `PeppolAckPollingService` polls `GET /document_submissions/{guid}` when `Peppol:AckPollInterval` is greater than 0. `state=DELIVERED` plus a matching `guid` sets `Ack`. Audit `EinvoiceAckReceived` is 115. Activity `EinvoiceAckReceived` is 262. 22-b-4 is done: `PeppolCanaryEndToEndTests` covers submit, stored message id, and ACK with a mocked Access Point (no live Storecove in CI). `npm run smoke:peppol-test` is the manual TEST plan and does not call Storecove unless `PEPPOL_SMOKE_ALLOW=1` and `--confirm` are both set. An ACK is `einvoice_submissions.status=Ack` with `acked_at_utc` set, `failure_reason` null, and a provider message id on that row. HTTP 2xx alone is not an ACK. If the ACK is ambiguous, leave `Enabled=false` and `TestAckReceivedAtUtc` null. The name stays Reserved through 22-b-4. Operators read the outbox at `GET /api/admin/peppol/submissions` and FA `/admin/peppol/submissions`. Failure codes and hints are in the [operator guidance](EINVOICING_EU_SUBMISSION_PLAN.md#operator-guidance). That page does not send and does not open LIVE HTTP.
+3. **Paket 22-b-5** is not started. The procedure is the [promotion runbook](EINVOICING_EU_SUBMISSION_PLAN.md#peppol-promotion-runbook-22-b-5). This section does not perform that move and does not take `EInvoicing.Peppol` out of `Reserved`. After a verified ACK, and only then: the backend lead opens the PR that moves the name from `FeatureFlagNames.Reserved` to `FeatureFlagNames.All` and updates `PeppolReservedFlagGuardTests` and `PeppolReservedExitTests`. Ops then sets `Peppol:ReservedExit:Enabled=false`, enables `EInvoicing.Peppol` for the canary with `PUT /api/admin/feature-flags`, and adds a second tenant and a third only after Compliance signs off on the first 24 hours of green canary traffic and each later tenant soaks for 24 hours. Ops updates this §16 to call Paket 22 production-ready only after that ladder, and keeps the disclaimer footer. No migration. No LIVE HTTP. `Peppol:Storecove:Environment` stays `TEST`.
+4. Rollback before promotion: `ReservedExit:Enabled=false`; the outbox row stays. Rollback after promotion: revert the PR so the name returns to `Reserved` and leaves `All`; existing `einvoice_submissions` rows stay. While that revert is in place, ops may set `Peppol:ReservedExit:Enabled=true` again for the same canary in TEST. A document the Access Point already accepted cannot be unsent from Regkasse.
+
+Swiss QR-Rechnung is not this exit ([`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md)).
+
+---
+
+*End of document. This hub describes the multi-country architecture. It is not a legal opinion and does not certify RKSV, KassenSichV, MWST, EN 16931, Peppol, or ViDA compliance.*

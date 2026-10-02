@@ -24,6 +24,16 @@ export const API_PATHS = {
     BY_ID: (id: string) => `/pos/${id}`,
     /** GET - Product modifier groups (Extra Zutaten) */
     MODIFIER_GROUPS: (id: string) => `/pos/${id}/modifier-groups`,
+    /** GET/POST - IMEI stock for an IMEI-tracked product */
+    IMEIS: (id: string) => `/pos/products/${id}/imeis`,
+    /** GET - Lodging rooms for beherbergung */
+    ROOMS: '/pos/rooms',
+    /** GET/POST - Guest folios for beherbergung */
+    FOLIOS: '/pos/folios',
+    FOLIO: (id: string) => `/pos/folios/${id}`,
+    FOLIO_CHARGE: (id: string) => `/pos/folios/${id}/charge`,
+    FOLIO_ITEMS: (id: string) => `/pos/folios/${id}/items`,
+    ROOM: (id: string) => `/pos/rooms/${id}`,
     /** PUT - Update product stock */
     STOCK: (id: string) => `/pos/stock/${id}`,
     /** GET - Debug: categories and products info */

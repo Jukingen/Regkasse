@@ -9,8 +9,8 @@ import { SimpleList as List } from '@/components/ui/SimpleList';
 import { NotificationIcon } from '@/features/activity-notifications/components/NotificationIcon';
 import styles from '@/features/activity-notifications/components/activityNotifications.module.css';
 import {
+  formatActivityDescription,
   formatActivityTitle,
-  formatActivityWhatChanged,
 } from '@/features/activity-notifications/formatActivityTitle';
 import { isPermissionActivityType } from '@/features/activity-notifications/activityTypes';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
@@ -81,7 +81,7 @@ export function ActivityNotificationList({
       dataSource={items}
       renderItem={(activity) => {
         const title = formatActivityTitle(activity, t);
-        const whatChanged = formatActivityWhatChanged(activity);
+        const whatChanged = formatActivityDescription(activity, t);
         const clock = formatClock(activity.createdAtUtc, formatLocale);
 
         return (

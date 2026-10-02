@@ -91,6 +91,31 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
+        /// <summary>
+        /// Optional non-fiscal prescription reference (vet vertical). Not part of the RKSV/TSE payload.
+        /// </summary>
+        [MaxLength(255)]
+        [Column("prescription_reference")]
+        public string? PrescriptionReference { get; set; }
+
+        /// <summary>Optional taxi trip origin. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_from")]
+        public string? RouteFrom { get; set; }
+
+        /// <summary>Optional taxi trip destination. Not part of the RKSV/TSE payload.</summary>
+        [MaxLength(255)]
+        [Column("route_to")]
+        public string? RouteTo { get; set; }
+
+        /// <summary>Optional taxi distance in kilometres. Not part of the RKSV/TSE payload.</summary>
+        [Column("route_km", TypeName = "decimal(8,2)")]
+        public decimal? RouteKm { get; set; }
+
+        /// <summary>Optional taxi trip start (UTC). Not part of the RKSV/TSE payload.</summary>
+        [Column("taxi_trip_started_at_utc")]
+        public DateTime? TripStartedAtUtc { get; set; }
+
         [MaxLength(100)]
         public string? TransactionId { get; set; }
 

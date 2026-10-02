@@ -15,13 +15,13 @@ const { Text } = Typography;
 function stornoReasonLabelKey(reason: StornoReason | undefined): string | null {
   if (reason === undefined) return null;
   switch (reason) {
-    case StornoReason.NUMBER_0:
+    case StornoReason.FalscherBetrag:
       return 'payments.stornoRefundAudit.stornoReason.falscherBetrag';
-    case StornoReason.NUMBER_1:
+    case StornoReason.KundeStorniert:
       return 'payments.stornoRefundAudit.stornoReason.kundeStorniert';
-    case StornoReason.NUMBER_2:
+    case StornoReason.TechnischerFehler:
       return 'payments.stornoRefundAudit.stornoReason.technischerFehler';
-    case StornoReason.NUMBER_3:
+    case StornoReason.Anderes:
       return 'payments.stornoRefundAudit.stornoReason.anderes';
     default:
       return null;

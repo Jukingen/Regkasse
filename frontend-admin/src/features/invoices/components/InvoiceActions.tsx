@@ -16,6 +16,7 @@ import {
 } from '@/shared/contract/httpErrorShape';
 
 import { getInvoicePdf, getInvoicePreview, resendInvoiceEmail } from '../api/invoiceService';
+import { ChQrRechnungGapWarningBanner } from './ChQrRechnungGapWarningBanner';
 import { buildInvoicePdfFileName } from '../utils/invoiceExportFileName';
 import {
   isValidInvoiceRecipientEmail,
@@ -73,7 +74,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
 
   const displayNumber = invoice.invoiceNumber?.trim() || invoice.id;
-  const statusCode = invoice.status ?? InvoiceStatusEnum.NUMBER_0;
+  const statusCode = invoice.status ?? InvoiceStatusEnum.Draft;
   const statusInfo = statusMap[statusCode] ?? {
     label: t('invoices.status.unknown'),
     color: 'default',
@@ -267,6 +268,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
           </Button>,
         ]}
       >
+        <ChQrRechnungGapWarningBanner />
         {previewLoading ? (
           <div style={{ textAlign: 'center', padding: 24 }}>
             {t('invoices.detail.pdfPreviewLoading')}

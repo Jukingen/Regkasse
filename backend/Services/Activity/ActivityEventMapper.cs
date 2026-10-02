@@ -10,7 +10,7 @@ internal static class ActivityEventMapper
         new()
         {
             Id = e.Id,
-            Type = e.Type.ToString(),
+            Type = e.Type,
             Severity = e.Severity,
             Title = e.Title,
             Description = e.Description,

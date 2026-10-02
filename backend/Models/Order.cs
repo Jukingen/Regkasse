@@ -24,6 +24,13 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         public string? Notes { get; set; }
 
+        /// <summary>
+        /// Optional job location for mobile-services. JSONB so other profiles stay unchanged.
+        /// Not a fiscal or RKSV field.
+        /// </summary>
+        [Column("location_data", TypeName = "jsonb")]
+        public OrderLocationData? LocationData { get; set; }
+
         [Required]
         public DateTime OrderDate { get; set; }
 
@@ -108,6 +115,21 @@ namespace KasseAPI_Final.Models
         // Navigation properties
         public virtual Customer? Customer { get; set; }
         public virtual ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
+    }
+
+    public sealed class OrderLocationData
+    {
+        [MaxLength(200)]
+        public string? Street { get; set; }
+
+        [MaxLength(20)]
+        public string? PostalCode { get; set; }
+
+        [MaxLength(100)]
+        public string? City { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; }
     }
 
     public enum OrderStatus

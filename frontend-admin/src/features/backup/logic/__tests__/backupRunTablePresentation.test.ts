@@ -11,8 +11,8 @@ import {
 
 describe('backupRunTablePresentation', () => {
   it('maps API status numbers to UI keys', () => {
-    expect(resolveBackupRunStatusUiKey(BackupRunStatus.NUMBER_3)).toBe('succeeded');
-    expect(resolveBackupRunStatusUiKey(BackupRunStatus.NUMBER_5)).toBe('verificationFailed');
+    expect(resolveBackupRunStatusUiKey(BackupRunStatus.Succeeded)).toBe('succeeded');
+    expect(resolveBackupRunStatusUiKey(BackupRunStatus.VerificationFailed)).toBe('verificationFailed');
   });
 
   it('computes duration in minutes', () => {
@@ -37,7 +37,7 @@ describe('backupRunTablePresentation', () => {
   });
 
   it('detects failed terminal statuses', () => {
-    expect(isBackupRunFailed(BackupRunStatus.NUMBER_4)).toBe(true);
-    expect(isBackupRunFailed(BackupRunStatus.NUMBER_3)).toBe(false);
+    expect(isBackupRunFailed(BackupRunStatus.Failed)).toBe(true);
+    expect(isBackupRunFailed(BackupRunStatus.Succeeded)).toBe(false);
   });
 });

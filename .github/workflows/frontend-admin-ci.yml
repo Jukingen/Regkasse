@@ -119,6 +119,9 @@ jobs:
       - name: npm run test:coverage
         run: npm run test:coverage
 
+      - name: Generated enum names
+        run: npx vitest run src/api/__tests__/auditEventTypeNames.test.ts
+
       - name: Online payments UI tests
         run: npx vitest run src/features/online-payments
 
@@ -213,7 +216,8 @@ jobs:
 
       - name: npm run test:e2e
         run: npm run test:e2e
-        # Includes tests/e2e/online-payment.spec.ts (mock API unless E2E_LIVE=1).
+        # Full tests/e2e suite, including tenant-create.spec.ts, tenant-country-card.spec.ts,
+        # and online-payment.spec.ts (mock API unless E2E_LIVE=1).
 
       - name: Upload Playwright report
         if: failure()

@@ -16,6 +16,9 @@ A separate **formal report** layer so it is not mixed with operational end-of-da
 
 ### Menu / page (`frontend-admin`)
 - **Tagesbericht (formal)** — `frontend-admin/src/app/(protected)/reporting/tagesbericht/page.tsx` (list), `.../tagesbericht/[id]/page.tsx` (detail).
+- List filters: date range (default **this month**), cash register (optional), status (`Provisional` / `Finalized` / `Corrected`). CSV export and bulk finalize require `report.export`. Bulk finalize asks for confirmation, then calls the existing `POST /api/reports/tagesbericht/finalize` once per selected provisional row.
+- Detail: summary cards (gross, tax breakdown, payment methods), reconciliation flags with tooltips, FinanzOnline submission card, **PDF erzeugen** (print dialog) / **PDF herunterladen** (stored PDF if present), **Finalisieren** when `Provisional`, audit-trail timeline from `GET /api/reports/history/tagesbericht/{id}`.
+- Empty list: informative copy plus generate CTA. Load failures use `reporting.tagesbericht.error.*`.
 - Side links: **Report Center** (`reporting/report-center/page.tsx`), FinanzOnline screens under **RKSV** (below).
 
 ### POS / mobile (`frontend`)
@@ -33,10 +36,11 @@ A separate **formal report** layer so it is not mixed with operational end-of-da
 - **Submit to FinanzOnline:** `finanzonline.submit` (`AppPermissions.FinanzOnlineSubmit`).
 
 ### Step by step (summary)
-1. In Admin, open the **Tagesbericht (formal)** list; use date / cash register filters.
+1. In Admin, open the **Tagesbericht (formal)** list; filter by date (this month by default), cash register, and status.
 2. If needed, **generate** a provisional (`Provisional`) summary or refresh it.
-3. After the content is verified, **finalize** it so it becomes permanent (in code: `Finalized` / correction chain).
-4. If needed, trigger **FinanzOnline** submission (`POST .../submit-finanzonline`); the outbox and the submission fields on the row are updated.
+3. After the content is verified, **finalize** a single report on the detail page, or bulk-finalize selected provisional rows on the list (confirmation modal).
+4. Optional: export the filtered list as CSV (`report.export`), or open a printable PDF from the detail page.
+5. If needed, trigger **FinanzOnline** submission (`POST .../submit-finanzonline`); the outbox and the submission fields on the row are updated.
 
 ### Expected output
 - List/detail DTOs include summary amounts, tax / payment-method breakdown, reconciliation flags, and submission status (`TagesberichtSubmissionStateDto` and similar).
@@ -149,7 +153,7 @@ One Startbeleg per cash register, unless the register is permanently disabled. A
 
 **FinanzOnline:** No separate `belegpruefung` outbox for January–November (product decision **NotRequired**). Mandatory FON Belegcheck applies to Startbeleg + Jahresbeleg (December Monatsbeleg). Deadline for Jahresbeleg FON is **15 February** of the following year (`JahresbelegFonReminder`). Detail: [`MONATSBELEG_FINANZONLINE_DECISION.md`](MONATSBELEG_FINANZONLINE_DECISION.md). FA: `MonatsbelegInfoCard` on Sonderbelege; NotRequired note on the receipt detail; FON column on `/rksv/monatsbelege`.
 
-**POS sales gate (product policy, not RKSV law):** RKSV requires creating the Monatsbeleg within 7 days of month end. Blocking POS sales when the **previous Vienna month** is missing is a tenant setting on `CompanySettings` (`monatsbeleg_blocking_mode`), default **Strict** (backward compatible). FA list: `/rksv/monatsbelege` (`GET /api/admin/rksv/monatsbelege`).
+**POS sales gate (product policy, not RKSV law):** RKSV requires creating the Monatsbeleg within 7 days of month end. Blocking POS sales when the **previous Vienna month** is missing is a tenant setting on `CompanySettings` (`monatsbeleg_blocking_mode`), default **Strict** (backward compatible).
 
 | Mode | When previous-month Monatsbeleg is missing |
 |------|--------------------------------------------|
@@ -157,11 +161,22 @@ One Startbeleg per cash register, unless the register is permanently disabled. A
 | **GracePeriod** | Sales **allowed** on Vienna days **1–14** (red warning days 1–7, yellow days 8–14). Hard-block from **day 15**. |
 | **WarningOnly** | Never block; always warn. |
 
-Cashier UX: blocking modal (**Manager kontaktieren**, optional create) when sales are blocked; non-blocking banner (**Verkauf mit Warnung**) when sales are allowed. `POST /api/pos/cash-register/monatsbeleg/notify-manager` writes a daily-deduped Manager activity. FA: **Einstellungen** → Monatsbeleg policy (`GET/PUT /api/admin/rksv/monatsbeleg-policy`). **Auto-Monatsbeleg** (`CompanySettings.auto_monatsbeleg_enabled`, default **true**) creates the previous-month TSE receipt on Vienna day 1 at 00:01 (catch-up through day 14) via `MonatsbelegSchedulerHostedService` (`forcePastMonth: true`, audit actor `system`). Days 8–14 are a late product catch-up (RKSV legal window remains 7 days; no backdating). Umsatzzähler is taken from the signature chain (zero-amount Monatsbeleg does not increment it). Failed creates retry with exponential backoff (`monatsbeleg_retry_count`, default 3) then emit `MonatsbelegAutoCreateFailed`. Day 15+ emits `MonatsbelegAutoCreateMissed` and a red FA warning on `/rksv/monatsbelege`. December routes to Jahresbeleg + FON outbox; a 15 February Belegcheck reminder is sent until verified. After create, the next POS ensure-ready / payment validation unblocks automatically. Hosted config: `MonatsbelegOps` in [`backend/CONFIGURATION.md`](../backend/CONFIGURATION.md).
+Cashier UX: blocking modal (**Manager kontaktieren**, optional create) when sales are blocked; non-blocking banner (**Verkauf mit Warnung**) when sales are allowed. `POST /api/pos/cash-register/monatsbeleg/notify-manager` writes a daily-deduped Manager activity.
+
+**FA operations screen** (`/rksv/monatsbelege`, Super Admin alias `/admin/rksv/monatsbelege` → same page):
+
+- List columns: month, cash register, display status (**Created** / **Missing** / **Auto-created** / **Overdue**), POS sales gate (**Strict** / **GracePeriod** / **WarningOnly**), auto-create (**Pending** / **Success** / **Failed** / **Missed**). Missing/overdue rows are merged client-side from `GET /api/rksv/monatsbeleg/status-overview`; created/failed auto-runs come from `GET /api/admin/rksv/monatsbelege`.
+- Bulk action **Create missing** (`force=true` on existing `POST /api/rksv/special-receipts/monatsbeleg`) with confirmation. Requires `RksvMonatsbelegCreate`.
+- Inline editor for `monatsbeleg_blocking_mode` and `auto_monatsbeleg_enabled` via existing `GET/PUT /api/admin/rksv/monatsbeleg-policy`. The FA editor is shown to all viewers and is writable only with `settings.manage`. Full retry-count editor remains under **Einstellungen**.
+- This screen is an operations view. It does not certify RKSV completeness.
+
+**Auto-Monatsbeleg** (`CompanySettings.auto_monatsbeleg_enabled`, default **true**) creates the previous-month TSE receipt on Vienna day 1 at 00:01 (catch-up through day 14) via `MonatsbelegSchedulerHostedService` (`forcePastMonth: true`, audit actor `system`). Days 8–14 are a late product catch-up (RKSV legal window remains 7 days; no backdating). Umsatzzähler is taken from the signature chain (zero-amount Monatsbeleg does not increment it). Failed creates retry with exponential backoff (`monatsbeleg_retry_count`, default 3) then emit `MonatsbelegAutoCreateFailed`. Day 15+ emits `MonatsbelegAutoCreateMissed` and a red FA warning on `/rksv/monatsbelege`. December routes to Jahresbeleg + FON outbox; a 15 February Belegcheck reminder is sent until verified. After create, the next POS ensure-ready / payment validation unblocks automatically. Hosted config: `MonatsbelegOps` in [`backend/CONFIGURATION.md`](../backend/CONFIGURATION.md).
 
 ### 4.4 Jahresbeleg
 
 Limited to the Vienna calendar year that is **the current year or the previous year**; an early-issue note can be carried in `EarlyReason`. After create: FO submission + outbox (`CreateJahresbelegAsync`).
+
+**FA:** `/rksv/monatsbelege` tab **Jahresbelege** lists December/Jahresbeleg rows across registers, including FON Belegcheck status (`Pending` / `Submitted` / `Verified` / `Failed` / `ManualVerificationRequired`) and a product reminder of the **15 February** FON deadline for the following year (`JahresbelegFonDeadline`). The reminder is informational; it is not a legal certification. Create path is unchanged (`CreateJahresbelegAsync` / December Monatsbeleg routing).
 
 ### 4.5 Schlussbeleg (Endbeleg)
 

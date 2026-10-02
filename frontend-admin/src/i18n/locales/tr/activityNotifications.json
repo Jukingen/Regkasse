@@ -33,6 +33,9 @@
       "systemChanges": "Sistem değişiklikleri"
     },
     "eventsSection": "Diğer olay türleri",
+    "countryFiscalSection": "Ülke ve mali rejim",
+    "eInvoicingSection": "E-fatura",
+    "peppolSection": "Peppol",
     "enabledEvents": "Etkin olaylar",
     "severityThreshold": "Olay başına minimum önem",
     "severityDefault": "Varsayılan (ek filtre yok)"
@@ -60,6 +63,7 @@
     "LimitApproaching": "Limit yaklaşıyor",
     "LimitExceeded": "Limit aşıldı",
     "OfflineQueueGrowing": "Çevrimdışı kuyruk büyüyor",
+    "OfflineQueueApproachingLimit": "Çevrimdışı kuyruk limite yaklaşıyor",
     "FinanzOnlineSubmissionFailed": "FinanzOnline gönderim hatası",
     "BackupFailed": "Yedekleme başarısız",
     "BackupSucceeded": "Yedekleme başarılı",

@@ -114,10 +114,11 @@ public sealed class GermanyInvoiceStrategyTests
         var builder = new NotImplementedZugferdXmlBuilder(
             Flags(true, FeatureFlagNames.EInvoicingZugferd));
 
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var ex = await Assert.ThrowsAsync<EInvoicingNotSupportedForCountryException>(() =>
             builder.BuildXmlAsync(new InvoiceDocumentDto { CountryCode = "DE" }));
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(EInvoicingNotSupportedForCountryException.Code, ex.ErrorCode);
+        Assert.Equal("DE", ex.CountryCode);
     }
 
     [Fact]

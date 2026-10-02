@@ -1,0 +1,208 @@
+{
+  "peppol": {
+    "participants": {
+      "title": "Peppol katılımcıları",
+      "subtitle": "Mandant başına katılımcı kimlikleri. Bu sayfada kimlik bilgisi yok.",
+      "tenantFilter": "Mandant",
+      "missingTenant": "Bir mandant seçin",
+      "create": "Katılımcı ekle",
+      "edit": "Düzenle",
+      "save": "Kaydet",
+      "saved": "Katılımcı kaydedildi",
+      "loadError": "Katılımcılar yüklenemedi",
+      "empty": "Katılımcı yok",
+      "colTenant": "Mandant",
+      "colParticipantId": "Katılımcı kimliği",
+      "colApEnvironment": "AP ortamı",
+      "colLegalEntityId": "Legal entity id",
+      "colEIdentifierScheme": "eIdentifier şeması",
+      "colEIdentifierValue": "eIdentifier değeri",
+      "colUpdatedAtUtc": "Güncellendi (UTC)",
+      "fieldParticipantId": "Katılımcı kimliği",
+      "fieldApEnvironment": "AP ortamı",
+      "fieldLegalEntityId": "Legal entity id",
+      "fieldEIdentifierScheme": "eIdentifier şeması",
+      "fieldEIdentifierValue": "eIdentifier değeri"
+    }
+  },
+  "kassensicherheit": {
+    "title": "KassenSicherheit (DE)",
+    "subtitle": "Salt okunur. Bu sayfa Fiscal.KassenSicherheitDe değerini açmaz.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Bir mandant seçin",
+    "loadError": "KassenSicherheit yüklenemedi",
+    "tabStatus": "Durum",
+    "tabRecent": "Son işlemler",
+    "flagEnabled": "Bayrak",
+    "flagOn": "açık",
+    "flagOff": "kapalı",
+    "provider": "Sağlayıcı",
+    "environment": "Ortam",
+    "hasOverride": "Mandant override",
+    "overrideYes": "evet",
+    "overrideNo": "hayır",
+    "tssId": "TSS kimliği",
+    "clientId": "Client kimliği",
+    "colTxId": "İşlem kimliği",
+    "colReceipt": "Fiş numarası",
+    "colStatus": "Durum",
+    "colTime": "Zaman",
+    "emptyRecent": "DE işlemi yok",
+    "export": "DSFinV-K dışa aktar",
+    "start": "Başlangıç",
+    "end": "Bitiş",
+    "exportPending": "Dışa aktarma istendi"
+  },
+  "mwst": {
+    "title": "MWST (CH)",
+    "subtitle": "Seçilen mandant için geçerli oranlar. Oran düzenleyicisi yok.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Bir mandant seçin",
+    "loadError": "MWST oranları yüklenemedi",
+    "empty": "Oran yok",
+    "colCode": "Kod",
+    "colLabel": "Etiket",
+    "colRate": "Oran",
+    "colEffectiveFrom": "Geçerlilik",
+    "colSource": "Kaynak",
+    "colApplies": "Uygulanır",
+    "sourceSeed": "Seed",
+    "sourceOverride": "Mandant override",
+    "sourceUnknown": "Bilinmiyor",
+    "appliesYes": "evet",
+    "appliesNo": "hayır",
+    "rollback": "Canary geri al",
+    "rolledBack": "Canary geri alma gönderildi"
+  },
+  "verticalProfiles": {
+    "pageTitle": "POS profilleri",
+    "subtitle": "Dikey profilleri, özelliklerini ve mandant atamalarını yönetin.",
+    "accessDenied": "system.critical gerekli.",
+    "tabs": {
+      "list": "Profiller",
+      "editor": "Düzenleyici",
+      "assignments": "Mandantlar",
+      "matrix": "Özellik matrisi"
+    },
+    "columns": {
+      "id": "Id",
+      "name": "Ad",
+      "featureCount": "Özellikler",
+      "tenantCount": "Mandantlar",
+      "source": "Kaynak",
+      "actions": "İşlemler"
+    },
+    "source": {
+      "seed": "Seed",
+      "override": "Override",
+      "custom": "Özel"
+    },
+    "actions": {
+      "edit": "Düzenle",
+      "clone": "Klonla",
+      "delete": "Sil",
+      "viewTenants": "Mandantları gör",
+      "create": "Yeni profil",
+      "save": "Kaydet"
+    },
+    "loadError": "Profiller yüklenemedi",
+    "empty": "Profil yok",
+    "editor": {
+      "name": "Ad",
+      "slug": "Slug",
+      "cloneFrom": "Şuradan klonla",
+      "cloneFromNone": "Boş başla",
+      "features": "Özellikler",
+      "requiredFields": "Zorunlu alanlar",
+      "optionalFields": "İsteğe bağlı alanlar",
+      "layout": "POS yerleşimi",
+      "fieldPlaceholder": "Alan adı",
+      "addField": "Ekle"
+    },
+    "entities": {
+      "customer": "Müşteri",
+      "product": "Ürün",
+      "order": "Sipariş"
+    },
+    "layouts": {
+      "standard": "Standart",
+      "tables": "Masalar",
+      "appointment": "Randevu",
+      "queue": "Kuyruk",
+      "taxi": "Taksi",
+      "ticket": "Bilet",
+      "rooms": "Odalar"
+    },
+    "features": {
+      "groups": {
+        "kitchen": "Mutfak",
+        "tables": "Masalar",
+        "patientRecord": "Hasta kaydı",
+        "appointment": "Randevu",
+        "imei": "IMEI",
+        "route": "Rota",
+        "ticket": "Bilet",
+        "rooms": "Odalar",
+        "other": "Diğer"
+      },
+      "kitchenDisplay": "Mutfak ekranı",
+      "tables": "Masalar",
+      "patientRecord": "Hasta kaydı",
+      "appointment": "Randevu",
+      "serviceDuration": "Hizmet süresi",
+      "imeiTracking": "IMEI",
+      "routeTracking": "Rota",
+      "ticketScan": "Bilet kontrolü",
+      "roomTracking": "Oda takibi"
+    },
+    "preview": {
+      "title": "Önizleme",
+      "enables": "Bu profil şunları açar:",
+      "enablesEmpty": "Ek yetenek yok",
+      "posScreens": "POS şu ekranları gösterir:",
+      "posScreensEmpty": "Standart satış",
+      "faTabs": "FA şu alanları gösterir:",
+      "faTabsEmpty": "Ek alan yok",
+      "items": {
+        "kds": "KDS",
+        "tables": "Masalar",
+        "patientRecord": "Hasta kaydı",
+        "appointment": "Randevu",
+        "imei": "IMEI",
+        "route": "Rota",
+        "ticket": "Bilet",
+        "rooms": "Odalar",
+        "serviceDuration": "Hizmet süresi"
+      },
+      "screens": {
+        "kds": "Mutfak ekranı",
+        "tables": "Masa seçimi",
+        "patient": "Hasta kaydı",
+        "appointment": "Randevu takvimi",
+        "imei": "IMEI seçici",
+        "route": "Rota paneli",
+        "ticket": "Bilet satışı ve kontrol",
+        "rooms": "Oda listesi",
+        "taxi": "Taksi satışı",
+        "queue": "Kuyruk",
+        "standard": "Standart satış"
+      },
+      "tabs": {
+        "kitchen": "Mutfak",
+        "productDuration": "Süre ve personel",
+        "imei": "IMEI listesi",
+        "tickets": "Bilet kullanımları",
+        "rooms": "Odalar"
+      }
+    },
+    "saveSuccess": "Profil kaydedildi",
+    "saveError": "Profil kaydedilemedi",
+    "deleteConfirm": "Bu özel profil silinsin mi?",
+    "deleteSuccess": "Profil silindi",
+    "deleteBlockedTitle": "Profil kullanımda",
+    "featureRemovalWarning": "Kaldırılan bir özellik bu profildeki mandantları etkiler",
+    "assignments": {
+      "empty": "Mandant yok"
+    }
+  }
+}

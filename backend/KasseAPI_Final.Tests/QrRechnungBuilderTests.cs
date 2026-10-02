@@ -1,3 +1,7 @@
+using System.Text.Json;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.QrRechnung;
 using KasseAPI_Final.Services.FeatureFlags;
@@ -155,6 +159,27 @@ public sealed class QrRechnungBuilderTests
     }
 
     [Fact]
+    public async Task BuildPdfAsync_ChInvoice_SpcVersionIbanAndReferenceType()
+    {
+        var builder = new QrRechnungBuilder(Flags(true));
+        var request = Request("CH93 0076 2011 6238 5295 7");
+        var pdf = await builder.BuildPdfAsync(request);
+        var payload = await builder.BuildPayloadAsync(request);
+
+        Assert.True(pdf.Length > 500);
+        Assert.Equal("%PDF"u8.ToArray(), pdf.Take(4).ToArray());
+        Assert.StartsWith("SPC\n", payload.SwissQrText, StringComparison.Ordinal);
+        Assert.StartsWith("SPC\n0200\n", payload.SwissQrText, StringComparison.Ordinal);
+        Assert.Equal("0200", payload.SwissQrText.Split('\n')[1]);
+        Assert.True(SwissQrEncoder.Mod97IsValid(payload.Iban));
+        Assert.StartsWith("CH", payload.Iban, StringComparison.Ordinal);
+        Assert.Contains(
+            SwissQrEncoder.ToWire(payload.ReferenceType),
+            new[] { "QRR", "SCOR", "NON" },
+            StringComparer.Ordinal);
+    }
+
+    [Fact]
     public async Task BuildPdfAsync_FlagOn_WritesPdfWithSwissCross()
     {
         var builder = new QrRechnungBuilder(Flags(true));
@@ -182,5 +207,76 @@ public sealed class QrRechnungBuilderTests
             builder.BuildPdfAsync(Request("CH9300762011623852957")));
 
         Assert.Equal(FeatureFlagNames.EInvoicingQrRechnung, ex.FeatureName);
+    }
+
+    [Fact]
+    public async Task BuildPdfAsync_AuditsRelativePath_WithoutIban()
+    {
+        const string iban = "CH9300762011623852957";
+        var tenantId = Guid.NewGuid();
+        var invoiceId = Guid.NewGuid();
+        const string relativePath = "qr-rechnung/bill.pdf";
+        var calls = new List<(AuditEventType? Type, string? CorrelationId, Guid? TenantId, object? NewValues)>();
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
+            .Callback(new InvocationAction(invocation =>
+            {
+                calls.Add((
+                    invocation.Arguments[12] as AuditEventType?,
+                    invocation.Arguments[10] as string,
+                    invocation.Arguments[14] as Guid?,
+                    invocation.Arguments[16]));
+            }))
+            .ReturnsAsync(new AuditLog());
+
+        var builder = new QrRechnungBuilder(Flags(true), audit.Object);
+        var request = Request(iban) with
+        {
+            InvoiceId = invoiceId,
+            TenantId = tenantId,
+            PdfPathRelative = relativePath,
+        };
+
+        var pdf = await builder.BuildPdfAsync(request);
+
+        Assert.NotEmpty(pdf);
+        var pdfCall = Assert.Single(calls, call => call.Type == AuditEventType.QrRechnungPdfGenerated);
+        Assert.Equal(tenantId, pdfCall.TenantId);
+        Assert.False(string.IsNullOrWhiteSpace(pdfCall.CorrelationId));
+        var json = JsonSerializer.Serialize(pdfCall.NewValues);
+        Assert.Contains(relativePath, json, StringComparison.Ordinal);
+        Assert.Contains(invoiceId.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(iban, json, StringComparison.Ordinal);
+        Assert.DoesNotContain(":\\", json, StringComparison.Ordinal);
+        Assert.Contains(calls, call => call.Type == AuditEventType.QrRechnungPayloadBuilt);
+    }
+
+    [Fact]
+    public async Task BuildPdfAsync_AbsolutePath_DoesNotRender()
+    {
+        var audit = new Mock<IAuditLogService>();
+        var builder = new QrRechnungBuilder(Flags(true), audit.Object);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            builder.BuildPdfAsync(Request("CH9300762011623852957") with
+            {
+                PdfPathRelative = "C:\\bills\\bill.pdf",
+            }));
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()),
+            Times.Never);
     }
 }

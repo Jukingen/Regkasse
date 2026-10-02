@@ -1,23 +1,42 @@
 /**
  * Shared validation primitives for frontend-admin forms.
- * Aligns with AGENTS.md / backend contracts (username, email, ATU tax number).
+ * VAT-ID shapes come from `GET /api/admin/countries` (`vatIdPattern`), not from local literals.
  */
 import type { Rule } from 'antd/es/form';
 
-/** Austrian UID (ATU + 8 digits) — AGENTS.md / backend tax-number contract. */
-export const ATU_TAX_NUMBER_PATTERN = /^ATU\d{8}$/;
+/** One row of the country catalog (`CountryProfileSummaryDto`). */
+export type CountryVatIdProfile = {
+  code?: string | null;
+  vatIdPattern?: string | null;
+};
 
 /**
- * Per-country VAT-ID shapes. Must stay byte-identical to
- * `backend/Models/Countries/VatIdPatterns` (backend remains the source of truth).
+ * Compiles a VAT-ID regex supplied by the country catalog.
+ * Blank or invalid patterns yield null so callers do not invent a local shape.
  */
-export const VAT_ID_PATTERNS = {
-  AT: ATU_TAX_NUMBER_PATTERN,
-  DE: /^DE\d{9}$/,
-  CH: /^CHE-\d{3}\.\d{3}\.\d{3}( (MWST|TVA|IVA))?$/,
-} as const;
+export function compileVatIdPattern(pattern: string | null | undefined): RegExp | null {
+  const source = pattern?.trim();
+  if (!source) return null;
+  try {
+    return new RegExp(source);
+  } catch {
+    return null;
+  }
+}
 
-export type VatIdCountryCode = keyof typeof VAT_ID_PATTERNS;
+/**
+ * VAT-ID pattern for `country` from a `GET /api/admin/countries` payload.
+ * Unknown country or a missing catalog returns null.
+ */
+export function vatIdPatternFromCatalog(
+  country: string | null | undefined,
+  profiles: readonly CountryVatIdProfile[] | null | undefined
+): RegExp | null {
+  const code = country?.trim().toUpperCase();
+  if (!code || !profiles?.length) return null;
+  const match = profiles.find((profile) => profile.code?.trim().toUpperCase() === code);
+  return compileVatIdPattern(match?.vatIdPattern);
+}
 
 /**
  * Username: 3–50 chars, a-z / 0-9 / _ / - (case-insensitive identity).
@@ -57,32 +76,12 @@ export function isValidUsername(value: string | undefined | null): boolean {
   return USERNAME_PATTERN.test(value.trim());
 }
 
-export function isValidAtuTaxNumber(value: string | undefined | null): boolean {
-  if (value == null) return false;
-  return ATU_TAX_NUMBER_PATTERN.test(value.trim());
-}
-
-export function normalizeVatIdCountry(country?: string | null): VatIdCountryCode {
-  const code = (country ?? 'AT').trim().toUpperCase();
-  if (code === 'DE' || code === 'CH') return code;
-  return 'AT';
-}
-
-export function vatIdPatternForCountry(country?: string | null): RegExp {
-  return VAT_ID_PATTERNS[normalizeVatIdCountry(country)];
-}
-
 export function isValidVatId(
   value: string | undefined | null,
-  country?: string | null
+  pattern: RegExp | string | null | undefined
 ): boolean {
   if (value == null) return false;
-  return vatIdPatternForCountry(country).test(value.trim());
-}
-
-export function vatIdInvalidMessageKey(country?: string | null): string {
-  const code = normalizeVatIdCountry(country);
-  if (code === 'DE') return 'superadmin.validation.vatId.invalid.DE';
-  if (code === 'CH') return 'superadmin.validation.vatId.invalid.CH';
-  return 'common.validation.atuTaxNumberPattern';
+  const compiled = typeof pattern === 'string' ? compileVatIdPattern(pattern) : pattern;
+  if (!compiled) return false;
+  return compiled.test(value.trim());
 }

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries.EInvoicing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,15 +13,27 @@ public sealed class CountryStrategyContext : ICountryStrategyContext
     private readonly AppDbContext _db;
     private readonly ICountryProfileRegistry _registry;
     private readonly ISettingsTenantResolver? _tenantResolver;
+    private readonly IEn16931XmlBuilder _en16931;
 
     public CountryStrategyContext(
         AppDbContext db,
         ICountryProfileRegistry registry,
-        ISettingsTenantResolver? tenantResolver = null)
+        ISettingsTenantResolver? tenantResolver = null,
+        IEn16931XmlBuilder? en16931 = null)
     {
         _db = db;
         _registry = registry;
         _tenantResolver = tenantResolver;
+        _en16931 = en16931 ?? new En16931UblXmlBuilder();
+    }
+
+    public IEn16931XmlBuilder SelectEn16931Builder(CountryStrategyBinding binding)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        if (!string.Equals(binding.Profile.Code, CountryProfileCodes.EuDefault, StringComparison.OrdinalIgnoreCase))
+            throw new EInvoicingNotSupportedForCountryException("EN 16931 UBL", binding.Profile.Code);
+
+        return _en16931;
     }
 
     public async Task<CountryStrategyBinding> LoadAsync(CancellationToken cancellationToken = default)

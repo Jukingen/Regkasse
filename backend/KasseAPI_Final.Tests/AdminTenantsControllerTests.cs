@@ -855,6 +855,42 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task ListAsync_IncludesEffectiveVerticalProfile()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Profile Tenant",
+            Slug = "profile-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        db.VerticalProfiles.Add(new VerticalProfile
+        {
+            Id = VerticalProfileIds.HairSalon,
+            Name = "verticalProfiles.hairSalon.name",
+            PosFeatures = "{}",
+            RequiredFields = """{"customer":[],"product":[]}""",
+            OptionalFields = """{"customer":[],"product":[]}""",
+            PosLayout = VerticalProfileLayouts.Appointment,
+            IsActive = true,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CompanySettings.Local.Single(row => row.TenantId == tenantId).VerticalProfileId =
+            VerticalProfileIds.HairSalon;
+        await db.SaveChangesAsync();
+
+        var row = Assert.Single(
+            await CreateService(db).ListAsync(includeDeleted: false),
+            tenant => tenant.Id == tenantId);
+
+        Assert.Equal(VerticalProfileIds.HairSalon, row.VerticalProfileId);
+        Assert.Equal("verticalProfiles.hairSalon.name", row.VerticalProfileName);
+    }
+
+    [Fact]
     public async Task ListPagedAsync_Filters_Sorts_And_Paginates()
     {
         await using var db = CreateDb();
@@ -2670,10 +2706,9 @@ public sealed class AdminTenantsControllerTests
             },
             "super-admin");
 
-        Assert.Null(error);
-        Assert.Null(code);
-        Assert.Equal("DE", detail!.Country);
-        Assert.Equal(VatRegime.DE_USTG_STANDARD, detail.VatRegime);
+        Assert.Null(detail);
+        Assert.Equal(AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid, code);
+        Assert.NotNull(error);
 
         db.ChangeTracker.Clear();
         var preservedPayment = await db.PaymentDetails.AsNoTracking().SingleAsync(p => p.Id == atPaymentId);
@@ -2687,36 +2722,195 @@ public sealed class AdminTenantsControllerTests
         Assert.Equal("AT", preservedInvoice.CountryCodeAtIssue);
         Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedInvoice.VatRegimeAtIssue);
         Assert.Equal("AT", preservedReceipt.CountryCodeAtIssue);
-        Assert.Equal("DE", settings.Country);
-        Assert.Equal(VatRegime.DE_USTG_STANDARD, settings.VatRegime);
-
-        var deInvoice = new Invoice();
-        FiscalDocumentCountryStamp.Apply(deInvoice, settings.Country, settings.VatRegime);
-        Assert.Equal("DE", deInvoice.CountryCodeAtIssue);
-        Assert.Equal(VatRegime.DE_USTG_STANDARD, deInvoice.VatRegimeAtIssue);
-        Assert.Equal("AT", preservedInvoice.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preservedReceipt.VatRegimeAtIssue);
+        Assert.Equal("AT", settings.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, settings.VatRegime);
 
         audit.Verify(
             a => a.LogSystemOperationAsync(
-                "TENANT_COUNTRY_CHANGED_HISTORICAL_PRESERVED",
-                "Tenant",
-                "super-admin",
-                Roles.SuperAdmin,
-                It.Is<string?>(d => d != null && d.Contains("3", StringComparison.Ordinal)),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<string?>(),
-                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
                 It.IsAny<string?>(),
                 It.IsAny<object?>(),
                 It.IsAny<object?>(),
                 It.IsAny<string?>(),
                 It.IsAny<ImpersonationAuditContext.Snapshot?>(),
-                AuditEventType.TenantCountryChangedHistoricalPreserved,
-                tenantId,
-                tenantId,
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<object?>(),
                 It.IsAny<object?>(),
                 It.IsAny<string?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_UnsignedHistoricalRows_KeepsSnapshotsAndAuditsCorrelation()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var invoiceId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Unsigned Tenant",
+            Slug = "unsigned-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-002",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Closed,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        db.Invoices.Add(new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-DRAFT-1",
+            InvoiceDate = now,
+            DueDate = now.AddDays(14),
+            Status = InvoiceStatus.Draft,
+            Subtotal = 10m,
+            TaxAmount = 2m,
+            TotalAmount = 12m,
+            PaidAmount = 0,
+            RemainingAmount = 12m,
+            CompanyName = "Demo GmbH",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Wien 1",
+            TseSignature = "",
+            KassenId = "KASSE-002",
+            CashRegisterId = registerId,
+            CountryCodeAtIssue = "AT",
+            VatRegimeAtIssue = VatRegime.AT_RKSV_STANDARD,
+            CreatedAt = now,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var (detail, error, code) = await CreateService(db, auditLog: audit.Object).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal("DE", detail!.Country);
+
+        db.ChangeTracker.Clear();
+        var preserved = await db.Invoices.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == invoiceId);
+        Assert.Equal("AT", preserved.CountryCodeAtIssue);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, preserved.VatRegimeAtIssue);
+
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                "TENANT_COUNTRY_CHANGED",
+                "Tenant",
+                "super-admin",
+                Roles.SuperAdmin,
+                It.Is<string?>(d => d != null && d.Contains("AT") && d.Contains("DE")),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.Is<string?>(c => !string.IsNullOrWhiteSpace(c)),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.TenantCountryChanged,
+                tenantId,
+                tenantId,
+                It.IsAny<object?>(),
+                It.Is<object?>(v => v != null && v.ToString()!.Contains("DE")),
+                It.IsAny<string?>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateCountryAsync_ToNonAt_DoesNotLeaveRksvEnabled()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Flag Tenant",
+            Slug = "flag-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        SeedCompanySettings(db, tenantId);
+        db.TenantSettings.Add(new TenantSetting
+        {
+            TenantId = tenantId,
+            Key = "FeatureFlags:Fiscal.RksvAt",
+            Value = "true",
+            UpdatedAtUtc = now,
+        });
+        await db.SaveChangesAsync();
+
+        var (detail, error, code) = await CreateService(db).UpdateCountryAsync(
+            tenantId,
+            new UpdateAdminTenantCountryRequest
+            {
+                Country = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+            },
+            "super-admin");
+
+        Assert.Null(error);
+        Assert.Null(code);
+        Assert.Equal("DE", detail!.Country);
+
+        db.ChangeTracker.Clear();
+        var flag = await db.TenantSettings.AsNoTracking()
+            .SingleAsync(s => s.TenantId == tenantId && s.Key == "FeatureFlags:Fiscal.RksvAt");
+        Assert.Equal("false", flag.Value);
     }
 
     [Fact]

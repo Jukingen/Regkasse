@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
@@ -24,13 +24,20 @@ import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
+import { DynamicField } from '../../components/DynamicField';
 import { FavoritesBar } from '../../components/FavoritesBar';
+import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
+import { ImeiPickerModal } from '../../components/ImeiPickerModal';
+import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
+import { FolioChargeBar } from '../../components/FolioChargeBar';
+import { RoomPicker } from '../../components/RoomPicker';
+import { TaxiSalePanel } from '../../components/TaxiSalePanel';
 import { ToastContainer } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePosPermissions } from '../../hooks/usePosPermissions';
@@ -45,6 +52,8 @@ import {
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useVerticalFeatures } from '../../contexts/VerticalProfileContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { useCashRegisterCart } from '../../hooks/useCashRegisterCart';
 import { useFavorites } from '../../hooks/useFavorites';
@@ -54,6 +63,8 @@ import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecov
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
+import { productRequiresImeiPicker } from '../../services/api/imeiService';
+import { createKitchenOrder } from '../../services/api/kitchenOrderService';
 import { formatPrice } from '../../utils/formatPrice';
 import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
@@ -111,6 +122,8 @@ function POSSummaryBlock({
   incrementModifier,
   decrementModifier,
   onPayment,
+  onSendToKitchen,
+  sendingToKitchen,
   paddingBottom,
   saleCustomer,
   onOpenCustomerSheet,
@@ -132,6 +145,8 @@ function POSSummaryBlock({
   incrementModifier: (itemId: string, modifierId: string) => void;
   decrementModifier: (itemId: string, modifierId: string) => void;
   onPayment: () => void;
+  onSendToKitchen?: () => void;
+  sendingToKitchen?: boolean;
   paddingBottom: number;
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
   onOpenCustomerSheet?: () => void;
@@ -224,6 +239,20 @@ function POSSummaryBlock({
         onIncrementModifier={incrementModifier}
         onDecrementModifier={decrementModifier}
       />
+      {onSendToKitchen && summaryTotals.itemCount > 0 ? (
+        <Pressable
+          style={styles.kitchenSendBtn}
+          onPress={onSendToKitchen}
+          disabled={sendingToKitchen}
+          accessibilityRole="button"
+          accessibilityLabel={t('verticalProfiles:screens.kitchen.send')}>
+          <Text style={styles.kitchenSendText}>
+            {sendingToKitchen
+              ? t('verticalProfiles:screens.kitchen.sending')
+              : t('verticalProfiles:screens.kitchen.send')}
+          </Text>
+        </Pressable>
+      ) : null}
       <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
     </View>
   );
@@ -326,22 +355,29 @@ function usePOSOrderFlow(
  * (Restaurant schedule is display-only via Header / WorkingHoursStatus.)
  */
 export default function CashRegisterScreen() {
-  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings']);
+  const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles']);
+  const { posLayout, posFeatures, profileId } = useVerticalFeatures();
+  const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const router = useRouter();
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [splitMergeVisible, setSplitMergeVisible] = useState(false);
   const [monatsbelegHardBlockVisible, setMonatsbelegHardBlockVisible] = useState(false);
+  const [generateTickets, setGenerateTickets] = useState(true);
   const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
   const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [imeiValue, setImeiValue] = useState('');
+  const [pendingImeiProduct, setPendingImeiProduct] = useState<Product | null>(null);
+  const { reserve: reserveImei } = useImeiSelections();
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
   /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
   const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
   const benefitFetchRef = useRef<string | null>(null);
 
-  const { categories } = useProductsUnified();
+  const { categories, products } = useProductsUnified();
+  const [taxiProductId, setTaxiProductId] = useState<string | null>(null);
   const { toasts, addToast, removeToast } = useCashRegisterCart();
   const {
     recoveryData,
@@ -486,9 +522,24 @@ export default function CashRegisterScreen() {
   const onAddProductGuarded = useCallback(
     (product: Parameters<typeof handleAddProduct>[0]) => {
       if (!guardTakeOrder()) return;
+      if (productRequiresImeiPicker(product)) {
+        setPendingImeiProduct(product);
+        return;
+      }
       return handleAddProduct(product);
     },
     [guardTakeOrder, handleAddProduct]
+  );
+
+  const onImeiPicked = useCallback(
+    async (imei: string) => {
+      if (!pendingImeiProduct) return;
+      reserveImei(pendingImeiProduct.id, imei);
+      const product = pendingImeiProduct;
+      setPendingImeiProduct(null);
+      await handleAddProduct(product);
+    },
+    [handleAddProduct, pendingImeiProduct, reserveImei]
   );
 
   const onAddAddOnGuarded = useCallback(
@@ -656,6 +707,40 @@ export default function CashRegisterScreen() {
     }
   }, [activeTableId, clearCart, addToast]);
 
+  const handleSendToKitchen = useCallback(async () => {
+    const items = (currentCart?.items ?? []).filter((item) => (item.qty ?? 0) > 0);
+    if (items.length === 0) {
+      addToast('error', t('verticalProfiles:screens.kitchen.sendEmpty'), 3000);
+      return;
+    }
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!registerId || !isValidPosCashRegisterId(registerId)) {
+      addToast('error', t('verticalProfiles:screens.kitchen.noRegister'), 3000);
+      return;
+    }
+    setSendingToKitchen(true);
+    try {
+      await createKitchenOrder({
+        cartId: currentCart?.cartRowId ?? null,
+        tableNumber: activeTableId ? String(activeTableId) : null,
+        cashRegisterId: registerId,
+        items: items.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.qty,
+          notes: item.notes,
+        })),
+      });
+      await clearCart(activeTableId);
+      addToast('success', t('verticalProfiles:screens.kitchen.sendSuccess'), 2000);
+    } catch (err) {
+      console.error('Kitchen order create failed', err);
+      addToast('error', t('verticalProfiles:screens.kitchen.sendFailed'), 3000);
+    } finally {
+      setSendingToKitchen(false);
+    }
+  }, [activeTableId, addToast, clearCart, currentCart, posReadiness.data?.effectiveRegisterId, t]);
+
   const handleClearAllTables = useCallback(async () => {
     try {
       if (!activeTableId) {
@@ -753,6 +838,16 @@ export default function CashRegisterScreen() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+      <ImeiPickerModal
+        visible={pendingImeiProduct != null}
+        productId={pendingImeiProduct?.id ?? null}
+        productName={pendingImeiProduct?.name}
+        onClose={() => setPendingImeiProduct(null)}
+        onSelect={(imei) => {
+          void onImeiPicked(imei);
+        }}
+      />
+
       {/* Customer identification sheet for customer attachment */}
       <CustomerSelectionSheet
         visible={customerSheetVisible}
@@ -809,6 +904,18 @@ export default function CashRegisterScreen() {
 
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+      {posLayout === 'taxi' ? (
+        <TaxiSalePanel
+          products={products}
+          selectedProductId={taxiProductId}
+          onSelectProduct={(product) => {
+            setTaxiProductId(product.id);
+            onAddProductGuarded(product);
+          }}
+          onPayment={handlePayment}
+          canPay={canTakeOrders && (cart?.items?.length ?? 0) > 0}
+        />
+      ) : (
       <ProductList
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
@@ -854,15 +961,62 @@ export default function CashRegisterScreen() {
                 );
               }}
             />
-            {/* Table Selector */}
-            <TableSelector
-              selectedTable={activeTableId}
-              onTableSelect={handleTableSelect}
-              tableCarts={tableCartsMap}
-              recoveryData={recoveryData}
-              tableSelectionLoading={tableSelectionLoading}
-              onClearAllTables={handleClearAllTables}
-            />
+            {profileId === 'mobile-services' ? (
+              <MobileServiceRoutePanel
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <RoomPicker
+                customerName={saleCustomer?.name}
+                customerId={saleCustomer?.id}
+              />
+            ) : null}
+            {profileId === 'beherbergung' ? (
+              <FolioChargeBar
+                amount={summaryTotals.grandTotalGross}
+                description={t('verticalProfiles:screens.lodging.chargeDefault')}
+              />
+            ) : null}
+
+            <IfVerticalFeature feature="tables">
+              <TableSelector
+                selectedTable={activeTableId}
+                onTableSelect={handleTableSelect}
+                tableCarts={tableCartsMap}
+                recoveryData={recoveryData}
+                tableSelectionLoading={tableSelectionLoading}
+                onClearAllTables={handleClearAllTables}
+              />
+            </IfVerticalFeature>
+
+            <IfVerticalFeature feature="ticketScan">
+              <View style={styles.verticalFieldSection}>
+                <View style={styles.ticketToggleRow}>
+                  <Text style={styles.ticketToggleLabel}>
+                    {t('verticalProfiles:screens.tickets.generateToggle')}
+                  </Text>
+                  <Switch
+                    value={generateTickets}
+                    onValueChange={setGenerateTickets}
+                    accessibilityLabel={t('verticalProfiles:screens.tickets.generateToggle')}
+                  />
+                </View>
+              </View>
+            </IfVerticalFeature>
+
+            <IfVerticalFeature feature="imeiTracking">
+              <View style={styles.verticalFieldSection}>
+                <DynamicField
+                  name="imei"
+                  entity="product"
+                  value={imeiValue}
+                  onChangeText={setImeiValue}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </IfVerticalFeature>
 
             {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
@@ -889,6 +1043,8 @@ export default function CashRegisterScreen() {
             incrementModifier={incrementModifier}
             decrementModifier={decrementModifier}
             onPayment={handlePayment}
+            onSendToKitchen={posFeatures.kitchenDisplay ? handleSendToKitchen : undefined}
+            sendingToKitchen={sendingToKitchen}
             paddingBottom={footerBottomPadding}
             saleCustomer={saleCustomer}
             onOpenCustomerSheet={() => {
@@ -912,6 +1068,7 @@ export default function CashRegisterScreen() {
           />
         }
       />
+      )}
     </View>
   );
 }
@@ -978,6 +1135,23 @@ const styles = StyleSheet.create({
     borderColor: SoftColors.borderLight,
     overflow: 'hidden',
     ...SoftShadows.sm,
+  },
+  verticalFieldSection: {
+    backgroundColor: SoftColors.bgCard,
+    paddingHorizontal: SoftSpacing.md,
+    paddingTop: SoftSpacing.md,
+  },
+  ticketToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: SoftSpacing.sm,
+  },
+  ticketToggleLabel: {
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
+    flex: 1,
+    paddingRight: SoftSpacing.md,
   },
   summaryBlockHeader: {
     flexDirection: 'row',
@@ -1046,5 +1220,19 @@ const styles = StyleSheet.create({
   benefitBadge: {
     ...SoftTypography.caption,
     color: SoftColors.textSecondary,
+  },
+  kitchenSendBtn: {
+    marginHorizontal: SoftSpacing.md,
+    marginTop: SoftSpacing.sm,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    paddingVertical: SoftSpacing.sm,
+    alignItems: 'center',
+  },
+  kitchenSendText: {
+    color: SoftColors.accentDark,
+    fontWeight: '600',
   },
 });

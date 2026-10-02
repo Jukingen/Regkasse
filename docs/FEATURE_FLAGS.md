@@ -1,6 +1,6 @@
 # Feature flags
 
-**Last updated:** 2026-07-29  
+**Last updated:** 2026-09-29  
 **Related:** [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`DEVELOPMENT.md`](../DEVELOPMENT.md)
 
 Ship code with new behavior **off by default**, then enable gradually (global or per tenant) without redeploying binaries.
@@ -28,6 +28,8 @@ Ship code with new behavior **off by default**, then enable gradually (global or
 | `EnableAutoAusfall` | Allows TSE failover auto-enqueue **only if** `Ausfall:AutoEnqueue=true` |
 
 Env override example: `FeatureFlags__EnableAutoAusfall=true`.
+
+`EInvoicing.Peppol` is a Reserved flag; it is not resolved by `FeatureFlagService` and cannot be turned on until Paket 22 lands. Reserved is enforced by `PeppolReservedFlagGuardTests`; do not remove without a matching §-level decision record.
 
 ---
 

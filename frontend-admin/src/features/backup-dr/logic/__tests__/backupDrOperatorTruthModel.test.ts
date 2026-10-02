@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupRunStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import {
   configurationHealthSummaryI18nKey,
@@ -19,7 +19,7 @@ import { FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT } from '@/features/backup-dr/lo
 describe('deriveRunTruth', () => {
   it('marks technicalSuccess and simulatedEvidence for Fake adapter on success', () => {
     const r = deriveRunTruth(
-      { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'a', adapterKind: 'Fake' } as never,
+      { status: BackupRunStatus.Succeeded, id: 'a', adapterKind: 'Fake' } as never,
       null,
       { realPostgreSqlLogicalDumpConfigured: true } as never,
       { realPostgreSqlLogicalDumpConfigured: true } as never
@@ -34,7 +34,7 @@ describe('deriveRunTruth', () => {
 
   it('recoverabilityNotProven when pg_dump not configured', () => {
     const r = deriveRunTruth(
-      { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'a', adapterKind: 'PgDump' } as never,
+      { status: BackupRunStatus.Succeeded, id: 'a', adapterKind: 'PgDump' } as never,
       { isSimulatedExecution: false } as never,
       { realPostgreSqlLogicalDumpConfigured: false } as never,
       { realPostgreSqlLogicalDumpConfigured: false } as never
@@ -264,7 +264,7 @@ describe('buildBackupOperatorTruthModel', () => {
       detailForPipeline: null,
       verification: undefined,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'PG_RESTORE_LIST_FAILED',
         failureDetail: 'pg_restore failed',
         detailsJson: JSON.stringify({
@@ -296,7 +296,7 @@ describe('buildBackupOperatorTruthModel', () => {
       detailForPipeline: null,
       verification: undefined,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'PG_RESTORE_LIST_FAILED',
         failureDetail: 'Failed to start pg_restore.',
         pgRestoreListExitCode: -1,
@@ -398,7 +398,7 @@ describe('buildBackupOperatorTruthModel', () => {
       latest: undefined,
       detailForPipeline: null,
       verification: undefined,
-      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as never,
+      restoreLatest: { status: RestoreVerificationStatus.Failed } as never,
       recoverabilitySummary: undefined,
       restoreCapability: undefined,
       externalCopyVariant: 'unknown',
@@ -418,7 +418,7 @@ describe('buildBackupOperatorTruthModel', () => {
       detailForPipeline: null,
       verification: undefined,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'E_TEST',
         failureDetail: 'x',
       } as never,

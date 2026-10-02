@@ -58,6 +58,7 @@ public sealed class FiscalSignatureRouterAtDeTests
     {
         var registerId = Guid.NewGuid();
         var tse = new Mock<ITseService>();
+        var kassen = new Mock<IKassenSicherheitService>(MockBehavior.Strict);
         tse.Setup(x => x.CreateInvoiceSignatureAsync(
                 registerId,
                 "AT-1-20260925-1",
@@ -69,7 +70,7 @@ public sealed class FiscalSignatureRouterAtDeTests
                 null))
             .ReturnsAsync(new TseSignatureResult("header.payload.sig", "prev-used", "thumb"));
 
-        var router = new FiscalSignatureRouter(Flags(false), tse: tse.Object);
+        var router = new FiscalSignatureRouter(Flags(false), tse: tse.Object, kassen: kassen.Object);
         var result = await router.SignAsync(Context(
             CountryProfileCodes.Austria,
             VatRegime.AT_RKSV_STANDARD,
@@ -89,6 +90,7 @@ public sealed class FiscalSignatureRouterAtDeTests
             null,
             "{}",
             It.IsAny<IDbContextTransaction?>()), Times.Once);
+        kassen.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -147,19 +149,16 @@ public sealed class FiscalSignatureRouterAtDeTests
     }
 
     [Fact]
-    public async Task DeTenant_FlagOn_WithIds_StartsAndFinishes()
+    public async Task DeTenant_FlagOn_WithIds_RoutesToDeProvider()
     {
         var kassen = new Mock<IKassenSicherheitService>();
-        kassen.Setup(x => x.StartTransactionAsync(
-                It.IsAny<KassenSicherheitStartTransactionRequest>(),
+        kassen.Setup(x => x.SignAsync(
+                It.IsAny<KassenSicherheitSignRequest>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly"));
-        kassen.Setup(x => x.FinishTransactionAsync(
-                It.IsAny<KassenSicherheitFinishTransactionRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "FINISHED", 2, "sig-de", "fiskaly"));
+            .ReturnsAsync(new KassenSicherheitSignResult(true, "sig-de", "soft"));
+        var tse = new Mock<ITseService>(MockBehavior.Strict);
 
-        var router = new FiscalSignatureRouter(Flags(true), kassen: kassen.Object);
+        var router = new FiscalSignatureRouter(Flags(true), tse: tse.Object, kassen: kassen.Object);
         var context = Context(
             CountryProfileCodes.Germany,
             VatRegime.DE_USTG_STANDARD,
@@ -175,14 +174,10 @@ public sealed class FiscalSignatureRouterAtDeTests
 
         Assert.Equal(FiscalSignatureRouter.DeProvider, result.Provider);
         Assert.Equal("sig-de", result.Signature);
-        kassen.Verify(x => x.StartTransactionAsync(
-            It.Is<KassenSicherheitStartTransactionRequest>(r => r.TssId == "tss-1" && r.ClientId == "client-1"),
+        kassen.Verify(x => x.SignAsync(
+            It.Is<KassenSicherheitSignRequest>(r =>
+                r.Payload.Contains("DE-dev-1-1", StringComparison.Ordinal)),
             It.IsAny<CancellationToken>()), Times.Once);
-        kassen.Verify(x => x.FinishTransactionAsync(
-            It.Is<KassenSicherheitFinishTransactionRequest>(r =>
-                r.Receipt != null
-                && r.Belegnummer == "DE-dev-1-1"
-                && r.Receipt.StandardV1.Receipt.ReceiptType == "RECEIPT"),
-            It.IsAny<CancellationToken>()), Times.Once);
+        tse.VerifyNoOtherCalls();
     }
 }

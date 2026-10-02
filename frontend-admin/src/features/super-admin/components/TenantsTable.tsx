@@ -270,6 +270,17 @@ export function TenantsTable() {
       },
       { title: t('tenants.columns.slug'), dataIndex: 'slug', key: 'slug' },
       {
+        title: t('tenants.columns.profile'),
+        dataIndex: 'verticalProfileName',
+        key: 'verticalProfileName',
+        render: (name: string | null | undefined, row) =>
+          name ? (
+            <Link href={`/admin/tenants/${row.id}/vertical-profile`}>{t(name)}</Link>
+          ) : (
+            '—'
+          ),
+      },
+      {
         title: t('tenants.columns.status'),
         dataIndex: 'status',
         key: 'status',

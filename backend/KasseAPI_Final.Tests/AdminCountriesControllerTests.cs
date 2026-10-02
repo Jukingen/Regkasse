@@ -62,6 +62,8 @@ public sealed class AdminCountriesControllerTests
             Assert.Equal(seed.EInvoicingStandards, item.EInvoicingStandards);
             Assert.Equal(seed.Currency, item.Currency);
             Assert.Equal(seed.DefaultLocale, item.DefaultLocale);
+            Assert.Equal(seed.VatIdPattern, item.VatIdPattern);
+            Assert.Equal(FiscalSystemLabels.For(seed.FiscalSystem), item.FiscalSystemLabel);
         }
     }
 
@@ -73,7 +75,9 @@ public sealed class AdminCountriesControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var json = JsonSerializer.Serialize(ok.Value, JsonOptions);
 
-        Assert.DoesNotContain("vatIdPattern", json, StringComparison.Ordinal);
+        Assert.Contains("vatIdPattern", json, StringComparison.Ordinal);
+        Assert.Contains("fiscalSystemLabel", json, StringComparison.Ordinal);
+        Assert.Contains("KassenSicherheit", json, StringComparison.Ordinal);
         Assert.DoesNotContain("isTenantSelectable", json, StringComparison.Ordinal);
         Assert.DoesNotContain("defaultTimeZone", json, StringComparison.Ordinal);
         Assert.Contains("eInvoicingStandards", json, StringComparison.Ordinal);

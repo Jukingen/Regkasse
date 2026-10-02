@@ -21,7 +21,8 @@ public sealed record ReceiptNumberAllocationContext
 public sealed record InvoiceDocument(
     string CountryCode,
     ReceiptDTO Receipt,
-    InvoiceDocumentDto? Structured = null);
+    InvoiceDocumentDto? Structured = null,
+    QrRechnung.QrRechnungPayload? QrRechnung = null);
 
 /// <summary>
 /// One legally mandated disclosure, as a **requirement** rather than a rendered value: the printed

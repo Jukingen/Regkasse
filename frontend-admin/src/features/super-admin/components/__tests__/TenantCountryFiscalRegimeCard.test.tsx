@@ -13,9 +13,16 @@ import { TenantCountryFiscalRegimeCard } from '@/features/super-admin/components
 import { I18nProvider } from '@/i18n';
 
 const mockUpdateCountry = vi.fn();
+const mockCountryImpact = vi.fn();
 const mockUseAuth = vi.fn();
-const lastConfirm: { current: { title?: React.ReactNode; content?: React.ReactNode; onOk?: () => unknown } | null } =
-  { current: null };
+const lastConfirm: {
+  current: {
+    title?: React.ReactNode;
+    content?: React.ReactNode;
+    onOk?: () => unknown;
+    okButtonProps?: { disabled?: boolean };
+  } | null;
+} = { current: null };
 
 const COUNTRIES: CountryProfileSummaryDto[] = [
   {
@@ -51,6 +58,7 @@ vi.mock('@/features/super-admin/api/adminTenants', async (importOriginal) => {
   return {
     ...actual,
     updateAdminTenantCountry: (...args: unknown[]) => mockUpdateCountry(...args),
+    getAdminTenantCountryImpact: (...args: unknown[]) => mockCountryImpact(...args),
   };
 });
 
@@ -58,7 +66,12 @@ vi.mock('@/hooks/useAntdApp', () => ({
   useAntdApp: () => ({
     message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
     modal: {
-      confirm: (opts: { title?: React.ReactNode; content?: React.ReactNode; onOk?: () => unknown }) => {
+      confirm: (opts: {
+        title?: React.ReactNode;
+        content?: React.ReactNode;
+        onOk?: () => unknown;
+        okButtonProps?: { disabled?: boolean };
+      }) => {
         lastConfirm.current = opts;
       },
     },
@@ -129,6 +142,7 @@ describe('TenantCountryFiscalRegimeCard', () => {
     vi.clearAllMocks();
     lastConfirm.current = null;
     mockUpdateCountry.mockResolvedValue({ ...tenant, vatRegime: 'EU_REVERSE_CHARGE' });
+    mockCountryImpact.mockResolvedValue({ affectedRowCount: 3, incompatibleRowCount: 0 });
   });
 
   it('shows country fields and hides edit for Mandanten-Admin', () => {
@@ -155,9 +169,7 @@ describe('TenantCountryFiscalRegimeCard', () => {
       expect(lastConfirm.current).not.toBeNull();
     });
     expect(String(lastConfirm.current?.title)).toMatch(/Fiskalsystem/);
-    expect(String(lastConfirm.current?.content)).toMatch(
-      /Historische Rechnungen bleiben unter dem ursprünglichen Länderregime/,
-    );
+    expect(JSON.stringify(lastConfirm.current?.content)).toMatch(/3 bestehende Fiskalbelege/);
     expect(mockUpdateCountry).not.toHaveBeenCalled();
 
     await lastConfirm.current?.onOk?.();
@@ -167,5 +179,22 @@ describe('TenantCountryFiscalRegimeCard', () => {
         vatRegime: 'AT_RKSV_STANDARD',
       });
     });
+  });
+
+  it('blocks the change when signed fiscal rows would become invalid', async () => {
+    mockUseAuth.mockReturnValue({ user: { role: 'SuperAdmin' } });
+    mockCountryImpact.mockResolvedValue({ affectedRowCount: 2, incompatibleRowCount: 1 });
+    renderCard();
+
+    fireEvent.click(screen.getByTestId('tenant-country-edit'));
+    fireEvent.click(screen.getByTestId('tenant-country-save'));
+
+    await waitFor(() => {
+      expect(lastConfirm.current).not.toBeNull();
+    });
+    expect(lastConfirm.current?.okButtonProps?.disabled).toBe(true);
+    expect(lastConfirm.current?.onOk).toBeUndefined();
+    expect(JSON.stringify(lastConfirm.current?.content)).toMatch(/1 signierte Belege/);
+    expect(mockUpdateCountry).not.toHaveBeenCalled();
   });
 });

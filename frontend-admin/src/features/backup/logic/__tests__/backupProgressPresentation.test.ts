@@ -11,10 +11,10 @@ import {
 
 describe('backupProgressPresentation', () => {
   it('maps run status to coarse percent', () => {
-    expect(percentFromRunStatus(BackupRunStatus.NUMBER_0)).toBe(8);
-    expect(percentFromRunStatus(BackupRunStatus.NUMBER_1)).toBe(45);
-    expect(percentFromRunStatus(BackupRunStatus.NUMBER_2)).toBe(85);
-    expect(percentFromRunStatus(BackupRunStatus.NUMBER_3)).toBe(100);
+    expect(percentFromRunStatus(BackupRunStatus.Queued)).toBe(8);
+    expect(percentFromRunStatus(BackupRunStatus.Running)).toBe(45);
+    expect(percentFromRunStatus(BackupRunStatus.AwaitingVerification)).toBe(85);
+    expect(percentFromRunStatus(BackupRunStatus.Succeeded)).toBe(100);
   });
 
   it('computes percent from pipeline steps', () => {
@@ -47,7 +47,7 @@ describe('backupProgressPresentation', () => {
     const nowMs = new Date('2026-07-17T10:00:30.000Z').getTime();
     expect(
       estimateRemainingMs({
-        status: BackupRunStatus.NUMBER_1,
+        status: BackupRunStatus.Running,
         startedAt,
         averageSucceededDurationSeconds: 120,
         nowMs,
@@ -59,7 +59,7 @@ describe('backupProgressPresentation', () => {
     const vm = buildBackupProgressViewModel(
       {
         id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        status: BackupRunStatus.NUMBER_1,
+        status: BackupRunStatus.Running,
         startedAt: '2026-07-17T10:00:00.000Z',
         requestedAt: '2026-07-17T09:59:00.000Z',
       },
@@ -81,7 +81,7 @@ describe('backupProgressPresentation', () => {
     const vm = buildBackupProgressViewModel(
       {
         id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-        status: BackupRunStatus.NUMBER_4,
+        status: BackupRunStatus.Failed,
       },
       { allowClientPipelineFallback: false }
     );

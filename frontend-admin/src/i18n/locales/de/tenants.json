@@ -562,9 +562,47 @@
     "pendingBody": "Eine Website-Anfrage wird bereits geprüft.",
     "pendingBodyWithNote": "Eine Website-Anfrage wird bereits geprüft ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS-Profil",
+    "subtitle": "POS-Funktionen und optionale Datenfelder für diesen Mandanten konfigurieren.",
+    "accessDenied": "Nur Super-Administratoren dürfen POS-Profile verwalten.",
+    "selectorTitle": "Profil auswählen",
+    "selectorHelp": "Das Profil liefert die Standardfunktionen und das POS-Layout.",
+    "profileLabel": "POS-Profil",
+    "profilePlaceholder": "Profil auswählen",
+    "overrideTitle": "Mandanten-Overrides",
+    "posFeaturesTitle": "POS-Funktionen",
+    "customFieldsTitle": "Optionale Datenfelder",
+    "customerFields": "Kundenfelder",
+    "productFields": "Produktfelder",
+    "customerFieldPlaceholder": "Kundenfeld hinzufügen",
+    "productFieldPlaceholder": "Produktfeld hinzufügen",
+    "addField": "Hinzufügen",
+    "noCustomFields": "Keine zusätzlichen Felder.",
+    "noFeatures": "Dieses Profil enthält keine POS-Funktionen.",
+    "save": "Profil speichern",
+    "saveSuccess": "POS-Profil wurde gespeichert.",
+    "saveError": "POS-Profil konnte nicht gespeichert werden.",
+    "loadError": "POS-Profil konnte nicht geladen werden.",
+    "features": {
+      "tables": "Tische",
+      "kitchenDisplay": "Küchenanzeige",
+      "patientRecord": "Patientenakte",
+      "serviceDuration": "Leistungsdauer",
+      "appointment": "Termine",
+      "imeiTracking": "IMEI-Verfolgung",
+      "routeTracking": "Routenverfolgung",
+      "roomTracking": "Raum-/Sitzplatzverfolgung",
+      "ticketScan": "Ticket-Scan"
+    },
+    "taxiTariffTitle": "Taxi-Tarif",
+    "taxiTariffHelp": "Kilometertarif für den POS-Fahrpreisvorschlag. Der fiskalische Belegbetrag bleibt die Warenkorb-Leistung.",
+    "taxiTariffLabel": "Tarif pro Kilometer (EUR)"
+  },
   "columns": {
     "name": "Mandant",
     "slug": "Subdomain",
+    "profile": "Profil",
     "email": "Kontakt-E-Mail",
     "status": "Status",
     "adminUser": "Administrator",
@@ -625,6 +663,24 @@
     "title": "Neuen Kunden (Mandant) anlegen",
     "subtitle": "Alle technischen Schritte (Kasse, Demo-Daten, Administrator) werden automatisch eingerichtet.",
     "submit": "Kunden anlegen",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Für Österreich fest aktiv. Dieser Schalter kann nicht ausgeschaltet werden."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "Deutsches Kassenmodul. Der Schalter kann je Mandant geändert werden."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "Schweizer QR-Zahlteil. Der Schalter kann je Mandant geändert werden."
+      },
+      "en16931": {
+        "title": "E-Rechnung (EN 16931)",
+        "helper": "UBL-Entwurf für das EU-Standardprofil. Kein Netzwerkversand."
+      }
+    },
     "wizard": {
       "next": "Weiter",
       "back": "Zurück",
@@ -914,7 +970,10 @@
       "users": "Benutzer",
       "registers": "Kassen",
       "license": "Lizenz",
+      "verticalProfile": "POS-Profil",
       "limits": "Limits",
+      "kitchen": "Küche",
+      "rooms": "Zimmer",
       "settings": "Einstellungen"
     },
     "overview": {
@@ -1673,5 +1732,93 @@
   },
   "list": {
     "pageTitle": "Mandanten"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung-Drucklücken",
+    "description": "Erfasst, welche offenen Drucklücken für diesen Mandanten akzeptabel sind. Der Eintrag ändert die PDF nicht und schaltet keine Bankübermittlung frei.",
+    "save": "Speichern",
+    "saved": "Lückenbestätigung gespeichert.",
+    "invalidGaps": "Eine oder mehrere Lücken-IDs gehören nicht zum bekannten Katalog.",
+    "loadFailed": "Die Drucklücken-Bestätigung konnte nicht geladen werden.",
+    "outstandingWarning": "Diese Druckfunktionen sind nicht Teil der aktuellen QR-Rechnung-Ausgabe. Der Betreiber muss bestätigen, dass sie für diesen Mandanten akzeptabel sind.",
+    "gap": {
+      "officialSwissCross": "Offizielles 7-mm-Schweizerkreuz mit weißem Rand",
+      "fontEmbeddingLiberationArial": "Eingebettete Schrift Liberation Sans oder Arial",
+      "pain001": "pain.001-Überweisungsdatei",
+      "bankScan": "Bankscan der gedruckten Rechnung",
+      "perforationLine": "Perforationsmarke zwischen Empfangsschein und Zahlteil"
+    }
+  },
+  "kitchen": {
+    "title": "Küche",
+    "subtitle": "Küchenaufträge und Anzeige-Einstellungen für diesen Mandanten.",
+    "unavailable": "Das aktuelle POS-Profil hat keine Küchenanzeige.",
+    "settingsTitle": "Einstellungen",
+    "autoClear": "Automatisch ausblenden (Minuten)",
+    "autoClearHelp": "Nach wie vielen Minuten fertige Tickets ausgeblendet werden dürfen.",
+    "sound": "Ton bei neuer Bestellung",
+    "soundHelp": "KDS darf einen Hinweis-Ton abspielen, wenn das Gerät das erlaubt.",
+    "save": "Speichern",
+    "saved": "Kücheneinstellungen gespeichert.",
+    "saveFailed": "Kücheneinstellungen konnten nicht gespeichert werden.",
+    "readOnly": "Nur Lesen — zum Speichern ist settings.manage erforderlich.",
+    "liveTitle": "Offene Küchenbestellungen",
+    "empty": "Keine Küchenbestellungen.",
+    "colTable": "Tisch",
+    "colStatus": "Status",
+    "colNotes": "Notizen",
+    "colItems": "Positionen",
+    "takeAway": "Außer Haus",
+    "analyticsTitle": "Auswertung",
+    "avgPrep": "Durchschnittliche Zubereitungszeit",
+    "avgPrepValue": "{{minutes}} Min.",
+    "ordersPerHour": "Bestellungen pro Stunde (24h)",
+    "lastHour": "Bestellungen in der letzten Stunde",
+    "status": {
+      "Pending": "Offen",
+      "InPreparation": "In Zubereitung",
+      "Ready": "Fertig",
+      "Served": "Serviert",
+      "Cancelled": "Storniert"
+    }
+  },
+  "lodging": {
+    "title": "Zimmer",
+    "subtitle": "Zimmerliste und Gästekonten für Beherbergung.",
+    "unavailable": "Das aktuelle POS-Profil ist keine Beherbergung.",
+    "roomsTitle": "Zimmer",
+    "foliosTitle": "Gästekonten",
+    "create": "Zimmer anlegen",
+    "createSuccess": "Zimmer gespeichert.",
+    "createFailed": "Zimmer konnte nicht angelegt werden.",
+    "numberRequired": "Zimmernummer ist erforderlich.",
+    "typeRequired": "Zimmertyp ist erforderlich.",
+    "readOnly": "Nur Lesen — zum Anlegen ist product.manage erforderlich.",
+    "loadError": "Zimmer oder Konten konnten nicht geladen werden.",
+    "emptyRooms": "Keine Zimmer.",
+    "emptyFolios": "Keine Gästekonten.",
+    "colNumber": "Nummer",
+    "colType": "Typ",
+    "colCapacity": "Kapazität",
+    "colStatus": "Belegung",
+    "colRoom": "Zimmer",
+    "colCustomer": "Gast",
+    "colCheckIn": "Check-in",
+    "colCheckOut": "Check-out",
+    "colBalance": "Saldo",
+    "colFolioStatus": "Status",
+    "occupied": "Belegt",
+    "free": "Frei",
+    "open": "Offen",
+    "closed": "Abgeschlossen",
+    "analyticsTitle": "Auslastung",
+    "occupancy": "Auslastung",
+    "averageStay": "Durchschnittliche Aufenthaltsdauer (Tage)",
+    "status": {
+      "Available": "Frei",
+      "Occupied": "Belegt",
+      "Cleaning": "Reinigung",
+      "Maintenance": "Wartung"
+    }
   }
 }

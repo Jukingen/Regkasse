@@ -10,7 +10,13 @@ export interface PeppolParticipantDto {
   /** @nullable */
   apEnvironment?: string | null;
   createdAtUtc?: string;
+  /** @nullable */
+  eIdentifierScheme?: string | null;
+  /** @nullable */
+  eIdentifierValue?: string | null;
   id?: string;
+  /** @nullable */
+  legalEntityId?: string | null;
   /** @nullable */
   participantId?: string | null;
   tenantId?: string;

@@ -64,19 +64,28 @@ public sealed class VatIdPatternConsolidationTests
         Assert.Equal(VatIdPatterns.IsAustrianUid(vatId), profile.MatchesVatIdShape(vatId));
     }
 
-    [Theory]
-    [InlineData(typeof(PaymentDetails), nameof(PaymentDetails.Steuernummer))]
-    [InlineData(typeof(CreatePaymentRequest), nameof(CreatePaymentRequest.Steuernummer))]
-    public void DataAnnotations_ReferenceTheSharedConstant(Type declaringType, string propertyName)
+    [Fact]
+    public void PaymentDetails_Steuernummer_ReferencesTheSharedConstant()
     {
         // Attributes need a compile-time constant, so they cannot read the registry. They must at least
         // point at the same literal, otherwise model binding and the fiscal gate can drift apart.
-        var attribute = declaringType
-            .GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)!
+        var attribute = typeof(PaymentDetails)
+            .GetProperty(nameof(PaymentDetails.Steuernummer), BindingFlags.Public | BindingFlags.Instance)!
             .GetCustomAttribute<RegularExpressionAttribute>();
 
         Assert.NotNull(attribute);
         Assert.Equal(VatIdPatterns.Austria, attribute!.Pattern);
+    }
+
+    [Fact]
+    public void CreatePaymentRequest_Steuernummer_DoesNotPublishACountryRegex()
+    {
+        // OpenAPI must not freeze an Austria-only pattern. Profile validation is ITaxStrategy.ValidateVatId.
+        var attribute = typeof(CreatePaymentRequest)
+            .GetProperty(nameof(CreatePaymentRequest.Steuernummer), BindingFlags.Public | BindingFlags.Instance)!
+            .GetCustomAttribute<RegularExpressionAttribute>();
+
+        Assert.Null(attribute);
     }
 
     [Fact]

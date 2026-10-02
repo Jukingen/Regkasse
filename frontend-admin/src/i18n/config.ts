@@ -1,4 +1,5 @@
 import deAccess from './locales/de/access.json';
+import deAdmin from './locales/de/admin.json';
 import deActivity from './locales/de/activity.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deAdminShell from './locales/de/admin-shell.json';
@@ -19,7 +20,7 @@ import deDigital from './locales/de/digital.json';
 import deErrors from './locales/de/errors.json';
 import deFeedback from './locales/de/feedback.json';
 import deFeatureFlags from './locales/de/featureFlags.json';
-import deKassenSicherheit from './locales/de/kassenSicherheit.json';
+import dePeppol from './locales/de/peppol.json';
 import deDeployments from './locales/de/deployments.json';
 import deDatabaseMigrations from './locales/de/databaseMigrations.json';
 import deMaintenance from './locales/de/maintenance.json';
@@ -81,6 +82,7 @@ import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deTenants from './locales/de/tenants.json';
 import deTenantCountry from './locales/de/tenantCountry.json';
+import deVerticalProfiles from './locales/de/verticalProfiles.json';
 import deTrials from './locales/de/trials.json';
 import deTenantPortal from './locales/de/tenantPortal.json';
 import deSupport from './locales/de/support.json';
@@ -108,7 +110,8 @@ import enDigital from './locales/en/digital.json';
 import enErrors from './locales/en/errors.json';
 import enFeedback from './locales/en/feedback.json';
 import enFeatureFlags from './locales/en/featureFlags.json';
-import enKassenSicherheit from './locales/en/kassenSicherheit.json';
+import enAdmin from './locales/en/admin.json';
+import enPeppol from './locales/en/peppol.json';
 import enDeployments from './locales/en/deployments.json';
 import enDatabaseMigrations from './locales/en/databaseMigrations.json';
 import enMaintenance from './locales/en/maintenance.json';
@@ -170,6 +173,7 @@ import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enTenants from './locales/en/tenants.json';
 import enTenantCountry from './locales/en/tenantCountry.json';
+import enVerticalProfiles from './locales/en/verticalProfiles.json';
 import enTrials from './locales/en/trials.json';
 import enTenantPortal from './locales/en/tenantPortal.json';
 import enSupport from './locales/en/support.json';
@@ -197,7 +201,8 @@ import trDigital from './locales/tr/digital.json';
 import trErrors from './locales/tr/errors.json';
 import trFeedback from './locales/tr/feedback.json';
 import trFeatureFlags from './locales/tr/featureFlags.json';
-import trKassenSicherheit from './locales/tr/kassenSicherheit.json';
+import trAdmin from './locales/tr/admin.json';
+import trPeppol from './locales/tr/peppol.json';
 import trDeployments from './locales/tr/deployments.json';
 import trDatabaseMigrations from './locales/tr/databaseMigrations.json';
 import trMaintenance from './locales/tr/maintenance.json';
@@ -259,6 +264,7 @@ import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trTenants from './locales/tr/tenants.json';
 import trTenantCountry from './locales/tr/tenantCountry.json';
+import trVerticalProfiles from './locales/tr/verticalProfiles.json';
 import trTrials from './locales/tr/trials.json';
 import trTenantPortal from './locales/tr/tenantPortal.json';
 import trSupport from './locales/tr/support.json';
@@ -299,7 +305,8 @@ const catalogs = {
     feedback: deFeedback,
     communication: deCommunication,
     featureFlags: deFeatureFlags,
-    kassenSicherheit: deKassenSicherheit,
+    admin: deAdmin,
+    peppol: dePeppol,
     deployments: deDeployments,
     databaseMigrations: deDatabaseMigrations,
     maintenance: deMaintenance,
@@ -348,6 +355,7 @@ const catalogs = {
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
     tenantCountry: deTenantCountry,
+    verticalProfiles: deVerticalProfiles,
     trials: deTrials,
     tenantPortal: deTenantPortal,
     support: deSupport,
@@ -390,7 +398,8 @@ const catalogs = {
     feedback: enFeedback,
     communication: enCommunication,
     featureFlags: enFeatureFlags,
-    kassenSicherheit: enKassenSicherheit,
+    admin: enAdmin,
+    peppol: enPeppol,
     deployments: enDeployments,
     databaseMigrations: enDatabaseMigrations,
     maintenance: enMaintenance,
@@ -439,6 +448,7 @@ const catalogs = {
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
     tenantCountry: enTenantCountry,
+    verticalProfiles: enVerticalProfiles,
     trials: enTrials,
     tenantPortal: enTenantPortal,
     support: enSupport,
@@ -481,7 +491,8 @@ const catalogs = {
     feedback: trFeedback,
     communication: trCommunication,
     featureFlags: trFeatureFlags,
-    kassenSicherheit: trKassenSicherheit,
+    admin: trAdmin,
+    peppol: trPeppol,
     deployments: trDeployments,
     databaseMigrations: trDatabaseMigrations,
     maintenance: trMaintenance,
@@ -530,6 +541,7 @@ const catalogs = {
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
     tenantCountry: trTenantCountry,
+    verticalProfiles: trVerticalProfiles,
     trials: trTrials,
     tenantPortal: trTenantPortal,
     support: trSupport,

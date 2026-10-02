@@ -69,7 +69,9 @@ public sealed class AppDbContextTenantModelTests
         {
             "ActivityEventRead.ActivityEvent -> ActivityEvent",
             "CashRegisterTransaction.CashRegister -> CashRegister",
+            "ChReceiptSequence.CashRegister -> CashRegister",
             "DeReceiptSequence.CashRegister -> CashRegister",
+            "EuReceiptSequence.CashRegister -> CashRegister",
             "OnlineOrderItem.OnlineOrder -> OnlineOrder",
             "PaymentDetails.CashRegister -> CashRegister",
             "RksvSpecialReceiptFinanzOnlineSubmission.(no-nav) -> CashRegister",
@@ -107,6 +109,33 @@ public sealed class AppDbContextTenantModelTests
             + string.Join("; ", unexpected)
             + " | Documented pairs that disappeared: "
             + string.Join("; ", missing));
+    }
+
+    /// <summary>
+    /// Operating country stays on <c>company_settings.country</c>. A second <c>CountryCode</c> column is forbidden.
+    /// Issue-time <c>country_code_at_issue</c> snapshots are a different column and stay allowed.
+    /// </summary>
+    [Fact]
+    public void Model_has_no_CountryCode_column()
+    {
+        using var db = CreateContext();
+        var hits = new List<string>();
+
+        foreach (var entityType in db.Model.GetEntityTypes())
+        {
+            var entityName = entityType.ClrType?.Name ?? entityType.Name;
+            foreach (var property in entityType.GetProperties())
+            {
+                if (string.Equals(property.Name, "CountryCode", StringComparison.Ordinal))
+                    hits.Add($"{entityName}.{property.Name}");
+
+                var column = property.GetColumnName();
+                if (string.Equals(column, "country_code", StringComparison.OrdinalIgnoreCase))
+                    hits.Add($"{entityName}.{column}");
+            }
+        }
+
+        Assert.True(hits.Count == 0, "CountryCode column is forbidden: " + string.Join(", ", hits));
     }
 
     [Fact]

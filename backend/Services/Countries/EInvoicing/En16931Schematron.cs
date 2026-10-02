@@ -3,6 +3,12 @@ using System.Xml.XPath;
 
 namespace KasseAPI_Final.Services.Countries.EInvoicing;
 
+/// <summary>Pass or fail for the embedded EN 16931 / Peppol BIS subset. Rule ids only.</summary>
+public sealed record En16931ValidationResult(bool Passed, IReadOnlyList<string> RuleIds)
+{
+    public string Outcome => Passed ? "pass" : "fail";
+}
+
 /// <summary>
 /// Core EN 16931 business rules (BR-*) as ISO Schematron, XPath 1.0.
 /// This is the validator-only subset, not the full KoSIT / Peppol pack.
@@ -48,7 +54,19 @@ public static class En16931Schematron
         </schema>
         """;
 
-    public static IReadOnlyList<string> Validate(string ublXml)
+    public static En16931ValidationResult Evaluate(string ublXml)
+    {
+        var failures = Collect(ublXml);
+        var ids = failures.Select(failure => failure.RuleId).Distinct(StringComparer.Ordinal).ToArray();
+        return new En16931ValidationResult(ids.Length == 0, ids);
+    }
+
+    public static IReadOnlyList<string> Validate(string ublXml) =>
+        Collect(ublXml).Select(failure => failure.RuleId + ": " + failure.Message).ToArray();
+
+    private readonly record struct Failure(string RuleId, string Message);
+
+    private static List<Failure> Collect(string ublXml)
     {
         var invoice = new XmlDocument { XmlResolver = null };
         invoice.LoadXml(ublXml);
@@ -64,7 +82,7 @@ public static class En16931Schematron
         var sch = new XmlNamespaceManager(rules.NameTable);
         sch.AddNamespace("sch", "http://purl.oclc.org/dsdl/schematron");
 
-        var failures = new List<string>();
+        var failures = new List<Failure>();
         foreach (XmlElement rule in rules.SelectNodes("//sch:rule", sch)!)
         {
             var context = rule.GetAttribute("context");
@@ -74,7 +92,7 @@ public static class En16931Schematron
                 if (context.Contains("InvoiceLine", StringComparison.Ordinal)
                     || context.Contains("TaxSubtotal", StringComparison.Ordinal))
                 {
-                    failures.Add(context + ": no context node");
+                    failures.Add(new Failure(context, "no context node"));
                 }
                 continue;
             }
@@ -87,7 +105,7 @@ public static class En16931Schematron
                     var test = assert.GetAttribute("test");
                     var id = assert.GetAttribute("id");
                     if (!Passes(nav!, test, ns))
-                        failures.Add(id + ": " + assert.InnerText);
+                        failures.Add(new Failure(id, assert.InnerText));
                 }
             }
         }

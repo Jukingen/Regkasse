@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
 import {
   artifactByteSizeFootnoteKey,
   artifactClassLabelKeyForType,
@@ -66,7 +66,7 @@ describe('formatArtifactByteSize', () => {
 describe('buildArtifactDownloadRowTruth', () => {
   const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactResponseDto => ({
     id: 'a1',
-    artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+    artifactType: BackupArtifactType.LogicalDump,
     isFilePresentForDownload: true,
     ...over,
   });
@@ -113,7 +113,7 @@ describe('buildArtifactDownloadRowTruth', () => {
 
   it('non-simulated tiny logical dump keeps operational class label — not stub — and raises suspicion (not simulated_stub)', () => {
     const row = buildArtifactDownloadRowTruth(
-      baseArtifact({ byteSize: 100, artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 }),
+      baseArtifact({ byteSize: 100, artifactType: BackupArtifactType.LogicalDump }),
       {
         isSimulatedExecutionFlag: false,
         runAdapterKind: 'PgDump',
@@ -129,7 +129,7 @@ describe('buildArtifactDownloadRowTruth', () => {
 
   it('uses manifest stub label for verification manifest when simulated', () => {
     const row = buildArtifactDownloadRowTruth(
-      baseArtifact({ artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4 }),
+      baseArtifact({ artifactType: BackupArtifactType.VerificationManifest }),
       {
         isSimulatedExecutionFlag: true,
         runAdapterKind: 'Fake',
@@ -146,8 +146,8 @@ describe('buildArtifactDownloadRowTruth', () => {
 
   it('sorts logical dump before manifest like Fake adapter output', () => {
     const sorted = sortArtifactsForOperatorDisplay([
-      { id: 'm', artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4 },
-      { id: 'l', artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 },
+      { id: 'm', artifactType: BackupArtifactType.VerificationManifest },
+      { id: 'l', artifactType: BackupArtifactType.LogicalDump },
     ] as BackupArtifactResponseDto[]);
     expect(sorted.map((x) => x.id)).toEqual(['l', 'm']);
   });
@@ -195,7 +195,7 @@ describe('inferNonFakeArtifactSuspicion', () => {
         {
           isFilePresentForDownload: true,
           byteSize: undefined,
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
         },
         'simulated_stub'
       )
@@ -208,7 +208,7 @@ describe('inferNonFakeArtifactSuspicion', () => {
         {
           isFilePresentForDownload: true,
           byteSize: undefined,
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
         },
         'non_simulated'
       )
@@ -221,7 +221,7 @@ describe('inferNonFakeArtifactSuspicion', () => {
         {
           isFilePresentForDownload: true,
           byteSize: 0,
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
         },
         'non_simulated'
       )
@@ -234,7 +234,7 @@ describe('inferNonFakeArtifactSuspicion', () => {
         {
           isFilePresentForDownload: true,
           byteSize: 100,
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
         },
         'non_simulated'
       )
@@ -247,7 +247,7 @@ describe('inferNonFakeArtifactSuspicion', () => {
         {
           isFilePresentForDownload: true,
           byteSize: 100,
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
         },
         'unknown'
       )
@@ -288,14 +288,14 @@ describe('download UI helpers', () => {
   it('contentExpectationTableSummaryKey for common rows', () => {
     expect(
       contentExpectationTableSummaryKey(
-        BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        BackupArtifactType.LogicalDump,
         'simulated_stub',
         false
       )
     ).toBe('backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter');
     expect(
       contentExpectationTableSummaryKey(
-        BackupArtifactResponseDtoArtifactType.NUMBER_4,
+        BackupArtifactType.VerificationManifest,
         'non_simulated',
         false
       )
@@ -306,7 +306,7 @@ describe('download UI helpers', () => {
     const truth = buildArtifactDownloadRowTruth(
       {
         id: 'x',
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
       {
@@ -318,7 +318,7 @@ describe('download UI helpers', () => {
     );
     expect(
       shouldConfirmDownloadUnprovenLogicalDump(
-        { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0 } as never,
+        { artifactType: BackupArtifactType.LogicalDump } as never,
         truth
       )
     ).toBe(true);

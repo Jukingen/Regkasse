@@ -1,10 +1,17 @@
 import { renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 
 const settingsState = vi.hoisted(() => ({
   country: 'AT' as string | undefined,
+}));
+
+const countriesState = vi.hoisted(() => ({
+  data: undefined as
+    | { code: string; currency: string; defaultLocale: string }[]
+    | undefined,
+  isError: false,
 }));
 
 vi.mock('@/features/settings/hooks/useCompanySettings', () => ({
@@ -13,7 +20,16 @@ vi.mock('@/features/settings/hooks/useCompanySettings', () => ({
   }),
 }));
 
+vi.mock('@/features/tenancy/hooks/useCountries', () => ({
+  useCountries: () => countriesState,
+}));
+
 describe('useCountryFormatting', () => {
+  beforeEach(() => {
+    countriesState.data = undefined;
+    countriesState.isError = false;
+  });
+
   it('uses AT formatters when company country is AT', () => {
     settingsState.country = 'AT';
     const { result } = renderHook(() => useCountryFormatting());
@@ -54,5 +70,19 @@ describe('useCountryFormatting', () => {
       expect(result.current.profile.code).toBe('AT');
       expect(result.current.formatDate('2026-01-15')).toBe('15.01.2026');
     }).not.toThrow();
+  });
+
+  it('uses currency and locale from GET /api/admin/countries when the catalog is loaded', () => {
+    settingsState.country = 'DE';
+    countriesState.data = [
+      { code: 'AT', currency: 'EUR', defaultLocale: 'de-DE' },
+      { code: 'DE', currency: 'EUR', defaultLocale: 'fr-DE' },
+      { code: 'CH', currency: 'CHF', defaultLocale: 'de-CH' },
+    ];
+    const { result } = renderHook(() => useCountryFormatting());
+    expect(result.current.profile.locale).toBe('fr-DE');
+    expect(result.current.profile.currency).toBe('EUR');
+    expect(result.current.formatCurrency(12.5)).toBe('12,50 €');
+    expect(result.current.profile.timeZone).toBe('Europe/Berlin');
   });
 });

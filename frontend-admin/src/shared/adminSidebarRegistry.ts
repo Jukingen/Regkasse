@@ -72,6 +72,7 @@ export type SidebarIconToken =
   | 'FolderOutlined'
   | 'GroupOutlined'
   | 'TagOutlined'
+  | 'HomeOutlined'
   | 'InboxOutlined'
   | 'UserOutlined'
   | 'GiftOutlined'
@@ -282,6 +283,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.products',
     icon: 'ShoppingOutlined',
     ...sidebarFieldsFromMenuMap('products'),
+  },
+  ticketRedemptions: {
+    id: 'ticketRedemptions',
+    menuKey: '/admin/tickets/redemptions',
+    href: '/admin/tickets/redemptions',
+    labelKey: 'nav.ticketRedemptions',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+  },
+  rooms: {
+    id: 'rooms',
+    menuKey: '/admin/rooms',
+    href: '/admin/rooms',
+    labelKey: 'nav.rooms',
+    icon: 'HomeOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
   },
   categories: {
     id: 'categories',
@@ -573,6 +590,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.workingHours',
     icon: 'CalendarOutlined',
     ...sidebarFieldsFromMenuMap('workingHours'),
+  },
+  kitchen: {
+    id: 'kitchen',
+    menuKey: '/admin/kitchen',
+    href: '/admin/kitchen',
+    labelKey: 'nav.kitchen',
+    icon: 'ControlOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   taxGroups: {
     id: 'taxGroups',
@@ -879,6 +904,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'ApartmentOutlined',
     ...sidebarFieldsFromMenuMap('tenants'),
   },
+  superAdminVerticalProfiles: {
+    id: 'superAdminVerticalProfiles',
+    menuKey: '/admin/vertical-profiles',
+    href: '/admin/vertical-profiles',
+    labelKey: 'nav.verticalProfiles',
+    icon: 'AppstoreOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
   /** Super Admin create-tenant wizard — sibling of Mandanten list under Verwaltung. */
   superAdminCreateTenant: {
     id: 'superAdminCreateTenant',
@@ -1178,6 +1211,22 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/kassensicherheit',
     labelKey: 'nav.adminKassenSicherheit',
     icon: 'SafetyCertificateOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminPeppolSubmissions: {
+    id: 'adminPeppolSubmissions',
+    menuKey: '/admin/peppol/submissions',
+    href: '/admin/peppol/submissions',
+    labelKey: 'nav.adminPeppolSubmissions',
+    icon: 'FileTextOutlined',
+    permission: [PERMISSIONS.SYSTEM_CRITICAL],
+  },
+  adminPeppolParticipants: {
+    id: 'adminPeppolParticipants',
+    menuKey: '/admin/peppol/participants',
+    href: '/admin/peppol/participants',
+    labelKey: 'nav.adminPeppolParticipants',
+    icon: 'TeamOutlined',
     permission: [PERMISSIONS.SYSTEM_CRITICAL],
   },
   adminTseFailover: {
@@ -1674,7 +1723,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     blocks: [
       {
         kind: 'leaves',
-        catalogIds: ['products', 'categories', 'modifierGroups', 'pricingRules', 'inventory'],
+        catalogIds: ['products', 'ticketRedemptions', 'rooms', 'categories', 'modifierGroups', 'pricingRules', 'inventory'],
       },
     ],
   },
@@ -1826,6 +1875,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         icon: 'ControlOutlined',
         catalogIds: [
           'workingHours',
+          'kitchen',
           'sessionSettings',
           'activeSessions',
           'tseSettings',
@@ -1906,6 +1956,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'leaves',
         catalogIds: [
           'superAdminTenants',
+          'superAdminVerticalProfiles',
           'superAdminCreateTenant',
           'superAdminTrials',
           'superAdminCashRegisters',
@@ -1923,8 +1974,20 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.securityTse,
         labelKey: 'nav.securityTse',
         icon: 'SafetyCertificateOutlined',
-        catalogIds: ['superAdminApprovals', 'adminRksvRuntimeConfig', 'adminMwst', 'adminKassenSicherheit'],
+        catalogIds: ['superAdminApprovals', 'adminRksvRuntimeConfig', 'adminKassenSicherheit'],
         childGroups: [
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.peppol,
+            labelKey: 'nav.peppolGroup',
+            icon: 'FileTextOutlined',
+            catalogIds: ['adminPeppolSubmissions', 'adminPeppolParticipants'],
+          },
+          {
+            menuKey: ADMIN_SIDEBAR_GROUP_KEYS.ch,
+            labelKey: 'nav.chGroup',
+            icon: 'SafetyCertificateOutlined',
+            catalogIds: ['adminMwst'],
+          },
           {
             menuKey: ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
             labelKey: 'nav.tseGroupManagement',

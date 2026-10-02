@@ -202,6 +202,7 @@ public sealed class TenantLimitDashboardService : ITenantLimitDashboardService
             .AsNoTracking()
             .Where(e => tenantIds.Contains(e.TenantId)
                         && (e.Type == ActivityEventType.LimitApproaching
+                            || e.Type == ActivityEventType.OfflineQueueApproachingLimit
                             || e.Type == ActivityEventType.LimitExceeded))
             .OrderByDescending(e => e.CreatedAtUtc)
             .Take(RecentLogLimit)
@@ -251,6 +252,7 @@ public sealed class TenantLimitDashboardService : ITenantLimitDashboardService
             .AsNoTracking()
             .Where(e => tenantIds.Contains(e.TenantId)
                         && (e.Type == ActivityEventType.LimitApproaching
+                            || e.Type == ActivityEventType.OfflineQueueApproachingLimit
                             || e.Type == ActivityEventType.LimitExceeded));
 
         if (string.IsNullOrWhiteSpace(readerUserId))

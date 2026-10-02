@@ -1,0 +1,29 @@
+{
+  "gastronomy": {
+    "name": "Gastronomie"
+  },
+  "gastronomyTables": {
+    "name": "Gastronomie mit Tischen"
+  },
+  "hairSalon": {
+    "name": "Friseursalon"
+  },
+  "mobileServices": {
+    "name": "Mobile Dienstleistungen"
+  },
+  "handyShop": {
+    "name": "Handy-Shop"
+  },
+  "taxi": {
+    "name": "Taxi"
+  },
+  "ticketSales": {
+    "name": "Ticketverkauf"
+  },
+  "vet": {
+    "name": "Tierarztpraxis"
+  },
+  "beherbergung": {
+    "name": "Beherbergung"
+  }
+}

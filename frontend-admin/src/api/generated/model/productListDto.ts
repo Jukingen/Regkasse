@@ -22,6 +22,8 @@ export interface ProductListDto {
   descriptionEn?: string | null;
   /** @nullable */
   descriptionTr?: string | null;
+  /** @nullable */
+  durationMinutes?: number | null;
   id?: string;
   /** @nullable */
   imageUrl?: string | null;
@@ -39,6 +41,8 @@ export interface ProductListDto {
   /** @nullable */
   nameTr?: string | null;
   price?: number;
+  /** @nullable */
+  staffId?: string | null;
   stockQuantity?: number;
   /** @nullable */
   taxGroupAustrianCode?: string | null;

@@ -33,6 +33,9 @@
       "systemChanges": "System-Änderungen"
     },
     "eventsSection": "Weitere Ereignistypen",
+    "countryFiscalSection": "Land und Fiskalregime",
+    "eInvoicingSection": "E-Rechnung",
+    "peppolSection": "Peppol",
     "enabledEvents": "Ereignisse aktivieren",
     "severityThreshold": "Mindest-Schweregrad pro Ereignis",
     "severityDefault": "Standard (kein zusätzlicher Filter)"
@@ -60,6 +63,7 @@
     "LimitApproaching": "Limit nähert sich",
     "LimitExceeded": "Limit überschritten",
     "OfflineQueueGrowing": "Offline-Warteschlange wächst",
+    "OfflineQueueApproachingLimit": "Offline-Warteschlange nähert sich dem Limit",
     "FinanzOnlineSubmissionFailed": "FinanzOnline-Fehler",
     "BackupFailed": "Backup fehlgeschlagen",
     "BackupSucceeded": "Backup erfolgreich",

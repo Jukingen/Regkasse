@@ -4,11 +4,12 @@ import type { Rule } from 'antd/es/form';
 import { useMemo } from 'react';
 
 import { useCompanySettings } from '@/features/settings/hooks/useCompanySettings';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import { useI18n } from '@/i18n';
 import {
   createCountryVatIdRules,
   isValidVatId,
-  vatIdPatternForCountry,
+  vatIdPatternFromCatalog,
 } from '@/lib/validations';
 
 export type UseCountryVatIdValidationOptions = {
@@ -23,39 +24,48 @@ export type UseCountryVatIdValidationOptions = {
 };
 
 /**
- * Country-profile VAT-ID form rules. Reads the tenant `Country` from company settings unless
- * `country` is passed. AT messages stay on the existing keys; DE/CH use
- * `superadmin.validation.vatId.invalid.*`.
+ * VAT-ID form rules. The regex is `vatIdPattern` from `GET /api/admin/countries`.
+ * When that catalog is not loaded, only the required check runs.
  */
 export function useCountryVatIdValidation(options?: UseCountryVatIdValidationOptions) {
   const { t } = useI18n();
   const settingsQuery = useCompanySettings();
+  const countriesQuery = useCountries();
   const required = options?.required ?? true;
   const requiredMessage = options?.messages?.required;
   const invalidAtMessage = options?.messages?.invalidAt;
 
   const country = useMemo(() => {
-    const raw = options?.country ?? settingsQuery.data?.country ?? 'AT';
-    const code = raw.trim().toUpperCase();
-    return code || 'AT';
+    const raw = options?.country ?? settingsQuery.data?.country ?? '';
+    return raw.trim().toUpperCase();
   }, [options?.country, settingsQuery.data?.country]);
 
-  const pattern = vatIdPatternForCountry(country);
+  const pattern = useMemo(
+    () => vatIdPatternFromCatalog(country, countriesQuery.isError ? null : countriesQuery.data),
+    [country, countriesQuery.data, countriesQuery.isError]
+  );
+  const patternSource = useMemo(() => {
+    const code = country;
+    const rows = countriesQuery.isError ? null : countriesQuery.data;
+    const match = rows?.find((row) => row.code?.trim().toUpperCase() === code);
+    return match?.vatIdPattern ?? null;
+  }, [country, countriesQuery.data, countriesQuery.isError]);
 
   const rules = useMemo<Rule[]>(
     () =>
-      createCountryVatIdRules(t, country, {
+      createCountryVatIdRules(t, patternSource, {
         required,
         requiredMessage,
         invalidAtMessage,
       }),
-    [t, country, required, requiredMessage, invalidAtMessage]
+    [t, patternSource, required, requiredMessage, invalidAtMessage]
   );
 
   return {
     country,
     pattern,
     rules,
-    isValid: (value: string | null | undefined) => isValidVatId(value, country),
+    isValid: (value: string | null | undefined) =>
+      pattern ? isValidVatId(value, pattern) : Boolean(value?.trim()),
   };
 }

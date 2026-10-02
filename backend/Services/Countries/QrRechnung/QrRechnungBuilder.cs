@@ -1,22 +1,38 @@
 using System.Globalization;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.FeatureFlags;
 using KasseAPI_Final.Services.Countries;
 
 namespace KasseAPI_Final.Services.Countries.QrRechnung;
 
 /// <summary>
-/// Flag-gated SIX QR-bill payload. IBAN must be CH or LI. PDF/QR image generation is not implemented.
+/// Flag-gated SIX QR-bill (IG 2.3). Payload is SPC version 0200, address type S.
+/// <see cref="BuildPdfAsync"/> renders the receipt and payment part. No bank HTTP.
 /// </summary>
 public sealed class QrRechnungBuilder : IQrRechnungBuilder
 {
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly IAuditLogService? _audit;
+    private readonly IActivityEventPublisher? _activity;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly IChQrGapAcceptanceService? _gapAcceptance;
 
-    public QrRechnungBuilder(IFeatureFlagService? featureFlags = null)
+    public QrRechnungBuilder(
+        IFeatureFlagService? featureFlags = null,
+        IAuditLogService? audit = null,
+        IActivityEventPublisher? activity = null,
+        IHttpContextAccessor? httpContextAccessor = null,
+        IChQrGapAcceptanceService? gapAcceptance = null)
     {
         _featureFlags = featureFlags;
+        _audit = audit;
+        _activity = activity;
+        _httpContextAccessor = httpContextAccessor;
+        _gapAcceptance = gapAcceptance;
     }
 
-    public Task<QrRechnungPayload> BuildPayloadAsync(
+    public async Task<QrRechnungPayload> BuildPayloadAsync(
         QrRechnungRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -54,15 +70,39 @@ public sealed class QrRechnungBuilder : IQrRechnungBuilder
             ReferenceType: referenceType,
             SwissQrText: string.Empty);
         var text = SwissQrEncoder.Encode(payload);
-        return Task.FromResult(payload with { SwissQrText = text });
+        var built = payload with { SwissQrText = text };
+        await QrRechnungAudit.PayloadBuiltAsync(
+            _audit,
+            _activity,
+            _httpContextAccessor,
+            request,
+            built,
+            request.ActorUserId,
+            cancellationToken).ConfigureAwait(false);
+        if (_gapAcceptance is not null && request.TenantId is Guid tenantId && tenantId != Guid.Empty)
+        {
+            await _gapAcceptance.WarnOutstandingAsync(tenantId, request.InvoiceId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return built;
     }
 
     public async Task<byte[]> BuildPdfAsync(
         QrRechnungRequest request,
         CancellationToken cancellationToken = default)
     {
+        QrRechnungAudit.EnsureRelativePdfPath(request.PdfPathRelative);
         var payload = await BuildPayloadAsync(request, cancellationToken).ConfigureAwait(false);
-        return QrRechnungPdf.Render(payload);
+        var pdf = QrRechnungPdf.Render(payload);
+        await QrRechnungAudit.PdfGeneratedAsync(
+            _audit,
+            _activity,
+            _httpContextAccessor,
+            request,
+            payload,
+            cancellationToken).ConfigureAwait(false);
+        return pdf;
     }
 
     private void EnsureEnabled()

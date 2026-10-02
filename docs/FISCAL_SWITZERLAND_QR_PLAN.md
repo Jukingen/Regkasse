@@ -1,12 +1,19 @@
 # Switzerland QR-Rechnung implementation plan (Paket 21)
 
-**Last updated:** 2026-09-21  
-**Status:** Plan only. **Implementation is NOT STARTED** except the existing payload **shape** (`IQrRechnungBuilder` / `QrRechnungBuilder`). This is not a legal opinion and does not claim SIX, SPS, or MWST compliance.  
+**Last updated:** 2026-09-30  
+**Status:** QR-Rechnung payload + PDF implemented (`QrRechnungBuilder.BuildPdfAsync` via `QrRechnungPdf`). Bank submit gated behind `QrRechnung:BankSubmit:Enabled` (default false; startup rejects true in Production). This is not a legal opinion and does not claim SIX, SPS, or MWST compliance.  
 **Hub:** [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) · [`COUNTRIES.md`](COUNTRIES.md) §16
 
 **There is no bank HTTP API in this package.** A QR-bill is a **payment instrument** the payer’s CH/LI bank scans. “Bank submission” in the remaining-gaps table means **bank-compatible QR-bill output**, not a credit-transfer origination API. eBill is a separate network and is **out of v1**.
 
 Do not enable Austrian RKSV/TSE for CH tenants.
+
+## Known gaps
+
+- The painted Swiss cross is not the official 7 mm cross with a white border.
+- The PDF uses the default QuestPDF font, not embedded Liberation Sans or Arial.
+- No pain.001 credit-transfer file.
+- No bank scan of the printed bill.
 
 ---
 
@@ -37,7 +44,7 @@ Hub page: [SIX QR-bill standards](https://www.six-group.com/en/products-services
 
 ## 2. PDF rendering approach
 
-Today `BuildPdfAsync` throws (`docs/FISCAL_SWITZERLAND.md`). Payload-only stays the first coding slice.
+Today `BuildPdfAsync` renders the receipt and payment part (`QrRechnungPdf`). It is not a measured SIX print overlay.
 
 **Libraries (already in `backend/KasseAPI_Final.csproj`):**
 
@@ -128,7 +135,7 @@ House-bank confirmation: Mandanten-Admin stores IBAN / QR-IBAN; Super Admin does
 
 | Phase | Scope | Exit |
 |-------|--------|------|
-| **1. Payload-only** | Finish validation (checksum, QRR/SCOR/NON, type S). Persist payload JSON. `BuildPdfAsync` still throws. | Golden-vector tests vs SIX examples. |
+| **1. Payload-only** | Checksum, QRR/SCOR/NON, address type S. Implemented in `SwissQrEncoder`. | Golden-vector tests vs SIX examples. |
 | **2. PDF** | QuestPDF + QRCoder + Swiss cross. A6 payment part + receipt. FA preview download. | Overlay checklist; two-app scan on TEST IBANs. |
 | **3. Pilot** | One CH canary tenant, real IBAN, **unpaid** test invoices (or 0.05 CHF). Flag on. | House bank accepts a scan; no Production CH POS sale required (MWST TSE still not started). |
 | **4. Production** | Remaining CH mandants who opt in. Include QR-bill on FA invoice PDF / Sites invoice. | Runbook; rollback = `EInvoicing.QrRechnung` off or `BuilderMode=payload`. |
@@ -154,17 +161,17 @@ Rollback: keep stored payloads; stop emitting PDF. Additive table stays.
 
 `BuilderMode=pdf` turns on `BuildPdfAsync`. `dryRun` stays illegal outside Development.
 
-### Migration (additive)
+### Persistence
 
-`qr_rechnung_documents`: tenant_id, invoice/payment fk, spec_version, reference_type, iban (masked in logs), payload json, pdf artifact id (nullable). Do not store full IBAN in audit `old_values`.
+No `qr_rechnung_documents` table. Option D does not send the bill to a bank, and `QrRechnungPdf.Render` returns bytes without writing a file. The audit events below store a SHA-256 of the SPC text, the invoice id, the tenant id, and a relative path only when a caller passes one. Storing the payload JSON would store the IBAN. The hash in `audit_logs.new_values` is the record.
 
-### Audit (new values ≥ 100; do not reuse AT Fiskaly*)
+### Audit
 
 | Name | When |
 |------|------|
-| `QrRechnungPayloadBuilt` | Validated payload stored |
-| `QrRechnungPdfGenerated` | PDF bytes stored / downloaded |
-| `QrRechnungValidationFailed` | Bad IBAN/ref (no secret in payload) |
+| `QrRechnungPayloadBuilt` | `QrRechnungBuilder.BuildPayloadAsync`. `newValues` is `payloadHash`, `invoiceId`, `tenantId`, `referenceType`. Not the SPC text. |
+| `QrRechnungPdfGenerated` | `QrRechnungBuilder.BuildPdfAsync` after `QrRechnungPdf.Render`. `pdfPathRelative` is relative or null. |
+| `ChMwstQrBuilt` | Existing canary event on the payment path. Separate from the two rows above. |
 
 ### FA
 
@@ -184,5 +191,113 @@ OpenAPI + Orval with the API.
 
 - [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md)  
 - [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md)  
-- [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) — CH is **not** Peppol-first  
+- [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) — Peppol (Paket 22) is a separate channel. A Swiss QR-Rechnung is not a Peppol document and is not an EN 16931 submission.  
 - [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) §4 (`QrRechnung` lock)
+
+---
+
+## Bank submission decision (2026-09-29)
+
+This is not a SIX or MWST compliance claim. Paket 21 does not send a bill to a bank.
+
+### What “bank submission” means
+
+**Chosen: Option D.** The QR-Rechnung is a print and PDF artifact. `QrRechnungBuilder.BuildPdfAsync` calls `QrRechnungPdf.Render`. There is no bank HTTP client. `QrRechnung:BankSubmit:Enabled` defaults to false, and `CountryFiscalLockEvaluator.ReasonQrBankSubmit` rejects `true` in Production and Staging.
+
+### State as of 2026-09-30
+
+Option D is still the Paket 21 decision. Do not expand this package to Option B (EBICS / pain.001).
+
+`QrRechnungPayloadBuilt` (audit 111, activity 253) and `QrRechnungPdfGenerated` (audit 112, activity 254) now record that a payload or PDF was built. They store a SHA-256 of the SPC text, the invoice id, the tenant id, and a relative path only when the caller supplied one. They do not store the IBAN and they do not send anything to a bank. `ChQrKnownGaps.json` still pins the missing print features (`official-swiss-cross`, `font-embedding-liberation-arial`, `perforation-line`, `pain001`, `bank-scan`) with `present: false`. `QrRechnung:BankSubmit:Enabled` remains false, and Production and Staging still refuse `true` at startup. A credit-transfer file or an EBICS session would be a new channel, with bank secrets, on top of a PDF this plan still does not treat as a measured SIX print. Peppol ([`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md)) is that other channel for EU e-invoices. It is not the Swiss QR-bill.
+
+Option A (an operator downloads the PDF and uploads it in a bank portal) is an audit trail only. `GET /api/admin/tenants/{tenantId}/ch-qr-invoices/{invoiceId}/pdf` returns the existing PDF when every open gap (`present: false`) is in `Fiscal.ChQrKnownGapsAccepted` and `QrRechnung:BankSubmit:Enabled` is false. Otherwise the download is HTTP 409 `CH_QR_GAPS_NOT_ACCEPTED` with `outstandingGapIds`. `POST .../upload-confirmation` records `uploadedBy`, `uploadedAtUtc`, and `bankReference` after a `QrRechnungPdfGenerated` audit row exists. Audit `QrRechnungPdfDownloaded` is 116. Audit `QrRechnungBankUploadConfirmed` is 117. Neither call opens bank HTTP. It is not Paket 21 and it is not a SIX or MWST compliance claim.
+
+Option B (pain.001 over EBICS) and Option C (SIX eBill) are not Paket 21. Both need per-tenant bank credentials. Those secrets do not belong in `company_settings` and do not belong in `tenant_settings` as plain text. A later package would have to name an encrypted store or an external vault before any key is accepted. This record does not pick EBICS 3.0, a key table, or an eBill network.
+
+### Post-Paket-21 candidates
+
+Option A download and upload-confirmation are implemented as audit rows. They do not turn `QrRechnung:BankSubmit:Enabled` on. Option B is out of scope. See [Option B decision (2026-09-30)](#option-b-decision-2026-09-30).
+
+| Candidate | What it would be | Pre-conditions before any build |
+|-----------|------------------|----------------------------------|
+| **Option A — operator PDF upload** | The operator downloads the PDF and uploads it in a bank portal. Regkasse does not call the bank. | Implemented as `GET .../ch-qr-invoices/{invoiceId}/pdf` and `POST .../upload-confirmation`. Every open gap must be in `Fiscal.ChQrKnownGapsAccepted`. Audit 116 and 117. No bank credential is stored. |
+| **Option B — EBICS / pain.001** | Regkasse originates a credit-transfer file and a bank client sends it. | **Out of scope** (decision below). `pain001` stays `present: false`. `QrRechnung:BankSubmit:Enabled` stays false. No EBICS library, no `bank_credentials` table, no new audit numbers. |
+
+### Next package pre-conditions
+
+Per-tenant acceptance is `tenant_settings` key `Fiscal.ChQrKnownGapsAccepted`. The value is JSON: `acceptedGaps`, `acceptedBy`, `acceptedAtUtc`. Every id must exist in `ChQrKnownGaps.json`. Super Admin writes it with `POST /api/admin/tenants/{tenantId}/ch-qr-gap-acceptance` and reads it, together with the catalog, from the matching GET. There is no global row.
+
+`GET` returns every catalog id, so a new gap in the JSON shows up on that payload without a second list. Audit `ChQrKnownGapsAccepted` is 114. Activity `ChQrKnownGapsAccepted` is 260. While an open gap (`present: false`) is missing from `acceptedGaps`, invoice payload build logs a warning and publishes activity `ChQrKnownGapsOutstanding` (261). The invoice is not blocked.
+
+This record does not change `QrRechnungPdf`, does not set `QrRechnung:BankSubmit:Enabled`, and does not claim SIX IG 2.3 or MWST compliance. Option A now logs the download and the operator's bank-portal upload note. Option B is out of scope.
+
+### Option B decision (2026-09-30)
+
+**Decision: Option B is not in scope.** Regkasse does not originate pain.001 and does not open an EBICS session. This section does not enable `QrRechnung:BankSubmit`, does not add a table, and does not claim SIX or MWST compliance.
+
+#### Scope
+
+QR-Rechnung in this product is a bill the customer pays from the PDF (`QrRechnungPdf`). pain.001 over EBICS is a credit-transfer initiation: the software would move money on a tenant's bank contract. That is a different channel from printing a payment part. Paket 21 already chose Option D (print and PDF only) and said not to expand that package into Option B.
+
+This record does not name a bank or an EBICS 3.0 client. Swiss corporate banks that offer EBICS generally do so for the payer's payment file, not as a required way for a POS to lodge a QR-bill. Picking a bank here would be an unverified partnership claim.
+
+#### Operational workaround
+
+Option A is the workaround, and it is already in code as audit only:
+
+1. Super Admin downloads the existing PDF: `GET /api/admin/tenants/{tenantId}/ch-qr-invoices/{invoiceId}/pdf`. The download is refused (HTTP 409 `CH_QR_GAPS_NOT_ACCEPTED`) unless every open gap (`present: false`) is in `Fiscal.ChQrKnownGapsAccepted`, and it is refused when `QrRechnung:BankSubmit:Enabled` is true.
+2. The operator uploads that PDF in their own bank portal, outside Regkasse.
+3. Super Admin records the note: `POST .../upload-confirmation` with `uploadedBy`, `uploadedAtUtc`, and `bankReference`.
+
+Audit `QrRechnungPdfDownloaded` is 116. Audit `QrRechnungBankUploadConfirmed` is 117. Neither call stores a bank key or opens bank HTTP. A file already uploaded at the bank cannot be unsent from Regkasse.
+
+#### Why not Option B
+
+- No bank client exists. `QrRechnungBuilder.BuildPdfAsync` stops at PDF bytes.
+- `ChQrKnownGaps.json` keeps `pain001` and `bank-scan` at `present: false`.
+- `QrRechnung:BankSubmit:Enabled` defaults to false. Production and Staging refuse `true` at startup (`CountryFiscalLockEvaluator.ReasonQrBankSubmit`).
+- EBICS keys must not sit in `company_settings` or in `tenant_settings` as plain text. There is no approved vault and no licensed client dependency in this repo.
+- A duplicated or rejected bank payment would need a bank-side reversal. Regkasse cannot reverse a payment it never sent, and it must not pretend an audit row is that reversal.
+
+#### If a later package reopens Option B
+
+Do not start that package unless all of these are true:
+
+- At least three paying CH tenants have asked for it in writing, naming the bank.
+- That bank has a test contract for pain.001 over EBICS, and the contract says the file is the right instrument for this QR-bill use. A portal upload still available to those tenants is not enough to reopen Option B.
+- Security has chosen an external vault (Azure Key Vault, AWS Secrets Manager, or HashiCorp Vault) for the tenant's EBICS key material. A `bank_credentials` table is allowed only if every secret column is ciphertext and the encryption key comes from the deployment secret store. Plaintext in `company_settings` or `tenant_settings` stays forbidden.
+- The package names one EBICS library and its license (open-source terms or a paid contract) before the dependency is added. This record does not choose `EbicsClient.NET`, Treasury-NET, or a vendor SDK.
+- New audit events `QrRechnungBankSubmitRequested`, `QrRechnungBankSubmitSucceeded`, and `QrRechnungBankSubmitFailed` get new numbers in that package. They must not reuse 116 or 117. Each row stores actor, tenant id, invoice id, and a bank reference. It does not store the key, the pain.001 XML, or the IBAN.
+- Rollback in that package is: set `QrRechnung:BankSubmit:Enabled=false`, stop new sessions, and keep the audit rows. A payment the bank already accepted is reversed at the bank, not by deleting a Regkasse row.
+- `pain001` stays `present: false` until that package is marked production-ready in [`COUNTRIES.md`](COUNTRIES.md) §16. `QrRechnung:BankSubmit:Enabled` stays false until the same mark. This file does not flip it.
+
+#### What stays
+
+`QrRechnung:BankSubmit:Enabled=false` remains the answer. No `bank_credentials` migration. No EBICS client. PDF bytes are unchanged.
+
+### Why Option A is not “done” either
+
+The current PDF is not a measured SIX IG 2.3 print. `QrRechnungPdf` draws Empfangsschein and Zahlteil and a QR matrix, and it leaves these gaps:
+
+- The Swiss cross is painted into the module matrix. It is not the official 7 mm cross with a white border.
+- The page uses the default QuestPDF font, not embedded Liberation Sans or Arial.
+- There is no perforation mark.
+- There is no pain.001 file and no bank scan of the PDF.
+
+The download audit records that file. This plan still does not treat it as a SIX print.
+
+### Production-ready gate for Paket 21
+
+`QrRechnung:BankSubmit:Enabled` stays false. The artifact path is not production-ready until every row below is true. [`COUNTRIES.md`](COUNTRIES.md) §16 is the status table (payload and PDF implemented, bank submit not started).
+
+| Gate | Must be true |
+|------|----------------|
+| Config | `EInvoicing.QrRechnung` and `Fiscal.MwstCh` are explicit tenant choices, not an accidental go-live. `QrRechnung:BankSubmit:Enabled=false`. `QrRechnung:BuilderMode` is not `dryRun` (`CountryFiscalLockEvaluator`). |
+| Tables | `ch_receipt_sequences` exists. There is no `qr_rechnung_documents` table. The audit hash replaces it. That is not a reason to turn bank submit on. |
+| Output | Payload is SPC version `0200`, address type S, reference `QRR` / `SCOR` / `NON`. PDF gaps in the list above are closed or explicitly accepted. |
+| Audit | `AuditEventType.ChMwstQrBuilt` (106) exists for a canary QR. `QrRechnungPayloadBuilt` (111) and `QrRechnungPdfGenerated` (112) are written by `QrRechnungBuilder`. `newValues` is a hash and, for the PDF, a relative path. The SPC text and the IBAN are not logged. |
+| Tests | Payload starts with `SPC` and version `0200`. PDF bytes are produced. Production startup fails when bank submit is true. No test calls a bank. |
+
+### Rollback
+
+Rollback of the switch is `QrRechnung:BankSubmit:Enabled=false`. Production and Staging already refuse `true` at startup. Nothing was sent, so there is no bank transaction to reverse. There is no stored payload table to delete. A PDF that an operator already downloaded or uploaded outside Regkasse cannot be unsent from here. Do not route the tenant to Austrian TSE.

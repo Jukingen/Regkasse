@@ -42,6 +42,8 @@ export type AdminTenantListItem = {
   trialStatus?: string | null;
   trialEndsAtUtc?: string | null;
   trialDaysRemaining?: number | null;
+  verticalProfileId?: string | null;
+  verticalProfileName?: string | null;
 };
 
 export type TenantProvisioning = {
@@ -296,6 +298,22 @@ export async function updateAdminTenantCountry(
   const { data } = await AXIOS_INSTANCE.patch<AdminTenantDetail>(
     `/api/admin/tenants/${tenantId}/country`,
     body
+  );
+  return data;
+}
+
+export type CountryChangeImpact = {
+  affectedRowCount: number;
+  incompatibleRowCount: number;
+};
+
+export async function getAdminTenantCountryImpact(
+  tenantId: string,
+  country: string
+): Promise<CountryChangeImpact> {
+  const { data } = await AXIOS_INSTANCE.get<CountryChangeImpact>(
+    `/api/admin/tenants/${tenantId}/country-impact`,
+    { params: { country } }
   );
   return data;
 }

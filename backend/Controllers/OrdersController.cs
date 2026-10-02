@@ -111,6 +111,7 @@ namespace KasseAPI_Final.Controllers
                     WaiterName = request.WaiterName,
                     CustomerPhone = request.CustomerPhone,
                     Notes = request.Notes,
+                    LocationData = CloneLocation(request.LocationData),
                     OrderDate = DateTime.UtcNow,
                     Status = OrderStatus.Pending,
                     IdempotencyKey = key
@@ -335,6 +336,28 @@ namespace KasseAPI_Final.Controllers
         {
             return TaxTypes.GetTaxRate(taxType) / 100.0m;
         }
+
+        private static OrderLocationData? CloneLocation(OrderLocationData? source)
+        {
+            if (source is null)
+                return null;
+            var street = source.Street?.Trim();
+            var postal = source.PostalCode?.Trim();
+            var city = source.City?.Trim();
+            var notes = source.Notes?.Trim();
+            if (string.IsNullOrEmpty(street)
+                && string.IsNullOrEmpty(postal)
+                && string.IsNullOrEmpty(city)
+                && string.IsNullOrEmpty(notes))
+                return null;
+            return new OrderLocationData
+            {
+                Street = street,
+                PostalCode = postal,
+                City = city,
+                Notes = notes,
+            };
+        }
     }
 
     // DTOs
@@ -356,6 +379,7 @@ namespace KasseAPI_Final.Controllers
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? Notes { get; set; }
+        public OrderLocationData? LocationData { get; set; }
         /// <summary>Sprint 6: Optional idempotency key; retries with same key return existing order.</summary>
         [MaxLength(64)]
         public string? IdempotencyKey { get; set; }

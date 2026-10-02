@@ -79,6 +79,8 @@ namespace KasseAPI_Final.Data
 
         // DbSet properties
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductImei> ProductImeis { get; set; }
+        public DbSet<TicketRedemption> TicketRedemptions { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<BenefitDefinition> BenefitDefinitions { get; set; }
         public DbSet<PaymentMethodDefinition> PaymentMethodDefinitions { get; set; }
@@ -126,6 +128,15 @@ namespace KasseAPI_Final.Data
         public DbSet<UserSettings> UserSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<CompanySettings> CompanySettings { get; set; }
+        public DbSet<VerticalProfile> VerticalProfiles { get; set; }
+        public DbSet<VerticalProfileOverride> VerticalProfileOverrides { get; set; }
+        public DbSet<TenantVerticalOverride> TenantVerticalOverrides { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<Room> Rooms { get; set; }
+        public DbSet<GuestFolio> GuestFolios { get; set; }
+        public DbSet<GuestFolioItem> GuestFolioItems { get; set; }
+        public DbSet<KitchenOrder> KitchenOrders { get; set; }
+        public DbSet<KitchenOrderItem> KitchenOrderItems { get; set; }
         public DbSet<LocalizationSettings> LocalizationSettings { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<TenantDomain> TenantDomains { get; set; }
@@ -273,6 +284,12 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
         /// <summary>Per-register monotonic DE Belegnummer. Not the Austrian daily counter.</summary>
         public DbSet<DeReceiptSequence> DeReceiptSequences { get; set; }
+        /// <summary>SIGN DE signature rows. Not the Austrian <c>payment_details.tse_signature</c> column.</summary>
+        public DbSet<DeTseSignature> DeTseSignatures { get; set; }
+        /// <summary>Peppol participant ids. No credentials.</summary>
+        public DbSet<PeppolParticipant> PeppolParticipants { get; set; }
+        /// <summary>Peppol send outbox. No UBL payload.</summary>
+        public DbSet<EinvoiceSubmission> EinvoiceSubmissions { get; set; }
         /// <summary>Per-register monotonic CH Belegnummer. Not the Austrian daily counter.</summary>
         public DbSet<ChReceiptSequence> ChReceiptSequences { get; set; }
         /// <summary>Per-register monotonic EU Belegnummer. Not the Austrian daily counter.</summary>
@@ -1288,6 +1305,10 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.MinStockLevel).IsRequired();
                 entity.Property(e => e.MaxStockLevel).HasColumnName("max_stock_level");
                 entity.Property(e => e.Unit).HasMaxLength(20);
+                entity.Property(e => e.DurationMinutes).HasColumnName("duration_minutes");
+                entity.Property(e => e.StaffId).HasColumnName("staff_id").HasMaxLength(450);
+                entity.Property(e => e.ImeiTracked).HasColumnName("imei_tracked").HasDefaultValue(false);
+                entity.Property(e => e.IsTicket).HasColumnName("is_ticket").HasDefaultValue(false);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
                 entity.Property(e => e.CreatedBy).HasMaxLength(100);
@@ -1316,6 +1337,15 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.TaxGroupId);
                 entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.StaffId })
+                    .HasDatabaseName("idx_products_tenant_staff_id")
+                    .HasFilter("staff_id IS NOT NULL");
+                entity.HasIndex(e => e.ImeiTracked)
+                    .HasDatabaseName("idx_products_imei_tracked")
+                    .HasFilter("imei_tracked = TRUE");
+                entity.HasIndex(e => e.IsTicket)
+                    .HasDatabaseName("idx_products_is_ticket")
+                    .HasFilter("is_ticket = TRUE");
                 entity.HasIndex(e => e.OriginalProductId);
                 entity.HasIndex(e => new { e.TenantId, e.OriginalProductId, e.Version });
                 // Tenant-scoped name lookup (CategoryId+TenantId already covered by composite FK index).
@@ -1344,6 +1374,9 @@ namespace KasseAPI_Final.Data
                     t.HasCheckConstraint("CK_products_min_stock_level_non_negative", "min_stock_level >= 0");
                     t.HasCheckConstraint("CK_products_cost_non_negative", "cost >= 0");
                     t.HasCheckConstraint("CK_products_tax_rate_range", "tax_rate >= 0 AND tax_rate <= 100");
+                    t.HasCheckConstraint(
+                        "CK_products_duration_minutes_range",
+                        "duration_minutes IS NULL OR (duration_minutes >= 1 AND duration_minutes <= 1440)");
                 });
             });
 
@@ -1359,6 +1392,24 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Address).HasMaxLength(200);
                 entity.Property(e => e.TaxNumber).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.PetData)
+                    .HasColumnName("pet_data")
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        value => value == null ? null : JsonSerializer.Serialize(value),
+                        value => string.IsNullOrWhiteSpace(value)
+                            ? null
+                            : JsonSerializer.Deserialize<CustomerPetData>(value),
+                        JsonCollectionComparer<CustomerPetData>());
+                entity.Property(e => e.AddressData)
+                    .HasColumnName("address_data")
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        value => value == null ? null : JsonSerializer.Serialize(value),
+                        value => string.IsNullOrWhiteSpace(value)
+                            ? null
+                            : JsonSerializer.Deserialize<CustomerAddressData>(value),
+                        JsonCollectionComparer<CustomerAddressData>());
                 entity.Property(e => e.ApplicationUserId).HasMaxLength(450).IsRequired(false);
                 entity.Property(e => e.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
 
@@ -1493,6 +1544,11 @@ namespace KasseAPI_Final.Data
                     .HasColumnName("vat_regime_at_issue")
                     .HasConversion<string>()
                     .HasMaxLength(VatRegimeNames.MaxLength);
+                entity.Property(e => e.EinvoiceValidationPassed)
+                    .HasColumnName("einvoice_validation_passed");
+                entity.Property(e => e.EinvoiceValidationRuleIds)
+                    .HasColumnName("einvoice_validation_rule_ids")
+                    .HasMaxLength(500);
                 entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
@@ -1953,6 +2009,20 @@ namespace KasseAPI_Final.Data
                 entity.Ignore(e => e.PaymentMethod);
 
                 entity.Property(e => e.Notes).HasColumnType("text");
+                entity.Property(e => e.PrescriptionReference)
+                    .HasMaxLength(255)
+                    .HasColumnName("prescription_reference");
+                entity.Property(e => e.RouteFrom)
+                    .HasMaxLength(255)
+                    .HasColumnName("route_from");
+                entity.Property(e => e.RouteTo)
+                    .HasMaxLength(255)
+                    .HasColumnName("route_to");
+                entity.Property(e => e.RouteKm)
+                    .HasColumnName("route_km")
+                    .HasColumnType("decimal(8,2)");
+                entity.Property(e => e.TripStartedAtUtc)
+                    .HasColumnName("taxi_trip_started_at_utc");
                 entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
                 entity.Property(e => e.CancellationReason).HasColumnType("text");
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
@@ -3422,6 +3492,487 @@ namespace KasseAPI_Final.Data
                     .IsDescending(false, false, true);
             });
 
+            builder.Entity<VerticalProfile>(entity =>
+            {
+                entity.ToTable("vertical_profiles");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasMaxLength(64);
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+                entity.Property(e => e.PosFeatures)
+                    .HasColumnName("pos_features")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.RequiredFields)
+                    .HasColumnName("required_fields")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.OptionalFields)
+                    .HasColumnName("optional_fields")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.PosLayout)
+                    .HasColumnName("pos_layout")
+                    .HasMaxLength(32)
+                    .IsRequired();
+                entity.Property(e => e.IsActive)
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.IsActive)
+                    .HasDatabaseName("idx_vertical_profiles_is_active");
+                entity.HasData(VerticalProfileSeedData.All);
+            });
+
+            builder.Entity<VerticalProfileOverride>(entity =>
+            {
+                entity.ToTable("vertical_profile_overrides");
+                entity.HasKey(e => e.ProfileId);
+                entity.Property(e => e.ProfileId).HasColumnName("profile_id").HasMaxLength(64);
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+                entity.Property(e => e.PosFeaturesJson)
+                    .HasColumnName("pos_features_json")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.RequiredFieldsJson)
+                    .HasColumnName("required_fields_json")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.OptionalFieldsJson)
+                    .HasColumnName("optional_fields_json")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.PosLayout)
+                    .HasColumnName("pos_layout")
+                    .HasMaxLength(32)
+                    .IsRequired();
+                entity.Property(e => e.IsDeleted)
+                    .HasColumnName("is_deleted")
+                    .HasDefaultValue(false);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+            });
+
+            builder.Entity<ProductImei>(entity =>
+            {
+                entity.ToTable("product_imeis");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.ProductId)
+                    .HasColumnName("product_id")
+                    .IsRequired();
+                entity.Property(e => e.Imei)
+                    .HasColumnName("imei")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.SoldPaymentId).HasColumnName("sold_payment_id");
+                entity.Property(e => e.WarrantyMonths).HasColumnName("warranty_months");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.SoldAtUtc).HasColumnName("sold_at_utc");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_product_imeis_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Imei })
+                    .IsUnique()
+                    .HasDatabaseName("ux_product_imeis_tenant_imei");
+                entity.HasIndex(e => new { e.TenantId, e.ProductId, e.Status })
+                    .HasDatabaseName("ix_product_imeis_tenant_product_status");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.Imeis)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.SoldPayment)
+                    .WithMany()
+                    .HasForeignKey(e => e.SoldPaymentId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<Room>(entity =>
+            {
+                entity.ToTable("rooms");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.Number)
+                    .HasColumnName("number")
+                    .HasMaxLength(32)
+                    .IsRequired();
+                entity.Property(e => e.Type)
+                    .HasColumnName("type")
+                    .HasMaxLength(64)
+                    .IsRequired();
+                entity.Property(e => e.Capacity).HasColumnName("capacity");
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .HasDefaultValue(RoomStatus.Available);
+                entity.Property(e => e.IsActive)
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_rooms_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Number })
+                    .IsUnique()
+                    .HasDatabaseName("ux_rooms_tenant_number");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<GuestFolio>(entity =>
+            {
+                entity.ToTable("guest_folios");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.CustomerId)
+                    .HasColumnName("customer_id")
+                    .IsRequired();
+                entity.Property(e => e.RoomId)
+                    .HasColumnName("room_id")
+                    .IsRequired();
+                entity.Property(e => e.CheckIn).HasColumnName("check_in");
+                entity.Property(e => e.CheckOut).HasColumnName("check_out");
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .HasDefaultValue(GuestFolioStatus.Open);
+                entity.Property(e => e.Balance)
+                    .HasColumnName("balance")
+                    .HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_guest_folios_tenant_id");
+                entity.HasIndex(e => e.RoomId)
+                    .HasDatabaseName("ix_guest_folios_room_id");
+                entity.HasIndex(e => new { e.TenantId, e.RoomId })
+                    .HasDatabaseName("ix_guest_folios_tenant_room");
+                entity.HasIndex(e => e.CustomerId)
+                    .HasDatabaseName("ix_guest_folios_customer_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Room)
+                    .WithMany(room => room.Folios)
+                    .HasForeignKey(e => e.RoomId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(e => e.Items)
+                    .WithOne(i => i.Folio)
+                    .HasForeignKey(i => i.FolioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<GuestFolioItem>(entity =>
+            {
+                entity.ToTable("guest_folio_items");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.FolioId)
+                    .HasColumnName("folio_id")
+                    .IsRequired();
+                entity.Property(e => e.PaymentDetailId).HasColumnName("payment_detail_id");
+                entity.Property(e => e.Description)
+                    .HasColumnName("description")
+                    .HasMaxLength(255)
+                    .IsRequired();
+                entity.Property(e => e.Amount)
+                    .HasColumnName("amount")
+                    .HasColumnType("decimal(10,2)");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.FolioId)
+                    .HasDatabaseName("ix_guest_folio_items_folio_id");
+                entity.HasIndex(e => e.PaymentDetailId)
+                    .HasDatabaseName("ix_guest_folio_items_payment_detail_id");
+                entity.HasOne(e => e.Folio)
+                    .WithMany(folio => folio.Items)
+                    .HasForeignKey(e => e.FolioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.PaymentDetail)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentDetailId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<TicketRedemption>(entity =>
+            {
+                entity.ToTable("ticket_redemptions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.PaymentDetailId).HasColumnName("payment_detail_id");
+                entity.Property(e => e.TicketCode)
+                    .HasColumnName("ticket_code")
+                    .HasMaxLength(64)
+                    .IsRequired();
+                entity.Property(e => e.TicketCodeHash)
+                    .HasColumnName("ticket_code_hash")
+                    .HasMaxLength(128)
+                    .IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.ValidFromUtc).HasColumnName("valid_from_utc");
+                entity.Property(e => e.ValidUntilUtc).HasColumnName("valid_until_utc");
+                entity.Property(e => e.RedeemedAtUtc).HasColumnName("redeemed_at_utc");
+                entity.Property(e => e.RedeemedByUserId)
+                    .HasColumnName("redeemed_by_user_id")
+                    .HasMaxLength(450);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_ticket_redemptions_tenant_id");
+                entity.HasIndex(e => e.TicketCode)
+                    .HasDatabaseName("ix_ticket_redemptions_ticket_code");
+                entity.HasIndex(e => e.PaymentDetailId)
+                    .HasDatabaseName("ix_ticket_redemptions_payment_detail_id");
+                entity.HasIndex(e => new { e.TenantId, e.TicketCodeHash })
+                    .IsUnique()
+                    .HasDatabaseName("ux_ticket_redemptions_tenant_code_hash");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.PaymentDetail)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentDetailId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<Appointment>(entity =>
+            {
+                entity.ToTable("appointments");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+                entity.Property(e => e.ServiceProductId).HasColumnName("service_product_id");
+                entity.Property(e => e.StaffId)
+                    .HasColumnName("staff_id")
+                    .HasMaxLength(450);
+                entity.Property(e => e.StartUtc).HasColumnName("start_utc");
+                entity.Property(e => e.EndUtc).HasColumnName("end_utc");
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.Version)
+                    .HasColumnName("version")
+                    .IsConcurrencyToken()
+                    .HasDefaultValue(1);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.CreatedByUserId)
+                    .HasColumnName("created_by_user_id")
+                    .HasMaxLength(450);
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_appointments_tenant_id");
+                entity.HasIndex(e => e.StartUtc)
+                    .HasDatabaseName("ix_appointments_start_utc");
+                entity.HasIndex(e => new { e.TenantId, e.StaffId, e.StartUtc })
+                    .IsUnique()
+                    .HasDatabaseName("ux_appointments_tenant_staff_start")
+                    .HasFilter("staff_id IS NOT NULL AND status IN (0, 1)");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+                entity.HasOne(e => e.ServiceProduct)
+                    .WithMany()
+                    .HasForeignKey(e => e.ServiceProductId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<KitchenOrder>(entity =>
+            {
+                entity.ToTable("kitchen_orders");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.CartId).HasColumnName("cart_id");
+                entity.Property(e => e.TableNumber)
+                    .HasColumnName("table_number")
+                    .HasMaxLength(16);
+                entity.Property(e => e.CashRegisterId)
+                    .HasColumnName("cash_register_id")
+                    .IsRequired();
+                entity.Property(e => e.CreatedByUserId)
+                    .HasColumnName("created_by_user_id")
+                    .HasMaxLength(450)
+                    .IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.Priority)
+                    .HasColumnName("priority")
+                    .HasDefaultValue(0);
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.ReadyAtUtc).HasColumnName("ready_at_utc");
+                entity.Property(e => e.ServedAtUtc).HasColumnName("served_at_utc");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_kitchen_orders_tenant_id");
+                entity.HasIndex(e => e.CashRegisterId)
+                    .HasDatabaseName("ix_kitchen_orders_cash_register_id");
+                entity.HasIndex(e => e.Status)
+                    .HasDatabaseName("ix_kitchen_orders_status");
+                entity.HasIndex(e => e.CartId)
+                    .HasDatabaseName("ix_kitchen_orders_cart_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Cart)
+                    .WithMany()
+                    .HasForeignKey(e => e.CartId)
+                    .HasPrincipalKey(cart => cart.Id)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<KitchenOrderItem>(entity =>
+            {
+                entity.ToTable("kitchen_order_items");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.KitchenOrderId)
+                    .HasColumnName("kitchen_order_id")
+                    .IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.ProductName)
+                    .HasColumnName("product_name")
+                    .HasMaxLength(255)
+                    .IsRequired();
+                entity.Property(e => e.Quantity).HasColumnName("quantity");
+                entity.Property(e => e.Notes).HasColumnName("notes");
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.KitchenOrderId)
+                    .HasDatabaseName("ix_kitchen_order_items_kitchen_order_id");
+                entity.HasIndex(e => e.ProductId)
+                    .HasDatabaseName("IX_kitchen_order_items_product_id");
+                entity.HasOne(e => e.KitchenOrder)
+                    .WithMany(order => order.Items)
+                    .HasForeignKey(e => e.KitchenOrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<TenantVerticalOverride>(entity =>
+            {
+                entity.ToTable("tenant_vertical_overrides");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.OverridesJson)
+                    .HasColumnName("overrides_json")
+                    .HasColumnType("jsonb")
+                    .IsRequired();
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .IsUnique()
+                    .HasDatabaseName("ux_tenant_vertical_overrides_tenant_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             // CompanySettings configuration
             builder.Entity<CompanySettings>(entity =>
             {
@@ -3475,6 +4026,24 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.PaymentTerms).HasMaxLength(50);
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
                 entity.Property(e => e.Country).IsRequired().HasMaxLength(2).HasDefaultValue("AT");
+                entity.Property(e => e.VerticalProfileId)
+                    .HasColumnName("vertical_profile_id")
+                    .HasMaxLength(64);
+                entity.Property(e => e.TaxiTariffPerKm)
+                    .HasColumnName("taxi_tariff_per_km")
+                    .HasColumnType("decimal(8,2)");
+                entity.Property(e => e.KitchenOrderAutoClearMinutes)
+                    .HasColumnName("kitchen_order_auto_clear_minutes")
+                    .HasDefaultValue(30);
+                entity.Property(e => e.KitchenOrderSound)
+                    .HasColumnName("kitchen_order_sound")
+                    .HasDefaultValue(true);
+                entity.HasOne(e => e.VerticalProfile)
+                    .WithMany()
+                    .HasForeignKey(e => e.VerticalProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.VerticalProfileId)
+                    .HasDatabaseName("idx_company_settings_vertical_profile_id");
                 entity.Property(e => e.BillingCountry)
                     .HasColumnName("billing_country")
                     .HasMaxLength(2);
@@ -4522,6 +5091,15 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CustomerName).HasMaxLength(100);
                 entity.Property(e => e.CustomerPhone).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.LocationData)
+                    .HasColumnName("location_data")
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        value => value == null ? null : JsonSerializer.Serialize(value),
+                        value => string.IsNullOrWhiteSpace(value)
+                            ? null
+                            : JsonSerializer.Deserialize<OrderLocationData>(value),
+                        JsonCollectionComparer<OrderLocationData>());
                 entity.Property(e => e.OrderDate).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
                 entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)");
@@ -4700,6 +5278,84 @@ namespace KasseAPI_Final.Data
                     .HasDatabaseName("IX_de_receipt_sequences_cash_register_id");
                 entity.HasIndex(e => e.TenantId)
                     .HasDatabaseName("IX_de_receipt_sequences_tenant_id");
+            });
+
+            builder.Entity<DeTseSignature>(entity =>
+            {
+                entity.ToTable("de_tse_signatures");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.PaymentDetailsId).IsRequired();
+                entity.Property(e => e.TssId).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.TransactionId).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.Signature).IsRequired();
+                entity.Property(e => e.SignatureAlgorithm).HasMaxLength(32);
+                entity.Property(e => e.CertificateSerial).HasMaxLength(128);
+                entity.Property(e => e.SignedAtUtc).IsRequired();
+
+                entity.HasOne(e => e.Payment)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentDetailsId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.PaymentDetailsId).IsUnique()
+                    .HasDatabaseName("IX_de_tse_signatures_payment_details_id");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_de_tse_signatures_tenant_id");
+            });
+
+            builder.Entity<PeppolParticipant>(entity =>
+            {
+                entity.ToTable("peppol_participants");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.ParticipantId).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.ApEnvironment).HasMaxLength(8).IsRequired();
+                entity.Property(e => e.LegalEntityId).HasMaxLength(255);
+                entity.Property(e => e.EIdentifierScheme).HasMaxLength(64);
+                entity.Property(e => e.EIdentifierValue).HasMaxLength(255);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.ParticipantId }).IsUnique()
+                    .HasDatabaseName("IX_peppol_participants_tenant_id_participant_id");
+            });
+
+            builder.Entity<EinvoiceSubmission>(entity =>
+            {
+                entity.ToTable("einvoice_submissions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.InvoiceId).IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(16).IsRequired();
+                entity.Property(e => e.CorrelationId).IsRequired();
+                entity.Property(e => e.FailureReason).HasMaxLength(512);
+                entity.Property(e => e.ProviderMessageId).HasMaxLength(255);
+                entity.Property(e => e.ProviderStatus).HasMaxLength(64);
+                entity.Property(e => e.ProviderAttemptCount).HasDefaultValue(0).IsRequired();
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<Invoice>()
+                    .WithMany()
+                    .HasForeignKey(e => e.InvoiceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_einvoice_submissions_tenant_id");
+                entity.HasIndex(e => e.InvoiceId)
+                    .HasDatabaseName("IX_einvoice_submissions_invoice_id");
+                entity.HasIndex(e => e.CorrelationId)
+                    .HasDatabaseName("IX_einvoice_submissions_correlation_id");
             });
 
             builder.Entity<ChReceiptSequence>(entity =>
@@ -5699,6 +6355,7 @@ namespace KasseAPI_Final.Data
             SignatureChainState sc => sc.CashRegisterId,
             Receipt r => r.CashRegisterId,
             Invoice inv => inv.CashRegisterId,
+            KitchenOrder ko => ko.CashRegisterId,
             _ => null
         };
 

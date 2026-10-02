@@ -12,5 +12,6 @@ export type CreateTenantFormValues = {
   grantTrialLicense?: boolean;
   trialDurationDays?: 14 | 30 | 60 | 90;
   importDemoProducts?: boolean;
+  fiscalFlags?: Record<string, boolean>;
   formError?: string;
 };

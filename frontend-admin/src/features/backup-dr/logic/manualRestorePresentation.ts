@@ -16,7 +16,7 @@ export function isValidValidationDatabaseName(name: string): boolean {
 }
 
 export function isBackupRunEligibleForManualRestore(status: number | undefined): boolean {
-  return status === BackupRunStatus.NUMBER_3;
+  return status === BackupRunStatus.Succeeded;
 }
 
 export function isManualRestoreTerminalStatus(status: string | undefined): boolean {

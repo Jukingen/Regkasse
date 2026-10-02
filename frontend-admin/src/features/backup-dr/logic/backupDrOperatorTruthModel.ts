@@ -12,9 +12,9 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupRunResponseDtoStatus,
-  BackupVerificationResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupRunStatus,
+  BackupVerificationStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import type { BackupEvidenceLadderModel } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
 import { deriveBackupEvidenceLadder } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
@@ -312,7 +312,7 @@ export function deriveRunTruth(
   health: BackupConfigurationHealthResponseDto | undefined,
   recoverabilitySummary: BackupRecoverabilitySummaryResponseDto | undefined
 ): RunTruth {
-  const technicalSuccess = latest?.status === BackupRunResponseDtoStatus.NUMBER_3;
+  const technicalSuccess = latest?.status === BackupRunStatus.Succeeded;
 
   let simulatedEvidence = false;
   let simulatedEvidenceSource: RunTruth['simulatedEvidenceSource'] = 'none';
@@ -409,8 +409,8 @@ export function deriveRestoreTruth(params: {
     readinessCapped,
     backendReportedCapability: cap,
     policyUnknown: cap.raw === undefined,
-    latestDrillFailed: st === RestoreVerificationRunResponseDtoStatus.NUMBER_3,
-    latestDrillSucceeded: st === RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+    latestDrillFailed: st === RestoreVerificationStatus.Failed,
+    latestDrillSucceeded: st === RestoreVerificationStatus.Succeeded,
     backupExecutionProfileRunnable: undefined,
   };
 }
@@ -589,7 +589,7 @@ function pushBannerFromAlerts(
   }
 
   const v = verification;
-  if (v && v.status === BackupVerificationResponseDtoStatus.NUMBER_2 && v.failureReason) {
+  if (v && v.status === BackupVerificationStatus.Failed && v.failureReason) {
     warn.push(`${t('backupDr.artifactVerification.failed')}: ${v.failureReason}`);
   }
 
@@ -598,7 +598,7 @@ function pushBannerFromAlerts(
   }
 
   const latestSucceededSimulated =
-    lr?.status === BackupRunResponseDtoStatus.NUMBER_3 &&
+    lr?.status === BackupRunStatus.Succeeded &&
     (detailForPipeline?.isSimulatedExecution === true ||
       isSimulatedBackupAdapterKind(lr?.adapterKind));
   /** recoverability block + noRealPostgreSql line already explain “not production pg_dump”; avoid repeating. */
@@ -609,7 +609,7 @@ function pushBannerFromAlerts(
   }
 
   const rr = restoreLatest;
-  if (rr && rr.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3) {
+  if (rr && rr.status === RestoreVerificationStatus.Failed) {
     const simHeuristic = restoreDrillSimulatedHeuristic(
       health,
       latest,
@@ -706,7 +706,7 @@ function buildOperatorAlertRows(
     });
   }
   const v = verification;
-  if (v && v.status === BackupVerificationResponseDtoStatus.NUMBER_2 && v.failureReason) {
+  if (v && v.status === BackupVerificationStatus.Failed && v.failureReason) {
     items.push({
       severity: 'warning',
       text: `${t('backupDr.artifactVerification.failed')}: ${v.failureReason}`,
@@ -715,7 +715,7 @@ function buildOperatorAlertRows(
   }
   const rr = restoreLatest;
   /** Drill başarısız: üst HealthBanner + RestoreVerificationCard — Fake stub PG_RESTORE_LIST_FAILED Alerts’te yok. */
-  if (rr && rr.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3) {
+  if (rr && rr.status === RestoreVerificationStatus.Failed) {
     const simHeuristic = restoreDrillSimulatedHeuristic(
       health,
       latest,

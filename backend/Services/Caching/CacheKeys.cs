@@ -74,6 +74,17 @@ public static class CacheKeys
     public const string TseHealth = "tse_health_{0}";
 
     /// <summary>
+    /// Merged vertical-profile catalog (code seed plus database overrides). Fixed string.
+    /// </summary>
+    public const string VerticalProfileCatalog = "vertical_profile_catalog";
+
+    /// <summary>
+    /// Effective vertical profile for one tenant.
+    /// Format: <c>vertical_profile_effective_{tenantId}</c> — arg0 = tenant id.
+    /// </summary>
+    public const string VerticalProfileEffective = "vertical_profile_effective_{0}";
+
+    /// <summary>
     /// Ready/deps probe ping key (not business data). Fixed string — do not <see cref="Format"/>.
     /// </summary>
     public const string HealthPing = "health_check_ping";

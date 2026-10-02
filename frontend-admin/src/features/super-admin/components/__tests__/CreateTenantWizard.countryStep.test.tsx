@@ -216,22 +216,25 @@ describe('CreateTenantWizard country step', () => {
       const nameInput = screen.getByLabelText('Firmenname');
       const modal = nameInput.closest('.ant-modal') as HTMLElement;
 
+      // React's onChange listens for the input event. Per-keystroke user.type
+      // re-renders this wizard until the 15s budget is gone, and the submit
+      // button stays disabled until the debounced slug check returns.
       const companyName = within(modal).getByLabelText('Firmenname');
-      await user.click(companyName);
-      await user.paste('Cafe Muster');
+      fireEvent.input(companyName, { target: { value: 'Cafe Muster' } });
       fireEvent.blur(companyName);
       const email = within(modal).getByLabelText('E-Mail (Kontakt)');
-      await user.click(email);
-      await user.paste('info@cafe-muster.at');
+      fireEvent.input(email, { target: { value: 'info@cafe-muster.at' } });
       fireEvent.blur(email);
       const slugInput = within(modal).getByPlaceholderText('cafe-beispiel');
-      await user.click(slugInput);
-      await user.paste('cafe-muster');
+      fireEvent.input(slugInput, { target: { value: 'cafe-muster' } });
       fireEvent.blur(slugInput);
 
-      await waitFor(() => {
-        expect(within(modal).getByRole('button', { name: 'Kunden anlegen' })).not.toBeDisabled();
-      });
+      await waitFor(
+        () => {
+          expect(within(modal).getByRole('button', { name: 'Kunden anlegen' })).not.toBeDisabled();
+        },
+        { timeout: 3000 }
+      );
 
       await user.click(within(modal).getByRole('button', { name: 'Kunden anlegen' }));
 

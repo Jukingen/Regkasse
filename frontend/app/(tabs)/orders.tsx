@@ -5,9 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DynamicField } from '../../components/DynamicField';
+import { IfVerticalFeature } from '../../components/IfVerticalFeature';
+import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
 import { SoftColors, SoftSpacing } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useVerticalFeatures } from '../../contexts/VerticalProfileContext';
 import { usePosPermissions } from '../../hooks/usePosPermissions';
 import {
   listPreorders,
@@ -27,13 +31,15 @@ export default function OrdersScreen() {
   const { t } = useTranslation(['orders', 'checkout', 'common']);
   const { user } = useAuth();
   const { canTakeOrders, canViewOrders } = usePosPermissions();
-  const { cartsByTable, switchTable, activeTableId } = useCart();
+  const { cartsByTable, switchTable, activeTableId, saleCustomer } = useCart();
+  const { profileId } = useVerticalFeatures();
   const canUpdatePreorder = hasPermission(user, 'order.update');
 
   const [preorders, setPreorders] = useState<PreorderDto[]>([]);
   const [preorderFilter, setPreorderFilter] = useState<PreorderStatus | ''>('');
   const [receiptQuery, setReceiptQuery] = useState('');
   const [preorderLoading, setPreorderLoading] = useState(false);
+  const [routeValue, setRouteValue] = useState('');
 
   const openTables = useMemo(() => {
     const rows: { table: number; totalItems: number }[] = [];
@@ -149,37 +155,59 @@ export default function OrdersScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>{t('orders:title')}</Text>
 
-        {canTakeOrders ? (
-          <Pressable
-            onPress={() => void handleNewOrder()}
-            style={styles.newButton}
-            accessibilityRole="button"
-            accessibilityLabel={t('orders:new')}>
-            <Ionicons name="add-circle-outline" size={22} color={SoftColors.textInverse} />
-            <Text style={styles.newButtonText}>{t('orders:new')}</Text>
-          </Pressable>
-        ) : null}
-
-        {!canViewOrders ? (
-          <Text style={styles.empty}>{t('checkout:posFlow.toast.noOrderPermission')}</Text>
-        ) : openTables.length === 0 ? (
-          <Text style={styles.empty}>{t('orders:no_orders')}</Text>
+        {profileId === 'mobile-services' ? (
+          <MobileServiceRoutePanel
+            customerName={saleCustomer?.name}
+            customerId={saleCustomer?.id}
+          />
         ) : (
-          <View style={styles.list}>
-            {openTables.map((row) => (
-              <Pressable
-                key={row.table}
-                onPress={() => void handleOpenTable(row.table)}
-                style={styles.row}
-                accessibilityRole="button">
-                <Text style={styles.rowTitle}>
-                  {t('orders:table')} {row.table}
-                </Text>
-                <Text style={styles.rowCount}>{row.totalItems}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <IfVerticalFeature feature="routeTracking">
+            <View style={styles.routeField}>
+              <DynamicField
+                name="route"
+                entity="order"
+                value={routeValue}
+                onChangeText={setRouteValue}
+              />
+            </View>
+          </IfVerticalFeature>
         )}
+
+        <IfVerticalFeature feature="tables">
+          <>
+            {canTakeOrders ? (
+              <Pressable
+                onPress={() => void handleNewOrder()}
+                style={styles.newButton}
+                accessibilityRole="button"
+                accessibilityLabel={t('orders:new')}>
+                <Ionicons name="add-circle-outline" size={22} color={SoftColors.textInverse} />
+                <Text style={styles.newButtonText}>{t('orders:new')}</Text>
+              </Pressable>
+            ) : null}
+
+            {!canViewOrders ? (
+              <Text style={styles.empty}>{t('checkout:posFlow.toast.noOrderPermission')}</Text>
+            ) : openTables.length === 0 ? (
+              <Text style={styles.empty}>{t('orders:no_orders')}</Text>
+            ) : (
+              <View style={styles.list}>
+                {openTables.map((row) => (
+                  <Pressable
+                    key={row.table}
+                    onPress={() => void handleOpenTable(row.table)}
+                    style={styles.row}
+                    accessibilityRole="button">
+                    <Text style={styles.rowTitle}>
+                      {t('orders:table')} {row.table}
+                    </Text>
+                    <Text style={styles.rowCount}>{row.totalItems}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </>
+        </IfVerticalFeature>
 
         {canViewOrders ? (
           <View style={styles.preorderBlock}>
@@ -267,6 +295,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.md,
+  },
+  routeField: {
     marginBottom: SoftSpacing.md,
   },
   sectionTitle: {

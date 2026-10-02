@@ -25,7 +25,9 @@ public sealed record AdminTenantListItemDto(
     DateTime? LastActivityAtUtc = null,
     string? TrialStatus = null,
     DateTime? TrialEndsAtUtc = null,
-    int? TrialDaysRemaining = null);
+    int? TrialDaysRemaining = null,
+    string? VerticalProfileId = null,
+    string? VerticalProfileName = null);
 
 /// <summary>Query for Super Admin tenant list (filter / sort / page).</summary>
 public sealed class AdminTenantListQuery
@@ -167,7 +169,7 @@ public sealed class CreateAdminTenantRequest
     /// <c>EU_DEFAULT</c> is rejected as not tenant-selectable (not a 2-letter code).
     /// </summary>
     [Required]
-    [MaxLength(32)]
+    [RegularExpression(Iso3166CountryCode.RequiredPattern, ErrorMessage = Iso3166CountryCode.ValidationMessage)]
     public string CountryCode { get; set; } = string.Empty;
 
     /// <summary>Must be in the selected country's <c>AllowedVatRegimes</c>.</summary>
@@ -270,10 +272,18 @@ public static class AdminTenantCountryErrorCodes
     public const string TenantNotFound = "TENANT_NOT_FOUND";
     public const string CompanySettingsMissing = "COMPANY_SETTINGS_MISSING";
     public const string CountryLockedFiscal = "COUNTRY_LOCKED_FISCAL";
+    public const string FiscalCountryChangeInvalid = "FISCAL_COUNTRY_CHANGE_INVALID";
     public const string UnknownCountry = "UNKNOWN_COUNTRY_CODE";
     public const string CountryNotSelectable = "COUNTRY_NOT_SELECTABLE";
     public const string VatRegimeNotAllowed = "VAT_REGIME_NOT_ALLOWED";
     public const string AtEuOssNotSupported = "AT_EU_OSS_NOT_SUPPORTED";
+}
+
+public sealed class CountryChangeImpactDto
+{
+    public int AffectedRowCount { get; set; }
+
+    public int IncompatibleRowCount { get; set; }
 }
 
 public sealed class UpdateTenantOperationModeRequest

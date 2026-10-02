@@ -172,8 +172,8 @@ export function BackupDashboard() {
       onRunDrill={handleRunDrill}
       statsFetching={statsQuery.isFetching}
       activeBackupHint={
-        latestFromStatus?.status === BackupRunStatus.NUMBER_1 ||
-        latestFromStatus?.status === BackupRunStatus.NUMBER_2
+        latestFromStatus?.status === BackupRunStatus.Running ||
+        latestFromStatus?.status === BackupRunStatus.AwaitingVerification
       }
       navigateToRun={navigateToRun}
       invalidateAll={invalidateAll}

@@ -27,6 +27,10 @@ import { MaintenanceProvider } from '../contexts/MaintenanceContext';
 import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext';
 import { SystemProvider } from '../contexts/SystemContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { VerticalProfileProvider } from '../contexts/VerticalProfileContext';
+import { MobileServiceJobProvider } from '../contexts/MobileServiceJobContext';
+import { TaxiTripProvider } from '../contexts/TaxiTripContext';
+import { ImeiSelectionProvider } from '../contexts/ImeiSelectionContext';
 import { i18nReady } from '../i18n';
 import { OfflineSyncService } from '../services/offline/offlineSyncService';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
@@ -125,17 +129,21 @@ export default function RootLayout() {
       <ErrorBoundary>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <AuthProvider>
-            <PosStatusOverviewProvider>
-              <LicenseStatusProvider>
-                <MandantLicenseWarningProvider>
-                  <LicenseExpiryNotificationBridge />
-                  <MaintenanceProvider>
-                  <SystemProvider>
-                    <ThemeProvider>
-                      <AppStateProvider>
-                        <CartProvider>
-                          <DevelopmentModeProvider>
-                            <Stack
+            <VerticalProfileProvider>
+              <TaxiTripProvider>
+              <MobileServiceJobProvider>
+              <ImeiSelectionProvider>
+              <PosStatusOverviewProvider>
+                <LicenseStatusProvider>
+                  <MandantLicenseWarningProvider>
+                    <LicenseExpiryNotificationBridge />
+                    <MaintenanceProvider>
+                    <SystemProvider>
+                      <ThemeProvider>
+                        <AppStateProvider>
+                          <CartProvider>
+                            <DevelopmentModeProvider>
+                              <Stack
                               screenOptions={{
                                 headerShown: false,
                                 // With enableFreeze(true) above, inactive routes suspend (native iOS/Android).
@@ -150,17 +158,21 @@ export default function RootLayout() {
                               <Stack.Screen name="order-tracker" />
                               <Stack.Screen name="online-payment/callback" />
                             </Stack>
-                            <ThemedStatusBar />
-                            <ThemedSystemUI />
-                          </DevelopmentModeProvider>
-                        </CartProvider>
-                      </AppStateProvider>
-                    </ThemeProvider>
-                  </SystemProvider>
-                  </MaintenanceProvider>
-                </MandantLicenseWarningProvider>
-              </LicenseStatusProvider>
-            </PosStatusOverviewProvider>
+                              <ThemedStatusBar />
+                              <ThemedSystemUI />
+                            </DevelopmentModeProvider>
+                          </CartProvider>
+                        </AppStateProvider>
+                      </ThemeProvider>
+                    </SystemProvider>
+                    </MaintenanceProvider>
+                  </MandantLicenseWarningProvider>
+                </LicenseStatusProvider>
+              </PosStatusOverviewProvider>
+              </ImeiSelectionProvider>
+              </MobileServiceJobProvider>
+              </TaxiTripProvider>
+            </VerticalProfileProvider>
           </AuthProvider>
         </SafeAreaProvider>
       </ErrorBoundary>

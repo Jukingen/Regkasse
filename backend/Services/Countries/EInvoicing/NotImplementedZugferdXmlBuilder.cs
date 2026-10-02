@@ -32,7 +32,6 @@ public sealed class NotImplementedZugferdXmlBuilder : IZugferdXmlBuilder
             throw new FeatureDisabledException(FeatureFlagNames.EInvoicingZugferd);
         }
 
-        throw new NotImplementedException(
-            "ZUGFeRD XML is not implemented. See docs/FISCAL_GERMANY.md.");
+        throw new EInvoicingNotSupportedForCountryException("ZUGFeRD", document.CountryCode);
     }
 }

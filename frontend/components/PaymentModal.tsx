@@ -70,6 +70,7 @@ import {
 } from '../services/payment/onlinePaymentFlow';
 import { logger } from '../lib/logger';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { printIssuedTicketsAsync } from '../services/ticketPrinter';
 import {
   POS_RECEIPT_REPRINT_REASONS,
   reprintReceipt,
@@ -77,6 +78,14 @@ import {
 import { VoucherScanner } from './VoucherScanner';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import CardPaymentModal from './CardPaymentModal';
+import { OfflineLimitReachedModal } from './OfflineLimitReachedModal';
+import { isOfflineQueueAtCap, isOfflineQueueLimitFailure } from '../utils/offlineQueueLimit';
+import { resolveEffectiveOfflineTenantLimit } from '../services/offline/offlineTenantLimit';
+import { retryOfflineQueuesNow } from '../services/offline/retryOfflineQueues';
+import { getPendingPaymentQueue } from '../services/payment/pendingPaymentQueue';
+import { IfVerticalFeature } from './IfVerticalFeature';
+import { parseTaxiKm, useOptionalTaxiTrip } from '../contexts/TaxiTripContext';
+import { useOptionalImeiSelections } from '../contexts/ImeiSelectionContext';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
@@ -262,7 +271,16 @@ export default function PaymentModal({
   tableNumber,
   onPosToast,
 }: PaymentModalProps) {
-  const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings', 'system', 'receipts']);
+  const { t, i18n } = useTranslation([
+    'checkout',
+    'common',
+    'invoices',
+    'settings',
+    'system',
+    'receipts',
+    'verticalProfiles',
+    'offline',
+  ]);
   const { t: tLicense } = useTranslation('license');
   const { user } = useAuth();
   const { canMakePayment, canReprintReceipt } = usePosPermissions();
@@ -283,6 +301,9 @@ export default function PaymentModal({
   /** Cash (Bar): false only when a typed tender is present and below the rest amount. */
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [notes, setNotes] = useState<string>('');
+  const [isPrescription, setIsPrescription] = useState(false);
+  const taxiTrip = useOptionalTaxiTrip();
+  const imeiSelections = useOptionalImeiSelections();
   const [isPreorder, setIsPreorder] = useState(false);
   const [preorderRemainingText, setPreorderRemainingText] = useState('');
   const [balanceQuery, setBalanceQuery] = useState('');
@@ -302,6 +323,7 @@ export default function PaymentModal({
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
   /** Receipt payload for summary � GET /api/pos/payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
   const [cardSimVisible, setCardSimVisible] = useState(false);
   const [cardPaymentIntentId, setCardPaymentIntentId] = useState<string | undefined>();
@@ -992,6 +1014,15 @@ export default function PaymentModal({
       return;
     }
 
+    const localPending = await getPendingPaymentQueue().catch(() => []);
+    const offlineCap = await resolveEffectiveOfflineTenantLimit(localPending.length);
+    if (isOfflineQueueAtCap(offlineCap.current, offlineCap.limit)) {
+      debugPosPaymentTrace('submit_blocked_offline_limit', offlineCap);
+      logPay('Guard exit: offline tenant limit');
+      setLimitModalVisible(true);
+      return;
+    }
+
     if (offlineBlocksVoucher) {
       logPay('Guard exit: offline blocks voucher');
       Alert.alert('Debug Error', 'Failed at: Gutschein offline nicht m�glich');
@@ -1232,11 +1263,34 @@ export default function PaymentModal({
       // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
       // Guard: flat items only � do not add modifierIds or modifiers (one item per cart line).
       // taxType: paymentService.processPayment normalizes all items before POST / queue
-      const paymentItems: PaymentItem[] = cartItems.map((item) => ({
-        productId: item.productId,
-        quantity: (item as any).qty ?? item.quantity,
-        taxType: item.taxType as PaymentItem['taxType'],
-      }));
+      const paymentItems: PaymentItem[] = [];
+      for (const item of cartItems) {
+        const quantity = (item as { qty?: number; quantity?: number }).qty ?? item.quantity;
+        const reserved = imeiSelections?.peek(item.productId) ?? [];
+        if (reserved.length > 0) {
+          if (reserved.length < quantity) {
+            showAlert(
+              t('verticalProfiles:screens.imei.title'),
+              t('verticalProfiles:screens.imei.missing')
+            );
+            return;
+          }
+          for (let index = 0; index < quantity; index += 1) {
+            paymentItems.push({
+              productId: item.productId,
+              quantity: 1,
+              taxType: item.taxType as PaymentItem['taxType'],
+              imei: reserved[index],
+            });
+          }
+        } else {
+          paymentItems.push({
+            productId: item.productId,
+            quantity,
+            taxType: item.taxType as PaymentItem['taxType'],
+          });
+        }
+      }
 
       // One idempotency key per submit; retries with same key return existing payment
       const idempotencyKey =
@@ -1283,6 +1337,17 @@ export default function PaymentModal({
           : undefined,
         preorderBalanceOrderId:
           !isPreorder && balanceOrder?.id ? balanceOrder.id : undefined,
+        ...(isPrescription
+          ? { prescriptionReference: 'Rezept' }
+          : {}),
+        ...(taxiTrip?.startedAtUtc
+          ? {
+              routeFrom: taxiTrip.routeFrom.trim() || undefined,
+              routeTo: taxiTrip.routeTo.trim() || undefined,
+              routeKm: parseTaxiKm(taxiTrip.routeKm) ?? undefined,
+              tripStartedAtUtc: taxiTrip.startedAtUtc,
+            }
+          : {}),
       };
 
       logPay('Step 4b: Payment payload fields', {
@@ -1353,6 +1418,17 @@ export default function PaymentModal({
         });
         console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
         const errorMsg = getPaymentResponseFailureMessage(response);
+        if (
+          isOfflineQueueLimitFailure({
+            error: response.error,
+            limitKey: response.limitKey,
+            message: response.message,
+          })
+        ) {
+          setLimitModalVisible(true);
+          setPurchaseState('input');
+          return;
+        }
         if (response.fiscalStatus === 'FAILED') {
           const hint = `${response.message || ''} ${response.error || ''}`.toLowerCase();
           if (hint.includes('tse') || hint.includes('signatur') || hint.includes('signature')) {
@@ -1408,6 +1484,9 @@ export default function PaymentModal({
       setPurchaseState('printing');
       try {
         await receiptPrinter.print(response.paymentId);
+        if (response.issuedTickets && response.issuedTickets.length > 0) {
+          await printIssuedTicketsAsync(response.issuedTickets);
+        }
         setPurchaseState('completed');
       } catch (printErr) {
         // iOS: closing print preview without printing � not a printer fault
@@ -1425,6 +1504,17 @@ export default function PaymentModal({
         message: err instanceof Error ? err.message : 'unknown',
       });
       setPurchaseState('input');
+      if (
+        isPaymentError(err) &&
+        isOfflineQueueLimitFailure({
+          error: err.code,
+          limitKey: err.limitKey,
+          message: err.message,
+        })
+      ) {
+        setLimitModalVisible(true);
+        return;
+      }
       const message = getPaymentErrorDisplayMessage(err);
       const title =
         isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT'
@@ -1459,6 +1549,12 @@ export default function PaymentModal({
         t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
         t('checkout:posFlow.payment.blockedHints.noPaymentPermission')
       );
+      return;
+    }
+    const localPending = await getPendingPaymentQueue().catch(() => []);
+    const offlineCap = await resolveEffectiveOfflineTenantLimit(localPending.length);
+    if (isOfflineQueueAtCap(offlineCap.current, offlineCap.limit)) {
+      setLimitModalVisible(true);
       return;
     }
     if (timeSyncCritical) {
@@ -1589,6 +1685,7 @@ export default function PaymentModal({
     resetCheckoutPaymentUi();
     setAmountReceived('');
     setNotes('');
+    setIsPrescription(false);
     setIsPreorder(false);
     setPurchaseState('input');
     setCompletedPaymentId(null);
@@ -2273,6 +2370,32 @@ export default function PaymentModal({
                 )}
               </View>
 
+              <IfVerticalFeature feature="patientRecord">
+                <View style={styles.section}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text style={styles.sectionTitle}>
+                        {t('verticalProfiles:payment.prescription')}
+                      </Text>
+                      <Text style={styles.voucherMuted}>
+                        {t('verticalProfiles:payment.prescriptionHint')}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={isPrescription}
+                      onValueChange={setIsPrescription}
+                      accessibilityLabel={t('verticalProfiles:payment.prescription')}
+                    />
+                  </View>
+                </View>
+              </IfVerticalFeature>
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.notes.title')}</Text>
                 <TextInput
@@ -2629,6 +2752,19 @@ export default function PaymentModal({
           setCardSimVisible(false);
           void executePaymentSubmission(intentId);
         }}
+      />
+      <OfflineLimitReachedModal
+        visible={limitModalVisible}
+        title={t('offline:limit.title')}
+        body={t('offline:limit.body')}
+        retryLabel={t('offline:limit.retryNow')}
+        cancelLabel={t('offline:limit.cancel')}
+        onRetryNow={() => {
+          void retryOfflineQueuesNow().finally(() => {
+            setLimitModalVisible(false);
+          });
+        }}
+        onCancel={() => setLimitModalVisible(false)}
       />
     </>
   );

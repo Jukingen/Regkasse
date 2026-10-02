@@ -26,7 +26,6 @@ public sealed class NotImplementedXrechnungXmlBuilder : IXrechnungXmlBuilder
             throw new FeatureDisabledException(FeatureFlagNames.EInvoicingXRechnung);
         }
 
-        throw new NotImplementedException(
-            "XRechnung XML is not implemented. See docs/FISCAL_GERMANY.md.");
+        throw new EInvoicingNotSupportedForCountryException("XRechnung", document.CountryCode);
     }
 }

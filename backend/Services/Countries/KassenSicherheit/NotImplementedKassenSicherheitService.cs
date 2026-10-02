@@ -47,37 +47,27 @@ public sealed class NotImplementedKassenSicherheitService : IKassenSicherheitSer
             "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
     }
 
-    public Task<KassenSicherheitTransactionResult> StartTransactionAsync(
-        KassenSicherheitStartTransactionRequest request,
+    public Task<KassenSicherheitStatusResult> GetStatusAsync(
+        Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         EnsureStubGate();
-        return Task.FromResult(NoOpTransaction());
-    }
-
-    public Task<KassenSicherheitTransactionResult> FinishTransactionAsync(
-        KassenSicherheitFinishTransactionRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-        EnsureStubGate();
-        return Task.FromResult(NoOpTransaction());
-    }
-
-    public Task<KassenSicherheitExportResult> ExportDsfinvkAsync(
-        KassenSicherheitExportRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-        EnsureStubGate();
-        return Task.FromResult(new KassenSicherheitExportResult(
-            Exported: false,
-            ExportId: null,
+        return Task.FromResult(new KassenSicherheitStatusResult(
+            Ready: false,
+            State: null,
             Provider: CountryFiscalLockEvaluator.SentinelNotConfigured));
+    }
+
+    public Task<KassenSicherheitCertificateChainResult> GetCertificateChainAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureStubGate();
+        return Task.FromResult(new KassenSicherheitCertificateChainResult(
+            CountryFiscalLockEvaluator.SentinelNotConfigured,
+            Array.Empty<string>()));
     }
 
     private void EnsureStubGate()
@@ -95,13 +85,4 @@ public sealed class NotImplementedKassenSicherheitService : IKassenSicherheitSer
         throw new NotImplementedException(
             "DE KassenSicherheit provider is not implemented. See docs/FISCAL_GERMANY.md.");
     }
-
-    private static KassenSicherheitTransactionResult NoOpTransaction() =>
-        new(
-            Completed: false,
-            TransactionId: null,
-            State: null,
-            TxRevision: null,
-            Signature: null,
-            Provider: CountryFiscalLockEvaluator.SentinelNotConfigured);
 }

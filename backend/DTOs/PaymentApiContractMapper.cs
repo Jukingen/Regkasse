@@ -49,7 +49,8 @@ public static class PaymentApiContractMapper
                 },
             TimeSyncWarning = result.TimeSyncWarning,
             NonFiscalOfflineQueued = result.NonFiscalOfflineQueued,
-            OfflineTransactionId = result.OfflineTransactionId
+            OfflineTransactionId = result.OfflineTransactionId,
+            IssuedTickets = result.IssuedTickets
         };
 
         return new PaymentApiEnvelope<PaymentCreateSuccessData>

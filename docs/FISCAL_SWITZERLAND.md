@@ -1,8 +1,8 @@
-> **Status:** Shape only (Paket 9). Domain wired (Paket 30-c); TSE/RKSV paths remain AT-only. Not production-ready. **Paket 21 (CH QR bank submit) is NOT STARTED.** No PDF/QR image.
+> **Status:** Partial — PDF implemented, bank submit gated off. Not production-ready. This is not a SIX or MWST compliance claim.
 
 # Fiscal Switzerland (MWST / QR-Rechnung)
 
-**Last updated:** 2026-09-21  
+**Last updated:** 2026-09-29  
 **Hub:** [`COUNTRIES.md`](COUNTRIES.md) · **Rules:** [`../AGENTS.md`](../AGENTS.md)
 
 This page describes the **shape** of the Swiss VAT and QR-bill module. It is not a legal opinion and does not claim MWST or SIX QR-Rechnung compliance.
@@ -13,7 +13,7 @@ This page describes the **shape** of the Swiss VAT and QR-bill module. It is not
 
 Describe how **CH** mandants should eventually differ from the live **Austria** RKSV/TSE path: MWST calculation and labels, Swiss UID validation, and QR-Rechnung (Swiss QR-bill) **payload** generation for IBAN accounts in Switzerland or Liechtenstein.
 
-This document does **not** include bank submission or PDF QR rendering (Paket **21**).
+Bank submission is config-only: `QrRechnung:BankSubmit:Enabled` defaults to **false**. `true` fails startup in Production and Staging. There is no bank HTTP client.
 
 ---
 
@@ -24,13 +24,16 @@ This document does **not** include bank submission or PDF QR rendering (Paket **
 | Item | State |
 |------|--------|
 | `CountryProfile` CH seed | Shipped (CHE-… UID, `MWST_CH`, `QR_RECHNUNG`) |
-| `SwitzerlandTaxStrategy.CalculateTax` | 8.1 / 2.6 / 3.8 via CountryTaxType + `CartMoneyHelper`. `CH_KLEINUNTERNEHMER` / `TaxExempt` → 0%. Reverse charge and OSS throw. No VIES |
-| `SwitzerlandInvoiceStrategy` disclosures / `InvoiceDocumentDto` | Shape (MWSTG keys) |
-| `ProjectFiscalTaxSets` / `AllocateReceiptNumberAsync` | `NotImplementedException` |
-| QR-Rechnung payload (SIX) | IG 2.3 SPC text: IBAN mod-97, address type S, QRR / SCOR / NON. No bank API |
-| QR-Rechnung PDF / QR image | QuestPDF payment part + receipt; QRCoder matrix with Swiss cross |
+| `SwitzerlandTaxStrategy.CalculateTax` | Rates from `ICountryTaxTypeRegistry` CH seed (no literals in the strategy): `STANDARD` **8.1**, `REDUCED_1` **2.6**, `LODGING` **3.8** (effective 2024-01-01). `CH_KLEINUNTERNEHMER` / `TaxExempt` → 0%. Reverse charge and OSS throw. No VIES |
+| `SwitzerlandInvoiceStrategy.BuildInvoiceDocumentAsync` | MWSTG document plus QR-Rechnung payload from `IQrRechnungBuilder` (`QrRechnungBuilder` only) |
+| `SwitzerlandTaxStrategy.ProjectFiscalTaxSets` | **Implemented.** `ChTaxSetMapper` reads `ICountryTaxTypeRegistry.Get("CH")`. Empty catalog throws. No AT rate fallback. Lodging lands on `Besonders` |
+| `SwitzerlandInvoiceStrategy.AllocateReceiptNumberAsync` | **Implemented.** `IChReceiptSequenceService` on `ch_receipt_sequences`. Format `CH-{slug}-{register}-{seq}`. Missing service → `InvalidOperationException` (no AT sequence) |
+| QR-Rechnung payload (SIX) | IG 2.3 SPC text via `QrRechnungBuilder`: IBAN mod-97, address type S, QRR / SCOR / NON. No bank API |
+| QR-Rechnung PDF / QR image | `BuildPdfAsync` renders Empfangsschein + Zahlteil (QuestPDF + QRCoder, IG 2.3 / SPC `0200`). No file is written. No bank HTTP |
+| QR-Rechnung audit | `QrRechnungPayloadBuilt` (111) and `QrRechnungPdfGenerated` (112). `newValues` holds `payloadHash`, `invoiceId`, `tenantId`, and a relative `pdfPathRelative` when the caller supplied one. The SPC text and the IBAN are not logged. Activity feed uses the same names (253, 254) |
+| `qr_rechnung_documents` | Not added. The audit hash is the record. A table would copy that hash or store the IBAN. PDF bytes stay in memory. Bank submit stays off |
 | Wiring into `InvoiceService` / `PaymentService` | Tax/invoice domain wired (Paket 30-c); TSE/RKSV paths remain AT-only |
-| **Paket 21 — CH QR bank submit** | **NOT STARTED** |
+| **Paket 21 — CH QR bank submit** | **Partial — PDF implemented, bank submit gated off** |
 
 Feature-flag gates: `Fiscal.MwstCh` (country-profile default **on** for CH), `EInvoicing.QrRechnung` (on when the profile lists `QR_RECHNUNG`). `Fiscal.RksvAt` stays **off** for CH tenants.
 
@@ -47,14 +50,27 @@ Super Admin may **create** a CH tenant. Production POS sales stay off until one 
 - Resolve CH from `CompanySettings.Country` and a CountryProfile. Do not enable RKSV or Austrian TSE for CH.
 - MWST label and rate selection (standard, reduced, lodging) come from `CountryTaxType` seeds, not from AT `TaxTypes`.
 - VAT-ID format and optional MWST suffix live in CountryProfile seeds (`IVatIdValidator`).
-- QR-Rechnung: produce the Swiss QR-bill payload for CH/LI IBANs. Persist payload metadata when a table exists; do not call a bank until Paket 21. PDF/QR image generation is not implemented.
+- QR-Rechnung: `SwitzerlandInvoiceStrategy` calls `IQrRechnungBuilder.BuildPayloadAsync` and passes `payment.Id` as `invoiceId` plus `company.TenantId`. `BuildPdfAsync` renders the bill in memory. `QrRechnung:BankSubmit:Enabled` stays **false**; do not call a bank.
+- Audit: `IAuditLogService.LogSystemOperationAsync` writes `QrRechnungPayloadBuilt` and `QrRechnungPdfGenerated` with `correlation_id` and `tenant_id`. `newValues.payloadHash` is SHA-256 of the SPC text. Do not log the text or the IBAN. There is no `qr_rechnung_documents` table.
 - Switzerland is not the EN 16931 EU default; see [`EINVOICING_EU.md`](EINVOICING_EU.md) only for contrast.
 
 ---
 
+## Known gaps
+
+The print gaps below are still open. `ChQrKnownGapsTests` reads `backend/Services/Countries/QrRechnung/ChQrKnownGaps.json` and fails when production code grows an implementation while a gap is marked `present: false`. Do not remove a gap without updating both the fixture and this list. A mandant can record which of those ids it has acknowledged (`Fiscal.ChQrKnownGapsAccepted`). That record does not close a gap, does not change the PDF, and does not enable bank submission. When the tenant country is CH and an open gap (`present: false`) is not in `acceptedGaps`, FA shows an informational banner on the invoice detail, the invoice preview, and the credit-note create dialog (`ChQrRechnungGapWarningBanner`). The banner does not block create, preview, download, or print. This is not a SIX IG 2.3 sign-off.
+
+| Id | Still missing |
+|----|----------------|
+| `official-swiss-cross` | Official 7 mm Swiss cross with a white border. `QrRechnungPdf.SwissCrossMatrix` paints modules only |
+| `font-embedding-liberation-arial` | Embedded Liberation Sans or Arial. The PDF uses the default QuestPDF font |
+| `pain001` | pain.001 credit-transfer file |
+| `bank-scan` | A bank scan of the printed bill |
+| `perforation-line` | Perforation mark between receipt and payment part |
+
 ## Remaining gaps
 
-See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 21** (QR bank submission + PDF/QR image).
+See [`COUNTRIES.md`](COUNTRIES.md) §16. This stub owns **Paket 21** (bank submission). The invoice QR payload is wired.
 
 ---
 
@@ -72,7 +88,7 @@ Still open:
 ## Related Docs
 
 - [`COUNTRIES.md`](COUNTRIES.md) — multi-country hub
-- [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) — Paket 21 QR-bill plan (not implemented)
+- [`FISCAL_SWITZERLAND_QR_PLAN.md`](FISCAL_SWITZERLAND_QR_PLAN.md) — Paket 21. Option D (print/PDF) remains as of 2026-09-30. Payload and PDF exist. Bank submit stays off. Not Peppol.
 - [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) — production country-layer apply order
 - [`../AGENTS.md`](../AGENTS.md) — Country & Fiscal Regimes
 - [`EINVOICING_EU.md`](EINVOICING_EU.md) — EU e-invoicing stub (not CH QR-Rechnung)

@@ -10,6 +10,7 @@ using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly ICountryProfileRegistry _countries;
     private readonly IAuditLogService? _auditLog;
     private readonly IActivityEventPublisher? _activity;
+    private readonly IVerticalProfileRegistry? _verticalProfiles;
 
     public AdminTenantService(
         AppDbContext db,
@@ -54,7 +56,8 @@ public sealed partial class AdminTenantService : IAdminTenantService
         ILogger<AdminTenantService> logger,
         ICountryProfileRegistry? countries = null,
         IAuditLogService? auditLog = null,
-        IActivityEventPublisher? activity = null)
+        IActivityEventPublisher? activity = null,
+        IVerticalProfileRegistry? verticalProfiles = null)
     {
         _db = db;
         _userManager = userManager;
@@ -72,6 +75,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _countries = countries ?? new CountryProfileRegistry();
         _auditLog = auditLog;
         _activity = activity;
+        _verticalProfiles = verticalProfiles;
     }
 
     public async Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(
@@ -198,6 +202,50 @@ public sealed partial class AdminTenantService : IAdminTenantService
 
         var tenantIds = tenants.Select(t => t.Id).ToList();
 
+        var verticalProfileAssignments = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(settings => tenantIds.Contains(settings.TenantId))
+            .Select(settings => new { settings.TenantId, settings.VerticalProfileId })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        Dictionary<string, string> activeVerticalProfiles;
+        if (_verticalProfiles is not null)
+        {
+            var merged = await _verticalProfiles
+                .ListActiveAsync(includeTenantCounts: false, cancellationToken)
+                .ConfigureAwait(false);
+            activeVerticalProfiles = merged.ToDictionary(profile => profile.Id, profile => profile.Name);
+        }
+        else
+        {
+            activeVerticalProfiles = await _db.VerticalProfiles
+                .AsNoTracking()
+                .Where(profile => profile.IsActive)
+                .Select(profile => new { profile.Id, profile.Name })
+                .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var verticalProfileByTenant = new Dictionary<Guid, (string Id, string Name)>();
+        foreach (var assignment in verticalProfileAssignments)
+        {
+            var requestedId = string.IsNullOrWhiteSpace(assignment.VerticalProfileId)
+                ? VerticalProfileIds.Gastronomy
+                : assignment.VerticalProfileId;
+            if (!activeVerticalProfiles.TryGetValue(requestedId, out var profileName)
+                && !activeVerticalProfiles.TryGetValue(VerticalProfileIds.Gastronomy, out profileName))
+            {
+                continue;
+            }
+
+            var effectiveId = activeVerticalProfiles.ContainsKey(requestedId)
+                ? requestedId
+                : VerticalProfileIds.Gastronomy;
+            verticalProfileByTenant[assignment.TenantId] = (effectiveId, profileName);
+        }
+
         var ownerRows = await _db.UserTenantMemberships
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -293,6 +341,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .Select(t =>
             {
                 latestSaleByTenant.TryGetValue(t.Id, out var sale);
+                verticalProfileByTenant.TryGetValue(t.Id, out var verticalProfile);
                 return ToListItem(
                     t,
                     ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null,
@@ -301,7 +350,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
                     sale?.ValidUntilUtc,
                     registerCountByTenant.GetValueOrDefault(t.Id),
                     userCountByTenant.GetValueOrDefault(t.Id),
-                    lastActivityByTenant.TryGetValue(t.Id, out var lastActivity) ? lastActivity : null);
+                    lastActivityByTenant.TryGetValue(t.Id, out var lastActivity) ? lastActivity : null,
+                    verticalProfile.Id,
+                    verticalProfile.Name);
             })
             .ToList();
     }
@@ -790,15 +841,51 @@ public sealed partial class AdminTenantService : IAdminTenantService
         }
 
         var historicalCount = 0;
+        var incompatibleCount = 0;
         if (countryChanged)
         {
             historicalCount = await FiscalDocumentCountryStamp
                 .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
                 .ConfigureAwait(false);
+            incompatibleCount = await FiscalDocumentCountryStamp
+                .CountIncompatibleSignedDocumentsAsync(_db, _countries, tenantId, profile, cancellationToken)
+                .ConfigureAwait(false);
+            if (incompatibleCount > 0)
+            {
+                return (
+                    null,
+                    $"{incompatibleCount} signed fiscal document(s) were issued under a different fiscal system and cannot move to {profile.Code}.",
+                    AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid);
+            }
         }
 
         settings.Country = profile.Code;
         settings.VatRegime = request.VatRegime;
+        if (profile.FiscalSystem != FiscalSystem.RKSV_AT)
+        {
+            const string rksvKey = "FeatureFlags:Fiscal.RksvAt";
+            var rksvFlag = await _db.TenantSettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.Key == rksvKey, cancellationToken)
+                .ConfigureAwait(false);
+            if (rksvFlag is null)
+            {
+                _db.TenantSettings.Add(new TenantSetting
+                {
+                    TenantId = tenantId,
+                    Key = rksvKey,
+                    Value = "false",
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedByUserId = actorUserId,
+                });
+            }
+            else
+            {
+                rksvFlag.Value = "false";
+                rksvFlag.UpdatedAtUtc = DateTime.UtcNow;
+                rksvFlag.UpdatedByUserId = actorUserId;
+            }
+        }
+
         settings.UpdatedAt = DateTime.UtcNow;
         tenant.UpdatedAt = DateTime.UtcNow;
         tenant.UpdatedBy = actorUserId;
@@ -806,6 +893,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
 
         if (_auditLog is not null)
         {
+            var correlationId = Guid.NewGuid().ToString("N");
             try
             {
                 await _auditLog.LogSystemOperationAsync(
@@ -815,11 +903,17 @@ public sealed partial class AdminTenantService : IAdminTenantService
                     Roles.SuperAdmin,
                     description: $"Tenant country/vatRegime changed from {oldCountry}/{oldRegime} to {profile.Code}/{request.VatRegime}",
                     status: AuditLogStatus.Success,
+                    correlationIdOverride: correlationId,
                     actionType: AuditEventType.TenantCountryChanged,
                     entityId: tenantId,
                     tenantId: tenantId,
                     oldValues: new { country = oldCountry, vatRegime = oldRegime.ToString() },
-                    newValues: new { country = profile.Code, vatRegime = request.VatRegime.ToString() })
+                    newValues: new
+                    {
+                        country = profile.Code,
+                        vatRegime = request.VatRegime.ToString(),
+                        correlationId,
+                    })
                     .ConfigureAwait(false);
 
                 if (countryChanged)
@@ -866,6 +960,22 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 },
                 actorUserId: actorUserId,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (countryChanged)
+            {
+                await _activity.TryPublishAsync(
+                    tenantId,
+                    ActivityEventType.TenantCountryChangedHistoricalPreserved,
+                    metadata: new
+                    {
+                        oldCountry,
+                        newCountry = profile.Code,
+                        affectedRowCount = historicalCount,
+                        ActorId = actorUserId,
+                    },
+                    actorUserId: actorUserId,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
         }
 
         _logger.LogInformation(
@@ -877,6 +987,38 @@ public sealed partial class AdminTenantService : IAdminTenantService
             request.VatRegime);
 
         return (await ToDetailAsync(tenant, cancellationToken: cancellationToken).ConfigureAwait(false), null, null);
+    }
+
+    public async Task<CountryChangeImpactDto?> GetCountryChangeImpactAsync(
+        Guid tenantId,
+        string country,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null || TenantStatuses.IsRemoved(tenant.Status))
+            return null;
+
+        CountryProfile target;
+        try
+        {
+            target = _countries.Get((country ?? string.Empty).Trim().ToUpperInvariant());
+        }
+        catch (UnknownCountryCodeException)
+        {
+            return null;
+        }
+
+        return new CountryChangeImpactDto
+        {
+            AffectedRowCount = await FiscalDocumentCountryStamp
+                .CountHistoricalDocumentsAsync(_db, tenantId, cancellationToken)
+                .ConfigureAwait(false),
+            IncompatibleRowCount = await FiscalDocumentCountryStamp
+                .CountIncompatibleSignedDocumentsAsync(_db, _countries, tenantId, target, cancellationToken)
+                .ConfigureAwait(false),
+        };
     }
 
     public async Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
@@ -1096,7 +1238,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
         DateTime? activeSaleValidUntilUtc = null,
         int registerCount = 0,
         int userCount = 0,
-        DateTime? lastActivityAtUtc = null)
+        DateTime? lastActivityAtUtc = null,
+        string? verticalProfileId = null,
+        string? verticalProfileName = null)
     {
         var licenseUntil = activeSaleValidUntilUtc ?? t.LicenseValidUntilUtc;
         var (licenseDaysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
@@ -1130,7 +1274,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
             lastActivityAtUtc,
             t.TrialStatus,
             t.TrialEndsAtUtc,
-            trialDaysRemaining);
+            trialDaysRemaining,
+            verticalProfileId,
+            verticalProfileName);
     }
 
     /// <summary>

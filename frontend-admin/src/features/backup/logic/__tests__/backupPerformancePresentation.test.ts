@@ -17,7 +17,7 @@ describe('backupPerformancePresentation', () => {
         {
           runId: 'run-1',
           completedAtUtc: '2026-07-17T10:00:00Z',
-          status: BackupRunStatus.NUMBER_3,
+          status: BackupRunStatus.Succeeded,
           success: 1,
           failed: 0,
           durationSeconds: 120,

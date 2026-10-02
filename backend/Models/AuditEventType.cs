@@ -266,5 +266,99 @@ public enum AuditEventType
     /// <summary>Schematron or Access Point rejected the invoice. Detail is rule ids or HTTP status, not the XML.</summary>
     EinvoiceSubmissionFailed = 110,
 
+    /// <summary>CH QR-Rechnung SPC payload built. Stores a hash only. The payload contains an IBAN and is not logged.</summary>
+    QrRechnungPayloadBuilt = 111,
+
+    /// <summary>CH QR-Rechnung PDF rendered. Stores a relative path when the caller supplied one. No absolute path and no IBAN.</summary>
+    QrRechnungPdfGenerated = 112,
+
+    /// <summary>Super Admin registered a Peppol participant id. No credential is stored.</summary>
+    PeppolParticipantRegistered = 113,
+
+    /// <summary>
+    /// Operator acknowledged open CH QR print gaps for one tenant.
+    /// This is not a SIX or MWST compliance claim and it does not enable bank submission.
+    /// </summary>
+    ChQrKnownGapsAccepted = 114,
+
+    /// <summary>
+    /// Storecove reported the canary document as delivered. Not a Peppol compliance claim.
+    /// The UBL document is not stored in the audit row.
+    /// </summary>
+    EinvoiceAckReceived = 115,
+
+    /// <summary>
+    /// Super Admin downloaded the QR-Rechnung PDF. No bank HTTP. The IBAN is not stored.
+    /// </summary>
+    QrRechnungPdfDownloaded = 116,
+
+    /// <summary>
+    /// Operator recorded that the PDF was uploaded in a bank portal. No bank HTTP.
+    /// </summary>
+    QrRechnungBankUploadConfirmed = 117,
+
+    /// <summary>
+    /// A transient Storecove ACK read was scheduled again. Not a Peppol compliance claim.
+    /// The UBL document and the API key are not stored.
+    /// </summary>
+    EinvoiceSubmissionRetry = 118,
+
+    /// <summary>Super Admin changed a tenant's POS vertical profile and/or its JSON overrides.</summary>
+    TenantVerticalProfileChanged = 119,
+
+    /// <summary>POS created a tenant-scoped appointment (not a fiscal receipt).</summary>
+    AppointmentCreated = 120,
+
+    /// <summary>POS updated a tenant-scoped appointment with a version check.</summary>
+    AppointmentUpdated = 121,
+
+    /// <summary>POS soft-cancelled a tenant-scoped appointment.</summary>
+    AppointmentCancelled = 122,
+
+    /// <summary>
+    /// A sale stored a non-fiscal prescription reference. The reference itself is not logged.
+    /// Not part of the RKSV/TSE chain.
+    /// </summary>
+    PaymentWithPrescription = 123,
+
+    /// <summary>A ticket-sales sale issued a redeemable ticket. The plaintext code is not logged.</summary>
+    TicketIssued = 124,
+
+    /// <summary>POS redeemed a ticket. The plaintext code is not logged.</summary>
+    TicketRedeemed = 125,
+
+    /// <summary>POS sent a non-fiscal kitchen order from the current cart.</summary>
+    KitchenOrderCreated = 126,
+
+    /// <summary>Kitchen or POS changed a kitchen order or item status.</summary>
+    KitchenOrderStatusChanged = 127,
+
+    /// <summary>POS cancelled a kitchen order that was not served.</summary>
+    KitchenOrderCancelled = 128,
+
+    /// <summary>A lodging room was created. Not a fiscal event.</summary>
+    RoomCreated = 129,
+
+    /// <summary>A guest folio was opened for a room. Not a fiscal receipt.</summary>
+    GuestFolioOpened = 130,
+
+    /// <summary>Super Admin created a POS vertical profile (blank or cloned). Not a fiscal event.</summary>
+    VerticalProfileCreated = 131,
+
+    /// <summary>Super Admin edited a POS vertical profile. Not a fiscal event.</summary>
+    VerticalProfileUpdated = 132,
+
+    /// <summary>Super Admin soft-deleted a custom POS vertical profile. Not a fiscal event.</summary>
+    VerticalProfileDeleted = 133,
+
+    /// <summary>A lodging room status changed. Not a fiscal event.</summary>
+    RoomStatusChanged = 134,
+
+    /// <summary>A guest folio was closed or cancelled. Not a fiscal receipt.</summary>
+    FolioClosed = 135,
+
+    /// <summary>A non-fiscal charge was added to an open guest folio. No TSE receipt.</summary>
+    FolioCharged = 136,
+
     Other = 99
 }

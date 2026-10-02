@@ -186,3 +186,28 @@ Other routes: `GET …/status`, `POST …/set`, `POST …/reset-all`, `POST …/
 - Backup (tenant view) → `maxBackupsPerTenant`, `maxBackupSizeMB`
 - Cash-register detail → `maxActiveRegistersPerUser`
 - Offline settings → `maxOfflineTransactions`
+
+---
+
+## POS TSE offline queue (`maxOfflineTransactions`)
+
+Cashiers do **not** call `/api/admin/limits`. POS reads the tenant cap from **`GET /api/pos/offline-limit`** (`PaymentTake`):
+
+| Field | Source |
+|-------|--------|
+| `maxOfflineTransactions` | `tenant_limits.max_offline_transactions` (default **50**) |
+| `currentOfflineTransactions` | pending `offline_transactions` (Pending + NonFiscalPending) **plus** pending `offline_orders` |
+| `approachingLimit` | `true` at ≥80% of the cap |
+| `limitReached` | `true` at 100% of the cap |
+
+Local pending intents are merged with the server count (`max(server, localPending)`). This endpoint is **display-only**. Server queue enforcement is unchanged (HTTP 409 `LIMIT_EXCEEDED`, intents only).
+
+`GET /api/pos/offline/health` still returns `currentOfflineTransactions` / `maxOfflineTransactions` for sync health (intent usage only).
+
+| Surface | Behavior |
+|---------|----------|
+| Offline queue panel | Label `X von 50 Offline-Transaktionen verwendet` plus a progress bar: green 0–79%, yellow (`limitWarning`) 80–99%, red (`limitExceeded`) 100% |
+| At cap (50) or HTTP 409 `LIMIT_EXCEEDED` | Dismissible modal (`offline.limit.*`): *Offline-Limit erreicht. Verkäufe blockiert, bis die Synchronisierung abgeschlossen ist.* Actions: Retry sync now / Cancel. The sale UI stays usable after Cancel so the queue can still be opened and retried. |
+| Friendly 409 copy | `payment:errors.limitOfflineQueue` |
+
+Admin activity at ≥80% of `maxOfflineTransactions` publishes **`OfflineQueueApproachingLimit`** (`ActivityEventType` **34**, `TenantLimitAlertService`, `entityId=maxOfflineTransactions`). Other tenant caps still use **`LimitApproaching`**. The approaching event is **one per crossing**: `tenant_settings` key `Activity:OfflineQueueApproachingLimit.Emitted` is set on first ≥80% publish and cleared when usage drops below 80%. At 100% the same service publishes **`LimitExceeded`**. Server queue enforcement is unchanged (HTTP 409 `LIMIT_EXCEEDED`).

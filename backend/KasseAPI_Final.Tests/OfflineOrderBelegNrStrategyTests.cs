@@ -92,7 +92,6 @@ public sealed class OfflineOrderBelegNrStrategyTests
     }
 
     [Theory]
-    [InlineData(CountryProfileCodes.Switzerland, VatRegime.CH_MWST_STANDARD, CountryStrategyDocs.Switzerland)]
     [InlineData(CountryProfileCodes.EuDefault, VatRegime.EU_OSS, CountryStrategyDocs.EuDefault)]
     public async Task NonAtReplay_AllocateReceiptNumber_ThrowsNotImplemented(
         string country,
@@ -116,6 +115,32 @@ public sealed class OfflineOrderBelegNrStrategyTests
 
         Assert.Contains("AllocateReceiptNumberAsync", ex.Message, StringComparison.Ordinal);
         Assert.Contains(docsPath, ex.Message, StringComparison.Ordinal);
+        payments.Verify(
+            p => p.CreatePaymentAsync(
+                It.IsAny<CreatePaymentRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ChReplay_WithoutSequenceService_DoesNotCallPayment()
+    {
+        var tenantId = SystemTenantIds.Platform;
+        var registerId = Guid.NewGuid();
+        await using var db = CreateDb(tenantId);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        SeedRegister(db, tenantId, registerId, "K1");
+        SeedCountrySettings(db, CountryProfileCodes.Switzerland, VatRegime.CH_MWST_STANDARD, "CHE-123.456.789 MWST");
+        var orderId = SeedPendingOrder(db, tenantId, registerId);
+        await db.SaveChangesAsync();
+
+        var payments = new Mock<IPaymentService>(MockBehavior.Strict);
+        var sut = CreateSut(db, payments.Object, Mock.Of<ISequenceReservationService>());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ReplayOrderByIdAsync(orderId));
+        Assert.Contains("not configured", ex.Message, StringComparison.OrdinalIgnoreCase);
         payments.Verify(
             p => p.CreatePaymentAsync(
                 It.IsAny<CreatePaymentRequest>(),

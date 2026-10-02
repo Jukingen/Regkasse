@@ -174,21 +174,21 @@ public sealed class CountryStrategyResolverTests
     }
 
     [Fact]
-    public void GermanyTaxStrategy_ProjectFiscalTaxSets_StillThrows()
+    public void GermanyTaxStrategy_ProjectFiscalTaxSets_DoesNotThrow()
     {
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            new GermanyTaxStrategy().ProjectFiscalTaxSets("{}", 0m));
+        var sets = new GermanyTaxStrategy().ProjectFiscalTaxSets("{}", 0m);
 
-        Assert.Contains("docs/FISCAL_GERMANY.md", ex.Message, StringComparison.Ordinal);
+        Assert.NotNull(sets);
+        Assert.Equal(0m, sets.TotalGross);
     }
 
     [Fact]
-    public void SwitzerlandTaxStrategy_ProjectFiscalTaxSets_StillThrows()
+    public void SwitzerlandTaxStrategy_ProjectFiscalTaxSets_EmptyJson_ReturnsZero()
     {
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            new SwitzerlandTaxStrategy().ProjectFiscalTaxSets("{}", 0m));
+        var sets = new SwitzerlandTaxStrategy().ProjectFiscalTaxSets("{}", 0m);
 
-        Assert.Contains("docs/FISCAL_SWITZERLAND.md", ex.Message, StringComparison.Ordinal);
+        Assert.NotNull(sets);
+        Assert.Equal(0m, sets.TotalGross);
     }
 
     [Fact]
@@ -212,12 +212,12 @@ public sealed class CountryStrategyResolverTests
     }
 
     [Fact]
-    public async Task SwitzerlandInvoiceStrategy_AllocateReceiptNumber_StillThrows()
+    public async Task SwitzerlandInvoiceStrategy_AllocateReceiptNumber_WithoutService_Throws()
     {
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             new SwitzerlandInvoiceStrategy().AllocateReceiptNumberAsync(
                 new ReceiptNumberAllocationContext { CashRegisterId = Guid.NewGuid() }));
 
-        Assert.Contains("docs/FISCAL_SWITZERLAND.md", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("not configured", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

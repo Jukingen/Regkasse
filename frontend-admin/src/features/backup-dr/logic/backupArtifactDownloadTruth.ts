@@ -2,7 +2,7 @@
  * Artefakt indirme satırı / çalıştırma bağlamı için operatör-güvenli anlam modeli (DTO + recoverability sinyali).
  */
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
 
 export type SourceExecutionReality = 'simulated_stub' | 'non_simulated' | 'unknown';
@@ -114,7 +114,7 @@ export function inferNonFakeArtifactSuspicion(
     return source === 'non_simulated' || source === 'unknown' ? 'zero_reported_size' : 'none';
   }
   if (source !== 'non_simulated') return 'none';
-  if (artifact.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
+  if (artifact.artifactType === BackupArtifactType.LogicalDump) {
     if (raw > 0 && raw < TINY_LOGICAL_DUMP_SUSPICION_BYTES_THRESHOLD)
       return 'tiny_reported_logical_dump';
   }
@@ -145,13 +145,13 @@ export function artifactClassLabelKeyForType(
   realPg: boolean | null | undefined
 ): string {
   const t = artifactType ?? -1;
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
+  if (t === BackupArtifactType.LogicalDump) {
     if (source === 'simulated_stub') return 'backupDr.download.types.logicalDumpStub';
     if (realPg === true && source === 'non_simulated')
       return 'backupDr.download.types.logicalDumpOperational';
     return 'backupDr.download.types.logicalDumpNotProven';
   }
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4) {
+  if (t === BackupArtifactType.VerificationManifest) {
     if (source === 'simulated_stub') return 'backupDr.download.types.manifestStub';
     return 'backupDr.download.types.4';
   }
@@ -173,26 +173,26 @@ export function artifactContentExpectationKey(
 ): string {
   const t = artifactType ?? -1;
   if (source === 'simulated_stub') {
-    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0)
+    if (t === BackupArtifactType.LogicalDump)
       return 'backupDr.download.contentExpect.stubLogicalDumpFakeAdapter';
-    if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4)
+    if (t === BackupArtifactType.VerificationManifest)
       return 'backupDr.download.contentExpect.stubManifestFakeAdapter';
     if (Number.isInteger(t) && t >= 1 && t <= 5)
       return `backupDr.download.contentExpect.stubTyped.${t}`;
     return 'backupDr.download.contentExpect.stubOther';
   }
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
+  if (t === BackupArtifactType.LogicalDump) {
     if (realPg === true) return 'backupDr.download.contentExpect.operationalLogicalDump';
     if (realPg === false) return 'backupDr.download.contentExpect.logicalDumpNotProvenConfig';
     return 'backupDr.download.contentExpect.logicalDumpProofUnknown';
   }
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4) {
+  if (t === BackupArtifactType.VerificationManifest) {
     return 'backupDr.download.contentExpect.verificationManifest';
   }
   if (Number.isInteger(t) && t >= 1 && t <= 3) {
     return `backupDr.download.contentExpect.nonSimulatedTyped.${t}`;
   }
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_5) {
+  if (t === BackupArtifactType.BackupLog) {
     return 'backupDr.download.contentExpect.nonSimulatedTyped.5';
   }
   return 'backupDr.download.contentExpect.unknown';
@@ -204,8 +204,8 @@ export function sortArtifactsForOperatorDisplay(
 ): BackupArtifactResponseDto[] {
   const rank = (artifactType: number | undefined): number => {
     const x = artifactType ?? 999;
-    if (x === BackupArtifactResponseDtoArtifactType.NUMBER_0) return 0;
-    if (x === BackupArtifactResponseDtoArtifactType.NUMBER_4) return 1;
+    if (x === BackupArtifactType.LogicalDump) return 0;
+    if (x === BackupArtifactType.VerificationManifest) return 1;
     if (x >= 1 && x <= 5) return 2 + x;
     return 100 + x;
   };
@@ -228,7 +228,7 @@ export function artifactByteSizeFootnoteKey(
 ): string | null {
   if (source === 'simulated_stub') return 'backupDr.download.byteSizeFootnote.stubExpectedTiny';
   const t = artifactType ?? -1;
-  if (t === BackupArtifactResponseDtoArtifactType.NUMBER_4) {
+  if (t === BackupArtifactType.VerificationManifest) {
     return 'backupDr.download.byteSizeFootnote.manifestMetadataOnly';
   }
   return null;
@@ -241,21 +241,21 @@ export function contentExpectationTableSummaryKey(
   realPg: boolean | null | undefined
 ): string | null {
   if (source === 'simulated_stub') {
-    if (artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0) {
+    if (artifactType === BackupArtifactType.LogicalDump) {
       return 'backupDr.download.contentExpectSummary.stubLogicalDumpFakeAdapter';
     }
-    if (artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_4) {
+    if (artifactType === BackupArtifactType.VerificationManifest) {
       return 'backupDr.download.contentExpectSummary.stubManifestFakeAdapter';
     }
   }
   if (
-    artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_4 &&
+    artifactType === BackupArtifactType.VerificationManifest &&
     source === 'non_simulated'
   ) {
     return 'backupDr.download.contentExpectSummary.manifestNonStub';
   }
   if (
-    artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0 &&
+    artifactType === BackupArtifactType.LogicalDump &&
     source === 'non_simulated' &&
     realPg === true
   ) {
@@ -269,7 +269,7 @@ export function shouldConfirmDownloadUnprovenLogicalDump(
   truth: ArtifactDownloadRowTruth
 ): boolean {
   if (truth.sourceExecutionReality !== 'non_simulated') return false;
-  if (artifact.artifactType !== BackupArtifactResponseDtoArtifactType.NUMBER_0) return false;
+  if (artifact.artifactType !== BackupArtifactType.LogicalDump) return false;
   return truth.recoverabilityUse === 'not_dr_evidence_unverified_adapter';
 }
 

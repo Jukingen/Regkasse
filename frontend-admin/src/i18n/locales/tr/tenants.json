@@ -562,9 +562,47 @@
     "pendingBody": "İncelemede olan bir web sitesi talebi zaten var.",
     "pendingBodyWithNote": "İncelemede olan bir web sitesi talebi zaten var ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS profili",
+    "subtitle": "Bu kiracı için POS özelliklerini ve isteğe bağlı veri alanlarını yapılandırın.",
+    "accessDenied": "POS profillerini yalnızca Super Admin yönetebilir.",
+    "selectorTitle": "Profil seçimi",
+    "selectorHelp": "Profil, varsayılan özellikleri ve POS yerleşimini sağlar.",
+    "profileLabel": "POS profili",
+    "profilePlaceholder": "Profil seçin",
+    "overrideTitle": "Kiracı override ayarları",
+    "posFeaturesTitle": "POS özellikleri",
+    "customFieldsTitle": "İsteğe bağlı veri alanları",
+    "customerFields": "Müşteri alanları",
+    "productFields": "Ürün alanları",
+    "customerFieldPlaceholder": "Müşteri alanı ekle",
+    "productFieldPlaceholder": "Ürün alanı ekle",
+    "addField": "Ekle",
+    "noCustomFields": "Ek alan yok.",
+    "noFeatures": "Bu profil POS özelliği içermiyor.",
+    "save": "Profili kaydet",
+    "saveSuccess": "POS profili kaydedildi.",
+    "saveError": "POS profili kaydedilemedi.",
+    "loadError": "POS profili yüklenemedi.",
+    "features": {
+      "tables": "Masalar",
+      "kitchenDisplay": "Mutfak ekranı",
+      "patientRecord": "Hasta kaydı",
+      "serviceDuration": "Hizmet süresi",
+      "appointment": "Randevular",
+      "imeiTracking": "IMEI takibi",
+      "routeTracking": "Rota takibi",
+      "roomTracking": "Salon/koltuk takibi",
+      "ticketScan": "Bilet tarama"
+    },
+    "taxiTariffTitle": "Taksi tarife",
+    "taxiTariffHelp": "POS ücret önerisi için kilometre tarifesi. Mali fiş tutarı sepet hizmet satırında kalır.",
+    "taxiTariffLabel": "Kilometre başına tarife (EUR)"
+  },
   "columns": {
     "name": "Kiracı",
     "slug": "Alt alan",
+    "profile": "Profil",
     "email": "İletişim e-postası",
     "status": "Durum",
     "adminUser": "Yönetici",
@@ -625,6 +663,24 @@
     "title": "Yeni müşteri (kiracı) ekle",
     "subtitle": "Teknik adımlar (kasa, demo veriler, yönetici) otomatik yapılır.",
     "submit": "Müşteri oluştur",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Avusturya için kilitli ve açık. Bu anahtar kapatılamaz."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "Almanya kasa modülü. Anahtar kiracı bazında değiştirilebilir."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "İsviçre QR faturası. Anahtar kiracı bazında değiştirilebilir."
+      },
+      "en16931": {
+        "title": "E-fatura (EN 16931)",
+        "helper": "AB varsayılan profili için UBL taslağı. Ağ gönderimi yok."
+      }
+    },
     "wizard": {
       "next": "İleri",
       "back": "Geri",
@@ -914,7 +970,10 @@
       "users": "Kullanıcılar",
       "registers": "Kasalar",
       "license": "Lisans",
+      "verticalProfile": "POS profili",
       "limits": "Limitler",
+      "kitchen": "Mutfak",
+      "rooms": "Odalar",
       "settings": "Ayarlar"
     },
     "overview": {
@@ -1673,5 +1732,93 @@
   },
   "list": {
     "pageTitle": "Müşteriler"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung baskı eksikleri",
+    "description": "Bu kiracı için hangi açık baskı eksiklerinin kabul edilebilir olduğunu kaydeder. Kayıt PDF'yi değiştirmez ve banka gönderimini açmaz.",
+    "save": "Kaydet",
+    "saved": "Eksik kabulü kaydedildi.",
+    "invalidGaps": "Bir veya daha fazla eksik kimliği bilinen katalogda yok.",
+    "loadFailed": "Baskı eksiklerinin kabul kaydı yüklenemedi.",
+    "outstandingWarning": "Bu baskı özellikleri mevcut QR-Rechnung çıktısının parçası değildir. Operatör, bu kiracı için kabul edilebilir olduklarını onaylamalıdır.",
+    "gap": {
+      "officialSwissCross": "Beyaz kenarlıklı resmi 7 mm İsviçre haçı",
+      "fontEmbeddingLiberationArial": "Gömülü Liberation Sans veya Arial yazı tipi",
+      "pain001": "pain.001 kredi transfer dosyası",
+      "bankScan": "Basılı faturanın banka taraması",
+      "perforationLine": "Makbuz ile ödeme bölümü arasındaki perforasyon işareti"
+    }
+  },
+  "kitchen": {
+    "title": "Mutfak",
+    "subtitle": "Bu kiracı için mutfak siparişleri ve ekran ayarları.",
+    "unavailable": "Geçerli POS profilinde mutfak ekranı yok.",
+    "settingsTitle": "Ayarlar",
+    "autoClear": "Otomatik gizleme (dakika)",
+    "autoClearHelp": "Hazır biletlerin gizlenebileceği süre.",
+    "sound": "Yeni siparişte ses",
+    "soundHelp": "Cihaz izin verirse KDS bir uyarı sesi çalabilir.",
+    "save": "Kaydet",
+    "saved": "Mutfak ayarları kaydedildi.",
+    "saveFailed": "Mutfak ayarları kaydedilemedi.",
+    "readOnly": "Salt okunur — kaydetmek için settings.manage gerekir.",
+    "liveTitle": "Açık mutfak siparişleri",
+    "empty": "Mutfak siparişi yok.",
+    "colTable": "Masa",
+    "colStatus": "Durum",
+    "colNotes": "Notlar",
+    "colItems": "Kalemler",
+    "takeAway": "Paket",
+    "analyticsTitle": "Analiz",
+    "avgPrep": "Ortalama hazırlık süresi",
+    "avgPrepValue": "{{minutes}} dk",
+    "ordersPerHour": "Saatlik sipariş (24s)",
+    "lastHour": "Son saatteki siparişler",
+    "status": {
+      "Pending": "Bekliyor",
+      "InPreparation": "Hazırlanıyor",
+      "Ready": "Hazır",
+      "Served": "Servis edildi",
+      "Cancelled": "İptal"
+    }
+  },
+  "lodging": {
+    "title": "Odalar",
+    "subtitle": "Konaklama için oda listesi ve konuk hesapları.",
+    "unavailable": "Geçerli POS profili konaklama değil.",
+    "roomsTitle": "Odalar",
+    "foliosTitle": "Konuk hesapları",
+    "create": "Oda ekle",
+    "createSuccess": "Oda kaydedildi.",
+    "createFailed": "Oda oluşturulamadı.",
+    "numberRequired": "Oda numarası gerekli.",
+    "typeRequired": "Oda tipi gerekli.",
+    "readOnly": "Salt okunur — oda eklemek için product.manage gerekir.",
+    "loadError": "Odalar veya hesaplar yüklenemedi.",
+    "emptyRooms": "Oda yok.",
+    "emptyFolios": "Konuk hesabı yok.",
+    "colNumber": "Numara",
+    "colType": "Tip",
+    "colCapacity": "Kapasite",
+    "colStatus": "Doluluk",
+    "colRoom": "Oda",
+    "colCustomer": "Konuk",
+    "colCheckIn": "Check-in",
+    "colCheckOut": "Check-out",
+    "colBalance": "Bakiye",
+    "colFolioStatus": "Durum",
+    "occupied": "Dolu",
+    "free": "Boş",
+    "open": "Açık",
+    "closed": "Kapalı",
+    "analyticsTitle": "Doluluk",
+    "occupancy": "Doluluk",
+    "averageStay": "Ortalama konaklama (gün)",
+    "status": {
+      "Available": "Boş",
+      "Occupied": "Dolu",
+      "Cleaning": "Temizlik",
+      "Maintenance": "Bakım"
+    }
   }
 }

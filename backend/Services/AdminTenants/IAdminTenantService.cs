@@ -74,6 +74,11 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
+    Task<CountryChangeImpactDto?> GetCountryChangeImpactAsync(
+        Guid tenantId,
+        string country,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string? Error)> SoftDeleteAsync(
         Guid tenantId,
         string? actorUserId,

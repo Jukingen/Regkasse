@@ -186,6 +186,114 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         return new KassenSicherheitExportResult(true, exportId, ProviderId);
     }
 
+    public async Task<KassenSicherheitSignResult> SignAsync(
+        KassenSicherheitSignRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var tenant = request.TenantId.ToString("D");
+        var txId = string.IsNullOrWhiteSpace(request.CashRegisterId) ? "receipt" : request.CashRegisterId.Trim();
+        var path = "tss/" + Uri.EscapeDataString(tenant) + "/tx/" + Uri.EscapeDataString(txId);
+        await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+        using var response = await SendAsync(
+            HttpMethod.Put,
+            path,
+            new { process_data = request.Payload ?? string.Empty },
+            bearer: true,
+            cancellationToken).ConfigureAwait(false);
+        var root = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+        var (signature, algorithm) = ReadSignatureFields(root);
+        string? certificateSerial = null;
+        try
+        {
+            var tss = await ReadTssAsync(request.TenantId, cancellationToken).ConfigureAwait(false);
+            certificateSerial = ReadCertificateSerial(tss);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "SIGN DE TSS certificate read failed. TenantId={TenantId}", request.TenantId);
+        }
+
+        if (string.IsNullOrWhiteSpace(algorithm))
+        {
+            _logger.LogWarning(
+                "SIGN DE response omitted signature.algorithm. TenantId={TenantId}",
+                request.TenantId);
+        }
+
+        if (string.IsNullOrWhiteSpace(certificateSerial))
+        {
+            _logger.LogWarning(
+                "SIGN DE response omitted a readable TSS certificate serial. TenantId={TenantId}",
+                request.TenantId);
+        }
+
+        _logger.LogInformation("SIGN DE transaction upsert. TenantId={TenantId} TxId={TxId}", request.TenantId, txId);
+        return new KassenSicherheitSignResult(
+            Signed: !string.IsNullOrWhiteSpace(signature),
+            Signature: signature,
+            Provider: ProviderId,
+            SignatureAlgorithm: string.IsNullOrWhiteSpace(algorithm) ? null : algorithm,
+            CertificateSerial: string.IsNullOrWhiteSpace(certificateSerial) ? null : certificateSerial);
+    }
+
+    public async Task<KassenSicherheitStatusResult> GetStatusAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var root = await ReadTssAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        var state = ReadString(root, "state");
+        return new KassenSicherheitStatusResult(
+            Ready: string.Equals(state, "INITIALIZED", StringComparison.OrdinalIgnoreCase),
+            State: state,
+            Provider: ProviderId);
+    }
+
+    public async Task<KassenSicherheitCertificateChainResult> GetCertificateChainAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var root = await ReadTssAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return new KassenSicherheitCertificateChainResult(ProviderId, ReadCertificateChain(root));
+    }
+
+    private async Task<JsonElement> ReadTssAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+        using var response = await SendAsync(
+            HttpMethod.Get,
+            "tss/" + Uri.EscapeDataString(tenantId.ToString("D")),
+            body: null,
+            bearer: true,
+            cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static IReadOnlyList<string> ReadCertificateChain(JsonElement root)
+    {
+        var certs = new List<string>();
+        var leaf = ReadString(root, "certificate");
+        if (!string.IsNullOrWhiteSpace(leaf))
+            certs.Add(leaf);
+
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty("certificate_chain", out var chain)
+            && chain.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in chain.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.String)
+                    continue;
+                var value = item.GetString();
+                if (string.IsNullOrWhiteSpace(value) || certs.Contains(value, StringComparer.Ordinal))
+                    continue;
+                certs.Add(value);
+            }
+        }
+
+        return certs;
+    }
+
     private static object BuildFinishBody(KassenSicherheitFinishTransactionRequest request)
     {
         var receipt = request.Receipt!.StandardV1.Receipt;
@@ -291,7 +399,19 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(RequestTimeout());
-        var response = await _http.SendAsync(request, timeout.Token).ConfigureAwait(false);
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, timeout.Token).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "SIGN DE HTTP transport failed. Method={Method}",
+                method.Method);
+            throw new KassenSicherheitHttpException(0, null);
+        }
         if (!response.IsSuccessStatusCode)
         {
             var status = (int)response.StatusCode;
@@ -352,15 +472,48 @@ public sealed class FiskalyDeKassenSicherheitHttpClient : IKassenSicherheitHttpC
         return value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     }
 
-    private static string? ReadSignature(JsonElement root)
+    private static string? ReadSignature(JsonElement root) => ReadSignatureFields(root).Value;
+
+    private static (string? Value, string? Algorithm) ReadSignatureFields(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("signature", out var signature))
-            return null;
+            return (null, null);
         if (signature.ValueKind == JsonValueKind.String)
-            return signature.GetString();
-        if (signature.ValueKind == JsonValueKind.Object && signature.TryGetProperty("value", out var nested))
-            return nested.GetString();
-        return null;
+            return (signature.GetString(), null);
+        if (signature.ValueKind != JsonValueKind.Object)
+            return (null, null);
+
+        string? value = null;
+        if (signature.TryGetProperty("value", out var nested) && nested.ValueKind == JsonValueKind.String)
+            value = nested.GetString();
+        var algorithm = ReadString(signature, "algorithm");
+        return (value, algorithm);
+    }
+
+    /// <summary>
+    /// Serial from the TSS leaf <c>certificate</c> (Base64 DER). No stand-in value.
+    /// </summary>
+    private static string? ReadCertificateSerial(JsonElement tss)
+    {
+        var encoded = ReadString(tss, "certificate");
+        if (string.IsNullOrWhiteSpace(encoded))
+            return null;
+
+        try
+        {
+            var der = Convert.FromBase64String(encoded);
+            using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(der);
+            var serial = cert.SerialNumber;
+            return string.IsNullOrWhiteSpace(serial) ? null : serial;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            return null;
+        }
     }
 
     private static bool TryReadInt(JsonElement root, string name, out int value)

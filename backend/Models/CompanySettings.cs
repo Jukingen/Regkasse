@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Models
 {
@@ -167,6 +168,18 @@ namespace KasseAPI_Final.Models
         public string Country { get; set; } = "AT";
 
         /// <summary>
+        /// Assigned POS vertical profile. Null preserves compatibility for tenants that have not
+        /// been classified yet; the effective-profile service falls back to gastronomy.
+        /// </summary>
+        [MaxLength(64)]
+        [Column("vertical_profile_id")]
+        public string? VerticalProfileId { get; set; }
+
+        [ForeignKey(nameof(VerticalProfileId))]
+        [JsonIgnore]
+        public VerticalProfile? VerticalProfile { get; set; }
+
+        /// <summary>
         /// ISO 3166-1 alpha-2 billing country when invoicing happens elsewhere than the operating
         /// <see cref="Country"/>. Null means "bill in the operating country".
         /// </summary>
@@ -305,5 +318,20 @@ namespace KasseAPI_Final.Models
         [Column("de_client_id")]
         [MaxLength(64)]
         public string? DeClientId { get; set; }
+
+        /// <summary>
+        /// Optional taxi fare per kilometre (EUR). Product configuration, not a fiscal rate.
+        /// </summary>
+        [Column("taxi_tariff_per_km", TypeName = "decimal(8,2)")]
+        public decimal? TaxiTariffPerKm { get; set; }
+
+        /// <summary>Minutes after Ready before FA may hide a kitchen ticket. POS does not read this yet.</summary>
+        [Range(1, 240)]
+        [Column("kitchen_order_auto_clear_minutes")]
+        public int KitchenOrderAutoClearMinutes { get; set; } = 30;
+
+        /// <summary>Whether the kitchen display may play a new-order sound. POS does not read this yet.</summary>
+        [Column("kitchen_order_sound")]
+        public bool KitchenOrderSound { get; set; } = true;
     }
 }

@@ -22,15 +22,17 @@ public sealed class PeppolSubmissionTests
     }
 
     [Fact]
-    public async Task Mock_SubmitThenPoll_ReachesAck()
+    public async Task MockProvider_WhilePeppolReserved_StaysQueued()
     {
         var service = Service("mock");
         var sent = await service.SubmitAsync(Guid.NewGuid(), Fixture(100m, 20m), "iso6523-actorid-upis::9915:DE123456789");
-        Assert.Equal(PeppolSubmissionStatus.Sent, sent.Status);
+        Assert.Equal(PeppolSubmissionStatus.Queued, sent.Status);
+        Assert.Equal(PeppolSubmissionService.ReservedFailureReason, sent.Detail);
 
         var ack = await service.GetStatusAsync(sent.Id);
         Assert.NotNull(ack);
-        Assert.Equal(PeppolSubmissionStatus.Ack, ack!.Status);
+        Assert.Equal(PeppolSubmissionStatus.Queued, ack!.Status);
+        Assert.Equal(PeppolSubmissionService.ReservedFailureReason, ack.Detail);
     }
 
     [Fact]
@@ -51,8 +53,8 @@ public sealed class PeppolSubmissionTests
         var service = Service("hosted", baseUrl: "");
         var row = await service.SubmitAsync(Guid.NewGuid(), Fixture(100m, 20m));
 
-        Assert.Equal(PeppolSubmissionStatus.Failed, row.Status);
-        Assert.Contains("not configured", row.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(PeppolSubmissionStatus.Queued, row.Status);
+        Assert.Equal(PeppolSubmissionService.ReservedFailureReason, row.Detail);
     }
 
     [Fact]
@@ -77,6 +79,35 @@ public sealed class PeppolSubmissionTests
         Assert.Equal(HttpMethod.Post, handler.Methods[0]);
         Assert.Equal(HttpMethod.Get, handler.Methods[1]);
         Assert.Equal("https://ap.test.example/v1/submissions", handler.Urls[0]);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Production")]
+    public async Task Submit_FlagOff_MakesNoHttpCall(string environmentName)
+    {
+        var handler = new CountingHandler();
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(FeatureFlagNames.EInvoicingEn16931, It.IsAny<string?>())).Returns(false);
+        var options = Options.Create(new PeppolOptions
+        {
+            AccessPointMode = "hosted",
+            Provider = "hosted",
+            BaseUrl = "https://ap.example/v1",
+        });
+        IPeppolSubmissionService service = new PeppolSubmissionService(
+            new En16931UblXmlBuilder(flags.Object),
+            options,
+            new MockPeppolAccessPointClient(),
+            new HostedPeppolAccessPointClient(options, new HttpClient(handler)),
+            new InMemoryPeppolSubmissionStore(),
+            featureFlags: flags.Object);
+
+        var row = await service.SubmitAsync(Guid.NewGuid(), Fixture(100m, 20m));
+
+        Assert.Equal(PeppolSubmissionStatus.Validated, row.Status);
+        Assert.Equal("not-sent", row.Detail);
+        Assert.True(handler.Calls == 0, environmentName);
     }
 
     private static PeppolSubmissionService Service(string provider, string baseUrl = "")
@@ -121,6 +152,19 @@ public sealed class PeppolSubmissionTests
         VatCategory = "S",
         VatPercent = 20m,
     };
+
+    private sealed class CountingHandler : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+            throw new InvalidOperationException("Outbound HTTP is not allowed.");
+        }
+    }
 
     private sealed class StubHandler : HttpMessageHandler
     {

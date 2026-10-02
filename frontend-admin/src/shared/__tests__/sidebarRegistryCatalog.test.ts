@@ -184,6 +184,8 @@ describe('sidebarRegistryCatalog', () => {
     if (security?.kind !== 'nested') return;
 
     expect(security.childGroups?.map((c) => c.menuKey)).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.peppol,
+      ADMIN_SIDEBAR_GROUP_KEYS.ch,
       ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
       ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover,
       ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring,

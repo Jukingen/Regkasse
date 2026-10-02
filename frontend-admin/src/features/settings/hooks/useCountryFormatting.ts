@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 
 import { useCompanySettings } from '@/features/settings/hooks/useCompanySettings';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import {
   type CountryDateInput,
   type CountryFormatProfile,
@@ -11,7 +12,7 @@ import {
   formatCountryDateTime,
   formatCountryNumber,
   formatCountryTime,
-  getCountryFormatProfile,
+  resolveCountryFormatProfile,
 } from '@/lib/countryFormatProfiles';
 
 export type CountryFormatting = {
@@ -26,14 +27,20 @@ export type CountryFormatting = {
 };
 
 /**
- * Tenant-facing date / money formatters from CompanySettings.Country.
- * UI language stays on I18nProvider. Unknown / missing country → AT.
+ * Tenant-facing date / money formatters.
+ * Currency and locale come from `GET /api/admin/countries` when that catalog is loaded.
+ * Otherwise {@link resolveCountryFormatProfile} uses the local fallback map.
  */
 export function useCountryFormatting(): CountryFormatting {
   const settingsQuery = useCompanySettings();
+  const countriesQuery = useCountries();
   const country = settingsQuery.data?.country;
+  const catalog = countriesQuery.isError ? null : countriesQuery.data;
 
-  const profile = useMemo(() => getCountryFormatProfile(country), [country]);
+  const profile = useMemo(
+    () => resolveCountryFormatProfile(country, catalog),
+    [country, catalog]
+  );
 
   return useMemo(
     () => ({

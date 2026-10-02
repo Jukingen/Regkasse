@@ -20,11 +20,11 @@ export function resolveLatestVerification(
 }
 
 export function isVerificationPassed(status: number | undefined): boolean {
-  return status === BackupVerificationStatus.NUMBER_1 || status === 1;
+  return status === BackupVerificationStatus.Passed || status === 1;
 }
 
 export function isVerificationFailed(status: number | undefined): boolean {
-  return status === BackupVerificationStatus.NUMBER_2 || status === 2;
+  return status === BackupVerificationStatus.Failed || status === 2;
 }
 
 /**
@@ -37,5 +37,5 @@ export function canShowManualVerifyAction(
 ): boolean {
   if (!canManageSettings || !run?.id) return false;
   const status = run.status;
-  return status === BackupRunStatus.NUMBER_3;
+  return status === BackupRunStatus.Succeeded;
 }

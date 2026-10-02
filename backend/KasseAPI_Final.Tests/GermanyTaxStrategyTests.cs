@@ -88,14 +88,24 @@ public sealed class GermanyTaxStrategyTests
     }
 
     [Fact]
-    public void ProjectFiscalTaxSets_ThrowsNotImplemented_AtOnly()
+    public void ProjectFiscalTaxSets_UsesRegistryRates_WithoutThrowing()
     {
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            Strategy().ProjectFiscalTaxSets("{}", 0m));
+        var strategy = Strategy();
+        var standard = new CountryTaxTypeRegistry()
+            .Get(CountryProfileCodes.Germany)
+            .Single(type => type.Code == CountryTaxTypeCodes.Standard);
+        var gross = 100m + standard.Rate;
+        var tax = CartMoneyHelper.ComputeLine(gross, 1, standard.Rate).LineTax;
+        var json = JsonSerializer.Serialize(new Dictionary<string, decimal>
+        {
+            [CountryTaxTypeCodes.Standard] = tax,
+        });
 
-        Assert.Contains("AT-only", ex.Message, StringComparison.Ordinal);
-        Assert.Contains("ProjectDeFiscalTaxSets", ex.Message, StringComparison.Ordinal);
-        Assert.Contains(CountryStrategyDocs.Germany, ex.Message, StringComparison.Ordinal);
+        var sets = strategy.ProjectFiscalTaxSets(json, gross);
+
+        Assert.NotNull(sets);
+        Assert.Equal(gross, sets.Normal);
+        Assert.Equal(0m, sets.Ermaessigt1);
     }
 
     [Fact]

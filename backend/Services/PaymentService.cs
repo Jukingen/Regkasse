@@ -19,8 +19,11 @@ using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.Imei;
 using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Preorder;
+using KasseAPI_Final.Services.Tickets;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Tse.Fiskaly;
@@ -84,6 +87,9 @@ namespace KasseAPI_Final.Services
         private readonly IDeReceiptSequenceService? _deReceiptSequenceService;
         private readonly IChReceiptSequenceService? _chReceiptSequenceService;
         private readonly IEuReceiptSequenceService? _euReceiptSequenceService;
+        private readonly IChMwstEffectiveRates? _chMwstRates;
+        private readonly IVerticalProfileService? _verticalProfiles;
+        private readonly ITicketRedemptionService? _ticketRedemptions;
 
         public PaymentService(
             AppDbContext context,
@@ -131,7 +137,10 @@ namespace KasseAPI_Final.Services
             Fiscal.IFiscalSignatureRouter? fiscalSignatureRouter = null,
             IDeReceiptSequenceService? deSequenceService = null,
             IChReceiptSequenceService? chSequenceService = null,
-            IEuReceiptSequenceService? euSequenceService = null)
+            IEuReceiptSequenceService? euSequenceService = null,
+            IChMwstEffectiveRates? chMwstRates = null,
+            IVerticalProfileService? verticalProfiles = null,
+            ITicketRedemptionService? ticketRedemptions = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -181,6 +190,141 @@ namespace KasseAPI_Final.Services
             _deReceiptSequenceService = deSequenceService;
             _chReceiptSequenceService = chSequenceService;
             _euReceiptSequenceService = euSequenceService;
+            _chMwstRates = chMwstRates;
+            _verticalProfiles = verticalProfiles;
+            _ticketRedemptions = ticketRedemptions;
+        }
+
+        private ICountryTaxTypeRegistry TaxTypesFor(CountryStrategyBinding binding)
+        {
+            if (_chMwstRates is null
+                || !string.Equals(binding.Profile.Code, CountryProfileCodes.Switzerland, StringComparison.OrdinalIgnoreCase))
+            {
+                return _taxTypes;
+            }
+
+            return _chMwstRates.ForCalculation(_taxTypes, binding.Settings.TenantId);
+        }
+
+        private static string? NormalizePrescriptionReference(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            return trimmed.Length == 0 ? null : trimmed;
+        }
+
+        private static string? NormalizeTaxiText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            return trimmed.Length == 0 ? null : trimmed;
+        }
+
+        private async Task<bool> TenantAllowsPrescriptionAsync(CancellationToken cancellationToken)
+        {
+            if (_verticalProfiles is null)
+                return false;
+
+            var profile = await _verticalProfiles
+                .GetForCurrentTenantAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return profile?.HasPosFeature("patientRecord") == true;
+        }
+
+        private async Task<bool> TenantAllowsTaxiFieldsAsync(CancellationToken cancellationToken)
+        {
+            if (_verticalProfiles is null)
+                return false;
+
+            var profile = await _verticalProfiles
+                .GetForCurrentTenantAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return profile?.IsTaxiProfile == true;
+        }
+
+        private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken)
+        {
+            if (_verticalProfiles is null)
+                return false;
+
+            var profile = await _verticalProfiles
+                .GetForCurrentTenantAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return profile?.IsTicketSalesProfile == true;
+        }
+
+        private static PaymentResult ImeiPaymentFailure(string code, string message) => new()
+        {
+            Success = false,
+            Message = message,
+            Errors = { code },
+            DiagnosticCode = code,
+            IsDeterministicFailure = true,
+        };
+
+        private async Task<PaymentResult?> TryReserveImeisForLineAsync(
+            Product product,
+            PaymentItemRequest itemRequest,
+            List<ProductImei> pendingImeiRows,
+            HashSet<string> reservedImeiCodes,
+            IDbContextTransaction transaction)
+        {
+            var requested = ProductImeiService.ResolveRequestedImeis(itemRequest.Imei, itemRequest.Imeis);
+            if (!product.ImeiTracked)
+            {
+                if (requested.Count == 0)
+                    return null;
+
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return ImeiPaymentFailure(
+                    ProductImeiErrorCodes.NotAllowed,
+                    "IMEI is not allowed for this product.");
+            }
+
+            if (requested.Count != itemRequest.Quantity)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return ImeiPaymentFailure(
+                    ProductImeiErrorCodes.Required,
+                    "Each IMEI-tracked product line must include one IMEI per quantity.");
+            }
+
+            foreach (var imei in requested)
+            {
+                if (!reservedImeiCodes.Add(imei))
+                {
+                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    _context.ChangeTracker.Clear();
+                    return ImeiPaymentFailure(
+                        ProductImeiErrorCodes.Duplicate,
+                        "Duplicate IMEI in this payment.");
+                }
+
+                var row = await _context.ProductImeis
+                    .FirstOrDefaultAsync(item =>
+                        item.ProductId == product.Id
+                        && item.Imei == imei
+                        && item.Status == ProductImeiStatus.InStock)
+                    .ConfigureAwait(false);
+                if (row == null)
+                {
+                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    _context.ChangeTracker.Clear();
+                    return ImeiPaymentFailure(
+                        ProductImeiErrorCodes.NotAvailable,
+                        $"IMEI {imei} is not available for product {product.Name}.");
+                }
+
+                pendingImeiRows.Add(row);
+            }
+
+            return null;
         }
 
         private async Task<string> AllocateCountryBelegNrAsync(
@@ -385,6 +529,45 @@ namespace KasseAPI_Final.Services
             // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
             var licenseCheckCancellation = _httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
             await EnsureLicenseAllowsPaymentAsync(licenseCheckCancellation).ConfigureAwait(false);
+
+            var prescriptionReference = NormalizePrescriptionReference(request.PrescriptionReference);
+            if (prescriptionReference is not null)
+            {
+                var prescriptionAllowed = await TenantAllowsPrescriptionAsync(licenseCheckCancellation)
+                    .ConfigureAwait(false);
+                if (!prescriptionAllowed)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Prescription reference is not allowed for this tenant.",
+                        Errors = { "PRESCRIPTION_NOT_ALLOWED" },
+                        DiagnosticCode = "PRESCRIPTION_NOT_ALLOWED",
+                        IsDeterministicFailure = true
+                    };
+                }
+            }
+
+            var routeFrom = NormalizeTaxiText(request.RouteFrom);
+            var routeTo = NormalizeTaxiText(request.RouteTo);
+            var routeKm = request.RouteKm;
+            var tripStartedAtUtc = request.TripStartedAtUtc;
+            if (routeFrom is not null || routeTo is not null || routeKm.HasValue || tripStartedAtUtc.HasValue)
+            {
+                var taxiAllowed = await TenantAllowsTaxiFieldsAsync(licenseCheckCancellation)
+                    .ConfigureAwait(false);
+                if (!taxiAllowed)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Taxi fields are not allowed for this tenant.",
+                        Errors = { "TAXI_FIELDS_NOT_ALLOWED" },
+                        DiagnosticCode = "TAXI_FIELDS_NOT_ALLOWED",
+                        IsDeterministicFailure = true
+                    };
+                }
+            }
 
             var tenantIdForFlags = await _settingsTenantResolver
                 .ResolveEffectiveTenantIdAsync(licenseCheckCancellation)
@@ -791,6 +974,7 @@ namespace KasseAPI_Final.Services
 
                 PaymentDetails? committedPayment = null;
                 Invoice? committedInvoice = null;
+                IReadOnlyList<IssuedTicketDto> committedIssuedTickets = [];
                 var paymentStockLinesSkipped = 0;
                 Guid? gatewayIntentId = null;
 
@@ -864,6 +1048,8 @@ namespace KasseAPI_Final.Services
                     var cartSnapshotPrices = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
 
                     var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
+                    var pendingImeiRows = new List<ProductImei>();
+                    var reservedImeiCodes = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var itemRequest in request.Items)
                     {
                         var product = await _context.Products
@@ -926,6 +1112,19 @@ namespace KasseAPI_Final.Services
                             }
                         }
 
+                        if (!request.IsStorno && !request.IsRefund)
+                        {
+                            var imeiFailure = await TryReserveImeisForLineAsync(
+                                product,
+                                itemRequest,
+                                pendingImeiRows,
+                                reservedImeiCodes,
+                                transaction)
+                                .ConfigureAwait(false);
+                            if (imeiFailure != null)
+                                return imeiFailure;
+                        }
+
                         // VAT: country strategy (Austria delegates to CartMoneyHelper — same rounding).
                         decimal unitGross;
                         if (cartSnapshotPrices != null && cartSnapshotPrices.TryGetValue(product.Id, out var snapGross))
@@ -946,6 +1145,7 @@ namespace KasseAPI_Final.Services
                         pricedLines.Add((itemRequest, product, unitGross));
                     }
 
+                    var rateCatalog = TaxTypesFor(countryBinding);
                     var taxResult = taxStrategy.CalculateTax(
                         pricedLines.ConvertAll(l =>
                             CountryPaymentTaxLineMapper.FromProductTaxType(
@@ -953,7 +1153,7 @@ namespace KasseAPI_Final.Services
                                 l.UnitGross,
                                 l.Item.Quantity,
                                 l.Product.TaxType,
-                                _taxTypes)),
+                                rateCatalog)),
                         new TaxCalculationContext
                         {
                             CountryProfile = countryBinding.Profile,
@@ -963,6 +1163,7 @@ namespace KasseAPI_Final.Services
                             DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
                                 countryBinding.VatRegime,
                                 request.Steuernummer),
+                            TenantId = countryBinding.Settings.TenantId,
                         });
 
                     for (var i = 0; i < pricedLines.Count; i++)
@@ -1320,6 +1521,11 @@ namespace KasseAPI_Final.Services
                         TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
                         PaymentMethodRaw = methodResolution.LegacyRaw,
                         Notes = request.Notes,
+                        PrescriptionReference = prescriptionReference,
+                        RouteFrom = routeFrom,
+                        RouteTo = routeTo,
+                        RouteKm = routeKm,
+                        TripStartedAtUtc = tripStartedAtUtc,
                         CreatedBy = userId,
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true,
@@ -1513,10 +1719,9 @@ namespace KasseAPI_Final.Services
                                 CashRegisterId: cashRegisterId,
                                 RegisterNumber: registerNumber,
                                 TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
-                                PaymentMethodRaw: payment.PaymentMethodRaw));
-                        payment.TseSignature = deSign.Signature;
-                        payment.PrevSignatureValueUsed = deSign.PrevSignatureValue;
-                        payment.CertificateThumbprint = deSign.CertificateThumbprint;
+                                PaymentMethodRaw: payment.PaymentMethodRaw,
+                                PaymentId: payment.Id,
+                                DbTransaction: transaction));
                         payment.CountryCodeAtIssue = "DE";
                     }
 
@@ -1557,6 +1762,33 @@ namespace KasseAPI_Final.Services
                     FiscalDocumentCountryStamp.CopyFromPayment(posInvoice, payment, countryBinding);
 
                     _context.PaymentDetails.Add(payment);
+                    IReadOnlyList<IssuedTicketDto> issuedTickets = [];
+                    if (_ticketRedemptions is not null
+                        && await TenantIssuesTicketsAsync(CancellationToken.None).ConfigureAwait(false)
+                        && !request.IsStorno
+                        && !request.IsRefund)
+                    {
+                        var ticketLines = pricedLines
+                            .Where(line => line.Product.IsTicket)
+                            .Select(line => (line.Product, line.Item.Quantity))
+                            .ToList();
+                        if (ticketLines.Count > 0)
+                        {
+                            issuedTickets = await _ticketRedemptions
+                                .IssueForSaleAsync(
+                                    effectiveTenantId,
+                                    payment.Id,
+                                    ticketLines,
+                                    CancellationToken.None)
+                                .ConfigureAwait(false);
+                        }
+                    }
+                    foreach (var imeiRow in pendingImeiRows)
+                    {
+                        imeiRow.Status = ProductImeiStatus.Sold;
+                        imeiRow.SoldPaymentId = payment.Id;
+                        imeiRow.SoldAtUtc = DateTime.UtcNow;
+                    }
                     _context.Invoices.Add(posInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
 
@@ -1602,6 +1834,7 @@ namespace KasseAPI_Final.Services
 
                     committedPayment = payment!;
                     committedInvoice = posInvoice!;
+                    committedIssuedTickets = issuedTickets;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1718,6 +1951,54 @@ namespace KasseAPI_Final.Services
 
                     await DispatchPostCommitComplianceAsync(createdPayment, createdInvoice, userId, offlineReplayBatchCorrelationId, effectiveTseRequired);
 
+                    if (!string.IsNullOrEmpty(createdPayment.PrescriptionReference))
+                    {
+                        try
+                        {
+                            await _auditLogService.LogSystemOperationAsync(
+                                action: "PAYMENT_WITH_PRESCRIPTION",
+                                entityType: "Payment",
+                                userId: userId,
+                                userRole: "Cashier",
+                                description: "Payment stored a non-fiscal prescription reference",
+                                actionType: AuditEventType.PaymentWithPrescription,
+                                entityId: createdPayment.Id,
+                                tenantId: tenantIdForFlags,
+                                newValues: new { hasPrescription = true });
+                        }
+                        catch (Exception auditEx)
+                        {
+                            _logger.LogWarning(
+                                auditEx,
+                                "PaymentWithPrescription audit write failed for {PaymentId}",
+                                createdPayment.Id);
+                        }
+                    }
+
+                    if (committedIssuedTickets.Count > 0)
+                    {
+                        try
+                        {
+                            await _auditLogService.LogSystemOperationAsync(
+                                action: "TICKET_ISSUED",
+                                entityType: "Payment",
+                                userId: userId,
+                                userRole: "Cashier",
+                                description: "Ticket-sales sale issued redeemable tickets",
+                                actionType: AuditEventType.TicketIssued,
+                                entityId: createdPayment.Id,
+                                tenantId: tenantIdForFlags,
+                                newValues: new { ticketCount = committedIssuedTickets.Count });
+                        }
+                        catch (Exception auditEx)
+                        {
+                            _logger.LogWarning(
+                                auditEx,
+                                "TicketIssued audit write failed for {PaymentId}",
+                                createdPayment.Id);
+                        }
+                    }
+
                     if (_cardPaymentService != null)
                     {
                         var linkedIntentId = request.Payment.CardPaymentIntentId
@@ -1741,7 +2022,8 @@ namespace KasseAPI_Final.Services
                         IsDemoFiscal = isDemoFiscal,
                         TseProvider = tseProvider,
                         InvoicePersisted = true,
-                        TimeSyncWarning = createdPayment.TimeSyncWarning
+                        TimeSyncWarning = createdPayment.TimeSyncWarning,
+                        IssuedTickets = committedIssuedTickets
                     };
                 }
 
@@ -1800,6 +2082,7 @@ namespace KasseAPI_Final.Services
                 pricedLines.Add((item, product, priceRes.UnitPriceGross));
             }
 
+            var previewRates = TaxTypesFor(countryBinding);
             var taxResult = taxStrategy.CalculateTax(
                 pricedLines.ConvertAll(l =>
                     CountryPaymentTaxLineMapper.FromProductTaxType(
@@ -1807,13 +2090,14 @@ namespace KasseAPI_Final.Services
                         l.UnitGross,
                         l.Item.Quantity,
                         l.Product.TaxType,
-                        _taxTypes)),
+                        previewRates)),
                 new TaxCalculationContext
                 {
                     CountryProfile = countryBinding.Profile,
                     VatRegime = countryBinding.VatRegime,
                     TaxExempt = countryBinding.Settings.TaxExempt,
                     DestinationCountry = null,
+                    TenantId = countryBinding.Settings.TenantId,
                 });
 
             for (var i = 0; i < pricedLines.Count; i++)

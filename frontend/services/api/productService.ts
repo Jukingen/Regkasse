@@ -60,6 +60,10 @@ export interface Product {
   stockQuantity: number;
   minStockLevel: number; // Minimum stok seviyesi
   unit: string;
+  durationMinutes?: number | null;
+  staffId?: string | null;
+  imeiTracked?: boolean;
+  isTicket?: boolean;
   category: string;
   taxType: TaxType; // RKSV vergi tipleri
   isActive: boolean;
@@ -134,6 +138,10 @@ const mapProduct = (p: any): Product => ({
   stockQuantity: p.StockQuantity ?? p.stockQuantity,
   minStockLevel: p.MinStockLevel ?? p.minStockLevel,
   unit: p.Unit ?? p.unit,
+  durationMinutes: p.DurationMinutes ?? p.durationMinutes ?? null,
+  staffId: p.StaffId ?? p.staffId ?? null,
+  imeiTracked: Boolean(p.ImeiTracked ?? p.imeiTracked),
+  isTicket: Boolean(p.IsTicket ?? p.isTicket),
   category: p.Category ?? p.category,
   taxType: p.TaxType ?? p.taxType,
   isActive: p.IsActive ?? p.isActive,

@@ -39,9 +39,17 @@ public sealed class InMemoryPeppolSubmissionStore : IPeppolSubmissionStore
         _rows.TryGetValue(id, out var row) ? row : null;
 }
 
-public sealed record PeppolSubmitRequest(string SubmissionId, string UblXml, string ParticipantId);
+public sealed record PeppolSubmitRequest(
+    string SubmissionId,
+    string UblXml,
+    string ParticipantId,
+    Guid TenantId = default);
 
-public sealed record PeppolTransportResult(PeppolSubmissionStatus Status, string? Detail);
+public sealed record PeppolTransportResult(
+    PeppolSubmissionStatus Status,
+    string? Detail,
+    string? ProviderMessageId = null,
+    string? ProviderCode = null);
 
 public interface IPeppolAccessPointClient
 {
@@ -53,6 +61,27 @@ public interface IPeppolAccessPointClient
 public sealed class PeppolAccessPointNotConfiguredException : InvalidOperationException
 {
     public PeppolAccessPointNotConfiguredException(string message) : base(message) { }
+}
+
+/// <summary>
+/// Storecove or hosted transport failed. Callers do not see <see cref="HttpRequestException"/>
+/// or a timeout <see cref="TaskCanceledException"/>.
+/// </summary>
+public sealed class PeppolTransportException : Exception
+{
+    public PeppolTransportException(string message, Exception? inner = null, int? statusCode = null, string? code = null)
+        : base(message, inner)
+    {
+        StatusCode = statusCode;
+        Code = string.IsNullOrWhiteSpace(code)
+            ? statusCode is int status ? $"storecove-http-{status}" : "storecove-transport"
+            : code.Trim();
+    }
+
+    public int? StatusCode { get; }
+
+    /// <summary>Stable reason token. Never the UBL document or the API key.</summary>
+    public string Code { get; }
 }
 
 /// <summary>In-process Access Point. Submit is Sent; the next status read is Ack.</summary>

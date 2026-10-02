@@ -7,9 +7,9 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
@@ -41,10 +41,10 @@ describe('buildDrProofPresentationModel', () => {
   it('stub/simulated pipeline does not yield high proof layers', () => {
     const latest: BackupRunResponseDto = {
       id: 'run-a',
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
@@ -58,7 +58,7 @@ describe('buildDrProofPresentationModel', () => {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -75,7 +75,7 @@ describe('buildDrProofPresentationModel', () => {
       verification: undefined,
       recoverability: {},
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -87,16 +87,16 @@ describe('buildDrProofPresentationModel', () => {
     const rid = 'run-prod';
     const latest: BackupRunResponseDto = {
       id: rid,
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
     };
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,

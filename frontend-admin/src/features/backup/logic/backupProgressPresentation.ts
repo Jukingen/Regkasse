@@ -28,40 +28,40 @@ export type BackupProgressViewModel = {
 
 function isInProgressStatus(status: number | undefined): boolean {
   return (
-    status === BackupRunStatus.NUMBER_0 ||
-    status === BackupRunStatus.NUMBER_1 ||
-    status === BackupRunStatus.NUMBER_2
+    status === BackupRunStatus.Queued ||
+    status === BackupRunStatus.Running ||
+    status === BackupRunStatus.AwaitingVerification
   );
 }
 
 function isErrorStatus(status: number | undefined): boolean {
-  return status === BackupRunStatus.NUMBER_4 || status === BackupRunStatus.NUMBER_5;
+  return status === BackupRunStatus.Failed || status === BackupRunStatus.VerificationFailed;
 }
 
 function isTerminalStatus(status: number | undefined): boolean {
   return (
-    status === BackupRunStatus.NUMBER_3 ||
-    status === BackupRunStatus.NUMBER_4 ||
-    status === BackupRunStatus.NUMBER_5 ||
-    status === BackupRunStatus.NUMBER_6
+    status === BackupRunStatus.Succeeded ||
+    status === BackupRunStatus.Failed ||
+    status === BackupRunStatus.VerificationFailed ||
+    status === BackupRunStatus.Cancelled
   );
 }
 
 function statusTitleKey(status: number | undefined): string {
   switch (status) {
-    case BackupRunStatus.NUMBER_0:
+    case BackupRunStatus.Queued:
       return 'backupDr.progress.titleQueued';
-    case BackupRunStatus.NUMBER_1:
+    case BackupRunStatus.Running:
       return 'backupDr.progress.titleRunning';
-    case BackupRunStatus.NUMBER_2:
+    case BackupRunStatus.AwaitingVerification:
       return 'backupDr.progress.titleAwaiting';
-    case BackupRunStatus.NUMBER_3:
+    case BackupRunStatus.Succeeded:
       return 'backupDr.progress.finishedOk';
-    case BackupRunStatus.NUMBER_4:
+    case BackupRunStatus.Failed:
       return 'backupDr.progress.finishedFailed';
-    case BackupRunStatus.NUMBER_5:
+    case BackupRunStatus.VerificationFailed:
       return 'backupDr.progress.finishedVerificationFailed';
-    case BackupRunStatus.NUMBER_6:
+    case BackupRunStatus.Cancelled:
       return 'backupDr.progress.finishedCancelled';
     default:
       return 'backupDr.summary.unknown';
@@ -70,11 +70,11 @@ function statusTitleKey(status: number | undefined): string {
 
 function statusBodyKey(status: number | undefined): string | null {
   switch (status) {
-    case BackupRunStatus.NUMBER_0:
+    case BackupRunStatus.Queued:
       return 'backupDr.progress.bodyQueued';
-    case BackupRunStatus.NUMBER_1:
+    case BackupRunStatus.Running:
       return 'backupDr.progress.bodyRunning';
-    case BackupRunStatus.NUMBER_2:
+    case BackupRunStatus.AwaitingVerification:
       return 'backupDr.progress.bodyAwaiting';
     default:
       return null;
@@ -84,17 +84,17 @@ function statusBodyKey(status: number | undefined): string | null {
 /** Fallback percent when pipeline steps are unavailable. */
 export function percentFromRunStatus(status: number | undefined): number {
   switch (status) {
-    case BackupRunStatus.NUMBER_0:
+    case BackupRunStatus.Queued:
       return 8;
-    case BackupRunStatus.NUMBER_1:
+    case BackupRunStatus.Running:
       return 45;
-    case BackupRunStatus.NUMBER_2:
+    case BackupRunStatus.AwaitingVerification:
       return 85;
-    case BackupRunStatus.NUMBER_3:
+    case BackupRunStatus.Succeeded:
       return 100;
-    case BackupRunStatus.NUMBER_4:
-    case BackupRunStatus.NUMBER_5:
-    case BackupRunStatus.NUMBER_6:
+    case BackupRunStatus.Failed:
+    case BackupRunStatus.VerificationFailed:
+    case BackupRunStatus.Cancelled:
       return 100;
     default:
       return 0;
@@ -161,7 +161,7 @@ export function estimateRemainingMs(params: {
 
   const now = params.nowMs ?? Date.now();
   if (
-    (params.status === BackupRunStatus.NUMBER_1 || params.status === BackupRunStatus.NUMBER_2) &&
+    (params.status === BackupRunStatus.Running || params.status === BackupRunStatus.AwaitingVerification) &&
     params.startedAt
   ) {
     const started = new Date(params.startedAt).getTime();
@@ -169,7 +169,7 @@ export function estimateRemainingMs(params: {
     return Math.max(0, avgSec * 1000 - (now - started));
   }
 
-  if (params.status === BackupRunStatus.NUMBER_0) {
+  if (params.status === BackupRunStatus.Queued) {
     return Math.round(avgSec * 1000);
   }
 
@@ -206,20 +206,20 @@ export function buildBackupProgressViewModel(
     currentStep = fromPipeline.currentStep;
     totalSteps = fromPipeline.totalSteps;
     currentStepTitleKey = fromPipeline.currentStepTitleKey;
-    if (status === BackupRunStatus.NUMBER_3) percentage = 100;
+    if (status === BackupRunStatus.Succeeded) percentage = 100;
   } else {
     // Coarse 3-phase ladder when no pipeline projection
     totalSteps = 3;
-    if (status === BackupRunStatus.NUMBER_0) currentStep = 1;
-    else if (status === BackupRunStatus.NUMBER_1) currentStep = 2;
-    else if (status === BackupRunStatus.NUMBER_2) currentStep = 3;
+    if (status === BackupRunStatus.Queued) currentStep = 1;
+    else if (status === BackupRunStatus.Running) currentStep = 2;
+    else if (status === BackupRunStatus.AwaitingVerification) currentStep = 3;
     else if (isTerminalStatus(status)) currentStep = 3;
   }
 
   let progressStatus: BackupProgressBarStatus = 'active';
-  if (status === BackupRunStatus.NUMBER_3) progressStatus = 'success';
+  if (status === BackupRunStatus.Succeeded) progressStatus = 'success';
   else if (isErrorStatus(status)) progressStatus = 'exception';
-  else if (status === BackupRunStatus.NUMBER_6) progressStatus = 'normal';
+  else if (status === BackupRunStatus.Cancelled) progressStatus = 'normal';
   else if (!isInProgressStatus(status)) progressStatus = 'normal';
 
   const remainingFromApi = options?.estimatedRemainingSecondsFromApi;

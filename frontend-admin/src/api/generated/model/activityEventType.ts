@@ -26,6 +26,7 @@ export const ActivityEventType = {
   OfflineOrdersBacklogGrowing: 'OfflineOrdersBacklogGrowing',
   OfflineOrdersExpiringSoon: 'OfflineOrdersExpiringSoon',
   OfflineSyncStalled: 'OfflineSyncStalled',
+  OfflineQueueApproachingLimit: 'OfflineQueueApproachingLimit',
   FinanzOnlineSubmissionFailed: 'FinanzOnlineSubmissionFailed',
   BackupFailed: 'BackupFailed',
   BackupSucceeded: 'BackupSucceeded',
@@ -135,4 +136,6 @@ export const ActivityEventType = {
   PeppolParticipantRegistered: 'PeppolParticipantRegistered',
   ChQrKnownGapsAccepted: 'ChQrKnownGapsAccepted',
   ChQrKnownGapsOutstanding: 'ChQrKnownGapsOutstanding',
+  EinvoiceAckReceived: 'EinvoiceAckReceived',
+  EinvoiceSubmissionRetry: 'EinvoiceSubmissionRetry',
 } as const;

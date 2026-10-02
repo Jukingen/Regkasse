@@ -45,6 +45,7 @@
     "clean": "node scripts/clean-artifacts.mjs",
     "seed:test-data": "node scripts/seed-test-data.mjs",
     "smoke:kassensicherheit-test": "node scripts/smoke/kassensicherheit-test-smoke.mjs",
+    "smoke:peppol-test": "node scripts/smoke/peppol-canary-test-smoke.mjs",
     "verify:api-client": "node scripts/verify-api-client.mjs",
     "verify:openapi": "node scripts/validate-critical-openapi-paths.mjs",
     "verify:permission-keys": "node scripts/verify-permission-keys.mjs",

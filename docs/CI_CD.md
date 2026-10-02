@@ -2,7 +2,7 @@
 
 How automated build, test, image publish, deploy, smoke, and rollback fit together.
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-29
 
 | Related | Link |
 |---------|------|
@@ -152,6 +152,42 @@ A 40–60s **Build & push** failure is almost always GHCR login/push (not a miss
 | `ONCALL_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` | Alerts |
 
 Full checklists: [`.github/environments/staging.yml`](../.github/environments/staging.yml) · [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md).
+
+#### Country-layer bypass gate
+
+Workflow: [`backend-unit-tests.yml`](../.github/workflows/backend-unit-tests.yml).  
+Step name: **Country layer bypass gate**.
+
+The job runs on every PR that touches `backend/**`. The same step also runs when any of these paths change:
+
+- `backend/Models/Countries/**`
+- `backend/Services/Countries/**`
+- `backend/Services/Countries/KassenSicherheit/**`
+- `backend/Services/Countries/QrRechnung/**`
+- `backend/Services/Countries/EInvoicing/**`
+- `backend/Data/AppDbContext.cs`
+
+`backend/Services/Countries/KassenSicherheit/**`, `QrRechnung/**`, and `EInvoicing/**` sit under `backend/Services/Countries/**`. `backend/Fiscal/**` is covered by `backend/**`. No new country-layer directory was added outside those globs.
+
+Filter (same string as the workflow step). Each `FullyQualifiedName~` token is a class, except the two OpenAPI method names, which live on `CountryLayerBypassGateTests` and are listed so a rename of those facts still fails the step.
+
+```text
+FullyQualifiedName~CountryLayerBypassGateTests|FullyQualifiedName~GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames|FullyQualifiedName~AuditEventType_And_ActivityEventType_Are_In_OpenApi|FullyQualifiedName~CountryLayerNewPackagesGateTests|FullyQualifiedName~FeatureFlagNamesTests|FullyQualifiedName~SwitzerlandTaxStrategyTests|FullyQualifiedName~SwitzerlandInvoiceStrategyTests|FullyQualifiedName~FiscalSignatureRouterAtDeTests|FullyQualifiedName~FiscalSignatureRouterChTests|FullyQualifiedName~FiscalSignatureRouterEuTests|FullyQualifiedName~ChMwstEffectiveRatesTests|FullyQualifiedName~En16931XmlBuilderTests|FullyQualifiedName~QrRechnungBuilderTests|FullyQualifiedName~GermanyTaxStrategyTests|FullyQualifiedName~GermanyInvoiceStrategyTests|FullyQualifiedName~KassenSicherheitHostOptionsValidatorTests|FullyQualifiedName~DeTseSignaturePersistenceTests|FullyQualifiedName~PeppolReservedFlagGuardTests|FullyQualifiedName~ChQrKnownGapsTests|FullyQualifiedName~PeppolReservedExitTests|FullyQualifiedName~ChQrGapAcceptanceTests|FullyQualifiedName~PeppolParticipantSchemaTests|FullyQualifiedName~PeppolSubmissionTests|FullyQualifiedName~EnumVarnamesSchemaFilterTests|FullyQualifiedName~EnumVarnamesOpenApiDocumentTests|FullyQualifiedName~SoftKassenSicherheitServiceTests|FullyQualifiedName~ActivityDtoTypeWireFormatTests|FullyQualifiedName~OssVatRateIsolationTests|FullyQualifiedName~StorecovePeppolAccessPointClientTests
+```
+
+| Group | Why it is in this step | Classes |
+|-------|------------------------|---------|
+| Bypass and package gates | One country column, no second VAT-ID literal, bank submit and Peppol HTTP stay off the default path | `CountryLayerBypassGateTests`, `CountryLayerNewPackagesGateTests` |
+| OpenAPI enum names | Integer enums keep `x-enum-varnames`; `ActivityEventType` stays a string schema | `GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames`, `AuditEventType_And_ActivityEventType_Are_In_OpenApi` (facts on the bypass class), `EnumVarnamesSchemaFilterTests`, `EnumVarnamesOpenApiDocumentTests`, `ActivityDtoTypeWireFormatTests` |
+| Flags | Reserved Peppol stays out of `All`; country defaults stay pinned | `FeatureFlagNamesTests`, `PeppolReservedFlagGuardTests`, `PeppolReservedExitTests` |
+| CH | MWST rates, QR payload/PDF, known-gap fixture, per-tenant gap acceptance | `SwitzerlandTaxStrategyTests`, `SwitzerlandInvoiceStrategyTests`, `ChMwstEffectiveRatesTests`, `QrRechnungBuilderTests`, `ChQrKnownGapsTests`, `ChQrGapAcceptanceTests` |
+| DE | Tax and receipt strategies, pilot host pin, signature table, Development soft signer | `GermanyTaxStrategyTests`, `GermanyInvoiceStrategyTests`, `KassenSicherheitHostOptionsValidatorTests`, `DeTseSignaturePersistenceTests`, `SoftKassenSicherheitServiceTests`, `FiscalSignatureRouterAtDeTests` |
+| Router | CH and EU branches of the same router | `FiscalSignatureRouterChTests`, `FiscalSignatureRouterEuTests` |
+| EU / Peppol / OSS | UBL sketch, participant registry, reserved submit path, Storecove client (not wired), OSS rate isolation | `En16931XmlBuilderTests`, `PeppolParticipantSchemaTests`, `PeppolSubmissionTests`, `StorecovePeppolAccessPointClientTests`, `OssVatRateIsolationTests` |
+
+Older country-layer classes stay on **Test with coverage** only (`Category!=PostgreSql`). They are not in this step: `CountryCallSiteMigrationTests`, `CountryFiscalLockEvaluatorTests`, `CountryPaymentStrategyContractTests`, `CountryProfileRegistryTests`, `CountryProfileSourcesTests`, `CountryStrategyCallSiteTests`, `CountryStrategyResolverTests`, `CountryTaxTypeRegistryTests`, `CompanySettingsCountryFieldsTests`, `CompanySettingsCountryValidationTests`, `FiscalDocumentCountryStampTests`, `TenantOnboardingCountryValidationTests`, `AddCompanySettingsCountryBillingMigrationTests`, `AddFiscalDocumentCountryAtIssueSnapshotsMigrationTests`, `EuDefaultTaxStrategyTests`, `EuDefaultInvoiceStrategyTests`, `OssVatRateRegistryTests`, `FiskalyDeKassenSicherheitHttpClientTests`, `FiskalyDeKassenSicherheitServiceTests`, `AdminKassenSicherheitControllerTests`, `KassenSicherheitServiceTests`. None of those names carry `Category=PostgreSql`.
+
+None of the classes in the step carry `Category=PostgreSql`, so the **Test with coverage** step (`Category!=PostgreSql`) runs them too. `CountryBaseline` (`AtFiscalChainBaselineTests`, `AtReceiptDisclosureBaselineTests`) is not in this filter. It stays on the coverage step only.
 
 #### Country-layer migrations (Paket 16)
 

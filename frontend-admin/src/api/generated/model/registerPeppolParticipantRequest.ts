@@ -10,6 +10,12 @@ export interface RegisterPeppolParticipantRequest {
   /** @nullable */
   apEnvironment?: string | null;
   /** @nullable */
+  eIdentifierScheme?: string | null;
+  /** @nullable */
+  eIdentifierValue?: string | null;
+  /** @nullable */
+  legalEntityId?: string | null;
+  /** @nullable */
   participantId?: string | null;
   tenantId?: string;
 }

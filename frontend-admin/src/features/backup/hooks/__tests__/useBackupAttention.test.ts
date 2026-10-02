@@ -10,13 +10,13 @@ function isBackupFailureStatus(status: number | undefined): boolean {
 
 describe('useBackupAttention status helper', () => {
   it('treats failed and verificationFailed as attention', () => {
-    expect(isBackupFailureStatus(BackupRunStatus.NUMBER_4)).toBe(true);
-    expect(isBackupFailureStatus(BackupRunStatus.NUMBER_5)).toBe(true);
+    expect(isBackupFailureStatus(BackupRunStatus.Failed)).toBe(true);
+    expect(isBackupFailureStatus(BackupRunStatus.VerificationFailed)).toBe(true);
   });
 
   it('ignores succeeded and in-progress statuses', () => {
-    expect(isBackupFailureStatus(BackupRunStatus.NUMBER_3)).toBe(false);
-    expect(isBackupFailureStatus(BackupRunStatus.NUMBER_1)).toBe(false);
+    expect(isBackupFailureStatus(BackupRunStatus.Succeeded)).toBe(false);
+    expect(isBackupFailureStatus(BackupRunStatus.Running)).toBe(false);
     expect(isBackupFailureStatus(undefined)).toBe(false);
   });
 });

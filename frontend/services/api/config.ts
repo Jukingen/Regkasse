@@ -532,6 +532,16 @@ export const apiClient = {
     }
   },
 
+  patch: async <T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await axiosInstance.patch<T>(url, data, config);
+      return response as T;
+    } catch (error) {
+      logApiClientError('PATCH', error);
+      throw error;
+    }
+  },
+
   delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
     try {
       const response = await axiosInstance.delete<T>(url, config);

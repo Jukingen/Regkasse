@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs, Redirect, router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
-import { OfflineStatusChip } from '../../components/OfflineStatusChip';
+import { OfflineQueueIndicator } from '../../components/OfflineQueueIndicator';
+import { OfflineLimitReachedModal } from '../../components/OfflineLimitReachedModal';
+import { retryOfflineQueuesNow } from '../../services/offline/retryOfflineQueues';
 import { GracePeriodWarning } from '../../components/GracePeriodWarning';
 import { Header as WorkingHoursStatus } from '../../components/Header';
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
@@ -24,19 +26,28 @@ import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { ToastContainer } from '../../components/ToastNotification';
 import { TseOfflineRestrictionBanner, TseStatusBanner } from '../../components/TseStatusBanner';
 import { UserMenu } from '../../components/UserMenu';
+import { KitchenHubBridge } from '../../hooks/useKitchenHub';
+import { useKitchenPendingCount } from '../../services/kitchenPendingStore';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
+import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
+import { useTaxiTrip } from '../../contexts/TaxiTripContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
+import {
+  useVerticalFeatures,
+  useVerticalProfileContext,
+} from '../../contexts/VerticalProfileContext';
 import {
   PosRegisterReadinessProvider,
   usePosRegisterReadiness,
 } from '../../contexts/PosRegisterReadinessContext';
 import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { useConditionalPolling } from '../../hooks/useConditionalPolling';
+import { usePosPermissions } from '../../hooks/usePosPermissions';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
@@ -53,7 +64,7 @@ import {
   isReadinessStartbelegGateActive,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
-import { usePosPermissions } from '../../hooks/usePosPermissions';
+import { useOfflineQueueIndicator } from '../../hooks/useOfflineQueueIndicator';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 type PosTabsInnerProps = {
@@ -83,8 +94,13 @@ function PosTabsInner({
   saleCustomer,
   developmentModeSettings,
 }: PosTabsInnerProps) {
+  const { t: tSettings } = useTranslation(['settings', 'common', 'offline']);
   const posReadiness = usePosRegisterReadiness();
   const { canMakePayment, canViewOrders } = usePosPermissions();
+  const { posFeatures, profileId, posLayout } = useVerticalFeatures();
+  const kitchenPendingCount = useKitchenPendingCount();
+  const { atCap } = useOfflineQueueIndicator();
+  const [limitModalVisible, setLimitModalVisible] = useState(false);
 
   const [tabBarToasts, setTabBarToasts] = useState<
     {
@@ -99,7 +115,17 @@ function PosTabsInner({
     setTabBarToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
+  useEffect(() => {
+    if (atCap) {
+      setLimitModalVisible(true);
+    }
+  }, [atCap]);
+
   const tryOpenPaymentModal = () => {
+    if (atCap) {
+      setLimitModalVisible(true);
+      return;
+    }
     if (!canMakePayment) {
       Alert.alert(
         t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
@@ -238,7 +264,7 @@ function PosTabsInner({
           <View style={styles.headerStatusLeft}>
             <TseStatusBanner />
             <WorkingHoursStatus />
-            <OfflineStatusChip />
+            <OfflineQueueIndicator />
             <MonatsbelegHeaderBadge />
           </View>
           <View style={styles.headerRight}>
@@ -254,6 +280,7 @@ function PosTabsInner({
         <TseOfflineRestrictionBanner />
         <StartbelegRequiredBanner />
         <TagesabschlussReminder />
+        {posFeatures.kitchenDisplay ? <KitchenHubBridge enabled /> : null}
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: SoftColors.accent,
@@ -279,10 +306,59 @@ function PosTabsInner({
           <Tabs.Screen
             name="orders"
             options={{
-              href: canViewOrders ? undefined : null,
+              href:
+                canViewOrders && (posFeatures.tables || posFeatures.routeTracking)
+                  ? undefined
+                  : null,
               title: t('navigation:orders'),
               tabBarIcon: ({ color }) => (
                 <Ionicons name="restaurant-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="rooms"
+            options={{
+              href: profileId === 'beherbergung' || posLayout === 'rooms' ? undefined : null,
+              title: t('verticalProfiles:tabs.rooms'),
+              tabBarIcon: ({ color }) => <Ionicons name="bed-outline" size={24} color={color} />,
+            }}
+          />
+
+          <Tabs.Screen
+            name="kitchen-display"
+            options={{
+              href: posFeatures.kitchenDisplay ? undefined : null,
+              title: t('verticalProfiles:tabs.kitchen'),
+              tabBarBadge:
+                posFeatures.kitchenDisplay && kitchenPendingCount > 0
+                  ? kitchenPendingCount
+                  : undefined,
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="fast-food-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="patient-record"
+            options={{
+              href: posFeatures.patientRecord ? undefined : null,
+              title: t('verticalProfiles:tabs.patientRecord'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="paw-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="appointments"
+            options={{
+              href: posFeatures.appointment ? undefined : null,
+              title: t('verticalProfiles:tabs.appointments'),
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={24} color={color} />
               ),
             }}
           />
@@ -332,6 +408,14 @@ function PosTabsInner({
             options={{
               href: null,
               title: t('navigation:receiptList') || 'Belegliste',
+            }}
+          />
+
+          <Tabs.Screen
+            name="ticket-validate"
+            options={{
+              href: null,
+              title: t('verticalProfiles:screens.tickets.menu') || 'Ticket prüfen',
             }}
           />
 
@@ -395,6 +479,19 @@ function PosTabsInner({
           customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
           tableNumber={activeTableId}
         />
+        <OfflineLimitReachedModal
+          visible={limitModalVisible}
+          title={tSettings('offline:limit.title')}
+          body={tSettings('offline:limit.body')}
+          retryLabel={tSettings('offline:limit.retryNow')}
+          cancelLabel={tSettings('offline:limit.cancel')}
+          onRetryNow={() => {
+            void retryOfflineQueuesNow().finally(() => {
+              setLimitModalVisible(false);
+            });
+          }}
+          onCancel={() => setLimitModalVisible(false)}
+        />
         <OfflineBanner />
       </View>
     </TseHealthProvider>
@@ -402,11 +499,14 @@ function PosTabsInner({
 }
 
 export default function TabLayout() {
-  const { t } = useTranslation(['navigation', 'checkout']);
+  const { t } = useTranslation(['navigation', 'checkout', 'verticalProfiles']);
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
   const { settings: developmentModeSettings } = useDevelopmentModeContext();
+  const { posLayout, isLoading: verticalProfileLoading } = useVerticalProfileContext();
+  const { canViewOrders } = usePosPermissions();
   const checkAuthStatusRef = useRef(checkAuthStatus);
+  const appliedLayoutScopeRef = useRef<string | null>(null);
   checkAuthStatusRef.current = checkAuthStatus;
 
   // Context usage
@@ -419,12 +519,16 @@ export default function TabLayout() {
     saleCustomer,
     setSaleCustomer,
   } = useCart();
+  const { resetTrip } = useTaxiTrip();
+  const { reset: resetImeis } = useImeiSelections();
 
   const totals = getCartDisplayTotals(currentCart);
   const cartCount = totals.itemCount;
 
   const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
     setSaleCustomer(null);
+    resetTrip();
+    resetImeis();
     await clearCart(paidTableNumber ?? activeTableId);
   };
 
@@ -458,6 +562,51 @@ export default function TabLayout() {
     POS_HEALTH_POLL_MS,
     Boolean(isAuthenticated && user?.id)
   );
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !user?.id ||
+      verticalProfileLoading ||
+      needsPosCashRegisterSelection(user.currentCashRegisterId)
+    ) {
+      return;
+    }
+
+    const scope = `${user.tenantId ?? user.tenantSlug ?? user.id}:${posLayout}`;
+    if (appliedLayoutScopeRef.current === scope) return;
+
+    const target =
+      posLayout === 'tables' && canViewOrders
+        ? '/(tabs)/orders'
+        : posLayout === 'appointment'
+          ? '/(tabs)/appointments'
+          : posLayout === 'rooms'
+            ? '/(tabs)/rooms'
+            : null;
+    appliedLayoutScopeRef.current = scope;
+    if (!target) return;
+
+    // AuthContext completes its generic cash-register redirect shortly after login.
+    // Apply the vertical default afterwards so profile layout wins deterministically.
+    const timer = setTimeout(() => {
+      // Expo typed routes are generated by Metro; the new static route is not in the
+      // checked-in type cache until the next Expo start.
+      router.replace(target as never);
+    }, 700);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    canViewOrders,
+    isAuthenticated,
+    posLayout,
+    user?.currentCashRegisterId,
+    user?.id,
+    user?.tenantId,
+    user?.tenantSlug,
+    verticalProfileLoading,
+  ]);
 
   if (!isAuthReady || isLoading) {
     return (

@@ -45,6 +45,8 @@ const SHALLOW_PRODUCT_KEYS = [
   'stockQuantity',
   'minStockLevel',
   'cost',
+  'durationMinutes',
+  'staffId',
   'imageUrl',
   'createdAt',
   'updatedAt',

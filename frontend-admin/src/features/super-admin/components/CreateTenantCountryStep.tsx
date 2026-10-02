@@ -4,6 +4,7 @@ import { Alert, Form, Select, Spin } from 'antd';
 import React, { useEffect } from 'react';
 
 import type { CountryProfileSummaryDto } from '@/api/generated/model';
+import { CreateTenantCountryDrivenFields } from '@/features/super-admin/components/CreateTenantCountryDrivenFields';
 import type { CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { useI18n } from '@/i18n';
 
@@ -20,7 +21,7 @@ export function CreateTenantCountryStep({ countries, loading }: CreateTenantCoun
   const regimes = (selected?.allowedVatRegimes ?? []).filter(
     (regime): regime is NonNullable<typeof regime> => Boolean(regime)
   );
-  const isNonAt = Boolean(countryCode && countryCode !== 'AT');
+  const isNonRksv = Boolean(selected && selected.fiscalSystem !== 'RKSV_AT');
 
   useEffect(() => {
     if (!countryCode) {
@@ -38,7 +39,7 @@ export function CreateTenantCountryStep({ countries, loading }: CreateTenantCoun
 
   return (
     <Spin spinning={loading}>
-      {isNonAt ? (
+      {isNonRksv ? (
         <Alert
           type="info"
           showIcon
@@ -79,6 +80,7 @@ export function CreateTenantCountryStep({ countries, loading }: CreateTenantCoun
           options={regimes.map((regime) => ({ value: regime, label: regime }))}
         />
       </Form.Item>
+      <CreateTenantCountryDrivenFields countries={countries} />
     </Spin>
   );
 }

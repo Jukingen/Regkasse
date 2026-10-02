@@ -32,6 +32,10 @@ namespace KasseAPI_Final.DTOs
         public int StockQuantity { get; set; }
         public int? MinStockLevel { get; set; }
         public string? Unit { get; set; }
+        public int? DurationMinutes { get; set; }
+        public string? StaffId { get; set; }
+        public bool ImeiTracked { get; set; }
+        public bool IsTicket { get; set; }
         public string? ProductCategory { get; set; }
         public Guid? CategoryId { get; set; }
         public string? CategoryIcon { get; set; }

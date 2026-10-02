@@ -1,4 +1,5 @@
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Services;
@@ -9,7 +10,6 @@ using KasseAPI_Final.Services.Countries.QrRechnung;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.KassenSicherheit;
-using KasseAPI_Final.Services.Countries.Strategies.Germany;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.FeatureFlags;
@@ -32,7 +32,8 @@ public sealed record FiscalSignatureContext(
     DateTime? Timestamp = null,
     string? TaxDetailsJson = null,
     IDbContextTransaction? DbTransaction = null,
-    string? PaymentMethodRaw = null);
+    string? PaymentMethodRaw = null,
+    Guid? PaymentId = null);
 
 /// <summary>
 /// Country signing dispatch. Austria calls <see cref="ITseService"/>; Germany is gated
@@ -73,13 +74,16 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
     private readonly IFeatureFlagService? _featureFlags;
     private readonly ITseService? _tse;
     private readonly IKassenSicherheitService? _kassen;
-    private readonly DeReceiptPayloadMapper _deReceipt;
+    private readonly AppDbContext? _db;
+    private readonly KassenSicherheitOptions? _kassenOptions;
     private readonly SwitzerlandTaxStrategy _tax;
     private readonly IQrRechnungBuilder _qr;
     private readonly MwstOptions? _mwst;
     private readonly IEn16931XmlBuilder _ubl;
     private readonly IPeppolSubmissionService _peppol;
     private readonly EuDefaultTaxStrategy _euTax;
+
+    private readonly ICountryStrategyContext? _countryContext;
 
     public FiscalSignatureRouter(
         IFeatureFlagService? featureFlags,
@@ -90,16 +94,16 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         IPeppolSubmissionService? peppol = null,
         ITseService? tse = null,
         IKassenSicherheitService? kassen = null,
-        DeReceiptPayloadMapper? deReceipt = null)
+        ICountryStrategyContext? countryContext = null,
+        AppDbContext? db = null,
+        IOptions<KassenSicherheitOptions>? kassenOptions = null)
     {
         _featureFlags = featureFlags;
         _tse = tse;
         _kassen = kassen;
-        _deReceipt = deReceipt ?? new DeReceiptPayloadMapper(
-            new GermanyTaxStrategy(
-                new CountryTaxTypeRegistry(),
-                new VatIdValidator(new DisabledViesClient()),
-                featureFlags));
+        _db = db;
+        _kassenOptions = kassenOptions?.Value;
+        _countryContext = countryContext;
         _mwst = mwst?.Value;
         _ubl = ubl ?? new En16931UblXmlBuilder(featureFlags);
         _euTax = new EuDefaultTaxStrategy(
@@ -240,40 +244,40 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         if (_kassen is null)
             throw new InvalidOperationException("DE KassenSicherheit service is not configured.");
 
-        var transactionId = Guid.NewGuid().ToString("N");
-        var started = await _kassen.StartTransactionAsync(
-            new KassenSicherheitStartTransactionRequest(
+        _ = clientId;
+        var payload = string.IsNullOrWhiteSpace(context.TaxDetailsJson)
+            ? context.ReceiptNumber
+            : context.ReceiptNumber + "\n" + context.TaxDetailsJson;
+        var signed = await _kassen.SignAsync(
+            new KassenSicherheitSignRequest(
                 settings.TenantId,
-                tssId,
-                clientId,
-                transactionId),
+                payload,
+                context.CashRegisterId?.ToString("D")),
             cancellationToken).ConfigureAwait(false);
 
-        using var taxDoc = System.Text.Json.JsonDocument.Parse(
-            string.IsNullOrWhiteSpace(context.TaxDetailsJson) ? "{}" : context.TaxDetailsJson);
-        var draft = new PaymentDetails
+        if (IsFiskalyDeProvider() && context.PaymentId is Guid paymentId && _db is not null
+            && !string.IsNullOrWhiteSpace(signed.Signature))
         {
-            TotalAmount = context.TotalGross,
-            ReceiptNumber = context.ReceiptNumber,
-            TaxDetails = taxDoc,
-            PaymentMethodRaw = context.PaymentMethodRaw,
-        };
-        var payload = _deReceipt.FromPayment(draft);
-        var finishRevision = (started.TxRevision ?? 1) + 1;
-        var finished = await _kassen.FinishTransactionAsync(
-            new KassenSicherheitFinishTransactionRequest(
-                settings.TenantId,
-                tssId,
-                clientId,
-                started.TransactionId ?? transactionId,
-                finishRevision,
-                Receipt: payload,
-                Belegnummer: payload.Belegnummer),
-            cancellationToken).ConfigureAwait(false);
+            var txId = string.IsNullOrWhiteSpace(context.CashRegisterId?.ToString("D"))
+                ? "receipt"
+                : context.CashRegisterId!.Value.ToString("D");
+            _db.DeTseSignatures.Add(new DeTseSignature
+            {
+                Id = Guid.NewGuid(),
+                TenantId = settings.TenantId,
+                PaymentDetailsId = paymentId,
+                TssId = tssId,
+                TransactionId = txId,
+                Signature = signed.Signature,
+                SignatureAlgorithm = signed.SignatureAlgorithm,
+                CertificateSerial = signed.CertificateSerial,
+                SignedAtUtc = DateTime.UtcNow,
+            });
+        }
 
         return new FiscalSignatureResult(
             DeProvider,
-            finished.Signature,
+            signed.Signature,
             SwissQrText: null,
             TotalVat: 0m);
     }
@@ -290,6 +294,12 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
         throw new FiscalSigningNotAvailableException(
             FiscalSigningNotAvailableException.DeNotConfigured);
     }
+
+    private bool IsFiskalyDeProvider() =>
+        string.Equals(
+            _kassenOptions?.Provider?.Trim(),
+            FiskalyDeKassenSicherheitHttpClient.ProviderId,
+            StringComparison.OrdinalIgnoreCase);
 
     private async Task<FiscalSignatureResult> SignEuAsync(
         FiscalSignatureContext context,
@@ -343,6 +353,8 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             TaxExemptionReasonCode = category == "AE" ? "VATEX-EU-AE" : null,
         };
 
+        var builder = _countryContext?.SelectEn16931Builder(context.Binding) ?? _ubl;
+        var xml = await builder.BuildXmlAsync(document, cancellationToken).ConfigureAwait(false);
         var submission = await _peppol.SubmitAsync(
             settings.TenantId,
             document,
@@ -357,7 +369,7 @@ public sealed class FiscalSignatureRouter : IFiscalSignatureRouter
             Signature: null,
             SwissQrText: null,
             tax.Totals.TotalVat,
-            UblXml: null,
+            UblXml: xml,
             PeppolStatus: submission.Status.ToString());
     }
 }

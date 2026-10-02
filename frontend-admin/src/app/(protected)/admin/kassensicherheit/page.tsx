@@ -1,7 +1,7 @@
 'use client';
 
-import { KassenSicherheitCanaryPage } from '@/features/kassenSicherheit/KassenSicherheitCanaryPage';
+import { KassenSicherheitPage } from '@/features/kassenSicherheit/KassenSicherheitPage';
 
 export default function AdminKassenSicherheitPage() {
-  return <KassenSicherheitCanaryPage />;
+  return <KassenSicherheitPage />;
 }

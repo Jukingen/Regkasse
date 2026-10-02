@@ -24,7 +24,11 @@ public sealed record QrRechnungRequest(
     string Currency,
     string? Reference,
     string? AdditionalInfo,
-    QrRechnungReferenceType? ReferenceType = null);
+    QrRechnungReferenceType? ReferenceType = null,
+    Guid? InvoiceId = null,
+    Guid? TenantId = null,
+    string? PdfPathRelative = null,
+    string? ActorUserId = null);
 
 /// <summary>
 /// SIX QR-bill payload. <see cref="SwissQrText"/> is the SPC element list (IG 2.3, address type S).

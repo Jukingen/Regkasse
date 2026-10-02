@@ -79,6 +79,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.LicenseExpiringSoon => ResolveLicenseExpiringTitle(metadata),
             ActivityEventType.LicenseExpired => "License expired",
             ActivityEventType.LimitApproaching => "Limit approaching",
+            ActivityEventType.OfflineQueueApproachingLimit => "Offline queue approaching limit",
             ActivityEventType.LimitExceeded => "Limit exceeded",
             ActivityEventType.RksvRuntimeConfigChanged => "RKSV runtime config changed",
             ActivityEventType.TenantCountryChanged => "Tenant country / VAT regime changed",
@@ -166,6 +167,17 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.TseAnomalyDetected => "TSE anomaly detected (statistical baseline)",
             ActivityEventType.TseAutoHealExecuted => "TSE auto-healing — recovery action executed",
             ActivityEventType.KsDeTxFinished => "DE KassenSicherheit transaction finished",
+            ActivityEventType.QrRechnungPayloadBuilt => "QR-Rechnung payload built",
+            ActivityEventType.QrRechnungPdfGenerated => "QR-Rechnung PDF generated",
+            ActivityEventType.TenantCountryChangedHistoricalPreserved => "Historical fiscal documents kept their issue-time country",
+            ActivityEventType.EinvoiceValidated => "E-invoice validated",
+            ActivityEventType.EinvoiceSubmitted => "E-invoice submitted",
+            ActivityEventType.EinvoiceSubmissionFailed => "E-invoice submission failed",
+            ActivityEventType.PeppolParticipantRegistered => "Peppol participant registered",
+            ActivityEventType.ChQrKnownGapsAccepted => "CH QR known gaps accepted",
+            ActivityEventType.ChQrKnownGapsOutstanding => "CH QR known gaps are not accepted",
+            ActivityEventType.EinvoiceAckReceived => "E-invoice acknowledged",
+            ActivityEventType.EinvoiceSubmissionRetry => "E-invoice submission retry scheduled",
             _ => type.ToString(),
         };
 
@@ -230,7 +242,9 @@ internal static class ActivityEventPublishBuilder
                 TryFormatBackup(metadata),
             ActivityEventType.LicenseExpiringSoon or ActivityEventType.LicenseExpired =>
                 TryFormatLicense(metadata),
-            ActivityEventType.LimitApproaching or ActivityEventType.LimitExceeded =>
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded =>
                 TryGetString(metadata, "Message")
                 ?? TryGetString(metadata, "Description"),
             ActivityEventType.OnlineOrderPushedToPos =>
@@ -343,7 +357,9 @@ internal static class ActivityEventPublishBuilder
 
         return type switch
         {
-            ActivityEventType.LimitApproaching or ActivityEventType.LimitExceeded
+            ActivityEventType.LimitApproaching
+                or ActivityEventType.OfflineQueueApproachingLimit
+                or ActivityEventType.LimitExceeded
                 => ("tenant_limit", TryGetString(metadata, "LimitKey")),
             ActivityEventType.UserCreated or ActivityEventType.UserUpdated or ActivityEventType.UserDeleted
                 => ("user", TryGetString(metadata, "UserId")),
@@ -436,6 +452,11 @@ internal static class ActivityEventPublishBuilder
                     ?? TryGetString(metadata, "RunbookId")
                     ?? TryGetString(metadata, "TenantId")
                     ?? TryGetString(metadata, "AnomalyId")),
+            ActivityEventType.QrRechnungPayloadBuilt or ActivityEventType.QrRechnungPdfGenerated
+                or ActivityEventType.ChQrKnownGapsOutstanding
+                => ("Invoice", TryGetString(metadata, "InvoiceId")),
+            ActivityEventType.ChQrKnownGapsAccepted
+                => ("TenantSetting", TryGetString(metadata, "acceptedBy")),
             _ => (null, null),
         };
     }

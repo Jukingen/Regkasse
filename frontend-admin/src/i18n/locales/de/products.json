@@ -173,6 +173,20 @@
     "price": "Preis (€)",
     "priceRequired": "Bitte Preis eingeben",
     "cost": "Einkaufspreis (€)",
+    "durationMinutes": "Dauer (Minuten)",
+    "staff": "Mitarbeiter",
+    "staffPlaceholder": "Mitarbeiter wählen",
+    "imeiTracked": "IMEI-pflichtig",
+    "isTicket": "Ticket",
+    "imeiList": "IMEI-Bestand",
+    "imeiListEmpty": "Keine IMEI erfasst.",
+    "imeiColumn": "IMEI",
+    "imeiStatus": "Status",
+    "imeiStatusValue": {
+      "InStock": "Auf Lager",
+      "Sold": "Verkauft",
+      "Returned": "Retourniert"
+    },
     "taxType": "Steuerart",
     "taxTypeRequired": "Steuerart wählen",
     "taxTypePlaceholder": "Steuerart wählen",
@@ -268,5 +282,27 @@
     "stockUpdateError": "Lagerbestand konnte nicht aktualisiert werden.",
     "modifierGroupsLoadFailed": "Add-on-Gruppen konnten nicht geladen werden.",
     "categoryPickRequired": "Bitte eine Kategorie wählen."
+  },
+  "ticketRedemptions": {
+    "title": "Ticket-Einlösungen",
+    "subtitle": "Nur Hash-Anzeige. Der Klartext-Ticketcode wird nicht gespeichert.",
+    "statusFilter": "Status",
+    "tenantFilter": "Mandant",
+    "allStatuses": "Alle Status",
+    "allTenants": "Alle Mandanten",
+    "loadError": "Einlösungen konnten nicht geladen werden.",
+    "empty": "Keine Tickets gefunden.",
+    "colCode": "Code (Hash)",
+    "colTenant": "Mandant",
+    "colStatus": "Status",
+    "colValidUntil": "Gültig bis",
+    "colRedeemedAt": "Eingelöst am",
+    "colRedeemedBy": "Eingelöst von",
+    "status": {
+      "Valid": "Gültig",
+      "Redeemed": "Eingelöst",
+      "Cancelled": "Storniert",
+      "Expired": "Abgelaufen"
+    }
   }
 }

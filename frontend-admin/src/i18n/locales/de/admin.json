@@ -1,0 +1,208 @@
+{
+  "peppol": {
+    "participants": {
+      "title": "Peppol-Teilnehmer",
+      "subtitle": "Teilnehmer-IDs je Mandant. Auf dieser Seite gibt es keine Zugangsdaten.",
+      "tenantFilter": "Mandant",
+      "missingTenant": "Bitte einen Mandanten wählen",
+      "create": "Teilnehmer anlegen",
+      "edit": "Bearbeiten",
+      "save": "Speichern",
+      "saved": "Teilnehmer gespeichert",
+      "loadError": "Teilnehmer konnten nicht geladen werden",
+      "empty": "Keine Teilnehmer",
+      "colTenant": "Mandant",
+      "colParticipantId": "Teilnehmer-ID",
+      "colApEnvironment": "AP-Umgebung",
+      "colLegalEntityId": "Legal Entity ID",
+      "colEIdentifierScheme": "eIdentifier-Schema",
+      "colEIdentifierValue": "eIdentifier-Wert",
+      "colUpdatedAtUtc": "Aktualisiert (UTC)",
+      "fieldParticipantId": "Teilnehmer-ID",
+      "fieldApEnvironment": "AP-Umgebung",
+      "fieldLegalEntityId": "Legal Entity ID",
+      "fieldEIdentifierScheme": "eIdentifier-Schema",
+      "fieldEIdentifierValue": "eIdentifier-Wert"
+    }
+  },
+  "kassensicherheit": {
+    "title": "KassenSicherheit (DE)",
+    "subtitle": "Nur Lesen. Fiscal.KassenSicherheitDe wird auf dieser Seite nicht gesetzt.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Bitte einen Mandanten wählen",
+    "loadError": "KassenSicherheit konnte nicht geladen werden",
+    "tabStatus": "Status",
+    "tabRecent": "Letzte Transaktionen",
+    "flagEnabled": "Flag",
+    "flagOn": "an",
+    "flagOff": "aus",
+    "provider": "Provider",
+    "environment": "Umgebung",
+    "hasOverride": "Mandanten-Override",
+    "overrideYes": "ja",
+    "overrideNo": "nein",
+    "tssId": "TSS-ID",
+    "clientId": "Client-ID",
+    "colTxId": "Transaktions-ID",
+    "colReceipt": "Belegnummer",
+    "colStatus": "Status",
+    "colTime": "Zeit",
+    "emptyRecent": "Keine DE-Transaktionen",
+    "export": "DSFinV-K exportieren",
+    "start": "Beginn",
+    "end": "Ende",
+    "exportPending": "Export angefordert"
+  },
+  "mwst": {
+    "title": "MWST (CH)",
+    "subtitle": "Wirksame Sätze für den gewählten Mandanten. Kein Satz-Editor.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Bitte einen Mandanten wählen",
+    "loadError": "MWST-Sätze konnten nicht geladen werden",
+    "empty": "Keine Sätze",
+    "colCode": "Code",
+    "colLabel": "Bezeichnung",
+    "colRate": "Satz",
+    "colEffectiveFrom": "Gültig ab",
+    "colSource": "Quelle",
+    "colApplies": "Anwendbar",
+    "sourceSeed": "Seed",
+    "sourceOverride": "Mandanten-Override",
+    "sourceUnknown": "Unbekannt",
+    "appliesYes": "ja",
+    "appliesNo": "nein",
+    "rollback": "Canary zurücknehmen",
+    "rolledBack": "Canary-Rollback gesendet"
+  },
+  "verticalProfiles": {
+    "pageTitle": "POS-Profile",
+    "subtitle": "Vertikalprofile, ihre Funktionen und die Mandanten-Zuordnung verwalten.",
+    "accessDenied": "system.critical erforderlich.",
+    "tabs": {
+      "list": "Profile",
+      "editor": "Editor",
+      "assignments": "Mandanten",
+      "matrix": "Funktionsmatrix"
+    },
+    "columns": {
+      "id": "Id",
+      "name": "Name",
+      "featureCount": "Funktionen",
+      "tenantCount": "Mandanten",
+      "source": "Quelle",
+      "actions": "Aktionen"
+    },
+    "source": {
+      "seed": "Seed",
+      "override": "Override",
+      "custom": "Eigen"
+    },
+    "actions": {
+      "edit": "Bearbeiten",
+      "clone": "Klonen",
+      "delete": "Löschen",
+      "viewTenants": "Mandanten anzeigen",
+      "create": "Neues Profil",
+      "save": "Speichern"
+    },
+    "loadError": "Profile konnten nicht geladen werden",
+    "empty": "Keine Profile",
+    "editor": {
+      "name": "Name",
+      "slug": "Slug",
+      "cloneFrom": "Klonen von",
+      "cloneFromNone": "Leer starten",
+      "features": "Funktionen",
+      "requiredFields": "Pflichtfelder",
+      "optionalFields": "Optionale Felder",
+      "layout": "POS-Layout",
+      "fieldPlaceholder": "Feldname",
+      "addField": "Hinzufügen"
+    },
+    "entities": {
+      "customer": "Kunde",
+      "product": "Produkt",
+      "order": "Auftrag"
+    },
+    "layouts": {
+      "standard": "Standard",
+      "tables": "Tische",
+      "appointment": "Termin",
+      "queue": "Warteschlange",
+      "taxi": "Taxi",
+      "ticket": "Ticket",
+      "rooms": "Zimmer"
+    },
+    "features": {
+      "groups": {
+        "kitchen": "Küche",
+        "tables": "Tische",
+        "patientRecord": "Patientenakte",
+        "appointment": "Termin",
+        "imei": "IMEI",
+        "route": "Route",
+        "ticket": "Ticket",
+        "rooms": "Zimmer",
+        "other": "Weitere"
+      },
+      "kitchenDisplay": "Küchendisplay",
+      "tables": "Tische",
+      "patientRecord": "Patientenakte",
+      "appointment": "Termin",
+      "serviceDuration": "Leistungsdauer",
+      "imeiTracking": "IMEI",
+      "routeTracking": "Route",
+      "ticketScan": "Ticketprüfung",
+      "roomTracking": "Zimmerverfolgung"
+    },
+    "preview": {
+      "title": "Vorschau",
+      "enables": "Dieses Profil aktiviert:",
+      "enablesEmpty": "Keine zusätzlichen Fähigkeiten",
+      "posScreens": "POS zeigt diese Oberflächen:",
+      "posScreensEmpty": "Standardverkauf",
+      "faTabs": "FA zeigt diese Bereiche:",
+      "faTabsEmpty": "Keine zusätzlichen Bereiche",
+      "items": {
+        "kds": "KDS",
+        "tables": "Tische",
+        "patientRecord": "Patientenakte",
+        "appointment": "Termin",
+        "imei": "IMEI",
+        "route": "Route",
+        "ticket": "Ticket",
+        "rooms": "Zimmer",
+        "serviceDuration": "Leistungsdauer"
+      },
+      "screens": {
+        "kds": "Küchendisplay",
+        "tables": "Tischauswahl",
+        "patient": "Patientenakte",
+        "appointment": "Terminkalender",
+        "imei": "IMEI-Auswahl",
+        "route": "Routenpanel",
+        "ticket": "Ticketverkauf und Prüfung",
+        "rooms": "Zimmerliste",
+        "taxi": "Taxiverkauf",
+        "queue": "Warteschlange",
+        "standard": "Standardverkauf"
+      },
+      "tabs": {
+        "kitchen": "Küche",
+        "productDuration": "Dauer und Personal",
+        "imei": "IMEI-Liste",
+        "tickets": "Ticketeinlösungen",
+        "rooms": "Zimmer"
+      }
+    },
+    "saveSuccess": "Profil gespeichert",
+    "saveError": "Profil konnte nicht gespeichert werden",
+    "deleteConfirm": "Dieses eigene Profil löschen?",
+    "deleteSuccess": "Profil gelöscht",
+    "deleteBlockedTitle": "Profil wird verwendet",
+    "featureRemovalWarning": "Eine entfernte Funktion betrifft Mandanten dieses Profils",
+    "assignments": {
+      "empty": "Keine Mandanten"
+    }
+  }
+}

@@ -15,17 +15,17 @@ export type { BackupScheduleFrequency };
 export type BackupScheduleFrequencyKey = 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
 
 const FREQUENCY_TO_API: Record<BackupScheduleFrequencyKey, BackupScheduleFrequency> = {
-  Daily: BackupScheduleFrequencyEnum.NUMBER_0,
-  Weekly: BackupScheduleFrequencyEnum.NUMBER_1,
-  Monthly: BackupScheduleFrequencyEnum.NUMBER_2,
-  Custom: BackupScheduleFrequencyEnum.NUMBER_3,
+  Daily: BackupScheduleFrequencyEnum.Daily,
+  Weekly: BackupScheduleFrequencyEnum.Weekly,
+  Monthly: BackupScheduleFrequencyEnum.Monthly,
+  Custom: BackupScheduleFrequencyEnum.Custom,
 };
 
 const FREQUENCY_FROM_API: Record<BackupScheduleFrequency, BackupScheduleFrequencyKey> = {
-  [BackupScheduleFrequencyEnum.NUMBER_0]: 'Daily',
-  [BackupScheduleFrequencyEnum.NUMBER_1]: 'Weekly',
-  [BackupScheduleFrequencyEnum.NUMBER_2]: 'Monthly',
-  [BackupScheduleFrequencyEnum.NUMBER_3]: 'Custom',
+  [BackupScheduleFrequencyEnum.Daily]: 'Daily',
+  [BackupScheduleFrequencyEnum.Weekly]: 'Weekly',
+  [BackupScheduleFrequencyEnum.Monthly]: 'Monthly',
+  [BackupScheduleFrequencyEnum.Custom]: 'Custom',
 };
 
 /** Planner/PUT schedule shape (required fields for local codec). */

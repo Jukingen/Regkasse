@@ -18,6 +18,12 @@ public static class FeatureFlagNames
     public const string ViesCheckEnabled = "Vies.CheckEnabled";
 
     /// <summary>
+    /// EU Peppol transport (Paket 22). Declared so later phases can reference one name.
+    /// Not a member of <see cref="All"/>: resolution, appsettings, and country defaults ignore it.
+    /// </summary>
+    public const string EInvoicingPeppol = "EInvoicing.Peppol";
+
+    /// <summary>
     /// Original experimental flags. Resolution stays tenant override → global override → appsettings.
     /// Country profile is never consulted.
     /// </summary>
@@ -44,6 +50,15 @@ public static class FeatureFlagNames
         EInvoicingQrRechnung,
         EInvoicingEn16931,
         ViesCheckEnabled,
+    ];
+
+    /// <summary>
+    /// Country-phase names that exist only as constants. Kept out of <see cref="All"/>
+    /// so listing and resolution stay unchanged until a later phase opts in.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Reserved =
+    [
+        EInvoicingPeppol,
     ];
 
     public static bool IsExperimental(string canonicalName) =>
@@ -92,4 +107,13 @@ public static class FeatureFlagSources
     public const string TenantOverride = "tenant_override";
     public const string CountryProfile = "country_profile";
     public const string Locked = "locked";
+
+    /// <summary>Name is in <see cref="FeatureFlagNames.Reserved"/> and the Peppol reserved-exit switch is off.</summary>
+    public const string Reserved = "reserved";
+
+    /// <summary>Peppol reserved-exit is on, and this tenant is not the configured canary.</summary>
+    public const string ReservedExit = "reserved_exit";
+
+    /// <summary>Peppol reserved-exit is on and this tenant is <c>Peppol:ReservedExit:CanaryTenantId</c>.</summary>
+    public const string ReservedExitCanary = "reserved_exit_canary";
 }

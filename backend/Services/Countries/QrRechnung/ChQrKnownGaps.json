@@ -1,0 +1,9 @@
+{
+  "gaps": [
+    { "id": "official-swiss-cross", "present": false },
+    { "id": "font-embedding-liberation-arial", "present": false },
+    { "id": "pain001", "present": false },
+    { "id": "bank-scan", "present": false },
+    { "id": "perforation-line", "present": false }
+  ]
+}

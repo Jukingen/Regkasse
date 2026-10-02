@@ -60,6 +60,12 @@ public sealed record TaxCalculationContext
     /// <c>EU_OSS</c>. Austria and other regimes leave it null.
     /// </summary>
     public string? DestinationCountry { get; init; }
+
+    /// <summary>
+    /// Mandant whose CH <c>Mwst:ChRates</c> overlay applies. Null keeps the code seed.
+    /// Austria ignores this field.
+    /// </summary>
+    public Guid? TenantId { get; init; }
 }
 
 /// <summary>

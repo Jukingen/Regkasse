@@ -38,6 +38,10 @@ import { TenantDetailCashRegistersTab } from '@/features/super-admin/components/
 import { TenantDetailLicenseTab } from '@/features/super-admin/components/TenantDetailLicenseTab';
 import { TenantDetailOverviewTab } from '@/features/super-admin/components/TenantDetailOverviewTab';
 import { TenantDetailSettingsTab } from '@/features/super-admin/components/TenantDetailSettingsTab';
+import { TenantVerticalProfileEditor } from '@/features/super-admin/components/TenantVerticalProfileEditor';
+import { KitchenWorkspace } from '@/features/kitchen/KitchenWorkspace';
+import { LodgingWorkspace } from '@/features/lodging/LodgingWorkspace';
+import { getApiAdminTenantsTenantIdVerticalProfile } from '@/api/generated/admin/admin';
 import { TenantLimitsSettings } from '@/features/tenants/components/TenantLimitsSettings';
 import {
   TENANT_DETAIL_LEGACY_USERS_TAB,
@@ -83,6 +87,14 @@ export default function SuperAdminTenantDetailPage() {
     queryFn: () => getAdminTenantById(tenantId),
     enabled: canAccess && !!tenantId,
   });
+
+  const verticalProfileQuery = useQuery({
+    queryKey: ['admin', 'tenants', tenantId, 'vertical-profile'],
+    queryFn: () => getApiAdminTenantsTenantIdVerticalProfile(tenantId),
+    enabled: canAccess && !!tenantId,
+  });
+  const kitchenDisplayEnabled = hasKitchenDisplay(verticalProfileQuery.data?.posFeatures);
+  const roomTrackingEnabled = hasRoomTracking(verticalProfileQuery.data?.posFeatures);
 
   const invalidateTenant = useCallback(() => {
     invalidateTenantLifecycleQueries(queryClient, tenantId);
@@ -199,10 +211,33 @@ export default function SuperAdminTenantDetailPage() {
         children: <TenantDetailLicenseTab tenant={tenant} onUpdated={invalidateTenant} />,
       },
       {
+        key: 'verticalProfile',
+        label: t('tenants.detail.tabs.verticalProfile'),
+        children: <TenantVerticalProfileEditor tenantId={tenantId} />,
+      },
+      {
         key: 'limits',
         label: t('tenants.detail.tabs.limits'),
         children: <TenantLimitsSettings tenantId={tenantId} />,
       },
+      ...(kitchenDisplayEnabled
+        ? [
+            {
+              key: 'kitchen',
+              label: t('tenants.detail.tabs.kitchen'),
+              children: <KitchenWorkspace tenantId={tenantId} requireKitchenDisplay={false} />,
+            },
+          ]
+        : []),
+      ...(roomTrackingEnabled
+        ? [
+            {
+              key: 'rooms',
+              label: t('tenants.detail.tabs.rooms'),
+              children: <LodgingWorkspace />,
+            },
+          ]
+        : []),
       {
         key: 'settings',
         label: t('tenants.detail.tabs.settings'),
@@ -232,6 +267,8 @@ export default function SuperAdminTenantDetailPage() {
     invalidateTenant,
     router,
     displayTab,
+    kitchenDisplayEnabled,
+    roomTrackingEnabled,
   ]);
 
   if (!canAccess) {
@@ -357,7 +394,16 @@ export default function SuperAdminTenantDetailPage() {
       ) : null}
 
       <Card loading={tenantQuery.isLoading && !tenant}>
-        <Tabs activeKey={displayTab} onChange={setTab} items={tabItems} />
+        <Tabs
+          activeKey={
+            (displayTab === 'kitchen' && !kitchenDisplayEnabled) ||
+            (displayTab === 'rooms' && !roomTrackingEnabled)
+              ? 'overview'
+              : displayTab
+          }
+          onChange={setTab}
+          items={tabItems}
+        />
       </Card>
 
       {!tenantQuery.isLoading && !tenant && !tenantQuery.isError ? (
@@ -381,4 +427,19 @@ export default function SuperAdminTenantDetailPage() {
       ) : null}
     </AdminPageShell>
   );
+}
+
+function hasKitchenDisplay(posFeatures: unknown): boolean {
+  return featureOn(posFeatures, 'kitchenDisplay');
+}
+
+function hasRoomTracking(posFeatures: unknown): boolean {
+  return featureOn(posFeatures, 'roomTracking');
+}
+
+function featureOn(posFeatures: unknown, key: string): boolean {
+  if (!posFeatures || typeof posFeatures !== 'object' || Array.isArray(posFeatures)) {
+    return false;
+  }
+  return (posFeatures as Record<string, unknown>)[key] === true;
 }

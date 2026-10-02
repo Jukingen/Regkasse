@@ -1,0 +1,36 @@
+{
+  "submissions": {
+    "title": "Peppol submissions",
+    "subtitle": "Read-only queue. This is not a Peppol or EN 16931 compliance claim.",
+    "statusFilter": "Status",
+    "tenantFilter": "Tenant",
+    "allTenants": "All tenants",
+    "allStatuses": "All statuses",
+    "colStatus": "Status",
+    "colTenant": "Tenant",
+    "colInvoice": "Invoice",
+    "colAttempted": "Attempted",
+    "colAcked": "Acknowledged",
+    "colProviderMessageId": "Provider message id",
+    "colFailure": "Failure reason",
+    "empty": "No submissions",
+    "loadError": "The queue could not be loaded",
+    "guidanceTitle": "Operator guidance",
+    "status": {
+      "Queued": "Queued",
+      "Sent": "Sent",
+      "Ack": "Ack",
+      "Failed": "Failed"
+    },
+    "failure": {
+      "peppol_reserved": "Peppol is Reserved. Contact ops to enable the canary.",
+      "peppol_participant_not_configured": "Missing Peppol participant identity. Fill legal_entity_id, eidentifier_scheme, and eidentifier_value in the tenant's Peppol participant record.",
+      "peppol_live_not_allowed": "LIVE HTTP is disabled until promotion. This is a config error.",
+      "peppol_ack_timeout": "Storecove did not deliver within 24h. Retry is a manual ops action until 22-b-5.",
+      "peppol_ack_error": "Storecove reported an error. Check the provider portal.",
+      "storecove_http_400": "HTTP error from Storecove. See provider logs.",
+      "storecove_http_5xx": "HTTP error from Storecove. See provider logs.",
+      "unknown": "Unknown failure code. Contact ops."
+    }
+  }
+}

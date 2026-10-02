@@ -109,6 +109,8 @@ const activeTenant: AdminTenantListItem = {
   createdAt: '2026-01-01T00:00:00Z',
   registerCount: 1,
   userCount: 2,
+  verticalProfileId: 'gastronomy',
+  verticalProfileName: 'verticalProfiles.gastronomy.name',
 };
 
 const deletedTenant: AdminTenantListItem = {
@@ -176,6 +178,7 @@ describe('SuperAdminTenantsPage', () => {
     await waitFor(() => expect(screen.getByText('Cafe Demo')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /CSV exportieren/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Name oder Subdomain/i)).toBeInTheDocument();
+    expect(screen.getByText('Gastronomie')).toBeInTheDocument();
   });
 
   it('hides includeDeleted toggle for non-Super Admin', async () => {

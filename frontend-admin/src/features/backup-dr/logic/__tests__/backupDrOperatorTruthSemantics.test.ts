@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import {
-  BackupRunResponseDtoStatus,
-  BackupVerificationResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupRunStatus,
+  BackupVerificationStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import {
   computeEffectiveRestoreReadinessLevel,
@@ -44,15 +44,15 @@ const eightPipelineSteps = [
 
 describe('semantic colors — backup run must not use success/green for plain Succeeded', () => {
   it('table tag color for API success (3) is blue, never success', () => {
-    expect(mapBackupRunStatusAntdColor(BackupRunResponseDtoStatus.NUMBER_3)).toBe('blue');
-    expect(mapBackupRunStatusAntdColor(BackupRunResponseDtoStatus.NUMBER_3)).not.toBe('success');
+    expect(mapBackupRunStatusAntdColor(BackupRunStatus.Succeeded)).toBe('blue');
+    expect(mapBackupRunStatusAntdColor(BackupRunStatus.Succeeded)).not.toBe('success');
   });
 });
 
 describe('semantic colors — restore drill finished (2) is cyan, not green success', () => {
   it('does not use Ant Design success green for completed drill', () => {
     const c = mapRestoreVerificationStatusAntdColor(
-      RestoreVerificationRunResponseDtoStatus.NUMBER_2
+      RestoreVerificationStatus.Succeeded
     );
     expect(c).toBe('cyan');
     expect(c).not.toBe('success');
@@ -80,7 +80,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: true,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: true,
         latestAdapterKind: 'PgDump',
       },
@@ -92,7 +92,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: false,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
       },
@@ -104,7 +104,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
         apiLevel: 'healthy',
         realPostgreSqlLogicalDumpConfiguredHealth: true,
         realPostgreSqlLogicalDumpConfiguredRecoverability: true,
-        latestBackupStatus: BackupRunResponseDtoStatus.NUMBER_3,
+        latestBackupStatus: BackupRunStatus.Succeeded,
         isLatestRunSimulatedExecution: false,
         latestAdapterKind: 'PgDump',
       },
@@ -120,7 +120,7 @@ describe('computeEffectiveRestoreReadinessLevel — frontend cap / downgrade', (
 describe('deriveRunTruth — succeeded but not recoverable', () => {
   it('technical success true but recoverabilityNotProven when proof gaps / stub', () => {
     const r = deriveRunTruth(
-      { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'x', adapterKind: 'Fake' } as never,
+      { status: BackupRunStatus.Succeeded, id: 'x', adapterKind: 'Fake' } as never,
       null,
       { realPostgreSqlLogicalDumpConfigured: true } as never,
       {
@@ -181,18 +181,18 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
       restoreReady: { level: 'healthy', workerEnabled: true } as never,
       restoreLv: 'healthy',
       latest: {
-        status: BackupRunResponseDtoStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         id: 'b1',
         adapterKind: 'PgDump',
       } as never,
       detailForPipeline: null,
       verification: {
-        status: BackupVerificationResponseDtoStatus.NUMBER_1,
+        status: BackupVerificationStatus.Passed,
         backupRunId: 'b1',
         failureReason: null,
       } as never,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
         failureCode: 'E_DRILL',
         failureDetail: 'boom',
       } as never,

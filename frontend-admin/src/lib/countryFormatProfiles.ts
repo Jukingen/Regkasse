@@ -1,6 +1,8 @@
 /**
- * FA-side country formatting profiles. Backend CountryProfile remains the source of truth
- * for locale / currency / timezone; this map is a client mirror for display only.
+ * Fallback display profiles used only when `GET /api/admin/countries` is unavailable
+ * (query disabled, failed, or the code is absent from the payload).
+ * Currency and locale prefer the catalog via {@link resolveCountryFormatProfile}.
+ * Separators and time zone are not on that DTO, so those fields stay here.
  * Unknown codes fall back to Austria (Paket 13-b: de-DE / EUR / Europe/Vienna).
  */
 
@@ -63,6 +65,35 @@ export function getCountryFormatProfile(countryCode?: string | null): CountryFor
   const code = countryCode?.trim().toUpperCase();
   if (!code) return AT_FORMAT_PROFILE;
   return COUNTRY_FORMAT_PROFILES[code] ?? AT_FORMAT_PROFILE;
+}
+
+/** Catalog fields that can override the fallback profile. */
+export type CountryFormatCatalogRow = {
+  code?: string | null;
+  currency?: string | null;
+  defaultLocale?: string | null;
+};
+
+/**
+ * Prefer currency and locale from the countries catalog.
+ * Pass `profiles: null` when the API is unavailable; the fallback map is used.
+ */
+export function resolveCountryFormatProfile(
+  countryCode: string | null | undefined,
+  profiles?: readonly CountryFormatCatalogRow[] | null
+): CountryFormatProfile {
+  const fallback = getCountryFormatProfile(countryCode);
+  if (!profiles) return fallback;
+  const code = countryCode?.trim().toUpperCase();
+  if (!code) return fallback;
+  const match = profiles.find((profile) => profile.code?.trim().toUpperCase() === code);
+  if (!match) return fallback;
+  return {
+    ...fallback,
+    code: match.code?.trim().toUpperCase() || fallback.code,
+    currency: match.currency?.trim() || fallback.currency,
+    locale: match.defaultLocale?.trim() || fallback.locale,
+  };
 }
 
 export type CountryDateInput = string | number | Date | null | undefined;
@@ -192,8 +223,6 @@ export function formatCountryCurrency(
   const amount = formatCountryNumber(value, profile, 2);
   if (amount === COUNTRY_FORMAT_EMPTY) return COUNTRY_FORMAT_EMPTY;
   if (profile.currency === 'CHF') return `CHF ${amount}`;
-  if (profile.currency === 'EUR' && (profile.code === 'AT' || profile.code === 'DE')) {
-    return `${amount} €`;
-  }
+  if (profile.currency === 'EUR') return `${amount} €`;
   return `${amount} ${profile.currency}`;
 }

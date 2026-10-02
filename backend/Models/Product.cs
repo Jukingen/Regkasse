@@ -83,6 +83,27 @@ namespace KasseAPI_Final.Models
         [MaxLength(20)]
         public string Unit { get; set; } = string.Empty;
 
+        /// <summary>Optional service duration used by appointment-oriented verticals.</summary>
+        [Column("duration_minutes")]
+        [Range(1, 1440)]
+        public int? DurationMinutes { get; set; }
+
+        /// <summary>
+        /// Optional default staff Identity id for this service. Kept as a scalar reference:
+        /// staff membership/tenant authorization is resolved at booking time.
+        /// </summary>
+        [Column("staff_id")]
+        [MaxLength(450)]
+        public string? StaffId { get; set; }
+
+        /// <summary>When true, each sold unit must pick a unique IMEI from <see cref="Imeis"/>.</summary>
+        [Column("imei_tracked")]
+        public bool ImeiTracked { get; set; }
+
+        /// <summary>When true, a ticket-sales sale issues a redeemable ticket code (hash stored only).</summary>
+        [Column("is_ticket")]
+        public bool IsTicket { get; set; }
+
         [Column("cost")]
         [Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative")]
         public decimal Cost { get; set; }
@@ -159,6 +180,8 @@ namespace KasseAPI_Final.Models
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
         /// <summary>Bu ürüne atanmış modifier grupları (Extra Zutaten).</summary>
         public virtual ICollection<ProductModifierGroupAssignment> ModifierGroupAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
+
+        public virtual ICollection<ProductImei> Imeis { get; set; } = new List<ProductImei>();
     }
 
     /// <summary>

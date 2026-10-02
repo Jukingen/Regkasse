@@ -81,5 +81,42 @@
       "view": "View details",
       "undo": "Undo"
     }
+  },
+  "events": {
+    "unknown": {
+      "title": "Unknown event"
+    },
+    "TenantCountryChanged": {
+      "title": "Tenant country changed",
+      "description": "The tenant operating country or VAT regime was changed."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Historical documents preserved",
+      "description": "Existing invoices and receipts keep the country stamped at issue time."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR-bill payload built",
+      "description": "The Swiss QR-bill payload was built."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR-bill PDF generated",
+      "description": "The Swiss QR-bill PDF was rendered."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol participant registered",
+      "description": "A Peppol participant id was stored for the tenant."
+    },
+    "EinvoiceValidated": {
+      "title": "E-invoice validated",
+      "description": "The e-invoice passed Schematron validation."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-invoice submitted",
+      "description": "The e-invoice was handed to the access point."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-invoice submission failed",
+      "description": "The e-invoice was rejected during validation or submission."
+    }
   }
 }

@@ -27,7 +27,13 @@
     "title": "Offline Queue",
     "syncSummaryPartial": "{{processed}} payment(s) synchronized. {{failed}} failed.",
     "syncSummarySuccess": "{{processed}} payment(s) synchronized successfully.",
-    "syncSummaryAllFailed": "No payments synchronized. {{failed}} failed — check Offline Queue in Settings and retry if needed."
+    "syncSummaryAllFailed": "No payments synchronized. {{failed}} failed — check Offline Queue in Settings and retry if needed.",
+    "indicator": {
+      "onlineEmpty": "Online, queue empty",
+      "syncing": "Online, {{count}} items syncing",
+      "offlineQueued": "Offline, {{count}} items in the queue",
+      "syncFailed": "Sync failed, {{count}} items stuck"
+    }
   },
   "cartAccessibility": {
     "default": "Cart {{total}}, proceed to payment",

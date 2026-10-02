@@ -200,6 +200,16 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
           currency: 'EUR',
           defaultLocale: 'de-DE',
           fiscalSystem: 'RKSV_AT',
+          fiscalSystemLabel: 'RKSV',
+          vatIdPattern: '^ATU\\d{8}$',
+          fiscalSections: [
+            {
+              id: 'rksv',
+              titleKey: 'tenants.create.fiscal.rksv.title',
+              helperKey: 'tenants.create.fiscal.rksv.helper',
+              flags: [{ name: 'Fiscal.RksvAt', enabled: true, locked: true }],
+            },
+          ],
           eInvoicingStandards: [],
           allowedVatRegimes: ['AT_RKSV_STANDARD', 'EU_REVERSE_CHARGE', 'EU_OSS', 'NON_EU'],
         },
@@ -209,6 +219,16 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
           currency: 'EUR',
           defaultLocale: 'de-DE',
           fiscalSystem: 'KASSENSICHERHEIT_DE',
+          fiscalSystemLabel: 'KassenSicherheit',
+          vatIdPattern: '^DE\\d{9}$',
+          fiscalSections: [
+            {
+              id: 'kassenSicherheit',
+              titleKey: 'tenants.create.fiscal.kassenSicherheit.title',
+              helperKey: 'tenants.create.fiscal.kassenSicherheit.helper',
+              flags: [{ name: 'Fiscal.KassenSicherheitDe', enabled: true, locked: false }],
+            },
+          ],
           eInvoicingStandards: ['ZUGFERD', 'XRECHNUNG'],
           allowedVatRegimes: [
             'DE_USTG_STANDARD',
@@ -224,6 +244,16 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
           currency: 'CHF',
           defaultLocale: 'de-CH',
           fiscalSystem: 'MWST_CH',
+          fiscalSystemLabel: 'MWST',
+          vatIdPattern: '^CHE-\\d{3}\\.\\d{3}\\.\\d{3}( (MWST|TVA|IVA))?$',
+          fiscalSections: [
+            {
+              id: 'qrRechnung',
+              titleKey: 'tenants.create.fiscal.qrRechnung.title',
+              helperKey: 'tenants.create.fiscal.qrRechnung.helper',
+              flags: [{ name: 'EInvoicing.QrRechnung', enabled: true, locked: false }],
+            },
+          ],
           eInvoicingStandards: ['QR_RECHNUNG'],
           allowedVatRegimes: ['CH_MWST_STANDARD', 'CH_KLEINUNTERNEHMER', 'NON_EU'],
         },
@@ -252,12 +282,13 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/admin/tenants' && method === 'POST') {
-      const body = request.postDataJSON() as { name?: string; slug?: string };
+      const body = request.postDataJSON() as { name?: string; slug?: string; countryCode?: string };
       await json(route, 201, {
         ...DEMO_TENANT,
         id: '33333333-3333-4333-8333-333333333333',
         name: body.name ?? 'E2E Tenant',
         slug: body.slug ?? 'e2e-tenant',
+        country: body.countryCode ?? 'AT',
       });
       return;
     }

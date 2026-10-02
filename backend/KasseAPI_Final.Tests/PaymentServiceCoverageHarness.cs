@@ -7,8 +7,12 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
+using KasseAPI_Final.Services.Countries.Strategies.Germany;
+using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
@@ -55,6 +59,11 @@ internal static class PaymentServiceCoverageHarness
         public CompanyProfileOptions? CompanyProfile { get; init; }
         public KasseAPI_Final.Services.Limits.ITenantLimitGuard? TenantLimitGuard { get; init; }
         public IFiscalSignatureRouter? FiscalRouter { get; init; }
+        public IDeReceiptSequenceService? DeSequence { get; init; }
+        public IChReceiptSequenceService? ChSequence { get; init; }
+        public IEuReceiptSequenceService? EuSequence { get; init; }
+        public IVerticalProfileService? VerticalProfiles { get; init; }
+        public KasseAPI_Final.Services.Tickets.ITicketRedemptionService? Tickets { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -230,7 +239,12 @@ internal static class PaymentServiceCoverageHarness
             cardPaymentService: options.Card,
             featureFlags: options.FeatureFlags,
             tenantLimitGuard: options.TenantLimitGuard,
-            fiscalSignatureRouter: options.FiscalRouter);
+            fiscalSignatureRouter: options.FiscalRouter,
+            deSequenceService: options.DeSequence,
+            chSequenceService: options.ChSequence,
+            euSequenceService: options.EuSequence,
+            verticalProfiles: options.VerticalProfiles,
+            ticketRedemptions: options.Tickets ?? new KasseAPI_Final.Services.Tickets.TicketRedemptionService(context));
     }
 
     public static Mock<IAuditLogService> CreateAuditMock()

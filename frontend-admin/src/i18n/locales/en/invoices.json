@@ -245,5 +245,31 @@
     "formEmailLabel": "Recipient email",
     "formEmailPlaceholder": "customer@example.com",
     "formEmailInvalid": "Please enter a valid email address."
+  },
+  "chQr": {
+    "download": "Download QR-Rechnung PDF",
+    "markUploaded": "Mark as uploaded to bank",
+    "modalTitle": "Bank portal upload",
+    "bankReference": "Bank reference",
+    "bankReferenceRequired": "Enter the bank reference.",
+    "confirm": "Save",
+    "cancel": "Cancel",
+    "downloaded": "QR-Rechnung PDF downloaded.",
+    "uploaded": "Bank portal upload recorded.",
+    "downloadFailed": "The QR-Rechnung PDF could not be downloaded.",
+    "uploadFailed": "The upload note could not be saved.",
+    "outstandingWarning": "These print features are not part of the current QR-Rechnung output. The operator must confirm they are acceptable for this tenant before the PDF can be downloaded.",
+    "gapWarning": {
+      "title": "QR-Rechnung: accepted print features incomplete",
+      "description": "These print features are not in the current QR-Rechnung output. The invoice is not blocked.",
+      "link": "Open gap acceptance",
+      "gap": {
+        "officialSwissCross": "Official 7 mm Swiss cross with a white border",
+        "fontEmbeddingLiberationArial": "Embedded Liberation Sans or Arial",
+        "pain001": "pain.001 credit-transfer file",
+        "bankScan": "Bank scan of the printed bill",
+        "perforationLine": "Perforation mark between receipt and payment part"
+      }
+    }
   }
 }

@@ -784,4 +784,77 @@ public sealed class RksvDepExportServiceTests
         Assert.False(result.Skipped);
         Assert.Equal("Production", result.Environment);
     }
+
+    [Fact]
+    public async Task GenerateDepExport_IgnoresDeSignatureRows()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var soft = new SoftwareTseKeyProvider();
+        var from = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 5, 31, 23, 59, 59, DateTimeKind.Utc);
+        var atPayment = CreatePayment(
+            regId,
+            new DateTime(2026, 5, 2, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260502-0001",
+            thumbprint: soft.GetCurrentCertificateThumbprint(),
+            tseSignature: ValidJwsFor("at-only"));
+        var dePayment = CreatePayment(
+            regId,
+            new DateTime(2026, 5, 2, 11, 0, 0, DateTimeKind.Utc),
+            "DE-dev-1-1",
+            tseSignature: "");
+        dePayment.PrevSignatureValueUsed = null;
+        dePayment.CertificateThumbprint = null;
+        db.PaymentDetails.AddRange(atPayment, dePayment);
+        db.DeTseSignatures.Add(new DeTseSignature
+        {
+            Id = Guid.NewGuid(),
+            TenantId = SystemTenantIds.Platform,
+            PaymentDetailsId = dePayment.Id,
+            TssId = "tss-1",
+            TransactionId = regId.ToString("D"),
+            Signature = "de-sig-not-in-dep",
+            SignedAtUtc = dePayment.CreatedAt,
+        });
+        await db.SaveChangesAsync();
+
+        var export = await CreateService(db, new SoftwareTseKeyProvider(), CreateProductionEnvironment())
+            .GenerateDepExportAsync(regId, from, to);
+        var json = JsonSerializer.Serialize(export);
+
+        Assert.Contains(ValidJwsFor("at-only"), json, StringComparison.Ordinal);
+        Assert.DoesNotContain("de-sig-not-in-dep", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("DE-dev-1-1", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GenerateDepExport_IgnoresPrescriptionReference()
+    {
+        await using var db = CreateDb();
+        var regId = await SeedRegisterAsync(db);
+        var keyProvider = new SoftwareTseKeyProvider();
+        var thumb = keyProvider.GetCurrentCertificateThumbprint()!;
+        var from = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = new DateTime(2026, 6, 30, 23, 59, 59, DateTimeKind.Utc);
+        const string prescription = "RX-SHOULD-NOT-APPEAR-IN-DEP-EXPORT";
+
+        var payment = CreatePayment(
+            regId,
+            new DateTime(2026, 6, 5, 10, 0, 0, DateTimeKind.Utc),
+            "AT-TSE-20260605-0001",
+            thumbprint: thumb,
+            tseSignature: ValidJwsFor("rx"));
+        payment.PrescriptionReference = prescription;
+        db.PaymentDetails.Add(payment);
+        await db.SaveChangesAsync();
+
+        var export = await CreateService(db, keyProvider).GenerateDepExportAsync(regId, from, to);
+        var json = JsonSerializer.Serialize(export);
+
+        Assert.Single(export.BelegeGruppe);
+        Assert.Contains(ValidJwsFor("rx"), json, StringComparison.Ordinal);
+        Assert.DoesNotContain(prescription, json, StringComparison.Ordinal);
+        Assert.DoesNotContain("prescription", json, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -82,6 +82,17 @@ namespace KasseAPI_Final.Models
         [Column("vat_regime_at_issue")]
         public VatRegime? VatRegimeAtIssue { get; set; }
 
+        /// <summary>
+        /// EN 16931 Schematron outcome. Null until a flagged validation runs. Historical rows stay null.
+        /// </summary>
+        [Column("einvoice_validation_passed")]
+        public bool? EinvoiceValidationPassed { get; set; }
+
+        /// <summary>Comma-separated Schematron rule ids when validation failed. Never the UBL document.</summary>
+        [StringLength(500)]
+        [Column("einvoice_validation_rule_ids")]
+        public string? EinvoiceValidationRuleIds { get; set; }
+
         // RKSV Zorunlu Alanlar
         [Required]
         [Column(TypeName = "text")]

@@ -5,8 +5,8 @@ import type {
   BackupPipelineSnapshotDto,
   BackupRunResponseDto,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
-import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
+import { BackupArtifactLifecycleState } from '@/api/generated/model/backupArtifactLifecycleState';
 import type {
   DerivedPipelineStepId,
   DerivedPipelineStepState,
@@ -79,8 +79,8 @@ describe('deriveBackupPipelineSteps', () => {
       status: 2,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.Staging,
         },
       ],
       verifications: [
@@ -105,12 +105,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_2,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_2,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -129,12 +129,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 5,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_3,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyFailed,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_3,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.ExternalCopyFailed,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 2, startedAt: '2026-01-01T00:00:00Z' }],
@@ -152,12 +152,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -178,12 +178,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -208,12 +208,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [],
@@ -229,12 +229,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [{ backupRunId: RUN_ID, status: 1, startedAt: '2026-01-01T00:00:00Z' }],
@@ -251,12 +251,12 @@ describe('deriveBackupPipelineSteps', () => {
       status: 3,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.LogicalDump,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4,
-          lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
+          artifactType: BackupArtifactType.VerificationManifest,
+          lifecycleState: BackupArtifactLifecycleState.StagingVerified,
         },
       ],
       verifications: [
@@ -421,8 +421,8 @@ describe('formatRunDurationMs / sumLogicalDumpBytes', () => {
   it('sumLogicalDumpBytes reads logical dump artifact', () => {
     expect(
       sumLogicalDumpBytes([
-        { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0, byteSize: 42 },
-        { artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_4, byteSize: 1 },
+        { artifactType: BackupArtifactType.LogicalDump, byteSize: 42 },
+        { artifactType: BackupArtifactType.VerificationManifest, byteSize: 1 },
       ])
     ).toBe(42);
   });

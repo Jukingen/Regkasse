@@ -143,8 +143,8 @@ export function AdminBackupPage() {
     t('backupDr.monitoring.configHealth.title');
 
   const activeBackupHint =
-    latestFromStatus?.status === BackupRunStatus.NUMBER_1 ||
-    latestFromStatus?.status === BackupRunStatus.NUMBER_2;
+    latestFromStatus?.status === BackupRunStatus.Running ||
+    latestFromStatus?.status === BackupRunStatus.AwaitingVerification;
 
   const collapseItems = [
     {

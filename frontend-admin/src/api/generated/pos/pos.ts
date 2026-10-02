@@ -39,10 +39,12 @@ import type {
   CreateCartRequest,
   CreateCashRegisterOpenRequestBody,
   CreatePaymentRequest,
+  CreatePosCustomerRequest,
   CreateStornoPaymentRequest,
   CurrentShiftResponse,
   Customer,
   CustomerQrLookupRequest,
+  EffectiveVerticalProfileDto,
   EndShiftRequest,
   EndShiftResponse,
   ForceCleanupRequest,
@@ -2970,7 +2972,58 @@ export const useGetApiPosCompany = <TData = Awaited<ReturnType<typeof getApiPosC
 
 
 
-export const getApiPosCustomersByQr = (
+export const postApiPosCustomers = (
+    createPosCustomerRequest: CreatePosCustomerRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PosCustomerDto>(
+      {url: `/api/pos/customers`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createPosCustomerRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosCustomersMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomers>>, TError,{data: CreatePosCustomerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomers>>, TError,{data: CreatePosCustomerRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCustomers>>, {data: CreatePosCustomerRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosCustomers(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosCustomersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCustomers>>>
+    export type PostApiPosCustomersMutationBody = CreatePosCustomerRequest
+    export type PostApiPosCustomersMutationError = ProblemDetails
+
+    export const usePostApiPosCustomers = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomers>>, TError,{data: CreatePosCustomerRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosCustomers>>,
+        TError,
+        {data: CreatePosCustomerRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosCustomersMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosCustomersByQr = (
     params?: GetApiPosCustomersByQrParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -4940,6 +4993,61 @@ export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPo
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiPosTseStatusQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosVerticalProfile = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<EffectiveVerticalProfileDto>(
+      {url: `/api/pos/vertical-profile`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosVerticalProfileQueryKey = () => {
+    return [`/api/pos/vertical-profile`] as const;
+    }
+
+    
+export const getGetApiPosVerticalProfileQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosVerticalProfileQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosVerticalProfile>>> = ({ signal }) => getApiPosVerticalProfile(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosVerticalProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosVerticalProfile>>>
+export type GetApiPosVerticalProfileQueryError = ProblemDetails
+
+export const useGetApiPosVerticalProfile = <TData = Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosVerticalProfileQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

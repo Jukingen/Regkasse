@@ -272,6 +272,11 @@ export interface CompanySettings {
   /** @nullable */
   vatId?: string | null;
   vatRegime: VatRegime;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  verticalProfileId?: string | null;
   /** @nullable */
   website?: string | null;
   workingHours: WorkingHoursSettings;

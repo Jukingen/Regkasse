@@ -1,15 +1,19 @@
 'use client';
 
 import { UploadOutlined } from '@ant-design/icons';
-import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload } from 'antd';
+import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Table, Tag, Upload } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { MAX_PRODUCT_IMAGE_BYTES, uploadAdminProductImage } from '@/api/admin/products';
+import { useAdminProductImeis } from '@/api/admin/product-imeis';
+import { useAdminStaff } from '@/api/admin/staff';
+import { useAmbientVerticalProfile } from '@/api/admin/vertical-profile';
 import { Product } from '@/api/generated/model';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { TaxSelect } from '@/components/TaxSelect';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { taxRateToType } from '@/features/products/utils/productMapper';
+import { shouldShowDurationAndStaffFields, shouldShowImeiTracking, shouldShowTicketFlag } from '@/features/products/utils/productVerticalFields';
 import { PriceChangeModal } from '@/features/tax/components/PriceChangeModal';
 import { PriceHistoryCard } from '@/features/tax/components/PriceHistoryCard';
 import type { PriceChangeResult } from '@/features/tax/api/priceHistory';
@@ -31,6 +35,8 @@ export type ProductFormSubmitValues = Product & {
   categoryId?: string;
   taxGroupId?: string;
   taxRate?: number;
+  imeiTracked?: boolean;
+  isTicket?: boolean;
 };
 
 interface ProductFormProps {
@@ -146,6 +152,18 @@ function ProductFormContent({
 
   const { data: taxGroups } = useTaxGroups(visible);
   const { data: regulation } = useCurrentTaxRegulation(visible);
+  const { data: verticalProfile } = useAmbientVerticalProfile(visible);
+  const showDurationStaff = shouldShowDurationAndStaffFields(verticalProfile?.posFeatures);
+  const showImeiTracking = shouldShowImeiTracking(verticalProfile?.posFeatures);
+  const showTicketFlag = shouldShowTicketFlag(
+    verticalProfile?.profileId,
+    verticalProfile?.posFeatures
+  );
+  const { data: staffMembers } = useAdminStaff(visible && showDurationStaff);
+  const { data: productImeis, isLoading: imeisLoading } = useAdminProductImeis(
+    initialValues?.id,
+    visible && isEditMode && showImeiTracking
+  );
   const watchedTaxGroupId = Form.useWatch('taxGroupId', form) as string | undefined;
   const watchedPrice = Form.useWatch('price', form) as number | undefined;
   const watchedName = Form.useWatch('name', form) as string | undefined;
@@ -255,6 +273,8 @@ function ProductFormContent({
           unit: 'pcs',
           stockQuantity: 0,
           minStockLevel: 0,
+          imeiTracked: false,
+          isTicket: false,
         });
       }
     }
@@ -497,6 +517,70 @@ function ProductFormContent({
             <InputNumber style={{ width: '100%' }} min={0} precision={2} prefix="€" />
           </Form.Item>
         </div>
+
+        {showDurationStaff ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item name="durationMinutes" label={t('products.form.durationMinutes')}>
+              <InputNumber style={{ width: '100%' }} min={1} max={1440} precision={0} />
+            </Form.Item>
+            <Form.Item name="staffId" label={t('products.form.staff')}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t('products.form.staffPlaceholder')}
+                options={(staffMembers ?? []).map((member) => ({
+                  value: member.id,
+                  label: member.name || member.id,
+                }))}
+              />
+            </Form.Item>
+          </div>
+        ) : null}
+
+        {showImeiTracking ? (
+          <Form.Item
+            name="imeiTracked"
+            label={t('products.form.imeiTracked')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        ) : null}
+
+        {showTicketFlag ? (
+          <Form.Item
+            name="isTicket"
+            label={t('products.form.isTicket')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        ) : null}
+
+        {showImeiTracking && isEditMode && initialValues?.id ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>{t('products.form.imeiList')}</div>
+            <Table
+              size="small"
+              rowKey="id"
+              loading={imeisLoading}
+              pagination={false}
+              dataSource={productImeis ?? []}
+              locale={{ emptyText: t('products.form.imeiListEmpty') }}
+              columns={[
+                { title: t('products.form.imeiColumn'), dataIndex: 'imei' },
+                {
+                  title: t('products.form.imeiStatus'),
+                  dataIndex: 'status',
+                  render: (status: string) => (
+                    <Tag variant="filled">{t(`products.form.imeiStatusValue.${status}`)}</Tag>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        ) : null}
 
         <Form.Item
           name="taxGroupId"

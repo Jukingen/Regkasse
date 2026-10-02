@@ -480,11 +480,29 @@ public sealed class AdminTenantsController : ControllerBase
         if (errorCode == AdminTenantCountryErrorCodes.TenantNotFound
             || errorCode == AdminTenantCountryErrorCodes.CompanySettingsMissing)
             return NotFound(new { message = error, code = errorCode });
-        if (errorCode == AdminTenantCountryErrorCodes.CountryLockedFiscal)
+        if (errorCode == AdminTenantCountryErrorCodes.CountryLockedFiscal
+            || errorCode == AdminTenantCountryErrorCodes.FiscalCountryChangeInvalid)
             return Conflict(new { message = error, code = errorCode });
         if (error != null)
             return BadRequest(new { message = error, code = errorCode });
         return Ok(result);
+    }
+
+    /// <summary>Super Admin: fiscal-row counts for a proposed country change. Does not mutate.</summary>
+    [HttpGet("{tenantId:guid}/country-impact")]
+    [ProducesResponseType(typeof(CountryChangeImpactDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CountryChangeImpactDto>> GetCountryChangeImpact(
+        Guid tenantId,
+        [FromQuery] string country,
+        CancellationToken cancellationToken = default)
+    {
+        var impact = await _tenantService
+            .GetCountryChangeImpactAsync(tenantId, country, cancellationToken)
+            .ConfigureAwait(false);
+        if (impact is null)
+            return NotFound(new { message = "Tenant not found.", code = AdminTenantCountryErrorCodes.TenantNotFound });
+        return Ok(impact);
     }
 
     /// <summary>Weekly operation-log activity report for a tenant (last 7 days).</summary>

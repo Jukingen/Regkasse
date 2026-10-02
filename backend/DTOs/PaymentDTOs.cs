@@ -32,8 +32,11 @@ namespace KasseAPI_Final.DTOs
         /// </summary>
         public decimal TotalAmount { get; set; }
 
-        /// <summary>Optional UID hint (ATU########). Normalized from company profile when omitted or invalid after validation rules.</summary>
-        [RegularExpression(Models.Countries.VatIdPatterns.Austria, ErrorMessage = "Steuernummer must be in format ATU12345678")]
+        /// <summary>
+        /// Optional VAT-ID hint. The shape is the tenant country profile
+        /// (<c>vatIdPattern</c> on <c>GET /api/admin/countries</c>), enforced by
+        /// <c>ITaxStrategy.ValidateVatId</c>. This property does not publish a country regex.
+        /// </summary>
         public string? Steuernummer { get; set; }
 
         /// <summary>Required: POS cash register row (FK). Must not be empty GUID.</summary>
@@ -88,6 +91,37 @@ namespace KasseAPI_Final.DTOs
         /// Creates a new fiscal receipt; mutually exclusive with <see cref="IsPreorder"/>.
         /// </summary>
         public Guid? PreorderBalanceOrderId { get; set; }
+
+        /// <summary>
+        /// Optional non-fiscal prescription reference. Accepted only when the tenant vertical
+        /// profile has patientRecord=true. Not part of the RKSV signature chain.
+        /// </summary>
+        [MaxLength(255)]
+        public string? PrescriptionReference { get; set; }
+
+        /// <summary>
+        /// Optional taxi origin. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// Not part of the RKSV signature chain.
+        /// </summary>
+        [MaxLength(255)]
+        public string? RouteFrom { get; set; }
+
+        /// <summary>
+        /// Optional taxi destination. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        [MaxLength(255)]
+        public string? RouteTo { get; set; }
+
+        /// <summary>
+        /// Optional taxi distance in kilometres. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        [Range(0, 999999.99)]
+        public decimal? RouteKm { get; set; }
+
+        /// <summary>
+        /// Optional taxi trip start (UTC). Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        public DateTime? TripStartedAtUtc { get; set; }
 
         /// <inheritdoc />
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -253,6 +287,19 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Phase 2 legacy: Add-ons as separate items. Kept for backward compat.</summary>
         [Obsolete("Add-ons as separate items. Kept for backward compat.", false)]
         public List<PaymentItemModifierRequest>? Modifiers { get; set; }
+
+        /// <summary>
+        /// Optional IMEI for a single IMEI-tracked unit. Not part of the RKSV payload.
+        /// Required when the catalog product has <c>imeiTracked=true</c> and quantity is 1.
+        /// </summary>
+        [MaxLength(20)]
+        public string? Imei { get; set; }
+
+        /// <summary>
+        /// Optional IMEI list when an IMEI-tracked line has quantity &gt; 1.
+        /// Count must match <see cref="Quantity"/>. Not part of the RKSV payload.
+        /// </summary>
+        public List<string>? Imeis { get; set; }
     }
 
     /// <summary>
@@ -342,6 +389,12 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
         public bool TimeSyncWarning { get; set; }
+
+        /// <summary>
+        /// Plaintext ticket codes returned once for print. Not stored and not part of the RKSV payload.
+        /// </summary>
+        public IReadOnlyList<KasseAPI_Final.Services.Tickets.IssuedTicketDto> IssuedTickets { get; set; } =
+            Array.Empty<KasseAPI_Final.Services.Tickets.IssuedTicketDto>();
     }
 
     /// <summary>

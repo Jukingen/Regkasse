@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useCashRegister } from '../hooks/useCashRegister';
 import { usePosPermissions } from '../hooks/usePosPermissions';
+import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 import { useAdminPermissions } from '../utils/adminPermissions';
 import { hasPermission } from '../utils/posPermissions';
 
@@ -94,8 +95,9 @@ function resolveRoleLabel(role: string | undefined, roles?: string[]): string {
 export function UserMenu() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation(['auth', 'navigation', 'receipts']);
+  const { t } = useTranslation(['auth', 'navigation', 'receipts', 'verticalProfiles']);
   const adminPermissions = useAdminPermissions();
+  const { posFeatures } = useVerticalFeatures();
   const [showMenu, setShowMenu] = useState(false);
   const { register } = useCashRegister({ enabled: showMenu });
 
@@ -132,6 +134,18 @@ export function UserMenu() {
     Vibration.vibrate(10);
     closeMenu();
     router.push('/(tabs)/receipt-list' as const);
+  };
+
+  const handleOpenTicketValidate = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/ticket-validate' as never);
+  };
+
+  const handleOpenKitchen = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    router.push('/(tabs)/kitchen-display' as never);
   };
 
   const handleOpenFiskalyOps = () => {
@@ -235,6 +249,28 @@ export function UserMenu() {
                 accessibilityLabel={t('receipts:title')}>
                 <Ionicons name="receipt-outline" size={18} color={SoftColors.textPrimary} />
                 <Text style={styles.menuItemText}>{t('receipts:title')}</Text>
+              </Pressable>
+            ) : null}
+
+            {posFeatures.kitchenDisplay ? (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={handleOpenKitchen}
+                accessibilityRole="button"
+                accessibilityLabel={t('verticalProfiles:screens.kitchen.menu')}>
+                <Ionicons name="fast-food-outline" size={18} color={SoftColors.textPrimary} />
+                <Text style={styles.menuItemText}>{t('verticalProfiles:screens.kitchen.menu')}</Text>
+              </Pressable>
+            ) : null}
+
+            {posFeatures.ticketScan ? (
+              <Pressable
+                style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                onPress={handleOpenTicketValidate}
+                accessibilityRole="button"
+                accessibilityLabel={t('verticalProfiles:screens.tickets.menu')}>
+                <Ionicons name="qr-code-outline" size={18} color={SoftColors.textPrimary} />
+                <Text style={styles.menuItemText}>{t('verticalProfiles:screens.tickets.menu')}</Text>
               </Pressable>
             ) : null}
 

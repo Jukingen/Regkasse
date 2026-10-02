@@ -58,6 +58,20 @@ namespace KasseAPI_Final.Models
         [Column("notes")]
         public string Notes { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Optional veterinary patient data. Stored as one JSONB object so non-vet tenants
+        /// retain the existing customer schema and behavior.
+        /// </summary>
+        [Column("pet_data", TypeName = "jsonb")]
+        public CustomerPetData? PetData { get; set; }
+
+        /// <summary>
+        /// Optional structured service address. Stored as JSONB so other profiles
+        /// keep the existing flat <see cref="Address"/> column.
+        /// </summary>
+        [Column("address_data", TypeName = "jsonb")]
+        public CustomerAddressData? AddressData { get; set; }
+
         [Column("is_vip")]
         public bool IsVip { get; set; } = false;
 
@@ -86,6 +100,35 @@ namespace KasseAPI_Final.Models
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
         public virtual ICollection<BenefitAssignment> BenefitAssignments { get; set; } = new List<BenefitAssignment>();
+    }
+
+    public sealed class CustomerPetData
+    {
+        [MaxLength(100)]
+        public string? PetName { get; set; }
+
+        [MaxLength(100)]
+        public string? PetSpecies { get; set; }
+
+        [MaxLength(100)]
+        public string? PetBreed { get; set; }
+
+        public DateOnly? PetBirthDate { get; set; }
+    }
+
+    public sealed class CustomerAddressData
+    {
+        [MaxLength(200)]
+        public string? Street { get; set; }
+
+        [MaxLength(20)]
+        public string? PostalCode { get; set; }
+
+        [MaxLength(100)]
+        public string? City { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; }
     }
 
     public enum CustomerCategory

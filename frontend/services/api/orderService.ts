@@ -71,7 +71,8 @@ export const orderService = {
     customerPhone?: string,
     notes?: string,
     cartId?: string,
-    customerId?: string
+    customerId?: string,
+    locationData?: CreateOrderRequest['locationData']
   ): Promise<OrderResponse> {
     const orderRequest: CreateOrderRequest = {
       tableNumber,
@@ -80,6 +81,7 @@ export const orderService = {
       customerName,
       customerPhone,
       notes,
+      locationData: locationData ?? undefined,
       cartId,
       items: cartItems.map((item) => ({
         productId: item.productId,

@@ -25,16 +25,13 @@ internal static class QrRechnungPdf
                 page.DefaultTextStyle(style => style.FontSize(8));
                 page.Content().Row(row =>
                 {
-                    row.ConstantItem(52, Unit.Millimetre).Column(col =>
+                    row.ConstantItem(62, Unit.Millimetre).Column(col =>
                     {
                         col.Item().Text("Empfangsschein").SemiBold();
-                        col.Item().Text($"Konto / Zahlbar an");
-                        col.Item().Text(payload.Iban);
-                        col.Item().Text(payload.Creditor.Name);
-                        col.Item().Text($"{payload.Creditor.PostalCode} {payload.Creditor.City}");
-                        col.Item().PaddingTop(4).Text("Zahlbar durch");
-                        col.Item().Text(payload.Debtor?.Name ?? string.Empty);
-                        col.Item().PaddingTop(4).Text($"{payload.Currency} {SwissQrEncoder.FormatAmount(payload.Amount)}");
+                        WritePayableTo(col, payload);
+                        WriteReference(col, payload);
+                        WritePayableBy(col, payload);
+                        WriteAmount(col, payload);
                         col.Item().PaddingTop(6).AlignRight().Text("Annahmestelle");
                     });
                     row.RelativeItem().PaddingLeft(4).Column(col =>
@@ -42,16 +39,54 @@ internal static class QrRechnungPdf
                         col.Item().Text("Zahlteil").SemiBold();
                         col.Item().Width(46, Unit.Millimetre).Height(46, Unit.Millimetre)
                             .Svg(SwissQrSvg(modules));
-                        col.Item().PaddingTop(2).Text($"{payload.Currency} {SwissQrEncoder.FormatAmount(payload.Amount)}");
-                        col.Item().Text(payload.Creditor.Name);
-                        col.Item().Text(SwissQrEncoder.ToWire(payload.ReferenceType));
-                        col.Item().Text(payload.Reference ?? string.Empty);
+                        WriteAmount(col, payload);
+                        WritePayableTo(col, payload);
+                        WriteReference(col, payload);
+                        WritePayableBy(col, payload);
                         if (!string.IsNullOrWhiteSpace(payload.AdditionalInfo))
-                            col.Item().Text(payload.AdditionalInfo);
+                            col.Item().PaddingTop(2).Text(payload.AdditionalInfo);
                     });
                 });
             });
         }).GeneratePdf();
+    }
+
+    private static void WritePayableTo(ColumnDescriptor col, QrRechnungPayload payload)
+    {
+        col.Item().PaddingTop(2).Text("Konto / Zahlbar an").SemiBold();
+        col.Item().Text(payload.Iban);
+        col.Item().Text(payload.Creditor.Name);
+        if (!string.IsNullOrWhiteSpace(payload.Creditor.AddressLine1))
+            col.Item().Text(payload.Creditor.AddressLine1);
+        col.Item().Text($"{payload.Creditor.PostalCode} {payload.Creditor.City}".Trim());
+        col.Item().Text(payload.Creditor.CountryCode);
+    }
+
+    private static void WriteReference(ColumnDescriptor col, QrRechnungPayload payload)
+    {
+        col.Item().PaddingTop(2).Text("Referenz").SemiBold();
+        col.Item().Text(SwissQrEncoder.ToWire(payload.ReferenceType));
+        if (!string.IsNullOrWhiteSpace(payload.Reference))
+            col.Item().Text(payload.Reference);
+    }
+
+    private static void WritePayableBy(ColumnDescriptor col, QrRechnungPayload payload)
+    {
+        col.Item().PaddingTop(2).Text("Zahlbar durch");
+        if (payload.Debtor is null)
+            return;
+        col.Item().Text(payload.Debtor.Name);
+        if (!string.IsNullOrWhiteSpace(payload.Debtor.AddressLine1))
+            col.Item().Text(payload.Debtor.AddressLine1);
+        col.Item().Text($"{payload.Debtor.PostalCode} {payload.Debtor.City}".Trim());
+    }
+
+    private static void WriteAmount(ColumnDescriptor col, QrRechnungPayload payload)
+    {
+        col.Item().PaddingTop(2).Text("Währung").SemiBold();
+        col.Item().Text(payload.Currency);
+        col.Item().Text("Betrag").SemiBold();
+        col.Item().Text(SwissQrEncoder.FormatAmount(payload.Amount));
     }
 
     internal static bool[,] SwissCrossMatrix(string swissQrText)

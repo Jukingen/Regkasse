@@ -39,9 +39,9 @@ export function BackupStatusHeader({
 }: BackupStatusHeaderProps) {
   const st = latest?.status;
   const active =
-    st === BackupRunStatus.NUMBER_0 ||
-    st === BackupRunStatus.NUMBER_1 ||
-    st === BackupRunStatus.NUMBER_2;
+    st === BackupRunStatus.Queued ||
+    st === BackupRunStatus.Running ||
+    st === BackupRunStatus.AwaitingVerification;
   const metricStatus = mapBackupRunToMetricStatus(st, {
     simulated: simulatedOperationalMode || latest?.isSimulatedExecution,
     active,

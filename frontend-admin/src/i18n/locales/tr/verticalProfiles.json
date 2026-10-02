@@ -1,0 +1,29 @@
+{
+  "gastronomy": {
+    "name": "Gastronomi"
+  },
+  "gastronomyTables": {
+    "name": "Masalı gastronomi"
+  },
+  "hairSalon": {
+    "name": "Kuaför salonu"
+  },
+  "mobileServices": {
+    "name": "Mobil hizmetler"
+  },
+  "handyShop": {
+    "name": "Telefon mağazası"
+  },
+  "taxi": {
+    "name": "Taksi"
+  },
+  "ticketSales": {
+    "name": "Bilet satışı"
+  },
+  "vet": {
+    "name": "Veteriner kliniği"
+  },
+  "beherbergung": {
+    "name": "Konaklama"
+  }
+}

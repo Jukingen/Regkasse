@@ -7,8 +7,8 @@ using KasseAPI_Final.Services.FeatureFlags;
 namespace KasseAPI_Final.Services.Countries.EInvoicing;
 
 /// <summary>
-/// EN 16931 invoice in UBL 2.1 (Peppol BIS Billing 3.0 customization).
-/// No Peppol send. Flag <c>EInvoicing.En16931</c> gates the build.
+/// UBL 2.1 invoice sketch. Not a legal, BMF, or network acceptance claim.
+/// Flag <c>EInvoicing.En16931</c> gates the build. This type does not send documents.
 /// </summary>
 public sealed class En16931UblXmlBuilder : IEn16931XmlBuilder
 {

@@ -83,4 +83,18 @@ public sealed class ActivityEventPublishBuilderTests
         Assert.Equal("maxUsersPerTenant", request.EntityId);
         Assert.Contains("80%", request.Description);
     }
+
+    [Fact]
+    public void FromMetadata_maps_offline_queue_approaching_limit_title()
+    {
+        var request = ActivityEventPublishBuilder.FromMetadata(
+            Guid.NewGuid(),
+            ActivityEventType.OfflineQueueApproachingLimit,
+            new { LimitKey = "maxOfflineTransactions", Message = "Limit maxOfflineTransactions is at 80%." });
+
+        Assert.Equal("Offline queue approaching limit", request.Title);
+        Assert.Equal("tenant_limit", request.EntityType);
+        Assert.Equal("maxOfflineTransactions", request.EntityId);
+        Assert.Contains("80%", request.Description);
+    }
 }

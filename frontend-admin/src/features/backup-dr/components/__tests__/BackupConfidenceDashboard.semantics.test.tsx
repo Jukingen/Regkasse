@@ -12,9 +12,9 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import { BackupConfidenceDashboard } from '@/features/backup-dr/components/BackupConfidenceDashboard';
 import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
@@ -63,7 +63,7 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
       verification: undefined,
       recoverability: {},
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        status: RestoreVerificationStatus.Failed,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -76,7 +76,7 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         recoverability={undefined}
         restoreLatest={
           {
-            status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+            status: RestoreVerificationStatus.Failed,
           } as RestoreVerificationRunResponseDto
         }
       />
@@ -91,10 +91,10 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
   it('stub mode: warning strip + stub layer detail keys visible', () => {
     const latest = {
       id: 's',
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
@@ -108,7 +108,7 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -166,16 +166,16 @@ describe('BackupConfidenceDashboard — label / UI honesty', () => {
   it('does not surface generic healthy string in strip keys', () => {
     const latest = {
       id: 'r',
-      status: BackupRunResponseDtoStatus.NUMBER_3,
+      status: BackupRunStatus.Succeeded,
       artifacts: [
         {
-          artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+          artifactType: BackupArtifactType.LogicalDump,
           isFilePresentForDownload: true,
         },
       ],
     };
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,

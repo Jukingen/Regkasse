@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries;
 
 namespace KasseAPI_Final.Services.Countries.Strategies.Germany;
 
@@ -32,14 +33,20 @@ public static class DeTaxSetMapper
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
     public static DeFiscalTaxProjection MapFromLinePercents(
-        IEnumerable<(decimal VatPercent, decimal GrossAmount)> lines)
+        IEnumerable<(decimal VatPercent, decimal GrossAmount)> lines) =>
+        MapFromLinePercents(lines, DefaultCatalog);
+
+    public static DeFiscalTaxProjection MapFromLinePercents(
+        IEnumerable<(decimal VatPercent, decimal GrossAmount)> lines,
+        IReadOnlyList<CountryTaxType> catalog)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(catalog);
 
         var buckets = new Dictionary<string, decimal>(StringComparer.Ordinal);
         foreach (var (vatPercent, grossAmount) in lines)
         {
-            var vatRate = VatPercentToEnum(vatPercent);
+            var vatRate = VatPercentToEnum(vatPercent, catalog);
             var gross = Round2(grossAmount);
             if (gross == 0m)
                 continue;
@@ -52,8 +59,15 @@ public static class DeTaxSetMapper
         return ToProjection(buckets);
     }
 
-    public static DeFiscalTaxProjection MapFromTaxDetailsJson(string? taxDetailsJson, decimal totalGross)
+    public static DeFiscalTaxProjection MapFromTaxDetailsJson(string? taxDetailsJson, decimal totalGross) =>
+        MapFromTaxDetailsJson(taxDetailsJson, totalGross, DefaultCatalog);
+
+    public static DeFiscalTaxProjection MapFromTaxDetailsJson(
+        string? taxDetailsJson,
+        decimal totalGross,
+        IReadOnlyList<CountryTaxType> catalog)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
         if (string.IsNullOrWhiteSpace(taxDetailsJson) || taxDetailsJson == "{}")
             return EmptyOrZeroReceipt(totalGross);
 
@@ -95,7 +109,7 @@ public static class DeTaxSetMapper
         var buckets = new Dictionary<string, decimal>(StringComparer.Ordinal);
         foreach (var (code, taxAmount) in taxByCode)
         {
-            var (vatRate, ratePercent) = CodeToVatRate(code);
+            var (vatRate, ratePercent) = CodeToVatRate(code, catalog);
             var gross = ratePercent == 0m
                 ? Round2(totalGross)
                 : TaxToGross(taxAmount, ratePercent);
@@ -161,43 +175,48 @@ public static class DeTaxSetMapper
         return new DeFiscalTaxProjection(ordered);
     }
 
-    private static string VatPercentToEnum(decimal vatPercent)
+    private static readonly IReadOnlyList<CountryTaxType> DefaultCatalog =
+        new CountryTaxTypeRegistry().Get(CountryProfileCodes.Germany);
+
+    private static string VatPercentToEnum(decimal vatPercent, IReadOnlyList<CountryTaxType> catalog)
     {
-        if (vatPercent == 19m)
-            return DeVatRateNames.Normal;
-        if (vatPercent == 7m)
-            return DeVatRateNames.Reduced1;
+        var row = catalog.FirstOrDefault(type => type.Rate == vatPercent);
+        if (row is not null)
+            return CodeToNamedRate(row.Code);
+
         if (vatPercent == 0m)
             return DeVatRateNames.Null;
 
         throw new ArgumentException(
-            $"Unsupported DE VAT percent {vatPercent.ToString(Invariant)}. " +
-            "SIGN DE Paket 72 allows only 19 (NORMAL), 7 (REDUCED_1), and 0 (NULL). " +
-            "Rates 13, 4.9, and others are rejected.");
+            $"VAT percent {vatPercent.ToString(Invariant)} is not a DE CountryTaxType rate.");
     }
 
-    private static (string VatRate, decimal RatePercent) CodeToVatRate(string code)
+    private static (string VatRate, decimal RatePercent) CodeToVatRate(
+        string code,
+        IReadOnlyList<CountryTaxType> catalog)
     {
-        if (string.Equals(code, CountryTaxTypeCodes.Standard, StringComparison.OrdinalIgnoreCase))
-            return (DeVatRateNames.Normal, 19m);
-        if (string.Equals(code, CountryTaxTypeCodes.Reduced1, StringComparison.OrdinalIgnoreCase))
-            return (DeVatRateNames.Reduced1, 7m);
+        var row = catalog.FirstOrDefault(type =>
+            string.Equals(type.Code, code, StringComparison.OrdinalIgnoreCase));
+        if (row is not null)
+            return (CodeToNamedRate(row.Code), row.Rate);
+
         if (string.Equals(code, CountryTaxTypeCodes.Zero, StringComparison.OrdinalIgnoreCase))
             return (DeVatRateNames.Null, 0m);
 
-        if (string.Equals(code, CountryTaxTypeCodes.Reduced2, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(code, CountryTaxTypeCodes.ReducedNew, StringComparison.OrdinalIgnoreCase)
-            || int.TryParse(code, NumberStyles.Integer, Invariant, out _))
-        {
-            throw new ArgumentException(
-                $"Unsupported DE tax_details code '{code}'. " +
-                "Paket 72 accepts STANDARD (19%), REDUCED_1 (7%), and ZERO (0%). " +
-                "AT codes / rates 13 and 4.9 are rejected.");
-        }
-
         throw new ArgumentException(
-            $"Unknown DE tax_details code '{code}'. " +
-            "Expected STANDARD, REDUCED_1, or ZERO.");
+            $"Unknown DE tax_details code '{code}'. Expected a DE CountryTaxType code.");
+    }
+
+    private static string CodeToNamedRate(string code)
+    {
+        if (string.Equals(code, CountryTaxTypeCodes.Standard, StringComparison.OrdinalIgnoreCase))
+            return DeVatRateNames.Normal;
+        if (string.Equals(code, CountryTaxTypeCodes.Reduced1, StringComparison.OrdinalIgnoreCase))
+            return DeVatRateNames.Reduced1;
+        if (string.Equals(code, CountryTaxTypeCodes.Zero, StringComparison.OrdinalIgnoreCase))
+            return DeVatRateNames.Null;
+
+        throw new ArgumentException($"DE CountryTaxType '{code}' has no SIGN DE vat_rate name.");
     }
 
     private static decimal TaxToGross(decimal taxAmount, decimal ratePercent)

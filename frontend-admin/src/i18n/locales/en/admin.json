@@ -1,0 +1,208 @@
+{
+  "peppol": {
+    "participants": {
+      "title": "Peppol participants",
+      "subtitle": "Participant ids per mandant. This page does not show credentials.",
+      "tenantFilter": "Mandant",
+      "missingTenant": "Choose a mandant",
+      "create": "Add participant",
+      "edit": "Edit",
+      "save": "Save",
+      "saved": "Participant saved",
+      "loadError": "Participants could not be loaded",
+      "empty": "No participants",
+      "colTenant": "Mandant",
+      "colParticipantId": "Participant id",
+      "colApEnvironment": "AP environment",
+      "colLegalEntityId": "Legal entity id",
+      "colEIdentifierScheme": "eIdentifier scheme",
+      "colEIdentifierValue": "eIdentifier value",
+      "colUpdatedAtUtc": "Updated (UTC)",
+      "fieldParticipantId": "Participant id",
+      "fieldApEnvironment": "AP environment",
+      "fieldLegalEntityId": "Legal entity id",
+      "fieldEIdentifierScheme": "eIdentifier scheme",
+      "fieldEIdentifierValue": "eIdentifier value"
+    }
+  },
+  "kassensicherheit": {
+    "title": "KassenSicherheit (DE)",
+    "subtitle": "Read only. This page does not set Fiscal.KassenSicherheitDe.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Choose a mandant",
+    "loadError": "KassenSicherheit could not be loaded",
+    "tabStatus": "Status",
+    "tabRecent": "Recent transactions",
+    "flagEnabled": "Flag",
+    "flagOn": "on",
+    "flagOff": "off",
+    "provider": "Provider",
+    "environment": "Environment",
+    "hasOverride": "Tenant override",
+    "overrideYes": "yes",
+    "overrideNo": "no",
+    "tssId": "TSS id",
+    "clientId": "Client id",
+    "colTxId": "Transaction id",
+    "colReceipt": "Receipt number",
+    "colStatus": "Status",
+    "colTime": "Time",
+    "emptyRecent": "No DE transactions",
+    "export": "Export DSFinV-K",
+    "start": "Start",
+    "end": "End",
+    "exportPending": "Export requested"
+  },
+  "mwst": {
+    "title": "MWST (CH)",
+    "subtitle": "Effective rates for the selected mandant. No rate editor.",
+    "tenantFilter": "Mandant",
+    "missingTenant": "Choose a mandant",
+    "loadError": "MWST rates could not be loaded",
+    "empty": "No rates",
+    "colCode": "Code",
+    "colLabel": "Label",
+    "colRate": "Rate",
+    "colEffectiveFrom": "Effective from",
+    "colSource": "Source",
+    "colApplies": "Applies",
+    "sourceSeed": "Seed",
+    "sourceOverride": "Tenant override",
+    "sourceUnknown": "Unknown",
+    "appliesYes": "yes",
+    "appliesNo": "no",
+    "rollback": "Roll back canary",
+    "rolledBack": "Canary rollback sent"
+  },
+  "verticalProfiles": {
+    "pageTitle": "POS profiles",
+    "subtitle": "Manage vertical profiles, their features, and which mandants use them.",
+    "accessDenied": "system.critical required.",
+    "tabs": {
+      "list": "Profiles",
+      "editor": "Editor",
+      "assignments": "Mandants",
+      "matrix": "Feature matrix"
+    },
+    "columns": {
+      "id": "Id",
+      "name": "Name",
+      "featureCount": "Features",
+      "tenantCount": "Mandants",
+      "source": "Source",
+      "actions": "Actions"
+    },
+    "source": {
+      "seed": "Seed",
+      "override": "Override",
+      "custom": "Custom"
+    },
+    "actions": {
+      "edit": "Edit",
+      "clone": "Clone",
+      "delete": "Delete",
+      "viewTenants": "View mandants",
+      "create": "New profile",
+      "save": "Save"
+    },
+    "loadError": "Profiles could not be loaded",
+    "empty": "No profiles",
+    "editor": {
+      "name": "Name",
+      "slug": "Slug",
+      "cloneFrom": "Clone from",
+      "cloneFromNone": "Start blank",
+      "features": "Features",
+      "requiredFields": "Required fields",
+      "optionalFields": "Optional fields",
+      "layout": "POS layout",
+      "fieldPlaceholder": "Field name",
+      "addField": "Add"
+    },
+    "entities": {
+      "customer": "Customer",
+      "product": "Product",
+      "order": "Order"
+    },
+    "layouts": {
+      "standard": "Standard",
+      "tables": "Tables",
+      "appointment": "Appointment",
+      "queue": "Queue",
+      "taxi": "Taxi",
+      "ticket": "Ticket",
+      "rooms": "Rooms"
+    },
+    "features": {
+      "groups": {
+        "kitchen": "Kitchen",
+        "tables": "Tables",
+        "patientRecord": "Patient record",
+        "appointment": "Appointment",
+        "imei": "IMEI",
+        "route": "Route",
+        "ticket": "Ticket",
+        "rooms": "Rooms",
+        "other": "Other"
+      },
+      "kitchenDisplay": "Kitchen display",
+      "tables": "Tables",
+      "patientRecord": "Patient record",
+      "appointment": "Appointment",
+      "serviceDuration": "Service duration",
+      "imeiTracking": "IMEI",
+      "routeTracking": "Route",
+      "ticketScan": "Ticket scan",
+      "roomTracking": "Room tracking"
+    },
+    "preview": {
+      "title": "Preview",
+      "enables": "This profile enables:",
+      "enablesEmpty": "No extra capabilities",
+      "posScreens": "POS will show screens:",
+      "posScreensEmpty": "Standard sale screen",
+      "faTabs": "FA will show tabs:",
+      "faTabsEmpty": "No extra tabs",
+      "items": {
+        "kds": "KDS",
+        "tables": "Tables",
+        "patientRecord": "Patient record",
+        "appointment": "Appointment",
+        "imei": "IMEI",
+        "route": "Route",
+        "ticket": "Ticket",
+        "rooms": "Rooms",
+        "serviceDuration": "Service duration"
+      },
+      "screens": {
+        "kds": "Kitchen display",
+        "tables": "Table selection",
+        "patient": "Patient record",
+        "appointment": "Appointment calendar",
+        "imei": "IMEI picker",
+        "route": "Route panel",
+        "ticket": "Ticket sale and validation",
+        "rooms": "Room list",
+        "taxi": "Taxi sale",
+        "queue": "Queue",
+        "standard": "Standard sale"
+      },
+      "tabs": {
+        "kitchen": "Kitchen",
+        "productDuration": "Duration and staff",
+        "imei": "IMEI list",
+        "tickets": "Ticket redemptions",
+        "rooms": "Rooms"
+      }
+    },
+    "saveSuccess": "Profile saved",
+    "saveError": "Profile could not be saved",
+    "deleteConfirm": "Delete this custom profile?",
+    "deleteSuccess": "Profile deleted",
+    "deleteBlockedTitle": "Profile is in use",
+    "featureRemovalWarning": "Removing a feature affects mandants on this profile",
+    "assignments": {
+      "empty": "No mandants"
+    }
+  }
+}

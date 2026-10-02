@@ -17,7 +17,7 @@ import {
 import React from 'react';
 
 import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
-import { BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus } from '@/api/generated/model';
+import { RestoreVerificationStatus } from '@/api/generated/model';
 import {
   formatRecoverabilityTimestampOrProofGap,
   hasRecoverabilityProofGaps,
@@ -127,7 +127,7 @@ export function RecoverabilitySummaryCard({
             }
             if (
               summary.latestRestoreRunStatus ===
-                BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus.NUMBER_3 &&
+                RestoreVerificationStatus.Failed &&
               summary.lastSuccessfulRestoreProofAt
             ) {
               caveats.push(t('backupDr.recoverability.latestDrillFailedVsProofTimestamps'));

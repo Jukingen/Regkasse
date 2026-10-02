@@ -12,6 +12,7 @@ import {
   type CreateAdminTenantRequest,
   createAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
+import { CreateTenantCountryDrivenFields } from '@/features/super-admin/components/CreateTenantCountryDrivenFields';
 import { CreateTenantCountryStep } from '@/features/super-admin/components/CreateTenantCountryStep';
 import { CreateTenantProcessingView } from '@/features/super-admin/components/CreateTenantProcessingView';
 import { type CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
@@ -43,13 +44,21 @@ export type CreateTenantWizardProps = {
 
 type WizardPhase = 'country' | 'form' | 'processing' | 'processingDone';
 
-const COUNTRY_DEFAULTS = {
-  countryCode: 'AT',
-  vatRegime: 'AT_RKSV_STANDARD',
+const FORM_DEFAULTS = {
   grantTrialLicense: true,
   trialDurationDays: 14,
   importDemoProducts: true,
 } as const;
+
+/** First catalog row from `GET /api/admin/countries`. No local country code. */
+export function initialCountryFromCatalog(
+  countries: ReadonlyArray<{ code?: string | null; allowedVatRegimes?: readonly (string | null)[] | null }>
+): { countryCode?: string; vatRegime?: string } {
+  const first = countries.find((country) => country.code);
+  if (!first?.code) return {};
+  const regime = first.allowedVatRegimes?.find((value): value is string => Boolean(value));
+  return { countryCode: first.code, vatRegime: regime };
+}
 
 export function CreateTenantWizard(props: CreateTenantWizardProps) {
   if (!props.open) {
@@ -140,10 +149,13 @@ function CreateTenantWizardContent({
   }, [open, form, resetFlow, phase]);
 
   useEffect(() => {
-    if (open) {
-      form.setFieldsValue({ ...COUNTRY_DEFAULTS });
+    if (!open) return;
+    if (form.getFieldValue('countryCode')) return;
+    const seeded = initialCountryFromCatalog(countriesQuery.data ?? []);
+    if (seeded.countryCode) {
+      form.setFieldsValue(seeded);
     }
-  }, [open, form]);
+  }, [open, form, countriesQuery.data]);
 
   const isProcessing =
     phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
@@ -292,7 +304,7 @@ function CreateTenantWizardContent({
           form={form}
           layout="vertical"
           requiredMark="optional"
-          initialValues={COUNTRY_DEFAULTS}
+          initialValues={FORM_DEFAULTS}
           onFinish={handleFinish}
         >
           <div
@@ -309,6 +321,7 @@ function CreateTenantWizardContent({
             style={{ display: phase === 'form' ? 'block' : 'none' }}
           >
             <TenantFormFields form={form} open={open} fieldState={formFields} />
+            <CreateTenantCountryDrivenFields countries={countries} />
           </div>
         </Form>
       </Modal>

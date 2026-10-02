@@ -4,7 +4,7 @@
  * Super-admin tenant create form: operator-friendly fields, live subdomain check, automation toggles.
  */
 import type { FormInstance } from 'antd';
-import { Checkbox, Collapse, Divider, Form, Input, Select, Space } from 'antd';
+import { Checkbox, Collapse, Divider, Form, Input, Select } from 'antd';
 import React from 'react';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
@@ -114,24 +114,22 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
         validateStatus={slugFieldStatus}
         rules={slugRules}
       >
-        <Space orientation="vertical" style={{ width: '100%' }} size={0}>
-          <Input
-            placeholder={t('tenants.create.fields.slug.placeholder')}
-            onChange={handleSlugChange}
-            onBlur={handleSlugBlur}
-            addonAfter={`.${baseDomain}`}
-            autoComplete="off"
-          />
-          <TenantSlugFieldExtras
-            slugValue={slugWatch}
-            baseDomain={baseDomain}
-            portalUrl={portalPreviewUrl}
-            availabilityUi={slugAvailabilityUi}
-            suggestions={slugSuggestions}
-            onSelectSuggestion={applySlugSuggestion}
-          />
-        </Space>
+        <Input
+          placeholder={t('tenants.create.fields.slug.placeholder')}
+          onChange={handleSlugChange}
+          onBlur={handleSlugBlur}
+          addonAfter={`.${baseDomain}`}
+          autoComplete="off"
+        />
       </CreateTenantFormField>
+      <TenantSlugFieldExtras
+        slugValue={slugWatch}
+        baseDomain={baseDomain}
+        portalUrl={portalPreviewUrl}
+        availabilityUi={slugAvailabilityUi}
+        suggestions={slugSuggestions}
+        onSelectSuggestion={applySlugSuggestion}
+      />
 
       <Divider style={{ margin: '4px 0 12px' }} />
 

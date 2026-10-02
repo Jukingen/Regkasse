@@ -292,7 +292,7 @@ export default function PaymentsPage() {
       return postApiAdminPaymentsIdRefund(selectedPaymentId, {
         amount: refundAmount,
         reason: refundReason.trim(),
-        reasonCode: RefundReasonCode.NUMBER_99,
+        reasonCode: RefundReasonCode.Other,
       });
     },
     onSuccess: async () => {

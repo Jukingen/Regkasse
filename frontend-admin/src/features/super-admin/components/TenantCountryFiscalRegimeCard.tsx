@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
+  getAdminTenantCountryImpact,
   updateAdminTenantCountry,
   type AdminTenantDetail,
 } from '@/features/super-admin/api/adminTenants';
@@ -88,6 +89,17 @@ export function TenantCountryFiscalRegimeCard({
         notify.errorKey('tenantCountry.lockedFiscal');
         return;
       }
+      if (code === 'FISCAL_COUNTRY_CHANGE_INVALID') {
+        const raw =
+          typeof err === 'object' && err !== null
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        const parsed = Number.parseInt(raw ?? '', 10);
+        notify.errorKey('tenantCountry.incompatibleBlocked', {
+          count: Number.isFinite(parsed) ? parsed : 0,
+        });
+        return;
+      }
       notify.apiError(err, {
         logContext: 'TenantCountryFiscalRegimeCard.save',
         fallbackKey: 'tenantCountry.saveFailed',
@@ -104,13 +116,33 @@ export function TenantCountryFiscalRegimeCard({
     setEditing(true);
   };
 
-  const confirmSave = (values: CountryFormValues) => {
+  const confirmSave = async (values: CountryFormValues) => {
+    let impact: { affectedRowCount: number; incompatibleRowCount: number };
+    try {
+      impact = await getAdminTenantCountryImpact(tenant.id, values.country);
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'TenantCountryFiscalRegimeCard.impact',
+        fallbackKey: 'tenantCountry.saveFailed',
+      });
+      return;
+    }
+
+    const blocked = impact.incompatibleRowCount > 0;
     modal.confirm({
       title: t('tenantCountry.confirmTitle'),
-      content: t('tenantCountry.confirmBody'),
+      content: (
+        <div>
+          <p>{blocked ? t('tenantCountry.incompatibleBlocked', { count: impact.incompatibleRowCount }) : t('tenantCountry.confirmBody')}</p>
+          <p data-testid="tenant-country-affected-count">
+            {t('tenantCountry.confirmAffected', { count: impact.affectedRowCount })}
+          </p>
+        </div>
+      ),
       okText: t('tenantCountry.confirmOk'),
       cancelText: t('tenantCountry.cancel'),
-      onOk: () => saveMutation.mutateAsync(values),
+      okButtonProps: blocked ? { disabled: true } : undefined,
+      onOk: blocked ? undefined : () => saveMutation.mutateAsync(values),
     });
   };
 

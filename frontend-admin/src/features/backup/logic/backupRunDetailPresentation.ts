@@ -78,11 +78,11 @@ export function backupRunStatusTagPresentation(
 
 export function backupTriggerSourceLabelKey(source: number | undefined): string {
   switch (source) {
-    case BackupTriggerSource.NUMBER_0:
+    case BackupTriggerSource.Manual:
       return 'backupDr.detailModal.triggerSource.manual';
-    case BackupTriggerSource.NUMBER_1:
+    case BackupTriggerSource.Scheduled:
       return 'backupDr.detailModal.triggerSource.scheduled';
-    case BackupTriggerSource.NUMBER_2:
+    case BackupTriggerSource.OperatorApi:
       return 'backupDr.detailModal.triggerSource.operatorApi';
     default:
       return 'backupDr.summary.unknown';
@@ -119,5 +119,5 @@ export function pipelineStepTimelineColor(
 }
 
 export function isBackupRunSucceeded(status: number | undefined): boolean {
-  return status === BackupRunStatus.NUMBER_3;
+  return status === BackupRunStatus.Succeeded;
 }

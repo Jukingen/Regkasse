@@ -40,37 +40,52 @@ public sealed class SwitzerlandTaxStrategyTests
             Flags(enabled));
 
     [Fact]
-    public void CalculateTax_UsesCh81And26And38Rates_WithoutAustrianBuckets()
+    public void CalculateTax_UsesRegistryMwstRates_WithoutAustrianBuckets()
     {
-        var expected81 = CartMoneyHelper.ComputeLine(108.1m, 1, 8.1m);
-        var expected26 = CartMoneyHelper.ComputeLine(102.6m, 1, 2.6m);
-        var expected38 = CartMoneyHelper.ComputeLine(103.8m, 1, 3.8m);
+        var catalog = new CountryTaxTypeRegistry().Get(CountryProfileCodes.Switzerland);
+        var standard = catalog.Single(t => t.Code == CountryTaxTypeCodes.Standard).Rate;
+        var reduced = catalog.Single(t => t.Code == CountryTaxTypeCodes.Reduced1).Rate;
+        var lodging = catalog.Single(t => t.Code == CountryTaxTypeCodes.Lodging).Rate;
+        var expectedStandard = CartMoneyHelper.ComputeLine(100m + standard, 1, standard);
+        var expectedReduced = CartMoneyHelper.ComputeLine(100m + reduced, 1, reduced);
+        var expectedLodging = CartMoneyHelper.ComputeLine(100m + lodging, 1, lodging);
 
         var result = Strategy().CalculateTax(
             [
-                TaxLineItemInput.FromVatPercent(108.1m, 1, 8.1m),
-                TaxLineItemInput.FromVatPercent(102.6m, 1, 2.6m),
-                TaxLineItemInput.FromVatPercent(103.8m, 1, 3.8m),
+                TaxLineItemInput.FromVatPercent(100m + standard, 1, standard),
+                TaxLineItemInput.FromVatPercent(100m + reduced, 1, reduced),
+                TaxLineItemInput.FromVatPercent(100m + lodging, 1, lodging),
             ],
             ChContext());
 
         Assert.Equal(3, result.Lines.Count);
-        Assert.Equal(expected81, result.Lines[0]);
-        Assert.Equal(expected26, result.Lines[1]);
-        Assert.Equal(expected38, result.Lines[2]);
-        Assert.Equal(expected81.LineNet + expected26.LineNet + expected38.LineNet, result.Totals.TotalNet);
-        Assert.Equal(expected81.LineTax + expected26.LineTax + expected38.LineTax, result.Totals.TotalVat);
-        Assert.Equal(expected81.LineGross + expected26.LineGross + expected38.LineGross, result.Totals.TotalGross);
-
-        Assert.Equal(8.1m, result.TaxSummary.Single(s => s.TaxRatePct == 8.1m).TaxRatePct);
-        Assert.Equal(2.6m, result.TaxSummary.Single(s => s.TaxRatePct == 2.6m).TaxRatePct);
-        Assert.Equal(3.8m, result.TaxSummary.Single(s => s.TaxRatePct == 3.8m).TaxRatePct);
-        Assert.All(result.TaxSummary, s => Assert.Equal(0, s.TaxType));
-
-        Assert.Equal(expected81.LineTax, result.TaxDetails[CountryTaxTypeCodes.Standard]);
-        Assert.Equal(expected26.LineTax, result.TaxDetails[CountryTaxTypeCodes.Reduced1]);
-        Assert.Equal(expected38.LineTax, result.TaxDetails[CountryTaxTypeCodes.Lodging]);
+        Assert.Equal(expectedStandard, result.Lines[0]);
+        Assert.Equal(expectedReduced, result.Lines[1]);
+        Assert.Equal(expectedLodging, result.Lines[2]);
+        Assert.Equal(expectedStandard.LineTax, result.TaxDetails[CountryTaxTypeCodes.Standard]);
+        Assert.Equal(expectedReduced.LineTax, result.TaxDetails[CountryTaxTypeCodes.Reduced1]);
+        Assert.Equal(expectedLodging.LineTax, result.TaxDetails[CountryTaxTypeCodes.Lodging]);
+        Assert.Equal(standard, result.TaxSummary.Single(s => s.TaxRatePct == standard).TaxRatePct);
         Assert.DoesNotContain(TaxTypes.Standard.ToString(), result.TaxDetails.Keys);
+    }
+
+    [Fact]
+    public void CalculateTax_DoesNotHardcodeSeededPercents()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        string? found = null;
+        while (dir is not null && found is null)
+        {
+            var candidate = Path.Combine(dir.FullName, "Services", "Countries", "Strategies", "Switzerland", "SwitzerlandStrategies.cs");
+            if (File.Exists(candidate))
+                found = File.ReadAllText(candidate);
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(found);
+        Assert.DoesNotContain("8.1", found, StringComparison.Ordinal);
+        Assert.DoesNotContain("2.6", found, StringComparison.Ordinal);
+        Assert.DoesNotContain("3.8", found, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -195,11 +210,40 @@ public sealed class SwitzerlandTaxStrategyTests
     }
 
     [Fact]
-    public void ProjectFiscalTaxSets_ThrowsNotImplemented()
+    public void ProjectFiscalTaxSets_ReadsTheChCatalogRate()
     {
-        var ex = Assert.Throws<NotImplementedException>(() =>
-            Strategy().ProjectFiscalTaxSets("{}", 0m));
+        var standard = RateCatalog.Get(CountryProfileCodes.Switzerland)
+            .Single(type => type.Code == CountryTaxTypeCodes.Standard);
+        var gross = 100m + standard.Rate;
+        var tax = CartMoneyHelper.ComputeLine(gross, 1, standard.Rate).LineTax;
+        var json = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, decimal>
+        {
+            [CountryTaxTypeCodes.Standard] = tax,
+        });
 
-        Assert.Contains(CountryStrategyDocs.Switzerland, ex.Message, StringComparison.Ordinal);
+        var sets = Strategy().ProjectFiscalTaxSets(json, gross);
+
+        Assert.NotNull(sets);
+        Assert.Equal(gross, sets!.Normal);
+        Assert.Equal(0m, sets.Ermaessigt1);
+        Assert.Equal(0m, sets.Besonders);
+    }
+
+    [Fact]
+    public void ProjectFiscalTaxSets_EmptyCatalog_DoesNotUseAustrianRates()
+    {
+        var empty = new Mock<ICountryTaxTypeRegistry>();
+        empty.Setup(r => r.Get(CountryProfileCodes.Switzerland)).Returns(Array.Empty<CountryTaxType>());
+        var strategy = new SwitzerlandTaxStrategy(
+            empty.Object,
+            new VatIdValidator(new DisabledViesClient()),
+            Flags(true));
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            strategy.ProjectFiscalTaxSets("{\"STANDARD\":8.1}", 108.1m));
+
+        Assert.Contains("empty", ex.Message, StringComparison.OrdinalIgnoreCase);
+        empty.Verify(r => r.Get(CountryProfileCodes.Switzerland), Times.Once);
+        empty.Verify(r => r.Get(CountryProfileCodes.Austria), Times.Never);
     }
 }

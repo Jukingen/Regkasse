@@ -11,6 +11,7 @@ import { normalizeAdminPathname } from '@/shared/adminSidebarNavigation';
 /** Routes reachable on platform admin host without mandant context (tenant pick / platform ops). */
 export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
   '/admin/tenants',
+  '/admin/vertical-profiles',
   '/admin/approvals',
   '/admin/users',
   '/admin/licenses',

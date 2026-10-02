@@ -11,6 +11,7 @@ import type { Cart } from './cart';
 import type { CustomerCategory } from './customerCategory';
 import type { Invoice } from './invoice';
 import type { Order } from './order';
+import type { CustomerPetData } from './customerPetData';
 import type { CustomerPaymentMethod } from './customerPaymentMethod';
 import type { Tenant } from './tenant';
 
@@ -68,6 +69,7 @@ export interface Customer {
   notes?: string | null;
   /** @nullable */
   orders?: Order[] | null;
+  petData?: CustomerPetData;
   /**
    * @maxLength 20
    * @nullable

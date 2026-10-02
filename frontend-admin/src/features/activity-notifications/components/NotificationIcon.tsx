@@ -34,7 +34,7 @@ function iconForType(type: string): ReactNode {
   if (type.startsWith('License') || type.startsWith('Limit')) {
     return <WarningOutlined />;
   }
-  if (type === 'OfflineQueueGrowing') {
+  if (type === 'OfflineQueueGrowing' || type === 'OfflineQueueApproachingLimit') {
     return <CloudOutlined />;
   }
   if (type.includes('FinanzOnline')) {

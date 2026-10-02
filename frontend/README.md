@@ -156,6 +156,23 @@ Conventions:
 - Mock `utils/storage` / `sessionManager` / `apiClient` at module boundaries; do not invent parallel offline queues.
 - Fiscal / payment tests must not assert on voucher plaintext in storage.
 
+## Offline queue UX
+
+POS keeps **two** local queues (`offline_orders` snapshots and `offline_transactions` payment intents). Persistence is unchanged by the header indicator.
+
+| Piece | Path |
+| ----- | ---- |
+| Header dot | `components/OfflineQueueIndicator.tsx` (tabs header) |
+| Detail screen | `app/(screens)/offline-queue.tsx` + `components/OfflineQueuePanel.tsx` |
+| TSE cap bar | `components/OfflineQueueLimitBar.tsx` (`GET /api/pos/offline-limit`) |
+| Cap modal | `components/OfflineLimitReachedModal.tsx` (`offline.limit.*`) |
+| Color rules | `utils/offlineQueueIndicator.ts` |
+| Cap math | `utils/offlineQueueLimit.ts` |
+
+Dot colors: green (online, empty), yellow (online, N syncing/pending), orange (offline, N queued), red (failed/stuck). Tap opens the queue. Fiscal items cannot be deleted; only local payment intents with `tseRequired === false` show **Löschen**.
+
+The queue panel shows tenant TSE-offline usage (`X von 50 Offline-Transaktionen verwendet`) from `GET /api/pos/offline-limit` (`currentOfflineTransactions` / `maxOfflineTransactions`, plus `approachingLimit` / `limitReached`; default cap 50). Local pending intents are merged with the server count. The bar is green 0–79%, yellow (`limitWarning`) 80–99%, and red (`limitExceeded`) at 100%. At the cap, or when payment returns HTTP 409 `LIMIT_EXCEEDED` (`limitKey=maxOfflineTransactions`), POS shows a dismissible modal (*Offline-Limit erreicht. Verkäufe blockiert, bis die Synchronisierung abgeschlossen ist.*) with **Jetzt synchronisieren** and **Abbrechen**. Cancel does not trap the sale UI — the queue remains reachable. POS maps 409 to `payment:errors.limitOfflineQueue`. At ≥80% the activity feed publishes **`OfflineQueueApproachingLimit`** once per crossing. See [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md). Hub: [`docs/OFFLINE_SYSTEM_INDEX.md`](../docs/OFFLINE_SYSTEM_INDEX.md).
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -253,6 +270,47 @@ posCheckoutUiActions.setSelectedPaymentMethodType('cash');
 
 Primary Zustand consumer today: `components/PaymentModal.tsx`.
 
+## Vertical profiles
+
+After an authenticated POS session is restored or created, `VerticalProfileProvider`
+loads `GET /api/pos/vertical-profile`. The effective profile is cached under a
+tenant-scoped key through `secureStorage` (SecureStore on native, localStorage on web),
+so a previously loaded profile remains available offline without crossing tenant
+boundaries. Native builds stay a **single binary**; the profile is not an EAS flavor
+(see [Native build](#native-build)).
+
+Provider and hooks:
+
+```tsx
+import { IfVerticalFeature } from '@/components/IfVerticalFeature';
+import { DynamicField } from '@/components/DynamicField';
+import { useVerticalFeatures } from '@/contexts/VerticalProfileContext';
+
+const { posFeatures, requiredFields, optionalFields, posLayout } =
+  useVerticalFeatures();
+
+<IfVerticalFeature feature="patientRecord">
+  <DynamicField name="petName" entity="customer" />
+</IfVerticalFeature>;
+```
+
+Current web/POS behavior:
+
+- `tables`: table selector and table-order view.
+- `kitchenDisplay`: kitchen tab backed by carts currently loaded on this POS device.
+- `patientRecord`: patient-record tab; customer/pet data is saved through
+  `POST /api/pos/customers`.
+- `appointment`: appointment tab; `posLayout=appointment` opens it by default and
+  bookings are cached per tenant for the web-first phase.
+- `imeiTracking`: profile-driven IMEI/serial-number field in the product area.
+- `routeTracking`: profile-driven route field in the order area.
+- `posLayout=tables`: opens the table-order view by default.
+
+Rezept persistence, appointment server synchronization, staff-directory selection,
+IMEI/route persistence, and a shared multi-device kitchen lifecycle require dedicated
+backend contracts in a follow-up. No native binary regeneration is required for this
+TypeScript-only phase.
+
 ## Camera / QR scanning (expo-camera)
 
 | Item | Detail |
@@ -294,7 +352,7 @@ Device smoke (physical tablet recommended):
 | Android cleartext | `usesCleartextTraffic: true` — required for LAN/`http://` API bases in development and optional on-device API IP (`ApiSettingsModal`) |
 | Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 56 defaults) |
 | iOS | `deploymentTarget` `16.4`; ATS cleartext for localhost/LAN also in `ios.infoPlist.NSAppTransportSecurity` |
-| EAS | `eas.json` production Android APK (`distribution: internal`) |
+| EAS | Single `production` profile in `eas.json` (internal Android APK). One binary for all verticals — see [Native build](#native-build) |
 | Runtime | `runtimeVersion.policy: sdkVersion` in `app.json` |
 
 After changing this plugin: `npx expo prebuild --clean`, then native build (`eas build` or local Gradle/Xcode). JS-only Metro reload does **not** apply cleartext / SDK pins.
@@ -469,7 +527,35 @@ Full guide: `REGKASSE_AI_ONBOARDING.md`.
 - **Production:** JWT `tenant_id` on shared API host.
 - **Development:** `X-Tenant-Id: {slug}` or `?tenant={slug}`.
 
-## Native Android / iOS workflow (CNG)
+## Native build
+
+### Single binary (Option A)
+
+Regkasse POS ships **one** native binary. The store / device identity comes from `app.json` (`name`: Cash Register, Android `package` / iOS `bundleIdentifier`: `com.registrierkasse.cashregister`). After login, `VerticalProfileProvider` loads `GET /api/pos/vertical-profile` and caches it per tenant. Super Admin can reassign gastronomy, vet, hair-salon, and the other catalog profiles (including JSON overrides) without a new EAS binary.
+
+This matches the production decision in [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md): one POS UI / one binary for every mandant; tenant identity is the JWT `tenant_id` claim, not a Host slug or a branded package name.
+
+**Do not** add per-vertical EAS profiles (`gastronomy`, `vet`, `hair-salon`, …), `app.config.ts`, or `EXPO_PUBLIC_VERTICAL`. Those would bake a profile at compile time and cannot express tenant overrides, Super Admin impersonation, or a cashier who serves more than one mandant.
+
+Awaze’s Expo case study ([one codebase, three branded apps](https://expo.dev/customers/awaze)) is the opposite product shape: distinct consumer store listings (cottages.com, Hoseasons, Novasol) switched with `EXPO_PUBLIC_BRAND` + `app.config.ts`. Regkasse cashiers install one POS, then the effective vertical is selected at login.
+
+### EAS profiles
+
+[`eas.json`](eas.json) defines a single build profile. It is an environment / distribution profile, not a vertical flavor:
+
+| Profile | What it builds |
+| ------- | -------------- |
+| `production` | Internal Android APK (`distribution: internal`, `buildType: apk`, local credentials). Same application ID for every vertical. |
+
+```bash
+cd frontend
+npx eas build --platform android --profile production
+# npx eas build --platform ios --profile production
+```
+
+iOS is commented until store credentials are ready; the binary is still the same app identity. Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
+
+### CNG (prebuild)
 
 This project uses **Continuous Native Generation (prebuild-only)**. The `android/` and `ios/` folders are **not** committed — they are generated from `app.json` when needed.
 
@@ -478,6 +564,7 @@ This project uses **Continuous Native Generation (prebuild-only)**. The `android
 | Generate native projects | `cd frontend && npx expo prebuild` |
 | Clean regenerate | `cd frontend && npx expo prebuild --clean` |
 | Run on Android (Expo Go / dev client) | `npm run android` |
+| Production APK (all verticals) | `cd frontend && npx eas build --platform android --profile production` |
 
 After changing `plugins`, `android`, `ios`, splash, or icon entries in `app.json`, run **`npx expo prebuild --clean`** locally before native builds or EAS Build.
 

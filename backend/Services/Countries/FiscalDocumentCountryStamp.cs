@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Countries;
@@ -121,6 +122,57 @@ public static class FiscalDocumentCountryStamp
             .CountAsync(cancellationToken)
             .ConfigureAwait(false);
         return invoices + receipts + payments;
+    }
+
+    /// <summary>
+    /// Signed fiscal documents whose issue-time country uses a different fiscal system than
+    /// <paramref name="target"/>. Those rows would not be valid under the new regime.
+    /// </summary>
+    public static async Task<int> CountIncompatibleSignedDocumentsAsync(
+        AppDbContext db,
+        ICountryProfileRegistry countries,
+        Guid tenantId,
+        CountryProfile target,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(countries);
+        ArgumentNullException.ThrowIfNull(target);
+
+        var invoices = await db.Invoices.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(i => i.TenantId == tenantId && i.TseSignature != "")
+            .Select(i => i.CountryCodeAtIssue)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var receipts = await db.Receipts.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(r => r.TenantId == tenantId && r.SignatureValue != null && r.SignatureValue != "")
+            .Select(r => r.CountryCodeAtIssue)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var payments = await (
+                from p in db.PaymentDetails.AsNoTracking().IgnoreQueryFilters()
+                join cr in db.CashRegisters.AsNoTracking().IgnoreQueryFilters()
+                    on p.CashRegisterId equals cr.Id
+                where cr.TenantId == tenantId && p.TseSignature != ""
+                select p.CountryCodeAtIssue)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return invoices.Concat(receipts).Concat(payments)
+            .Count(code => IssuedUnderDifferentFiscalSystem(countries, code, target));
+    }
+
+    private static bool IssuedUnderDifferentFiscalSystem(
+        ICountryProfileRegistry countries,
+        string? countryCodeAtIssue,
+        CountryProfile target)
+    {
+        if (string.IsNullOrWhiteSpace(countryCodeAtIssue))
+            return false;
+        var issued = countries.GetOrDefault(countryCodeAtIssue);
+        return issued.FiscalSystem != target.FiscalSystem;
     }
 
     public static string? NormalizeCountry(string? countryCode)

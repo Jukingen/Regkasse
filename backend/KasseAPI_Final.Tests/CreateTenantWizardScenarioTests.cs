@@ -72,7 +72,10 @@ public sealed class CreateTenantWizardScenarioTests
         return trial.Object;
     }
 
-    private static TenantOnboardingService CreateOnboarding(AppDbContext db, UserManager<ApplicationUser>? userManager = null)
+    private static TenantOnboardingService CreateOnboarding(
+        AppDbContext db,
+        UserManager<ApplicationUser>? userManager = null,
+        ITseProvisioningService? tse = null)
     {
         var uniqueness = new Mock<IUserUniquenessValidationService>();
         uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
@@ -85,7 +88,7 @@ public sealed class CreateTenantWizardScenarioTests
             uniqueness.Object,
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
-            TseProvisioningTestDoubles.Successful(),
+            tse ?? TseProvisioningTestDoubles.Successful(),
             CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
@@ -166,6 +169,39 @@ public sealed class CreateTenantWizardScenarioTests
         Assert.Equal(at.Currency, company.Currency);
         Assert.Equal(at.DefaultLocale, company.Language);
         Assert.Equal(at.DefaultTimeZone, company.TimeZone);
+    }
+
+    [Fact]
+    public async Task DeCreate_PersistsCountryInCompanySettings_AndDoesNotProvisionTse()
+    {
+        await using var db = CreateDb();
+        var tse = new Mock<ITseProvisioningService>();
+        var onboarding = CreateOnboarding(db, tse: tse.Object);
+
+        var (result, failure) = await onboarding.CreateAsync(
+            new CreateAdminTenantRequest
+            {
+                Name = "Berlin GmbH",
+                Slug = "berlin-gmbh",
+                Email = "info@berlin.de",
+                AdminEmail = "admin@berlin.de",
+                CountryCode = "DE",
+                VatRegime = VatRegime.DE_USTG_STANDARD,
+                GrantTrialLicense = false,
+                ImportDemoMenu = false,
+            },
+            "super-admin-1");
+
+        Assert.Null(failure);
+        Assert.NotNull(result);
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Slug == "berlin-gmbh");
+        var company = await db.CompanySettings.IgnoreQueryFilters()
+            .SingleAsync(s => s.TenantId == tenant.Id);
+        Assert.Equal("DE", company.Country);
+        Assert.Equal(VatRegime.DE_USTG_STANDARD, company.VatRegime);
+        tse.Verify(
+            x => x.ProvisionTseForCashRegisterAsync(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

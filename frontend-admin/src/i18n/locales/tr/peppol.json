@@ -1,0 +1,36 @@
+{
+  "submissions": {
+    "title": "Peppol gönderimleri",
+    "subtitle": "Salt okunur kuyruk. Bu bir Peppol veya EN 16931 uyumluluk iddiası değildir.",
+    "statusFilter": "Durum",
+    "tenantFilter": "Kiracı",
+    "allTenants": "Tüm kiracılar",
+    "allStatuses": "Tüm durumlar",
+    "colStatus": "Durum",
+    "colTenant": "Kiracı",
+    "colInvoice": "Fatura",
+    "colAttempted": "Deneme",
+    "colAcked": "Onay",
+    "colProviderMessageId": "Sağlayıcı mesaj kimliği",
+    "colFailure": "Hata nedeni",
+    "empty": "Gönderim yok",
+    "loadError": "Kuyruk yüklenemedi",
+    "guidanceTitle": "Operatör notu",
+    "status": {
+      "Queued": "Kuyrukta",
+      "Sent": "Gönderildi",
+      "Ack": "Onaylandı",
+      "Failed": "Başarısız"
+    },
+    "failure": {
+      "peppol_reserved": "Peppol Reserved durumda. Canary'yi açmak için operasyonla görüşün.",
+      "peppol_participant_not_configured": "Peppol katılımcı kimliği eksik. Kiracının Peppol katılımcı kaydına legal_entity_id, eidentifier_scheme ve eidentifier_value girin.",
+      "peppol_live_not_allowed": "LIVE HTTP, yükseltmeye kadar kapalı. Bu bir yapılandırma hatasıdır.",
+      "peppol_ack_timeout": "Storecove 24 saat içinde teslim etmedi. 22-b-5'e kadar yeniden deneme manuel bir operasyon işlemidir.",
+      "peppol_ack_error": "Storecove bir hata bildirdi. Sağlayıcı portalını kontrol edin.",
+      "storecove_http_400": "Storecove HTTP hatası. Sağlayıcı günlüklerine bakın.",
+      "storecove_http_5xx": "Storecove HTTP hatası. Sağlayıcı günlüklerine bakın.",
+      "unknown": "Bilinmeyen hata kodu. Operasyonla görüşün."
+    }
+  }
+}

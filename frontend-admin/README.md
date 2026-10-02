@@ -747,7 +747,7 @@ Mandanten-Admin hub (`license.manage`). Super Admin uses the same pages with `sy
 | Mein Konto | `/tenant/portal` | License snapshot, invoices count, onboarding, links |
 | License | `/tenant/license` | Activate / extend unified REGK key (`POST /api/license/activate`) |
 | Invoices | `/tenant/invoices` | Tenant billing invoices + PDF download |
-| Profile | `/tenant/profile` | Company / account |
+| Profile | `/tenant/profile` | Own-tenant country card, read-only (`GET /api/company/settings`). User account stays on `/profile`. |
 | Support | `/tenant/support` | Own tickets: `GET/POST /api/admin/support/tickets` |
 
 Logic helpers: `src/features/tenant-portal/utils/tenantPortalDisplay.ts`. Trial banner: `src/features/trial/components/TrialStatusBanner.tsx` (layout-wide).

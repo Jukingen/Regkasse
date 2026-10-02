@@ -1,5 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries.EInvoicing;
 
 namespace KasseAPI_Final.Services.Countries;
 
@@ -11,6 +12,12 @@ namespace KasseAPI_Final.Services.Countries;
 public interface ICountryStrategyContext
 {
     Task<CountryStrategyBinding> LoadAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the UBL builder for an <c>EU_DEFAULT</c> binding.
+    /// Any other profile throws <see cref="EInvoicing.EInvoicingNotSupportedForCountryException"/>.
+    /// </summary>
+    IEn16931XmlBuilder SelectEn16931Builder(CountryStrategyBinding binding);
 }
 
 /// <summary>

@@ -70,7 +70,7 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
         if (res.newQueuedRunCreated) {
           message.success(t('backupDr.messages.restoreDrillEnqueued'));
         } else if (res.existingRunReturned) {
-          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.NUMBER_1) {
+          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.ExistingByIdempotencyKey) {
             message.info(t('backupDr.messages.restoreDrillIdempotent'));
           } else {
             message.info(t('backupDr.messages.restoreDrillExistingActive'));

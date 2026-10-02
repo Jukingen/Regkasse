@@ -5,6 +5,20 @@ import {
   WALK_IN_CUSTOMER_ID_FALLBACK,
 } from '../../constants/walkInCustomer';
 
+export interface CustomerPetData {
+  petName?: string | null;
+  petSpecies?: string | null;
+  petBreed?: string | null;
+  petBirthDate?: string | null;
+}
+
+export interface CustomerAddressData {
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  notes?: string | null;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -19,6 +33,8 @@ export interface Customer {
   totalSpent: number;
   visitCount: number;
   notes?: string;
+  petData?: CustomerPetData | null;
+  addressData?: CustomerAddressData | null;
   isVip: boolean;
 }
 
@@ -30,6 +46,8 @@ export interface CreateCustomerRequest {
   taxNumber?: string;
   category?: string;
   notes?: string;
+  petData?: CustomerPetData | null;
+  addressData?: CustomerAddressData | null;
 }
 
 /** Assignment-level summary only. Not eligibility or payment applicability (PaymentService applies additional rules). */
@@ -74,6 +92,11 @@ export interface BenefitEligibilityPreviewItemRequest {
 export const GUEST_CUSTOMER_ID = WALK_IN_CUSTOMER_ID_FALLBACK;
 export { isWalkInCustomerId, resolveWalkInCustomerId, WALK_IN_CUSTOMER_ID_FALLBACK };
 
+function optionalString(value: unknown): string | null {
+  const normalized = value == null ? '' : String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
 class CustomerService {
   private readonly baseUrl = '/Customer';
 
@@ -110,6 +133,11 @@ class CustomerService {
       const raw = (response as { data?: Record<string, unknown> })?.data ?? response;
       if (!raw || typeof raw !== 'object') return null;
       const row = raw as Record<string, unknown>;
+      const rawPetData = (row.petData ?? row.PetData) as Record<string, unknown> | null | undefined;
+      const rawAddressData = (row.addressData ?? row.AddressData) as
+        | Record<string, unknown>
+        | null
+        | undefined;
       return {
         id: String(row.id ?? row.Id ?? ''),
         name: String(row.name ?? row.Name ?? ''),
@@ -117,12 +145,30 @@ class CustomerService {
         email: String(row.email ?? row.Email ?? ''),
         phone: String(row.phone ?? row.Phone ?? ''),
         loyaltyPoints: Number(row.loyaltyPoints ?? row.LoyaltyPoints ?? 0),
-        address: '',
+        address: String(row.address ?? row.Address ?? ''),
         taxNumber: '',
         category: 'Regular',
         discountPercentage: 0,
         totalSpent: 0,
         visitCount: 0,
+        petData: rawPetData
+          ? {
+              petName: optionalString(rawPetData.petName ?? rawPetData.PetName),
+              petSpecies: optionalString(rawPetData.petSpecies ?? rawPetData.PetSpecies),
+              petBreed: optionalString(rawPetData.petBreed ?? rawPetData.PetBreed),
+              petBirthDate: optionalString(
+                rawPetData.petBirthDate ?? rawPetData.PetBirthDate
+              ),
+            }
+          : null,
+        addressData: rawAddressData
+          ? {
+              street: optionalString(rawAddressData.street ?? rawAddressData.Street),
+              postalCode: optionalString(rawAddressData.postalCode ?? rawAddressData.PostalCode),
+              city: optionalString(rawAddressData.city ?? rawAddressData.City),
+              notes: optionalString(rawAddressData.notes ?? rawAddressData.Notes),
+            }
+          : null,
         isVip: false,
       };
     } catch (e: unknown) {
@@ -154,8 +200,15 @@ class CustomerService {
 
   // Create new customer
   async create(data: CreateCustomerRequest): Promise<Customer> {
-    const response = await apiClient.post<Customer>(`${this.baseUrl}`, data);
+    const response = await apiClient.post<Customer>('/pos/customers', data);
     return response;
+  }
+
+  async updateAddress(
+    customerId: string,
+    data: { address?: string; addressData?: CustomerAddressData | null }
+  ): Promise<Customer> {
+    return await apiClient.patch<Customer>(`/pos/customers/${encodeURIComponent(customerId)}`, data);
   }
 
   /**

@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function TenantProfileRedirectPage() {
-  redirect('/profile');
+import { TenantCountryProfilePage } from '@/features/tenant-portal/components/TenantCountryProfilePage';
+
+export default function TenantProfilePage() {
+  return <TenantCountryProfilePage />;
 }

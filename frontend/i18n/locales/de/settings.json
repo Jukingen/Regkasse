@@ -365,6 +365,18 @@
     "copiedMessage": "{{label}} wurde in die Zwischenablage kopiert.",
     "offlineQueueIdLabel": "Offline-Queue-ID",
     "supportHandoffLabel": "Support-Handoff",
-    "shareReplayTitle": "Support: Replay-Batch"
+    "shareReplayTitle": "Support: Replay-Batch",
+    "retryAll": "Alle erneut versuchen",
+    "deleteItem": "Löschen",
+    "deleteConfirmTitle": "Eintrag löschen?",
+    "deleteConfirmMessage": "Nur nicht-fiskalische lokale Einträge können gelöscht werden.",
+    "deleteFiscalBlockedTitle": "Löschen nicht möglich",
+    "deleteFiscalBlocked": "Fiskalische Offline-Einträge können nicht gelöscht werden.",
+    "lastSuccessfulSync": "Letzte erfolgreiche Sync: {{time}}",
+    "lastSuccessfulSyncNever": "noch keine",
+    "nextRetry": "Nächster Auto-Versuch in {{time}}",
+    "nextRetryNone": "Kein Auto-Versuch geplant.",
+    "sourceOrder": "Bestell-Snapshot",
+    "sourceTransaction": "Zahlungs-Intent"
   }
 }

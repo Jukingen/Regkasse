@@ -36,7 +36,9 @@ export type NotificationConfigEnabledEvents = {
   DepExportOverdue?: boolean;
   DepExportValidationFailed?: boolean;
   DigitalServiceRequested?: boolean;
+  EinvoiceAckReceived?: boolean;
   EinvoiceSubmissionFailed?: boolean;
+  EinvoiceSubmissionRetry?: boolean;
   EinvoiceSubmitted?: boolean;
   EinvoiceValidated?: boolean;
   FinanzOnlineSubmissionFailed?: boolean;
@@ -57,6 +59,7 @@ export type NotificationConfigEnabledEvents = {
   MonatsbelegMissingReminder?: boolean;
   OfflineOrdersBacklogGrowing?: boolean;
   OfflineOrdersExpiringSoon?: boolean;
+  OfflineQueueApproachingLimit?: boolean;
   OfflineQueueGrowing?: boolean;
   OfflineSyncStalled?: boolean;
   OnlineOrderConfirmed?: boolean;

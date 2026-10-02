@@ -24,5 +24,5 @@ export function isScheduledBackupActor(run: BackupRunResponseDto | BackupRunWith
   if (!run) return false;
   const trigger = run.triggerSource;
   const userId = run.requestedByUserId?.trim();
-  return trigger === BackupTriggerSource.NUMBER_1 || !userId;
+  return trigger === BackupTriggerSource.Scheduled || !userId;
 }

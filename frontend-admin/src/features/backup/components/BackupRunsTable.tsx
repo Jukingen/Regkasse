@@ -382,14 +382,14 @@ export function BackupRunsTable({
         key: 'status',
         render: (status: number | undefined) => <BackupStatusBadge status={status} />,
         filters: [
-          { text: t('backupDr.runsTable.statusLabels.succeeded'), value: BackupRunStatus.NUMBER_3 },
-          { text: t('backupDr.runsTable.statusLabels.failed'), value: BackupRunStatus.NUMBER_4 },
+          { text: t('backupDr.runsTable.statusLabels.succeeded'), value: BackupRunStatus.Succeeded },
+          { text: t('backupDr.runsTable.statusLabels.failed'), value: BackupRunStatus.Failed },
           {
             text: t('backupDr.runsTable.statusLabels.verificationFailed'),
-            value: BackupRunStatus.NUMBER_5,
+            value: BackupRunStatus.VerificationFailed,
           },
-          { text: t('backupDr.runsTable.statusLabels.running'), value: BackupRunStatus.NUMBER_1 },
-          { text: t('backupDr.runsTable.statusLabels.queued'), value: BackupRunStatus.NUMBER_0 },
+          { text: t('backupDr.runsTable.statusLabels.running'), value: BackupRunStatus.Running },
+          { text: t('backupDr.runsTable.statusLabels.queued'), value: BackupRunStatus.Queued },
         ],
         onFilter: (value, record) => record.status === value,
       },
@@ -846,8 +846,8 @@ export function BackupRunsTable({
             setPage(1);
           }}
           options={[
-            { value: BackupStrategyKind.NUMBER_0, label: t('backupDr.runsTable.strategyTenant') },
-            { value: BackupStrategyKind.NUMBER_1, label: t('backupDr.runsTable.strategySystem') },
+            { value: BackupStrategyKind.Tenant, label: t('backupDr.runsTable.strategyTenant') },
+            { value: BackupStrategyKind.System, label: t('backupDr.runsTable.strategySystem') },
           ]}
         />
         <Typography.Text type="secondary">{t('backupDr.runsTable.createdBy')}</Typography.Text>

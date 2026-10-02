@@ -26,4 +26,16 @@ public interface IKassenSicherheitHttpClient
     Task<KassenSicherheitExportResult> ExportDsfinvkAsync(
         KassenSicherheitExportRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<KassenSicherheitSignResult> SignAsync(
+        KassenSicherheitSignRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<KassenSicherheitStatusResult> GetStatusAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    Task<KassenSicherheitCertificateChainResult> GetCertificateChainAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
 }

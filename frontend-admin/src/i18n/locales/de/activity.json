@@ -81,5 +81,42 @@
       "view": "Details anzeigen",
       "undo": "Rückgängig"
     }
+  },
+  "events": {
+    "unknown": {
+      "title": "Unbekanntes Ereignis"
+    },
+    "TenantCountryChanged": {
+      "title": "Mandantenland geändert",
+      "description": "Das Betriebsland oder die Steuerregel des Mandanten wurde geändert."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Historische Belege unverändert",
+      "description": "Bestehende Rechnungen und Belege behalten das Land zum Ausstellungszeitpunkt."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR-Rechnung erstellt",
+      "description": "Die QR-Rechnung-Nutzlast wurde erzeugt."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR-Rechnung-PDF erzeugt",
+      "description": "Das QR-Rechnung-PDF wurde erzeugt."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol-Teilnehmer registriert",
+      "description": "Eine Peppol-Teilnehmerkennung wurde für den Mandanten gespeichert."
+    },
+    "EinvoiceValidated": {
+      "title": "E-Rechnung geprüft",
+      "description": "Die E-Rechnung hat die Schematron-Prüfung bestanden."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-Rechnung übermittelt",
+      "description": "Die E-Rechnung wurde an den Access Point übergeben."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-Rechnung abgelehnt",
+      "description": "Die E-Rechnung wurde bei der Prüfung oder Übermittlung abgelehnt."
+    }
   }
 }

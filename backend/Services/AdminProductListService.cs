@@ -102,6 +102,10 @@ public sealed class AdminProductListService : IAdminProductListService
                 CreatedAt = p.CreatedAt,
                 Barcode = p.Barcode,
                 Unit = p.Unit,
+                DurationMinutes = p.DurationMinutes,
+                StaffId = p.StaffId,
+                ImeiTracked = p.ImeiTracked,
+                IsTicket = p.IsTicket,
                 Cost = p.Cost,
                 ImageUrl = p.ImageUrl,
             })
@@ -183,6 +187,10 @@ public static class ProductListDtoMapper
         CreatedAt = item.CreatedAt,
         Barcode = item.Barcode,
         Unit = item.Unit,
+        DurationMinutes = item.DurationMinutes,
+        StaffId = item.StaffId,
+        ImeiTracked = item.ImeiTracked,
+        IsTicket = item.IsTicket,
         Cost = item.Cost,
         ImageUrl = item.ImageUrl,
     };

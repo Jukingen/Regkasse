@@ -9,7 +9,7 @@ import React from 'react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
 import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
 
 vi.mock('@/lib/axios', () => ({
@@ -71,7 +71,7 @@ const t = (k: string, o?: Record<string, string | number>) => (o ? `${k} ${JSON.
 
 const baseArtifact = (over: Partial<BackupArtifactResponseDto>): BackupArtifactResponseDto => ({
   id: 'art-1',
-  artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+  artifactType: BackupArtifactType.LogicalDump,
   isFilePresentForDownload: true,
   byteSize: 48,
   ...over,

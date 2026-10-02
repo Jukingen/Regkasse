@@ -8,11 +8,23 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+      - 'backend/Models/Countries/**'
+      - 'backend/Services/Countries/**'
+      - 'backend/Services/Countries/KassenSicherheit/**'
+      - 'backend/Services/Countries/QrRechnung/**'
+      - 'backend/Services/Countries/EInvoicing/**'
+      - 'backend/Data/AppDbContext.cs'
       - '.github/workflows/backend-unit-tests.yml'
   push:
     branches: [main, master]
     paths:
       - 'backend/**'
+      - 'backend/Models/Countries/**'
+      - 'backend/Services/Countries/**'
+      - 'backend/Services/Countries/KassenSicherheit/**'
+      - 'backend/Services/Countries/QrRechnung/**'
+      - 'backend/Services/Countries/EInvoicing/**'
+      - 'backend/Data/AppDbContext.cs'
       - '.github/workflows/backend-unit-tests.yml'
   workflow_dispatch:
 
@@ -57,6 +69,25 @@ jobs:
       - name: Build
         working-directory: backend
         run: dotnet build KasseAPI_Final.sln --configuration Release --no-restore
+
+      # Country-layer bypass gate. The job trigger is backend/**, so this step runs on
+      # every backend PR, including:
+      #   backend/Models/Countries/**
+      #   backend/Services/Countries/**
+      #   backend/Services/Countries/KassenSicherheit/**
+      #   backend/Services/Countries/QrRechnung/**
+      #   backend/Services/Countries/EInvoicing/**
+      #   backend/Data/AppDbContext.cs
+      # backend/Fiscal/** is included by backend/** (router tests).
+      # CountryBaseline is not in this filter. It runs in "Test with coverage".
+      - name: Country layer bypass gate
+        working-directory: backend
+        run: >-
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --configuration Release
+          --no-build
+          --filter "FullyQualifiedName~CountryLayerBypassGateTests|FullyQualifiedName~GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames|FullyQualifiedName~AuditEventType_And_ActivityEventType_Are_In_OpenApi|FullyQualifiedName~CountryLayerNewPackagesGateTests|FullyQualifiedName~FeatureFlagNamesTests|FullyQualifiedName~SwitzerlandTaxStrategyTests|FullyQualifiedName~SwitzerlandInvoiceStrategyTests|FullyQualifiedName~FiscalSignatureRouterAtDeTests|FullyQualifiedName~FiscalSignatureRouterChTests|FullyQualifiedName~FiscalSignatureRouterEuTests|FullyQualifiedName~ChMwstEffectiveRatesTests|FullyQualifiedName~En16931XmlBuilderTests|FullyQualifiedName~QrRechnungBuilderTests|FullyQualifiedName~GermanyTaxStrategyTests|FullyQualifiedName~GermanyInvoiceStrategyTests|FullyQualifiedName~KassenSicherheitHostOptionsValidatorTests|FullyQualifiedName~DeTseSignaturePersistenceTests|FullyQualifiedName~PeppolReservedFlagGuardTests|FullyQualifiedName~ChQrKnownGapsTests|FullyQualifiedName~PeppolReservedExitTests|FullyQualifiedName~ChQrGapAcceptanceTests|FullyQualifiedName~PeppolParticipantSchemaTests|FullyQualifiedName~PeppolSubmissionTests|FullyQualifiedName~PeppolCanarySubmissionTests|FullyQualifiedName~EnumVarnamesSchemaFilterTests|FullyQualifiedName~EnumVarnamesOpenApiDocumentTests|FullyQualifiedName~SoftKassenSicherheitServiceTests|FullyQualifiedName~ActivityDtoTypeWireFormatTests|FullyQualifiedName~OssVatRateIsolationTests|FullyQualifiedName~StorecovePeppolAccessPointClientTests|FullyQualifiedName~PeppolStorecoveOptionsValidatorTests|FullyQualifiedName~PeppolAckPollingServiceTests|FullyQualifiedName~PeppolCanaryEndToEndTests|FullyQualifiedName~PeppolAckRetryTests|FullyQualifiedName~MigrationAttributeTests"
+          --verbosity minimal
 
       - name: Test with coverage
         working-directory: backend

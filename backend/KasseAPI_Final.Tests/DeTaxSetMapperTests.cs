@@ -52,8 +52,7 @@ public sealed class DeTaxSetMapperTests
             DeTaxSetMapper.MapFromLinePercents([(percent, 10m)]));
 
         Assert.Contains(percent.ToString(Invariant), ex.Message, StringComparison.Ordinal);
-        Assert.Contains("13", ex.Message, StringComparison.Ordinal);
-        Assert.Contains("4.9", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("CountryTaxType", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

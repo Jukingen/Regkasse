@@ -177,14 +177,38 @@ public sealed class CountryFiscalLockEvaluatorTests
     }
 
     [Fact]
-    public void Validate_Production_FakeProvider_Fails()
+    public void Validate_Production_QrBankSubmitEnabled_FailsStartup()
     {
-        var r = CreateValidator(
-            Environments.Production,
-            Config(("KassenSicherheit:Provider", "fake")))
+        var result = CreateValidator(
+                Environments.Production,
+                Config(("QrRechnung:BankSubmit:Enabled", "true")))
             .Validate(null, new CountryFiscalLockOptions());
-        Assert.True(r.Failed);
-        Assert.Contains("KassenSicherheit:Provider", r.FailureMessage, StringComparison.Ordinal);
+
+        Assert.True(result.Failed);
+        Assert.Contains(CountryFiscalLockEvaluator.ReasonQrBankSubmit, result.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_Production_QrBankSubmitDisabled_Succeeds()
+    {
+        var result = CreateValidator(
+                Environments.Production,
+                Config(("QrRechnung:BankSubmit:Enabled", "false")))
+            .Validate(null, new CountryFiscalLockOptions());
+
+        Assert.False(result.Failed);
+    }
+
+    [Theory]
+    [InlineData("KassenSicherheit:Provider", "fake")]
+    [InlineData("KassenSicherheit:AllowSimulatedTse", "true")]
+    public void Validate_Production_FakeOrSimulatedTse_FailsStartup(string key, string value)
+    {
+        var result = CreateValidator(Environments.Production, Config((key, value)))
+            .Validate(null, new CountryFiscalLockOptions());
+
+        Assert.True(result.Failed);
+        Assert.False(string.IsNullOrWhiteSpace(result.FailureMessage));
     }
 }
 

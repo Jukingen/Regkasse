@@ -365,6 +365,18 @@
     "copiedMessage": "{{label}} copied to clipboard.",
     "offlineQueueIdLabel": "Offline queue ID",
     "supportHandoffLabel": "Support handoff",
-    "shareReplayTitle": "Support: replay batch"
+    "shareReplayTitle": "Support: replay batch",
+    "retryAll": "Retry all",
+    "deleteItem": "Delete",
+    "deleteConfirmTitle": "Delete entry?",
+    "deleteConfirmMessage": "Only non-fiscal local entries can be deleted.",
+    "deleteFiscalBlockedTitle": "Delete not allowed",
+    "deleteFiscalBlocked": "Fiscal offline entries cannot be deleted.",
+    "lastSuccessfulSync": "Last successful sync: {{time}}",
+    "lastSuccessfulSyncNever": "none yet",
+    "nextRetry": "Next auto-retry in {{time}}",
+    "nextRetryNone": "No auto-retry scheduled.",
+    "sourceOrder": "Order snapshot",
+    "sourceTransaction": "Payment intent"
   }
 }

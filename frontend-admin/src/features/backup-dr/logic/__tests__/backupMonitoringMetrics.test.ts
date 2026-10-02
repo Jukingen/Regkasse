@@ -20,20 +20,20 @@ function run(over: Partial<BackupRunResponseDto> & { status: number }): BackupRu
 
 describe('backupMonitoringMetrics', () => {
   it('maps succeeded backup to success unless simulated', () => {
-    expect(mapBackupRunToMetricStatus(BackupRunStatus.NUMBER_3, { simulated: true })).toBe(
+    expect(mapBackupRunToMetricStatus(BackupRunStatus.Succeeded, { simulated: true })).toBe(
       'warning'
     );
-    expect(mapBackupRunToMetricStatus(BackupRunStatus.NUMBER_3)).toBe('success');
-    expect(mapBackupRunToMetricStatus(BackupRunStatus.NUMBER_4)).toBe('error');
+    expect(mapBackupRunToMetricStatus(BackupRunStatus.Succeeded)).toBe('success');
+    expect(mapBackupRunToMetricStatus(BackupRunStatus.Failed)).toBe('error');
   });
 
   it('computes 30d success rate from terminal runs', () => {
     const now = Date.now();
     const iso = new Date(now - 2 * 86_400_000).toISOString();
     const runs = [
-      run({ status: BackupRunStatus.NUMBER_3, completedAt: iso }),
-      run({ status: BackupRunStatus.NUMBER_4, completedAt: iso }),
-      run({ status: BackupRunStatus.NUMBER_1, completedAt: iso }),
+      run({ status: BackupRunStatus.Succeeded, completedAt: iso }),
+      run({ status: BackupRunStatus.Failed, completedAt: iso }),
+      run({ status: BackupRunStatus.Running, completedAt: iso }),
     ];
     const w = computeSuccessRateInWindow(runs, now - 30 * 86_400_000, now + 1000);
     expect(w.terminalCount).toBe(2);
@@ -46,14 +46,14 @@ describe('backupMonitoringMetrics', () => {
     const started = new Date(now - 2 * 86_400_000 - 60_000).toISOString();
     const runs = [
       run({
-        status: BackupRunStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         completedAt: iso,
         startedAt: started,
         requestedAt: started,
       }),
-      run({ status: BackupRunStatus.NUMBER_5, completedAt: iso }),
+      run({ status: BackupRunStatus.VerificationFailed, completedAt: iso }),
       run({
-        status: BackupRunStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         completedAt: new Date(now - 40 * 86_400_000).toISOString(),
       }),
     ];
@@ -71,10 +71,10 @@ describe('backupMonitoringMetrics', () => {
     const recentIso = new Date(now - 5 * 86_400_000).toISOString();
     const oldIso = new Date(now - 40 * 86_400_000).toISOString();
     const runs = [
-      run({ status: BackupRunStatus.NUMBER_3, completedAt: recentIso }),
-      run({ status: BackupRunStatus.NUMBER_3, completedAt: recentIso }),
-      run({ status: BackupRunStatus.NUMBER_4, completedAt: oldIso }),
-      run({ status: BackupRunStatus.NUMBER_4, completedAt: oldIso }),
+      run({ status: BackupRunStatus.Succeeded, completedAt: recentIso }),
+      run({ status: BackupRunStatus.Succeeded, completedAt: recentIso }),
+      run({ status: BackupRunStatus.Failed, completedAt: oldIso }),
+      run({ status: BackupRunStatus.Failed, completedAt: oldIso }),
     ];
     const trend = computeSuccessRateTrendPercent(runs, now);
     expect(trend).toBe(100);

@@ -18,3 +18,24 @@ public sealed class FeatureFlagLockedException : InvalidOperationException
 
     public string ErrorCode => Code;
 }
+
+/// <summary>
+/// Raised when an operator tries to enable Austrian RKSV/TSE on a non-AT mandant.
+/// </summary>
+public sealed class FeatureFlagCountryRejectedException : InvalidOperationException
+{
+    public const string Code = "FEATURE_FLAG_COUNTRY_REJECTED";
+
+    public FeatureFlagCountryRejectedException(string flagName, string countryCode)
+        : base($"Feature flag '{flagName}' cannot be enabled for country '{countryCode}'.")
+    {
+        FlagName = flagName;
+        CountryCode = countryCode;
+    }
+
+    public string FlagName { get; }
+
+    public string CountryCode { get; }
+
+    public string ErrorCode => Code;
+}

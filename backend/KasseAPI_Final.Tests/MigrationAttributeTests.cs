@@ -47,8 +47,20 @@ public sealed class MigrationAttributeTests
             }
 
             var designer = File.ReadAllText(designerPath);
-            if (!MigrationAttributePattern.IsMatch(designer))
-                offenders.Add($"{name}: Designer lacks [Migration]");
+            var inFile = MigrationAttributePattern.Match(text);
+            var inDesigner = MigrationAttributePattern.Match(designer);
+            // [Migration] lives on exactly one partial. EF discovers the class either way.
+            // A second copy on the other partial is CS0579.
+            if (inFile.Success && inDesigner.Success)
+                offenders.Add($"{name}: [Migration] is on both partials");
+            else if (!inFile.Success && !inDesigner.Success)
+                offenders.Add($"{name}: missing [Migration]");
+
+            var id = inDesigner.Success ? inDesigner : inFile;
+            var expectedId = Path.GetFileNameWithoutExtension(path);
+            if (!id.Success || !string.Equals(id.Groups["id"].Value, expectedId, StringComparison.Ordinal))
+                offenders.Add($"{name}: [Migration] id is not \"{expectedId}\"");
+
             if (!designer.Contains("[DbContext(typeof(AppDbContext))]", StringComparison.Ordinal))
                 offenders.Add($"{name}: Designer lacks [DbContext(typeof(AppDbContext))]");
             if (!designer.Contains("BuildTargetModel", StringComparison.Ordinal))
@@ -57,7 +69,7 @@ public sealed class MigrationAttributeTests
 
         Assert.True(
             offenders.Count == 0,
-            "Every migration needs a Designer with [Migration], [DbContext(typeof(AppDbContext))], and BuildTargetModel:"
+            "Every migration needs exactly one [Migration(filename)] plus a Designer with [DbContext(typeof(AppDbContext))] and BuildTargetModel:"
             + Environment.NewLine
             + string.Join(Environment.NewLine, offenders.OrderBy(line => line, StringComparer.Ordinal)));
     }

@@ -17,6 +17,8 @@ public static class CountryFiscalLockEvaluator
         "Mwst:UseTestEndpoint must be false in Production/Staging.";
     public const string ReasonQrDryRun =
         "QrRechnung:BuilderMode must not be dryRun in Production/Staging.";
+    public const string ReasonQrBankSubmit =
+        "QrRechnung:BankSubmit:Enabled must be false in Production/Staging.";
 
     public const string SentinelNotConfigured = "not-configured";
     public const string ForbiddenProviderFake = "fake";
@@ -83,6 +85,9 @@ public static class CountryFiscalLockEvaluator
             reasons.Add(ReasonQrDryRun);
         }
 
+        if (IsExplicitTrue(TrimmedOrNull(configuration["QrRechnung:BankSubmit:Enabled"])))
+            reasons.Add(ReasonQrBankSubmit);
+
         return reasons;
     }
 
@@ -125,11 +130,12 @@ public sealed class CountryFiscalLockOptionsValidator : IValidateOptions<Country
 
         _logger.LogCritical(
             RejectedEventId,
-            "Country fiscal lock rejected KassenSicherheit:Provider={Provider} AllowSimulatedTse={AllowSimulated} Mwst:UseTestEndpoint={UseTestEndpoint} QrRechnung:BuilderMode={BuilderMode} Reasons={Reasons}",
+            "Country fiscal lock rejected KassenSicherheit:Provider={Provider} AllowSimulatedTse={AllowSimulated} Mwst:UseTestEndpoint={UseTestEndpoint} QrRechnung:BuilderMode={BuilderMode} QrRechnung:BankSubmit:Enabled={BankSubmit} Reasons={Reasons}",
             _configuration["KassenSicherheit:Provider"] ?? "(unset)",
             _configuration["KassenSicherheit:AllowSimulatedTse"] ?? "(unset)",
             _configuration["Mwst:UseTestEndpoint"] ?? "(unset)",
             _configuration["QrRechnung:BuilderMode"] ?? "(unset)",
+            _configuration["QrRechnung:BankSubmit:Enabled"] ?? "(unset)",
             string.Join("; ", result.Reasons));
 
         return ValidateOptionsResult.Fail(string.Join(" ", result.Reasons));

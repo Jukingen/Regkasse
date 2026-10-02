@@ -75,14 +75,37 @@ public sealed class FiskalyDeKassenSicherheitServiceTests
         http.Verify(c => c.StartTransactionAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task SignAsync_FiskalyDe_DoesNotCallHttpClient()
+    [Theory]
+    [InlineData("not-configured")]
+    [InlineData("fake")]
+    [InlineData("epson-usb")]
+    [InlineData("")]
+    public async Task Provider_OtherThanFiskalyDe_ThrowsNotConfigured(string provider)
     {
-        var sut = Sut(flagOn: true, "fiskaly-de", out var http);
-        var ex = await Assert.ThrowsAsync<NotImplementedException>(() =>
+        var sut = Sut(flagOn: true, provider, out var http);
+        var ex = await Assert.ThrowsAsync<KassenSicherheitNotConfiguredException>(() =>
             sut.SignAsync(new KassenSicherheitSignRequest(Guid.NewGuid(), "payload")));
 
-        Assert.Contains("StartTransactionAsync", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(KassenSicherheitNotConfiguredException.DefaultMessage, ex.Message);
+        Assert.DoesNotContain("AT", ex.Message, StringComparison.Ordinal);
+        http.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void Provider_FiskalyDe_SelectsHttpService()
+    {
+        var sut = Sut(flagOn: true, FiskalyDeKassenSicherheitHttpClient.ProviderId, out _);
+        Assert.IsType<FiskalyDeKassenSicherheitService>(sut);
+    }
+
+    [Fact]
+    public async Task SignAsync_FlagOff_ThrowsFeatureDisabled()
+    {
+        var sut = Sut(flagOn: false, "fiskaly-de", out var http);
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() =>
+            sut.SignAsync(new KassenSicherheitSignRequest(Guid.NewGuid(), "payload")));
+
+        Assert.Equal(FeatureFlagNames.FiscalKassenSicherheitDe, ex.FeatureName);
         http.VerifyNoOtherCalls();
     }
 

@@ -2,8 +2,10 @@ using System.Net;
 using System.Text;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.Countries.KassenSicherheit;
+using KasseAPI_Final.Services.FeatureFlags;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -151,6 +153,88 @@ public sealed class FiskalyDeKassenSicherheitHttpClientTests
             new CollectingLogger());
         var auth = await client.AuthenticateAsync();
         Assert.False(string.IsNullOrWhiteSpace(auth.AccessToken));
+    }
+
+    [Fact]
+    public async Task SignAsync_PutsTransactionPath_AndParsesDomainResult()
+    {
+        var tenant = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var handler = new RecordingHandler(request =>
+        {
+            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            if (path.EndsWith("/auth", StringComparison.Ordinal))
+                return Json(HttpStatusCode.OK, """{"access_token":"tok-sign","access_token_expires_in":120}""");
+            return Json(HttpStatusCode.OK, """{"state":"FINISHED","signature":{"value":"sig-de"}}""");
+        });
+        var sut = ServiceOverHttp(handler);
+
+        var result = await sut.SignAsync(new KassenSicherheitSignRequest(tenant, "payload", "KA-01"));
+
+        Assert.True(result.Signed);
+        Assert.Equal("sig-de", result.Signature);
+        Assert.Equal(FiskalyDeKassenSicherheitHttpClient.ProviderId, result.Provider);
+        var sign = Assert.Single(handler.Requests, r => r.Uri.AbsolutePath.Contains("/tx/", StringComparison.Ordinal));
+        Assert.Equal(HttpMethod.Put, sign.Method);
+        Assert.EndsWith("/tss/" + tenant.ToString("D") + "/tx/KA-01", sign.Uri.AbsolutePath, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCertificateChainAsync_ReturnsLeafThenIssuer()
+    {
+        var tenant = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var handler = new RecordingHandler(request =>
+        {
+            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            if (path.EndsWith("/auth", StringComparison.Ordinal))
+                return Json(HttpStatusCode.OK, """{"access_token":"tok-cert","access_token_expires_in":120}""");
+            return Json(HttpStatusCode.OK, """{"state":"INITIALIZED","certificate":"LEAF","certificate_chain":["ISSUER"]}""");
+        });
+        var sut = ServiceOverHttp(handler);
+
+        var chain = await sut.GetCertificateChainAsync(tenant);
+
+        Assert.Equal(FiskalyDeKassenSicherheitHttpClient.ProviderId, chain.Provider);
+        Assert.Equal(["LEAF", "ISSUER"], chain.Certificates);
+        Assert.Contains(
+            handler.Requests,
+            r => r.Method == HttpMethod.Get && r.Uri.AbsolutePath.EndsWith("/tss/" + tenant.ToString("D"), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SignAsync_HttpStatusFailure_IsDomainException()
+    {
+        var handler = new RecordingHandler(_ => Json(HttpStatusCode.BadGateway, """{"code":"E_TSS"}"""));
+        var sut = ServiceOverHttp(handler);
+
+        var ex = await Assert.ThrowsAsync<KassenSicherheitHttpException>(() =>
+            sut.SignAsync(new KassenSicherheitSignRequest(Guid.NewGuid(), "payload")));
+
+        Assert.Equal(502, ex.StatusCode);
+        Assert.Equal("E_TSS", ex.ProviderErrorCode);
+        Assert.IsNotType<HttpRequestException>(ex);
+    }
+
+    [Fact]
+    public async Task SignAsync_TransportFailure_IsDomainException()
+    {
+        var handler = new RecordingHandler(_ => throw new HttpRequestException("connection refused"));
+        var sut = ServiceOverHttp(handler);
+
+        var ex = await Assert.ThrowsAsync<KassenSicherheitHttpException>(() =>
+            sut.SignAsync(new KassenSicherheitSignRequest(Guid.NewGuid(), "payload")));
+
+        Assert.IsNotType<HttpRequestException>(ex);
+    }
+
+    private static FiskalyDeKassenSicherheitService ServiceOverHttp(HttpMessageHandler handler)
+    {
+        var flags = new Mock<IFeatureFlagService>();
+        flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
+            .Returns(true);
+        var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+        var options = Options();
+        var client = new FiskalyDeKassenSicherheitHttpClient(http, options, new CollectingLogger());
+        return new FiskalyDeKassenSicherheitService(flags.Object, options, client);
     }
 
     private static IOptions<KassenSicherheitOptions> Options() =>

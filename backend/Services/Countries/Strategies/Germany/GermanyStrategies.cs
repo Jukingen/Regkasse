@@ -1,3 +1,4 @@
+using System.Globalization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -104,12 +105,35 @@ public sealed class GermanyTaxStrategy : ITaxStrategy
     }
 
     /// <summary>
-    /// AT <see cref="RksvTaxSetAmounts"/> projection — not used for DE.
-    /// Use <see cref="ProjectDeFiscalTaxSets"/> for SIGN DE <c>standard_v1.receipt</c> buckets.
+    /// Projects persisted <c>tax_details</c> using DE rates from <see cref="ICountryTaxTypeRegistry"/>.
+    /// The RKSV bucket shape is the interface contract; percents are not written in this method.
     /// </summary>
-    public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount) =>
-        throw new NotImplementedException(
-            $"AT-only; use ProjectDeFiscalTaxSets. See {CountryStrategyDocs.Germany}");
+    public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount)
+    {
+        EnsureEnabled();
+        var catalog = _taxTypes.Get(CountryProfileCodes.Germany);
+        var projection = DeTaxSetMapper.MapFromTaxDetailsJson(taxDetailsJson, totalAmount, catalog);
+        decimal normal = 0m;
+        decimal reduced = 0m;
+        decimal zero = 0m;
+        foreach (var row in projection.AmountsPerVatRate)
+        {
+            var amount = decimal.Parse(row.Amount, CultureInfo.InvariantCulture);
+            if (row.VatRate == DeVatRateNames.Normal)
+                normal = amount;
+            else if (row.VatRate == DeVatRateNames.Reduced1)
+                reduced = amount;
+            else if (row.VatRate == DeVatRateNames.Null)
+                zero = amount;
+        }
+
+        return new RksvTaxSetAmounts
+        {
+            Normal = normal,
+            Ermaessigt1 = reduced,
+            Null = zero,
+        };
+    }
 
     /// <summary>
     /// Maps DE CalculateTax tax_details to SIGN DE <c>amounts_per_vat_rate</c> (Paket 72).
@@ -132,8 +156,8 @@ public sealed class GermanyTaxStrategy : ITaxStrategy
 }
 
 /// <summary>
-/// German invoicing shape (UStG §14 disclosures + placeholder document). Numbering and TSE stay
-/// unimplemented until call-site wiring (Paket 30-c).
+/// German invoicing shape (UStG §14 disclosures + document). Receipt numbers come from
+/// <see cref="DeReceiptSequenceService"/> (<c>de_receipt_sequences</c>), not the Austrian sequence table.
 /// </summary>
 public sealed class GermanyInvoiceStrategy : IInvoiceStrategy
 {

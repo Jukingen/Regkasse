@@ -147,6 +147,7 @@ import type {
   CategoryDemoResetResultDto,
   CategoryDto,
   ChMwstEffectiveRatesDto,
+  ChQrBankUploadConfirmationRequest,
   ChQrGapAcceptanceResponse,
   ClearCacheRequest,
   ClearCacheResult,
@@ -255,6 +256,7 @@ import type {
   DownloadHistoryListResponse,
   DownloadHistoryStatsDto,
   DownloadSecurityPolicyDto,
+  EffectiveVerticalProfileDto,
   ElmahErrorListResponseDto,
   EnableTenantDigitalServiceRequestDto,
   EvaluateUserActionRequestDto,
@@ -387,6 +389,7 @@ import type {
   GetApiAdminPaymentsParams,
   GetApiAdminPaymentsStatisticsParams,
   GetApiAdminPaymentsTrendsParams,
+  GetApiAdminPeppolSubmissionsParams,
   GetApiAdminPermissionAnalyticsExportParams,
   GetApiAdminPermissionAnalyticsTrendParams,
   GetApiAdminPriceHistoryParams,
@@ -615,6 +618,8 @@ import type {
   PaymentVolumeAnalyticsDto,
   PeakHoursReportDto,
   PeppolParticipantDto,
+  PeppolSubmissionDetailDto,
+  PeppolSubmissionListResponse,
   PermissionAnalyticsSummaryDto,
   PermissionAnalyticsTrendPointDto,
   PermissionAuditLogsResponse,
@@ -982,6 +987,7 @@ import type {
   UpdateTenantLimitsRequest,
   UpdateTenantOperationModeRequest,
   UpdateTenantUserRoleRequest,
+  UpdateTenantVerticalProfileRequest,
   UpdateTseIncidentStatusRequestDto,
   UpdateUsernameRequest,
   UpgradeLicenseRequestBody,
@@ -999,6 +1005,7 @@ import type {
   VerifyAdminVoucherCodeRequest,
   VerifyAdminVoucherCodeResponse,
   VerifyTenantDomainRequestDto,
+  VerticalProfileDto,
   VoidInvoiceRequest,
   WalArchiveStatusDto,
   WebsiteTemplateDto
@@ -7158,6 +7165,118 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminTenantsTenantIdChQrGapAcceptanceMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf = (
+    tenantId: string,
+    invoiceId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/tenants/${tenantId}/ch-qr-invoices/${invoiceId}/pdf`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryKey = (tenantId: string,
+    invoiceId: string,) => {
+    return [`/api/admin/tenants/${tenantId}/ch-qr-invoices/${invoiceId}/pdf`] as const;
+    }
+
+    
+export const getGetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>, TError = ProblemDetails>(tenantId: string,
+    invoiceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryKey(tenantId,invoiceId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>> = ({ signal }) => getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf(tenantId,invoiceId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(tenantId && invoiceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>>
+export type GetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryError = ProblemDetails
+
+export const useGetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>, TError = ProblemDetails>(
+ tenantId: string,
+    invoiceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTenantsTenantIdChQrInvoicesInvoiceIdPdfQueryOptions(tenantId,invoiceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation = (
+    tenantId: string,
+    invoiceId: string,
+    chQrBankUploadConfirmationRequest: ChQrBankUploadConfirmationRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/tenants/${tenantId}/ch-qr-invoices/${invoiceId}/upload-confirmation`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: chQrBankUploadConfirmationRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmationMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>, TError,{tenantId: string;invoiceId: string;data: ChQrBankUploadConfirmationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>, TError,{tenantId: string;invoiceId: string;data: ChQrBankUploadConfirmationRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>, {tenantId: string;invoiceId: string;data: ChQrBankUploadConfirmationRequest}> = (props) => {
+          const {tenantId,invoiceId,data} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation(tenantId,invoiceId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmationMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>>
+    export type PostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmationMutationBody = ChQrBankUploadConfirmationRequest
+    export type PostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmationMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>, TError,{tenantId: string;invoiceId: string;data: ChQrBankUploadConfirmationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmation>>,
+        TError,
+        {tenantId: string;invoiceId: string;data: ChQrBankUploadConfirmationRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdChQrInvoicesInvoiceIdUploadConfirmationMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -17846,7 +17965,118 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminPermissionAnalyticsSummary = (
+    export const getApiAdminPeppolSubmissions = (
+    params?: GetApiAdminPeppolSubmissionsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PeppolSubmissionListResponse>(
+      {url: `/api/admin/peppol/submissions`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminPeppolSubmissionsQueryKey = (params?: GetApiAdminPeppolSubmissionsParams,) => {
+    return [`/api/admin/peppol/submissions`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminPeppolSubmissionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>, TError = ProblemDetails>(params?: GetApiAdminPeppolSubmissionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminPeppolSubmissionsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>> = ({ signal }) => getApiAdminPeppolSubmissions(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminPeppolSubmissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>>
+export type GetApiAdminPeppolSubmissionsQueryError = ProblemDetails
+
+export const useGetApiAdminPeppolSubmissions = <TData = Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>, TError = ProblemDetails>(
+ params?: GetApiAdminPeppolSubmissionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminPeppolSubmissionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminPeppolSubmissionsId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PeppolSubmissionDetailDto>(
+      {url: `/api/admin/peppol/submissions/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminPeppolSubmissionsIdQueryKey = (id: string,) => {
+    return [`/api/admin/peppol/submissions/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminPeppolSubmissionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminPeppolSubmissionsIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>> = ({ signal }) => getApiAdminPeppolSubmissionsId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminPeppolSubmissionsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>>
+export type GetApiAdminPeppolSubmissionsIdQueryError = ProblemDetails
+
+export const useGetApiAdminPeppolSubmissionsId = <TData = Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPeppolSubmissionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminPeppolSubmissionsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminPermissionAnalyticsSummary = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -32785,6 +33015,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminTenantsTenantIdVerticalProfile = (
+    tenantId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<EffectiveVerticalProfileDto>(
+      {url: `/api/admin/tenants/${tenantId}/vertical-profile`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminTenantsTenantIdVerticalProfileQueryKey = (tenantId: string,) => {
+    return [`/api/admin/tenants/${tenantId}/vertical-profile`] as const;
+    }
+
+    
+export const getGetApiAdminTenantsTenantIdVerticalProfileQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>, TError = ProblemDetails>(tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdVerticalProfileQueryKey(tenantId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>> = ({ signal }) => getApiAdminTenantsTenantIdVerticalProfile(tenantId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(tenantId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTenantsTenantIdVerticalProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>>
+export type GetApiAdminTenantsTenantIdVerticalProfileQueryError = ProblemDetails
+
+export const useGetApiAdminTenantsTenantIdVerticalProfile = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>, TError = ProblemDetails>(
+ tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdVerticalProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTenantsTenantIdVerticalProfileQueryOptions(tenantId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminTenantsTenantIdVerticalProfile = (
+    tenantId: string,
+    updateTenantVerticalProfileRequest: UpdateTenantVerticalProfileRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<EffectiveVerticalProfileDto>(
+      {url: `/api/admin/tenants/${tenantId}/vertical-profile`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateTenantVerticalProfileRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminTenantsTenantIdVerticalProfileMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>, TError,{tenantId: string;data: UpdateTenantVerticalProfileRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>, TError,{tenantId: string;data: UpdateTenantVerticalProfileRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>, {tenantId: string;data: UpdateTenantVerticalProfileRequest}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  putApiAdminTenantsTenantIdVerticalProfile(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminTenantsTenantIdVerticalProfileMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>>
+    export type PutApiAdminTenantsTenantIdVerticalProfileMutationBody = UpdateTenantVerticalProfileRequest
+    export type PutApiAdminTenantsTenantIdVerticalProfileMutationError = ProblemDetails
+
+    export const usePutApiAdminTenantsTenantIdVerticalProfile = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>, TError,{tenantId: string;data: UpdateTenantVerticalProfileRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminTenantsTenantIdVerticalProfile>>,
+        TError,
+        {tenantId: string;data: UpdateTenantVerticalProfileRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminTenantsTenantIdVerticalProfileMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminTrials = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -41874,6 +42211,116 @@ export const useGetApiAdminUsersIdPermissions = <TData = Awaited<ReturnType<type
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminUsersIdPermissionsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminVerticalProfiles = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VerticalProfileDto[]>(
+      {url: `/api/admin/vertical-profiles`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminVerticalProfilesQueryKey = () => {
+    return [`/api/admin/vertical-profiles`] as const;
+    }
+
+    
+export const getGetApiAdminVerticalProfilesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminVerticalProfilesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>> = ({ signal }) => getApiAdminVerticalProfiles(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminVerticalProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>>
+export type GetApiAdminVerticalProfilesQueryError = unknown
+
+export const useGetApiAdminVerticalProfiles = <TData = Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfiles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminVerticalProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminVerticalProfilesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VerticalProfileDto>(
+      {url: `/api/admin/vertical-profiles/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminVerticalProfilesIdQueryKey = (id: string,) => {
+    return [`/api/admin/vertical-profiles/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminVerticalProfilesIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminVerticalProfilesIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>> = ({ signal }) => getApiAdminVerticalProfilesId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminVerticalProfilesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>>
+export type GetApiAdminVerticalProfilesIdQueryError = ProblemDetails
+
+export const useGetApiAdminVerticalProfilesId = <TData = Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVerticalProfilesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminVerticalProfilesIdQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

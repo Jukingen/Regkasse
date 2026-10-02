@@ -11,6 +11,9 @@ public static partial class Iso3166CountryCode
     /// <summary>Allows empty so a caller can clear an optional country field.</summary>
     public const string OptionalPattern = "^([A-Za-z]{2})?$";
 
+    /// <summary>Required ISO 3166-1 alpha-2 shape. Does not assert the code is assigned.</summary>
+    public const string RequiredPattern = "^[A-Za-z]{2}$";
+
     public const string ValidationMessage = "Must be a 2-letter ISO 3166-1 alpha-2 country code.";
 
     [GeneratedRegex("^[A-Za-z]{2}$", RegexOptions.CultureInvariant)]

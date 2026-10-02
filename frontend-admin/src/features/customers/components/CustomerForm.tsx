@@ -1,4 +1,4 @@
-import { Alert, Col, Form, Input, Modal, Row, Switch, Tag } from 'antd';
+import { Alert, Col, Form, Input, Modal, Row, Switch, Tag, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { Customer } from '@/api/generated/model';
@@ -174,6 +174,32 @@ export default function CustomerForm({
         <Form.Item label={t('customers.form.address')} name="address">
           <Input.TextArea rows={2} />
         </Form.Item>
+
+        <Typography.Text type="secondary">{t('customers.form.addressDataTitle')}</Typography.Text>
+        <Row gutter={16} style={{ marginTop: 8 }}>
+          <Col span={16}>
+            <Form.Item label={t('customers.form.street')} name={['addressData', 'street']}>
+              <Input aria-label={t('customers.form.street')} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item label={t('customers.form.postalCode')} name={['addressData', 'postalCode']}>
+              <Input aria-label={t('customers.form.postalCode')} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label={t('customers.form.city')} name={['addressData', 'city']}>
+              <Input aria-label={t('customers.form.city')} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label={t('customers.form.addressNotes')} name={['addressData', 'notes']}>
+              <Input aria-label={t('customers.form.addressNotes')} />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Row gutter={16}>
           <Col span={12}>

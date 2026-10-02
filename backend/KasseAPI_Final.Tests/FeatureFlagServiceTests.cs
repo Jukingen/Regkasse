@@ -168,7 +168,7 @@ public sealed class FeatureFlagServiceTests
     }
 
     [Fact]
-    public async Task DeTenant_KassenSicherheitOn_RksvAtOff_EInvoicingOffUntilOverride()
+    public async Task DeTenant_CannotEnableFiscalRksvAt()
     {
         var (factory, _) = CreateFactory();
         var tenantId = Guid.NewGuid();
@@ -176,10 +176,39 @@ public sealed class FeatureFlagServiceTests
         var svc = CreateService(factory);
         var tenant = tenantId.ToString("D");
 
-        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenant));
+        var ex = await Assert.ThrowsAsync<FeatureFlagCountryRejectedException>(() =>
+            svc.SetEnabledAsync(FeatureFlagNames.FiscalRksvAt, enabled: true, tenantId: tenant, actorUserId: "admin"));
+
+        Assert.Equal(FeatureFlagCountryRejectedException.Code, ex.ErrorCode);
+        Assert.Equal(CountryProfileCodes.Germany, ex.CountryCode);
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
+    }
+
+    [Fact]
+    public async Task DeTenant_KassenSicherheitOffByProfile_RksvAtOff_EInvoicingOffUntilOverride()
+    {
+        var (factory, _) = CreateFactory();
+        var tenantId = Guid.NewGuid();
+        await SeedCountryAsync(factory, tenantId, CountryProfileCodes.Germany);
+        var svc = CreateService(factory);
+        var tenant = tenantId.ToString("D");
+
+        Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenant));
         Assert.False(svc.IsEnabled(FeatureFlagNames.FiscalRksvAt, tenant));
         Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingZugferd, tenant));
         Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingXRechnung, tenant));
+
+        var profileDefault = (await svc.GetStatusesAsync(tenant))
+            .Single(status => status.Name == FeatureFlagNames.FiscalKassenSicherheitDe);
+        Assert.False(profileDefault.Enabled);
+        Assert.Equal(FeatureFlagSources.CountryProfile, profileDefault.Source);
+
+        await svc.SetEnabledAsync(FeatureFlagNames.FiscalKassenSicherheitDe, true, tenant, "admin");
+        Assert.True(svc.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, tenant));
+        var pilot = (await svc.GetStatusesAsync(tenant))
+            .Single(status => status.Name == FeatureFlagNames.FiscalKassenSicherheitDe);
+        Assert.True(pilot.Enabled);
+        Assert.Equal(FeatureFlagSources.TenantOverride, pilot.Source);
 
         await svc.SetEnabledAsync(FeatureFlagNames.EInvoicingZugferd, true, tenant, "admin");
         Assert.True(svc.IsEnabled(FeatureFlagNames.EInvoicingZugferd, tenant));

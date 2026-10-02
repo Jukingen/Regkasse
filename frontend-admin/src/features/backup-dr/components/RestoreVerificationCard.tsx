@@ -8,7 +8,7 @@ import { Alert, Card, Descriptions, Tag, Typography } from 'antd';
 import React, { useMemo } from 'react';
 
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
-import { RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
+import { RestoreVerificationStatus } from '@/api/generated/model';
 import {
   PG_RESTORE_LIST_FAILED,
   interpretPgRestoreListFailure,
@@ -65,7 +65,7 @@ export function RestoreVerificationCard({
 
   const statusTagColorResolved = useMemo(() => {
     if (!run) return restoreStatusTagColor(-1);
-    if (run.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3 && listFailureInterp) {
+    if (run.status === RestoreVerificationStatus.Failed && listFailureInterp) {
       return pgRestoreListFailureKindToTagColor(listFailureInterp.kind);
     }
     return restoreStatusTagColor(run.status ?? -1);
@@ -73,7 +73,7 @@ export function RestoreVerificationCard({
 
   const statusLabel = useMemo(() => {
     if (!run) return restoreStatusLabel(undefined, t);
-    if (run.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3 && listFailureInterp) {
+    if (run.status === RestoreVerificationStatus.Failed && listFailureInterp) {
       return t(pgRestoreListFailureKindToStatusLabelKey(listFailureInterp.kind));
     }
     return restoreStatusLabel(run.status, t);
@@ -112,7 +112,7 @@ export function RestoreVerificationCard({
         <Typography.Text type="secondary">{t('backupDr.restoreVerification.none')}</Typography.Text>
       ) : (
         <>
-          {run.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3 ? (
+          {run.status === RestoreVerificationStatus.Failed ? (
             listFailureInterp ? (
               (() => {
                 const card = pgRestoreListFailureKindToCardAlertKeys(listFailureInterp.kind);

@@ -25,7 +25,11 @@ public static class CountryFeatureFlagDefaults
                 enabled = profile.FiscalSystem == FiscalSystem.RKSV_AT;
                 return true;
             case FeatureFlagNames.FiscalKassenSicherheitDe:
-                enabled = profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE;
+                // DE fiscal path is wired but not production-ready
+                // (no DSFinV-K download, no DE offline, provider not configured). Profile default off
+                // forces an explicit tenant override to enable DE signing, matching AGENTS.md
+                // "Do not enable for a real tenant until §16 says production-ready".
+                enabled = false;
                 return true;
             case FeatureFlagNames.FiscalMwstCh:
                 enabled = profile.FiscalSystem == FiscalSystem.MWST_CH;

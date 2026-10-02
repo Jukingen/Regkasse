@@ -97,6 +97,7 @@ export const ADMIN_NAV_LABEL_KEYS = {
   companySettings: 'nav.companySettings',
   receiptSettings: 'nav.receiptSettings',
   workingHours: 'nav.workingHours',
+  kitchen: 'nav.kitchen',
   taxGroups: 'nav.taxGroups',
   taxHistory: 'nav.taxHistory',
   sessionSettings: 'nav.sessionSettings',

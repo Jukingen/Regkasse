@@ -24,6 +24,8 @@ public enum ActivityEventType
     OfflineOrdersBacklogGrowing = 31,
     OfflineOrdersExpiringSoon = 32,
     OfflineSyncStalled = 33,
+    /// <summary>TSE offline intent queue is at or above 80% of <c>maxOfflineTransactions</c>.</summary>
+    OfflineQueueApproachingLimit = 34,
     FinanzOnlineSubmissionFailed = 40,
     BackupFailed = 50,
     BackupSucceeded = 51,
@@ -276,4 +278,28 @@ public enum ActivityEventType
 
     /// <summary>Super Admin stored a Peppol participant id. No credential. Audit counterpart is 113.</summary>
     PeppolParticipantRegistered = 259,
+
+    /// <summary>
+    /// Operator acknowledged open CH QR print gaps. Audit counterpart is 114.
+    /// This is not a compliance claim.
+    /// </summary>
+    ChQrKnownGapsAccepted = 260,
+
+    /// <summary>
+    /// An invoice was built while one or more open CH QR print gaps were not in the tenant acceptance.
+    /// The invoice is not blocked.
+    /// </summary>
+    ChQrKnownGapsOutstanding = 261,
+
+    /// <summary>
+    /// Canary e-invoice was acknowledged by the Access Point. Audit counterpart is 115.
+    /// This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceAckReceived = 262,
+
+    /// <summary>
+    /// A transient Storecove ACK read will be tried again. Audit counterpart is 118.
+    /// Severity is Warning. This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceSubmissionRetry = 263,
 }

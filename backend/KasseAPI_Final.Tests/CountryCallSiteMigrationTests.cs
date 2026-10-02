@@ -148,6 +148,45 @@ public sealed class CountryCallSiteMigrationTests
     }
 
     [Fact]
+    public async Task AtPayment_DoesNotAllocateDeSequence_WhenDeSequenceIsNonNull()
+    {
+        var de = DeSequenceReturningOne();
+        var result = await CreateAtPaymentAsync(deSequence: de.Object);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.StartsWith("AT-", result.Payment!.ReceiptNumber, StringComparison.Ordinal);
+        de.Verify(
+            s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task AtPayment_DoesNotAllocateChSequence_WhenChSequenceIsNonNull()
+    {
+        var ch = ChSequenceReturningOne();
+        var result = await CreateAtPaymentAsync(chSequence: ch.Object);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.StartsWith("AT-", result.Payment!.ReceiptNumber, StringComparison.Ordinal);
+        ch.Verify(
+            s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task AtPayment_DoesNotAllocateEuSequence_WhenEuSequenceIsNonNull()
+    {
+        var eu = EuSequenceReturningOne();
+        var result = await CreateAtPaymentAsync(euSequence: eu.Object);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.StartsWith("AT-", result.Payment!.ReceiptNumber, StringComparison.Ordinal);
+        eu.Verify(
+            s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task DeInvoice_MapsStructured_AndRksvThrowsNotSupported()
     {
         await using var db = CreateDb();
@@ -239,10 +278,12 @@ public sealed class CountryCallSiteMigrationTests
         SeedCountrySettings(ctx, CountryProfileCodes.EuDefault, VatRegime.EU_REVERSE_CHARGE, "FR12345678901");
         await ctx.SaveChangesAsync();
 
+        var euSequence = EuSequenceReturningOne();
         var pay = PaymentServiceCoverageHarness.CreatePaymentService(
             ctx,
             new PaymentServiceCoverageHarness.Options
             {
+                EuSequence = euSequence.Object,
                 CompanyProfile = new CompanyProfileOptions
                 {
                     CompanyName = "EU GmbH",
@@ -262,6 +303,9 @@ public sealed class CountryCallSiteMigrationTests
         Assert.Equal(121m, result.Payment!.TotalAmount);
         Assert.Equal(0m, result.Payment.TaxAmount);
         Assert.Equal(0m, result.Payment.TaxDetails.RootElement.GetProperty("0").GetDecimal());
+        euSequence.Verify(
+            s => s.AllocateNextAsync(SystemTenantIds.Platform, registerId, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -281,6 +325,9 @@ public sealed class CountryCallSiteMigrationTests
 
         Assert.False(result.Success);
         Assert.Contains(FiscalSigningNotAvailableException.DeFlagOff, result.Errors);
+        Assert.DoesNotContain(
+            result.Errors,
+            e => e.Contains("Sequence service missing for DE", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -300,6 +347,9 @@ public sealed class CountryCallSiteMigrationTests
 
             Assert.False(result.Success);
             Assert.Contains(FiscalSigningNotAvailableException.DeNotConfigured, result.Errors);
+            Assert.DoesNotContain(
+                result.Errors,
+                e => e.Contains("Sequence service missing for DE", StringComparison.Ordinal));
         }
         finally
         {
@@ -315,25 +365,19 @@ public sealed class CountryCallSiteMigrationTests
         flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
             .Returns(true);
         var kassen = new Mock<IKassenSicherheitService>();
-        kassen.Setup(x => x.StartTransactionAsync(
-                It.IsAny<KassenSicherheitStartTransactionRequest>(),
+        kassen.Setup(x => x.SignAsync(
+                It.IsAny<KassenSicherheitSignRequest>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly"));
-        kassen.Setup(x => x.FinishTransactionAsync(
-                It.IsAny<KassenSicherheitFinishTransactionRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "FINISHED", 2, "sig-de", "fiskaly"));
+            .ReturnsAsync(new KassenSicherheitSignResult(true, "sig-de", "soft"));
         var router = new FiscalSignatureRouter(flags.Object, kassen: kassen.Object);
 
         var result = await CreateDePaymentAsync(flags.Object, router, "tss-1", "client-1");
 
         Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Equal("DE-platform-KASSE-01-1", result.Payment!.ReceiptNumber);
         Assert.Equal("DE", result.Payment!.CountryCodeAtIssue);
-        kassen.Verify(x => x.StartTransactionAsync(
-            It.IsAny<KassenSicherheitStartTransactionRequest>(),
-            It.IsAny<CancellationToken>()), Times.Once);
-        kassen.Verify(x => x.FinishTransactionAsync(
-            It.Is<KassenSicherheitFinishTransactionRequest>(r => r.Receipt != null && r.Belegnummer != null),
+        kassen.Verify(x => x.SignAsync(
+            It.IsAny<KassenSicherheitSignRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -344,8 +388,11 @@ public sealed class CountryCallSiteMigrationTests
         var result = await CreateDePaymentAsync(flags.Object, router, "tss-1", "client-1");
 
         Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
-        Assert.Equal("sig-de", result.TseSignature);
-        Assert.Equal("sig-de", result.Payment!.TseSignature);
+        Assert.Equal("DE-platform-KASSE-01-1", result.Payment!.ReceiptNumber);
+        Assert.True(string.IsNullOrEmpty(result.TseSignature));
+        Assert.True(string.IsNullOrEmpty(result.Payment!.TseSignature));
+        Assert.True(string.IsNullOrEmpty(result.Payment.PrevSignatureValueUsed));
+        Assert.True(string.IsNullOrEmpty(result.Payment.CertificateThumbprint));
         Assert.Equal("DE", result.Payment.CountryCodeAtIssue);
     }
 
@@ -357,8 +404,10 @@ public sealed class CountryCallSiteMigrationTests
         var result = await CreateDePaymentAsync(ctx, flags.Object, router, "tss-1", "client-1");
 
         Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Equal("DE-platform-KASSE-01-1", result.Payment!.ReceiptNumber);
         var receipt = await ctx.Receipts.SingleAsync();
-        Assert.Equal("sig-de", receipt.SignatureValue);
+        Assert.True(string.IsNullOrEmpty(receipt.SignatureValue));
+        Assert.True(string.IsNullOrEmpty(result.Payment!.TseSignature));
         Assert.Null(result.Payment!.PrevSignatureValueUsed);
         Assert.Null(result.Payment.CertificateThumbprint);
     }
@@ -369,14 +418,10 @@ public sealed class CountryCallSiteMigrationTests
         flags.Setup(f => f.IsEnabled(FeatureFlagNames.FiscalKassenSicherheitDe, It.IsAny<string?>()))
             .Returns(true);
         var kassen = new Mock<IKassenSicherheitService>();
-        kassen.Setup(x => x.StartTransactionAsync(
-                It.IsAny<KassenSicherheitStartTransactionRequest>(),
+        kassen.Setup(x => x.SignAsync(
+                It.IsAny<KassenSicherheitSignRequest>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "ACTIVE", 1, null, "fiskaly"));
-        kassen.Setup(x => x.FinishTransactionAsync(
-                It.IsAny<KassenSicherheitFinishTransactionRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new KassenSicherheitTransactionResult(true, "tx-1", "FINISHED", 2, signature, "fiskaly"));
+            .ReturnsAsync(new KassenSicherheitSignResult(true, signature, "soft"));
         return (flags, new FiscalSignatureRouter(flags.Object, kassen: kassen.Object));
     }
 
@@ -417,6 +462,7 @@ public sealed class CountryCallSiteMigrationTests
             {
                 FeatureFlags = flags,
                 FiscalRouter = router,
+                DeSequence = DeSequenceReturningOne().Object,
                 CompanyProfile = new CompanyProfileOptions
                 {
                     CompanyName = "DE GmbH",
@@ -498,6 +544,7 @@ public sealed class CountryCallSiteMigrationTests
             {
                 FeatureFlags = flags,
                 FiscalRouter = router,
+                ChSequence = ChSequenceReturningOne().Object,
                 CompanyProfile = new CompanyProfileOptions
                 {
                     CompanyName = "CH GmbH",
@@ -627,6 +674,7 @@ public sealed class CountryCallSiteMigrationTests
             VatRegime = vatRegime,
             BusinessHours = new Dictionary<string, string>(),
             Currency = country == CountryProfileCodes.Switzerland ? "CHF" : "EUR",
+            BankAccountNumber = country == CountryProfileCodes.Switzerland ? "CH9300762011623852957" : null,
             Language = "de-DE",
             TimeZone = "Europe/Vienna",
             DateFormat = "dd.MM.yyyy",
@@ -636,5 +684,54 @@ public sealed class CountryCallSiteMigrationTests
             ReceiptNumbering = "Sequential",
             DefaultPaymentMethod = "Cash",
         });
+    }
+
+    private static async Task<PaymentResult> CreateAtPaymentAsync(
+        IDeReceiptSequenceService? deSequence = null,
+        IChReceiptSequenceService? chSequence = null,
+        IEuReceiptSequenceService? euSequence = null)
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) =
+            await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        SeedCountrySettings(ctx, CountryProfileCodes.Austria, VatRegime.AT_RKSV_STANDARD, "ATU12345678");
+        await ctx.SaveChangesAsync();
+
+        var pay = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                DeSequence = deSequence,
+                ChSequence = chSequence,
+                EuSequence = euSequence,
+            });
+
+        return await pay.CreatePaymentAsync(
+            PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId),
+            PaymentServiceCoverageHarness.CashierId);
+    }
+
+    private static Mock<IDeReceiptSequenceService> DeSequenceReturningOne()
+    {
+        var mock = new Mock<IDeReceiptSequenceService>();
+        mock.Setup(s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        return mock;
+    }
+
+    private static Mock<IChReceiptSequenceService> ChSequenceReturningOne()
+    {
+        var mock = new Mock<IChReceiptSequenceService>();
+        mock.Setup(s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        return mock;
+    }
+
+    private static Mock<IEuReceiptSequenceService> EuSequenceReturningOne()
+    {
+        var mock = new Mock<IEuReceiptSequenceService>();
+        mock.Setup(s => s.AllocateNextAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        return mock;
     }
 }

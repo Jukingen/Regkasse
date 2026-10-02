@@ -76,6 +76,10 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
   accessArea: 'grp-access',
   /** Sicherheit & TSE (platform Super Admin ops) */
   securityTse: 'grp-security-tse',
+  /** Nested under Sicherheit & TSE: Peppol operator pages */
+  peppol: 'grp-peppol',
+  /** Nested under Sicherheit & TSE: Swiss MWST */
+  ch: 'grp-ch',
   /** Nested under Sicherheit & TSE */
   tseManagement: 'grp-tse-management',
   tseOpsFailover: 'grp-tse-ops-failover',
@@ -242,6 +246,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.rksvTools]: ['/admin/rksv'],
   [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: [
     '/products',
+    '/admin/tickets/redemptions',
+    '/admin/rooms',
     '/modifier-groups',
     '/categories',
     '/inventory',
@@ -266,6 +272,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
     '/settings',
+    '/admin/kitchen',
     ...SETTINGS_AREA_ROUTE_PATHS,
     '/settings/website',
     '/settings/digital',
@@ -298,6 +305,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations]: [
     '/settings/working-hours',
+    '/admin/kitchen',
     '/settings/session',
     '/settings/sessions',
     '/settings/tse',
@@ -325,6 +333,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/access/matrix',
     '/admin/tenants',
     '/admin/tenants/create',
+    '/admin/vertical-profiles',
     '/admin/support',
     '/license',
     '/license/dashboard',
@@ -352,6 +361,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/rksv/config',
     '/admin/mwst',
     '/admin/kassensicherheit',
+    '/admin/peppol/submissions',
+    '/admin/peppol/participants',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -379,6 +390,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/tse/blockchain',
     '/admin/tse/training',
   ],
+  [ADMIN_SIDEBAR_GROUP_KEYS.peppol]: ['/admin/peppol/submissions', '/admin/peppol/participants'],
+  [ADMIN_SIDEBAR_GROUP_KEYS.ch]: ['/admin/mwst'],
   [ADMIN_SIDEBAR_GROUP_KEYS.tseManagement]: ['/admin/tse-management'],
   [ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover]: [
     '/admin/tse/failover',
@@ -435,6 +448,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/admin/rksv/config',
     '/admin/mwst',
     '/admin/kassensicherheit',
+    '/admin/peppol/submissions',
+    '/admin/peppol/participants',
     '/admin/tse-management',
     '/admin/tse/failover',
     '/admin/tse/resource-pools',
@@ -639,6 +654,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/mwst/') ||
     p === '/admin/kassensicherheit' ||
     p.startsWith('/admin/kassensicherheit/') ||
+    p.startsWith('/admin/peppol') ||
     p === '/admin/tse-management' ||
     p.startsWith('/admin/tse-management/') ||
     p === '/admin/tse/failover' ||
@@ -693,6 +709,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/admin/tse/training/')
   ) {
     keys.push(ADMIN_SIDEBAR_GROUP_KEYS.securityTse);
+    if (p.startsWith('/admin/peppol')) keys.push(ADMIN_SIDEBAR_GROUP_KEYS.peppol);
+    if (p === '/admin/mwst' || p.startsWith('/admin/mwst/')) keys.push(ADMIN_SIDEBAR_GROUP_KEYS.ch);
   }
   if (
     p === '/admin/deployments' ||

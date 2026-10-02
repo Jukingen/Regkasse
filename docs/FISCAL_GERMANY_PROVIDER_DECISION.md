@@ -1,7 +1,7 @@
 # Germany KassenSicherheit provider decision (Paket 20)
 
-**Last updated:** 2026-09-21  
-**Status:** Decision record only. **Implementation is NOT STARTED.** This is not a legal opinion and does not claim KassenSichV, DSFinV-K, or BSI TR-03153 compliance.  
+**Last updated:** 2026-09-29  
+**Status:** Decision: fiskaly SIGN DE. Outbound HTTP is implemented (see `FiskalyDeKassenSicherheitService`); `PaymentService` reaches it via `IFiscalSignatureRouter`. Not implemented: DSFinV-K download, DE offline signing, DE signature columns on `payment_details` (see `docs/FISCAL_GERMANY.md` § "DE signature persistence"). This is not a legal opinion and does not claim KassenSichV, DSFinV-K, or BSI TR-03153 compliance.  
 **Hub:** [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) · [`COUNTRIES.md`](COUNTRIES.md) §16 · Cutover: [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md)
 
 Do **not** merge this module into Austrian `Tse:` / SIGN AT. Do not sign DE payments until this package is implemented and Compliance signs off.

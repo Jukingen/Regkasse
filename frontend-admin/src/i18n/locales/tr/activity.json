@@ -81,5 +81,42 @@
       "view": "Ayrıntıları görüntüle",
       "undo": "Geri al"
     }
+  },
+  "events": {
+    "unknown": {
+      "title": "Bilinmeyen olay"
+    },
+    "TenantCountryChanged": {
+      "title": "Mandant ülkesi değişti",
+      "description": "Mandantın faaliyet ülkesi veya KDV rejimi değiştirildi."
+    },
+    "TenantCountryChangedHistoricalPreserved": {
+      "title": "Geçmiş belgeler korundu",
+      "description": "Mevcut faturalar ve fişler düzenleme anındaki ülkeyi korur."
+    },
+    "QrRechnungPayloadBuilt": {
+      "title": "QR fatura verisi oluşturuldu",
+      "description": "İsviçre QR fatura verisi oluşturuldu."
+    },
+    "QrRechnungPdfGenerated": {
+      "title": "QR fatura PDF'i oluşturuldu",
+      "description": "İsviçre QR fatura PDF'i oluşturuldu."
+    },
+    "PeppolParticipantRegistered": {
+      "title": "Peppol katılımcısı kaydedildi",
+      "description": "Mandant için bir Peppol katılımcı kimliği kaydedildi."
+    },
+    "EinvoiceValidated": {
+      "title": "E-fatura doğrulandı",
+      "description": "E-fatura Schematron kontrolünden geçti."
+    },
+    "EinvoiceSubmitted": {
+      "title": "E-fatura gönderildi",
+      "description": "E-fatura erişim noktasına iletildi."
+    },
+    "EinvoiceSubmissionFailed": {
+      "title": "E-fatura gönderimi başarısız",
+      "description": "E-fatura doğrulama veya gönderim sırasında reddedildi."
+    }
   }
 }

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { ATU_TAX_NUMBER_PATTERN, USERNAME_PATTERN, VAT_ID_PATTERNS, createValidationRules } from '@/lib/validation';
+import { USERNAME_PATTERN, createValidationRules } from '@/lib/validation';
+import { vatIdPatternFromCatalog } from '@/lib/validations/common';
+
+/** Stand-in for `GET /api/admin/countries`. */
+const COUNTRIES_API = [
+  { code: 'AT', vatIdPattern: String.raw`^ATU\d{8}$` },
+  { code: 'DE', vatIdPattern: String.raw`^DE\d{9}$` },
+  { code: 'CH', vatIdPattern: String.raw`^CHE-\d{3}\.\d{3}\.\d{3}( (MWST|TVA|IVA))?$` },
+];
 
 function t(key: string, options?: Record<string, string | number>): string {
   if (options) {
@@ -42,15 +50,14 @@ describe('createValidationRules', () => {
     expect(rules.pattern(pattern, 'custom')).toEqual({ pattern, message: 'custom' });
   });
 
-  it('builds optional ATU tax rules that allow empty', async () => {
-    const optional = rules.atuTaxNumber(false);
+  it('builds optional VAT rules from the countries catalog pattern', async () => {
+    const atPattern = COUNTRIES_API.find((row) => row.code === 'AT')?.vatIdPattern;
+    const optional = rules.atuTaxNumber(atPattern, false);
     expect(optional).toHaveLength(1);
     const rule = optional[0] as { validator?: (_: unknown, value: unknown) => Promise<void> };
     await expect(rule.validator?.(undefined, '')).resolves.toBeUndefined();
     await expect(rule.validator?.(undefined, 'ATU12345678')).resolves.toBeUndefined();
-    await expect(rule.validator?.(undefined, 'bad')).rejects.toThrow(
-      'common.validation.atuTaxNumberPattern'
-    );
+    await expect(rule.validator?.(undefined, 'bad')).rejects.toThrow('common.validation.invalidValue');
   });
 
   it('builds required username rules', () => {
@@ -61,18 +68,18 @@ describe('createValidationRules', () => {
 });
 
 describe('shared patterns', () => {
-  it('accepts valid ATU numbers', () => {
-    expect(ATU_TAX_NUMBER_PATTERN.test('ATU12345678')).toBe(true);
-    expect(ATU_TAX_NUMBER_PATTERN.test('ATU1234567')).toBe(false);
-    expect(ATU_TAX_NUMBER_PATTERN.test('atu12345678')).toBe(false);
-  });
-
-  it('accepts DE and CH VAT-ID shapes from the shared table', () => {
-    expect(VAT_ID_PATTERNS.DE.test('DE123456789')).toBe(true);
-    expect(VAT_ID_PATTERNS.DE.test('DE12345678')).toBe(false);
-    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.789')).toBe(true);
-    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.789 MWST')).toBe(true);
-    expect(VAT_ID_PATTERNS.CH.test('CHE-123.456.78')).toBe(false);
+  it('validates AT, DE, and CH with the countries API patterns', () => {
+    const at = vatIdPatternFromCatalog('AT', COUNTRIES_API);
+    const de = vatIdPatternFromCatalog('DE', COUNTRIES_API);
+    const ch = vatIdPatternFromCatalog('CH', COUNTRIES_API);
+    expect(at?.test('ATU12345678')).toBe(true);
+    expect(at?.test('ATU1234567')).toBe(false);
+    expect(at?.test('atu12345678')).toBe(false);
+    expect(de?.test('DE123456789')).toBe(true);
+    expect(de?.test('DE12345678')).toBe(false);
+    expect(ch?.test('CHE-123.456.789')).toBe(true);
+    expect(ch?.test('CHE-123.456.789 MWST')).toBe(true);
+    expect(ch?.test('CHE-123.456.78')).toBe(false);
   });
 
   it('accepts valid usernames', () => {

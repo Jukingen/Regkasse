@@ -57,6 +57,12 @@ export interface Product {
    */
   descriptionTr?: string | null;
   /**
+   * @minimum 1
+   * @maximum 1440
+   * @nullable
+   */
+  durationMinutes?: number | null;
+  /**
    * @maxLength 10
    * @nullable
    */
@@ -117,6 +123,11 @@ export interface Product {
    * @nullable
    */
   rksvProductType?: string | null;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  staffId?: string | null;
   /**
    * @minimum 0
    * @maximum 2147483647

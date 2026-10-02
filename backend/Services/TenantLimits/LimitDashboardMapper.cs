@@ -128,9 +128,12 @@ internal static class LimitDashboardMapper
 
     public static string DedupKey(ActivityEventType type, string limitKey)
     {
-        var prefix = type == ActivityEventType.LimitExceeded
-            ? "limit_exceeded"
-            : "limit_approaching";
+        var prefix = type switch
+        {
+            ActivityEventType.LimitExceeded => "limit_exceeded",
+            ActivityEventType.OfflineQueueApproachingLimit => "offline_queue_approaching_limit",
+            _ => "limit_approaching",
+        };
         if (IsDailyKey(limitKey))
             return $"{prefix}_{limitKey}_{DateTime.UtcNow:yyyyMMdd}";
         return $"{prefix}_{limitKey}";
@@ -144,8 +147,13 @@ internal static class LimitDashboardMapper
         decimal current)
     {
         var percent = ComputePercent(limit, current);
-        var approaching = type == ActivityEventType.LimitApproaching;
-        var title = approaching ? "Limit approaching" : "Limit exceeded";
+        var approaching = type is ActivityEventType.LimitApproaching
+            or ActivityEventType.OfflineQueueApproachingLimit;
+        var title = type == ActivityEventType.OfflineQueueApproachingLimit
+            ? "Offline queue approaching limit"
+            : approaching
+                ? "Limit approaching"
+                : "Limit exceeded";
         var description = approaching
             ? $"Limit {limitKey} is at {percent:0.##}% ({current:0.##}/{limit:0.##})."
             : $"Limit {limitKey} exceeded ({current:0.##}/{limit:0.##}).";

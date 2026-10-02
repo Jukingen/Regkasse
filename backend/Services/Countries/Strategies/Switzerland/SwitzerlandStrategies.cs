@@ -1,3 +1,4 @@
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
@@ -5,21 +6,24 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Vat;
+using KasseAPI_Final.Services.Countries.QrRechnung;
 using KasseAPI_Final.Services.FeatureFlags;
 using KasseAPI_Final.Tse;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Countries.Strategies.Switzerland;
 
 /// <summary>
-/// Swiss MWST shape: rates from <see cref="ICountryTaxTypeRegistry"/> (8.1 / 2.6 / 3.8), line math
-/// from <see cref="CartMoneyHelper.ComputeLine(decimal, int, decimal)"/>, summary from
-/// <see cref="CountryRateTaxSummary"/> (not AT <c>TaxTypes</c> buckets).
+/// Swiss MWST shape: percents come from the CH catalog (<see cref="ICountryTaxTypeRegistry"/>,
+/// then <see cref="IChMwstEffectiveRates"/> when the calculation names a tenant). Line math stays in
+/// <see cref="CartMoneyHelper.ComputeLine(decimal, int, decimal)"/>. This type does not store a rate.
 /// </summary>
 public sealed class SwitzerlandTaxStrategy : ITaxStrategy
 {
     private readonly ICountryTaxTypeRegistry _taxTypes;
     private readonly IVatIdValidator _vatIdValidator;
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly IChMwstEffectiveRates? _effectiveRates;
 
     public SwitzerlandTaxStrategy()
         : this(new CountryTaxTypeRegistry(), new VatIdValidator(new DisabledViesClient()), featureFlags: null)
@@ -29,11 +33,13 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
     public SwitzerlandTaxStrategy(
         ICountryTaxTypeRegistry taxTypes,
         IVatIdValidator vatIdValidator,
-        IFeatureFlagService? featureFlags = null)
+        IFeatureFlagService? featureFlags = null,
+        IChMwstEffectiveRates? effectiveRates = null)
     {
         _taxTypes = taxTypes ?? throw new ArgumentNullException(nameof(taxTypes));
         _vatIdValidator = vatIdValidator ?? throw new ArgumentNullException(nameof(vatIdValidator));
         _featureFlags = featureFlags;
+        _effectiveRates = effectiveRates;
     }
 
     public string CountryCode => CountryProfileCodes.Switzerland;
@@ -56,7 +62,7 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
         if (context.TaxExempt || context.VatRegime == VatRegime.CH_KLEINUNTERNEHMER)
             return CalculateKleinunternehmer(lineItems);
 
-        var catalog = _taxTypes.Get(CountryProfileCodes.Switzerland);
+        var catalog = CatalogFor(context);
         var lines = new List<CartMoneyHelper.LineAmounts>(lineItems.Count);
         var taxDetails = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
@@ -65,13 +71,13 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
             if (item.VatRatePercent is not decimal percent)
             {
                 throw new ArgumentException(
-                    "CH line items must use VAT percent from CountryTaxType (8.1, 2.6 or 3.8), not RKSV tax types.",
+                    "CH line items must use a VAT percent from the effective CH CountryTaxType catalog, not RKSV tax types.",
                     nameof(lineItems));
             }
 
             var taxType = catalog.FirstOrDefault(t => t.Rate == percent)
                 ?? throw new ArgumentException(
-                    $"VAT rate {percent} is not a seeded CH CountryTaxType.",
+                    $"VAT rate {percent} is not an effective CH CountryTaxType.",
                     nameof(lineItems));
 
             var line = CartMoneyHelper.ComputeLine(item.UnitPriceGross, item.Quantity, percent);
@@ -147,9 +153,20 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
         };
     }
 
-    public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount) =>
-        throw new NotImplementedException(
-            $"{CountryCode} tax behavior is not implemented (ProjectFiscalTaxSets). See {CountryStrategyDocs.Switzerland}.");
+    public RksvTaxSetAmounts? ProjectFiscalTaxSets(string? taxDetailsJson, decimal totalAmount)
+    {
+        EnsureEnabled();
+        var catalog = _taxTypes.Get(CountryProfileCodes.Switzerland);
+        return ChTaxSetMapper.MapFromTaxDetailsJson(taxDetailsJson, totalAmount, catalog);
+    }
+
+    private IReadOnlyList<CountryTaxType> CatalogFor(TaxCalculationContext context)
+    {
+        if (_effectiveRates is not null && context.TenantId is Guid tenantId && tenantId != Guid.Empty)
+            return _effectiveRates.Resolve(tenantId, applyOverride: true).Rates;
+
+        return _taxTypes.Get(CountryProfileCodes.Switzerland);
+    }
 
     private void EnsureEnabled()
     {
@@ -162,8 +179,9 @@ public sealed class SwitzerlandTaxStrategy : ITaxStrategy
 }
 
 /// <summary>
-/// Swiss invoicing shape (MWST disclosures + placeholder document). Numbering and TSE stay
-/// unimplemented until call-site wiring (Paket 30-c).
+/// Swiss invoicing shape (MWST disclosures). The QR-Rechnung payload comes only from
+/// <see cref="IQrRechnungBuilder"/>. Receipt numbers come from
+/// <see cref="ChReceiptSequenceService"/> (<c>ch_receipt_sequences</c>), not the Austrian sequence table.
 /// </summary>
 public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
 {
@@ -182,21 +200,70 @@ public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
     ];
 
     private readonly IFeatureFlagService? _featureFlags;
+    private readonly IQrRechnungBuilder _qr;
+    private readonly IChReceiptSequenceService? _sequences;
+    private readonly AppDbContext? _db;
 
-    public SwitzerlandInvoiceStrategy(IFeatureFlagService? featureFlags = null)
+    public SwitzerlandInvoiceStrategy(
+        IFeatureFlagService? featureFlags = null,
+        IQrRechnungBuilder? qr = null,
+        IChReceiptSequenceService? sequences = null,
+        AppDbContext? db = null)
     {
         _featureFlags = featureFlags;
+        _qr = qr ?? new QrRechnungBuilder();
+        _sequences = sequences;
+        _db = db;
     }
 
     public string CountryCode => CountryProfileCodes.Switzerland;
 
-    public Task<string> AllocateReceiptNumberAsync(
+    public async Task<string> AllocateReceiptNumberAsync(
         ReceiptNumberAllocationContext context,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException(
-            $"{CountryCode} invoicing behavior is not implemented (AllocateReceiptNumberAsync). See {CountryStrategyDocs.Switzerland}.");
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureEnabled();
+        if (_sequences is null || _db is null)
+            throw new InvalidOperationException("CH receipt sequence service is not configured.");
 
-    public Task<InvoiceDocument> BuildInvoiceDocumentAsync(
+        var register = await _db.CashRegisters.AsNoTracking()
+            .Where(r => r.Id == context.CashRegisterId && r.IsActive)
+            .Select(r => new { r.TenantId, r.RegisterNumber })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (register is null || string.IsNullOrWhiteSpace(register.RegisterNumber))
+            throw new KeyNotFoundException($"Active cash register '{context.CashRegisterId}' was not found.");
+
+        var slug = await _db.Tenants.AsNoTracking()
+            .Where(t => t.Id == register.TenantId)
+            .Select(t => t.Slug)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new InvalidOperationException($"Tenant slug missing for '{register.TenantId}'.");
+
+        var attempts = Math.Clamp(context.MaxAttempts, 1, 10);
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            var sequence = await _sequences.AllocateNextAsync(register.TenantId, context.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            var number = ChReceiptSequenceService.FormatChBelegNr(slug, register.RegisterNumber, sequence);
+            var taken = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == context.CashRegisterId && p.IsActive && p.ReceiptNumber == number,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!taken)
+                return number;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not reserve a CH receipt number for cash register '{context.CashRegisterId}' after {attempts} attempt(s).");
+    }
+
+    public async Task<InvoiceDocument> BuildInvoiceDocumentAsync(
         PaymentDetails payment,
         CompanySettings company,
         Customer? customer,
@@ -208,6 +275,28 @@ public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
         EnsureEnabled();
 
         var net = payment.TotalAmount - payment.TaxAmount;
+        var currency = string.IsNullOrWhiteSpace(company.Currency) ? "CHF" : company.Currency.Trim();
+        var qr = await _qr.BuildPayloadAsync(
+            new QrRechnungRequest(
+                Iban: company.BankAccountNumber ?? string.Empty,
+                Creditor: new QrRechnungParty(
+                    company.CompanyName,
+                    company.CompanyAddress,
+                    null,
+                    string.Empty,
+                    string.Empty,
+                    CountryProfileCodes.Switzerland),
+                Debtor: null,
+                Amount: payment.TotalAmount,
+                Currency: currency,
+                Reference: null,
+                AdditionalInfo: payment.ReceiptNumber,
+                ReferenceType: QrRechnungReferenceType.Non,
+                InvoiceId: payment.Id,
+                TenantId: company.TenantId,
+                ActorUserId: payment.CashierId),
+            cancellationToken).ConfigureAwait(false);
+
         var structured = new InvoiceDocumentDto
         {
             CountryCode = CountryCode,
@@ -219,7 +308,7 @@ public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
             NetAmount = net,
             TaxAmount = payment.TaxAmount,
             GrossAmount = payment.TotalAmount,
-            Currency = "CHF",
+            Currency = currency,
         };
 
         var receipt = new ReceiptDTO
@@ -237,7 +326,7 @@ public sealed class SwitzerlandInvoiceStrategy : IInvoiceStrategy
             },
         };
 
-        return Task.FromResult(new InvoiceDocument(CountryCode, receipt, structured));
+        return new InvoiceDocument(CountryCode, receipt, structured, qr);
     }
 
     public IReadOnlyList<DisclosureRequirement> GetMandatoryDisclosures(

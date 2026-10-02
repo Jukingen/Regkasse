@@ -1,6 +1,6 @@
 # Offline System — Documentation Index
 
-> **Last updated:** 2026-06-27  
+> **Last updated:** 2026-09-30  
 > **Status:** Production-ready rollout (order snapshots + monitoring + FA ops surfaces).  
 > **Rule:** Two independent offline pipelines — never merge APIs, tables, or admin nav.
 
@@ -26,7 +26,7 @@
 |-------|----------------|
 | **Database** | `offline_orders` — migration `20260627002059_AddOfflineOrdersTable` |
 | **Backend** | `OfflineOrderService`, `SequenceReservationService`, POS + Admin controllers, cleanup hosted service |
-| **POS** | `OfflineOrderManager`, `OfflineBanner`, `offlineConfig.ts`, local storage, reconnect sync |
+| **POS** | `OfflineOrderManager`, `OfflineBanner`, `offlineConfig.ts`, local storage, reconnect sync, header `OfflineQueueIndicator` + `/(screens)/offline-queue` |
 | **FA** | `/rksv/offline-orders` (list, filter, replay, replay-all), Orval client |
 | **FA settings** | `/settings/offline` UI (requires backend `GET/PUT /api/admin/settings/offline` when deployed) |
 
@@ -120,6 +120,26 @@ Source: [`frontend/constants/offlineConfig.ts`](../frontend/constants/offlineCon
 
 Env: `EXPO_PUBLIC_API_BASE_URL` at build time.
 
+### POS queue indicator (2026-09-30)
+
+Operator UX only — does **not** change queue persistence, replay APIs, or receipt content.
+
+| File | Role |
+|------|------|
+| [`frontend/components/OfflineQueueIndicator.tsx`](../frontend/components/OfflineQueueIndicator.tsx) | Header dot in the POS tab chrome. Tap → `/(screens)/offline-queue`. |
+| [`frontend/components/OfflineQueueIndicatorView.tsx`](../frontend/components/OfflineQueueIndicatorView.tsx) | Presentational dot + count. |
+| [`frontend/components/OfflineQueuePanel.tsx`](../frontend/components/OfflineQueuePanel.tsx) | Combined list (`offline_orders` + `offline_transactions`): ID, time, amount, status, retry, delete (non-fiscal only), retry-all, last successful sync, next auto-retry. |
+| [`frontend/utils/offlineQueueIndicator.ts`](../frontend/utils/offlineQueueIndicator.ts) | Dot color: green / yellow / orange / red. |
+
+Colors:
+
+- Green — online, queue empty
+- Yellow — online, N items pending or syncing
+- Orange — offline, N items queued
+- Red — N items failed/stuck
+
+Delete is allowed only for local payment-intent rows with `tseRequired === false`. Order snapshots and TSE-required intents have no delete action.
+
 ---
 
 ## Tests
@@ -130,6 +150,9 @@ cd backend && dotnet test --filter "OfflineMonitoringServiceTests|OfflineAlertSe
 
 # Frontend Admin
 cd frontend-admin && npm run test -- src/features/offline/api/__tests__/offlineMonitoringApi.test.ts
+
+# POS queue indicator / panel
+cd frontend && npx jest __tests__/offlineQueueIndicator.test.ts __tests__/OfflineQueueIndicator.test.tsx __tests__/OfflineQueuePanel.test.tsx __tests__/offlineQueueSnapshot.test.ts
 
 # Structural smoke
 node scripts/test-offline-system.mjs

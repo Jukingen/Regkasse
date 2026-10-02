@@ -125,6 +125,25 @@ public sealed class PosCustomerQrLookupService : IPosCustomerQrLookupService
         CustomerNumber = customer.CustomerNumber,
         Email = customer.Email,
         Phone = customer.Phone,
+        Address = customer.Address,
         LoyaltyPoints = customer.LoyaltyPoints,
+        PetData = customer.PetData is null
+            ? null
+            : new PosCustomerPetDataDto
+            {
+                PetName = customer.PetData.PetName,
+                PetSpecies = customer.PetData.PetSpecies,
+                PetBreed = customer.PetData.PetBreed,
+                PetBirthDate = customer.PetData.PetBirthDate,
+            },
+        AddressData = customer.AddressData is null
+            ? null
+            : new PosCustomerAddressDataDto
+            {
+                Street = customer.AddressData.Street,
+                PostalCode = customer.AddressData.PostalCode,
+                City = customer.AddressData.City,
+                Notes = customer.AddressData.Notes,
+            },
     };
 }

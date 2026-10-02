@@ -55,6 +55,7 @@ using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Services.Security;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Services.Website;
 using KasseAPI_Final.Sites;
@@ -320,6 +321,16 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Support.ISupportTicketService, KasseAPI_Final.Services.Support.SupportTicketService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsService, KasseAPI_Final.Services.TenantSettings.TenantSettingsService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsNotificationService, KasseAPI_Final.Services.TenantSettings.TenantSettingsNotificationService>();
+        builder.Services.AddScoped<IVerticalProfileRegistry, VerticalProfileRegistry>();
+        builder.Services.AddScoped<IVerticalProfileService, VerticalProfileService>();
+        builder.Services.AddScoped<IVerticalProfileCatalogService, VerticalProfileCatalogService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Appointments.IAppointmentService, KasseAPI_Final.Services.Appointments.AppointmentService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderService, KasseAPI_Final.Services.Kitchen.KitchenOrderService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderBroadcaster, KasseAPI_Final.Services.Kitchen.KitchenOrderBroadcaster>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IAdminKitchenService, KasseAPI_Final.Services.Kitchen.AdminKitchenService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Imei.IProductImeiService, KasseAPI_Final.Services.Imei.ProductImeiService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketRedemptionService, KasseAPI_Final.Services.Tickets.TicketRedemptionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Lodging.ILodgingService, KasseAPI_Final.Services.Lodging.LodgingService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.RiskScoring.IRiskScoringService, KasseAPI_Final.Services.RiskScoring.RiskScoringService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityAnomalyService, KasseAPI_Final.Services.ActivityReports.ActivityAnomalyService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityReportService, KasseAPI_Final.Services.ActivityReports.ActivityReportService>();
@@ -352,6 +363,8 @@ internal static class ApplicationHost
                 builder.Configuration.GetSection(QrRechnungOptions.SectionName));
             builder.Services.Configure<PeppolOptions>(
                 builder.Configuration.GetSection(PeppolOptions.SectionName));
+            builder.Services.AddSingleton<IValidateOptions<PeppolOptions>, PeppolStorecoveOptionsValidator>();
+            builder.Services.AddOptions<PeppolOptions>().ValidateOnStart();
             builder.Services.AddOptions<CountryFiscalLockOptions>()
                 .Configure<IConfiguration>((opts, cfg) =>
                 {
@@ -507,8 +520,16 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionStore, KasseAPI_Final.Services.Countries.EInvoicing.InMemoryPeppolSubmissionStore>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.MockPeppolAccessPointClient>();
         builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.StorecovePeppolAccessPointClient>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolAccessPointClient>(sp =>
+            KasseAPI_Final.Services.Countries.EInvoicing.PeppolAccessPointClientFactory.Select(
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<KasseAPI_Final.Configuration.PeppolOptions>>().Value.Provider,
+                sp.GetRequiredService<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>(),
+                sp.GetRequiredService<KasseAPI_Final.Services.Countries.EInvoicing.StorecovePeppolAccessPointClient>()));
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionService, KasseAPI_Final.Services.Countries.EInvoicing.PeppolSubmissionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGapCatalog>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IChQrGapAcceptanceService, KasseAPI_Final.Services.Countries.QrRechnung.ChQrGapAcceptanceService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();
         // Invoice strategies depend on scoped services (sequence reservation, receipts) → scoped.
@@ -530,6 +551,7 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<KasseAPI_Final.Services.Deployment.IGoLiveStatusStore, KasseAPI_Final.Services.Deployment.GoLiveStatusStore>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IGoLiveCheckService, KasseAPI_Final.Services.Deployment.GoLiveCheckService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Deployment.CanaryTenantMonitorHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Countries.EInvoicing.PeppolAckPollingService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Database.IMigrationStatusService, KasseAPI_Final.Services.Database.MigrationStatusService>();
         builder.Services.AddHttpClient("deployment-rollback");
         builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
@@ -1943,12 +1965,14 @@ internal static class ApplicationHost
             // CreateWebApplication (OpenAPI / integration-test host) already mapped controllers, metrics, and liveness probes.
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
             app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
+            app.MapHub<KasseAPI_Final.Hubs.KitchenHub>(KasseAPI_Final.Hubs.KitchenHub.HubPath);
         }
         else
         {
             app.MapControllers();
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
             app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
+            app.MapHub<KasseAPI_Final.Hubs.KitchenHub>(KasseAPI_Final.Hubs.KitchenHub.HubPath);
 
             // Prometheus /metrics endpoint for scraping (Grafana dashboards)
             if (prometheusEnabled)
