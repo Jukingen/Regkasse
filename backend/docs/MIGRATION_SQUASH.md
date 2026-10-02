@@ -16,6 +16,10 @@
 
 Threshold in ops guidance: consider squashing above **20–30** migrations. This repo is far past that. Costs: slow builds/CI, hard reviews, duplicate/`CreateTable` footguns, orphan files (e.g. `CleanupOrphanedCarts.cs` without Designer).
 
+## Migration ID chronology
+
+Migration IDs must sort after `20250813222301_InitialCreate`. The `MigrationChronologyTests` enforces this.
+
 Known history issues that squash removes:
 
 - Duplicate timestamp IDs: `20260528120000_AddActivityEvents` vs `20260528120000_AddSessionTrackingAndTenantSessionPolicy`
