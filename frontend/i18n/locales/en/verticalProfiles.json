@@ -233,5 +233,97 @@
   "payment": {
     "prescription": "Prescription",
     "prescriptionHint": "Optional for this sale. Stored on the payment, not in the RKSV signature chain."
+  },
+  "onboarding": {
+    "industries": {
+      "vet": "Veterinary practice",
+      "hairSalon": "Hair salon",
+      "taxi": "Taxi business",
+      "gastronomy": "Gastronomy",
+      "gastronomyTables": "Gastronomy",
+      "handyShop": "Phone shop",
+      "mobileServices": "Mobile service",
+      "ticketSales": "Ticket sales",
+      "lodging": "Lodging"
+    },
+    "default": {
+      "welcomeTitle": "Welcome to Regkasse",
+      "welcomeBody": "Your register is ready. The sale flow stays the same; the surface follows your business.",
+      "saleTitle": "Sale",
+      "saleBody": "Pick items and finish the receipt as usual.",
+      "salePreview": "Register"
+    },
+    "vet": {
+      "welcomeTitle": "Welcome to your veterinary practice",
+      "welcomeBody": "Patients, owners, and treatments belong on your register.",
+      "recordTitle": "Patient record",
+      "recordBody": "Open the record before you charge a treatment.",
+      "recordPreview": "Patient record",
+      "saleTitle": "Sale with a patient",
+      "saleBody": "Pet and owner stay on the sale. The RKSV chain stays unchanged.",
+      "salePreview": "Register"
+    },
+    "hairSalon": {
+      "welcomeTitle": "Your hair salon",
+      "welcomeBody": "Appointments and services run the day.",
+      "calendarTitle": "Appointment calendar",
+      "calendarBody": "Book duration and staff directly in the calendar.",
+      "calendarPreview": "Appointment calendar",
+      "serviceTitle": "Services",
+      "serviceBody": "Services with a duration appear in the appointment list.",
+      "servicePreview": "Appointment"
+    },
+    "taxi": {
+      "welcomeTitle": "Your taxi business",
+      "welcomeBody": "Trips with pickup, destination, and tariff.",
+      "tripTitle": "Trip",
+      "tripBody": "Enter the route and kilometres before the receipt.",
+      "tripPreview": "Trip",
+      "tariffTitle": "Tariff",
+      "tariffBody": "The per-kilometre tariff comes from your tenant profile.",
+      "tariffPreview": "Tariff"
+    },
+    "gastronomy": {
+      "welcomeTitle": "Your gastronomy",
+      "welcomeBody": "Kitchen and counter share the same order.",
+      "kitchenTitle": "Kitchen display",
+      "kitchenBody": "Open items appear on the kitchen screen.",
+      "kitchenPreview": "Kitchen"
+    },
+    "gastronomyTables": {
+      "welcomeTitle": "Your gastronomy",
+      "welcomeBody": "Tables hold the open order until it is paid.",
+      "tablesTitle": "Tables",
+      "tablesBody": "Choose a table before you add items.",
+      "tablesPreview": "Tables"
+    },
+    "handyShop": {
+      "welcomeTitle": "Your phone shop",
+      "welcomeBody": "You sell devices with a serial number.",
+      "imeiTitle": "IMEI",
+      "imeiBody": "Pick the IMEI from stock before the receipt is created.",
+      "imeiPreview": "IMEI"
+    },
+    "mobileServices": {
+      "welcomeTitle": "Your mobile service",
+      "welcomeBody": "Jobs run by address and route.",
+      "routeTitle": "Job location",
+      "routeBody": "Street and note stay on the order.",
+      "routePreview": "Job location"
+    },
+    "ticketSales": {
+      "welcomeTitle": "Your ticket sales",
+      "welcomeBody": "Sell tickets and check them at the door.",
+      "scanTitle": "Ticket check",
+      "scanBody": "Scan the ticket before the guest enters.",
+      "scanPreview": "Ticket"
+    },
+    "lodging": {
+      "welcomeTitle": "Your lodging",
+      "welcomeBody": "Rooms and the folio belong to the stay.",
+      "roomsTitle": "Rooms",
+      "roomsBody": "Charge the folio before the stay is closed.",
+      "roomsPreview": "Rooms"
+    }
   }
 }

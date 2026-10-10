@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,6 +26,13 @@ import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { storage } from '../../utils/storage';
 import { validateUsername, validatePassword } from '../../utils/validation';
 
+import { normalizeCustomerTenantSlug } from '@/services/customerApp/customerTenantSlug';
+import { tenantStorage } from '@/services/tenant/tenantStorage';
+import {
+  loadPublicPosTenantProfile,
+  bootstrapPosTenantSlug,
+} from '@/services/verticalProfiles/posTenantBootstrap';
+import { loginIndustrySubtitle } from '@/services/verticalProfiles/posOnboarding';
 import { getEnvironmentBadge } from '@/shared/config/environmentBadge';
 import { getLoginFailure } from '@/utils/loginErrorHandler';
 import { loadLicenseLockoutSnapshot } from '@/utils/licenseLockoutSnapshot';
@@ -44,9 +51,17 @@ const LEGACY_SAVED_USERNAME_KEY = 'savedUsername';
 /** Illustrative usernames showing case-insensitive login (AGENTS.md). */
 const USERNAME_CASE_EXAMPLES = ['cashier1', 'MANAGER1', 'AdminUser'] as const;
 
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return null;
+}
+
 export default function LoginScreen() {
   const { t } = useTranslation('auth');
+  const { t: tProfiles } = useTranslation('verticalProfiles');
   const router = useRouter();
+  const { tenant: tenantParam } = useLocalSearchParams<{ tenant?: string | string[] }>();
   const environmentBadge = getEnvironmentBadge();
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -56,17 +71,49 @@ export default function LoginScreen() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [industryLine, setIndustryLine] = useState<string | null>(null);
+  const [prefilledTenant, setPrefilledTenant] = useState<string | null>(null);
   const usernameInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
-  // Auth layout redirects when authenticated; this screen must not call protected APIs.
+  // Auth layout redirects when authenticated. The only network call here is the
+  // anonymous public tenant profile used for the industry line.
   const { login, isAuthenticated, isAuthReady } = useAuth();
+  const linkedTenant = normalizeCustomerTenantSlug(firstParam(tenantParam));
 
   useEffect(() => {
-    // Wait for AuthContext bootstrap only — no network calls on the login screen.
     if (!isAuthReady) return;
     setIsBootstrapping(false);
   }, [isAuthReady, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated) return;
+    let cancelled = false;
+
+    void (async () => {
+      const slug = linkedTenant ?? normalizeCustomerTenantSlug(await tenantStorage.getTenantSlug());
+      if (!slug || cancelled) return;
+      if (linkedTenant) {
+        await bootstrapPosTenantSlug(linkedTenant);
+      }
+      if (cancelled) return;
+      setPrefilledTenant(slug);
+
+      const profile = await loadPublicPosTenantProfile(slug);
+      if (cancelled || !profile) return;
+      setIndustryLine(
+        loginIndustrySubtitle(
+          profile.verticalProfileId,
+          (key) => tProfiles(key),
+          (key, options) => t(key, options)
+        )
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, isAuthenticated, linkedTenant, t, tProfiles]);
 
   useEffect(() => {
     if (!isAuthReady || isAuthenticated || isBootstrapping) return;
@@ -253,7 +300,7 @@ export default function LoginScreen() {
             <View
               style={styles.headerContent}
               accessibilityRole="header"
-              accessibilityLabel={`${t('brandName')}. ${t('brandSubtitle')}`}>
+              accessibilityLabel={`${t('brandName')}. ${industryLine ?? t('brandSubtitle')}`}>
               <Image
                 source={require('../../assets/images/logo.webp')}
                 style={styles.logoImage}
@@ -261,7 +308,10 @@ export default function LoginScreen() {
                 accessibilityIgnoresInvertColors
               />
               <Text style={styles.brandText}>{t('brandName')}</Text>
-              <Text style={styles.headerSubtitle}>{t('brandSubtitle')}</Text>
+              <Text style={styles.headerSubtitle}>{industryLine ?? t('brandSubtitle')}</Text>
+              {prefilledTenant ? (
+                <Text style={styles.headerTenant}>{t('tenantPrefilled', { slug: prefilledTenant })}</Text>
+              ) : null}
               <View style={styles.headerDivider} />
               {__DEV__ && environmentBadge.text ? (
                 <View
@@ -482,6 +532,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 6,
     letterSpacing: 0.4,
+  },
+  headerTenant: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginTop: 8,
   },
   headerDivider: {
     width: 56,

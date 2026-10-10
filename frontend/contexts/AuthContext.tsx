@@ -25,6 +25,7 @@ import { autoCloseShiftApi, autoOpenShiftApi } from '../services/api/shiftServic
 import { getUserSettings, getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { sessionManager, type StoredSessionUser } from '../services/session/sessionManager';
 import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
+import { hasSeenPosOnboarding } from '../services/verticalProfiles/posOnboarding';
 import { authTrace } from '../utils/authTrace';
 import { createLoginFailedError, handleLoginError } from '../utils/loginErrorHandler';
 import {
@@ -728,6 +729,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const latest = userRef.current;
             if (!isAuthenticatedRef.current || !latest) return;
             if (latest.mustChangePasswordOnNextLogin) return;
+            if (!(await hasSeenPosOnboarding())) {
+              authDevLog('🧭 Navigating to onboarding...');
+              await router.replace('/(auth)/onboarding');
+              return;
+            }
             if (needsPosCashRegisterSelection(latest.currentCashRegisterId)) {
               authDevLog('🧭 Navigating to cash-register-select...');
               await router.replace(POS_CASH_REGISTER_SELECT_HREF);

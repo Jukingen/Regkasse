@@ -65,14 +65,18 @@ try {
 
 safeLog('🚀 ROOT LAYOUT: Module loaded successfully');
 
+/** Deep links read auth state, so this must render under AuthProvider. */
+function DeepLinkNavigationBridge() {
+  useDeepLinkNavigation();
+  return null;
+}
+
 export default function RootLayout() {
   const [isI18nReady, setIsI18nReady] = React.useState(false);
   const [fontsLoaded, fontError] = useFonts(CUSTOM_FONT_MAP);
 
   // Memory kullanımını izle
   useMemoryMonitor();
-  // Email / push / QR deep links → correct Expo Router screens
-  useDeepLinkNavigation();
 
   React.useEffect(() => {
     let mounted = true;
@@ -129,6 +133,7 @@ export default function RootLayout() {
       <ErrorBoundary>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <AuthProvider>
+            <DeepLinkNavigationBridge />
             <VerticalProfileProvider>
               <TaxiTripProvider>
               <MobileServiceJobProvider>

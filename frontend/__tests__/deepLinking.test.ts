@@ -13,6 +13,7 @@ import {
   deepLinkPathSegments,
   resolveDeepLink,
 } from '../services/linking/deepLinking';
+import { resolvePosTenantDeepLinkTarget } from '../services/linking/posTenantDeepLink';
 
 jest.mock('expo-linking', () => {
   // Lightweight parse compatible with expo-linking's ParsedURL shape.
@@ -105,6 +106,58 @@ describe('resolveDeepLink', () => {
   it('returns null for empty', () => {
     expect(resolveDeepLink(null)).toBeNull();
     expect(resolveDeepLink('')).toBeNull();
+  });
+});
+
+describe('resolvePosTenantDeepLinkTarget', () => {
+  it('resolves regkasse://tenant/{slug} to login with that tenant when signed out', () => {
+    expect(
+      resolvePosTenantDeepLinkTarget({
+        url: 'regkasse://tenant/praxis-nord',
+        isAuthenticated: false,
+        customerSurface: false,
+      })
+    ).toEqual({ kind: 'login', slug: 'praxis-nord' });
+  });
+
+  it('resolves cashregister://tenant/{slug} to the same tenant', () => {
+    expect(
+      resolvePosTenantDeepLinkTarget({
+        url: 'cashregister://tenant/Salon-Mitte',
+        isAuthenticated: false,
+        customerSurface: false,
+      })
+    ).toEqual({ kind: 'login', slug: 'salon-mitte' });
+  });
+
+  it('keeps an authenticated POS session on the register for that tenant link', () => {
+    expect(
+      resolvePosTenantDeepLinkTarget({
+        url: 'regkasse://tenant/taxi-wien',
+        isAuthenticated: true,
+        customerSurface: false,
+      })
+    ).toEqual({ kind: 'pos', slug: 'taxi-wien' });
+  });
+
+  it('keeps the customer surface on /customer for the same scheme', () => {
+    expect(
+      resolvePosTenantDeepLinkTarget({
+        url: 'regkasse://tenant/cafe-demo',
+        isAuthenticated: false,
+        customerSurface: true,
+      })
+    ).toEqual({ kind: 'customer', slug: 'cafe-demo' });
+  });
+
+  it('ignores links that are not a tenant route', () => {
+    expect(
+      resolvePosTenantDeepLinkTarget({
+        url: 'regkasse://login',
+        isAuthenticated: false,
+        customerSurface: false,
+      })
+    ).toBeNull();
   });
 });
 

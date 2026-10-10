@@ -233,5 +233,97 @@
   "payment": {
     "prescription": "Rezept",
     "prescriptionHint": "Optional für diesen Verkauf. Wird am Beleg gespeichert, nicht in der RKSV-Signaturkette."
+  },
+  "onboarding": {
+    "industries": {
+      "vet": "Tierarztpraxis",
+      "hairSalon": "Friseursalon",
+      "taxi": "Taxi-Betrieb",
+      "gastronomy": "Gastronomie",
+      "gastronomyTables": "Gastronomie",
+      "handyShop": "Handyshop",
+      "mobileServices": "Mobiler Dienst",
+      "ticketSales": "Ticketverkauf",
+      "lodging": "Beherbergung"
+    },
+    "default": {
+      "welcomeTitle": "Willkommen bei Regkasse",
+      "welcomeBody": "Ihre Kasse ist bereit. Der Ablauf bleibt derselbe, die Oberfläche folgt Ihrem Betrieb.",
+      "saleTitle": "Verkauf",
+      "saleBody": "Artikel wählen und den Beleg wie gewohnt abschließen.",
+      "salePreview": "Kasse"
+    },
+    "vet": {
+      "welcomeTitle": "Willkommen in Ihrer Tierarztpraxis",
+      "welcomeBody": "Patienten, Besitzer und Behandlungen gehören zu Ihrer Kasse.",
+      "recordTitle": "Patientenakte",
+      "recordBody": "Öffnen Sie die Akte, bevor Sie eine Behandlung abrechnen.",
+      "recordPreview": "Patientenakte",
+      "saleTitle": "Verkauf mit Patientenbezug",
+      "saleBody": "Tier und Besitzer bleiben am Verkauf. Die RKSV-Kette bleibt unverändert.",
+      "salePreview": "Kasse"
+    },
+    "hairSalon": {
+      "welcomeTitle": "Ihr Friseursalon",
+      "welcomeBody": "Termine und Dienstleistungen steuern den Tagesablauf.",
+      "calendarTitle": "Terminkalender",
+      "calendarBody": "Buchen Sie Dauer und Mitarbeiter direkt im Kalender.",
+      "calendarPreview": "Terminkalender",
+      "serviceTitle": "Dienstleistungen",
+      "serviceBody": "Leistungen mit Dauer erscheinen in der Terminauswahl.",
+      "servicePreview": "Termin"
+    },
+    "taxi": {
+      "welcomeTitle": "Ihr Taxi-Betrieb",
+      "welcomeBody": "Fahrten mit Abholung, Ziel und Tarif.",
+      "tripTitle": "Fahrt",
+      "tripBody": "Erfassen Sie Route und Kilometer vor dem Beleg.",
+      "tripPreview": "Fahrt",
+      "tariffTitle": "Tarif",
+      "tariffBody": "Der Kilometertarif kommt aus Ihrem Mandantenprofil.",
+      "tariffPreview": "Tarif"
+    },
+    "gastronomy": {
+      "welcomeTitle": "Ihre Gastronomie",
+      "welcomeBody": "Küche und Theke arbeiten mit derselben Bestellung.",
+      "kitchenTitle": "Küchenmonitor",
+      "kitchenBody": "Offene Positionen erscheinen auf dem Küchenbildschirm.",
+      "kitchenPreview": "Küche"
+    },
+    "gastronomyTables": {
+      "welcomeTitle": "Ihre Gastronomie",
+      "welcomeBody": "Tische halten die offene Bestellung, bis kassiert wird.",
+      "tablesTitle": "Tische",
+      "tablesBody": "Wählen Sie einen Tisch, bevor Sie Artikel hinzufügen.",
+      "tablesPreview": "Tische"
+    },
+    "handyShop": {
+      "welcomeTitle": "Ihr Handyshop",
+      "welcomeBody": "Geräte verkaufen Sie mit Seriennummer.",
+      "imeiTitle": "IMEI",
+      "imeiBody": "Wählen Sie die IMEI aus dem Bestand, bevor der Beleg entsteht.",
+      "imeiPreview": "IMEI"
+    },
+    "mobileServices": {
+      "welcomeTitle": "Ihr mobiler Dienst",
+      "welcomeBody": "Einsätze laufen über Adresse und Route.",
+      "routeTitle": "Einsatzort",
+      "routeBody": "Straße und Hinweis bleiben an der Bestellung.",
+      "routePreview": "Einsatzort"
+    },
+    "ticketSales": {
+      "welcomeTitle": "Ihr Ticketverkauf",
+      "welcomeBody": "Tickets verkaufen und am Eingang prüfen.",
+      "scanTitle": "Ticketprüfung",
+      "scanBody": "Scannen Sie das Ticket, bevor der Gast eintritt.",
+      "scanPreview": "Ticket"
+    },
+    "lodging": {
+      "welcomeTitle": "Ihre Beherbergung",
+      "welcomeBody": "Zimmer und Folio gehören zum Aufenthalt.",
+      "roomsTitle": "Zimmer",
+      "roomsBody": "Belasten Sie das Folio, bevor der Aufenthalt abgeschlossen wird.",
+      "roomsPreview": "Zimmer"
+    }
   }
 }

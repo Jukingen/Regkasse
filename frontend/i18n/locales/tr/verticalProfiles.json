@@ -233,5 +233,97 @@
   "payment": {
     "prescription": "Reçete",
     "prescriptionHint": "Bu satış için isteğe bağlı. Ödeme kaydında tutulur; RKSV imza zincirine girmez."
+  },
+  "onboarding": {
+    "industries": {
+      "vet": "Veteriner kliniği",
+      "hairSalon": "Kuaför",
+      "taxi": "Taksi işletmesi",
+      "gastronomy": "Gastronomi",
+      "gastronomyTables": "Gastronomi",
+      "handyShop": "Telefon mağazası",
+      "mobileServices": "Mobil hizmet",
+      "ticketSales": "Bilet satışı",
+      "lodging": "Konaklama"
+    },
+    "default": {
+      "welcomeTitle": "Regkasse'ye hoş geldiniz",
+      "welcomeBody": "Kasanız hazır. Satış akışı aynı kalır; ekran işletmenize uyar.",
+      "saleTitle": "Satış",
+      "saleBody": "Ürünleri seçin ve fişi her zamanki gibi tamamlayın.",
+      "salePreview": "Kasa"
+    },
+    "vet": {
+      "welcomeTitle": "Veteriner kliniğinize hoş geldiniz",
+      "welcomeBody": "Hastalar, sahipler ve tedaviler kasanıza aittir.",
+      "recordTitle": "Hasta kaydı",
+      "recordBody": "Bir tedaviyi tahsil etmeden önce kaydı açın.",
+      "recordPreview": "Hasta kaydı",
+      "saleTitle": "Hastaya bağlı satış",
+      "saleBody": "Hayvan ve sahip satışta kalır. RKSV zinciri değişmez.",
+      "salePreview": "Kasa"
+    },
+    "hairSalon": {
+      "welcomeTitle": "Kuaförünüz",
+      "welcomeBody": "Günü randevular ve hizmetler yönetir.",
+      "calendarTitle": "Randevu takvimi",
+      "calendarBody": "Süreyi ve personeli doğrudan takvimde ayırın.",
+      "calendarPreview": "Randevu takvimi",
+      "serviceTitle": "Hizmetler",
+      "serviceBody": "Süresi olan hizmetler randevu listesinde görünür.",
+      "servicePreview": "Randevu"
+    },
+    "taxi": {
+      "welcomeTitle": "Taksi işletmeniz",
+      "welcomeBody": "Alış, varış ve tarifeli sürüşler.",
+      "tripTitle": "Sürüş",
+      "tripBody": "Fişten önce güzergâhı ve kilometreyi girin.",
+      "tripPreview": "Sürüş",
+      "tariffTitle": "Tarife",
+      "tariffBody": "Kilometre tarifesi kiracı profilinizden gelir.",
+      "tariffPreview": "Tarife"
+    },
+    "gastronomy": {
+      "welcomeTitle": "Gastronominiz",
+      "welcomeBody": "Mutfak ve kasa aynı siparişi paylaşır.",
+      "kitchenTitle": "Mutfak ekranı",
+      "kitchenBody": "Açık kalemler mutfak ekranında görünür.",
+      "kitchenPreview": "Mutfak"
+    },
+    "gastronomyTables": {
+      "welcomeTitle": "Gastronominiz",
+      "welcomeBody": "Masalar, ödeme yapılana kadar açık siparişi tutar.",
+      "tablesTitle": "Masalar",
+      "tablesBody": "Ürün eklemeden önce bir masa seçin.",
+      "tablesPreview": "Masalar"
+    },
+    "handyShop": {
+      "welcomeTitle": "Telefon mağazanız",
+      "welcomeBody": "Cihazları seri numarasıyla satarsınız.",
+      "imeiTitle": "IMEI",
+      "imeiBody": "Fiş oluşmadan önce stoktan IMEI seçin.",
+      "imeiPreview": "IMEI"
+    },
+    "mobileServices": {
+      "welcomeTitle": "Mobil hizmetiniz",
+      "welcomeBody": "İşler adres ve güzergâh üzerinden yürür.",
+      "routeTitle": "Hizmet yeri",
+      "routeBody": "Sokak ve not siparişte kalır.",
+      "routePreview": "Hizmet yeri"
+    },
+    "ticketSales": {
+      "welcomeTitle": "Bilet satışınız",
+      "welcomeBody": "Bilet satın ve girişte kontrol edin.",
+      "scanTitle": "Bilet kontrolü",
+      "scanBody": "Misafir girmeden önce bileti tarayın.",
+      "scanPreview": "Bilet"
+    },
+    "lodging": {
+      "welcomeTitle": "Konaklamanız",
+      "welcomeBody": "Odalar ve folyo konaklamaya aittir.",
+      "roomsTitle": "Odalar",
+      "roomsBody": "Konaklama kapanmadan önce folyoya yazın.",
+      "roomsPreview": "Odalar"
+    }
   }
 }
