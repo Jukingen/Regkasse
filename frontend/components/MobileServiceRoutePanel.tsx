@@ -17,8 +17,8 @@ export function MobileServiceRoutePanel(props: {
   customerPhone?: string;
   customerId?: string | null;
 }) {
-  const { profileId } = useVerticalFeatures();
-  if (profileId !== 'mobile-services') {
+  const { posFeatures } = useVerticalFeatures();
+  if (posFeatures.routeTracking !== true) {
     return null;
   }
   return <MobileServiceRouteFields {...props} />;

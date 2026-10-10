@@ -14,6 +14,7 @@ import {
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 import { listProductImeis, type ProductImeiDto } from '../services/api/imeiService';
 
 export type ImeiPickerModalProps = {
@@ -32,6 +33,8 @@ export function ImeiPickerModal({
   onSelect,
 }: ImeiPickerModalProps) {
   const { t } = useTranslation(['verticalProfiles', 'common']);
+  const { posFeatures } = useVerticalFeatures();
+  const imeiEnabled = posFeatures.imeiTracking === true;
   const [items, setItems] = useState<ProductImeiDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +56,7 @@ export function ImeiPickerModal({
   }, [productId, t]);
 
   useEffect(() => {
+    if (!imeiEnabled) return;
     if (visible && productId) {
       void load();
     } else {
@@ -60,7 +64,7 @@ export function ImeiPickerModal({
       setError(null);
       setScannerOpen(false);
     }
-  }, [visible, productId, load]);
+  }, [imeiEnabled, visible, productId, load]);
 
   const handleSelect = useCallback(
     (imei: string) => {
@@ -71,6 +75,8 @@ export function ImeiPickerModal({
     },
     [onClose, onSelect]
   );
+
+  if (!imeiEnabled) return null;
 
   return (
     <>

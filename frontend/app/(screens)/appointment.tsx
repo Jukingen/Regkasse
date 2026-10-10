@@ -80,10 +80,15 @@ export default function AppointmentScreen() {
   useEffect(() => {
     if (!posFeatures.appointment) return;
     let cancelled = false;
+    const durationAware = posFeatures.serviceDuration === true;
     getAllProducts(1, 200)
       .then((products) => {
         if (cancelled) return;
-        setServices(products.filter((product) => (product.durationMinutes ?? 0) > 0));
+        setServices(
+          durationAware
+            ? products.filter((product) => (product.durationMinutes ?? 0) > 0)
+            : products
+        );
       })
       .catch(() => {
         if (!cancelled) setServices([]);
@@ -92,7 +97,7 @@ export default function AppointmentScreen() {
     return () => {
       cancelled = true;
     };
-  }, [posFeatures.appointment, reloadDay]);
+  }, [posFeatures.appointment, posFeatures.serviceDuration, reloadDay]);
 
   const saveBooking = async () => {
     if (!customerName.trim() || !date.trim() || !time.trim() || !selectedService) {
@@ -104,7 +109,8 @@ export default function AppointmentScreen() {
     setConflict(false);
     try {
       const start = combineLocalDateTime(date, time);
-      const durationMinutes = selectedService.durationMinutes ?? 30;
+      const durationMinutes =
+        posFeatures.serviceDuration === true ? (selectedService.durationMinutes ?? 30) : 30;
       const end = new Date(start.getTime() + durationMinutes * 60_000);
       const created = await createAppointment({
         customerName: customerName.trim(),
@@ -270,7 +276,7 @@ export default function AppointmentScreen() {
                       ]}
                     >
                       {service.name}
-                      {service.durationMinutes
+                      {posFeatures.serviceDuration === true && service.durationMinutes
                         ? ` · ${t('screens.appointments.duration', {
                             minutes: service.durationMinutes,
                           })}`

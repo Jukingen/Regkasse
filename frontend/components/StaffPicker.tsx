@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
+import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 import { listPosStaff, type PosStaffMember } from '../services/api/staffService';
 import { staffInitials } from '../utils/staffInitials';
 
@@ -13,9 +14,12 @@ export interface StaffPickerProps {
 
 export function StaffPicker({ selectedId, onSelect }: StaffPickerProps) {
   const { t } = useTranslation('verticalProfiles');
+  const { posFeatures } = useVerticalFeatures();
+  const appointmentEnabled = posFeatures.appointment === true;
   const [staff, setStaff] = useState<PosStaffMember[]>([]);
 
   useEffect(() => {
+    if (!appointmentEnabled) return;
     let cancelled = false;
     listPosStaff()
       .then((members) => {
@@ -27,7 +31,9 @@ export function StaffPicker({ selectedId, onSelect }: StaffPickerProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [appointmentEnabled]);
+
+  if (!appointmentEnabled) return null;
 
   if (staff.length === 0) {
     return <Text style={styles.empty}>{t('screens.appointments.noStaff')}</Text>;

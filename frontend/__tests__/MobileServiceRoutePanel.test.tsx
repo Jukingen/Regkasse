@@ -29,10 +29,11 @@ jest.mock('../services/api/customerService', () => ({
 describe('MobileServiceRoutePanel', () => {
   beforeEach(async () => {
     await changeLanguage('de');
-    mockProfile.profileId = 'mobile-services';
+    mockProfile.profileId = 'gastronomy';
+    mockProfile.posFeatures.routeTracking = true;
   });
 
-  it('renders the route and address panel for mobile-services', async () => {
+  it('renders the route and address panel when routeTracking is on', async () => {
     await render(
       <MobileServiceJobProvider>
         <MobileServiceRoutePanel customerName="Lena Mobil" />
@@ -54,5 +55,18 @@ describe('MobileServiceRoutePanel', () => {
 
     expect(await screen.findByLabelText('customer-Straße')).toBeTruthy();
     expect(screen.getByLabelText('job-Straße')).toBeTruthy();
+  });
+
+  it('hides the panel when routeTracking is off', async () => {
+    mockProfile.profileId = 'mobile-services';
+    mockProfile.posFeatures.routeTracking = false;
+
+    await render(
+      <MobileServiceJobProvider>
+        <MobileServiceRoutePanel customerName="Lena Mobil" />
+      </MobileServiceJobProvider>
+    );
+
+    expect(screen.queryByText('Adresse und Einsatzort')).toBeNull();
   });
 });

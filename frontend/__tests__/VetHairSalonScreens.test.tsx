@@ -81,7 +81,7 @@ jest.mock('../services/appointmentNotifications', () => ({
 
 function enableHairSalonProfile() {
   verticalProfile.current = {
-    posFeatures: { patientRecord: false, appointment: true },
+    posFeatures: { patientRecord: false, appointment: true, serviceDuration: true },
     requiredFields: { customer: ['name'], product: ['durationMinutes'] },
     optionalFields: { customer: ['phone', 'email'], product: ['staffId'] },
     posLayout: 'appointment',
@@ -196,5 +196,32 @@ describe('vet and hair-salon vertical screens', () => {
     expect(await screen.findByLabelText('Terminkonflikt')).toBeTruthy();
     expect(screen.getByText('Terminkonflikt')).toBeTruthy();
     expect(screen.getByLabelText('Neu laden')).toBeTruthy();
+  });
+
+  it('keeps only timed services when serviceDuration is on', async () => {
+    enableHairSalonProfile();
+    mockGetProducts.mockResolvedValue([
+      { id: 'service-1', name: 'Haarschnitt', durationMinutes: 45, staffId: 'staff-1' },
+      { id: 'service-2', name: 'Ohne Dauer', durationMinutes: 0 },
+    ]);
+
+    await render(<AppointmentScreen />);
+    await fireEvent.press(await screen.findByLabelText('Neuer Termin'));
+
+    expect(await screen.findByLabelText('Haarschnitt')).toBeTruthy();
+    expect(screen.queryByLabelText('Ohne Dauer')).toBeNull();
+  });
+
+  it('lists products without a duration when serviceDuration is off', async () => {
+    enableHairSalonProfile();
+    verticalProfile.current.posFeatures.serviceDuration = false;
+    mockGetProducts.mockResolvedValue([
+      { id: 'service-2', name: 'Ohne Dauer', durationMinutes: null },
+    ]);
+
+    await render(<AppointmentScreen />);
+    await fireEvent.press(await screen.findByLabelText('Neuer Termin'));
+
+    expect(await screen.findByLabelText('Ohne Dauer')).toBeTruthy();
   });
 });

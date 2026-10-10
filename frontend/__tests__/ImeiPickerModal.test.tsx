@@ -9,6 +9,17 @@ import { changeLanguage } from '../i18n';
 import { productRequiresImeiPicker } from '../services/api/imeiService';
 
 const mockList = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockImeiFeatures = { imeiTracking: true };
+
+jest.mock('../contexts/VerticalProfileContext', () => ({
+  useVerticalFeatures: () => ({
+    profileId: 'handy-shop',
+    posLayout: 'standard',
+    posFeatures: mockImeiFeatures,
+    requiredFields: { customer: [], product: [] },
+    optionalFields: { customer: [], product: [] },
+  }),
+}));
 
 jest.mock('../services/api/imeiService', () => ({
   listProductImeis: (...args: unknown[]) => mockList(...args),
@@ -23,6 +34,7 @@ jest.mock('../components/BarcodeScannerModal', () => ({
 describe('ImeiPickerModal', () => {
   beforeEach(async () => {
     await changeLanguage('de');
+    mockImeiFeatures.imeiTracking = true;
     mockList.mockReset();
     mockList.mockResolvedValue([
       {
@@ -63,5 +75,21 @@ describe('ImeiPickerModal', () => {
     const row = await screen.findByLabelText('IMEI 490154203237518 wählen');
     await fireEvent.press(row);
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith('490154203237518'));
+  });
+
+  it('hides the picker when imeiTracking is off', async () => {
+    mockImeiFeatures.imeiTracking = false;
+    await render(
+      <ImeiPickerModal
+        visible
+        productId="prod-1"
+        productName="Pixel"
+        onClose={() => undefined}
+        onSelect={() => undefined}
+      />
+    );
+
+    expect(screen.queryByLabelText('IMEI wählen')).toBeNull();
+    expect(mockList).not.toHaveBeenCalled();
   });
 });

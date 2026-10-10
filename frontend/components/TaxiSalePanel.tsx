@@ -8,7 +8,10 @@ import {
   parseTaxiKm,
   useTaxiTrip,
 } from '../contexts/TaxiTripContext';
-import { useVerticalProfileContext } from '../contexts/VerticalProfileContext';
+import {
+  useVerticalFeatures,
+  useVerticalProfileContext,
+} from '../contexts/VerticalProfileContext';
 import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
 import type { Product } from '../services/api/productService';
 import { computeTaxiSuggestedAmount } from '../services/taxiFare';
@@ -33,7 +36,15 @@ function formatElapsed(startedAtUtc: string | null, nowMs: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-export function TaxiSalePanel({
+export function TaxiSalePanel(props: TaxiSalePanelProps) {
+  const { posLayout, posFeatures } = useVerticalFeatures();
+  if (posLayout !== 'taxi' || posFeatures.routeTracking !== true) {
+    return null;
+  }
+  return <TaxiSalePanelBody {...props} />;
+}
+
+function TaxiSalePanelBody({
   products,
   selectedProductId,
   onSelectProduct,

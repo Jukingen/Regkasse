@@ -13,6 +13,7 @@ import {
   SoftState,
   SoftTypography,
 } from '../constants/SoftTheme';
+import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 
 interface TableSelectorProps {
   selectedTable: number;
@@ -32,8 +33,10 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   onClearAllTables,
 }) => {
   const { t } = useTranslation(['checkout']);
+  const { posFeatures } = useVerticalFeatures();
   const insets = useSafeAreaInsets();
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const tablesEnabled = posFeatures.tables === true;
 
   const handleTablePress = (tableNumber: number) => {
     if (selectedTable === tableNumber) return;
@@ -51,6 +54,8 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
     );
     return recoveryOrder?.itemCount ?? 0;
   };
+
+  if (!tablesEnabled) return null;
 
   return (
     <View

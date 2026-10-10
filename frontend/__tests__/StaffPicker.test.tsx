@@ -6,6 +6,17 @@ import { StaffPicker } from '../components/StaffPicker';
 import { changeLanguage } from '../i18n';
 
 const mockListPosStaff = jest.fn<(...args: unknown[]) => Promise<unknown[]>>();
+const mockStaffFeatures = { appointment: true };
+
+jest.mock('../contexts/VerticalProfileContext', () => ({
+  useVerticalFeatures: () => ({
+    profileId: 'hair-salon',
+    posLayout: 'appointment',
+    posFeatures: mockStaffFeatures,
+    requiredFields: { customer: [], product: [] },
+    optionalFields: { customer: [], product: [] },
+  }),
+}));
 
 jest.mock('../services/api/staffService', () => ({
   listPosStaff: (...args: unknown[]) => mockListPosStaff(...args),
@@ -20,6 +31,7 @@ jest.mock('../services/api/staffService', () => ({
 describe('StaffPicker', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockStaffFeatures.appointment = true;
     await changeLanguage('de');
     mockListPosStaff.mockResolvedValue([
       { id: 'staff-1', name: 'Anna Kasse', role: 'Cashier' },
@@ -36,5 +48,14 @@ describe('StaffPicker', () => {
     await waitFor(() => {
       expect(mockListPosStaff).toHaveBeenCalled();
     });
+  });
+
+  it('hides the picker when appointment is off', async () => {
+    mockStaffFeatures.appointment = false;
+    await render(<StaffPicker selectedId={null} onSelect={() => undefined} />);
+
+    expect(screen.queryByLabelText('Anna Kasse, Kassierer')).toBeNull();
+    expect(screen.queryByText('Keine Mitarbeiter gefunden.')).toBeNull();
+    expect(mockListPosStaff).not.toHaveBeenCalled();
   });
 });
