@@ -65,4 +65,29 @@ public sealed class AdminTenantVerticalProfileController : ControllerBase
 
         return Ok(profile);
     }
+
+    [HttpGet("/api/admin/tenants/{tenantId:guid}/profile-impact")]
+    [ProducesResponseType(typeof(TenantProfileImpactDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantProfileImpactDto>> GetImpact(
+        Guid tenantId,
+        [FromQuery] string profileId,
+        CancellationToken cancellationToken)
+    {
+        var (impact, error) = await _profiles
+            .GetProfileImpactAsync(tenantId, profileId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (error?.Code is VerticalProfileUpdateErrorCodes.TenantNotFound
+            or VerticalProfileUpdateErrorCodes.CompanySettingsMissing)
+        {
+            return NotFound(new { message = error.Message, code = error.Code });
+        }
+
+        if (error is not null)
+            return BadRequest(new { message = error.Message, code = error.Code });
+
+        return Ok(impact);
+    }
 }

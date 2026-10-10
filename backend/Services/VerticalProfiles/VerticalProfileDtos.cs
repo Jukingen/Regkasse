@@ -63,6 +63,39 @@ public static class VerticalProfileUpdateErrorCodes
 
 public sealed record VerticalProfileUpdateError(string Code, string Message);
 
+public static class TenantProfileImpactCodes
+{
+    public const string CustomersWithPetData = "customersWithPetData";
+    public const string PaymentsWithPrescriptionReference = "paymentsWithPrescriptionReference";
+    public const string PaymentsWithRouteFrom = "paymentsWithRouteFrom";
+    public const string SoldImeis = "soldImeis";
+    public const string Appointments = "appointments";
+    public const string Rooms = "rooms";
+    public const string Folios = "folios";
+    public const string Tickets = "tickets";
+}
+
+public sealed record TenantProfileImpactCounts(
+    int CustomersWithPetData,
+    int PaymentsWithPrescriptionReference,
+    int PaymentsWithRouteFrom,
+    int SoldImeis,
+    int Appointments,
+    int Rooms,
+    int Folios,
+    int Tickets);
+
+public sealed record TenantProfileImpactWarning(string Code, int Count);
+
+/// <summary>
+/// Rows that stay in the database and would be hidden by the target profile.
+/// </summary>
+public sealed record TenantProfileImpactDto(
+    string CurrentProfileId,
+    string TargetProfileId,
+    TenantProfileImpactCounts Counts,
+    IReadOnlyList<TenantProfileImpactWarning> Warnings);
+
 public sealed class UpsertVerticalProfileRequest
 {
     [MaxLength(64)]

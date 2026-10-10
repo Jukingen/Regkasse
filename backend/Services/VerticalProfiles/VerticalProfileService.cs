@@ -30,6 +30,14 @@ public interface IVerticalProfileService
         string actorUserId,
         string actorRole,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts historical rows the target profile would hide. Does not read or write fiscal documents.
+    /// </summary>
+    Task<(TenantProfileImpactDto? Impact, VerticalProfileUpdateError? Error)> GetProfileImpactAsync(
+        Guid tenantId,
+        string targetProfileId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class VerticalProfileService : IVerticalProfileService
@@ -208,6 +216,8 @@ public sealed class VerticalProfileService : IVerticalProfileService
         var oldProfileId = settings.VerticalProfileId;
         var oldOverridesJson = overrideRow?.OverridesJson ?? "{}";
         var now = DateTime.UtcNow;
+        // Assignment only. Customers, products, payments, appointments, rooms,
+        // folios, tickets, and IMEIs stay as historical rows.
         settings.VerticalProfileId = profile.Id;
         settings.TaxiTariffPerKm = request.TaxiTariffPerKm;
         settings.UpdatedAt = now;
@@ -269,6 +279,153 @@ public sealed class VerticalProfileService : IVerticalProfileService
             tenantId);
 
         return (BuildEffective(profile, normalizedOverrides, settings.TaxiTariffPerKm), null);
+    }
+
+    public async Task<(TenantProfileImpactDto? Impact, VerticalProfileUpdateError? Error)> GetProfileImpactAsync(
+        Guid tenantId,
+        string targetProfileId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedTarget = targetProfileId?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (normalizedTarget.Length == 0)
+        {
+            return (null, new VerticalProfileUpdateError(
+                VerticalProfileUpdateErrorCodes.ProfileNotFound,
+                "Vertical profile not found."));
+        }
+
+        var tenantExists = await _db.Tenants
+            .AnyAsync(tenant => tenant.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tenantExists)
+        {
+            return (null, new VerticalProfileUpdateError(
+                VerticalProfileUpdateErrorCodes.TenantNotFound,
+                "Tenant not found."));
+        }
+
+        var settings = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (settings is null)
+        {
+            return (null, new VerticalProfileUpdateError(
+                VerticalProfileUpdateErrorCodes.CompanySettingsMissing,
+                "Company settings not found."));
+        }
+
+        var target = await _registry.FindActiveAsync(normalizedTarget, cancellationToken).ConfigureAwait(false);
+        if (target is null)
+        {
+            return (null, new VerticalProfileUpdateError(
+                VerticalProfileUpdateErrorCodes.ProfileNotFound,
+                "Vertical profile not found."));
+        }
+
+        var current = await ResolveEffectiveAsync(
+                settings.VerticalProfileId,
+                null,
+                settings.TaxiTariffPerKm,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var effectiveTarget = BuildEffective(target, "{}", settings.TaxiTariffPerKm);
+        var counts = await CountImpactAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return (new TenantProfileImpactDto(
+            current?.ProfileId ?? VerticalProfileIds.Gastronomy,
+            effectiveTarget.ProfileId,
+            counts,
+            BuildWarnings(effectiveTarget, counts)), null);
+    }
+
+    private async Task<TenantProfileImpactCounts> CountImpactAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var registerIds = _db.CashRegisters
+            .IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .Select(row => row.Id);
+
+        var customersWithPetData = await _db.Customers
+            .IgnoreQueryFilters()
+            .CountAsync(
+                row => row.TenantId == tenantId && row.PetData != null,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var paymentsWithPrescription = await _db.PaymentDetails
+            .IgnoreQueryFilters()
+            .CountAsync(
+                row => registerIds.Contains(row.CashRegisterId)
+                    && row.PrescriptionReference != null
+                    && row.PrescriptionReference != "",
+                cancellationToken)
+            .ConfigureAwait(false);
+        var paymentsWithRoute = await _db.PaymentDetails
+            .IgnoreQueryFilters()
+            .CountAsync(
+                row => registerIds.Contains(row.CashRegisterId)
+                    && row.RouteFrom != null
+                    && row.RouteFrom != "",
+                cancellationToken)
+            .ConfigureAwait(false);
+        var soldImeis = await _db.ProductImeis
+            .IgnoreQueryFilters()
+            .CountAsync(
+                row => row.TenantId == tenantId && row.Status == ProductImeiStatus.Sold,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var appointments = await _db.Appointments
+            .IgnoreQueryFilters()
+            .CountAsync(row => row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        var rooms = await _db.Rooms
+            .IgnoreQueryFilters()
+            .CountAsync(row => row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        var folios = await _db.GuestFolios
+            .IgnoreQueryFilters()
+            .CountAsync(row => row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        var tickets = await _db.TicketRedemptions
+            .IgnoreQueryFilters()
+            .CountAsync(row => row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new TenantProfileImpactCounts(
+            customersWithPetData,
+            paymentsWithPrescription,
+            paymentsWithRoute,
+            soldImeis,
+            appointments,
+            rooms,
+            folios,
+            tickets);
+    }
+
+    private static IReadOnlyList<TenantProfileImpactWarning> BuildWarnings(
+        EffectiveVerticalProfileDto target,
+        TenantProfileImpactCounts counts)
+    {
+        var warnings = new List<TenantProfileImpactWarning>();
+        void Add(bool hidden, string code, int count)
+        {
+            if (hidden && count > 0)
+                warnings.Add(new TenantProfileImpactWarning(code, count));
+        }
+
+        var hidesPatients = !target.HasPosFeature("patientRecord");
+        Add(hidesPatients, TenantProfileImpactCodes.CustomersWithPetData, counts.CustomersWithPetData);
+        Add(hidesPatients, TenantProfileImpactCodes.PaymentsWithPrescriptionReference, counts.PaymentsWithPrescriptionReference);
+        Add(!VerticalProfileGuard.IsTaxiSurface(target), TenantProfileImpactCodes.PaymentsWithRouteFrom, counts.PaymentsWithRouteFrom);
+        Add(!target.HasPosFeature("imeiTracking"), TenantProfileImpactCodes.SoldImeis, counts.SoldImeis);
+        Add(!target.HasPosFeature("appointment"), TenantProfileImpactCodes.Appointments, counts.Appointments);
+        var hidesLodging = !string.Equals(target.ProfileId, VerticalProfileIds.Beherbergung, StringComparison.Ordinal);
+        Add(hidesLodging, TenantProfileImpactCodes.Rooms, counts.Rooms);
+        Add(hidesLodging, TenantProfileImpactCodes.Folios, counts.Folios);
+        Add(!target.HasPosFeature("ticketScan"), TenantProfileImpactCodes.Tickets, counts.Tickets);
+        return warnings;
     }
 
     private async Task<EffectiveVerticalProfileDto?> ResolveEffectiveAsync(
