@@ -163,7 +163,10 @@
     "cashRegisterQuickSwitchHint": "Kasa seçin ve kasa yönetimini açın",
     "cashRegisterQuickSwitchManage": "Kasa yönetimini aç",
     "monatsbelegBadgeLabel": "Aylık fiş ({count})",
-    "monatsbelegBadgeAria": "Aylık fiş uyarıları: {count}"
+    "monatsbelegBadgeAria": "Aylık fiş uyarıları: {count}",
+    "profileSimulationAria": "Gezinme için bir POS profili simüle et",
+    "profileSimulationAll": "Tüm profiller",
+    "profileSimulationActual": "Geçerli kiracı profili"
   },
   "tenant": {
     "badge": {

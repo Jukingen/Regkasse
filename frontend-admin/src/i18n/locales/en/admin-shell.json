@@ -163,7 +163,10 @@
     "cashRegisterQuickSwitchHint": "Pick a register and open cash register management",
     "cashRegisterQuickSwitchManage": "Open cash register management",
     "monatsbelegBadgeLabel": "Monthly receipt ({count})",
-    "monatsbelegBadgeAria": "Monthly receipt warnings: {count}"
+    "monatsbelegBadgeAria": "Monthly receipt warnings: {count}",
+    "profileSimulationAria": "Simulate a POS profile for navigation",
+    "profileSimulationAll": "All profiles",
+    "profileSimulationActual": "Current tenant profile"
   },
   "tenant": {
     "badge": {

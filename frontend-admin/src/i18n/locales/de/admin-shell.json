@@ -163,7 +163,10 @@
     "cashRegisterQuickSwitchHint": "Kasse auswählen und Kassenverwaltung öffnen",
     "cashRegisterQuickSwitchManage": "Kassenverwaltung öffnen",
     "monatsbelegBadgeLabel": "Monatsbeleg ({count})",
-    "monatsbelegBadgeAria": "Monatsbeleg-Warnungen: {count}"
+    "monatsbelegBadgeAria": "Monatsbeleg-Warnungen: {count}",
+    "profileSimulationAria": "POS-Profil für die Navigation simulieren",
+    "profileSimulationAll": "Alle Profile",
+    "profileSimulationActual": "Aktuelles Mandantenprofil"
   },
   "tenant": {
     "badge": {

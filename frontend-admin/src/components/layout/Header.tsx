@@ -17,6 +17,7 @@ import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSw
 import { ActivityNotificationsBell } from '@/features/activity-notifications/components/ActivityNotificationsBell';
 import { HeaderTenantSection } from '@/features/auth/components/HeaderTenantSection';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
+import { SuperAdminProfileSimulationSelect } from '@/features/vertical-profiles/components/SuperAdminProfileSimulationSelect';
 import { useI18n } from '@/i18n';
 import type { AuthUser } from '@/shared/auth/types';
 
@@ -140,6 +141,8 @@ export function AdminShellHeader({
             </span>
 
             <HeaderTenantSection isMobile={isMobile} />
+
+            <SuperAdminProfileSimulationSelect />
 
             <LicenseStatusIndicator compact={isMobile} />
 
