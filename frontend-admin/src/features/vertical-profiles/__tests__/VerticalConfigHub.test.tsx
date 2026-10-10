@@ -140,6 +140,19 @@ describe('VerticalConfigHub', () => {
     );
   });
 
+  it('invalidates the sidebar profile cache after a catalog save', async () => {
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    renderHub();
+    fireEvent.click(await screen.findByRole('button', { name: 'Bearbeiten gastronomy' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['/api/admin/vertical-profile'],
+    });
+    invalidateQueries.mockRestore();
+  });
+
   it('toggles a feature in the matrix', async () => {
     renderHub();
     fireEvent.click(await screen.findByRole('tab', { name: 'Funktionsmatrix' }));

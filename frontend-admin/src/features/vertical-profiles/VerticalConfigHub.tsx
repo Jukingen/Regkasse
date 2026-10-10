@@ -20,6 +20,7 @@ import {
   type VerticalProfileRecord,
   type VerticalProfileTenantSummary,
 } from './api';
+import { invalidateAdminVerticalProfileQueries } from './contexts/AdminVerticalProfileContext';
 import {
   buildProfilePreview,
   FIELD_ENTITIES,
@@ -106,6 +107,7 @@ export function VerticalConfigHub() {
   const preview = buildProfilePreview(features, layout);
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin', 'vertical-profiles'] });
+    invalidateAdminVerticalProfileQueries(queryClient);
   };
 
   const openEditor = (profile: VerticalProfileRecord, nextMode: EditorMode) => {
