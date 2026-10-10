@@ -108,7 +108,8 @@ public sealed class PosCustomerVerticalProfileTests
             Mock.Of<IPosCustomerQrLookupService>(),
             db,
             TenantTestDoubles.TenantAccessorReturning(tenantId),
-            Mock.Of<ILogger<PosCustomerController>>());
+            Mock.Of<ILogger<PosCustomerController>>(),
+            new PermissiveVerticalProfileGuard());
 
     private static AppDbContext CreateDb(Guid? tenantId)
     {

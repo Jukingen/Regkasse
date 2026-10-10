@@ -329,7 +329,7 @@ public sealed class LodgingApiTests
     private static PosRoomsController CreatePosController(AppDbContext db, Guid tenantId, string? role = null)
     {
         var accessor = TenantTestDoubles.TenantAccessorReturning(tenantId == Guid.Empty ? null : tenantId);
-        return new PosRoomsController(new LodgingService(db), accessor)
+        return new PosRoomsController(new LodgingService(db), accessor, new PermissiveVerticalProfileGuard())
         {
             ControllerContext = new ControllerContext
             {

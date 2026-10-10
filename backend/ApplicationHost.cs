@@ -323,6 +323,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsNotificationService, KasseAPI_Final.Services.TenantSettings.TenantSettingsNotificationService>();
         builder.Services.AddScoped<IVerticalProfileRegistry, VerticalProfileRegistry>();
         builder.Services.AddScoped<IVerticalProfileService, VerticalProfileService>();
+        builder.Services.AddScoped<IVerticalProfileGuard, VerticalProfileGuard>();
         builder.Services.AddScoped<IVerticalProfileCatalogService, VerticalProfileCatalogService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Appointments.IAppointmentService, KasseAPI_Final.Services.Appointments.AppointmentService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderService, KasseAPI_Final.Services.Kitchen.KitchenOrderService>();

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Appointments;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,13 +17,16 @@ public sealed class PosAppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointments;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
 
     public PosAppointmentsController(
         IAppointmentService appointments,
-        ICurrentTenantAccessor tenantAccessor)
+        ICurrentTenantAccessor tenantAccessor,
+        IVerticalProfileGuard profileGuard)
     {
         _appointments = appointments;
         _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
     }
 
     [HttpGet]
@@ -53,6 +57,10 @@ public sealed class PosAppointmentsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        var denied = await RejectUnlessAppointmentAsync(cancellationToken).ConfigureAwait(false);
+        if (denied is not null)
+            return denied;
+
         var result = await _appointments
             .CreateAsync(request, User.GetActorUserId(), User.GetActorRole(), cancellationToken)
             .ConfigureAwait(false);
@@ -72,6 +80,10 @@ public sealed class PosAppointmentsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        var denied = await RejectUnlessAppointmentAsync(cancellationToken).ConfigureAwait(false);
+        if (denied is not null)
+            return denied;
+
         var result = await _appointments
             .UpdateAsync(id, request, User.GetActorUserId(), User.GetActorRole(), cancellationToken)
             .ConfigureAwait(false);
@@ -85,10 +97,27 @@ public sealed class PosAppointmentsController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
+        var denied = await RejectUnlessAppointmentAsync(cancellationToken).ConfigureAwait(false);
+        if (denied is not null)
+            return denied;
+
         var result = await _appointments
             .CancelAsync(id, User.GetActorUserId(), User.GetActorRole(), cancellationToken)
             .ConfigureAwait(false);
         return ToActionResult(result);
+    }
+
+    private async Task<ActionResult<AppointmentDto>?> RejectUnlessAppointmentAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("appointment", cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
     }
 
     private ActionResult<AppointmentDto> ToActionResult(AppointmentWriteResult result)

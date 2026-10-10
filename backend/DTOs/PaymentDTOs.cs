@@ -359,6 +359,9 @@ namespace KasseAPI_Final.DTOs
         /// </summary>
         public string? DiagnosticCode { get; set; }
 
+        /// <summary>Profile capability that rejected an optional field (<c>PROFILE_FEATURE_DISABLED</c>).</summary>
+        public string? ProfileFeature { get; set; }
+
         /// <summary>When true (default), invoice was persisted for this payment. When false, payment succeeded but invoice sync failed — operator attention required.</summary>
         public bool InvoicePersisted { get; set; } = true;
 

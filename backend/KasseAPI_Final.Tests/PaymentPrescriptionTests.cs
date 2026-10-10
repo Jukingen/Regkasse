@@ -80,7 +80,8 @@ public sealed class PaymentPrescriptionTests
         var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
 
         Assert.False(result.Success);
-        Assert.Equal("PRESCRIPTION_NOT_ALLOWED", result.DiagnosticCode);
+        Assert.Equal("PROFILE_FEATURE_DISABLED", result.DiagnosticCode);
+        Assert.Equal("patientRecord", result.ProfileFeature);
         Assert.True(result.IsDeterministicFailure);
         Assert.Equal(0, await ctx.PaymentDetails.CountAsync());
     }

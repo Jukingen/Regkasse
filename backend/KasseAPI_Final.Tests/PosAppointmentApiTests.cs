@@ -221,7 +221,7 @@ public sealed class PosAppointmentApiTests
             accessor,
             audit ?? CreateAuditMock().Object,
             Mock.Of<ILogger<AppointmentService>>());
-        var controller = new PosAppointmentsController(service, accessor)
+        var controller = new PosAppointmentsController(service, accessor, new PermissiveVerticalProfileGuard())
         {
             ControllerContext = new ControllerContext
             {

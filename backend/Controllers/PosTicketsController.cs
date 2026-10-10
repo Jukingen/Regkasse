@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.Tickets;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,16 @@ public sealed class PosTicketsController : ControllerBase
 {
     private readonly ITicketRedemptionService _tickets;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
 
-    public PosTicketsController(ITicketRedemptionService tickets, ICurrentTenantAccessor tenantAccessor)
+    public PosTicketsController(
+        ITicketRedemptionService tickets,
+        ICurrentTenantAccessor tenantAccessor,
+        IVerticalProfileGuard profileGuard)
     {
         _tickets = tickets;
         _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
     }
 
     [HttpPost("{code}/validate")]
@@ -47,6 +53,15 @@ public sealed class PosTicketsController : ControllerBase
             return NotFound();
         if (string.IsNullOrWhiteSpace(code))
             return NotFound();
+
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("ticketScan", cancellationToken).ConfigureAwait(false);
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
 
         var userId = User.FindFirst("sub")?.Value
             ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

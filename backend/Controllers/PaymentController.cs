@@ -8,6 +8,7 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tse;
 using Microsoft.AspNetCore.Authorization;
@@ -281,6 +282,17 @@ namespace KasseAPI_Final.Controllers
                     };
                     return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id },
                         responseData);
+                }
+
+                if (string.Equals(
+                        result.DiagnosticCode,
+                        FeatureNotEnabledForProfileException.Code,
+                        StringComparison.Ordinal))
+                {
+                    return BadRequest(VerticalProfileGuardResponses.Body(
+                        FeatureNotEnabledForProfileException.Code,
+                        result.ProfileFeature,
+                        result.Message));
                 }
 
                 if (v2)

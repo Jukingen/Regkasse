@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.Lodging;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,16 @@ public sealed class PosRoomsController : ControllerBase
 {
     private readonly ILodgingService _lodging;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
 
-    public PosRoomsController(ILodgingService lodging, ICurrentTenantAccessor tenantAccessor)
+    public PosRoomsController(
+        ILodgingService lodging,
+        ICurrentTenantAccessor tenantAccessor,
+        IVerticalProfileGuard profileGuard)
     {
         _lodging = lodging;
         _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
     }
 
     [HttpGet("rooms")]
@@ -175,6 +181,15 @@ public sealed class PosRoomsController : ControllerBase
             return ValidationProblem(ModelState);
         if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
             return NotFound();
+
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("roomTracking", cancellationToken).ConfigureAwait(false);
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
 
         var (userId, role) = Actor();
         var result = await _lodging

@@ -115,7 +115,7 @@ public sealed class PosTicketsApiTests
         if (accessor is TenantTestDoubles.MutableTenantAccessor mutable)
             mutable.TenantId = tenantId ?? mutable.TenantId;
 
-        var controller = new PosTicketsController(new TicketRedemptionService(db), accessor)
+        var controller = new PosTicketsController(new TicketRedemptionService(db), accessor, new PermissiveVerticalProfileGuard())
         {
             ControllerContext = new ControllerContext
             {

@@ -89,6 +89,7 @@ namespace KasseAPI_Final.Services
         private readonly IEuReceiptSequenceService? _euReceiptSequenceService;
         private readonly IChMwstEffectiveRates? _chMwstRates;
         private readonly IVerticalProfileService? _verticalProfiles;
+        private readonly IVerticalProfileGuard? _profileGuard;
         private readonly ITicketRedemptionService? _ticketRedemptions;
 
         public PaymentService(
@@ -140,7 +141,8 @@ namespace KasseAPI_Final.Services
             IEuReceiptSequenceService? euSequenceService = null,
             IChMwstEffectiveRates? chMwstRates = null,
             IVerticalProfileService? verticalProfiles = null,
-            ITicketRedemptionService? ticketRedemptions = null)
+            ITicketRedemptionService? ticketRedemptions = null,
+            IVerticalProfileGuard? profileGuard = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -193,6 +195,7 @@ namespace KasseAPI_Final.Services
             _chMwstRates = chMwstRates;
             _verticalProfiles = verticalProfiles;
             _ticketRedemptions = ticketRedemptions;
+            _profileGuard = profileGuard;
         }
 
         private ICountryTaxTypeRegistry TaxTypesFor(CountryStrategyBinding binding)
@@ -224,37 +227,74 @@ namespace KasseAPI_Final.Services
             return trimmed.Length == 0 ? null : trimmed;
         }
 
-        private async Task<bool> TenantAllowsPrescriptionAsync(CancellationToken cancellationToken)
+        private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken) =>
+            await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false);
+
+        private async Task<bool> AllowsFeatureAsync(string feature, CancellationToken cancellationToken)
         {
+            if (_profileGuard is not null)
+                return await _profileGuard.IsFeatureEnabledAsync(feature, cancellationToken).ConfigureAwait(false);
+
             if (_verticalProfiles is null)
                 return false;
 
             var profile = await _verticalProfiles
                 .GetForCurrentTenantAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return profile?.HasPosFeature("patientRecord") == true;
+            return profile?.HasPosFeature(feature) == true;
         }
 
-        private async Task<bool> TenantAllowsTaxiFieldsAsync(CancellationToken cancellationToken)
+        private async Task<bool> AllowsTaxiSurfaceAsync(CancellationToken cancellationToken)
         {
+            if (_profileGuard is not null)
+                return await _profileGuard.IsTaxiSurfaceAsync(cancellationToken).ConfigureAwait(false);
+
             if (_verticalProfiles is null)
                 return false;
 
             var profile = await _verticalProfiles
                 .GetForCurrentTenantAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return profile?.IsTaxiProfile == true;
+            return VerticalProfileGuard.IsTaxiSurface(profile);
         }
 
-        private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken)
+        private PaymentResult ProfileFeatureRejected(string feature)
         {
-            if (_verticalProfiles is null)
-                return false;
+            _logger.LogInformation("PROFILE_FEATURE_REJECTED feature={Feature}", feature);
+            return new PaymentResult
+            {
+                Success = false,
+                Message = FeatureNotEnabledForProfileException.DefaultMessage,
+                Errors = { FeatureNotEnabledForProfileException.Code },
+                DiagnosticCode = FeatureNotEnabledForProfileException.Code,
+                ProfileFeature = feature,
+                IsDeterministicFailure = true,
+            };
+        }
 
-            var profile = await _verticalProfiles
-                .GetForCurrentTenantAsync(cancellationToken)
+        private async Task<PaymentResult?> RejectDisabledProfileSaleFieldsAsync(
+            CreatePaymentRequest request,
+            CancellationToken cancellationToken)
+        {
+            var hasImei = request.Items?.Any(item =>
+                ProductImeiService.ResolveRequestedImeis(item.Imei, item.Imeis).Count > 0) == true;
+            if (hasImei && !await AllowsFeatureAsync("imeiTracking", cancellationToken).ConfigureAwait(false))
+                return ProfileFeatureRejected("imeiTracking");
+
+            var productIds = request.Items?.Select(item => item.ProductId).Distinct().ToList();
+            if (productIds is not { Count: > 0 })
+                return null;
+
+            var hasTicketProduct = await _context.Products
+                .AsNoTracking()
+                .AnyAsync(
+                    product => productIds.Contains(product.Id) && product.IsTicket,
+                    cancellationToken)
                 .ConfigureAwait(false);
-            return profile?.IsTicketSalesProfile == true;
+            if (hasTicketProduct && !await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false))
+                return ProfileFeatureRejected("ticketScan");
+
+            return null;
         }
 
         private static PaymentResult ImeiPaymentFailure(string code, string message) => new()
@@ -531,42 +571,30 @@ namespace KasseAPI_Final.Services
             await EnsureLicenseAllowsPaymentAsync(licenseCheckCancellation).ConfigureAwait(false);
 
             var prescriptionReference = NormalizePrescriptionReference(request.PrescriptionReference);
-            if (prescriptionReference is not null)
+            if (prescriptionReference is not null
+                && !await AllowsFeatureAsync("patientRecord", licenseCheckCancellation).ConfigureAwait(false))
             {
-                var prescriptionAllowed = await TenantAllowsPrescriptionAsync(licenseCheckCancellation)
-                    .ConfigureAwait(false);
-                if (!prescriptionAllowed)
-                {
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = "Prescription reference is not allowed for this tenant.",
-                        Errors = { "PRESCRIPTION_NOT_ALLOWED" },
-                        DiagnosticCode = "PRESCRIPTION_NOT_ALLOWED",
-                        IsDeterministicFailure = true
-                    };
-                }
+                return ProfileFeatureRejected("patientRecord");
             }
 
             var routeFrom = NormalizeTaxiText(request.RouteFrom);
             var routeTo = NormalizeTaxiText(request.RouteTo);
             var routeKm = request.RouteKm;
             var tripStartedAtUtc = request.TripStartedAtUtc;
-            if (routeFrom is not null || routeTo is not null || routeKm.HasValue || tripStartedAtUtc.HasValue)
+            if ((routeFrom is not null || routeTo is not null || routeKm.HasValue || tripStartedAtUtc.HasValue)
+                && !await AllowsTaxiSurfaceAsync(licenseCheckCancellation).ConfigureAwait(false))
             {
-                var taxiAllowed = await TenantAllowsTaxiFieldsAsync(licenseCheckCancellation)
+                return ProfileFeatureRejected(VerticalProfileGuard.TaxiFeature);
+            }
+
+            if (!request.IsStorno && !request.IsRefund)
+            {
+                var profileFieldRejection = await RejectDisabledProfileSaleFieldsAsync(
+                        request,
+                        licenseCheckCancellation)
                     .ConfigureAwait(false);
-                if (!taxiAllowed)
-                {
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = "Taxi fields are not allowed for this tenant.",
-                        Errors = { "TAXI_FIELDS_NOT_ALLOWED" },
-                        DiagnosticCode = "TAXI_FIELDS_NOT_ALLOWED",
-                        IsDeterministicFailure = true
-                    };
-                }
+                if (profileFieldRejection is not null)
+                    return profileFieldRejection;
             }
 
             var tenantIdForFlags = await _settingsTenantResolver

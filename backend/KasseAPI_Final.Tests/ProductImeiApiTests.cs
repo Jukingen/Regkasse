@@ -67,7 +67,7 @@ public sealed class ProductImeiApiTests
     private static PosProductImeisController CreateController(AppDbContext db)
     {
         var accessor = TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform);
-        var controller = new PosProductImeisController(new ProductImeiService(db, accessor), accessor)
+        var controller = new PosProductImeisController(new ProductImeiService(db, accessor), accessor, new PermissiveVerticalProfileGuard())
         {
             ControllerContext = new ControllerContext
             {

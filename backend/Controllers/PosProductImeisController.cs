@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Imei;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,16 @@ public sealed class PosProductImeisController : ControllerBase
 {
     private readonly IProductImeiService _imeis;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
 
-    public PosProductImeisController(IProductImeiService imeis, ICurrentTenantAccessor tenantAccessor)
+    public PosProductImeisController(
+        IProductImeiService imeis,
+        ICurrentTenantAccessor tenantAccessor,
+        IVerticalProfileGuard profileGuard)
     {
         _imeis = imeis;
         _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
     }
 
     [HttpGet]
@@ -54,6 +60,15 @@ public sealed class PosProductImeisController : ControllerBase
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("imeiTracking", cancellationToken).ConfigureAwait(false);
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
 
         var result = await _imeis.AddAsync(productId, request, cancellationToken).ConfigureAwait(false);
         return result switch

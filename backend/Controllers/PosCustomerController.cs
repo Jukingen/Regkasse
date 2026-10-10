@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +22,20 @@ public sealed class PosCustomerController : BaseController
     private readonly IPosCustomerQrLookupService _qrLookup;
     private readonly AppDbContext _db;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IVerticalProfileGuard _profileGuard;
 
     public PosCustomerController(
         IPosCustomerQrLookupService qrLookup,
         AppDbContext db,
         ICurrentTenantAccessor tenantAccessor,
-        ILogger<PosCustomerController> logger)
+        ILogger<PosCustomerController> logger,
+        IVerticalProfileGuard profileGuard)
         : base(logger)
     {
         _qrLookup = qrLookup;
         _db = db;
         _tenantAccessor = tenantAccessor;
+        _profileGuard = profileGuard;
     }
 
     /// <summary>Create a tenant-scoped POS customer, including optional veterinary pet data.</summary>
@@ -49,6 +53,11 @@ public sealed class PosCustomerController : BaseController
             return ValidationProblem(ModelState);
         if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
             return NotFound();
+
+        var rejected = await RejectProfileFieldsAsync(request.PetData, request.AddressData, cancellationToken)
+            .ConfigureAwait(false);
+        if (rejected is ActionResult rejectedResult)
+            return rejectedResult;
 
         var email = request.Email?.Trim() ?? string.Empty;
         if (email.Length > 0
@@ -109,6 +118,11 @@ public sealed class PosCustomerController : BaseController
             .ConfigureAwait(false);
         if (customer is null || customer.IsSystem)
             return NotFound();
+
+        var rejected = await RejectProfileFieldsAsync(pet: null, request.AddressData, cancellationToken)
+            .ConfigureAwait(false);
+        if (rejected is ActionResult rejectedResult)
+            return rejectedResult;
 
         customer.AddressData = MapAddress(request.AddressData);
         var formatted = FormatAddress(customer.AddressData);
@@ -220,6 +234,39 @@ public sealed class PosCustomerController : BaseController
                 Notes = customer.AddressData.Notes,
             },
     };
+
+    private async Task<IActionResult?> RejectProfileFieldsAsync(
+        PosCustomerPetDataDto? pet,
+        PosCustomerAddressDataDto? address,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (HasPetContent(pet))
+                await _profileGuard.EnforceAsync("patientRecord", cancellationToken).ConfigureAwait(false);
+            if (HasAddressContent(address))
+                await _profileGuard.EnforceMobileServicesAsync(cancellationToken).ConfigureAwait(false);
+            return null;
+        }
+        catch (Exception ex) when (ex is FeatureNotEnabledForProfileException)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
+    }
+
+    private static bool HasPetContent(PosCustomerPetDataDto? pet) =>
+        pet is not null
+        && (!string.IsNullOrWhiteSpace(pet.PetName)
+            || !string.IsNullOrWhiteSpace(pet.PetSpecies)
+            || !string.IsNullOrWhiteSpace(pet.PetBreed)
+            || pet.PetBirthDate is not null);
+
+    private static bool HasAddressContent(PosCustomerAddressDataDto? address) =>
+        address is not null
+        && (!string.IsNullOrWhiteSpace(address.Street)
+            || !string.IsNullOrWhiteSpace(address.PostalCode)
+            || !string.IsNullOrWhiteSpace(address.City)
+            || !string.IsNullOrWhiteSpace(address.Notes));
 
     private static CustomerAddressData? MapAddress(PosCustomerAddressDataDto? dto)
     {

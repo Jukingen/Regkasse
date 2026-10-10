@@ -43,7 +43,7 @@ public sealed class PaymentTicketTests
     }
 
     [Fact]
-    public async Task CreatePayment_DoesNotIssueTicket_WhenProfileIsNotTicketSales()
+    public async Task CreatePayment_RejectsTicketProduct_WhenProfileIsNotTicketSales()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();
         var (customerId, productId, registerId, _) =
@@ -60,9 +60,12 @@ public sealed class PaymentTicketTests
 
         var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
 
-        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.False(result.Success);
+        Assert.Equal("PROFILE_FEATURE_DISABLED", result.DiagnosticCode);
+        Assert.Equal("ticketScan", result.ProfileFeature);
         Assert.Empty(result.IssuedTickets);
         Assert.Equal(0, await ctx.TicketRedemptions.CountAsync());
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync());
     }
 
     private static IVerticalProfileService Profile(bool ticketSales)
