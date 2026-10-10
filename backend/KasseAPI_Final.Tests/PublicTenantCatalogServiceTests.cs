@@ -59,6 +59,7 @@ public sealed class PublicTenantCatalogServiceTests
         Assert.Equal("#112233", profile.PrimaryColor);
         Assert.True(profile.AcceptingOnlineOrders);
         Assert.True(profile.RestaurantIsOpen);
+        Assert.Null(profile.VerticalProfileId);
 
         var menu = await sut.GetMenuAsync("demo-cafe");
         Assert.NotNull(menu);
@@ -111,6 +112,7 @@ public sealed class PublicTenantCatalogServiceTests
             InvoiceNumbering = "Sequential",
             ReceiptNumbering = "Sequential",
             DefaultPaymentMethod = "Cash",
+            VerticalProfileId = "hair-salon",
             IsActive = true
         });
         await db.SaveChangesAsync();
@@ -124,6 +126,7 @@ public sealed class PublicTenantCatalogServiceTests
         Assert.False(profile!.AcceptingOnlineOrders);
         Assert.False(profile.RestaurantIsOpen);
         Assert.Equal("Heiligabend geschlossen", profile.OrderStatusMessage);
+        Assert.Equal("hair-salon", profile.VerticalProfileId);
     }
 
     [Fact]

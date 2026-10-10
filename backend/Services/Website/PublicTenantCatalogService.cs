@@ -76,7 +76,10 @@ public sealed class PublicTenantCatalogService : IPublicTenantCatalogService
             AccentColor = "#38bdf8",
             AcceptingOnlineOrders = status.CanOrder,
             RestaurantIsOpen = status.IsOpen,
-            OrderStatusMessage = status.Message
+            OrderStatusMessage = status.Message,
+            VerticalProfileId = string.IsNullOrWhiteSpace(company?.VerticalProfileId)
+                ? null
+                : company.VerticalProfileId.Trim()
         };
     }
 

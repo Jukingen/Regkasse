@@ -25,6 +25,12 @@ public sealed class PublicTenantProfileDto
 
     /// <summary>Customer-facing status message (German default from settings).</summary>
     public string OrderStatusMessage { get; init; } = "Heute geschlossen";
+
+    /// <summary>
+    /// POS vertical profile id for this mandant (product configuration, not a secret).
+    /// Null when the tenant has no company-settings profile assignment.
+    /// </summary>
+    public string? VerticalProfileId { get; init; }
 }
 
 public sealed class PublicTenantMenuDto
