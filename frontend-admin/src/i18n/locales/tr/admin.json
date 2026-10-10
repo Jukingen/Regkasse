@@ -204,5 +204,78 @@
     "assignments": {
       "empty": "Mandant yok"
     }
+  },
+  "patients": {
+    "title": "Hasta kayıtları",
+    "subtitle": "Bu mandantın hayvanları ve sahipleri",
+    "sourceNote": "Satırlar müşteri listesinden gelir ve yalnızca hayvan verisi olanlar kalır.",
+    "colCustomer": "Sahip",
+    "colPet": "Hayvan adı",
+    "colSpecies": "Tür",
+    "colLastVisit": "Son ziyaret",
+    "colContact": "İletişim",
+    "details": "Ayrıntı",
+    "breed": "Irk",
+    "birthDate": "Doğum tarihi",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "empty": "Hasta yok"
+  },
+  "appointments": {
+    "title": "Randevular",
+    "subtitle": "Gün, hafta veya tablo",
+    "viewDay": "Gün",
+    "viewWeek": "Hafta",
+    "viewTable": "Tablo",
+    "staff": "Personel",
+    "status": "Durum",
+    "colStart": "Başlangıç",
+    "colEnd": "Bitiş",
+    "colStaff": "Personel",
+    "colStatus": "Durum",
+    "colNotes": "Not",
+    "empty": "Randevu yok",
+    "statusBooked": "Rezerve",
+    "statusConfirmed": "Onaylı",
+    "statusCompleted": "Tamamlandı",
+    "statusCancelled": "İptal",
+    "statusNoShow": "Gelmedi"
+  },
+  "imeis": {
+    "title": "IMEI stoku",
+    "subtitle": "Ürün ve duruma göre cihazlar",
+    "product": "Ürün",
+    "status": "Durum",
+    "colImei": "IMEI",
+    "colProduct": "Ürün",
+    "colStatus": "Durum",
+    "colSoldAt": "Satış tarihi",
+    "colWarranty": "Garanti (ay)",
+    "empty": "IMEI yok",
+    "statusInStock": "Stokta",
+    "statusSold": "Satıldı",
+    "statusReturned": "İade"
+  },
+  "taxiTrips": {
+    "title": "Seferler",
+    "subtitle": "Seçilen aralıktaki seferler",
+    "colDate": "Tarih",
+    "colCustomer": "Müşteri",
+    "colFrom": "Kalkış",
+    "colTo": "Varış",
+    "colKm": "km",
+    "colAmount": "Tutar",
+    "colRegister": "Kasa",
+    "empty": "Sefer yok"
+  },
+  "customerAddresses": {
+    "title": "Müşteri adresleri",
+    "subtitle": "Yapılandırılmış hizmet adresi olan müşteriler",
+    "colCustomer": "Müşteri",
+    "colStreet": "Sokak",
+    "colPostal": "Posta kodu",
+    "colCity": "Şehir",
+    "colContact": "İletişim",
+    "empty": "Adres yok"
   }
 }

@@ -204,5 +204,78 @@
     "assignments": {
       "empty": "Keine Mandanten"
     }
+  },
+  "patients": {
+    "title": "Patientenakte",
+    "subtitle": "Tiere und Halter des Mandanten",
+    "sourceNote": "Daten kommen aus der Kundenliste und werden auf hinterlegte Tierdaten gefiltert.",
+    "colCustomer": "Halter",
+    "colPet": "Tiername",
+    "colSpecies": "Tierart",
+    "colLastVisit": "Letzter Besuch",
+    "colContact": "Kontakt",
+    "details": "Details",
+    "breed": "Rasse",
+    "birthDate": "Geburtsdatum",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "empty": "Keine Patienten"
+  },
+  "appointments": {
+    "title": "Termine",
+    "subtitle": "Tag, Woche oder Tabelle",
+    "viewDay": "Tag",
+    "viewWeek": "Woche",
+    "viewTable": "Tabelle",
+    "staff": "Mitarbeiter",
+    "status": "Status",
+    "colStart": "Beginn",
+    "colEnd": "Ende",
+    "colStaff": "Mitarbeiter",
+    "colStatus": "Status",
+    "colNotes": "Notiz",
+    "empty": "Keine Termine",
+    "statusBooked": "Gebucht",
+    "statusConfirmed": "Bestätigt",
+    "statusCompleted": "Erledigt",
+    "statusCancelled": "Storniert",
+    "statusNoShow": "Nicht erschienen"
+  },
+  "imeis": {
+    "title": "IMEI-Verwaltung",
+    "subtitle": "Geräte nach Produkt und Status",
+    "product": "Produkt",
+    "status": "Status",
+    "colImei": "IMEI",
+    "colProduct": "Produkt",
+    "colStatus": "Status",
+    "colSoldAt": "Verkaufsdatum",
+    "colWarranty": "Garantie (Monate)",
+    "empty": "Keine IMEI",
+    "statusInStock": "Auf Lager",
+    "statusSold": "Verkauft",
+    "statusReturned": "Zurückgegeben"
+  },
+  "taxiTrips": {
+    "title": "Fahrten",
+    "subtitle": "Fahrten im gewählten Zeitraum",
+    "colDate": "Datum",
+    "colCustomer": "Kunde",
+    "colFrom": "Von",
+    "colTo": "Nach",
+    "colKm": "km",
+    "colAmount": "Betrag",
+    "colRegister": "Kasse",
+    "empty": "Keine Fahrten"
+  },
+  "customerAddresses": {
+    "title": "Kundenadressen",
+    "subtitle": "Kunden mit strukturierter Einsatzadresse",
+    "colCustomer": "Kunde",
+    "colStreet": "Straße",
+    "colPostal": "PLZ",
+    "colCity": "Ort",
+    "colContact": "Kontakt",
+    "empty": "Keine Adressen"
   }
 }

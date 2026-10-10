@@ -36,6 +36,36 @@ public sealed class ProductImeiService : IProductImeiService
         return rows.ConvertAll(ToDto);
     }
 
+    public async Task<IReadOnlyList<AdminProductImeiListItemDto>?> SearchAsync(
+        Guid? productId,
+        ProductImeiStatus? status,
+        CancellationToken cancellationToken)
+    {
+        if (productId.HasValue && !await ProductExistsAsync(productId.Value, cancellationToken).ConfigureAwait(false))
+            return null;
+
+        var query = _db.ProductImeis.AsNoTracking().AsQueryable();
+        if (productId.HasValue)
+            query = query.Where(row => row.ProductId == productId.Value);
+        if (status.HasValue)
+            query = query.Where(row => row.Status == status.Value);
+
+        return await query
+            .OrderByDescending(row => row.CreatedAtUtc)
+            .Select(row => new AdminProductImeiListItemDto
+            {
+                Id = row.Id,
+                ProductId = row.ProductId,
+                ProductName = row.Product != null ? row.Product.Name : string.Empty,
+                Imei = row.Imei,
+                Status = row.Status,
+                SoldAtUtc = row.SoldAtUtc,
+                WarrantyMonths = row.WarrantyMonths,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<ProductImeiAddResult> AddAsync(
         Guid productId,
         AddProductImeiRequest request,

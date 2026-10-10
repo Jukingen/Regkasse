@@ -204,5 +204,78 @@
     "assignments": {
       "empty": "No mandants"
     }
+  },
+  "patients": {
+    "title": "Patient records",
+    "subtitle": "Pets and owners for this mandant",
+    "sourceNote": "Rows come from the customer list and keep only customers with pet data.",
+    "colCustomer": "Owner",
+    "colPet": "Pet name",
+    "colSpecies": "Species",
+    "colLastVisit": "Last visit",
+    "colContact": "Contact",
+    "details": "Details",
+    "breed": "Breed",
+    "birthDate": "Birth date",
+    "phone": "Phone",
+    "email": "Email",
+    "empty": "No patients"
+  },
+  "appointments": {
+    "title": "Appointments",
+    "subtitle": "Day, week, or table",
+    "viewDay": "Day",
+    "viewWeek": "Week",
+    "viewTable": "Table",
+    "staff": "Staff",
+    "status": "Status",
+    "colStart": "Start",
+    "colEnd": "End",
+    "colStaff": "Staff",
+    "colStatus": "Status",
+    "colNotes": "Notes",
+    "empty": "No appointments",
+    "statusBooked": "Booked",
+    "statusConfirmed": "Confirmed",
+    "statusCompleted": "Completed",
+    "statusCancelled": "Cancelled",
+    "statusNoShow": "No-show"
+  },
+  "imeis": {
+    "title": "IMEI stock",
+    "subtitle": "Devices by product and status",
+    "product": "Product",
+    "status": "Status",
+    "colImei": "IMEI",
+    "colProduct": "Product",
+    "colStatus": "Status",
+    "colSoldAt": "Sold at",
+    "colWarranty": "Warranty (months)",
+    "empty": "No IMEI rows",
+    "statusInStock": "In stock",
+    "statusSold": "Sold",
+    "statusReturned": "Returned"
+  },
+  "taxiTrips": {
+    "title": "Trips",
+    "subtitle": "Trips in the selected period",
+    "colDate": "Date",
+    "colCustomer": "Customer",
+    "colFrom": "From",
+    "colTo": "To",
+    "colKm": "km",
+    "colAmount": "Amount",
+    "colRegister": "Cash register",
+    "empty": "No trips"
+  },
+  "customerAddresses": {
+    "title": "Customer addresses",
+    "subtitle": "Customers with a structured service address",
+    "colCustomer": "Customer",
+    "colStreet": "Street",
+    "colPostal": "Postal code",
+    "colCity": "City",
+    "colContact": "Contact",
+    "empty": "No addresses"
   }
 }

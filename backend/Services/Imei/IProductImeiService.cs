@@ -9,6 +9,15 @@ public interface IProductImeiService
         ProductImeiStatus? status,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Tenant-wide IMEI list. <paramref name="productId"/> is optional.
+    /// Returns null when a product id is set and that product does not exist.
+    /// </summary>
+    Task<IReadOnlyList<AdminProductImeiListItemDto>?> SearchAsync(
+        Guid? productId,
+        ProductImeiStatus? status,
+        CancellationToken cancellationToken);
+
     Task<ProductImeiAddResult> AddAsync(
         Guid productId,
         AddProductImeiRequest request,

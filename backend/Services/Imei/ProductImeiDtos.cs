@@ -13,6 +13,20 @@ public static class ProductImeiErrorCodes
     public const string NotAvailable = "IMEI_NOT_AVAILABLE";
 }
 
+public sealed class AdminProductImeiListItemDto
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string Imei { get; set; } = string.Empty;
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ProductImeiStatus Status { get; set; }
+
+    public DateTime? SoldAtUtc { get; set; }
+    public int WarrantyMonths { get; set; }
+}
+
 public sealed class ProductImeiDto
 {
     public Guid Id { get; set; }
