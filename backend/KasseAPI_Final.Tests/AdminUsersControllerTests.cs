@@ -1141,6 +1141,43 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task AdminUsersController_List_ExcludesPlatformTenant()
+    {
+        await using var db = CreateEphemeralContext();
+        var businessTenantId = Guid.NewGuid();
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = SystemTenantIds.Platform,
+                Name = "Platform",
+                Slug = "Platform",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = businessTenantId,
+                Name = "Cafe Alpha",
+                Slug = "cafe-alpha",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var ids = await controller.GetBusinessTenantIdsAsync(CancellationToken.None);
+
+        Assert.Contains(businessTenantId, ids);
+        Assert.DoesNotContain(SystemTenantIds.Platform, ids);
+    }
+
+    [Fact]
     public async Task List_ExcludesOrphanedTenantUsers_WhenActiveFilterTrue()
     {
         await using var db = CreateEphemeralContext();

@@ -13,6 +13,13 @@ public static class SystemTenantIds
     /// <summary>Canonical platform slug.</summary>
     public const string PlatformSlug = "platform";
 
+    /// <summary>
+    /// Canonical platform slugs for EF Core LINQ (<c>Contains</c> translates to SQL <c>IN</c>).
+    /// Values are lowercase to match stored slugs. In-memory checks stay on <see cref="IsPlatformSlug"/>
+    /// (trim + ordinal ignore case); queries should compare <c>slug.Trim().ToLower()</c>.
+    /// </summary>
+    public static IReadOnlyCollection<string> PlatformSlugs { get; } = [PlatformSlug];
+
     /// <summary>True when <paramref name="tenantId"/> is the platform sentinel.</summary>
     public static bool IsPlatformTenantId(Guid tenantId) => tenantId == Platform;
 

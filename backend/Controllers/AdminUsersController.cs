@@ -201,13 +201,13 @@ public partial class AdminUsersController : ControllerBase
         return IsActorSuperAdmin();
     }
 
-    private async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
+    internal async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
         await _context.Tenants
             .AsNoTracking()
             .Where(t => t.IsActive
                 && !TenantStatuses.RemovedStatuses.Contains(t.Status)
                 && t.Slug != "admin"
-                && !SystemTenantIds.IsPlatformSlug(t.Slug))
+                && !SystemTenantIds.PlatformSlugs.Contains(t.Slug.Trim().ToLower()))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
