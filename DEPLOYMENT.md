@@ -343,8 +343,10 @@ Native / store binaries (preferred for registers):
 
 ```bash
 cd frontend
+# Universal store binary (AAB + IPA). Sideload APK: --profile production-apk
 npx eas build --platform android --profile production
-# npx eas build --platform ios --profile production
+npx eas build --platform ios --profile production
+# Optional listing: --profile gastronomy-production
 ```
 
 Profile: [`frontend/eas.json`](frontend/eas.json) (`production` → Android APK, local credentials).

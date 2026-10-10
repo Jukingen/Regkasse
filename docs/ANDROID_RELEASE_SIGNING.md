@@ -94,7 +94,7 @@ Example shape (do not commit real passwords):
 
 ### 3.2 Ensure `eas.json` uses local credentials
 
-The Regkasse `frontend/eas.json` **production** profile includes:
+The sideload profile is `production-apk` in `frontend/eas.json` (the store profile `production` builds an AAB with EAS-hosted credentials):
 
 ```json
 "android": {
@@ -103,20 +103,20 @@ The Regkasse `frontend/eas.json` **production** profile includes:
 }
 ```
 
-So EAS uses `credentials.json` instead of Expo-hosted Android credentials.
+So that profile uses `credentials.json` instead of Expo-hosted Android credentials. The same keystore can sign the optional Gastronomie application id (`gastronomy-production-apk`).
 
 ### 3.3 Build signed APK with EAS
 
 ```bash
 cd frontend
 npx eas-cli@latest login
-npx eas-cli@latest build --platform android --profile production --local
+npx eas-cli@latest build --platform android --profile production-apk --local
 ```
 
 Or cloud build (still **no** Play Store upload; you download the APK):
 
 ```bash
-npx eas-cli@latest build --platform android --profile production
+npx eas-cli@latest build --platform android --profile production-apk
 ```
 
 ---
@@ -207,7 +207,7 @@ Package name must match `app.json` → `expo.android.package` (`com.registrierka
 | Keystore + passwords backed up securely (not in git) | ☐ |
 | `frontend/credentials.json` created from example, paths correct | ☐ |
 | `credentials.json` + `*.keystore` **not** committed | ☐ |
-| EAS build with `--profile production` produces installable APK | ☐ |
+| EAS build with `--profile production-apk` produces installable APK | ☐ |
 | Or: manual `zipalign` + `jarsigner` / `apksigner` verify passes | ☐ |
 
 ---

@@ -282,7 +282,7 @@ Primary Zustand consumer today: `components/PaymentModal.tsx`.
 
 Login can show `Regkasse — {industry}` from the public tenant profile before authentication. After the first successful login, `app/(auth)/onboarding.tsx` shows two or three profile slides (skip, next, done). The seen flag is `pos_onboarding_seen_v1`. Customer-surface builds still open `/customer`. Payment return stays `regkasse://payment-result`.
 
-Installing both the universal app and the optional Gastronomie listing on one device makes the OS pick one scheme handler. Details: [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md).
+One install handles every profile. Details: [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (Single Universal App vs. Per-Industry Binaries).
 
 ## Vertical profiles
 
@@ -551,26 +551,20 @@ This matches [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCH
 
 [`app.config.js`](app.config.js) returns that identity when `EXPO_PUBLIC_BRAND` is unset. Do not set the variable for daily `expo start`. Do not add `EXPO_PUBLIC_VERTICAL` or bake feature flags into a binary. A cashier can still serve more than one mandant from the universal app.
 
-### Optional store listing
-
-`EXPO_PUBLIC_BRAND=gastronomy` is a second **store listing** (“Regkasse Gastronomie”), not a second product. It overrides only `name`, `slug`, `icon`, splash, `android.package`, and `ios.bundleIdentifier`. Version stays the `app.json` version. Drop replacement art at `assets/brands/gastronomy/` (`icon.png`, `adaptive-icon.png`, `splash.png`); missing files keep the universal art.
-
-Both apps share the `regkasse` / `cashregister` URL schemes. Installing both on one device makes the OS pick one handler.
-
 ### EAS profiles
 
-[`eas.json`](eas.json) (`appVersionSource: local` — version is not auto-bumped):
+The default build is the universal app. [`eas.json`](eas.json) (`appVersionSource: local` — version is not auto-bumped):
 
 | Profile | Artifact | Identity |
 | ------- | -------- | -------- |
-| `production` | Play App Bundle (AAB) and App Store IPA (`distribution: store`) | Universal (`app.json`) |
+| `production` | Play App Bundle (AAB) and App Store IPA (`distribution: store`) | Universal (`app.json`). **Default release.** |
 | `production-apk` | Sideload APK (`credentialsSource: local`, `credentials.json`) | Universal |
-| `gastronomy-production` | AAB and IPA | `EXPO_PUBLIC_BRAND=gastronomy` |
-| `gastronomy-production-apk` | Sideload APK, local credentials | Gastronomie listing |
+
+`gastronomy-production` and `gastronomy-production-apk` are **future / experimental**. They set `EXPO_PUBLIC_BRAND=gastronomy` and are not a shipped industry binary. Use them only for a white-label trial or after the exception in [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (about 10,000 tenants in one industry, or a white-label request). They override `name`, `slug`, `icon`, splash, `android.package`, and `ios.bundleIdentifier`. Version stays the `app.json` version. Replacement art, if a trial needs it, goes under `assets/brands/gastronomy/` (`icon.png`, `adaptive-icon.png`, `splash.png`).
 
 ```bash
 cd frontend
-# Universal store binary (same version, every tenant)
+# Default: universal store binary (same version, every tenant)
 npx eas build --platform android --profile production
 npx eas build --platform ios --profile production
 npx eas build --platform all --profile production
@@ -578,12 +572,12 @@ npx eas build --platform all --profile production
 # Universal sideload APK (local keystore; see docs/ANDROID_RELEASE_SIGNING.md)
 npx eas build --platform android --profile production-apk
 
-# Optional "Regkasse Gastronomie" listing (own bundle id, same version)
-npx eas build --platform all --profile gastronomy-production
-npx eas build --platform android --profile gastronomy-production-apk
+# Future / experimental only — not a release profile
+# npx eas build --platform all --profile gastronomy-production
+# npx eas build --platform android --profile gastronomy-production-apk
 ```
 
-GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). Inputs `platform` (`android` / `ios` / `both`) and `profile` (`universal` / `gastronomy`). It runs `eas build` and does not submit or commit binaries.
+GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). The release input is `profile=universal`. `profile=gastronomy` is future / experimental. The workflow runs `eas build` and does not submit or commit binaries.
 
 Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
 

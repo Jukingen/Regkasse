@@ -14,7 +14,7 @@ All tenants share **one** POS application deployment. Tenant identity is **not**
 | Ops / release management | ✅ Single POS host |
 | Consistent cashier UX | ✅ Same UI for all tenants |
 
-The universal binary does not bake a vertical. After login, `GET /api/pos/vertical-profile` selects gastronomy, vet, hair-salon, taxi, and the other catalog profiles, including Super Admin overrides. Tabs and profile screens follow that payload. An optional store listing (`EXPO_PUBLIC_BRAND=gastronomy`) changes only the package name and art; it still loads the tenant profile at runtime. See [`frontend/README.md`](../frontend/README.md) (Native build) and [`VERTICAL_PROFILES.md`](VERTICAL_PROFILES.md) (deep links and onboarding).
+`https://pos.regkasse.at` and the universal native app both serve every vertical profile. The app does not ship separate binaries per industry. After login, `GET /api/pos/vertical-profile` follows `company_settings.vertical_profile_id` and selects gastronomy, vet, hair-salon, taxi, and the other catalog profiles, including Super Admin overrides. Tabs and profile screens follow that payload. A per-industry package (`EXPO_PUBLIC_BRAND=gastronomy`, EAS `gastronomy-production`) is future / experimental and is not a release. See [`frontend/README.md`](../frontend/README.md) (Native build) and [`VERTICAL_PROFILES.md`](VERTICAL_PROFILES.md) (Single Universal App vs. Per-Industry Binaries).
 
 ---
 

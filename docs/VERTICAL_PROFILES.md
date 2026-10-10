@@ -347,6 +347,26 @@ Feature edits remove `vertical_profile_catalog` and `vertical_profile_effective_
 
 The editor preview is generated from the profile JSON (enabled capabilities, POS surfaces, FA areas). It does not embed the POS app.
 
+## Single Universal App vs. Per-Industry Binaries
+
+**Decision:** one universal POS app. Regkasse does not ship a separate binary per industry.
+
+| | Universal app | Per-industry binaries |
+|--|----------------|------------------------|
+| Store artifacts | 2 (Android + iOS) | 2 × N industries |
+| Store review | One cycle per release | One cycle per industry binary |
+| UI selection | `company_settings.vertical_profile_id` after login | Baked into the package |
+| Onboarding link | `regkasse://tenant/{slug}` | A link per package |
+
+Rationale:
+
+- **Maintenance.** Two binaries (Android and iOS) instead of two per industry.
+- **Releases.** One store review cycle ships every profile.
+- **Tenant UI.** Login reads `vertical_profile_id`. The same install shows gastronomy, vet, hair-salon, taxi, and the other catalog profiles.
+- **Onboarding.** `regkasse://tenant/{slug}` opens that mandant in the universal app.
+
+A per-industry binary stays a future exception. Consider it only when one industry passes about 10,000 tenants, or when a white-label request needs its own store listing. Until then, `EXPO_PUBLIC_BRAND=gastronomy` and the `gastronomy-production` EAS profiles are experimental and are not a release path. See [`frontend/README.md`](../frontend/README.md) (Native build).
+
 ## Universal app + deep link + onboarding
 
 One POS binary serves every catalog profile. The effective profile comes from `GET /api/pos/vertical-profile` after login. It is not compiled into the binary. Feature screens (patient record, appointment, taxi, IMEI, rooms, kitchen) render only when that profile enables them. RKSV signing and Tagesabschluss stay on the shared payment path.
