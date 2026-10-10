@@ -57,6 +57,7 @@ module.exports = defineConfig([
       'metro.config.js',
       'jest.config.js',
       'jest.setup.ts',
+      'app.config.js',
       'prettier.config.*',
       'scripts/**/*.{js,cjs,mjs,ts}',
     ],

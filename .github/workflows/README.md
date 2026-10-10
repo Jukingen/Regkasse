@@ -16,6 +16,7 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | [`frontend-admin-e2e.yml`](frontend-admin-e2e.yml) | Standalone / reusable Playwright E2E | `workflow_dispatch`, `workflow_call` |
 | [`frontend-admin-deploy.yml`](frontend-admin-deploy.yml) | Build/push admin image + staging/prod hooks | After green Admin CI / `workflow_dispatch` |
 | [`frontend-ci.yml`](frontend-ci.yml) | POS (`frontend`) `lint` / `typecheck` / `test` (includes online-payment store + contract tests) | `pull_request`, `push` → `main`/`master` (path-filtered) |
+| [`frontend-eas-build.yml`](frontend-eas-build.yml) | Manual EAS cloud build (universal or Gastronomie). No store submit, no binary upload | `workflow_dispatch` only |
 | [`frontend-pos-ci.yml`](frontend-pos-ci.yml) | Filename alias that reuses [`frontend-ci.yml`](frontend-ci.yml) (`workflow_call` / dispatch) | `workflow_dispatch`, `workflow_call` |
 | [`frontend-sites-ci.yml`](frontend-sites-ci.yml) | Sites `lint` / `typecheck` / `test` / `build` | `pull_request`, `push` → `main`/`master` (path-filtered) |
 | [`api-client-alignment.yml`](api-client-alignment.yml) | Orval / OpenAPI drift + admin build smoke | `pull_request`, `push` → `main`/`master` |
@@ -40,6 +41,9 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | Name | Used by |
 |------|---------|
 | `SLACK_WEBHOOK_URL` | Failure notifications (optional) |
+| `EXPO_TOKEN` | `frontend-eas-build.yml` (required) |
+| `EAS_PROJECT_ID` | Universal Expo project id for that workflow (required for non-interactive CI) |
+| `EAS_PROJECT_ID_GASTRONOMY` | Separate Expo project for the Gastronomie listing |
 | `CI_POSTGRES_PASSWORD` | `fiscal-validation.yml` |
 | `FA_*_DEPLOY_WEBHOOK_URL` / `FA_*_API_BASE_URL` | Admin deploy |
 | `BACKEND_*_DEPLOY_WEBHOOK_URL` / `BACKEND_*_ROLLBACK_WEBHOOK_URL` | Backend multi-stage deploy |

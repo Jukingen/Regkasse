@@ -6,10 +6,32 @@
   "build": {
     "production": {
       "developmentClient": false,
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production-apk": {
+      "extends": "production",
       "distribution": "internal",
       "android": {
         "buildType": "apk",
         "credentialsSource": "local"
+      }
+    },
+    "gastronomy-production": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_BRAND": "gastronomy"
+      }
+    },
+    "gastronomy-production-apk": {
+      "extends": "production-apk",
+      "env": {
+        "EXPO_PUBLIC_BRAND": "gastronomy"
       }
     }
   }
