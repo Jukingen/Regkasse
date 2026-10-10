@@ -141,7 +141,7 @@ public static class VerticalProfileSeedData
         Create(
             VerticalProfileIds.TicketSales,
             "verticalProfiles.ticketSales.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":true,"ticketScan":true}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":true}""",
             """{"customer":[],"product":["name","price"]}""",
             """{"customer":["name","phone","email"],"product":["description","category","room","seat"]}""",
             VerticalProfileLayouts.Ticket),

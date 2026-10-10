@@ -69,6 +69,9 @@ public sealed class VerticalProfileDomainFieldsTests
         var lodging = Assert.Single(
             VerticalProfileSeedData.All,
             profile => profile.Id == VerticalProfileIds.Beherbergung);
+        var tickets = Assert.Single(
+            VerticalProfileSeedData.All,
+            profile => profile.Id == VerticalProfileIds.TicketSales);
 
         using var vetRequired = JsonDocument.Parse(vet.RequiredFields);
         using var vetOptional = JsonDocument.Parse(vet.OptionalFields);
@@ -111,6 +114,10 @@ public sealed class VerticalProfileDomainFieldsTests
         Assert.False(lodgingFeatures.RootElement.GetProperty("appointment").GetBoolean());
         Assert.False(lodgingFeatures.RootElement.GetProperty("patientRecord").GetBoolean());
         Assert.Equal(VerticalProfileLayouts.Rooms, lodging.PosLayout);
+        using var ticketFeatures = JsonDocument.Parse(tickets.PosFeatures);
+        Assert.False(ticketFeatures.RootElement.GetProperty("roomTracking").GetBoolean());
+        Assert.True(ticketFeatures.RootElement.GetProperty("ticketScan").GetBoolean());
+        Assert.Equal(VerticalProfileLayouts.Ticket, tickets.PosLayout);
 
         var dto = AdminProductDto.FromProduct(new Product
         {
