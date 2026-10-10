@@ -790,6 +790,18 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 
 **Impersonation (production):** redirect to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` — [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
 
+### Profile simulation
+
+The header select **Profil simulieren** (`SuperAdminProfileSimulationSelect`) is Super Admin only and is hidden during impersonation. It filters the admin sidebar. It does not write `company_settings.vertical_profile_id`.
+
+| Option | Sidebar |
+| ------ | ------- |
+| Alle Profile | Every profile menu |
+| Aktuelles Mandantenprofil | The ambient tenant profile (the seeded `dev` mandant is gastronomy) |
+| A catalog profile (for example Tierarztpraxis) | Menus for that profile only |
+
+The choice is stored in `localStorage` and the sidebar re-renders immediately. Changing a tenant's saved profile is a separate action on the tenant editor: `GET /api/admin/tenants/{id}/profile-impact` lists hidden historical rows, the editor asks for confirmation, then the PUT refreshes the sidebar without waiting for the profile query cache. See [`../docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md).
+
 **Docs index:** [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md), [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md), [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md), [`../docs/CASH_REGISTER_LIFECYCLE.md`](../docs/CASH_REGISTER_LIFECYCLE.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md), [`../docs/BACKUP_SYSTEM.md`](../docs/BACKUP_SYSTEM.md).
 
 ## Backup Management

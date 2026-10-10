@@ -76,7 +76,20 @@ Catalog-editor Admin endpoints (`product.view`):
 - `GET /api/admin/vertical-profile` — effective merged profile for the ambient JWT tenant.
 - `GET /api/admin/staff` — active Cashier, Waiter, and Manager users for the ambient tenant.
 
-The assignment endpoint validates the active profile, tenant, company-settings row, override shape, boolean feature values, field-list arrays, and layout value. Changes emit `AuditEventType.TenantVerticalProfileChanged`.
+The assignment endpoint validates the active profile, tenant, company-settings row, override shape, boolean feature values, field-list arrays, and layout value. Changes emit `AuditEventType.TenantVerticalProfileChanged` (119). The write updates `company_settings.vertical_profile_id`, `taxi_tariff_per_km`, and `tenant_vertical_overrides` only. It does not validate, rewrite, or delete historical customers, products, payments, invoices, receipts, appointments, rooms, folios, tickets, or IMEIs.
+
+### Profile change lifecycle
+
+Switching a tenant (for example vet → gastronomy) hides profile-specific UI and rejects new profile-specific writes. Stored history stays.
+
+| Data | On profile change |
+|------|-------------------|
+| Customer `petData` | Kept. Historical invoices may still refer to the customer. Hidden in FA when the profile is not `vet`. |
+| Product `durationMinutes` / `staffId` | Kept. Hidden in the product UI when the profile does not use service duration. |
+| Payment `prescriptionReference`, `route_*`, sold IMEI links | Kept. These are fiscal or sale records and are not modified. |
+| Appointments, rooms, folios, tickets, IMEI catalog rows | Kept. The FA sidebar profile filter hides the matching menus. |
+
+`GET /api/admin/tenants/{id}/profile-impact?profileId={target}` (`system.critical`) counts rows that would be hidden and returns a `warnings` list. A missing tenant returns HTTP **404**. The Super Admin profile editor shows that list and asks for confirmation. Confirming still saves the new profile.
 
 ## Appointment server API
 
@@ -190,6 +203,12 @@ view after login.
   Occupying statuses are `Booked` and `Confirmed`. Tapping an empty slot opens the
   form with that staff member and time prefilled. Drag-and-drop is out of scope.
 - The appointment form captures customer, date, time, service, and staff.
+- When `serviceDuration` is on, the service list keeps only products with
+  `durationMinutes` greater than zero, the chip shows that duration, and
+  `endUtc` is the start plus those minutes (30 minutes when the product has no
+  duration). Hair salon and mobile services both seed `serviceDuration=true`.
+  An appointment profile with the flag off lists every product and books a
+  30-minute slot.
 - Bookings persist through `POST /api/pos/appointments`. A 409 `APPOINTMENT_CONFLICT`
   shows a reload banner (`appointments.conflict.*`). A successful create shows an
   in-app toast on the POS device. Native iOS/Android also schedules a **device-local**
@@ -209,9 +228,11 @@ view after login.
 - POS create: `POST /api/pos/customers` accepts `addressData`. Existing
   customers can update it with `PATCH /api/pos/customers/{id}`.
 - Order create (`POST /api/orders`) accepts `locationData`.
-- POS shows `MobileServiceRoutePanel` on cash-register, orders, and the
-  appointment form only when `profileId === "mobile-services"`. The panel
-  edits customer address and the current job location.
+- `MobileServiceRoutePanel` renders only when `posFeatures.routeTracking` is
+  on. Cash-register, orders, and the appointment form mount it for
+  `profileId === "mobile-services"`. The panel edits customer address and the
+  current job location. Taxi also has `routeTracking`, but those screens do
+  not mount this panel; taxi uses `TaxiSalePanel` when `posLayout` is `taxi`.
 - FA customer detail / list shows the structured address (`addressData`) next
   to the flat address field.
 
@@ -253,7 +274,7 @@ view after login.
 
 ### Ticket sales
 
-- Catalog id `ticket-sales` (already seeded). Layout is `ticket` with `ticketScan` and `kitchenDisplay=false`.
+- Catalog id `ticket-sales` (already seeded). Layout is `ticket` with `ticketScan` and `kitchenDisplay=false`. `roomTracking` is false. Optional product fields `room` and `seat` are labels only and do not open lodging rooms.
 - `products.is_ticket` (boolean, default false) marks catalog rows that issue a redeemable ticket on sale.
 - The FA product form shows the Ticket toggle only when the ambient profile id is `ticket-sales`.
 - `ticket_redemptions` stores issued tickets: `ticket_code` is a non-secret hash prefix for display, `ticket_code_hash` is SHA-256 of the normalized plaintext. The plaintext code is returned once on the payment response for print and is not persisted.
@@ -271,7 +292,7 @@ view after login.
 
 - Catalog id `beherbergung` (seeded). Layout is `rooms`. Features: `roomTracking=true`, `kitchenDisplay=true`, `tables=false`, `appointment=false`, `patientRecord=false`.
 - The code seed in `VerticalProfileSeedData` is the catalog default. Migration `AddRoomsAndGuestFolios` updates the existing `vertical_profiles` row. Later edits still go through the config hub override table; they do not rewrite the original seed migration.
-- UI gates on `profileId === "beherbergung"` (and POS layout `rooms`). Ticket-sales also uses `roomTracking` for seat/room labels; that is a different product field and does not use these tables.
+- UI gates on `profileId === "beherbergung"` (and POS layout `rooms`). Ticket-sales does not set `roomTracking`. Its optional product fields `room` and `seat` are not lodging rooms and do not use these tables.
 - `rooms` stores tenant rooms: `number` (varchar 32), `type` (varchar 64), `capacity` (1–20), `status` (`Available`, `Occupied`, `Cleaning`, `Maintenance`), `is_active`. Unique index `(tenant_id, number)`.
 - `guest_folios` stores stays: `customer_id`, `room_id`, `check_in`, optional `check_out`, `status` (`Open`, `Closed`, `Cancelled`), `balance` (`decimal(18,2)`), optional `notes`. One open folio per room.
 - `guest_folio_items` stores deferred charges: `folio_id`, optional `payment_detail_id`, `description` (varchar 255), `amount` (`decimal(10,2)`). A charge leaves `payment_detail_id` null.
@@ -325,6 +346,30 @@ Hub APIs (`system.critical`):
 Feature edits remove `vertical_profile_catalog` and `vertical_profile_effective_{tenantId}` for every tenant on that profile. If a save turns a feature off and tenants are assigned, the response lists those tenants in `affectedTenants`. The hub shows that list before and after save. The save itself is not blocked.
 
 The editor preview is generated from the profile JSON (enabled capabilities, POS surfaces, FA areas). It does not embed the POS app.
+
+## Universal app + deep link + onboarding
+
+One POS binary serves every catalog profile. The effective profile comes from `GET /api/pos/vertical-profile` after login. It is not compiled into the binary. Feature screens (patient record, appointment, taxi, IMEI, rooms, kitchen) render only when that profile enables them. RKSV signing and Tagesabschluss stay on the shared payment path.
+
+### Deep links
+
+`app.json` registers the schemes `regkasse` and `cashregister`.
+
+| URL | Signed out | Signed in |
+|-----|------------|-----------|
+| `regkasse://tenant/{slug}` | Persist the slug and open `/(auth)/login?tenant={slug}` | Open the cash register for the current session |
+| `cashregister://tenant/{slug}` | Same as `regkasse://tenant/{slug}` | Same as `regkasse://tenant/{slug}` |
+| Web `/tenant/{slug}` | Same login handoff | Cash register |
+
+The bridge is `frontend/app/tenant/[slug].tsx`. `useDeepLinkNavigation` runs under `AuthProvider`. A customer-surface build (`EXPO_PUBLIC_APP_SURFACE=customer`) still opens `/customer`. `regkasse://payment-result` stays the online-payment callback and is not a tenant link.
+
+Before login, `GET /api/public/tenants/{slug}` may include `verticalProfileId`. The login screen uses it for the industry line (`Regkasse — Gastronomie`) and shows `Mandant: {slug}` when the link supplied a slug. The authenticated profile is still `GET /api/pos/vertical-profile`.
+
+On the web, open `http://localhost:8081/tenant/{slug}`. A desktop browser does not launch the native scheme unless the OS has a handler.
+
+### Onboarding
+
+`frontend/app/(auth)/onboarding.tsx` shows two or three slides for the linked profile (vet, hair salon, and taxi use three; gastronomy uses two; unknown profiles use the default pair). Copy is the `verticalProfiles` i18n namespace. **Überspringen**, **Weiter**, and **Loslegen** set `pos_onboarding_seen_v1` in device storage. The deck runs once after login, after password-change and license-expired gates. It does not change the payment flow.
 
 ## Current scope and follow-ups
 
