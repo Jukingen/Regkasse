@@ -13,6 +13,7 @@ const tenantId = '11111111-1111-1111-1111-111111111111';
 const mockListProfiles = vi.fn();
 const mockGetEffective = vi.fn();
 const mockPutProfile = vi.fn();
+const mockProfileImpact = vi.fn();
 const mockNotifySuccess = vi.fn();
 const mockNotifyError = vi.fn();
 
@@ -27,6 +28,11 @@ vi.mock('@/api/generated/admin/admin', async (importOriginal) => {
       mockPutProfile(...args),
   };
 });
+
+vi.mock('@/features/super-admin/tenantProfileImpact', () => ({
+  getTenantProfileImpact: (...args: unknown[]) => mockProfileImpact(...args),
+  impactWarningLabelKey: (code: string) => `tenants.verticalProfile.impact${code}`,
+}));
 
 vi.mock('@/hooks/useNotify', () => ({
   useNotify: () => ({
@@ -121,6 +127,21 @@ describe('TenantVerticalProfileEditor', () => {
     mockListProfiles.mockResolvedValue(profiles);
     mockGetEffective.mockResolvedValue(effective);
     mockPutProfile.mockResolvedValue(effective);
+    mockProfileImpact.mockResolvedValue({
+      currentProfileId: 'gastronomy',
+      targetProfileId: 'gastronomy',
+      counts: {
+        customersWithPetData: 0,
+        paymentsWithPrescriptionReference: 0,
+        paymentsWithRouteFrom: 0,
+        soldImeis: 0,
+        appointments: 0,
+        rooms: 0,
+        folios: 0,
+        tickets: 0,
+      },
+      warnings: [],
+    });
   });
 
   it('renders the profile selector with translated profiles', async () => {
@@ -148,6 +169,27 @@ describe('TenantVerticalProfileEditor', () => {
       )
     );
     expect(mockNotifySuccess).toHaveBeenCalledWith('POS-Profil wurde gespeichert.');
+  });
+
+  it('invalidates the sidebar profile cache after PUT', async () => {
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    renderEditor();
+
+    const save = await screen.findByRole('button', { name: 'Profil speichern' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
+
+    await waitFor(() => expect(mockPutProfile).toHaveBeenCalled());
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['/api/admin/vertical-profile'],
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['admin', 'vertical-profile'],
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['admin', 'tenants', tenantId, 'vertical-profile'],
+    });
+    invalidateQueries.mockRestore();
   });
 
   it('shows the taxi tariff field when the taxi profile is selected', async () => {
@@ -181,6 +223,44 @@ describe('TenantVerticalProfileEditor', () => {
             posFeatures: expect.objectContaining({ tables: true }),
           }),
         })
+      )
+    );
+  });
+
+  it('warns about hidden historical rows and saves only after confirmation', async () => {
+    mockGetEffective.mockResolvedValue({
+      ...effective,
+      profileId: 'vet',
+      name: 'verticalProfiles.vet.name',
+      posFeatures: { patientRecord: true },
+    });
+    mockProfileImpact.mockResolvedValue({
+      currentProfileId: 'vet',
+      targetProfileId: 'gastronomy',
+      counts: { customersWithPetData: 2, paymentsWithPrescriptionReference: 1 },
+      warnings: [
+        { code: 'customersWithPetData', count: 2 },
+        { code: 'paymentsWithPrescriptionReference', count: 1 },
+      ],
+    });
+
+    renderEditor();
+
+    const selector = await screen.findByRole('combobox', { name: 'POS-Profil' });
+    fireEvent.mouseDown(selector);
+    fireEvent.click(await screen.findByText('Gastronomie'));
+
+    expect(await screen.findByText('Historische Daten bleiben erhalten')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Profil speichern' }));
+
+    await waitFor(() => expect(mockProfileImpact).toHaveBeenCalled());
+    expect(mockPutProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Trotzdem speichern' }));
+    await waitFor(() =>
+      expect(mockPutProfile).toHaveBeenCalledWith(
+        tenantId,
+        expect.objectContaining({ profileId: 'gastronomy' })
       )
     );
   });

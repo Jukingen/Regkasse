@@ -15,8 +15,15 @@ import type {
   UpdateTenantVerticalProfileRequest,
   VerticalProfileDto,
 } from '@/api/generated/model';
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+import {
+  getTenantProfileImpact,
+  impactWarningLabelKey,
+  type TenantProfileImpact,
+} from '@/features/super-admin/tenantProfileImpact';
+import { invalidateAdminVerticalProfileQueries } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 
 type EntityFieldGroup = 'customer' | 'product';
 type FeatureValues = Record<string, boolean>;
@@ -97,6 +104,7 @@ export interface TenantVerticalProfileEditorProps {
 export function TenantVerticalProfileEditor({ tenantId }: TenantVerticalProfileEditorProps) {
   const { t } = useI18n();
   const notify = useNotify();
+  const { modal } = useAntdApp();
   const queryClient = useQueryClient();
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [featureValues, setFeatureValues] = useState<FeatureValues | null>(null);
@@ -157,6 +165,7 @@ export function TenantVerticalProfileEditor({ tenantId }: TenantVerticalProfileE
         ['admin', 'tenants', tenantId, 'vertical-profile'],
         effective
       );
+      invalidateAdminVerticalProfileQueries(queryClient, tenantId);
       void queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
     },
     onError: () => notify.error(t('tenants.verticalProfile.saveError')),
@@ -182,9 +191,15 @@ export function TenantVerticalProfileEditor({ tenantId }: TenantVerticalProfileE
     }));
   };
 
-  const save = () => {
+  const impactQuery = useQuery({
+    queryKey: ['admin', 'tenants', tenantId, 'profile-impact', effectiveProfileId],
+    queryFn: () => getTenantProfileImpact(tenantId, effectiveProfileId),
+    enabled: Boolean(tenantId && effectiveProfileId),
+  });
+
+  const save = async () => {
     if (!effectiveProfileId) return;
-    saveMutation.mutate({
+    const request = {
       profileId: effectiveProfileId,
       taxiTariffPerKm: effectiveTariff,
       overrides: {
@@ -192,7 +207,28 @@ export function TenantVerticalProfileEditor({ tenantId }: TenantVerticalProfileE
         posFeatures: effectiveFeatureValues,
         optionalFields: effectiveFieldValues,
       },
-    } as UpdateTenantVerticalProfileRequest);
+    } as UpdateTenantVerticalProfileRequest;
+
+    let impact: TenantProfileImpact;
+    try {
+      impact = await getTenantProfileImpact(tenantId, effectiveProfileId);
+    } catch {
+      notify.error(t('tenants.verticalProfile.saveError'));
+      return;
+    }
+
+    if (impact.warnings.length === 0) {
+      saveMutation.mutate(request);
+      return;
+    }
+
+    modal.confirm({
+      title: t('tenants.verticalProfile.impactConfirmTitle'),
+      content: t('tenants.verticalProfile.impactConfirmBody'),
+      okText: t('tenants.verticalProfile.impactConfirmOk'),
+      cancelText: t('tenants.verticalProfile.impactConfirmCancel'),
+      onOk: () => saveMutation.mutate(request),
+    });
   };
 
   const featureKeys = Object.keys(asObject(selectedProfile?.posFeatures)).sort();
@@ -335,11 +371,31 @@ export function TenantVerticalProfileEditor({ tenantId }: TenantVerticalProfileE
         </Card>
       ) : null}
 
+      {impactQuery.data && impactQuery.data.warnings.length > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('tenants.verticalProfile.impactTitle')}
+          description={
+            <Space orientation="vertical" size={4}>
+              <Typography.Text>{t('tenants.verticalProfile.impactIntro')}</Typography.Text>
+              {impactQuery.data.warnings.map((warning) => (
+                <Typography.Text key={warning.code}>
+                  {t(impactWarningLabelKey(warning.code), { count: warning.count })}
+                </Typography.Text>
+              ))}
+            </Space>
+          }
+        />
+      ) : null}
+
       <Button
         type="primary"
         loading={saveMutation.isPending}
         disabled={!effectiveProfileId || loadFailed}
-        onClick={save}
+        onClick={() => {
+          void save();
+        }}
       >
         {t('tenants.verticalProfile.save')}
       </Button>
