@@ -190,6 +190,24 @@ export const PERMISSIONS = {
   CUSTOMER_MANAGE: 'customer.manage',
   SHIFT_VIEW: 'shift.view',
   SHIFT_MANAGE: 'shift.manage',
+  /** Beherbergung rooms. Backend: AppPermissions.RoomView. */
+  ROOM_VIEW: 'room.view',
+  ROOM_MANAGE: 'room.manage',
+  /** Ticket sales. Backend: AppPermissions.TicketView. */
+  TICKET_VIEW: 'ticket.view',
+  TICKET_MANAGE: 'ticket.manage',
+  /** Hair salon appointments. Backend: AppPermissions.AppointmentView. */
+  APPOINTMENT_VIEW: 'appointment.view',
+  APPOINTMENT_MANAGE: 'appointment.manage',
+  /** Vet patient record. Backend: AppPermissions.PatientView. */
+  PATIENT_VIEW: 'patient.view',
+  PATIENT_MANAGE: 'patient.manage',
+  /** Handy shop IMEI stock. Backend: AppPermissions.ImeiView. */
+  IMEI_VIEW: 'imei.view',
+  IMEI_MANAGE: 'imei.manage',
+  /** Taxi trips. Backend: AppPermissions.TaxiTripView. */
+  TAXI_TRIP_VIEW: 'taxi.trip.view',
+  TAXI_TRIP_MANAGE: 'taxi.trip.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

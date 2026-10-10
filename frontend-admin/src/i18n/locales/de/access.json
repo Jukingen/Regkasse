@@ -133,5 +133,19 @@
     "columnLabel": "Bezeichnung",
     "columnUsers": "Benutzer",
     "columnPercent": "Anteil"
+  },
+  "permissions": {
+    "room.view": "Zimmer anzeigen",
+    "room.manage": "Zimmer verwalten",
+    "ticket.view": "Tickets anzeigen",
+    "ticket.manage": "Tickets verwalten",
+    "appointment.view": "Termine anzeigen",
+    "appointment.manage": "Termine verwalten",
+    "patient.view": "Patientenakte anzeigen",
+    "patient.manage": "Patientenakte verwalten",
+    "imei.view": "IMEI anzeigen",
+    "imei.manage": "IMEI verwalten",
+    "taxi.trip.view": "Fahrten anzeigen",
+    "taxi.trip.manage": "Fahrten verwalten"
   }
 }

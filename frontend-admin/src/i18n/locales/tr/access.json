@@ -133,5 +133,19 @@
     "columnLabel": "Etiket",
     "columnUsers": "Kullanıcılar",
     "columnPercent": "Yüzde"
+  },
+  "permissions": {
+    "room.view": "Odaları görüntüle",
+    "room.manage": "Odaları yönet",
+    "ticket.view": "Biletleri görüntüle",
+    "ticket.manage": "Biletleri yönet",
+    "appointment.view": "Randevuları görüntüle",
+    "appointment.manage": "Randevuları yönet",
+    "patient.view": "Hasta kaydını görüntüle",
+    "patient.manage": "Hasta kaydını yönet",
+    "imei.view": "IMEI görüntüle",
+    "imei.manage": "IMEI yönet",
+    "taxi.trip.view": "Taksi seferlerini görüntüle",
+    "taxi.trip.manage": "Taksi seferlerini yönet"
   }
 }

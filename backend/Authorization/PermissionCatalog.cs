@@ -153,6 +153,19 @@ public static class PermissionCatalog
         // Kitchen
         AppPermissions.KitchenView,
         AppPermissions.KitchenUpdate,
+        // Vertical profile actions
+        AppPermissions.RoomView,
+        AppPermissions.RoomManage,
+        AppPermissions.TicketView,
+        AppPermissions.TicketManage,
+        AppPermissions.AppointmentView,
+        AppPermissions.AppointmentManage,
+        AppPermissions.PatientView,
+        AppPermissions.PatientManage,
+        AppPermissions.ImeiView,
+        AppPermissions.ImeiManage,
+        AppPermissions.TaxiTripView,
+        AppPermissions.TaxiTripManage,
         // TSE, system-critical
         AppPermissions.TseSign,
 #pragma warning disable CS0618

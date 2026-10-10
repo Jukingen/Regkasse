@@ -133,5 +133,19 @@
     "columnLabel": "Label",
     "columnUsers": "Users",
     "columnPercent": "Percent"
+  },
+  "permissions": {
+    "room.view": "View rooms",
+    "room.manage": "Manage rooms",
+    "ticket.view": "View tickets",
+    "ticket.manage": "Manage tickets",
+    "appointment.view": "View appointments",
+    "appointment.manage": "Manage appointments",
+    "patient.view": "View patient records",
+    "patient.manage": "Manage patient records",
+    "imei.view": "View IMEI",
+    "imei.manage": "Manage IMEI",
+    "taxi.trip.view": "View taxi trips",
+    "taxi.trip.manage": "Manage taxi trips"
   }
 }

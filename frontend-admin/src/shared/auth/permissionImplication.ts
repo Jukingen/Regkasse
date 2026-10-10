@@ -85,6 +85,12 @@ export const HOLDER_TO_IMPLIED_READS: Readonly<Record<string, readonly string[]>
   'cash_register.manage': ['cash_register.view'],
   'cash_register.decommission': ['cash_register.view'],
   'table.manage': ['table.view'],
+  'room.manage': ['room.view'],
+  'ticket.manage': ['ticket.view'],
+  'appointment.manage': ['appointment.view'],
+  'patient.manage': ['patient.view'],
+  'imei.manage': ['imei.view'],
+  'taxi.trip.manage': ['taxi.trip.view'],
   'license.manage': ['license.view'],
   'website.manage': [
     'digital.view',

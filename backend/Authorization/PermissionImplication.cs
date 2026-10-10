@@ -158,6 +158,12 @@ public static class PermissionImplication
             [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
             [AppPermissions.CashRegisterDecommission] = [AppPermissions.CashRegisterView],
             [AppPermissions.TableManage] = [AppPermissions.TableView],
+            [AppPermissions.RoomManage] = [AppPermissions.RoomView],
+            [AppPermissions.TicketManage] = [AppPermissions.TicketView],
+            [AppPermissions.AppointmentManage] = [AppPermissions.AppointmentView],
+            [AppPermissions.PatientManage] = [AppPermissions.PatientView],
+            [AppPermissions.ImeiManage] = [AppPermissions.ImeiView],
+            [AppPermissions.TaxiTripManage] = [AppPermissions.TaxiTripView],
             [AppPermissions.LicenseManage] = [AppPermissions.LicenseView],
             // Domains/customization — view/preview/request only (not create/publish).
             [AppPermissions.WebsiteManage] =

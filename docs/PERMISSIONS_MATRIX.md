@@ -6,7 +6,7 @@ Implication rules: `PermissionImplication` (composites + manage→view + digital
 **Source of truth:** `backend/Authorization/AppPermissions.cs`, `RolePermissionMatrix.cs`, `PermissionImplication.cs`  
 **FA mirror:** `frontend-admin/src/shared/auth/permissionImplication.ts` (+ `hasPermission` uses implication)  
 **Guides:** [`DIGITAL_SERVICES.md`](DIGITAL_SERVICES.md) · [`ONLINE_ORDERS.md`](ONLINE_ORDERS.md) · [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md) · [`AGENTS.md`](../AGENTS.md) § Roles  
-**Last updated:** 2026-08-28
+**Last updated:** 2026-10-03
 
 Legend: ✅ granted by default · ❌ not granted · *(via implication)* satisfied without an explicit matrix row.
 
@@ -152,6 +152,23 @@ Live gate is **`backup.manage`**. `settings.backup` is a composite child of `set
 | `settings.manage` | `settings.backup`, `backup.manage`, `website.manage` (+ `settings.view`) |
 
 `PermissionClaimHelper` and `RolePermissionMatrix.RoleHasPermission` use `PermissionImplication.IsSatisfied` (aligned with `PermissionAuthorizationHandler`).
+
+---
+
+## Vertical profile actions
+
+Profile-specific back-office keys. SuperAdmin receives them through the full catalog (`PermissionCatalog.All`); `system.critical` still satisfies every key. Manager holds view and manage explicitly. Cashier, Waiter, Kitchen, Accountant, and ReportViewer do not. A Cashier can receive a key only through a user or custom-role override.
+
+`*.manage` implies the matching `*.view`.
+
+| Permission | Profile | SuperAdmin | Manager | Cashier |
+|------------|---------|------------|---------|---------|
+| `room.view` / `room.manage` | beherbergung | ✅ | ✅ | ❌ |
+| `ticket.view` / `ticket.manage` | ticket-sales | ✅ | ✅ | ❌ |
+| `appointment.view` / `appointment.manage` | hair-salon | ✅ | ✅ | ❌ |
+| `patient.view` / `patient.manage` | vet | ✅ | ✅ | ❌ |
+| `imei.view` / `imei.manage` | handy-shop | ✅ | ✅ | ❌ |
+| `taxi.trip.view` / `taxi.trip.manage` | taxi | ✅ | ✅ | ❌ |
 
 ---
 

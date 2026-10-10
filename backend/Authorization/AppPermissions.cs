@@ -364,4 +364,18 @@ public static class AppPermissions
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";
     public const string ReceiptReprint = "receipt.reprint";
+
+    // --- Vertical profile actions (granted to Manager; Cashier only via override) ---
+    public const string RoomView = "room.view";
+    public const string RoomManage = "room.manage";
+    public const string TicketView = "ticket.view";
+    public const string TicketManage = "ticket.manage";
+    public const string AppointmentView = "appointment.view";
+    public const string AppointmentManage = "appointment.manage";
+    public const string PatientView = "patient.view";
+    public const string PatientManage = "patient.manage";
+    public const string ImeiView = "imei.view";
+    public const string ImeiManage = "imei.manage";
+    public const string TaxiTripView = "taxi.trip.view";
+    public const string TaxiTripManage = "taxi.trip.manage";
 }

@@ -584,4 +584,26 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ShiftOpen));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ShiftClose));
     }
+
+    [Fact]
+    public void VerticalProfilePermissions_ManagerHasAll_CashierHasNone_SuperAdminHasCatalog()
+    {
+        string[] keys =
+        [
+            AppPermissions.RoomView, AppPermissions.RoomManage,
+            AppPermissions.TicketView, AppPermissions.TicketManage,
+            AppPermissions.AppointmentView, AppPermissions.AppointmentManage,
+            AppPermissions.PatientView, AppPermissions.PatientManage,
+            AppPermissions.ImeiView, AppPermissions.ImeiManage,
+            AppPermissions.TaxiTripView, AppPermissions.TaxiTripManage,
+        ];
+
+        foreach (var key in keys)
+        {
+            Assert.Contains(key, PermissionCatalog.All);
+            Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, key));
+            Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, key));
+            Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, key));
+        }
+    }
 }
