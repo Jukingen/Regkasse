@@ -19,6 +19,9 @@ import React, {
 } from 'react';
 
 import sidebarStyles from '@/app/(protected)/protected-layout-sidebar.module.css';
+import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
+import { AdminSidebarQuickAccess } from '@/components/admin-layout/AdminSidebarQuickAccess';
+import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
 import {
   canShowPlatformAdminMenu,
   canShowRksvMenu,
@@ -28,7 +31,20 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isTenantLicenseBlockingModule } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
+import { injectSidebarFavoriteStars } from '@/features/menu/injectSidebarFavoriteStars';
+import { collectAllMenuKeys } from '@/features/menu/sidebarFavoritesLogic';
+import { useFavorites } from '@/features/menu/useFavorites';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import {
+  runAndLogMenuPermissionConsistencyCheck,
+  shouldRunDailyConsistencyCheck,
+} from '@/features/users/utils/menuPermissionConsistency';
+import {
+  getRoleMenuPreviewSession,
+  subscribeRoleMenuPreview,
+} from '@/features/users/utils/roleMenuPreviewSession';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
+import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
 import { mapLicenseLifecycleUiState, useLicenseStatus } from '@/hooks/useLicenseStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -41,29 +57,18 @@ import {
   filterSidebarMenuItemsByQuery,
   resolveAdminMenuSelectedKeys,
 } from '@/shared/adminSidebarNavigation';
-import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
+import {
+  SIDEBAR_NAV_ITEM_CATALOG,
+  logSidebarMenuPermissionMapWarnings,
+} from '@/shared/adminSidebarRegistry';
 import { logMenuPermissionMappingWarnings } from '@/shared/auth/menuPermissionMappingValidation';
 import { tryRegistryMenuVisibility } from '@/shared/auth/menuPermissionRegistry';
-import { SIDEBAR_NAV_ITEM_CATALOG, logSidebarMenuPermissionMapWarnings } from '@/shared/adminSidebarRegistry';
+import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { filterSidebarMenuItemsForLicenseLockdown } from '@/shared/sidebarLicenseLockdown';
-import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
-import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
-import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
-import { AdminSidebarQuickAccess } from '@/components/admin-layout/AdminSidebarQuickAccess';
-import { injectSidebarFavoriteStars } from '@/features/menu/injectSidebarFavoriteStars';
-import { collectAllMenuKeys } from '@/features/menu/sidebarFavoritesLogic';
-import { useFavorites } from '@/features/menu/useFavorites';
-import {
-  runAndLogMenuPermissionConsistencyCheck,
-  shouldRunDailyConsistencyCheck,
-} from '@/features/users/utils/menuPermissionConsistency';
-import {
-  getRoleMenuPreviewSession,
-  subscribeRoleMenuPreview,
-} from '@/features/users/utils/roleMenuPreviewSession';
+import { toVerticalProfileMenuScope } from '@/shared/sidebarVerticalProfile';
 
 const EMPTY_PERMISSIONS: string[] = [];
 
@@ -116,12 +121,11 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
     runAndLogMenuPermissionConsistencyCheck();
   }, []);
 
-  const permissions =
-    previewSession?.permissions?.length
-      ? previewSession.permissions
-      : userPermissions.length > 0
-        ? userPermissions
-        : EMPTY_PERMISSIONS;
+  const permissions = previewSession?.permissions?.length
+    ? previewSession.permissions
+    : userPermissions.length > 0
+      ? userPermissions
+      : EMPTY_PERMISSIONS;
   const usePermissionFirst = permissions.length > 0;
   const effectiveRole = previewSession?.roleName || user?.role || '';
   const { isSuperAdminUser } = useCurrentTenant();
@@ -132,13 +136,20 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
     licenseLifecycleStatus?.state ??
     (tenantLicense ? mapLicenseLifecycleUiState(tenantLicense) : null);
 
+  const verticalProfile = useAdminVerticalProfile();
+  const verticalProfileScope = useMemo(
+    () => toVerticalProfileMenuScope(verticalProfile),
+    [verticalProfile]
+  );
+
   const { menuItems: allMenuItems, rksvMenuGroups } = useMemo(
     () =>
       buildAdminSidebarMenuItems({
         t,
         verificationNavLabel: OPERATOR_VERIFICATIONS_COPY.navMenuLabel,
+        verticalProfile: verticalProfileScope,
       }),
-    [t]
+    [t, verticalProfileScope]
   );
 
   const canSeeRksv = useMemo(
@@ -352,10 +363,7 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
     [isFiltering, displayedMenuItems]
   );
   const allowedMenuKeys = useMemo(() => new Set(selectableRouteKeys), [selectableRouteKeys]);
-  const visibleMenuKeys = useMemo(
-    () => new Set(collectAllMenuKeys(menuItems)),
-    [menuItems]
-  );
+  const visibleMenuKeys = useMemo(() => new Set(collectAllMenuKeys(menuItems)), [menuItems]);
   const { isFavorite, toggleFavorite } = useFavorites({ visibleMenuKeys });
   const starredMenuItems = useMemo(
     () =>
@@ -412,11 +420,7 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
         </Suspense>
       )}
       {isLocked && !props.menuInlineCollapsed ? (
-        <div
-          className={sidebarStyles.licenseLockdownFooter}
-          role="status"
-          aria-live="polite"
-        >
+        <div className={sidebarStyles.licenseLockdownFooter} role="status" aria-live="polite">
           {t('adminShell.sidebar.lockdownFooter')}
         </div>
       ) : null}

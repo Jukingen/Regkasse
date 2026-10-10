@@ -29,21 +29,21 @@ export const getApiReportsSubmissionsReportTypeReportId = (
     reportId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReportSubmissionEnvelopeDto>(
       {url: `/api/reports/submissions/${reportType}/${reportId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsSubmissionsReportTypeReportIdQueryKey = (reportType: string,
     reportId: string,) => {
     return [`/api/reports/submissions/${reportType}/${reportId}`] as const;
     }
 
-    
+
 export const getGetApiReportsSubmissionsReportTypeReportIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsSubmissionsReportTypeReportId>>, TError = ProblemDetails>(reportType: string,
     reportId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsSubmissionsReportTypeReportId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -52,13 +52,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsSubmissionsReportTypeReportIdQueryKey(reportType,reportId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsSubmissionsReportTypeReportId>>> = ({ signal }) => getApiReportsSubmissionsReportTypeReportId(reportType,reportId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(reportType && reportId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsSubmissionsReportTypeReportId>>, TError, TData> & { queryKey: QueryKey }
 }

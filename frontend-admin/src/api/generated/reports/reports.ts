@@ -36,21 +36,21 @@ export const getApiReportsSales = (
     params?: GetApiReportsSalesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<SalesReport>(
       {url: `/api/Reports/sales`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsSalesQueryKey = (params?: GetApiReportsSalesParams,) => {
     return [`/api/Reports/sales`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsSalesQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsSales>>, TError = unknown>(params?: GetApiReportsSalesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsSales>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -58,13 +58,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsSalesQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsSales>>> = ({ signal }) => getApiReportsSales(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsSales>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -92,21 +92,21 @@ export const getApiReportsProducts = (
     params?: GetApiReportsProductsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ProductReport>(
       {url: `/api/Reports/products`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsProductsQueryKey = (params?: GetApiReportsProductsParams,) => {
     return [`/api/Reports/products`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsProductsQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsProducts>>, TError = unknown>(params?: GetApiReportsProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -114,13 +114,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsProductsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsProducts>>> = ({ signal }) => getApiReportsProducts(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProducts>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -148,21 +148,21 @@ export const getApiReportsCustomers = (
     params?: GetApiReportsCustomersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CustomerReport>(
       {url: `/api/Reports/customers`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsCustomersQueryKey = (params?: GetApiReportsCustomersParams,) => {
     return [`/api/Reports/customers`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsCustomersQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsCustomers>>, TError = unknown>(params?: GetApiReportsCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsCustomers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -170,13 +170,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsCustomersQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsCustomers>>> = ({ signal }) => getApiReportsCustomers(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsCustomers>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -201,23 +201,23 @@ export const useGetApiReportsCustomers = <TData = Awaited<ReturnType<typeof getA
 
 
 export const getApiReportsInventory = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<InventoryReport>(
       {url: `/api/Reports/inventory`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsInventoryQueryKey = () => {
     return [`/api/Reports/inventory`] as const;
     }
 
-    
+
 export const getGetApiReportsInventoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsInventory>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsInventory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -225,13 +225,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsInventoryQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsInventory>>> = ({ signal }) => getApiReportsInventory(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsInventory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -259,21 +259,21 @@ export const getApiReportsPayments = (
     params?: GetApiReportsPaymentsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PaymentReport>(
       {url: `/api/Reports/payments`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsPaymentsQueryKey = (params?: GetApiReportsPaymentsParams,) => {
     return [`/api/Reports/payments`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsPaymentsQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsPayments>>, TError = unknown>(params?: GetApiReportsPaymentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsPayments>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -281,13 +281,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsPaymentsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsPayments>>> = ({ signal }) => getApiReportsPayments(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsPayments>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -315,21 +315,21 @@ export const getApiReportsExportSales = (
     params?: GetApiReportsExportSalesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Reports/export/sales`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsExportSalesQueryKey = (params?: GetApiReportsExportSalesParams,) => {
     return [`/api/Reports/export/sales`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsExportSalesQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsExportSales>>, TError = unknown>(params?: GetApiReportsExportSalesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsExportSales>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -337,13 +337,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsExportSalesQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsExportSales>>> = ({ signal }) => getApiReportsExportSales(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsExportSales>>, TError, TData> & { queryKey: QueryKey }
 }

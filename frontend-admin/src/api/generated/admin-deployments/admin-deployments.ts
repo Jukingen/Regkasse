@@ -35,21 +35,21 @@ export const getApiWebhooksDeploymentsComplianceGate = (
     params?: GetApiWebhooksDeploymentsComplianceGateParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<DeploymentComplianceGateStatusDto>(
       {url: `/api/webhooks/deployments/compliance-gate`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiWebhooksDeploymentsComplianceGateQueryKey = (params?: GetApiWebhooksDeploymentsComplianceGateParams,) => {
     return [`/api/webhooks/deployments/compliance-gate`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiWebhooksDeploymentsComplianceGateQueryOptions = <TData = Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>, TError = ProblemDetails>(params?: GetApiWebhooksDeploymentsComplianceGateParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -57,13 +57,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiWebhooksDeploymentsComplianceGateQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>> = ({ signal }) => getApiWebhooksDeploymentsComplianceGate(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiWebhooksDeploymentsComplianceGate>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,8 +90,8 @@ export const useGetApiWebhooksDeploymentsComplianceGate = <TData = Awaited<Retur
 export const postApiWebhooksDeploymentsCiReport = (
     deploymentCiReportRequest: DeploymentCiReportRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<DeploymentRunDto>(
       {url: `/api/webhooks/deployments/ci-report`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -99,7 +99,7 @@ export const postApiWebhooksDeploymentsCiReport = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiWebhooksDeploymentsCiReportMutationOptions = <TError = ProblemDetails,
@@ -107,7 +107,7 @@ export const getPostApiWebhooksDeploymentsCiReportMutationOptions = <TError = Pr
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiWebhooksDeploymentsCiReport>>, TError,{data: DeploymentCiReportRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiWebhooksDeploymentsCiReport>>, {data: DeploymentCiReportRequest}> = (props) => {
@@ -116,7 +116,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiWebhooksDeploymentsCiReport(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -138,4 +138,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

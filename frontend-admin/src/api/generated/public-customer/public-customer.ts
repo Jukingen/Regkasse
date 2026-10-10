@@ -29,21 +29,21 @@ export const getApiPublicCustomerDashboard = (
     params?: GetApiPublicCustomerDashboardParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PublicCustomerDashboardDto>(
       {url: `/api/public/customer/dashboard`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPublicCustomerDashboardQueryKey = (params?: GetApiPublicCustomerDashboardParams,) => {
     return [`/api/public/customer/dashboard`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPublicCustomerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails>(params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -51,13 +51,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPublicCustomerDashboardQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>> = ({ signal }) => getApiPublicCustomerDashboard(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData> & { queryKey: QueryKey }
 }

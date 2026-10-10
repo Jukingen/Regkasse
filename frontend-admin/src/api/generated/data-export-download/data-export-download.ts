@@ -27,21 +27,21 @@ export const getDataDownloadToken = (
     token: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/data/download/${token}`, method: 'GET',
         responseType: 'blob', signal
     },
       options);
     }
-  
+
 
 export const getGetDataDownloadTokenQueryKey = (token: string,) => {
     return [`/data/download/${token}`] as const;
     }
 
-    
+
 export const getGetDataDownloadTokenQueryOptions = <TData = Awaited<ReturnType<typeof getDataDownloadToken>>, TError = ProblemDetails>(token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataDownloadToken>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -49,13 +49,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetDataDownloadTokenQueryKey(token);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataDownloadToken>>> = ({ signal }) => getDataDownloadToken(token, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDataDownloadToken>>, TError, TData> & { queryKey: QueryKey }
 }

@@ -34,23 +34,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiCashRegisterEnhanced = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<EnhancedCashRegisterDto[]>(
       {url: `/api/CashRegister/enhanced`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCashRegisterEnhancedQueryKey = () => {
     return [`/api/CashRegister/enhanced`] as const;
     }
 
-    
+
 export const getGetApiCashRegisterEnhancedQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -58,13 +58,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterEnhancedQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>> = ({ signal }) => getApiCashRegisterEnhanced(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -89,23 +89,23 @@ export const useGetApiCashRegisterEnhanced = <TData = Awaited<ReturnType<typeof 
 
 
 export const getApiCashRegister = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCashRegisterQueryKey = () => {
     return [`/api/CashRegister`] as const;
     }
 
-    
+
 export const getGetApiCashRegisterQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegister>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegister>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -113,13 +113,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegister>>> = ({ signal }) => getApiCashRegister(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegister>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -146,8 +146,8 @@ export const useGetApiCashRegister = <TData = Awaited<ReturnType<typeof getApiCa
 export const postApiCashRegister = (
     createCashRegisterRequest: CreateCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -155,7 +155,7 @@ export const postApiCashRegister = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiCashRegisterMutationOptions = <TError = unknown,
@@ -163,7 +163,7 @@ export const getPostApiCashRegisterMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCashRegister>>, {data: CreateCashRegisterRequest}> = (props) => {
@@ -172,7 +172,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCashRegister(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -195,23 +195,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCashRegisterByTenant = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CashRegisterDto[]>(
       {url: `/api/CashRegister/by-tenant`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCashRegisterByTenantQueryKey = () => {
     return [`/api/CashRegister/by-tenant`] as const;
     }
 
-    
+
 export const getGetApiCashRegisterByTenantQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -219,13 +219,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterByTenantQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>> = ({ signal }) => getApiCashRegisterByTenant(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -253,20 +253,20 @@ export const getApiCashRegisterId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCashRegisterIdQueryKey = (id: string,) => {
     return [`/api/CashRegister/${id}`] as const;
     }
 
-    
+
 export const getGetApiCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -274,13 +274,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterId>>> = ({ signal }) => getApiCashRegisterId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -308,8 +308,8 @@ export const postApiCashRegisterIdOpen = (
     id: string,
     openCashRegisterModel: OpenCashRegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister/${id}/open`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -317,7 +317,7 @@ export const postApiCashRegisterIdOpen = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiCashRegisterIdOpenMutationOptions = <TError = unknown,
@@ -325,7 +325,7 @@ export const getPostApiCashRegisterIdOpenMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegisterIdOpen>>, TError,{id: string;data: OpenCashRegisterModel}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCashRegisterIdOpen>>, {id: string;data: OpenCashRegisterModel}> = (props) => {
@@ -334,7 +334,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCashRegisterIdOpen(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -360,8 +360,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     closeCashRegisterModel: CloseCashRegisterModel,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister/${id}/close`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -369,7 +369,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiCashRegisterIdCloseMutationOptions = <TError = unknown,
@@ -377,7 +377,7 @@ export const getPostApiCashRegisterIdCloseMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegisterIdClose>>, TError,{id: string;data: CloseCashRegisterModel}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCashRegisterIdClose>>, {id: string;data: CloseCashRegisterModel}> = (props) => {
@@ -386,7 +386,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCashRegisterIdClose(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -413,22 +413,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiCashRegisterIdTransactionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/CashRegister/${id}/transactions`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiCashRegisterIdTransactionsQueryKey = (id: string,
     params?: GetApiCashRegisterIdTransactionsParams,) => {
     return [`/api/CashRegister/${id}/transactions`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiCashRegisterIdTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterIdTransactions>>, TError = unknown>(id: string,
     params?: GetApiCashRegisterIdTransactionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterIdTransactions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -437,13 +437,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterIdTransactionsQueryKey(id,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterIdTransactions>>> = ({ signal }) => getApiCashRegisterIdTransactions(id,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterIdTransactions>>, TError, TData> & { queryKey: QueryKey }
 }

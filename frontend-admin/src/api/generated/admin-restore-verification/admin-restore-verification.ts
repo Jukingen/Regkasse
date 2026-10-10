@@ -36,8 +36,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiAdminRestoreVerificationTrigger = (
     restoreVerificationManualTriggerRequestDto?: RestoreVerificationManualTriggerRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<RestoreVerificationTriggerResponseDto>(
       {url: `/api/admin/restore-verification/trigger`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -45,7 +45,7 @@ export const postApiAdminRestoreVerificationTrigger = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiAdminRestoreVerificationTriggerMutationOptions = <TError = void,
@@ -53,7 +53,7 @@ export const getPostApiAdminRestoreVerificationTriggerMutationOptions = <TError 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,{data: RestoreVerificationManualTriggerRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, {data: RestoreVerificationManualTriggerRequestDto}> = (props) => {
@@ -62,7 +62,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiAdminRestoreVerificationTrigger(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -85,23 +85,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiAdminRestoreVerificationRunsLatest = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<GetApiAdminRestoreVerificationRunsLatest200>(
       {url: `/api/admin/restore-verification/runs/latest`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminRestoreVerificationRunsLatestQueryKey = () => {
     return [`/api/admin/restore-verification/runs/latest`] as const;
     }
 
-    
+
 export const getGetApiAdminRestoreVerificationRunsLatestQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsLatest>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsLatest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -109,13 +109,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationRunsLatestQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsLatest>>> = ({ signal }) => getApiAdminRestoreVerificationRunsLatest(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsLatest>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -143,21 +143,21 @@ export const getApiAdminRestoreVerificationRuns = (
     params?: GetApiAdminRestoreVerificationRunsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RestoreVerificationHistoryResponseDto>(
       {url: `/api/admin/restore-verification/runs`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminRestoreVerificationRunsQueryKey = (params?: GetApiAdminRestoreVerificationRunsParams,) => {
     return [`/api/admin/restore-verification/runs`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAdminRestoreVerificationRunsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRuns>>, TError = unknown>(params?: GetApiAdminRestoreVerificationRunsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRuns>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -165,13 +165,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationRunsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRuns>>> = ({ signal }) => getApiAdminRestoreVerificationRuns(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRuns>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -199,20 +199,20 @@ export const getApiAdminRestoreVerificationRunsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RestoreVerificationRunResponseDto>(
       {url: `/api/admin/restore-verification/runs/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminRestoreVerificationRunsIdQueryKey = (id: string,) => {
     return [`/api/admin/restore-verification/runs/${id}`] as const;
     }
 
-    
+
 export const getGetApiAdminRestoreVerificationRunsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsId>>, TError = void>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -220,13 +220,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationRunsIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsId>>> = ({ signal }) => getApiAdminRestoreVerificationRunsId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationRunsId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -251,23 +251,23 @@ export const useGetApiAdminRestoreVerificationRunsId = <TData = Awaited<ReturnTy
 
 
 export const getApiAdminRestoreVerificationReadiness = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RestoreVerificationReadinessResponseDto>(
       {url: `/api/admin/restore-verification/readiness`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAdminRestoreVerificationReadinessQueryKey = () => {
     return [`/api/admin/restore-verification/readiness`] as const;
     }
 
-    
+
 export const getGetApiAdminRestoreVerificationReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -275,13 +275,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationReadinessQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>> = ({ signal }) => getApiAdminRestoreVerificationReadiness(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData> & { queryKey: QueryKey }
 }

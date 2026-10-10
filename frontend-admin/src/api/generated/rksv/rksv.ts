@@ -30,23 +30,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiRksvEnvironment = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RksvEnvironmentStatusDto>(
       {url: `/api/rksv/environment`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvEnvironmentQueryKey = () => {
     return [`/api/rksv/environment`] as const;
     }
 
-    
+
 export const getGetApiRksvEnvironmentQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -54,13 +54,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvEnvironmentQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvEnvironment>>> = ({ signal }) => getApiRksvEnvironment(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvEnvironment>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -85,23 +85,23 @@ export const useGetApiRksvEnvironment = <TData = Awaited<ReturnType<typeof getAp
 
 
 export const getApiRksvStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RksvStatusDto>(
       {url: `/api/rksv/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvStatusQueryKey = () => {
     return [`/api/rksv/status`] as const;
     }
 
-    
+
 export const getGetApiRksvStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -109,13 +109,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvStatus>>> = ({ signal }) => getApiRksvStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -143,20 +143,20 @@ export const getApiRksvMonatsbelegStatusCashRegisterId = (
     cashRegisterId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MonatsbelegStatusDto>(
       {url: `/api/rksv/monatsbeleg/status/${cashRegisterId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvMonatsbelegStatusCashRegisterIdQueryKey = (cashRegisterId: string,) => {
     return [`/api/rksv/monatsbeleg/status/${cashRegisterId}`] as const;
     }
 
-    
+
 export const getGetApiRksvMonatsbelegStatusCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>, TError = ProblemDetails>(cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -164,13 +164,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvMonatsbelegStatusCashRegisterIdQueryKey(cashRegisterId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>> = ({ signal }) => getApiRksvMonatsbelegStatusCashRegisterId(cashRegisterId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusCashRegisterId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -195,23 +195,23 @@ export const useGetApiRksvMonatsbelegStatusCashRegisterId = <TData = Awaited<Ret
 
 
 export const getApiRksvMonatsbelegStatusOverview = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MonatsbelegRegisterStatusItemDto[]>(
       {url: `/api/rksv/monatsbeleg/status-overview`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvMonatsbelegStatusOverviewQueryKey = () => {
     return [`/api/rksv/monatsbeleg/status-overview`] as const;
     }
 
-    
+
 export const getGetApiRksvMonatsbelegStatusOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -219,13 +219,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvMonatsbelegStatusOverviewQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>> = ({ signal }) => getApiRksvMonatsbelegStatusOverview(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -250,23 +250,23 @@ export const useGetApiRksvMonatsbelegStatusOverview = <TData = Awaited<ReturnTyp
 
 
 export const getApiRksvReminderStatusOverview = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RksvReminderRegisterStatusItemDto[]>(
       {url: `/api/rksv/reminder/status-overview`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvReminderStatusOverviewQueryKey = () => {
     return [`/api/rksv/reminder/status-overview`] as const;
     }
 
-    
+
 export const getGetApiRksvReminderStatusOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -274,13 +274,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvReminderStatusOverviewQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>> = ({ signal }) => getApiRksvReminderStatusOverview(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -308,20 +308,20 @@ export const getApiRksvReminderStatusCashRegisterId = (
     cashRegisterId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RksvReminderStatusDto>(
       {url: `/api/rksv/reminder/status/${cashRegisterId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvReminderStatusCashRegisterIdQueryKey = (cashRegisterId: string,) => {
     return [`/api/rksv/reminder/status/${cashRegisterId}`] as const;
     }
 
-    
+
 export const getGetApiRksvReminderStatusCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>, TError = ProblemDetails>(cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -329,13 +329,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvReminderStatusCashRegisterIdQueryKey(cashRegisterId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>> = ({ signal }) => getApiRksvReminderStatusCashRegisterId(cashRegisterId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusCashRegisterId>>, TError, TData> & { queryKey: QueryKey }
 }

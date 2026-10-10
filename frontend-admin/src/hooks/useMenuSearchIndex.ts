@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isTenantLicenseBlockingModule } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import {
@@ -25,6 +26,7 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { buildMenuSearchIndexSource, filterMenuSearchIndexByRouteKeys } from '@/shared/searchUtils';
+import { toVerticalProfileMenuScope } from '@/shared/sidebarVerticalProfile';
 
 const EMPTY_PERMISSIONS: string[] = [];
 
@@ -88,10 +90,17 @@ export function useMenuSearchIndex(): MenuSearchIndex {
     [usePermissionFirst, permissions, userRole]
   );
 
+  const verticalProfile = useAdminVerticalProfile();
+  const verticalProfileScope = useMemo(
+    () => toVerticalProfileMenuScope(verticalProfile),
+    [verticalProfile]
+  );
+
   const allowedMenuKeys = useMemo(() => {
     const { menuItems: allMenuItems } = buildAdminSidebarMenuItems({
       t,
       verificationNavLabel: OPERATOR_VERIFICATIONS_COPY.navMenuLabel,
+      verticalProfile: verticalProfileScope,
     });
 
     let filtered = filterSidebarMenuItems(allMenuItems, sidebarPermissionCtx) ?? [];
@@ -100,7 +109,7 @@ export function useMenuSearchIndex(): MenuSearchIndex {
     }
 
     return new Set(collectSelectableRouteKeysFromMenuItems(filtered));
-  }, [t, sidebarPermissionCtx, hideKassenverwaltung]);
+  }, [t, sidebarPermissionCtx, hideKassenverwaltung, verticalProfileScope]);
 
   const source = useMemo(() => buildMenuSearchIndexSource(t), [t, textLocale]);
 

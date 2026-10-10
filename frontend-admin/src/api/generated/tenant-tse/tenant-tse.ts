@@ -27,23 +27,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiTenantTseStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TenantTseStatusDto>(
       {url: `/api/tenant/tse/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiTenantTseStatusQueryKey = () => {
     return [`/api/tenant/tse/status`] as const;
     }
 
-    
+
 export const getGetApiTenantTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiTenantTseStatus>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -51,13 +51,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTenantTseStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTenantTseStatus>>> = ({ signal }) => getApiTenantTseStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTenantTseStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -85,21 +85,21 @@ export const getApiTenantTseHealthHistory = (
     params?: GetApiTenantTseHealthHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TenantTseHealthHistoryDto>(
       {url: `/api/tenant/tse/health-history`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiTenantTseHealthHistoryQueryKey = (params?: GetApiTenantTseHealthHistoryParams,) => {
     return [`/api/tenant/tse/health-history`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTenantTseHealthHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiTenantTseHealthHistory>>, TError = ProblemDetails>(params?: GetApiTenantTseHealthHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantTseHealthHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -107,13 +107,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTenantTseHealthHistoryQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTenantTseHealthHistory>>> = ({ signal }) => getApiTenantTseHealthHistory(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTenantTseHealthHistory>>, TError, TData> & { queryKey: QueryKey }
 }

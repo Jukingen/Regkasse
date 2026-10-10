@@ -29,4 +29,6 @@ export interface PublicTenantProfileDto {
   restaurantIsOpen?: boolean;
   /** @nullable */
   slug?: string | null;
+  /** @nullable */
+  verticalProfileId?: string | null;
 }

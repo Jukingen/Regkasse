@@ -49,8 +49,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const putApiUserManagementMePassword = (
     changePasswordRequest: ChangePasswordRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/me/password`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -58,7 +58,7 @@ export const putApiUserManagementMePassword = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementMePasswordMutationOptions = <TError = unknown,
@@ -66,7 +66,7 @@ export const getPutApiUserManagementMePasswordMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementMePassword>>, TError,{data: ChangePasswordRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementMePassword>>, {data: ChangePasswordRequest}> = (props) => {
@@ -75,7 +75,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementMePassword(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -98,23 +98,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiUserManagementMeUsernameChangePolicy = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UsernameChangePolicyDto>(
       {url: `/api/UserManagement/me/username-change-policy`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementMeUsernameChangePolicyQueryKey = () => {
     return [`/api/UserManagement/me/username-change-policy`] as const;
     }
 
-    
+
 export const getGetApiUserManagementMeUsernameChangePolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -122,13 +122,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementMeUsernameChangePolicyQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>> = ({ signal }) => getApiUserManagementMeUsernameChangePolicy(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -155,8 +155,8 @@ export const useGetApiUserManagementMeUsernameChangePolicy = <TData = Awaited<Re
 export const patchApiUserManagementMeUsername = (
     updateUsernameRequest: UpdateUsernameRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/me/username`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
@@ -164,7 +164,7 @@ export const patchApiUserManagementMeUsername = (
     },
       options);
     }
-  
+
 
 
 export const getPatchApiUserManagementMeUsernameMutationOptions = <TError = unknown,
@@ -172,7 +172,7 @@ export const getPatchApiUserManagementMeUsernameMutationOptions = <TError = unkn
 ): UseMutationOptions<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, TError,{data: UpdateUsernameRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, {data: UpdateUsernameRequest}> = (props) => {
@@ -181,7 +181,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  patchApiUserManagementMeUsername(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -207,21 +207,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiUserManagementParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UsersListResponse>(
       {url: `/api/UserManagement`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementQueryKey = (params?: GetApiUserManagementParams,) => {
     return [`/api/UserManagement`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiUserManagementQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagement>>, TError = unknown>(params?: GetApiUserManagementParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagement>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -229,13 +229,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagement>>> = ({ signal }) => getApiUserManagement(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagement>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -262,8 +262,8 @@ export const useGetApiUserManagement = <TData = Awaited<ReturnType<typeof getApi
 export const postApiUserManagement = (
     createUserRequest: CreateUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserInfo>(
       {url: `/api/UserManagement`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -271,7 +271,7 @@ export const postApiUserManagement = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserManagementMutationOptions = <TError = unknown,
@@ -279,7 +279,7 @@ export const getPostApiUserManagementMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserManagement>>, TError,{data: CreateUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserManagement>>, {data: CreateUserRequest}> = (props) => {
@@ -288,7 +288,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiUserManagement(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -314,20 +314,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserInfo>(
       {url: `/api/UserManagement/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementIdQueryKey = (id: string,) => {
     return [`/api/UserManagement/${id}`] as const;
     }
 
-    
+
 export const getGetApiUserManagementIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -335,13 +335,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementId>>> = ({ signal }) => getApiUserManagementId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -369,8 +369,8 @@ export const putApiUserManagementId = (
     id: string,
     updateUserRequest: UpdateUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -378,7 +378,7 @@ export const putApiUserManagementId = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdMutationOptions = <TError = unknown,
@@ -386,7 +386,7 @@ export const getPutApiUserManagementIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementId>>, TError,{id: string;data: UpdateUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementId>>, {id: string;data: UpdateUserRequest}> = (props) => {
@@ -395,7 +395,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -420,14 +420,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiUserManagementId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiUserManagementIdMutationOptions = <TError = unknown,
@@ -435,7 +435,7 @@ export const getDeleteApiUserManagementIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserManagementId>>, {id: string}> = (props) => {
@@ -444,13 +444,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiUserManagementId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiUserManagementIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserManagementId>>>
-    
+
     export type DeleteApiUserManagementIdMutationError = unknown
 
     export const useDeleteApiUserManagementId = <TError = unknown,
@@ -470,8 +470,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     changePasswordRequest: ChangePasswordRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}/password`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -479,7 +479,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdPasswordMutationOptions = <TError = unknown,
@@ -487,7 +487,7 @@ export const getPutApiUserManagementIdPasswordMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdPassword>>, TError,{id: string;data: ChangePasswordRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdPassword>>, {id: string;data: ChangePasswordRequest}> = (props) => {
@@ -496,7 +496,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementIdPassword(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -522,8 +522,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     resetPasswordRequest: ResetPasswordRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}/reset-password`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -531,7 +531,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdResetPasswordMutationOptions = <TError = unknown,
@@ -539,7 +539,7 @@ export const getPutApiUserManagementIdResetPasswordMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdResetPassword>>, TError,{id: string;data: ResetPasswordRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdResetPassword>>, {id: string;data: ResetPasswordRequest}> = (props) => {
@@ -548,7 +548,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementIdResetPassword(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -574,8 +574,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     deactivateUserRequest: DeactivateUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}/deactivate`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -583,7 +583,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdDeactivateMutationOptions = <TError = unknown,
@@ -591,7 +591,7 @@ export const getPutApiUserManagementIdDeactivateMutationOptions = <TError = unkn
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdDeactivate>>, TError,{id: string;data: DeactivateUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdDeactivate>>, {id: string;data: DeactivateUserRequest}> = (props) => {
@@ -600,7 +600,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementIdDeactivate(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -626,8 +626,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     reactivateUserRequest: ReactivateUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}/reactivate`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -635,7 +635,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdReactivateMutationOptions = <TError = unknown,
@@ -643,7 +643,7 @@ export const getPutApiUserManagementIdReactivateMutationOptions = <TError = unkn
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdReactivate>>, TError,{id: string;data: ReactivateUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdReactivate>>, {id: string;data: ReactivateUserRequest}> = (props) => {
@@ -652,7 +652,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementIdReactivate(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -678,20 +678,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserPermissionOverrideDto[]>(
       {url: `/api/UserManagement/${id}/permissions/overrides`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementIdPermissionsOverridesQueryKey = (id: string,) => {
     return [`/api/UserManagement/${id}/permissions/overrides`] as const;
     }
 
-    
+
 export const getGetApiUserManagementIdPermissionsOverridesQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -699,13 +699,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementIdPermissionsOverridesQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>> = ({ signal }) => getApiUserManagementIdPermissionsOverrides(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -733,8 +733,8 @@ export const putApiUserManagementIdPermissionsOverrides = (
     id: string,
     upsertUserPermissionOverrideRequest: UpsertUserPermissionOverrideRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserPermissionOverrideDto>(
       {url: `/api/UserManagement/${id}/permissions/overrides`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -742,7 +742,7 @@ export const putApiUserManagementIdPermissionsOverrides = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementIdPermissionsOverridesMutationOptions = <TError = unknown,
@@ -750,7 +750,7 @@ export const getPutApiUserManagementIdPermissionsOverridesMutationOptions = <TEr
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, TError,{id: string;data: UpsertUserPermissionOverrideRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, {id: string;data: UpsertUserPermissionOverrideRequest}> = (props) => {
@@ -759,7 +759,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementIdPermissionsOverrides(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -785,20 +785,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserEffectivePermissionsDto>(
       {url: `/api/UserManagement/${id}/permissions/effective`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementIdPermissionsEffectiveQueryKey = (id: string,) => {
     return [`/api/UserManagement/${id}/permissions/effective`] as const;
     }
 
-    
+
 export const getGetApiUserManagementIdPermissionsEffectiveQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -806,13 +806,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementIdPermissionsEffectiveQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>> = ({ signal }) => getApiUserManagementIdPermissionsEffective(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -840,14 +840,14 @@ export const deleteApiUserManagementIdPermissionsOverridesOverrideId = (
     id: string,
     overrideId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/${id}/permissions/overrides/${overrideId}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationOptions = <TError = unknown,
@@ -855,7 +855,7 @@ export const getDeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationO
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, TError,{id: string;overrideId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, {id: string;overrideId: string}> = (props) => {
@@ -864,13 +864,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiUserManagementIdPermissionsOverridesOverrideId(id,overrideId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>>
-    
+
     export type DeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationError = unknown
 
     export const useDeleteApiUserManagementIdPermissionsOverridesOverrideId = <TError = unknown,
@@ -887,23 +887,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiUserManagementRolesPermissionsCatalog = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PermissionCatalogItemDto[]>(
       {url: `/api/UserManagement/roles/permissions-catalog`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementRolesPermissionsCatalogQueryKey = () => {
     return [`/api/UserManagement/roles/permissions-catalog`] as const;
     }
 
-    
+
 export const getGetApiUserManagementRolesPermissionsCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementRolesPermissionsCatalog>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRolesPermissionsCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -911,13 +911,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementRolesPermissionsCatalogQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementRolesPermissionsCatalog>>> = ({ signal }) => getApiUserManagementRolesPermissionsCatalog(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRolesPermissionsCatalog>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -942,23 +942,23 @@ export const useGetApiUserManagementRolesPermissionsCatalog = <TData = Awaited<R
 
 
 export const getApiUserManagementRolesWithPermissions = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<RoleWithPermissionsDto[]>(
       {url: `/api/UserManagement/roles/with-permissions`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementRolesWithPermissionsQueryKey = () => {
     return [`/api/UserManagement/roles/with-permissions`] as const;
     }
 
-    
+
 export const getGetApiUserManagementRolesWithPermissionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementRolesWithPermissions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRolesWithPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -966,13 +966,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementRolesWithPermissionsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementRolesWithPermissions>>> = ({ signal }) => getApiUserManagementRolesWithPermissions(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRolesWithPermissions>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1000,8 +1000,8 @@ export const postApiUserManagementRolesRoleNamePermissionsSimulate = (
     roleName: string,
     rolePermissionSimulateRequest: RolePermissionSimulateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<RolePermissionSimulateResultDto>(
       {url: `/api/UserManagement/roles/${roleName}/permissions/simulate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1009,7 +1009,7 @@ export const postApiUserManagementRolesRoleNamePermissionsSimulate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserManagementRolesRoleNamePermissionsSimulateMutationOptions = <TError = unknown,
@@ -1017,7 +1017,7 @@ export const getPostApiUserManagementRolesRoleNamePermissionsSimulateMutationOpt
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserManagementRolesRoleNamePermissionsSimulate>>, TError,{roleName: string;data: RolePermissionSimulateRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserManagementRolesRoleNamePermissionsSimulate>>, {roleName: string;data: RolePermissionSimulateRequest}> = (props) => {
@@ -1026,7 +1026,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiUserManagementRolesRoleNamePermissionsSimulate(roleName,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1052,8 +1052,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     roleName: string,
     updateRolePermissionsRequest: UpdateRolePermissionsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/roles/${roleName}/permissions`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -1061,7 +1061,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserManagementRolesRoleNamePermissionsMutationOptions = <TError = unknown,
@@ -1069,7 +1069,7 @@ export const getPutApiUserManagementRolesRoleNamePermissionsMutationOptions = <T
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementRolesRoleNamePermissions>>, TError,{roleName: string;data: UpdateRolePermissionsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementRolesRoleNamePermissions>>, {roleName: string;data: UpdateRolePermissionsRequest}> = (props) => {
@@ -1078,7 +1078,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserManagementRolesRoleNamePermissions(roleName,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1103,14 +1103,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiUserManagementRolesRoleName = (
     roleName: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/roles/${roleName}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiUserManagementRolesRoleNameMutationOptions = <TError = unknown,
@@ -1118,7 +1118,7 @@ export const getDeleteApiUserManagementRolesRoleNameMutationOptions = <TError = 
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementRolesRoleName>>, TError,{roleName: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserManagementRolesRoleName>>, {roleName: string}> = (props) => {
@@ -1127,13 +1127,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiUserManagementRolesRoleName(roleName,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiUserManagementRolesRoleNameMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserManagementRolesRoleName>>>
-    
+
     export type DeleteApiUserManagementRolesRoleNameMutationError = unknown
 
     export const useDeleteApiUserManagementRolesRoleName = <TError = unknown,
@@ -1150,23 +1150,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiUserManagementRoles = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<string[]>(
       {url: `/api/UserManagement/roles`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserManagementRolesQueryKey = () => {
     return [`/api/UserManagement/roles`] as const;
     }
 
-    
+
 export const getGetApiUserManagementRolesQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementRoles>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRoles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1174,13 +1174,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementRolesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementRoles>>> = ({ signal }) => getApiUserManagementRoles(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementRoles>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1207,8 +1207,8 @@ export const useGetApiUserManagementRoles = <TData = Awaited<ReturnType<typeof g
 export const postApiUserManagementRoles = (
     createRoleRequest: CreateRoleRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/UserManagement/roles`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1216,7 +1216,7 @@ export const postApiUserManagementRoles = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserManagementRolesMutationOptions = <TError = unknown,
@@ -1224,7 +1224,7 @@ export const getPostApiUserManagementRolesMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserManagementRoles>>, TError,{data: CreateRoleRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserManagementRoles>>, {data: CreateRoleRequest}> = (props) => {
@@ -1233,7 +1233,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiUserManagementRoles(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1255,4 +1255,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

@@ -33,8 +33,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiRksvJahresbelegCreate = (
     createRksvJahresbelegRequest: CreateRksvJahresbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/rksv/jahresbeleg/create`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -42,7 +42,7 @@ export const postApiRksvJahresbelegCreate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvJahresbelegCreateMutationOptions = <TError = ProblemDetails,
@@ -50,7 +50,7 @@ export const getPostApiRksvJahresbelegCreateMutationOptions = <TError = ProblemD
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvJahresbelegCreate>>, TError,{data: CreateRksvJahresbelegRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvJahresbelegCreate>>, {data: CreateRksvJahresbelegRequest}> = (props) => {
@@ -59,7 +59,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvJahresbelegCreate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -86,21 +86,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     year: number,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<JahresbelegResult>(
       {url: `/api/rksv/jahresbeleg/${cashRegisterId}/${year}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvJahresbelegCashRegisterIdYearQueryKey = (cashRegisterId: string,
     year: number,) => {
     return [`/api/rksv/jahresbeleg/${cashRegisterId}/${year}`] as const;
     }
 
-    
+
 export const getGetApiRksvJahresbelegCashRegisterIdYearQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvJahresbelegCashRegisterIdYear>>, TError = ProblemDetails>(cashRegisterId: string,
     year: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegCashRegisterIdYear>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -109,13 +109,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvJahresbelegCashRegisterIdYearQueryKey(cashRegisterId,year);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvJahresbelegCashRegisterIdYear>>> = ({ signal }) => getApiRksvJahresbelegCashRegisterIdYear(cashRegisterId,year, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId && year), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegCashRegisterIdYear>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -144,20 +144,20 @@ export const getApiRksvJahresbelegHistoryCashRegisterId = (
     cashRegisterId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<JahresbelegSummary[]>(
       {url: `/api/rksv/jahresbeleg/history/${cashRegisterId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvJahresbelegHistoryCashRegisterIdQueryKey = (cashRegisterId: string,) => {
     return [`/api/rksv/jahresbeleg/history/${cashRegisterId}`] as const;
     }
 
-    
+
 export const getGetApiRksvJahresbelegHistoryCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvJahresbelegHistoryCashRegisterId>>, TError = unknown>(cashRegisterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegHistoryCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -165,13 +165,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvJahresbelegHistoryCashRegisterIdQueryKey(cashRegisterId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvJahresbelegHistoryCashRegisterId>>> = ({ signal }) => getApiRksvJahresbelegHistoryCashRegisterId(cashRegisterId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegHistoryCashRegisterId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -200,21 +200,21 @@ export const getApiRksvJahresbelegExistsCashRegisterIdYear = (
     year: number,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/rksv/jahresbeleg/exists/${cashRegisterId}/${year}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiRksvJahresbelegExistsCashRegisterIdYearQueryKey = (cashRegisterId: string,
     year: number,) => {
     return [`/api/rksv/jahresbeleg/exists/${cashRegisterId}/${year}`] as const;
     }
 
-    
+
 export const getGetApiRksvJahresbelegExistsCashRegisterIdYearQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvJahresbelegExistsCashRegisterIdYear>>, TError = unknown>(cashRegisterId: string,
     year: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegExistsCashRegisterIdYear>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -223,13 +223,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiRksvJahresbelegExistsCashRegisterIdYearQueryKey(cashRegisterId,year);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvJahresbelegExistsCashRegisterIdYear>>> = ({ signal }) => getApiRksvJahresbelegExistsCashRegisterIdYear(cashRegisterId,year, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId && year), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvJahresbelegExistsCashRegisterIdYear>>, TError, TData> & { queryKey: QueryKey }
 }

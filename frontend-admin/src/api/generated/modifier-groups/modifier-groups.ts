@@ -30,23 +30,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiModifierGroups = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiModifierGroupsQueryKey = () => {
     return [`/api/modifier-groups`] as const;
     }
 
-    
+
 export const getGetApiModifierGroupsQueryOptions = <TData = Awaited<ReturnType<typeof getApiModifierGroups>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -54,13 +54,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiModifierGroupsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiModifierGroups>>> = ({ signal }) => getApiModifierGroups(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroups>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -87,8 +87,8 @@ export const useGetApiModifierGroups = <TData = Awaited<ReturnType<typeof getApi
 export const postApiModifierGroups = (
     createModifierGroupRequest: CreateModifierGroupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -96,7 +96,7 @@ export const postApiModifierGroups = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiModifierGroupsMutationOptions = <TError = unknown,
@@ -104,7 +104,7 @@ export const getPostApiModifierGroupsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroups>>, TError,{data: CreateModifierGroupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiModifierGroups>>, {data: CreateModifierGroupRequest}> = (props) => {
@@ -113,7 +113,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiModifierGroups(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -139,20 +139,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiModifierGroupsIdQueryKey = (id: string,) => {
     return [`/api/modifier-groups/${id}`] as const;
     }
 
-    
+
 export const getGetApiModifierGroupsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiModifierGroupsId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroupsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -160,13 +160,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiModifierGroupsIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiModifierGroupsId>>> = ({ signal }) => getApiModifierGroupsId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiModifierGroupsId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -194,8 +194,8 @@ export const putApiModifierGroupsId = (
     id: string,
     createModifierGroupRequest: CreateModifierGroupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -203,7 +203,7 @@ export const putApiModifierGroupsId = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiModifierGroupsIdMutationOptions = <TError = unknown,
@@ -211,7 +211,7 @@ export const getPutApiModifierGroupsIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiModifierGroupsId>>, TError,{id: string;data: CreateModifierGroupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiModifierGroupsId>>, {id: string;data: CreateModifierGroupRequest}> = (props) => {
@@ -220,7 +220,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiModifierGroupsId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -245,14 +245,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiModifierGroupsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiModifierGroupsIdMutationOptions = <TError = unknown,
@@ -260,7 +260,7 @@ export const getDeleteApiModifierGroupsIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiModifierGroupsId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiModifierGroupsId>>, {id: string}> = (props) => {
@@ -269,13 +269,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiModifierGroupsId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiModifierGroupsIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiModifierGroupsId>>>
-    
+
     export type DeleteApiModifierGroupsIdMutationError = unknown
 
     export const useDeleteApiModifierGroupsId = <TError = unknown,
@@ -298,8 +298,8 @@ export const postApiModifierGroupsGroupIdModifiers = (
     groupId: string,
     createModifierRequest: CreateModifierRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${groupId}/modifiers`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -307,7 +307,7 @@ export const postApiModifierGroupsGroupIdModifiers = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiModifierGroupsGroupIdModifiersMutationOptions = <TError = unknown,
@@ -315,7 +315,7 @@ export const getPostApiModifierGroupsGroupIdModifiersMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroupsGroupIdModifiers>>, TError,{groupId: string;data: CreateModifierRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiModifierGroupsGroupIdModifiers>>, {groupId: string;data: CreateModifierRequest}> = (props) => {
@@ -324,7 +324,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiModifierGroupsGroupIdModifiers(groupId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -353,8 +353,8 @@ export const usePostApiModifierGroupsGroupIdModifiers = <TError = unknown,
     id: string,
     addProductToGroupRequest: AddProductToGroupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${id}/products`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -362,7 +362,7 @@ export const usePostApiModifierGroupsGroupIdModifiers = <TError = unknown,
     },
       options);
     }
-  
+
 
 
 export const getPostApiModifierGroupsIdProductsMutationOptions = <TError = unknown,
@@ -370,7 +370,7 @@ export const getPostApiModifierGroupsIdProductsMutationOptions = <TError = unkno
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiModifierGroupsIdProducts>>, TError,{id: string;data: AddProductToGroupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiModifierGroupsIdProducts>>, {id: string;data: AddProductToGroupRequest}> = (props) => {
@@ -379,7 +379,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiModifierGroupsIdProducts(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -405,14 +405,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     groupId: string,
     productId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/modifier-groups/${groupId}/products/${productId}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiModifierGroupsGroupIdProductsProductIdMutationOptions = <TError = unknown,
@@ -420,7 +420,7 @@ export const getDeleteApiModifierGroupsGroupIdProductsProductIdMutationOptions =
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiModifierGroupsGroupIdProductsProductId>>, TError,{groupId: string;productId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiModifierGroupsGroupIdProductsProductId>>, {groupId: string;productId: string}> = (props) => {
@@ -429,13 +429,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiModifierGroupsGroupIdProductsProductId(groupId,productId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiModifierGroupsGroupIdProductsProductIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiModifierGroupsGroupIdProductsProductId>>>
-    
+
     export type DeleteApiModifierGroupsGroupIdProductsProductIdMutationError = unknown
 
     export const useDeleteApiModifierGroupsGroupIdProductsProductId = <TError = unknown,
@@ -451,4 +451,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

@@ -24,23 +24,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiAppVersion = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AppVersionResponseDto>(
       {url: `/api/app/version`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAppVersionQueryKey = () => {
     return [`/api/app/version`] as const;
     }
 
-    
+
 export const getGetApiAppVersionQueryOptions = <TData = Awaited<ReturnType<typeof getApiAppVersion>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAppVersion>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -48,13 +48,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAppVersionQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAppVersion>>> = ({ signal }) => getApiAppVersion(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAppVersion>>, TError, TData> & { queryKey: QueryKey }
 }

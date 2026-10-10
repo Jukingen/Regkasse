@@ -29,20 +29,20 @@ export const getApiSitesTenantSlugStatus = (
     tenantSlug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<WebsiteStatusDto>(
       {url: `/api/sites/${tenantSlug}/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiSitesTenantSlugStatusQueryKey = (tenantSlug: string,) => {
     return [`/api/sites/${tenantSlug}/status`] as const;
     }
 
-    
+
 export const getGetApiSitesTenantSlugStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>, TError = ProblemDetails>(tenantSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -50,13 +50,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiSitesTenantSlugStatusQueryKey(tenantSlug);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>> = ({ signal }) => getApiSitesTenantSlugStatus(tenantSlug, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(tenantSlug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -84,20 +84,20 @@ export const getApiSitesTenantSlugStatusSpecial = (
     tenantSlug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<WebsiteSpecialDayDto>(
       {url: `/api/sites/${tenantSlug}/status/special`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiSitesTenantSlugStatusSpecialQueryKey = (tenantSlug: string,) => {
     return [`/api/sites/${tenantSlug}/status/special`] as const;
     }
 
-    
+
 export const getGetApiSitesTenantSlugStatusSpecialQueryOptions = <TData = Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>, TError = ProblemDetails>(tenantSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -105,13 +105,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiSitesTenantSlugStatusSpecialQueryKey(tenantSlug);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>> = ({ signal }) => getApiSitesTenantSlugStatusSpecial(tenantSlug, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(tenantSlug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSitesTenantSlugStatusSpecial>>, TError, TData> & { queryKey: QueryKey }
 }

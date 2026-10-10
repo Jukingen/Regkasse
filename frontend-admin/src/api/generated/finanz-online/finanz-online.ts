@@ -33,23 +33,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiFinanzOnlineConfig = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<FinanzOnlineConfigResponse>(
       {url: `/api/FinanzOnline/config`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiFinanzOnlineConfigQueryKey = () => {
     return [`/api/FinanzOnline/config`] as const;
     }
 
-    
+
 export const getGetApiFinanzOnlineConfigQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineConfig>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -57,13 +57,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiFinanzOnlineConfigQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineConfig>>> = ({ signal }) => getApiFinanzOnlineConfig(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineConfig>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,8 +90,8 @@ export const useGetApiFinanzOnlineConfig = <TData = Awaited<ReturnType<typeof ge
 export const putApiFinanzOnlineConfig = (
     finanzOnlineConfigRequest: FinanzOnlineConfigRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<FinanzOnlineConfigResponse>(
       {url: `/api/FinanzOnline/config`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -99,7 +99,7 @@ export const putApiFinanzOnlineConfig = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiFinanzOnlineConfigMutationOptions = <TError = unknown,
@@ -107,7 +107,7 @@ export const getPutApiFinanzOnlineConfigMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiFinanzOnlineConfig>>, TError,{data: FinanzOnlineConfigRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiFinanzOnlineConfig>>, {data: FinanzOnlineConfigRequest}> = (props) => {
@@ -116,7 +116,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiFinanzOnlineConfig(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -139,23 +139,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiFinanzOnlineStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<FinanzOnlineStatusResponse>(
       {url: `/api/FinanzOnline/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiFinanzOnlineStatusQueryKey = () => {
     return [`/api/FinanzOnline/status`] as const;
     }
 
-    
+
 export const getGetApiFinanzOnlineStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -163,13 +163,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiFinanzOnlineStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineStatus>>> = ({ signal }) => getApiFinanzOnlineStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -194,23 +194,23 @@ export const useGetApiFinanzOnlineStatus = <TData = Awaited<ReturnType<typeof ge
 
 
 export const getApiFinanzOnlineErrors = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<FinanzOnlineErrorsListResponse>(
       {url: `/api/FinanzOnline/errors`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiFinanzOnlineErrorsQueryKey = () => {
     return [`/api/FinanzOnline/errors`] as const;
     }
 
-    
+
 export const getGetApiFinanzOnlineErrorsQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineErrors>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineErrors>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -218,13 +218,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiFinanzOnlineErrorsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineErrors>>> = ({ signal }) => getApiFinanzOnlineErrors(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineErrors>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -249,16 +249,16 @@ export const useGetApiFinanzOnlineErrors = <TData = Awaited<ReturnType<typeof ge
 
 
 export const postApiFinanzOnlineTestConnection = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<FinanzOnlineTestResponse>(
       {url: `/api/FinanzOnline/test-connection`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiFinanzOnlineTestConnectionMutationOptions = <TError = unknown,
@@ -266,22 +266,22 @@ export const getPostApiFinanzOnlineTestConnectionMutationOptions = <TError = unk
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiFinanzOnlineTestConnection>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiFinanzOnlineTestConnection>>, void> = () => {
-          
+
 
           return  postApiFinanzOnlineTestConnection(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiFinanzOnlineTestConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof postApiFinanzOnlineTestConnection>>>
-    
+
     export type PostApiFinanzOnlineTestConnectionMutationError = unknown
 
     export const usePostApiFinanzOnlineTestConnection = <TError = unknown,
@@ -301,20 +301,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     invoiceId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<FinanzOnlineSubmission[]>(
       {url: `/api/FinanzOnline/history/${invoiceId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiFinanzOnlineHistoryInvoiceIdQueryKey = (invoiceId: string,) => {
     return [`/api/FinanzOnline/history/${invoiceId}`] as const;
     }
 
-    
+
 export const getGetApiFinanzOnlineHistoryInvoiceIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError = unknown>(invoiceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -322,13 +322,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiFinanzOnlineHistoryInvoiceIdQueryKey(invoiceId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>> = ({ signal }) => getApiFinanzOnlineHistoryInvoiceId(invoiceId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(invoiceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData> & { queryKey: QueryKey }
 }

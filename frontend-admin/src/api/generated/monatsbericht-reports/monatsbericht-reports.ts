@@ -37,21 +37,21 @@ export const getApiReportsMonatsbericht = (
     params?: GetApiReportsMonatsberichtParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MonatsberichtListItemDto[]>(
       {url: `/api/reports/monatsbericht`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsMonatsberichtQueryKey = (params?: GetApiReportsMonatsberichtParams,) => {
     return [`/api/reports/monatsbericht`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsMonatsberichtQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsMonatsbericht>>, TError = unknown>(params?: GetApiReportsMonatsberichtParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsMonatsbericht>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -59,13 +59,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsMonatsberichtQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsMonatsbericht>>> = ({ signal }) => getApiReportsMonatsbericht(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsMonatsbericht>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -93,20 +93,20 @@ export const getApiReportsMonatsberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MonatsberichtDto>(
       {url: `/api/reports/monatsbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsMonatsberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/monatsbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsMonatsberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsMonatsberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsMonatsberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -114,13 +114,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsMonatsberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsMonatsberichtId>>> = ({ signal }) => getApiReportsMonatsberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsMonatsberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -147,8 +147,8 @@ export const useGetApiReportsMonatsberichtId = <TData = Awaited<ReturnType<typeo
 export const postApiReportsMonatsberichtGenerate = (
     monatsberichtGenerationRequest: MonatsberichtGenerationRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<MonatsberichtDto>(
       {url: `/api/reports/monatsbericht/generate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -156,7 +156,7 @@ export const postApiReportsMonatsberichtGenerate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsMonatsberichtGenerateMutationOptions = <TError = unknown,
@@ -164,7 +164,7 @@ export const getPostApiReportsMonatsberichtGenerateMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsMonatsberichtGenerate>>, TError,{data: MonatsberichtGenerationRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsMonatsberichtGenerate>>, {data: MonatsberichtGenerationRequest}> = (props) => {
@@ -173,7 +173,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsMonatsberichtGenerate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -198,8 +198,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsMonatsberichtFinalize = (
     monatsberichtFinalizeRequest: MonatsberichtFinalizeRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<MonatsberichtDto>(
       {url: `/api/reports/monatsbericht/finalize`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -207,7 +207,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsMonatsberichtFinalizeMutationOptions = <TError = unknown,
@@ -215,7 +215,7 @@ export const getPostApiReportsMonatsberichtFinalizeMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsMonatsberichtFinalize>>, TError,{data: MonatsberichtFinalizeRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsMonatsberichtFinalize>>, {data: MonatsberichtFinalizeRequest}> = (props) => {
@@ -224,7 +224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsMonatsberichtFinalize(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -249,8 +249,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsMonatsberichtCorrection = (
     monatsberichtCorrectionRequest: MonatsberichtCorrectionRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<MonatsberichtDto>(
       {url: `/api/reports/monatsbericht/correction`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -258,7 +258,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsMonatsberichtCorrectionMutationOptions = <TError = unknown,
@@ -266,7 +266,7 @@ export const getPostApiReportsMonatsberichtCorrectionMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsMonatsberichtCorrection>>, TError,{data: MonatsberichtCorrectionRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsMonatsberichtCorrection>>, {data: MonatsberichtCorrectionRequest}> = (props) => {
@@ -275,7 +275,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsMonatsberichtCorrection(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -300,14 +300,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsMonatsberichtIdSubmitFinanzonline = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<MonatsberichtDto>(
       {url: `/api/reports/monatsbericht/${id}/submit-finanzonline`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsMonatsberichtIdSubmitFinanzonlineMutationOptions = <TError = unknown,
@@ -315,7 +315,7 @@ export const getPostApiReportsMonatsberichtIdSubmitFinanzonlineMutationOptions =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsMonatsberichtIdSubmitFinanzonline>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsMonatsberichtIdSubmitFinanzonline>>, {id: string}> = (props) => {
@@ -324,13 +324,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsMonatsberichtIdSubmitFinanzonline(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiReportsMonatsberichtIdSubmitFinanzonlineMutationResult = NonNullable<Awaited<ReturnType<typeof postApiReportsMonatsberichtIdSubmitFinanzonline>>>
-    
+
     export type PostApiReportsMonatsberichtIdSubmitFinanzonlineMutationError = unknown
 
     export const usePostApiReportsMonatsberichtIdSubmitFinanzonline = <TError = unknown,
@@ -346,4 +346,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

@@ -38,8 +38,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiPublicOnlineOrders = (
     createPublicOnlineOrderRequestDto: CreatePublicOnlineOrderRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreatePublicOnlineOrderResponseDto>(
       {url: `/api/public/online-orders`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -47,7 +47,7 @@ export const postApiPublicOnlineOrders = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPublicOnlineOrdersMutationOptions = <TError = CreatePublicOnlineOrderResponseDto,
@@ -55,7 +55,7 @@ export const getPostApiPublicOnlineOrdersMutationOptions = <TError = CreatePubli
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrders>>, TError,{data: CreatePublicOnlineOrderRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPublicOnlineOrders>>, {data: CreatePublicOnlineOrderRequestDto}> = (props) => {
@@ -64,7 +64,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPublicOnlineOrders(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -90,21 +90,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPublicOnlineOrdersStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PublicOnlineOrderStatusDto>(
       {url: `/api/public/online-orders/status`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPublicOnlineOrdersStatusQueryKey = (params?: GetApiPublicOnlineOrdersStatusParams,) => {
     return [`/api/public/online-orders/status`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPublicOnlineOrdersStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>, TError = ProblemDetails>(params?: GetApiPublicOnlineOrdersStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -112,13 +112,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPublicOnlineOrdersStatusQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>> = ({ signal }) => getApiPublicOnlineOrdersStatus(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPublicOnlineOrdersStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -147,8 +147,8 @@ export const postApiPublicOnlineOrdersOrderIdPaymentIntent = (
     createOnlineOrderPaymentIntentRequestDto: CreateOnlineOrderPaymentIntentRequestDto,
     params?: PostApiPublicOnlineOrdersOrderIdPaymentIntentParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<OnlineOrderPaymentIntentResponseDto>(
       {url: `/api/public/online-orders/${orderId}/payment-intent`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -157,7 +157,7 @@ export const postApiPublicOnlineOrdersOrderIdPaymentIntent = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPublicOnlineOrdersOrderIdPaymentIntentMutationOptions = <TError = OnlineOrderPaymentIntentResponseDto,
@@ -165,7 +165,7 @@ export const getPostApiPublicOnlineOrdersOrderIdPaymentIntentMutationOptions = <
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrdersOrderIdPaymentIntent>>, TError,{orderId: string;data: CreateOnlineOrderPaymentIntentRequestDto;params?: PostApiPublicOnlineOrdersOrderIdPaymentIntentParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPublicOnlineOrdersOrderIdPaymentIntent>>, {orderId: string;data: CreateOnlineOrderPaymentIntentRequestDto;params?: PostApiPublicOnlineOrdersOrderIdPaymentIntentParams}> = (props) => {
@@ -174,7 +174,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPublicOnlineOrdersOrderIdPaymentIntent(orderId,data,params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -199,8 +199,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPublicOnlineOrdersPaymentsConfirm = (
     confirmOnlineOrderPaymentRequestDto: ConfirmOnlineOrderPaymentRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<OnlineOrderPaymentIntentResponseDto>(
       {url: `/api/public/online-orders/payments/confirm`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -208,7 +208,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPublicOnlineOrdersPaymentsConfirmMutationOptions = <TError = OnlineOrderPaymentIntentResponseDto,
@@ -216,7 +216,7 @@ export const getPostApiPublicOnlineOrdersPaymentsConfirmMutationOptions = <TErro
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPublicOnlineOrdersPaymentsConfirm>>, TError,{data: ConfirmOnlineOrderPaymentRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPublicOnlineOrdersPaymentsConfirm>>, {data: ConfirmOnlineOrderPaymentRequestDto}> = (props) => {
@@ -225,7 +225,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPublicOnlineOrdersPaymentsConfirm(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -247,4 +247,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

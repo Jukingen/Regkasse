@@ -44,21 +44,21 @@ export const getApiLicenseStatus = (
     params?: GetApiLicenseStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LicensePublicStatusDto>(
       {url: `/api/license/status`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiLicenseStatusQueryKey = (params?: GetApiLicenseStatusParams,) => {
     return [`/api/license/status`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiLicenseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>(params?: GetApiLicenseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -66,13 +66,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseStatusQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseStatus>>> = ({ signal }) => getApiLicenseStatus(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -97,23 +97,23 @@ export const useGetApiLicenseStatus = <TData = Awaited<ReturnType<typeof getApiL
 
 
 export const getApiLicenseFeatures = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LicenseFeaturesDto>(
       {url: `/api/license/features`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLicenseFeaturesQueryKey = () => {
     return [`/api/license/features`] as const;
     }
 
-    
+
 export const getGetApiLicenseFeaturesQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -121,13 +121,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseFeaturesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseFeatures>>> = ({ signal }) => getApiLicenseFeatures(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -158,8 +158,8 @@ export const useGetApiLicenseFeatures = <TData = Awaited<ReturnType<typeof getAp
 export const postApiLicenseActivate = (
     activateLicenseRequest: ActivateLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<LicenseActivationResult>(
       {url: `/api/license/activate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -167,7 +167,7 @@ export const postApiLicenseActivate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiLicenseActivateMutationOptions = <TError = unknown,
@@ -175,7 +175,7 @@ export const getPostApiLicenseActivateMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLicenseActivate>>, {data: ActivateLicenseRequest}> = (props) => {
@@ -184,7 +184,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLicenseActivate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -212,8 +212,8 @@ export const usePostApiLicenseActivate = <TError = unknown,
     export const postApiLicenseValidate = (
     licenseKeyLookupRequest: LicenseKeyLookupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<LicenseKeyValidationResult>(
       {url: `/api/license/validate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -221,7 +221,7 @@ export const usePostApiLicenseActivate = <TError = unknown,
     },
       options);
     }
-  
+
 
 
 export const getPostApiLicenseValidateMutationOptions = <TError = ProblemDetails,
@@ -229,7 +229,7 @@ export const getPostApiLicenseValidateMutationOptions = <TError = ProblemDetails
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseValidate>>, TError,{data: LicenseKeyLookupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLicenseValidate>>, {data: LicenseKeyLookupRequest}> = (props) => {
@@ -238,7 +238,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLicenseValidate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -264,21 +264,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiLicenseInfoParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LicenseInfo>(
       {url: `/api/license/info`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiLicenseInfoQueryKey = (params?: GetApiLicenseInfoParams,) => {
     return [`/api/license/info`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiLicenseInfoQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseInfo>>, TError = ProblemDetails>(params?: GetApiLicenseInfoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -286,13 +286,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseInfoQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseInfo>>> = ({ signal }) => getApiLicenseInfo(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseInfo>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -317,23 +317,23 @@ export const useGetApiLicenseInfo = <TData = Awaited<ReturnType<typeof getApiLic
 
 
 export const getApiLicenseBillingStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TenantLicenseStatus>(
       {url: `/api/license/billing/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLicenseBillingStatusQueryKey = () => {
     return [`/api/license/billing/status`] as const;
     }
 
-    
+
 export const getGetApiLicenseBillingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseBillingStatus>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseBillingStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -341,13 +341,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseBillingStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseBillingStatus>>> = ({ signal }) => getApiLicenseBillingStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseBillingStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -377,8 +377,8 @@ export const useGetApiLicenseBillingStatus = <TData = Awaited<ReturnType<typeof 
 export const postApiLicenseBillingActivate = (
     mandantLicenseKeyRequest: MandantLicenseKeyRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<unknown>(
       {url: `/api/license/billing/activate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -386,7 +386,7 @@ export const postApiLicenseBillingActivate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiLicenseBillingActivateMutationOptions = <TError = void,
@@ -394,7 +394,7 @@ export const getPostApiLicenseBillingActivateMutationOptions = <TError = void,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, TError,{data: MandantLicenseKeyRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLicenseBillingActivate>>, {data: MandantLicenseKeyRequest}> = (props) => {
@@ -403,7 +403,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLicenseBillingActivate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -431,8 +431,8 @@ export const usePostApiLicenseBillingActivate = <TError = void,
     export const postApiLicenseExtend = (
     extendLicenseRequest: ExtendLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<ExtendResult>(
       {url: `/api/license/extend`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -440,7 +440,7 @@ export const usePostApiLicenseBillingActivate = <TError = void,
     },
       options);
     }
-  
+
 
 
 export const getPostApiLicenseExtendMutationOptions = <TError = ProblemDetails,
@@ -448,7 +448,7 @@ export const getPostApiLicenseExtendMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseExtend>>, TError,{data: ExtendLicenseRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLicenseExtend>>, {data: ExtendLicenseRequest}> = (props) => {
@@ -457,7 +457,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLicenseExtend(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -479,4 +479,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

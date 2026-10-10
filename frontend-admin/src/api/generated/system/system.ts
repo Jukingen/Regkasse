@@ -30,23 +30,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiSystemDevelopmentMode = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<DevelopmentModeSettingsResponseDto>(
       {url: `/api/system/development-mode`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiSystemDevelopmentModeQueryKey = () => {
     return [`/api/system/development-mode`] as const;
     }
 
-    
+
 export const getGetApiSystemDevelopmentModeQueryOptions = <TData = Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -54,13 +54,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiSystemDevelopmentModeQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>> = ({ signal }) => getApiSystemDevelopmentMode(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -85,23 +85,23 @@ export const useGetApiSystemDevelopmentMode = <TData = Awaited<ReturnType<typeof
 
 
 export const getApiSystemTimeStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<SystemTimeStatusDto>(
       {url: `/api/system/time/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiSystemTimeStatusQueryKey = () => {
     return [`/api/system/time/status`] as const;
     }
 
-    
+
 export const getGetApiSystemTimeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiSystemTimeStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemTimeStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -109,13 +109,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiSystemTimeStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSystemTimeStatus>>> = ({ signal }) => getApiSystemTimeStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSystemTimeStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -140,16 +140,16 @@ export const useGetApiSystemTimeStatus = <TData = Awaited<ReturnType<typeof getA
 
 
 export const postApiSystemTimeSync = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<NtpManualSyncResponseDto>(
       {url: `/api/system/time/sync`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiSystemTimeSyncMutationOptions = <TError = unknown,
@@ -157,22 +157,22 @@ export const getPostApiSystemTimeSyncMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiSystemTimeSync>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSystemTimeSync>>, void> = () => {
-          
+
 
           return  postApiSystemTimeSync(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiSystemTimeSyncMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSystemTimeSync>>>
-    
+
     export type PostApiSystemTimeSyncMutationError = unknown
 
     export const usePostApiSystemTimeSync = <TError = unknown,
@@ -188,4 +188,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

@@ -24,23 +24,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiCsrfToken = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CsrfTokenResponse>(
       {url: `/api/csrf/token`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCsrfTokenQueryKey = () => {
     return [`/api/csrf/token`] as const;
     }
 
-    
+
 export const getGetApiCsrfTokenQueryOptions = <TData = Awaited<ReturnType<typeof getApiCsrfToken>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCsrfToken>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -48,13 +48,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCsrfTokenQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCsrfToken>>> = ({ signal }) => getApiCsrfToken(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCsrfToken>>, TError, TData> & { queryKey: QueryKey }
 }

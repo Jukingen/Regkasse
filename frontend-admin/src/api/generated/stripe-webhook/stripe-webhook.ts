@@ -23,16 +23,16 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const postApiWebhooksStripe = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/webhooks/stripe`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiWebhooksStripeMutationOptions = <TError = ProblemDetails,
@@ -40,22 +40,22 @@ export const getPostApiWebhooksStripeMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiWebhooksStripe>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiWebhooksStripe>>, void> = () => {
-          
+
 
           return  postApiWebhooksStripe(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiWebhooksStripeMutationResult = NonNullable<Awaited<ReturnType<typeof postApiWebhooksStripe>>>
-    
+
     export type PostApiWebhooksStripeMutationError = ProblemDetails
 
     export const usePostApiWebhooksStripe = <TError = ProblemDetails,
@@ -71,4 +71,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

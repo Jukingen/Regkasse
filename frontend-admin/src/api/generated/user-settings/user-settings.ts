@@ -33,23 +33,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiUserSettings = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserSettingsQueryKey = () => {
     return [`/api/user/settings`] as const;
     }
 
-    
+
 export const getGetApiUserSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -57,13 +57,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserSettingsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserSettings>>> = ({ signal }) => getApiUserSettings(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserSettings>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,8 +90,8 @@ export const useGetApiUserSettings = <TData = Awaited<ReturnType<typeof getApiUs
 export const putApiUserSettings = (
     updateUserSettingsRequest: UpdateUserSettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/settings`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -99,7 +99,7 @@ export const putApiUserSettings = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserSettingsMutationOptions = <TError = unknown,
@@ -107,7 +107,7 @@ export const getPutApiUserSettingsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserSettings>>, TError,{data: UpdateUserSettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserSettings>>, {data: UpdateUserSettingsRequest}> = (props) => {
@@ -116,7 +116,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserSettings(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -139,16 +139,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiUserSettingsBootstrap = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings/bootstrap`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserSettingsBootstrapMutationOptions = <TError = unknown,
@@ -156,22 +156,22 @@ export const getPostApiUserSettingsBootstrapMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, void> = () => {
-          
+
 
           return  postApiUserSettingsBootstrap(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiUserSettingsBootstrapMutationResult = NonNullable<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>>
-    
+
     export type PostApiUserSettingsBootstrapMutationError = unknown
 
     export const usePostApiUserSettingsBootstrap = <TError = unknown,
@@ -190,8 +190,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const putApiUserSettingsLanguage = (
     updateLanguageRequest: UpdateLanguageRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings/language`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -199,7 +199,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserSettingsLanguageMutationOptions = <TError = unknown,
@@ -207,7 +207,7 @@ export const getPutApiUserSettingsLanguageMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserSettingsLanguage>>, TError,{data: UpdateLanguageRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserSettingsLanguage>>, {data: UpdateLanguageRequest}> = (props) => {
@@ -216,7 +216,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserSettingsLanguage(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -241,8 +241,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const putApiUserSettingsCashRegister = (
     updateCashRegisterConfigRequest: UpdateCashRegisterConfigRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/settings/cash-register`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -250,7 +250,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserSettingsCashRegisterMutationOptions = <TError = unknown,
@@ -258,7 +258,7 @@ export const getPutApiUserSettingsCashRegisterMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserSettingsCashRegister>>, TError,{data: UpdateCashRegisterConfigRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserSettingsCashRegister>>, {data: UpdateCashRegisterConfigRequest}> = (props) => {
@@ -267,7 +267,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserSettingsCashRegister(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -292,8 +292,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const putApiUserSettingsTse = (
     updateTSESettingsRequest: UpdateTSESettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings/tse`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -301,7 +301,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserSettingsTseMutationOptions = <TError = unknown,
@@ -309,7 +309,7 @@ export const getPutApiUserSettingsTseMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserSettingsTse>>, TError,{data: UpdateTSESettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserSettingsTse>>, {data: UpdateTSESettingsRequest}> = (props) => {
@@ -318,7 +318,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserSettingsTse(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -343,8 +343,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const putApiUserSettingsSecurity = (
     updateSecuritySettingsRequest: UpdateSecuritySettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings/security`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -352,7 +352,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserSettingsSecurityMutationOptions = <TError = unknown,
@@ -360,7 +360,7 @@ export const getPutApiUserSettingsSecurityMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserSettingsSecurity>>, TError,{data: UpdateSecuritySettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserSettingsSecurity>>, {data: UpdateSecuritySettingsRequest}> = (props) => {
@@ -369,7 +369,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserSettingsSecurity(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -392,16 +392,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiUserSettingsReset = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<UserSettings>(
       {url: `/api/user/settings/reset`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserSettingsResetMutationOptions = <TError = unknown,
@@ -409,22 +409,22 @@ export const getPostApiUserSettingsResetMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsReset>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserSettingsReset>>, void> = () => {
-          
+
 
           return  postApiUserSettingsReset(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiUserSettingsResetMutationResult = NonNullable<Awaited<ReturnType<typeof postApiUserSettingsReset>>>
-    
+
     export type PostApiUserSettingsResetMutationError = unknown
 
     export const usePostApiUserSettingsReset = <TError = unknown,
@@ -440,4 +440,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

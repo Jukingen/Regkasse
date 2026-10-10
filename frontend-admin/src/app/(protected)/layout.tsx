@@ -16,20 +16,15 @@ import { AdminSidebar } from '@/components/AdminSidebar';
 import { AppLayout } from '@/components/AppLayout';
 import { CommandPaletteShell } from '@/components/CommandPalette';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
-import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { MaintenanceBanner } from '@/components/MaintenanceBanner';
 import { MaintenanceLimitedModeAlert } from '@/components/MaintenanceLimitedModeAlert';
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
+import { TenantGuard } from '@/components/TenantGuard';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
-import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
-import { FiscalHostEnvironmentBanners } from '@/features/rksv/components/FiscalHostEnvironmentBanners';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
-import { SignaturkarteProgramBanner } from '@/features/signaturkarte-program/components/SignaturkarteProgramBanner';
-import { TrialStatusBanner } from '@/features/trial/components/TrialStatusBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
-import { TenantGuard } from '@/components/TenantGuard';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import {
   ADMIN_SIDER_WIDTH_MAX,
@@ -37,13 +32,19 @@ import {
   clampAdminSiderWidth,
   usePersistedAdminSiderWidth,
 } from '@/components/admin-layout/usePersistedAdminSiderWidth';
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 import { AdminShellHeader } from '@/components/layout/Header';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { GracePeriodUrgentWarningHost } from '@/features/license/components/GracePeriodUrgentWarningHost';
 import { LicenseRenewalModalHost } from '@/features/license/components/LicenseRenewalModalHost';
 import { LicenseRenewalRecoveryBanner } from '@/features/license/components/LicenseRenewalRecoveryBanner';
-import { GracePeriodUrgentWarningHost } from '@/features/license/components/GracePeriodUrgentWarningHost';
+import { FiscalHostEnvironmentBanners } from '@/features/rksv/components/FiscalHostEnvironmentBanners';
+import { SignaturkarteProgramBanner } from '@/features/signaturkarte-program/components/SignaturkarteProgramBanner';
 import { TenantProvider } from '@/features/tenancy/providers/TenantProvider';
+import { TrialStatusBanner } from '@/features/trial/components/TrialStatusBanner';
+import { RoleMenuPreviewBanner } from '@/features/users/components/RoleMenuPreviewBanner';
+import { AdminVerticalProfileProvider } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
 import { useI18n } from '@/i18n';
 import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
 import { AuthGate } from '@/shared/auth/AuthGate';
@@ -91,95 +92,97 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGate mode="protected">
       <TenantProvider>
-        <AppLayout>
-          <CommandPaletteShell />
-          {/* Single shortcuts help host; header/user menu open via regkasse:openShortcutsHelp */}
-          <KeyboardShortcutsHelp showTrigger={false} />
-          <FeedbackWidget />
-          <Suspense fallback={null}>
-            <PageLoader />
-          </Suspense>
-          <Layout style={{ minHeight: '100vh' }}>
-            {!isMobile && (
-              <Sider
-                trigger={null}
-                collapsible
-                collapsed={collapsed}
-                theme={menuTheme}
-                width={clampAdminSiderWidth(sidebarWidth)}
-                collapsedWidth={80}
-                className={sidebarStyles.siderRoot}
+        <AdminVerticalProfileProvider>
+          <AppLayout>
+            <CommandPaletteShell />
+            {/* Single shortcuts help host; header/user menu open via regkasse:openShortcutsHelp */}
+            <KeyboardShortcutsHelp showTrigger={false} />
+            <FeedbackWidget />
+            <Suspense fallback={null}>
+              <PageLoader />
+            </Suspense>
+            <Layout style={{ minHeight: '100vh' }}>
+              {!isMobile && (
+                <Sider
+                  trigger={null}
+                  collapsible
+                  collapsed={collapsed}
+                  theme={menuTheme}
+                  width={clampAdminSiderWidth(sidebarWidth)}
+                  collapsedWidth={80}
+                  className={sidebarStyles.siderRoot}
+                >
+                  {!collapsed && (
+                    <AdminDesktopSiderResizeHandle
+                      minWidth={ADMIN_SIDER_WIDTH_MIN}
+                      maxWidth={ADMIN_SIDER_WIDTH_MAX}
+                      onWidthChange={setSidebarWidth}
+                      ariaLabel={t('adminShell.aria.resizeSidebar')}
+                    />
+                  )}
+                  {sidebarShell}
+                </Sider>
+              )}
+
+              <Drawer
+                title={t('adminShell.branding.drawerTitle')}
+                placement="left"
+                onClose={() => setDrawerVisible(false)}
+                open={drawerVisible}
+                styles={{ body: { padding: 0 } }}
+                size={250}
               >
-                {!collapsed && (
-                  <AdminDesktopSiderResizeHandle
-                    minWidth={ADMIN_SIDER_WIDTH_MIN}
-                    maxWidth={ADMIN_SIDER_WIDTH_MAX}
-                    onWidthChange={setSidebarWidth}
-                    ariaLabel={t('adminShell.aria.resizeSidebar')}
-                  />
-                )}
                 {sidebarShell}
-              </Sider>
-            )}
+              </Drawer>
 
-            <Drawer
-              title={t('adminShell.branding.drawerTitle')}
-              placement="left"
-              onClose={() => setDrawerVisible(false)}
-              open={drawerVisible}
-              styles={{ body: { padding: 0 } }}
-              size={250}
-            >
-              {sidebarShell}
-            </Drawer>
-
-            <Layout>
-              <AdminShellHeader
-                background={colorBgContainer}
-                isMobile={isMobile}
-                drawerVisible={drawerVisible}
-                collapsed={collapsed}
-                onToggleSidebar={() =>
-                  isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed)
-                }
-                user={user}
-                onLogout={() => void logout()}
-              />
-              <Content
-                style={{
-                  margin: '24px 16px',
-                  padding: 'var(--admin-density-padding, 24px)',
-                  minHeight: 280,
-                  background: colorBgContainer,
-                  borderRadius: borderRadiusLG,
-                  overflow: 'initial',
-                }}
-              >
-                <AdminLayout>
-                  <MaintenanceBanner />
-                  <MaintenanceLimitedModeAlert />
-                  <FiscalHostEnvironmentBanners />
-                  <LicenseExpiryBanner />
-                  <TrialStatusBanner />
-                  <SignaturkarteProgramBanner />
-                  <LicenseRenewalRecoveryBanner />
-                  <LicenseRenewalModalHost />
-                  <GracePeriodUrgentWarningHost />
-                  <ReadOnlyBanner />
-                  <ImpersonationBanner />
-                  <RoleMenuPreviewBanner />
-                  <SuperAdminModeBanner />
-                  <VerwaltungTenantContextGate />
-                  <main id="main-content" tabIndex={-1}>
-                    <TenantGuard>
-                      <PermissionRouteGuard>{children}</PermissionRouteGuard>
-                    </TenantGuard>
-                  </main>
-                </AdminLayout>
-              </Content>
+              <Layout>
+                <AdminShellHeader
+                  background={colorBgContainer}
+                  isMobile={isMobile}
+                  drawerVisible={drawerVisible}
+                  collapsed={collapsed}
+                  onToggleSidebar={() =>
+                    isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed)
+                  }
+                  user={user}
+                  onLogout={() => void logout()}
+                />
+                <Content
+                  style={{
+                    margin: '24px 16px',
+                    padding: 'var(--admin-density-padding, 24px)',
+                    minHeight: 280,
+                    background: colorBgContainer,
+                    borderRadius: borderRadiusLG,
+                    overflow: 'initial',
+                  }}
+                >
+                  <AdminLayout>
+                    <MaintenanceBanner />
+                    <MaintenanceLimitedModeAlert />
+                    <FiscalHostEnvironmentBanners />
+                    <LicenseExpiryBanner />
+                    <TrialStatusBanner />
+                    <SignaturkarteProgramBanner />
+                    <LicenseRenewalRecoveryBanner />
+                    <LicenseRenewalModalHost />
+                    <GracePeriodUrgentWarningHost />
+                    <ReadOnlyBanner />
+                    <ImpersonationBanner />
+                    <RoleMenuPreviewBanner />
+                    <SuperAdminModeBanner />
+                    <VerwaltungTenantContextGate />
+                    <main id="main-content" tabIndex={-1}>
+                      <TenantGuard>
+                        <PermissionRouteGuard>{children}</PermissionRouteGuard>
+                      </TenantGuard>
+                    </main>
+                  </AdminLayout>
+                </Content>
+              </Layout>
             </Layout>
-          </Layout>
-        </AppLayout>
+          </AppLayout>
+        </AdminVerticalProfileProvider>
       </TenantProvider>
     </AuthGate>
   );

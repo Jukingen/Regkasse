@@ -29,22 +29,22 @@ export const getApiPublicSitesSlug = (
     params?: GetApiPublicSitesSlugParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/public/sites/${slug}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPublicSitesSlugQueryKey = (slug: string,
     params?: GetApiPublicSitesSlugParams,) => {
     return [`/api/public/sites/${slug}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPublicSitesSlugQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicSitesSlug>>, TError = ProblemDetails>(slug: string,
     params?: GetApiPublicSitesSlugParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicSitesSlug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -53,13 +53,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPublicSitesSlugQueryKey(slug,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPublicSitesSlug>>> = ({ signal }) => getApiPublicSitesSlug(slug,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPublicSitesSlug>>, TError, TData> & { queryKey: QueryKey }
 }

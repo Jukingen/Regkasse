@@ -41,8 +41,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiTagesabschlussDaily = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesabschlussResult>(
       {url: `/api/Tagesabschluss/daily`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -50,7 +50,7 @@ export const postApiTagesabschlussDaily = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiTagesabschlussDailyMutationOptions = <TError = TagesabschlussErrorResponse,
@@ -58,7 +58,7 @@ export const getPostApiTagesabschlussDailyMutationOptions = <TError = Tagesabsch
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussDaily>>, TError,{data: DailyClosingRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussDaily>>, {data: DailyClosingRequest}> = (props) => {
@@ -67,7 +67,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTagesabschlussDaily(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -92,8 +92,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiTagesabschlussMonthly = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesabschlussResult>(
       {url: `/api/Tagesabschluss/monthly`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -101,7 +101,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiTagesabschlussMonthlyMutationOptions = <TError = TagesabschlussErrorResponse,
@@ -109,7 +109,7 @@ export const getPostApiTagesabschlussMonthlyMutationOptions = <TError = Tagesabs
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussMonthly>>, TError,{data: DailyClosingRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussMonthly>>, {data: DailyClosingRequest}> = (props) => {
@@ -118,7 +118,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTagesabschlussMonthly(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -143,8 +143,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiTagesabschlussYearly = (
     dailyClosingRequest: DailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesabschlussResult>(
       {url: `/api/Tagesabschluss/yearly`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -152,7 +152,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiTagesabschlussYearlyMutationOptions = <TError = TagesabschlussErrorResponse,
@@ -160,7 +160,7 @@ export const getPostApiTagesabschlussYearlyMutationOptions = <TError = Tagesabsc
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussYearly>>, TError,{data: DailyClosingRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussYearly>>, {data: DailyClosingRequest}> = (props) => {
@@ -169,7 +169,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTagesabschlussYearly(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -194,14 +194,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiTagesabschlussIdSubmitFiskaly = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<FiskalyReceiptEnvelopeDto>(
       {url: `/api/Tagesabschluss/${id}/submit-fiskaly`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiTagesabschlussIdSubmitFiskalyMutationOptions = <TError = FiskalyReceiptEnvelopeDto,
@@ -209,7 +209,7 @@ export const getPostApiTagesabschlussIdSubmitFiskalyMutationOptions = <TError = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>, {id: string}> = (props) => {
@@ -218,13 +218,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTagesabschlussIdSubmitFiskaly(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiTagesabschlussIdSubmitFiskalyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFiskaly>>>
-    
+
     export type PostApiTagesabschlussIdSubmitFiskalyMutationError = FiskalyReceiptEnvelopeDto
 
     export const usePostApiTagesabschlussIdSubmitFiskaly = <TError = FiskalyReceiptEnvelopeDto,
@@ -243,14 +243,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiTagesabschlussIdSubmitFinanzonline = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<FiskalyReceiptEnvelopeDto>(
       {url: `/api/Tagesabschluss/${id}/submit-finanzonline`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiTagesabschlussIdSubmitFinanzonlineMutationOptions = <TError = FiskalyReceiptEnvelopeDto,
@@ -258,7 +258,7 @@ export const getPostApiTagesabschlussIdSubmitFinanzonlineMutationOptions = <TErr
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>, {id: string}> = (props) => {
@@ -267,13 +267,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTagesabschlussIdSubmitFinanzonline(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiTagesabschlussIdSubmitFinanzonlineMutationResult = NonNullable<Awaited<ReturnType<typeof postApiTagesabschlussIdSubmitFinanzonline>>>
-    
+
     export type PostApiTagesabschlussIdSubmitFinanzonlineMutationError = FiskalyReceiptEnvelopeDto
 
     export const usePostApiTagesabschlussIdSubmitFinanzonline = <TError = FiskalyReceiptEnvelopeDto,
@@ -294,8 +294,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiTagesabschlussClosingClosingIdReportPdfParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/Tagesabschluss/closing/${closingId}/report.pdf`, method: 'GET',
         params,
@@ -303,14 +303,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 export const getGetApiTagesabschlussClosingClosingIdReportPdfQueryKey = (closingId: string,
     params?: GetApiTagesabschlussClosingClosingIdReportPdfParams,) => {
     return [`/api/Tagesabschluss/closing/${closingId}/report.pdf`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTagesabschlussClosingClosingIdReportPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError = ProblemDetails>(closingId: string,
     params?: GetApiTagesabschlussClosingClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -319,13 +319,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussClosingClosingIdReportPdfQueryKey(closingId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>> = ({ signal }) => getApiTagesabschlussClosingClosingIdReportPdf(closingId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(closingId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussClosingClosingIdReportPdf>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -354,21 +354,21 @@ export const getApiTagesabschlussHistory = (
     params?: GetApiTagesabschlussHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TagesabschlussResult[]>(
       {url: `/api/Tagesabschluss/history`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiTagesabschlussHistoryQueryKey = (params?: GetApiTagesabschlussHistoryParams,) => {
     return [`/api/Tagesabschluss/history`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTagesabschlussHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussHistory>>, TError = TagesabschlussErrorResponse>(params?: GetApiTagesabschlussHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -376,13 +376,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussHistoryQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussHistory>>> = ({ signal }) => getApiTagesabschlussHistory(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussHistory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -407,23 +407,23 @@ export const useGetApiTagesabschlussHistory = <TData = Awaited<ReturnType<typeof
 
 
 export const getApiTagesabschlussAutoCloseSettings = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AutoTagesabschlussSettingsDto>(
       {url: `/api/Tagesabschluss/auto-close-settings`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiTagesabschlussAutoCloseSettingsQueryKey = () => {
     return [`/api/Tagesabschluss/auto-close-settings`] as const;
     }
 
-    
+
 export const getGetApiTagesabschlussAutoCloseSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -431,13 +431,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussAutoCloseSettingsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>> = ({ signal }) => getApiTagesabschlussAutoCloseSettings(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussAutoCloseSettings>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -464,8 +464,8 @@ export const useGetApiTagesabschlussAutoCloseSettings = <TData = Awaited<ReturnT
 export const putApiTagesabschlussAutoCloseSettings = (
     autoTagesabschlussSettingsDto: AutoTagesabschlussSettingsDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<AutoTagesabschlussSettingsDto>(
       {url: `/api/Tagesabschluss/auto-close-settings`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -473,7 +473,7 @@ export const putApiTagesabschlussAutoCloseSettings = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiTagesabschlussAutoCloseSettingsMutationOptions = <TError = unknown,
@@ -481,7 +481,7 @@ export const getPutApiTagesabschlussAutoCloseSettingsMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, TError,{data: AutoTagesabschlussSettingsDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiTagesabschlussAutoCloseSettings>>, {data: AutoTagesabschlussSettingsDto}> = (props) => {
@@ -490,7 +490,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiTagesabschlussAutoCloseSettings(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -517,22 +517,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TagesabschlussCanCloseResponse>(
       {url: `/api/Tagesabschluss/can-close/${cashRegisterId}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey = (cashRegisterId: string,
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams,) => {
     return [`/api/Tagesabschluss/can-close/${cashRegisterId}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTagesabschlussCanCloseCashRegisterIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError = TagesabschlussErrorResponse>(cashRegisterId: string,
     params?: GetApiTagesabschlussCanCloseCashRegisterIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -541,13 +541,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey(cashRegisterId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>> = ({ signal }) => getApiTagesabschlussCanCloseCashRegisterId(cashRegisterId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cashRegisterId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussCanCloseCashRegisterId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -576,21 +576,21 @@ export const getApiTagesabschlussStatistics = (
     params?: GetApiTagesabschlussStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TagesabschlussStatisticsResponse>(
       {url: `/api/Tagesabschluss/statistics`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiTagesabschlussStatisticsQueryKey = (params?: GetApiTagesabschlussStatisticsParams,) => {
     return [`/api/Tagesabschluss/statistics`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTagesabschlussStatisticsQueryOptions = <TData = Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>, TError = TagesabschlussErrorResponse>(params?: GetApiTagesabschlussStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -598,13 +598,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTagesabschlussStatisticsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>> = ({ signal }) => getApiTagesabschlussStatistics(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTagesabschlussStatistics>>, TError, TData> & { queryKey: QueryKey }
 }

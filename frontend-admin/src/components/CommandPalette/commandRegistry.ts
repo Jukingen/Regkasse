@@ -14,6 +14,12 @@ import {
   type CommandPalettePermissionContext,
   isCommandItemAllowed,
 } from '@/features/command-palette/commandPalettePermissions';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
+import { SIDEBAR_NAV_ITEM_CATALOG } from '@/shared/adminSidebarRegistry';
+import {
+  isCatalogItemVisibleForVerticalProfile,
+  toVerticalProfileMenuScope,
+} from '@/shared/sidebarVerticalProfile';
 
 export type UseCommandRegistryParams = {
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -59,8 +65,19 @@ export function useCommandRegistry({
     });
   }, [backupTrigger, t]);
 
+  const verticalProfile = useAdminVerticalProfile();
+
   return useMemo(() => {
     const built = buildCommandItems(t, router, closePalette, triggerBackup);
-    return built.filter((item) => isCommandItemAllowed(item, permissionCtx));
-  }, [t, router, closePalette, triggerBackup, permissionCtx]);
+    const scope = toVerticalProfileMenuScope(verticalProfile);
+    return built.filter((item) => {
+      if (!isCommandItemAllowed(item, permissionCtx)) return false;
+      if (!item.menuKey) return true;
+      const catalogItem = Object.values(SIDEBAR_NAV_ITEM_CATALOG).find(
+        (entry) => entry.menuKey === item.menuKey
+      );
+      if (!catalogItem) return true;
+      return isCatalogItemVisibleForVerticalProfile(catalogItem, scope);
+    });
+  }, [t, router, closePalette, triggerBackup, permissionCtx, verticalProfile]);
 }

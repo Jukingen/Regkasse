@@ -31,23 +31,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiOrders = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Order[]>(
       {url: `/api/Orders`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiOrdersQueryKey = () => {
     return [`/api/Orders`] as const;
     }
 
-    
+
 export const getGetApiOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrders>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -55,13 +55,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrders>>> = ({ signal }) => getApiOrders(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -88,8 +88,8 @@ export const useGetApiOrders = <TData = Awaited<ReturnType<typeof getApiOrders>>
 export const postApiOrders = (
     createOrderRequest: CreateOrderRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<Order>(
       {url: `/api/Orders`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -97,7 +97,7 @@ export const postApiOrders = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiOrdersMutationOptions = <TError = unknown,
@@ -105,7 +105,7 @@ export const getPostApiOrdersMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiOrders>>, TError,{data: CreateOrderRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrders>>, {data: CreateOrderRequest}> = (props) => {
@@ -114,7 +114,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiOrders(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -140,20 +140,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Order>(
       {url: `/api/Orders/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiOrdersIdQueryKey = (id: string,) => {
     return [`/api/Orders/${id}`] as const;
     }
 
-    
+
 export const getGetApiOrdersIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -161,13 +161,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrdersId>>> = ({ signal }) => getApiOrdersId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -194,14 +194,14 @@ export const useGetApiOrdersId = <TData = Awaited<ReturnType<typeof getApiOrders
 export const deleteApiOrdersId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Orders/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiOrdersIdMutationOptions = <TError = unknown,
@@ -209,7 +209,7 @@ export const getDeleteApiOrdersIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiOrdersId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiOrdersId>>, {id: string}> = (props) => {
@@ -218,13 +218,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiOrdersId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiOrdersIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiOrdersId>>>
-    
+
     export type DeleteApiOrdersIdMutationError = unknown
 
     export const useDeleteApiOrdersId = <TError = unknown,
@@ -244,8 +244,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     updateOrderStatusRequest: UpdateOrderStatusRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Orders/${id}/status`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -253,7 +253,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiOrdersIdStatusMutationOptions = <TError = unknown,
@@ -261,7 +261,7 @@ export const getPutApiOrdersIdStatusMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiOrdersIdStatus>>, TError,{id: string;data: UpdateOrderStatusRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiOrdersIdStatus>>, {id: string;data: UpdateOrderStatusRequest}> = (props) => {
@@ -270,7 +270,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiOrdersIdStatus(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -296,20 +296,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     status: OrderStatus,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Order[]>(
       {url: `/api/Orders/status/${status}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiOrdersStatusStatusQueryKey = (status: OrderStatus,) => {
     return [`/api/Orders/status/${status}`] as const;
     }
 
-    
+
 export const getGetApiOrdersStatusStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrdersStatusStatus>>, TError = unknown>(status: OrderStatus, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersStatusStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -317,13 +317,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersStatusStatusQueryKey(status);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrdersStatusStatus>>> = ({ signal }) => getApiOrdersStatusStatus(status, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(status), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersStatusStatus>>, TError, TData> & { queryKey: QueryKey }
 }

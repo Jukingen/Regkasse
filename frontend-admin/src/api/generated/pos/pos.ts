@@ -128,21 +128,21 @@ export const getApiPosCartCurrent = (
     params?: GetApiPosCartCurrentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/current`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCartCurrentQueryKey = (params?: GetApiPosCartCurrentParams,) => {
     return [`/api/pos/cart/current`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosCartCurrentQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCartCurrent>>, TError = unknown>(params?: GetApiPosCartCurrentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -150,13 +150,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCartCurrentQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCartCurrent>>> = ({ signal }) => getApiPosCartCurrent(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartCurrent>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -184,20 +184,20 @@ export const getApiPosCartCartId = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCartCartIdQueryKey = (cartId: string,) => {
     return [`/api/pos/cart/${cartId}`] as const;
     }
 
-    
+
 export const getGetApiPosCartCartIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCartCartId>>, TError = unknown>(cartId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartCartId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -205,13 +205,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCartCartIdQueryKey(cartId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCartCartId>>> = ({ signal }) => getApiPosCartCartId(cartId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(cartId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartCartId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -238,14 +238,14 @@ export const useGetApiPosCartCartId = <TData = Awaited<ReturnType<typeof getApiP
 export const deleteApiPosCartCartId = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosCartCartIdMutationOptions = <TError = unknown,
@@ -253,7 +253,7 @@ export const getDeleteApiPosCartCartIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosCartCartId>>, TError,{cartId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosCartCartId>>, {cartId: string}> = (props) => {
@@ -262,13 +262,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosCartCartId(cartId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosCartCartIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosCartCartId>>>
-    
+
     export type DeleteApiPosCartCartIdMutationError = unknown
 
     export const useDeleteApiPosCartCartId = <TError = unknown,
@@ -287,8 +287,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCart = (
     createCartRequest: CreateCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -296,7 +296,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartMutationOptions = <TError = unknown,
@@ -304,7 +304,7 @@ export const getPostApiPosCartMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCart>>, TError,{data: CreateCartRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCart>>, {data: CreateCartRequest}> = (props) => {
@@ -313,7 +313,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCart(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -338,8 +338,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartAddItem = (
     addItemToCartRequest: AddItemToCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/add-item`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -347,7 +347,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartAddItemMutationOptions = <TError = unknown,
@@ -355,7 +355,7 @@ export const getPostApiPosCartAddItemMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartAddItem>>, TError,{data: AddItemToCartRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartAddItem>>, {data: AddItemToCartRequest}> = (props) => {
@@ -364,7 +364,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartAddItem(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -390,8 +390,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     cartId: string,
     addCartItemRequest: AddCartItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/items`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -399,7 +399,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartCartIdItemsMutationOptions = <TError = unknown,
@@ -407,7 +407,7 @@ export const getPostApiPosCartCartIdItemsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartCartIdItems>>, TError,{cartId: string;data: AddCartItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartCartIdItems>>, {cartId: string;data: AddCartItemRequest}> = (props) => {
@@ -416,7 +416,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartCartIdItems(cartId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -442,8 +442,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     itemId: string,
     updateCartItemRequest: UpdateCartItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/items/${itemId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -451,7 +451,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosCartItemsItemIdMutationOptions = <TError = unknown,
@@ -459,7 +459,7 @@ export const getPutApiPosCartItemsItemIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosCartItemsItemId>>, TError,{itemId: string;data: UpdateCartItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosCartItemsItemId>>, {itemId: string;data: UpdateCartItemRequest}> = (props) => {
@@ -468,7 +468,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosCartItemsItemId(itemId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -493,14 +493,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiPosCartItemsItemId = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/items/${itemId}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosCartItemsItemIdMutationOptions = <TError = unknown,
@@ -508,7 +508,7 @@ export const getDeleteApiPosCartItemsItemIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosCartItemsItemId>>, TError,{itemId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosCartItemsItemId>>, {itemId: string}> = (props) => {
@@ -517,13 +517,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosCartItemsItemId(itemId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosCartItemsItemIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosCartItemsItemId>>>
-    
+
     export type DeleteApiPosCartItemsItemIdMutationError = unknown
 
     export const useDeleteApiPosCartItemsItemId = <TError = unknown,
@@ -544,8 +544,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     itemId: string,
     updateCartItemRequest: UpdateCartItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/items/${itemId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -553,7 +553,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosCartCartIdItemsItemIdMutationOptions = <TError = unknown,
@@ -561,7 +561,7 @@ export const getPutApiPosCartCartIdItemsItemIdMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosCartCartIdItemsItemId>>, TError,{cartId: string;itemId: string;data: UpdateCartItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosCartCartIdItemsItemId>>, {cartId: string;itemId: string;data: UpdateCartItemRequest}> = (props) => {
@@ -570,7 +570,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosCartCartIdItemsItemId(cartId,itemId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -596,14 +596,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     cartId: string,
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/items/${itemId}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosCartCartIdItemsItemIdMutationOptions = <TError = unknown,
@@ -611,7 +611,7 @@ export const getDeleteApiPosCartCartIdItemsItemIdMutationOptions = <TError = unk
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosCartCartIdItemsItemId>>, TError,{cartId: string;itemId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosCartCartIdItemsItemId>>, {cartId: string;itemId: string}> = (props) => {
@@ -620,13 +620,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosCartCartIdItemsItemId(cartId,itemId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosCartCartIdItemsItemIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosCartCartIdItemsItemId>>>
-    
+
     export type DeleteApiPosCartCartIdItemsItemIdMutationError = unknown
 
     export const useDeleteApiPosCartCartIdItemsItemId = <TError = unknown,
@@ -645,14 +645,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartCartIdClearItems = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/clear-items`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartCartIdClearItemsMutationOptions = <TError = unknown,
@@ -660,7 +660,7 @@ export const getPostApiPosCartCartIdClearItemsMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartCartIdClearItems>>, TError,{cartId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartCartIdClearItems>>, {cartId: string}> = (props) => {
@@ -669,13 +669,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartCartIdClearItems(cartId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCartCartIdClearItemsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCartCartIdClearItems>>>
-    
+
     export type PostApiPosCartCartIdClearItemsMutationError = unknown
 
     export const usePostApiPosCartCartIdClearItems = <TError = unknown,
@@ -694,8 +694,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartSplitItems = (
     splitCartItemsRequest: SplitCartItemsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/split-items`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -703,7 +703,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartSplitItemsMutationOptions = <TError = unknown,
@@ -711,7 +711,7 @@ export const getPostApiPosCartSplitItemsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartSplitItems>>, TError,{data: SplitCartItemsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartSplitItems>>, {data: SplitCartItemsRequest}> = (props) => {
@@ -720,7 +720,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartSplitItems(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -745,8 +745,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartMergeTables = (
     mergeTableCartsRequest: MergeTableCartsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/merge-tables`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -754,7 +754,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartMergeTablesMutationOptions = <TError = unknown,
@@ -762,7 +762,7 @@ export const getPostApiPosCartMergeTablesMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartMergeTables>>, TError,{data: MergeTableCartsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartMergeTables>>, {data: MergeTableCartsRequest}> = (props) => {
@@ -771,7 +771,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartMergeTables(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -796,15 +796,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartClear = (
     params?: PostApiPosCartClearParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/clear`, method: 'POST',
         params
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartClearMutationOptions = <TError = unknown,
@@ -812,7 +812,7 @@ export const getPostApiPosCartClearMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartClear>>, TError,{params?: PostApiPosCartClearParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartClear>>, {params?: PostApiPosCartClearParams}> = (props) => {
@@ -821,13 +821,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartClear(params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCartClearMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCartClear>>>
-    
+
     export type PostApiPosCartClearMutationError = unknown
 
     export const usePostApiPosCartClear = <TError = unknown,
@@ -844,16 +844,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiPosCartClearAll = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/clear-all`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartClearAllMutationOptions = <TError = unknown,
@@ -861,22 +861,22 @@ export const getPostApiPosCartClearAllMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartClearAll>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartClearAll>>, void> = () => {
-          
+
 
           return  postApiPosCartClearAll(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCartClearAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCartClearAll>>>
-    
+
     export type PostApiPosCartClearAllMutationError = unknown
 
     export const usePostApiPosCartClearAll = <TError = unknown,
@@ -896,8 +896,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     cartId: string,
     resetCartAfterPaymentRequest: ResetCartAfterPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/reset-after-payment`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -905,7 +905,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartCartIdResetAfterPaymentMutationOptions = <TError = unknown,
@@ -913,7 +913,7 @@ export const getPostApiPosCartCartIdResetAfterPaymentMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartCartIdResetAfterPayment>>, TError,{cartId: string;data: ResetCartAfterPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartCartIdResetAfterPayment>>, {cartId: string;data: ResetCartAfterPaymentRequest}> = (props) => {
@@ -922,7 +922,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartCartIdResetAfterPayment(cartId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -948,8 +948,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     cartId: string,
     completeCartRequest: CompleteCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/${cartId}/complete`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -957,7 +957,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartCartIdCompleteMutationOptions = <TError = unknown,
@@ -965,7 +965,7 @@ export const getPostApiPosCartCartIdCompleteMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartCartIdComplete>>, TError,{cartId: string;data: CompleteCartRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartCartIdComplete>>, {cartId: string;data: CompleteCartRequest}> = (props) => {
@@ -974,7 +974,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartCartIdComplete(cartId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -997,23 +997,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCartHistory = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/history`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCartHistoryQueryKey = () => {
     return [`/api/pos/cart/history`] as const;
     }
 
-    
+
 export const getGetApiPosCartHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCartHistory>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1021,13 +1021,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCartHistoryQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCartHistory>>> = ({ signal }) => getApiPosCartHistory(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartHistory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1054,8 +1054,8 @@ export const useGetApiPosCartHistory = <TData = Awaited<ReturnType<typeof getApi
 export const postApiPosCartForceCleanup = (
     forceCleanupRequest: ForceCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/force-cleanup`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1063,7 +1063,7 @@ export const postApiPosCartForceCleanup = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartForceCleanupMutationOptions = <TError = unknown,
@@ -1071,7 +1071,7 @@ export const getPostApiPosCartForceCleanupMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartForceCleanup>>, TError,{data: ForceCleanupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartForceCleanup>>, {data: ForceCleanupRequest}> = (props) => {
@@ -1080,7 +1080,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartForceCleanup(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1103,23 +1103,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCartTableOrdersRecovery = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/table-orders-recovery`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCartTableOrdersRecoveryQueryKey = () => {
     return [`/api/pos/cart/table-orders-recovery`] as const;
     }
 
-    
+
 export const getGetApiPosCartTableOrdersRecoveryQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCartTableOrdersRecovery>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartTableOrdersRecovery>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1127,13 +1127,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCartTableOrdersRecoveryQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCartTableOrdersRecovery>>> = ({ signal }) => getApiPosCartTableOrdersRecovery(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCartTableOrdersRecovery>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1160,14 +1160,14 @@ export const useGetApiPosCartTableOrdersRecovery = <TData = Awaited<ReturnType<t
 export const postApiPosCartItemsItemIdIncrement = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/items/${itemId}/increment`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartItemsItemIdIncrementMutationOptions = <TError = unknown,
@@ -1175,7 +1175,7 @@ export const getPostApiPosCartItemsItemIdIncrementMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartItemsItemIdIncrement>>, TError,{itemId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartItemsItemIdIncrement>>, {itemId: string}> = (props) => {
@@ -1184,13 +1184,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartItemsItemIdIncrement(itemId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCartItemsItemIdIncrementMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCartItemsItemIdIncrement>>>
-    
+
     export type PostApiPosCartItemsItemIdIncrementMutationError = unknown
 
     export const usePostApiPosCartItemsItemIdIncrement = <TError = unknown,
@@ -1209,14 +1209,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCartItemsItemIdDecrement = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cart/items/${itemId}/decrement`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCartItemsItemIdDecrementMutationOptions = <TError = unknown,
@@ -1224,7 +1224,7 @@ export const getPostApiPosCartItemsItemIdDecrementMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCartItemsItemIdDecrement>>, TError,{itemId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCartItemsItemIdDecrement>>, {itemId: string}> = (props) => {
@@ -1233,13 +1233,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCartItemsItemIdDecrement(itemId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCartItemsItemIdDecrementMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCartItemsItemIdDecrement>>>
-    
+
     export type PostApiPosCartItemsItemIdDecrementMutationError = unknown
 
     export const usePostApiPosCartItemsItemIdDecrement = <TError = unknown,
@@ -1256,23 +1256,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosMaintenanceStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MaintenanceModeStatusDto>(
       {url: `/api/pos/maintenance/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosMaintenanceStatusQueryKey = () => {
     return [`/api/pos/maintenance/status`] as const;
     }
 
-    
+
 export const getGetApiPosMaintenanceStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1280,13 +1280,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosMaintenanceStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>> = ({ signal }) => getApiPosMaintenanceStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosMaintenanceStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1311,23 +1311,23 @@ export const useGetApiPosMaintenanceStatus = <TData = Awaited<ReturnType<typeof 
 
 
 export const getApiPosOfflineHealth = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/offline/health`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosOfflineHealthQueryKey = () => {
     return [`/api/pos/offline/health`] as const;
     }
 
-    
+
 export const getGetApiPosOfflineHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1335,13 +1335,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineHealthQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineHealth>>> = ({ signal }) => getApiPosOfflineHealth(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineHealth>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1369,21 +1369,21 @@ export const getApiPosPaymentMethods = (
     params?: GetApiPosPaymentMethodsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/methods`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentMethodsQueryKey = (params?: GetApiPosPaymentMethodsParams,) => {
     return [`/api/pos/payment/methods`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentMethodsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentMethods>>, TError = unknown>(params?: GetApiPosPaymentMethodsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethods>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1391,13 +1391,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentMethodsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentMethods>>> = ({ signal }) => getApiPosPaymentMethods(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethods>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1425,21 +1425,21 @@ export const getApiPosPaymentHistory = (
     params?: GetApiPosPaymentHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PaymentHistoryResponse>(
       {url: `/api/pos/payment/history`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentHistoryQueryKey = (params?: GetApiPosPaymentHistoryParams,) => {
     return [`/api/pos/payment/history`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentHistory>>, TError = ProblemDetails>(params?: GetApiPosPaymentHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1447,13 +1447,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentHistoryQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentHistory>>> = ({ signal }) => getApiPosPaymentHistory(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentHistory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1480,8 +1480,8 @@ export const useGetApiPosPaymentHistory = <TData = Awaited<ReturnType<typeof get
 export const postApiPosPayment = (
     createPaymentRequest: CreatePaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PaymentApiEnvelopeOfPaymentCreateSuccessData>(
       {url: `/api/pos/payment`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1489,7 +1489,7 @@ export const postApiPosPayment = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentMutationOptions = <TError = PaymentApiErrorBody,
@@ -1497,7 +1497,7 @@ export const getPostApiPosPaymentMutationOptions = <TError = PaymentApiErrorBody
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPayment>>, TError,{data: CreatePaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPayment>>, {data: CreatePaymentRequest}> = (props) => {
@@ -1506,7 +1506,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPayment(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1531,8 +1531,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosPaymentStorno = (
     createStornoPaymentRequest: CreateStornoPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/storno`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1540,7 +1540,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentStornoMutationOptions = <TError = unknown,
@@ -1548,7 +1548,7 @@ export const getPostApiPosPaymentStornoMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreateStornoPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, {data: CreateStornoPaymentRequest}> = (props) => {
@@ -1557,7 +1557,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentStorno(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1583,20 +1583,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentIdQueryKey = (id: string,) => {
     return [`/api/pos/payment/${id}`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1604,13 +1604,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentId>>> = ({ signal }) => getApiPosPaymentId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1639,22 +1639,22 @@ export const getApiPosPaymentCustomerCustomerId = (
     params?: GetApiPosPaymentCustomerCustomerIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/customer/${customerId}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentCustomerCustomerIdQueryKey = (customerId: string,
     params?: GetApiPosPaymentCustomerCustomerIdParams,) => {
     return [`/api/pos/payment/customer/${customerId}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentCustomerCustomerIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>, TError = unknown>(customerId: string,
     params?: GetApiPosPaymentCustomerCustomerIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -1663,13 +1663,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentCustomerCustomerIdQueryKey(customerId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>> = ({ signal }) => getApiPosPaymentCustomerCustomerId(customerId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(customerId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentCustomerCustomerId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1699,22 +1699,22 @@ export const getApiPosPaymentMethodPaymentMethod = (
     params?: GetApiPosPaymentMethodPaymentMethodParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/method/${paymentMethod}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentMethodPaymentMethodQueryKey = (paymentMethod: string,
     params?: GetApiPosPaymentMethodPaymentMethodParams,) => {
     return [`/api/pos/payment/method/${paymentMethod}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentMethodPaymentMethodQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>, TError = unknown>(paymentMethod: string,
     params?: GetApiPosPaymentMethodPaymentMethodParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -1723,13 +1723,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentMethodPaymentMethodQueryKey(paymentMethod,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>> = ({ signal }) => getApiPosPaymentMethodPaymentMethod(paymentMethod,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(paymentMethod), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentMethodPaymentMethod>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1758,21 +1758,21 @@ export const getApiPosPaymentDateRange = (
     params?: GetApiPosPaymentDateRangeParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/date-range`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentDateRangeQueryKey = (params?: GetApiPosPaymentDateRangeParams,) => {
     return [`/api/pos/payment/date-range`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentDateRangeQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentDateRange>>, TError = unknown>(params?: GetApiPosPaymentDateRangeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentDateRange>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1780,13 +1780,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentDateRangeQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentDateRange>>> = ({ signal }) => getApiPosPaymentDateRange(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentDateRange>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1814,8 +1814,8 @@ export const postApiPosPaymentIdCancel = (
     id: string,
     cancelPaymentRequest: CancelPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/${id}/cancel`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1823,7 +1823,7 @@ export const postApiPosPaymentIdCancel = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentIdCancelMutationOptions = <TError = unknown,
@@ -1831,7 +1831,7 @@ export const getPostApiPosPaymentIdCancelMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdCancel>>, TError,{id: string;data: CancelPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentIdCancel>>, {id: string;data: CancelPaymentRequest}> = (props) => {
@@ -1840,7 +1840,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentIdCancel(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1866,8 +1866,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     refundPaymentRequest: RefundPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/${id}/refund`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -1875,7 +1875,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentIdRefundMutationOptions = <TError = unknown,
@@ -1883,7 +1883,7 @@ export const getPostApiPosPaymentIdRefundMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdRefund>>, TError,{id: string;data: RefundPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentIdRefund>>, {id: string;data: RefundPaymentRequest}> = (props) => {
@@ -1892,7 +1892,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentIdRefund(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -1918,21 +1918,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosPaymentStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/statistics`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentStatisticsQueryKey = (params?: GetApiPosPaymentStatisticsParams,) => {
     return [`/api/pos/payment/statistics`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosPaymentStatisticsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentStatistics>>, TError = unknown>(params?: GetApiPosPaymentStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1940,13 +1940,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentStatisticsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentStatistics>>> = ({ signal }) => getApiPosPaymentStatistics(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentStatistics>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -1974,21 +1974,21 @@ export const getApiPosPaymentIdQrPng = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/pos/payment/${id}/qr.png`, method: 'GET',
         responseType: 'blob', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentIdQrPngQueryKey = (id: string,) => {
     return [`/api/pos/payment/${id}/qr.png`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentIdQrPngQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -1996,13 +1996,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentIdQrPngQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>> = ({ signal }) => getApiPosPaymentIdQrPng(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrPng>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2030,21 +2030,21 @@ export const getApiPosPaymentIdQrSvg = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/pos/payment/${id}/qr.svg`, method: 'GET',
         responseType: 'blob', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentIdQrSvgQueryKey = (id: string,) => {
     return [`/api/pos/payment/${id}/qr.svg`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentIdQrSvgQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2052,13 +2052,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentIdQrSvgQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>> = ({ signal }) => getApiPosPaymentIdQrSvg(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdQrSvg>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2086,20 +2086,20 @@ export const getApiPosPaymentIdReceipt = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/${id}/receipt`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentIdReceiptQueryKey = (id: string,) => {
     return [`/api/pos/payment/${id}/receipt`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentIdReceiptQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2107,13 +2107,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentIdReceiptQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>> = ({ signal }) => getApiPosPaymentIdReceipt(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdReceipt>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2140,14 +2140,14 @@ export const useGetApiPosPaymentIdReceipt = <TData = Awaited<ReturnType<typeof g
 export const postApiPosPaymentIdTseSignature = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/payment/${id}/tse-signature`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentIdTseSignatureMutationOptions = <TError = unknown,
@@ -2155,7 +2155,7 @@ export const getPostApiPosPaymentIdTseSignatureMutationOptions = <TError = unkno
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentIdTseSignature>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentIdTseSignature>>, {id: string}> = (props) => {
@@ -2164,13 +2164,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentIdTseSignature(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosPaymentIdTseSignatureMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosPaymentIdTseSignature>>>
-    
+
     export type PostApiPosPaymentIdTseSignatureMutationError = unknown
 
     export const usePostApiPosPaymentIdTseSignature = <TError = unknown,
@@ -2190,20 +2190,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<unknown>(
       {url: `/api/pos/payment/${id}/signature-debug`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentIdSignatureDebugQueryKey = (id: string,) => {
     return [`/api/pos/payment/${id}/signature-debug`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentIdSignatureDebugQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2211,13 +2211,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentIdSignatureDebugQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>> = ({ signal }) => getApiPosPaymentIdSignatureDebug(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentIdSignatureDebug>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2244,8 +2244,8 @@ export const useGetApiPosPaymentIdSignatureDebug = <TData = Awaited<ReturnType<t
 export const postApiPosPaymentVerifySignature = (
     verifySignatureRequest: VerifySignatureRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<VerifySignatureResponse>(
       {url: `/api/pos/payment/verify-signature`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2253,7 +2253,7 @@ export const postApiPosPaymentVerifySignature = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentVerifySignatureMutationOptions = <TError = ProblemDetails,
@@ -2261,7 +2261,7 @@ export const getPostApiPosPaymentVerifySignatureMutationOptions = <TError = Prob
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentVerifySignature>>, TError,{data: VerifySignatureRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentVerifySignature>>, {data: VerifySignatureRequest}> = (props) => {
@@ -2270,7 +2270,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentVerifySignature(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2295,8 +2295,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCardPaymentIntent = (
     cardPaymentRequest: CardPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CardPaymentIntentResponse>(
       {url: `/api/pos/card-payment/intent`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2304,7 +2304,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCardPaymentIntentMutationOptions = <TError = unknown,
@@ -2312,7 +2312,7 @@ export const getPostApiPosCardPaymentIntentMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCardPaymentIntent>>, TError,{data: CardPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCardPaymentIntent>>, {data: CardPaymentRequest}> = (props) => {
@@ -2321,7 +2321,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCardPaymentIntent(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2346,8 +2346,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCardPaymentConfirm = (
     confirmCardPaymentRequest: ConfirmCardPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CardPaymentConfirmResponse>(
       {url: `/api/pos/card-payment/confirm`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2355,7 +2355,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCardPaymentConfirmMutationOptions = <TError = unknown,
@@ -2363,7 +2363,7 @@ export const getPostApiPosCardPaymentConfirmMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCardPaymentConfirm>>, TError,{data: ConfirmCardPaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCardPaymentConfirm>>, {data: ConfirmCardPaymentRequest}> = (props) => {
@@ -2372,7 +2372,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCardPaymentConfirm(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2398,8 +2398,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     intentId: string,
     confirmCardPaymentIntentRequest: ConfirmCardPaymentIntentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CardPaymentIntentResponse>(
       {url: `/api/pos/card-payment/${intentId}/confirm`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2407,7 +2407,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCardPaymentIntentIdConfirmMutationOptions = <TError = unknown,
@@ -2415,7 +2415,7 @@ export const getPostApiPosCardPaymentIntentIdConfirmMutationOptions = <TError = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdConfirm>>, TError,{intentId: string;data: ConfirmCardPaymentIntentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdConfirm>>, {intentId: string;data: ConfirmCardPaymentIntentRequest}> = (props) => {
@@ -2424,7 +2424,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCardPaymentIntentIdConfirm(intentId,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2449,14 +2449,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosCardPaymentIntentIdCancel = (
     intentId: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CardPaymentIntentResponse>(
       {url: `/api/pos/card-payment/${intentId}/cancel`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCardPaymentIntentIdCancelMutationOptions = <TError = unknown,
@@ -2464,7 +2464,7 @@ export const getPostApiPosCardPaymentIntentIdCancelMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdCancel>>, TError,{intentId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdCancel>>, {intentId: string}> = (props) => {
@@ -2473,13 +2473,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCardPaymentIntentIdCancel(intentId,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCardPaymentIntentIdCancelMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCardPaymentIntentIdCancel>>>
-    
+
     export type PostApiPosCardPaymentIntentIdCancelMutationError = unknown
 
     export const usePostApiPosCardPaymentIntentIdCancel = <TError = unknown,
@@ -2496,23 +2496,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCashRegisterCurrent = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosCashRegisterContextDto>(
       {url: `/api/pos/cash-register/current`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCashRegisterCurrentQueryKey = () => {
     return [`/api/pos/cash-register/current`] as const;
     }
 
-    
+
 export const getGetApiPosCashRegisterCurrentQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2520,13 +2520,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterCurrentQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>> = ({ signal }) => getApiPosCashRegisterCurrent(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterCurrent>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2551,16 +2551,16 @@ export const useGetApiPosCashRegisterCurrent = <TData = Awaited<ReturnType<typeo
 
 
 export const postApiPosCashRegisterEnsureReady = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PosCashRegisterContextDto>(
       {url: `/api/pos/cash-register/ensure-ready`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCashRegisterEnsureReadyMutationOptions = <TError = ProblemDetails,
@@ -2568,22 +2568,22 @@ export const getPostApiPosCashRegisterEnsureReadyMutationOptions = <TError = Pro
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, void> = () => {
-          
+
 
           return  postApiPosCashRegisterEnsureReady(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosCashRegisterEnsureReadyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>>
-    
+
     export type PostApiPosCashRegisterEnsureReadyMutationError = ProblemDetails
 
     export const usePostApiPosCashRegisterEnsureReady = <TError = ProblemDetails,
@@ -2600,23 +2600,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCashRegisterSelectable = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosSelectableListResult>(
       {url: `/api/pos/cash-register/selectable`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCashRegisterSelectableQueryKey = () => {
     return [`/api/pos/cash-register/selectable`] as const;
     }
 
-    
+
 export const getGetApiPosCashRegisterSelectableQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2624,13 +2624,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterSelectableQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>> = ({ signal }) => getApiPosCashRegisterSelectable(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2657,8 +2657,8 @@ export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<ty
 export const postApiPosCashRegisterDefault = (
     setDefaultCashRegisterRequest: SetDefaultCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cash-register/default`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2666,7 +2666,7 @@ export const postApiPosCashRegisterDefault = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCashRegisterDefaultMutationOptions = <TError = ShiftAutoOpenResult,
@@ -2674,7 +2674,7 @@ export const getPostApiPosCashRegisterDefaultMutationOptions = <TError = ShiftAu
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, TError,{data: SetDefaultCashRegisterRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterDefault>>, {data: SetDefaultCashRegisterRequest}> = (props) => {
@@ -2683,7 +2683,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCashRegisterDefault(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2706,23 +2706,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCashRegisterDefault = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/cash-register/default`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCashRegisterDefaultQueryKey = () => {
     return [`/api/pos/cash-register/default`] as const;
     }
 
-    
+
 export const getGetApiPosCashRegisterDefaultQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2730,13 +2730,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterDefaultQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>> = ({ signal }) => getApiPosCashRegisterDefault(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterDefault>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2763,8 +2763,8 @@ export const useGetApiPosCashRegisterDefault = <TData = Awaited<ReturnType<typeo
 export const postApiPosCashRegisterOpenRequests = (
     createCashRegisterOpenRequestBody: CreateCashRegisterOpenRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CashRegisterOpenRequestMutationResult>(
       {url: `/api/pos/cash-register/open-requests`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2772,7 +2772,7 @@ export const postApiPosCashRegisterOpenRequests = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCashRegisterOpenRequestsMutationOptions = <TError = CashRegisterOpenRequestMutationResult,
@@ -2780,7 +2780,7 @@ export const getPostApiPosCashRegisterOpenRequestsMutationOptions = <TError = Ca
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, TError,{data: CreateCashRegisterOpenRequestBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterOpenRequests>>, {data: CreateCashRegisterOpenRequestBody}> = (props) => {
@@ -2789,7 +2789,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCashRegisterOpenRequests(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2812,23 +2812,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCashRegisterOpenRequestsMine = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CashRegisterOpenRequestDto[]>(
       {url: `/api/pos/cash-register/open-requests/mine`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCashRegisterOpenRequestsMineQueryKey = () => {
     return [`/api/pos/cash-register/open-requests/mine`] as const;
     }
 
-    
+
 export const getGetApiPosCashRegisterOpenRequestsMineQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2836,13 +2836,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterOpenRequestsMineQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>> = ({ signal }) => getApiPosCashRegisterOpenRequestsMine(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterOpenRequestsMine>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2869,8 +2869,8 @@ export const useGetApiPosCashRegisterOpenRequestsMine = <TData = Awaited<ReturnT
 export const postApiPosCashRegisterMonatsbelegNotifyManager = (
     notifyMonatsbelegManagerRequest: NotifyMonatsbelegManagerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<NotifyMonatsbelegManagerResult>(
       {url: `/api/pos/cash-register/monatsbeleg/notify-manager`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2878,7 +2878,7 @@ export const postApiPosCashRegisterMonatsbelegNotifyManager = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCashRegisterMonatsbelegNotifyManagerMutationOptions = <TError = NotifyMonatsbelegManagerResult,
@@ -2886,7 +2886,7 @@ export const getPostApiPosCashRegisterMonatsbelegNotifyManagerMutationOptions = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, TError,{data: NotifyMonatsbelegManagerRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterMonatsbelegNotifyManager>>, {data: NotifyMonatsbelegManagerRequest}> = (props) => {
@@ -2895,7 +2895,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCashRegisterMonatsbelegNotifyManager(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -2918,23 +2918,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCompany = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosCompanyInfoDto>(
       {url: `/api/pos/company`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCompanyQueryKey = () => {
     return [`/api/pos/company`] as const;
     }
 
-    
+
 export const getGetApiPosCompanyQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCompany>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCompany>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -2942,13 +2942,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCompanyQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCompany>>> = ({ signal }) => getApiPosCompany(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCompany>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -2975,8 +2975,8 @@ export const useGetApiPosCompany = <TData = Awaited<ReturnType<typeof getApiPosC
 export const postApiPosCustomers = (
     createPosCustomerRequest: CreatePosCustomerRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PosCustomerDto>(
       {url: `/api/pos/customers`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -2984,7 +2984,7 @@ export const postApiPosCustomers = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCustomersMutationOptions = <TError = ProblemDetails,
@@ -2992,7 +2992,7 @@ export const getPostApiPosCustomersMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomers>>, TError,{data: CreatePosCustomerRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCustomers>>, {data: CreatePosCustomerRequest}> = (props) => {
@@ -3001,7 +3001,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCustomers(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3027,21 +3027,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosCustomersByQrParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosCustomerDto>(
       {url: `/api/pos/customers/by-qr`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCustomersByQrQueryKey = (params?: GetApiPosCustomersByQrParams,) => {
     return [`/api/pos/customers/by-qr`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosCustomersByQrQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCustomersByQr>>, TError = ProblemDetails>(params?: GetApiPosCustomersByQrParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCustomersByQr>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3049,13 +3049,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCustomersByQrQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCustomersByQr>>> = ({ signal }) => getApiPosCustomersByQr(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCustomersByQr>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3082,8 +3082,8 @@ export const useGetApiPosCustomersByQr = <TData = Awaited<ReturnType<typeof getA
 export const postApiPosCustomersQrLookup = (
     customerQrLookupRequest: CustomerQrLookupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<Customer>(
       {url: `/api/pos/customers/qr-lookup`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -3091,7 +3091,7 @@ export const postApiPosCustomersQrLookup = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosCustomersQrLookupMutationOptions = <TError = ProblemDetails,
@@ -3099,7 +3099,7 @@ export const getPostApiPosCustomersQrLookupMutationOptions = <TError = ProblemDe
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCustomersQrLookup>>, TError,{data: CustomerQrLookupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCustomersQrLookup>>, {data: CustomerQrLookupRequest}> = (props) => {
@@ -3108,7 +3108,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosCustomersQrLookup(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3131,23 +3131,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosFavorites = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CashierFavoriteDto[]>(
       {url: `/api/pos/favorites`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosFavoritesQueryKey = () => {
     return [`/api/pos/favorites`] as const;
     }
 
-    
+
 export const getGetApiPosFavoritesQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosFavorites>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosFavorites>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3155,13 +3155,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosFavoritesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosFavorites>>> = ({ signal }) => getApiPosFavorites(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosFavorites>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3188,8 +3188,8 @@ export const useGetApiPosFavorites = <TData = Awaited<ReturnType<typeof getApiPo
 export const postApiPosFavorites = (
     addFavoriteRequest: AddFavoriteRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/favorites`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -3197,7 +3197,7 @@ export const postApiPosFavorites = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosFavoritesMutationOptions = <TError = ProblemDetails,
@@ -3205,7 +3205,7 @@ export const getPostApiPosFavoritesMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosFavorites>>, TError,{data: AddFavoriteRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosFavorites>>, {data: AddFavoriteRequest}> = (props) => {
@@ -3214,7 +3214,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosFavorites(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3239,14 +3239,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiPosFavoritesId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/favorites/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosFavoritesIdMutationOptions = <TError = ProblemDetails,
@@ -3254,7 +3254,7 @@ export const getDeleteApiPosFavoritesIdMutationOptions = <TError = ProblemDetail
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosFavoritesId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosFavoritesId>>, {id: string}> = (props) => {
@@ -3263,13 +3263,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosFavoritesId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosFavoritesIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosFavoritesId>>>
-    
+
     export type DeleteApiPosFavoritesIdMutationError = ProblemDetails
 
     export const useDeleteApiPosFavoritesId = <TError = ProblemDetails,
@@ -3288,8 +3288,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const putApiPosFavoritesReorder = (
     reorderFavoritesRequest: ReorderFavoritesRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/favorites/reorder`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -3297,7 +3297,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosFavoritesReorderMutationOptions = <TError = unknown,
@@ -3305,7 +3305,7 @@ export const getPutApiPosFavoritesReorderMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosFavoritesReorder>>, TError,{data: ReorderFavoritesRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosFavoritesReorder>>, {data: ReorderFavoritesRequest}> = (props) => {
@@ -3314,7 +3314,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosFavoritesReorder(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3337,23 +3337,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosMaintenanceNotificationsActive = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MaintenanceNotificationDto[]>(
       {url: `/api/pos/maintenance-notifications/active`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosMaintenanceNotificationsActiveQueryKey = () => {
     return [`/api/pos/maintenance-notifications/active`] as const;
     }
 
-    
+
 export const getGetApiPosMaintenanceNotificationsActiveQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosMaintenanceNotificationsActive>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosMaintenanceNotificationsActive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3361,13 +3361,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosMaintenanceNotificationsActiveQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosMaintenanceNotificationsActive>>> = ({ signal }) => getApiPosMaintenanceNotificationsActive(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosMaintenanceNotificationsActive>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3395,8 +3395,8 @@ export const postApiPosMaintenanceNotificationsIdAcknowledge = (
     id: string,
     acknowledgeMaintenanceNotificationRequestDto: AcknowledgeMaintenanceNotificationRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<MaintenanceNotificationDto>(
       {url: `/api/pos/maintenance-notifications/${id}/acknowledge`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -3404,7 +3404,7 @@ export const postApiPosMaintenanceNotificationsIdAcknowledge = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosMaintenanceNotificationsIdAcknowledgeMutationOptions = <TError = ProblemDetails,
@@ -3412,7 +3412,7 @@ export const getPostApiPosMaintenanceNotificationsIdAcknowledgeMutationOptions =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosMaintenanceNotificationsIdAcknowledge>>, TError,{id: string;data: AcknowledgeMaintenanceNotificationRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosMaintenanceNotificationsIdAcknowledge>>, {id: string;data: AcknowledgeMaintenanceNotificationRequestDto}> = (props) => {
@@ -3421,7 +3421,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosMaintenanceNotificationsIdAcknowledge(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3446,8 +3446,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosOfflineOrders = (
     offlineOrderRequest: OfflineOrderRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/offline-orders`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -3455,7 +3455,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosOfflineOrdersMutationOptions = <TError = unknown,
@@ -3463,7 +3463,7 @@ export const getPostApiPosOfflineOrdersMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, TError,{data: OfflineOrderRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, {data: OfflineOrderRequest}> = (props) => {
@@ -3472,7 +3472,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosOfflineOrders(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3498,21 +3498,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosOfflineOrdersPendingParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/offline-orders/pending`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosOfflineOrdersPendingQueryKey = (params?: GetApiPosOfflineOrdersPendingParams,) => {
     return [`/api/pos/offline-orders/pending`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosOfflineOrdersPendingQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError = unknown>(params?: GetApiPosOfflineOrdersPendingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3520,13 +3520,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineOrdersPendingQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>> = ({ signal }) => getApiPosOfflineOrdersPending(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3553,15 +3553,15 @@ export const useGetApiPosOfflineOrdersPending = <TData = Awaited<ReturnType<type
 export const postApiPosOfflineOrdersReplay = (
     params?: PostApiPosOfflineOrdersReplayParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/offline-orders/replay`, method: 'POST',
         params
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosOfflineOrdersReplayMutationOptions = <TError = unknown,
@@ -3569,7 +3569,7 @@ export const getPostApiPosOfflineOrdersReplayMutationOptions = <TError = unknown
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, TError,{params?: PostApiPosOfflineOrdersReplayParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, {params?: PostApiPosOfflineOrdersReplayParams}> = (props) => {
@@ -3578,13 +3578,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosOfflineOrdersReplay(params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosOfflineOrdersReplayMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>>
-    
+
     export type PostApiPosOfflineOrdersReplayMutationError = unknown
 
     export const usePostApiPosOfflineOrdersReplay = <TError = unknown,
@@ -3604,20 +3604,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     offlineOrderId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/offline-orders/${offlineOrderId}/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryKey = (offlineOrderId: string,) => {
     return [`/api/pos/offline-orders/${offlineOrderId}/status`] as const;
     }
 
-    
+
 export const getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError = unknown>(offlineOrderId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3625,13 +3625,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryKey(offlineOrderId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>> = ({ signal }) => getApiPosOfflineOrdersOfflineOrderIdStatus(offlineOrderId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(offlineOrderId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3658,8 +3658,8 @@ export const useGetApiPosOfflineOrdersOfflineOrderIdStatus = <TData = Awaited<Re
 export const postApiPosPaymentInitiate = (
     initiateOnlinePaymentRequest: InitiateOnlinePaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<OnlinePaymentDto>(
       {url: `/api/pos/payment/initiate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -3667,7 +3667,7 @@ export const postApiPosPaymentInitiate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosPaymentInitiateMutationOptions = <TError = ProblemDetails,
@@ -3675,7 +3675,7 @@ export const getPostApiPosPaymentInitiateMutationOptions = <TError = ProblemDeta
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, TError,{data: InitiateOnlinePaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentInitiate>>, {data: InitiateOnlinePaymentRequest}> = (props) => {
@@ -3684,7 +3684,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosPaymentInitiate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3710,20 +3710,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<OnlinePaymentDto>(
       {url: `/api/pos/payment/initiate/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentInitiateIdQueryKey = (id: string,) => {
     return [`/api/pos/payment/initiate/${id}`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentInitiateIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3731,13 +3731,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentInitiateIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>> = ({ signal }) => getApiPosPaymentInitiateId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentInitiateId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3765,20 +3765,20 @@ export const getApiPosPaymentOnlineId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<OnlinePaymentDto>(
       {url: `/api/pos/payment/online/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosPaymentOnlineIdQueryKey = (id: string,) => {
     return [`/api/pos/payment/online/${id}`] as const;
     }
 
-    
+
 export const getGetApiPosPaymentOnlineIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3786,13 +3786,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosPaymentOnlineIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>> = ({ signal }) => getApiPosPaymentOnlineId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosPaymentOnlineId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3820,21 +3820,21 @@ export const getApiPosOrdersPreorders = (
     params?: GetApiPosOrdersPreordersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PreorderListResponseDto>(
       {url: `/api/pos/orders/preorders`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosOrdersPreordersQueryKey = (params?: GetApiPosOrdersPreordersParams,) => {
     return [`/api/pos/orders/preorders`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosOrdersPreordersQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError = ProblemDetails>(params?: GetApiPosOrdersPreordersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3842,13 +3842,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosOrdersPreordersQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>> = ({ signal }) => getApiPosOrdersPreorders(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreorders>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3876,20 +3876,20 @@ export const getApiPosOrdersPreordersByReceiptReceiptNumber = (
     receiptNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PreorderDto>(
       {url: `/api/pos/orders/preorders/by-receipt/${receiptNumber}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryKey = (receiptNumber: string,) => {
     return [`/api/pos/orders/preorders/by-receipt/${receiptNumber}`] as const;
     }
 
-    
+
 export const getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError = ProblemDetails>(receiptNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -3897,13 +3897,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosOrdersPreordersByReceiptReceiptNumberQueryKey(receiptNumber);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>> = ({ signal }) => getApiPosOrdersPreordersByReceiptReceiptNumber(receiptNumber, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(receiptNumber), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOrdersPreordersByReceiptReceiptNumber>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -3931,8 +3931,8 @@ export const putApiPosOrdersIdPreorderStatus = (
     id: string,
     updatePreorderStatusRequest: UpdatePreorderStatusRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PreorderDto>(
       {url: `/api/pos/orders/${id}/preorder-status`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -3940,7 +3940,7 @@ export const putApiPosOrdersIdPreorderStatus = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosOrdersIdPreorderStatusMutationOptions = <TError = ProblemDetails,
@@ -3948,7 +3948,7 @@ export const getPutApiPosOrdersIdPreorderStatusMutationOptions = <TError = Probl
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, TError,{id: string;data: UpdatePreorderStatusRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosOrdersIdPreorderStatus>>, {id: string;data: UpdatePreorderStatusRequest}> = (props) => {
@@ -3957,7 +3957,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosOrdersIdPreorderStatus(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -3983,21 +3983,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosReceiptsRecentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PagedResultOfReceiptListItemDto>(
       {url: `/api/pos/receipts/recent`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosReceiptsRecentQueryKey = (params?: GetApiPosReceiptsRecentParams,) => {
     return [`/api/pos/receipts/recent`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosReceiptsRecentQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError = ProblemDetails>(params?: GetApiPosReceiptsRecentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4005,13 +4005,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsRecentQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>> = ({ signal }) => getApiPosReceiptsRecent(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsRecent>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4039,21 +4039,21 @@ export const getApiPosReceipts = (
     params?: GetApiPosReceiptsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PagedResultOfReceiptListItemDto>(
       {url: `/api/pos/receipts`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosReceiptsQueryKey = (params?: GetApiPosReceiptsParams,) => {
     return [`/api/pos/receipts`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosReceiptsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceipts>>, TError = ProblemDetails>(params?: GetApiPosReceiptsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4061,13 +4061,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceipts>>> = ({ signal }) => getApiPosReceipts(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceipts>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4096,22 +4096,22 @@ export const getApiPosReceiptsReceiptId = (
     params?: GetApiPosReceiptsReceiptIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptDTO>(
       {url: `/api/pos/receipts/${receiptId}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosReceiptsReceiptIdQueryKey = (receiptId: string,
     params?: GetApiPosReceiptsReceiptIdParams,) => {
     return [`/api/pos/receipts/${receiptId}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosReceiptsReceiptIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError = ProblemDetails>(receiptId: string,
     params?: GetApiPosReceiptsReceiptIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -4120,13 +4120,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsReceiptIdQueryKey(receiptId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>> = ({ signal }) => getApiPosReceiptsReceiptId(receiptId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(receiptId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4156,22 +4156,22 @@ export const getApiPosReceiptsReceiptIdReprint = (
     params?: GetApiPosReceiptsReceiptIdReprintParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptReprintResponse>(
       {url: `/api/pos/receipts/${receiptId}/reprint`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosReceiptsReceiptIdReprintQueryKey = (receiptId: string,
     params?: GetApiPosReceiptsReceiptIdReprintParams,) => {
     return [`/api/pos/receipts/${receiptId}/reprint`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosReceiptsReceiptIdReprintQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError = ReceiptReprintResponse | ProblemDetails>(receiptId: string,
     params?: GetApiPosReceiptsReceiptIdReprintParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -4180,13 +4180,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosReceiptsReceiptIdReprintQueryKey(receiptId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>> = ({ signal }) => getApiPosReceiptsReceiptIdReprint(receiptId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(receiptId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosReceiptsReceiptIdReprint>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4216,8 +4216,8 @@ export const postApiPosReceiptsReceiptIdCancel = (
     posReceiptCancelRequest: PosReceiptCancelRequest,
     params?: PostApiPosReceiptsReceiptIdCancelParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<StornoResponse>(
       {url: `/api/pos/receipts/${receiptId}/cancel`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4226,7 +4226,7 @@ export const postApiPosReceiptsReceiptIdCancel = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosReceiptsReceiptIdCancelMutationOptions = <TError = StornoResponse | ProblemDetails,
@@ -4234,7 +4234,7 @@ export const getPostApiPosReceiptsReceiptIdCancelMutationOptions = <TError = Sto
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, TError,{receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosReceiptsReceiptIdCancel>>, {receiptId: string;data: PosReceiptCancelRequest;params?: PostApiPosReceiptsReceiptIdCancelParams}> = (props) => {
@@ -4243,7 +4243,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosReceiptsReceiptIdCancel(receiptId,data,params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4266,23 +4266,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosShiftCurrent = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CurrentShiftResponse>(
       {url: `/api/pos/shift/current`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosShiftCurrentQueryKey = () => {
     return [`/api/pos/shift/current`] as const;
     }
 
-    
+
 export const getGetApiPosShiftCurrentQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosShiftCurrent>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4290,13 +4290,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosShiftCurrentQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosShiftCurrent>>> = ({ signal }) => getApiPosShiftCurrent(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftCurrent>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4323,8 +4323,8 @@ export const useGetApiPosShiftCurrent = <TData = Awaited<ReturnType<typeof getAp
 export const postApiPosShiftStart = (
     startShiftRequest: StartShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CashierShiftDto>(
       {url: `/api/pos/shift/start`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4332,7 +4332,7 @@ export const postApiPosShiftStart = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosShiftStartMutationOptions = <TError = ProblemDetails,
@@ -4340,7 +4340,7 @@ export const getPostApiPosShiftStartMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftStart>>, TError,{data: StartShiftRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosShiftStart>>, {data: StartShiftRequest}> = (props) => {
@@ -4349,7 +4349,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosShiftStart(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4374,8 +4374,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosShiftAutoOpen = (
     autoOpenShiftRequest: AutoOpenShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<ShiftAutoOpenResult>(
       {url: `/api/pos/shift/auto-open`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4383,7 +4383,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosShiftAutoOpenMutationOptions = <TError = ShiftAutoOpenResult,
@@ -4391,7 +4391,7 @@ export const getPostApiPosShiftAutoOpenMutationOptions = <TError = ShiftAutoOpen
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, TError,{data: AutoOpenShiftRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosShiftAutoOpen>>, {data: AutoOpenShiftRequest}> = (props) => {
@@ -4400,7 +4400,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosShiftAutoOpen(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4423,16 +4423,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiPosShiftAutoClose = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CashierShiftDto | void>(
       {url: `/api/pos/shift/auto-close`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosShiftAutoCloseMutationOptions = <TError = unknown,
@@ -4440,22 +4440,22 @@ export const getPostApiPosShiftAutoCloseMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftAutoClose>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosShiftAutoClose>>, void> = () => {
-          
+
 
           return  postApiPosShiftAutoClose(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosShiftAutoCloseMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosShiftAutoClose>>>
-    
+
     export type PostApiPosShiftAutoCloseMutationError = unknown
 
     export const usePostApiPosShiftAutoClose = <TError = unknown,
@@ -4474,8 +4474,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosShiftEnd = (
     endShiftRequest: EndShiftRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<EndShiftResponse>(
       {url: `/api/pos/shift/end`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4483,7 +4483,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosShiftEndMutationOptions = <TError = ProblemDetails,
@@ -4491,7 +4491,7 @@ export const getPostApiPosShiftEndMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftEnd>>, TError,{data: EndShiftRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosShiftEnd>>, {data: EndShiftRequest}> = (props) => {
@@ -4500,7 +4500,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosShiftEnd(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4523,23 +4523,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosShiftDailyClosingStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosDailyClosingStatusDto>(
       {url: `/api/pos/shift/daily-closing/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosShiftDailyClosingStatusQueryKey = () => {
     return [`/api/pos/shift/daily-closing/status`] as const;
     }
 
-    
+
 export const getGetApiPosShiftDailyClosingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4547,13 +4547,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosShiftDailyClosingStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>> = ({ signal }) => getApiPosShiftDailyClosingStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4580,8 +4580,8 @@ export const useGetApiPosShiftDailyClosingStatus = <TData = Awaited<ReturnType<t
 export const postApiPosShiftDailyClosing = (
     posDailyClosingRequest: PosDailyClosingRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PosDailyClosingResult>(
       {url: `/api/pos/shift/daily-closing`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4589,7 +4589,7 @@ export const postApiPosShiftDailyClosing = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosShiftDailyClosingMutationOptions = <TError = ProblemDetails,
@@ -4597,7 +4597,7 @@ export const getPostApiPosShiftDailyClosingMutationOptions = <TError = ProblemDe
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosShiftDailyClosing>>, TError,{data: PosDailyClosingRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosShiftDailyClosing>>, {data: PosDailyClosingRequest}> = (props) => {
@@ -4606,7 +4606,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosShiftDailyClosing(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4633,8 +4633,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/pos/shift/daily-closing/${dailyClosingId}/report.pdf`, method: 'GET',
         params,
@@ -4642,14 +4642,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 export const getGetApiPosShiftDailyClosingDailyClosingIdReportPdfQueryKey = (dailyClosingId: string,
     params?: GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,) => {
     return [`/api/pos/shift/daily-closing/${dailyClosingId}/report.pdf`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosShiftDailyClosingDailyClosingIdReportPdfQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>, TError = ProblemDetails>(dailyClosingId: string,
     params?: GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -4658,13 +4658,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosShiftDailyClosingDailyClosingIdReportPdfQueryKey(dailyClosingId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>> = ({ signal }) => getApiPosShiftDailyClosingDailyClosingIdReportPdf(dailyClosingId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(dailyClosingId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosShiftDailyClosingDailyClosingIdReportPdf>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4692,8 +4692,8 @@ export const useGetApiPosShiftDailyClosingDailyClosingIdReportPdf = <TData = Awa
 export const postApiPosSplitStart = (
     startSplitRequest: StartSplitRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<SplitSessionDto>(
       {url: `/api/pos/split/start`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4701,7 +4701,7 @@ export const postApiPosSplitStart = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosSplitStartMutationOptions = <TError = ProblemDetails,
@@ -4709,7 +4709,7 @@ export const getPostApiPosSplitStartMutationOptions = <TError = ProblemDetails,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosSplitStart>>, TError,{data: StartSplitRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosSplitStart>>, {data: StartSplitRequest}> = (props) => {
@@ -4718,7 +4718,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosSplitStart(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4744,8 +4744,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     assignItemRequest: AssignItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/split/${id}/assign`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4753,7 +4753,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosSplitIdAssignMutationOptions = <TError = ProblemDetails,
@@ -4761,7 +4761,7 @@ export const getPostApiPosSplitIdAssignMutationOptions = <TError = ProblemDetail
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosSplitIdAssign>>, TError,{id: string;data: AssignItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosSplitIdAssign>>, {id: string;data: AssignItemRequest}> = (props) => {
@@ -4770,7 +4770,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosSplitIdAssign(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4795,14 +4795,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiPosSplitIdComplete = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<string[]>(
       {url: `/api/pos/split/${id}/complete`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosSplitIdCompleteMutationOptions = <TError = ProblemDetails,
@@ -4810,7 +4810,7 @@ export const getPostApiPosSplitIdCompleteMutationOptions = <TError = ProblemDeta
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosSplitIdComplete>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosSplitIdComplete>>, {id: string}> = (props) => {
@@ -4819,13 +4819,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosSplitIdComplete(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiPosSplitIdCompleteMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosSplitIdComplete>>>
-    
+
     export type PostApiPosSplitIdCompleteMutationError = ProblemDetails
 
     export const usePostApiPosSplitIdComplete = <TError = ProblemDetails,
@@ -4842,23 +4842,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosStatusOverview = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosStatusOverviewDto>(
       {url: `/api/pos/status/overview`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosStatusOverviewQueryKey = () => {
     return [`/api/pos/status/overview`] as const;
     }
 
-    
+
 export const getGetApiPosStatusOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosStatusOverview>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4866,13 +4866,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosStatusOverviewQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosStatusOverview>>> = ({ signal }) => getApiPosStatusOverview(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosStatusOverview>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -4899,8 +4899,8 @@ export const useGetApiPosStatusOverview = <TData = Awaited<ReturnType<typeof get
 export const postApiPosStorno = (
     stornoRequest: StornoRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<StornoResponse>(
       {url: `/api/pos/storno`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -4908,7 +4908,7 @@ export const postApiPosStorno = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosStornoMutationOptions = <TError = StornoResponse,
@@ -4916,7 +4916,7 @@ export const getPostApiPosStornoMutationOptions = <TError = StornoResponse,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosStorno>>, TError,{data: StornoRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosStorno>>, {data: StornoRequest}> = (props) => {
@@ -4925,7 +4925,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosStorno(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -4951,21 +4951,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosTseStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PosTseStatusDto>(
       {url: `/api/pos/tse/status`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosTseStatusQueryKey = (params?: GetApiPosTseStatusParams,) => {
     return [`/api/pos/tse/status`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosTseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosTseStatus>>, TError = ProblemDetails>(params?: GetApiPosTseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -4973,13 +4973,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosTseStatusQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosTseStatus>>> = ({ signal }) => getApiPosTseStatus(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosTseStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5004,23 +5004,23 @@ export const useGetApiPosTseStatus = <TData = Awaited<ReturnType<typeof getApiPo
 
 
 export const getApiPosVerticalProfile = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<EffectiveVerticalProfileDto>(
       {url: `/api/pos/vertical-profile`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosVerticalProfileQueryKey = () => {
     return [`/api/pos/vertical-profile`] as const;
     }
 
-    
+
 export const getGetApiPosVerticalProfileQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5028,13 +5028,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosVerticalProfileQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosVerticalProfile>>> = ({ signal }) => getApiPosVerticalProfile(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosVerticalProfile>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5061,8 +5061,8 @@ export const useGetApiPosVerticalProfile = <TData = Awaited<ReturnType<typeof ge
 export const postApiPosVouchersValidate = (
     validateVoucherRequest: ValidateVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<VoucherValidateResponse>(
       {url: `/api/pos/vouchers/validate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -5070,7 +5070,7 @@ export const postApiPosVouchersValidate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosVouchersValidateMutationOptions = <TError = ProblemDetails,
@@ -5078,7 +5078,7 @@ export const getPostApiPosVouchersValidateMutationOptions = <TError = ProblemDet
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, TError,{data: ValidateVoucherRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, {data: ValidateVoucherRequest}> = (props) => {
@@ -5087,7 +5087,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosVouchersValidate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -5113,21 +5113,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosQueryKey = (params?: GetApiPosParams,) => {
     return [`/api/pos`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosQueryOptions = <TData = Awaited<ReturnType<typeof getApiPos>>, TError = unknown>(params?: GetApiPosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPos>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5135,13 +5135,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPos>>> = ({ signal }) => getApiPos(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPos>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5168,8 +5168,8 @@ export const useGetApiPos = <TData = Awaited<ReturnType<typeof getApiPos>>, TErr
 export const postApiPos = (
     product: Product,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -5177,7 +5177,7 @@ export const postApiPos = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosMutationOptions = <TError = unknown,
@@ -5185,7 +5185,7 @@ export const getPostApiPosMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPos>>, TError,{data: Product}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPos>>, {data: Product}> = (props) => {
@@ -5194,7 +5194,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPos(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -5220,21 +5220,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiPosListParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/list`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosListQueryKey = (params?: GetApiPosListParams,) => {
     return [`/api/pos/list`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosListQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosList>>, TError = unknown>(params?: GetApiPosListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5242,13 +5242,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosListQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosList>>> = ({ signal }) => getApiPosList(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosList>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5273,23 +5273,23 @@ export const useGetApiPosList = <TData = Awaited<ReturnType<typeof getApiPosList
 
 
 export const getApiPosAll = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/all`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosAllQueryKey = () => {
     return [`/api/pos/all`] as const;
     }
 
-    
+
 export const getGetApiPosAllQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosAll>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosAll>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5297,13 +5297,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosAllQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosAll>>> = ({ signal }) => getApiPosAll(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosAll>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5328,23 +5328,23 @@ export const useGetApiPosAll = <TData = Awaited<ReturnType<typeof getApiPosAll>>
 
 
 export const getApiPosCatalog = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/catalog`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCatalogQueryKey = () => {
     return [`/api/pos/catalog`] as const;
     }
 
-    
+
 export const getGetApiPosCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCatalog>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5352,13 +5352,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCatalogQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCatalog>>> = ({ signal }) => getApiPosCatalog(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCatalog>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5383,23 +5383,23 @@ export const useGetApiPosCatalog = <TData = Awaited<ReturnType<typeof getApiPosC
 
 
 export const getApiPosActive = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/active`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosActiveQueryKey = () => {
     return [`/api/pos/active`] as const;
     }
 
-    
+
 export const getGetApiPosActiveQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosActive>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosActive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5407,13 +5407,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosActiveQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosActive>>> = ({ signal }) => getApiPosActive(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosActive>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5438,23 +5438,23 @@ export const useGetApiPosActive = <TData = Awaited<ReturnType<typeof getApiPosAc
 
 
 export const getApiPosDebugCategoriesProducts = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/debug/categories-products`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosDebugCategoriesProductsQueryKey = () => {
     return [`/api/pos/debug/categories-products`] as const;
     }
 
-    
+
 export const getGetApiPosDebugCategoriesProductsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5462,13 +5462,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosDebugCategoriesProductsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>> = ({ signal }) => getApiPosDebugCategoriesProducts(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosDebugCategoriesProducts>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5493,23 +5493,23 @@ export const useGetApiPosDebugCategoriesProducts = <TData = Awaited<ReturnType<t
 
 
 export const getApiPosCategories = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/categories`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCategoriesQueryKey = () => {
     return [`/api/pos/categories`] as const;
     }
 
-    
+
 export const getGetApiPosCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCategories>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5517,13 +5517,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCategoriesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCategories>>> = ({ signal }) => getApiPosCategories(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategories>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5551,20 +5551,20 @@ export const getApiPosCategoryCategoryName = (
     categoryName: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/category/${categoryName}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCategoryCategoryNameQueryKey = (categoryName: string,) => {
     return [`/api/pos/category/${categoryName}`] as const;
     }
 
-    
+
 export const getGetApiPosCategoryCategoryNameQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>, TError = unknown>(categoryName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5572,13 +5572,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCategoryCategoryNameQueryKey(categoryName);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>> = ({ signal }) => getApiPosCategoryCategoryName(categoryName, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(categoryName), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCategoryCategoryName>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5606,20 +5606,20 @@ export const getApiPosStockStatus = (
     status: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/stock/${status}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosStockStatusQueryKey = (status: string,) => {
     return [`/api/pos/stock/${status}`] as const;
     }
 
-    
+
 export const getGetApiPosStockStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosStockStatus>>, TError = unknown>(status: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosStockStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5627,13 +5627,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosStockStatusQueryKey(status);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosStockStatus>>> = ({ signal }) => getApiPosStockStatus(status, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(status), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosStockStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5661,21 +5661,21 @@ export const getApiPosSearch = (
     params?: GetApiPosSearchParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/search`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosSearchQueryKey = (params?: GetApiPosSearchParams,) => {
     return [`/api/pos/search`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiPosSearchQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosSearch>>, TError = unknown>(params?: GetApiPosSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5683,13 +5683,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosSearchQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosSearch>>> = ({ signal }) => getApiPosSearch(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosSearch>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5717,20 +5717,20 @@ export const getApiPosIdModifierGroups = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}/modifier-groups`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosIdModifierGroupsQueryKey = (id: string,) => {
     return [`/api/pos/${id}/modifier-groups`] as const;
     }
 
-    
+
 export const getGetApiPosIdModifierGroupsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosIdModifierGroups>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdModifierGroups>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5738,13 +5738,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosIdModifierGroupsQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosIdModifierGroups>>> = ({ signal }) => getApiPosIdModifierGroups(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdModifierGroups>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5772,8 +5772,8 @@ export const postApiPosIdModifierGroups = (
     id: string,
     setProductModifierGroupsRequest: SetProductModifierGroupsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}/modifier-groups`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -5781,7 +5781,7 @@ export const postApiPosIdModifierGroups = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiPosIdModifierGroupsMutationOptions = <TError = unknown,
@@ -5789,7 +5789,7 @@ export const getPostApiPosIdModifierGroupsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosIdModifierGroups>>, TError,{id: string;data: SetProductModifierGroupsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosIdModifierGroups>>, {id: string;data: SetProductModifierGroupsRequest}> = (props) => {
@@ -5798,7 +5798,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiPosIdModifierGroups(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -5824,8 +5824,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     product: Product,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -5833,7 +5833,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosIdMutationOptions = <TError = unknown,
@@ -5841,7 +5841,7 @@ export const getPutApiPosIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosId>>, TError,{id: string;data: Product}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosId>>, {id: string;data: Product}> = (props) => {
@@ -5850,7 +5850,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -5876,20 +5876,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosIdQueryKey = (id: string,) => {
     return [`/api/pos/${id}`] as const;
     }
 
-    
+
 export const getGetApiPosIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -5897,13 +5897,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosId>>> = ({ signal }) => getApiPosId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -5930,14 +5930,14 @@ export const useGetApiPosId = <TData = Awaited<ReturnType<typeof getApiPosId>>, 
 export const deleteApiPosId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosIdMutationOptions = <TError = unknown,
@@ -5945,7 +5945,7 @@ export const getDeleteApiPosIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosId>>, {id: string}> = (props) => {
@@ -5954,13 +5954,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosId>>>
-    
+
     export type DeleteApiPosIdMutationError = unknown
 
     export const useDeleteApiPosId = <TError = unknown,
@@ -5980,8 +5980,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     updateStockRequest: UpdateStockRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/stock/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -5989,7 +5989,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPutApiPosStockIdMutationOptions = <TError = unknown,
@@ -5997,7 +5997,7 @@ export const getPutApiPosStockIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiPosStockId>>, TError,{id: string;data: UpdateStockRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiPosStockId>>, {id: string;data: UpdateStockRequest}> = (props) => {
@@ -6006,7 +6006,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiPosStockId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -6031,14 +6031,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiPosIdPermanent = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}/permanent`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiPosIdPermanentMutationOptions = <TError = unknown,
@@ -6046,7 +6046,7 @@ export const getDeleteApiPosIdPermanentMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiPosIdPermanent>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiPosIdPermanent>>, {id: string}> = (props) => {
@@ -6055,13 +6055,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiPosIdPermanent(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiPosIdPermanentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiPosIdPermanent>>>
-    
+
     export type DeleteApiPosIdPermanentMutationError = unknown
 
     export const useDeleteApiPosIdPermanent = <TError = unknown,
@@ -6078,23 +6078,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiPosCount = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/count`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosCountQueryKey = () => {
     return [`/api/pos/count`] as const;
     }
 
-    
+
 export const getGetApiPosCountQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCount>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -6102,13 +6102,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosCountQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCount>>> = ({ signal }) => getApiPosCount(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCount>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -6136,20 +6136,20 @@ export const getApiPosIdExists = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/pos/${id}/exists`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPosIdExistsQueryKey = (id: string,) => {
     return [`/api/pos/${id}/exists`] as const;
     }
 
-    
+
 export const getGetApiPosIdExistsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosIdExists>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -6157,13 +6157,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPosIdExistsQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosIdExists>>> = ({ signal }) => getApiPosIdExists(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosIdExists>>, TError, TData> & { queryKey: QueryKey }
 }

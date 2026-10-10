@@ -32293,6 +32293,35 @@
         }
       }
     },
+    "/api/admin/vertical-profile": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveVerticalProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/vertical-profiles": {
       "get": {
         "tags": [
@@ -83521,6 +83550,10 @@
             "type": "boolean"
           },
           "orderStatusMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "verticalProfileId": {
             "type": "string",
             "nullable": true
           }

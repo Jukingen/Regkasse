@@ -26,8 +26,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiVouchersIssue = (
     issueVoucherRequest: IssueVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<IssueVoucherResponse>(
       {url: `/api/vouchers/issue`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -35,7 +35,7 @@ export const postApiVouchersIssue = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiVouchersIssueMutationOptions = <TError = unknown,
@@ -43,7 +43,7 @@ export const getPostApiVouchersIssueMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiVouchersIssue>>, TError,{data: IssueVoucherRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiVouchersIssue>>, {data: IssueVoucherRequest}> = (props) => {
@@ -52,7 +52,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiVouchersIssue(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -74,4 +74,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

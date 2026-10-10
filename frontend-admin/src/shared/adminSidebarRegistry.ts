@@ -11,16 +11,13 @@ import {
 } from '@/features/rksv/sidebarPlugin';
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import {
-  ANY_AUTHENTICATED_PERMISSION,
-  PERMISSIONS,
-} from '@/shared/auth/permissions';
-import {
+  type MenuPermissionMapKey,
   logMenuPermissionMapWarnings,
   sidebarFieldsFromMenuMap,
   validateMenuPermissions,
-  type MenuPermissionMapKey,
 } from '@/shared/auth/menuPermissionMapping';
 import type { PermissionGroupKey } from '@/shared/auth/permissionGroupRegistry';
+import { ANY_AUTHENTICATED_PERMISSION, PERMISSIONS } from '@/shared/auth/permissions';
 import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
@@ -126,6 +123,15 @@ export type SidebarNavCatalogItem = {
   sidebarHidden?: boolean;
   /** When true, leaf is shown only when `NODE_ENV === 'development'`. */
   developmentOnly?: boolean;
+  /**
+   * Ambient vertical-profile feature. Leaf is shown only when
+   * `posFeatures[requiredFeature] === true`.
+   */
+  requiredFeature?: string;
+  /** Show only when the ambient profile id is in this list. */
+  onlyForProfiles?: string[];
+  /** Hide when the ambient profile id is in this list. */
+  hiddenForProfiles?: string[];
 };
 
 /**
@@ -146,6 +152,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/tables',
     labelKey: 'nav.tables',
     icon: 'TableOutlined',
+    requiredFeature: 'tables',
     ...sidebarFieldsFromMenuMap('tables'),
   },
   kassenverwaltung: {
@@ -291,6 +298,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.ticketRedemptions',
     icon: 'TagOutlined',
     permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['ticket-sales'],
   },
   rooms: {
     id: 'rooms',
@@ -299,6 +307,52 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.rooms',
     icon: 'HomeOutlined',
     permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['beherbergung'],
+  },
+  patients: {
+    id: 'patients',
+    menuKey: '/admin/patients',
+    href: '/admin/patients',
+    labelKey: 'nav.patients',
+    icon: 'UserOutlined',
+    permission: PERMISSIONS.PATIENT_VIEW,
+    onlyForProfiles: ['vet'],
+  },
+  appointments: {
+    id: 'appointments',
+    menuKey: '/admin/appointments',
+    href: '/admin/appointments',
+    labelKey: 'nav.appointments',
+    icon: 'CalendarOutlined',
+    permission: PERMISSIONS.APPOINTMENT_VIEW,
+    onlyForProfiles: ['hair-salon'],
+  },
+  imeis: {
+    id: 'imeis',
+    menuKey: '/admin/imeis',
+    href: '/admin/imeis',
+    labelKey: 'nav.imeis',
+    icon: 'TagOutlined',
+    permission: PERMISSIONS.IMEI_VIEW,
+    onlyForProfiles: ['handy-shop'],
+  },
+  taxiTrips: {
+    id: 'taxiTrips',
+    menuKey: '/admin/taxi-trips',
+    href: '/admin/taxi-trips',
+    labelKey: 'nav.taxiTrips',
+    icon: 'SwapOutlined',
+    permission: PERMISSIONS.TAXI_TRIP_VIEW,
+    onlyForProfiles: ['taxi'],
+  },
+  customerAddresses: {
+    id: 'customerAddresses',
+    menuKey: '/admin/customer-addresses',
+    href: '/admin/customer-addresses',
+    labelKey: 'nav.customerAddresses',
+    icon: 'HomeOutlined',
+    permission: PERMISSIONS.CUSTOMER_VIEW,
+    onlyForProfiles: ['mobile-services'],
   },
   categories: {
     id: 'categories',
@@ -315,6 +369,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.addonGroups',
     icon: 'GroupOutlined',
     permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['gastronomy', 'gastronomy-tables'],
   },
   pricingRules: {
     id: 'pricingRules',
@@ -598,6 +653,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.kitchen',
     icon: 'ControlOutlined',
     permission: PERMISSIONS.SETTINGS_VIEW,
+    requiredFeature: 'kitchenDisplay',
   },
   taxGroups: {
     id: 'taxGroups',
@@ -1706,7 +1762,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
       },
       {
         kind: 'leaves',
-        catalogIds: ['tables', 'kassenverwaltung', 'operationsCenter'],
+        catalogIds: ['tables', 'kassenverwaltung', 'operationsCenter', 'appointments', 'taxiTrips'],
       },
       {
         kind: 'nested',
@@ -1723,14 +1779,23 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     blocks: [
       {
         kind: 'leaves',
-        catalogIds: ['products', 'ticketRedemptions', 'rooms', 'categories', 'modifierGroups', 'pricingRules', 'inventory'],
+        catalogIds: [
+          'products',
+          'imeis',
+          'ticketRedemptions',
+          'rooms',
+          'categories',
+          'modifierGroups',
+          'pricingRules',
+          'inventory',
+        ],
       },
     ],
   },
   {
     kind: 'group',
     group: 'customers',
-    blocks: [{ kind: 'leaves', catalogIds: ['customers', 'vouchers'] }],
+    blocks: [{ kind: 'leaves', catalogIds: ['customers', 'patients', 'customerAddresses', 'vouchers'] }],
   },
   {
     kind: 'group',
@@ -1826,7 +1891,10 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     kind: 'group',
     group: 'backup',
     blocks: [
-      { kind: 'leaves', catalogIds: ['backupDr', 'backupRuns', 'backupPitr', 'backupRestoreVerification'] },
+      {
+        kind: 'leaves',
+        catalogIds: ['backupDr', 'backupRuns', 'backupPitr', 'backupRestoreVerification'],
+      },
       {
         kind: 'nested',
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,
@@ -1859,7 +1927,13 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral,
         labelKey: 'nav.settings.general',
         icon: 'SettingOutlined',
-        catalogIds: ['settingsHub', 'companySettings', 'receiptSettings', 'personalization', 'preferences'],
+        catalogIds: [
+          'settingsHub',
+          'companySettings',
+          'receiptSettings',
+          'personalization',
+          'preferences',
+        ],
       },
       {
         kind: 'nested',
@@ -2084,7 +2158,6 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     ],
   },
 ];
-
 
 export type AdminSidebarComposedData = RksvSidebarRegistryAttachment;
 

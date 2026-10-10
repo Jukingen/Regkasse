@@ -28,20 +28,20 @@ export const getApiReportsLegalExportCompletenessTagesberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LegalExportCompletenessResultDto>(
       {url: `/api/reports/legal-export-completeness/tagesbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsLegalExportCompletenessTagesberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/legal-export-completeness/tagesbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsLegalExportCompletenessTagesberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessTagesberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessTagesberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -49,13 +49,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsLegalExportCompletenessTagesberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessTagesberichtId>>> = ({ signal }) => getApiReportsLegalExportCompletenessTagesberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessTagesberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -83,20 +83,20 @@ export const getApiReportsLegalExportCompletenessMonatsberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LegalExportCompletenessResultDto>(
       {url: `/api/reports/legal-export-completeness/monatsbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsLegalExportCompletenessMonatsberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/legal-export-completeness/monatsbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsLegalExportCompletenessMonatsberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessMonatsberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessMonatsberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -104,13 +104,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsLegalExportCompletenessMonatsberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessMonatsberichtId>>> = ({ signal }) => getApiReportsLegalExportCompletenessMonatsberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessMonatsberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -138,20 +138,20 @@ export const getApiReportsLegalExportCompletenessJahresberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LegalExportCompletenessResultDto>(
       {url: `/api/reports/legal-export-completeness/jahresbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsLegalExportCompletenessJahresberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/legal-export-completeness/jahresbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsLegalExportCompletenessJahresberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessJahresberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessJahresberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -159,13 +159,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsLegalExportCompletenessJahresberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessJahresberichtId>>> = ({ signal }) => getApiReportsLegalExportCompletenessJahresberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessJahresberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -193,20 +193,20 @@ export const getApiReportsLegalExportCompletenessPeriodenberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LegalExportCompletenessResultDto>(
       {url: `/api/reports/legal-export-completeness/periodenbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsLegalExportCompletenessPeriodenberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/legal-export-completeness/periodenbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsLegalExportCompletenessPeriodenberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessPeriodenberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessPeriodenberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -214,13 +214,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsLegalExportCompletenessPeriodenberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessPeriodenberichtId>>> = ({ signal }) => getApiReportsLegalExportCompletenessPeriodenberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsLegalExportCompletenessPeriodenberichtId>>, TError, TData> & { queryKey: QueryKey }
 }

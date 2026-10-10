@@ -31,23 +31,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiUserSessions = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ActiveSession[]>(
       {url: `/api/user/sessions`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserSessionsQueryKey = () => {
     return [`/api/user/sessions`] as const;
     }
 
-    
+
 export const getGetApiUserSessionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserSessions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -55,13 +55,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserSessionsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserSessions>>> = ({ signal }) => getApiUserSessions(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessions>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -86,23 +86,23 @@ export const useGetApiUserSessions = <TData = Awaited<ReturnType<typeof getApiUs
 
 
 export const getApiUserSessionsDevices = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserSessionDto[]>(
       {url: `/api/user/sessions/devices`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserSessionsDevicesQueryKey = () => {
     return [`/api/user/sessions/devices`] as const;
     }
 
-    
+
 export const getGetApiUserSessionsDevicesQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserSessionsDevices>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionsDevices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -110,13 +110,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserSessionsDevicesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserSessionsDevices>>> = ({ signal }) => getApiUserSessionsDevices(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionsDevices>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -145,23 +145,23 @@ export const useGetApiUserSessionsDevices = <TData = Awaited<ReturnType<typeof g
  * @summary Get session policy
  */
 export const getApiUserSessionPolicy = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TenantSessionPolicyDto>(
       {url: `/api/user/session-policy`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserSessionPolicyQueryKey = () => {
     return [`/api/user/session-policy`] as const;
     }
 
-    
+
 export const getGetApiUserSessionPolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserSessionPolicy>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -169,13 +169,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserSessionPolicyQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserSessionPolicy>>> = ({ signal }) => getApiUserSessionPolicy(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserSessionPolicy>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -203,16 +203,16 @@ export const useGetApiUserSessionPolicy = <TData = Awaited<ReturnType<typeof get
 
 
 export const postApiUserSessionsTerminateAll = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/sessions/terminate-all`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserSessionsTerminateAllMutationOptions = <TError = unknown,
@@ -220,22 +220,22 @@ export const getPostApiUserSessionsTerminateAllMutationOptions = <TError = unkno
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserSessionsTerminateAll>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserSessionsTerminateAll>>, void> = () => {
-          
+
 
           return  postApiUserSessionsTerminateAll(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiUserSessionsTerminateAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiUserSessionsTerminateAll>>>
-    
+
     export type PostApiUserSessionsTerminateAllMutationError = unknown
 
     export const usePostApiUserSessionsTerminateAll = <TError = unknown,
@@ -254,14 +254,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiUserSessionsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/sessions/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiUserSessionsIdMutationOptions = <TError = unknown,
@@ -269,7 +269,7 @@ export const getDeleteApiUserSessionsIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserSessionsId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserSessionsId>>, {id: string}> = (props) => {
@@ -278,13 +278,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiUserSessionsId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiUserSessionsIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserSessionsId>>>
-    
+
     export type DeleteApiUserSessionsIdMutationError = unknown
 
     export const useDeleteApiUserSessionsId = <TError = unknown,
@@ -301,16 +301,16 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const postApiUserSessionsHeartbeat = (
-    
+
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/sessions/heartbeat`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiUserSessionsHeartbeatMutationOptions = <TError = unknown,
@@ -318,22 +318,22 @@ export const getPostApiUserSessionsHeartbeatMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiUserSessionsHeartbeat>>, TError,void, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserSessionsHeartbeat>>, void> = () => {
-          
+
 
           return  postApiUserSessionsHeartbeat(requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiUserSessionsHeartbeatMutationResult = NonNullable<Awaited<ReturnType<typeof postApiUserSessionsHeartbeat>>>
-    
+
     export type PostApiUserSessionsHeartbeatMutationError = unknown
 
     export const usePostApiUserSessionsHeartbeat = <TError = unknown,
@@ -349,4 +349,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

@@ -37,8 +37,8 @@ export const getApiCustomerExport = (
     params?: GetApiCustomerExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<Blob>(
       {url: `/api/Customer/export`, method: 'GET',
         params,
@@ -46,13 +46,13 @@ export const getApiCustomerExport = (
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerExportQueryKey = (params?: GetApiCustomerExportParams,) => {
     return [`/api/Customer/export`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiCustomerExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerExport>>, TError = ProblemDetails>(params?: GetApiCustomerExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -60,13 +60,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerExportQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerExport>>> = ({ signal }) => getApiCustomerExport(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerExport>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -94,21 +94,21 @@ export const getApiCustomer = (
     params?: GetApiCustomerParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerQueryKey = (params?: GetApiCustomerParams,) => {
     return [`/api/Customer`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiCustomerQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -116,13 +116,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomer>>> = ({ signal }) => getApiCustomer(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -149,8 +149,8 @@ export const useGetApiCustomer = <TData = Awaited<ReturnType<typeof getApiCustom
 export const postApiCustomer = (
     customer: Customer,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -158,7 +158,7 @@ export const postApiCustomer = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiCustomerMutationOptions = <TError = unknown,
@@ -166,7 +166,7 @@ export const getPostApiCustomerMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomer>>, {data: Customer}> = (props) => {
@@ -175,7 +175,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCustomer(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -201,20 +201,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     customerNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/number/${customerNumber}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerNumberCustomerNumberQueryKey = (customerNumber: string,) => {
     return [`/api/Customer/number/${customerNumber}`] as const;
     }
 
-    
+
 export const getGetApiCustomerNumberCustomerNumberQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>, TError = unknown>(customerNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -222,13 +222,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerNumberCustomerNumberQueryKey(customerNumber);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>> = ({ signal }) => getApiCustomerNumberCustomerNumber(customerNumber, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(customerNumber), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerNumberCustomerNumber>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -256,20 +256,20 @@ export const getApiCustomerEmailEmail = (
     email: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/email/${email}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerEmailEmailQueryKey = (email: string,) => {
     return [`/api/Customer/email/${email}`] as const;
     }
 
-    
+
 export const getGetApiCustomerEmailEmailQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerEmailEmail>>, TError = unknown>(email: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerEmailEmail>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -277,13 +277,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerEmailEmailQueryKey(email);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerEmailEmail>>> = ({ signal }) => getApiCustomerEmailEmail(email, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(email), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerEmailEmail>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -308,23 +308,23 @@ export const useGetApiCustomerEmailEmail = <TData = Awaited<ReturnType<typeof ge
 
 
 export const getApiCustomerWalkIn = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/walk-in`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerWalkInQueryKey = () => {
     return [`/api/Customer/walk-in`] as const;
     }
 
-    
+
 export const getGetApiCustomerWalkInQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -332,13 +332,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerWalkInQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerWalkIn>>> = ({ signal }) => getApiCustomerWalkIn(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -366,20 +366,20 @@ export const getApiCustomerTaxTaxNumber = (
     taxNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/tax/${taxNumber}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerTaxTaxNumberQueryKey = (taxNumber: string,) => {
     return [`/api/Customer/tax/${taxNumber}`] as const;
     }
 
-    
+
 export const getGetApiCustomerTaxTaxNumberQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>, TError = unknown>(taxNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -387,13 +387,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerTaxTaxNumberQueryKey(taxNumber);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>> = ({ signal }) => getApiCustomerTaxTaxNumber(taxNumber, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(taxNumber), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerTaxTaxNumber>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -421,8 +421,8 @@ export const putApiCustomerId = (
     id: string,
     customer: Customer,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -430,7 +430,7 @@ export const putApiCustomerId = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCustomerIdMutationOptions = <TError = unknown,
@@ -438,7 +438,7 @@ export const getPutApiCustomerIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCustomerId>>, TError,{id: string;data: Customer}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCustomerId>>, {id: string;data: Customer}> = (props) => {
@@ -447,7 +447,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCustomerId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -472,14 +472,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiCustomerId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiCustomerIdMutationOptions = <TError = unknown,
@@ -487,7 +487,7 @@ export const getDeleteApiCustomerIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCustomerId>>, {id: string}> = (props) => {
@@ -496,13 +496,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiCustomerId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiCustomerIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCustomerId>>>
-    
+
     export type DeleteApiCustomerIdMutationError = unknown
 
     export const useDeleteApiCustomerId = <TError = unknown,
@@ -522,20 +522,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerIdQueryKey = (id: string,) => {
     return [`/api/Customer/${id}`] as const;
     }
 
-    
+
 export const getGetApiCustomerIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -543,13 +543,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerId>>> = ({ signal }) => getApiCustomerId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -577,20 +577,20 @@ export const getApiCustomerIdBenefitSummary = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/benefit-summary`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerIdBenefitSummaryQueryKey = (id: string,) => {
     return [`/api/Customer/${id}/benefit-summary`] as const;
     }
 
-    
+
 export const getGetApiCustomerIdBenefitSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -598,13 +598,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerIdBenefitSummaryQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>> = ({ signal }) => getApiCustomerIdBenefitSummary(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -632,8 +632,8 @@ export const postApiCustomerIdBenefitEligibilityPreview = (
     id: string,
     benefitEligibilityPreviewRequest: BenefitEligibilityPreviewRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/benefit-eligibility-preview`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -641,7 +641,7 @@ export const postApiCustomerIdBenefitEligibilityPreview = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiCustomerIdBenefitEligibilityPreviewMutationOptions = <TError = unknown,
@@ -649,7 +649,7 @@ export const getPostApiCustomerIdBenefitEligibilityPreviewMutationOptions = <TEr
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, TError,{id: string;data: BenefitEligibilityPreviewRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, {id: string;data: BenefitEligibilityPreviewRequest}> = (props) => {
@@ -658,7 +658,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCustomerIdBenefitEligibilityPreview(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -684,21 +684,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiCustomerSearchParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/search`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerSearchQueryKey = (params?: GetApiCustomerSearchParams,) => {
     return [`/api/Customer/search`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiCustomerSearchQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerSearch>>, TError = unknown>(params?: GetApiCustomerSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -706,13 +706,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerSearchQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerSearch>>> = ({ signal }) => getApiCustomerSearch(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerSearch>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -740,20 +740,20 @@ export const getApiCustomerIdLoyalty = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/loyalty`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerIdLoyaltyQueryKey = (id: string,) => {
     return [`/api/Customer/${id}/loyalty`] as const;
     }
 
-    
+
 export const getGetApiCustomerIdLoyaltyQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -761,13 +761,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerIdLoyaltyQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>> = ({ signal }) => getApiCustomerIdLoyalty(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdLoyalty>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -795,8 +795,8 @@ export const postApiCustomerIdLoyaltyRedeem = (
     id: string,
     redeemLoyaltyPointsRequest: RedeemLoyaltyPointsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/loyalty/redeem`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -804,7 +804,7 @@ export const postApiCustomerIdLoyaltyRedeem = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiCustomerIdLoyaltyRedeemMutationOptions = <TError = ProblemDetails,
@@ -812,7 +812,7 @@ export const getPostApiCustomerIdLoyaltyRedeemMutationOptions = <TError = Proble
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdLoyaltyRedeem>>, TError,{id: string;data: RedeemLoyaltyPointsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomerIdLoyaltyRedeem>>, {id: string;data: RedeemLoyaltyPointsRequest}> = (props) => {
@@ -821,7 +821,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiCustomerIdLoyaltyRedeem(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -846,14 +846,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiCustomerIdPermanent = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/permanent`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiCustomerIdPermanentMutationOptions = <TError = unknown,
@@ -861,7 +861,7 @@ export const getDeleteApiCustomerIdPermanentMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerIdPermanent>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCustomerIdPermanent>>, {id: string}> = (props) => {
@@ -870,13 +870,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiCustomerIdPermanent(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiCustomerIdPermanentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCustomerIdPermanent>>>
-    
+
     export type DeleteApiCustomerIdPermanentMutationError = unknown
 
     export const useDeleteApiCustomerIdPermanent = <TError = unknown,
@@ -893,23 +893,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCustomerCount = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/count`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerCountQueryKey = () => {
     return [`/api/Customer/count`] as const;
     }
 
-    
+
 export const getGetApiCustomerCountQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerCount>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -917,13 +917,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerCountQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerCount>>> = ({ signal }) => getApiCustomerCount(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerCount>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -951,20 +951,20 @@ export const getApiCustomerIdExists = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Customer/${id}/exists`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCustomerIdExistsQueryKey = (id: string,) => {
     return [`/api/Customer/${id}/exists`] as const;
     }
 
-    
+
 export const getGetApiCustomerIdExistsQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerIdExists>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdExists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -972,13 +972,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerIdExistsQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerIdExists>>> = ({ signal }) => getApiCustomerIdExists(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdExists>>, TError, TData> & { queryKey: QueryKey }
 }

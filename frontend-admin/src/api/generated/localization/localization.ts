@@ -33,23 +33,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiLocalization = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LocalizationSettings>(
       {url: `/api/Localization`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationQueryKey = () => {
     return [`/api/Localization`] as const;
     }
 
-    
+
 export const getGetApiLocalizationQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalization>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalization>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -57,13 +57,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalization>>> = ({ signal }) => getApiLocalization(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalization>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,8 +90,8 @@ export const useGetApiLocalization = <TData = Awaited<ReturnType<typeof getApiLo
 export const putApiLocalization = (
     updateLocalizationSettingsRequest: UpdateLocalizationSettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -99,7 +99,7 @@ export const putApiLocalization = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiLocalizationMutationOptions = <TError = unknown,
@@ -107,7 +107,7 @@ export const getPutApiLocalizationMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiLocalization>>, TError,{data: UpdateLocalizationSettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiLocalization>>, {data: UpdateLocalizationSettingsRequest}> = (props) => {
@@ -116,7 +116,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiLocalization(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -139,23 +139,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiLocalizationLanguages = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<string[]>(
       {url: `/api/Localization/languages`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationLanguagesQueryKey = () => {
     return [`/api/Localization/languages`] as const;
     }
 
-    
+
 export const getGetApiLocalizationLanguagesQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationLanguages>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationLanguages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -163,13 +163,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationLanguagesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationLanguages>>> = ({ signal }) => getApiLocalizationLanguages(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationLanguages>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -194,23 +194,23 @@ export const useGetApiLocalizationLanguages = <TData = Awaited<ReturnType<typeof
 
 
 export const getApiLocalizationCurrencies = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<string[]>(
       {url: `/api/Localization/currencies`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationCurrenciesQueryKey = () => {
     return [`/api/Localization/currencies`] as const;
     }
 
-    
+
 export const getGetApiLocalizationCurrenciesQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationCurrencies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationCurrencies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -218,13 +218,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationCurrenciesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationCurrencies>>> = ({ signal }) => getApiLocalizationCurrencies(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationCurrencies>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -249,23 +249,23 @@ export const useGetApiLocalizationCurrencies = <TData = Awaited<ReturnType<typeo
 
 
 export const getApiLocalizationTimezones = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<string[]>(
       {url: `/api/Localization/timezones`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationTimezonesQueryKey = () => {
     return [`/api/Localization/timezones`] as const;
     }
 
-    
+
 export const getGetApiLocalizationTimezonesQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationTimezones>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationTimezones>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -273,13 +273,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationTimezonesQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationTimezones>>> = ({ signal }) => getApiLocalizationTimezones(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationTimezones>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -307,20 +307,20 @@ export const getApiLocalizationFormatLanguage = (
     language: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LanguageFormat>(
       {url: `/api/Localization/format/${language}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationFormatLanguageQueryKey = (language: string,) => {
     return [`/api/Localization/format/${language}`] as const;
     }
 
-    
+
 export const getGetApiLocalizationFormatLanguageQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationFormatLanguage>>, TError = unknown>(language: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationFormatLanguage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -328,13 +328,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationFormatLanguageQueryKey(language);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationFormatLanguage>>> = ({ signal }) => getApiLocalizationFormatLanguage(language, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(language), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationFormatLanguage>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -362,20 +362,20 @@ export const getApiLocalizationCurrencyCurrency = (
     currency: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CurrencyInfo>(
       {url: `/api/Localization/currency/${currency}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationCurrencyCurrencyQueryKey = (currency: string,) => {
     return [`/api/Localization/currency/${currency}`] as const;
     }
 
-    
+
 export const getGetApiLocalizationCurrencyCurrencyQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationCurrencyCurrency>>, TError = unknown>(currency: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationCurrencyCurrency>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -383,13 +383,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationCurrencyCurrencyQueryKey(currency);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationCurrencyCurrency>>> = ({ signal }) => getApiLocalizationCurrencyCurrency(currency, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(currency), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationCurrencyCurrency>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -416,8 +416,8 @@ export const useGetApiLocalizationCurrencyCurrency = <TData = Awaited<ReturnType
 export const postApiLocalizationAddLanguage = (
     addLanguageRequest: AddLanguageRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization/add-language`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -425,7 +425,7 @@ export const postApiLocalizationAddLanguage = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiLocalizationAddLanguageMutationOptions = <TError = unknown,
@@ -433,7 +433,7 @@ export const getPostApiLocalizationAddLanguageMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLocalizationAddLanguage>>, TError,{data: AddLanguageRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLocalizationAddLanguage>>, {data: AddLanguageRequest}> = (props) => {
@@ -442,7 +442,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLocalizationAddLanguage(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -467,8 +467,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiLocalizationAddCurrency = (
     addCurrencyRequest: AddCurrencyRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization/add-currency`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -476,7 +476,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiLocalizationAddCurrencyMutationOptions = <TError = unknown,
@@ -484,7 +484,7 @@ export const getPostApiLocalizationAddCurrencyMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLocalizationAddCurrency>>, TError,{data: AddCurrencyRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiLocalizationAddCurrency>>, {data: AddCurrencyRequest}> = (props) => {
@@ -493,7 +493,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiLocalizationAddCurrency(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -518,14 +518,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiLocalizationRemoveLanguageLanguage = (
     language: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization/remove-language/${language}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiLocalizationRemoveLanguageLanguageMutationOptions = <TError = unknown,
@@ -533,7 +533,7 @@ export const getDeleteApiLocalizationRemoveLanguageLanguageMutationOptions = <TE
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiLocalizationRemoveLanguageLanguage>>, TError,{language: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiLocalizationRemoveLanguageLanguage>>, {language: string}> = (props) => {
@@ -542,13 +542,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiLocalizationRemoveLanguageLanguage(language,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiLocalizationRemoveLanguageLanguageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiLocalizationRemoveLanguageLanguage>>>
-    
+
     export type DeleteApiLocalizationRemoveLanguageLanguageMutationError = unknown
 
     export const useDeleteApiLocalizationRemoveLanguageLanguage = <TError = unknown,
@@ -567,14 +567,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiLocalizationRemoveCurrencyCurrency = (
     currency: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization/remove-currency/${currency}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiLocalizationRemoveCurrencyCurrencyMutationOptions = <TError = unknown,
@@ -582,7 +582,7 @@ export const getDeleteApiLocalizationRemoveCurrencyCurrencyMutationOptions = <TE
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiLocalizationRemoveCurrencyCurrency>>, TError,{currency: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiLocalizationRemoveCurrencyCurrency>>, {currency: string}> = (props) => {
@@ -591,13 +591,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiLocalizationRemoveCurrencyCurrency(currency,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiLocalizationRemoveCurrencyCurrencyMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiLocalizationRemoveCurrencyCurrency>>>
-    
+
     export type DeleteApiLocalizationRemoveCurrencyCurrencyMutationError = unknown
 
     export const useDeleteApiLocalizationRemoveCurrencyCurrency = <TError = unknown,
@@ -614,23 +614,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiLocalizationExport = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Localization/export`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiLocalizationExportQueryKey = () => {
     return [`/api/Localization/export`] as const;
     }
 
-    
+
 export const getGetApiLocalizationExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiLocalizationExport>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -638,13 +638,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiLocalizationExportQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLocalizationExport>>> = ({ signal }) => getApiLocalizationExport(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLocalizationExport>>, TError, TData> & { queryKey: QueryKey }
 }

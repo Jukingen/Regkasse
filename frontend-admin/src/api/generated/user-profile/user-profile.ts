@@ -30,23 +30,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiUserProfile = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<UserProfileDto>(
       {url: `/api/user/profile`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiUserProfileQueryKey = () => {
     return [`/api/user/profile`] as const;
     }
 
-    
+
 export const getGetApiUserProfileQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserProfile>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserProfile>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -54,13 +54,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiUserProfileQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserProfile>>> = ({ signal }) => getApiUserProfile(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserProfile>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -87,8 +87,8 @@ export const useGetApiUserProfile = <TData = Awaited<ReturnType<typeof getApiUse
 export const putApiUserProfile = (
     updateProfileRequest: UpdateProfileRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/profile`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -96,7 +96,7 @@ export const putApiUserProfile = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiUserProfileMutationOptions = <TError = unknown,
@@ -104,7 +104,7 @@ export const getPutApiUserProfileMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiUserProfile>>, TError,{data: UpdateProfileRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserProfile>>, {data: UpdateProfileRequest}> = (props) => {
@@ -113,7 +113,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiUserProfile(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -138,8 +138,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const patchApiUserProfileUsername = (
     updateUsernameRequest: UpdateUsernameRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/user/profile/username`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
@@ -147,7 +147,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPatchApiUserProfileUsernameMutationOptions = <TError = unknown,
@@ -155,7 +155,7 @@ export const getPatchApiUserProfileUsernameMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof patchApiUserProfileUsername>>, TError,{data: UpdateUsernameRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchApiUserProfileUsername>>, {data: UpdateUsernameRequest}> = (props) => {
@@ -164,7 +164,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  patchApiUserProfileUsername(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -186,4 +186,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

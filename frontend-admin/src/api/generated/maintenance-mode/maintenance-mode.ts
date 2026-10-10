@@ -24,23 +24,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiMaintenanceStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<MaintenanceModeStatusDto>(
       {url: `/api/maintenance/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMaintenanceStatusQueryKey = () => {
     return [`/api/maintenance/status`] as const;
     }
 
-    
+
 export const getGetApiMaintenanceStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiMaintenanceStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMaintenanceStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -48,13 +48,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMaintenanceStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMaintenanceStatus>>> = ({ signal }) => getApiMaintenanceStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMaintenanceStatus>>, TError, TData> & { queryKey: QueryKey }
 }

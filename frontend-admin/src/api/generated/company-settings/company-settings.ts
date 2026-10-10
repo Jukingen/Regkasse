@@ -36,23 +36,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiCompanySettings = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CompanySettings>(
       {url: `/api/company/settings`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsQueryKey = () => {
     return [`/api/company/settings`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettings>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -60,13 +60,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettings>>> = ({ signal }) => getApiCompanySettings(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettings>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -93,8 +93,8 @@ export const useGetApiCompanySettings = <TData = Awaited<ReturnType<typeof getAp
 export const putApiCompanySettings = (
     updateCompanySettingsRequest: UpdateCompanySettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -102,7 +102,7 @@ export const putApiCompanySettings = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCompanySettingsMutationOptions = <TError = unknown,
@@ -110,7 +110,7 @@ export const getPutApiCompanySettingsMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettings>>, TError,{data: UpdateCompanySettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettings>>, {data: UpdateCompanySettingsRequest}> = (props) => {
@@ -119,7 +119,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCompanySettings(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -142,23 +142,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCompanySettingsBusinessHours = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<GetApiCompanySettingsBusinessHours200>(
       {url: `/api/company/settings/business-hours`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsBusinessHoursQueryKey = () => {
     return [`/api/company/settings/business-hours`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsBusinessHoursQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettingsBusinessHours>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBusinessHours>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -166,13 +166,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsBusinessHoursQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettingsBusinessHours>>> = ({ signal }) => getApiCompanySettingsBusinessHours(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBusinessHours>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -199,8 +199,8 @@ export const useGetApiCompanySettingsBusinessHours = <TData = Awaited<ReturnType
 export const putApiCompanySettingsBusinessHours = (
     putApiCompanySettingsBusinessHoursBody: PutApiCompanySettingsBusinessHoursBody,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings/business-hours`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -208,7 +208,7 @@ export const putApiCompanySettingsBusinessHours = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCompanySettingsBusinessHoursMutationOptions = <TError = unknown,
@@ -216,7 +216,7 @@ export const getPutApiCompanySettingsBusinessHoursMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, {data: PutApiCompanySettingsBusinessHoursBody}> = (props) => {
@@ -225,7 +225,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCompanySettingsBusinessHours(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -248,23 +248,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCompanySettingsBanking = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BankingInfo>(
       {url: `/api/company/settings/banking`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsBankingQueryKey = () => {
     return [`/api/company/settings/banking`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsBankingQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettingsBanking>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBanking>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -272,13 +272,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsBankingQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettingsBanking>>> = ({ signal }) => getApiCompanySettingsBanking(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBanking>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -305,8 +305,8 @@ export const useGetApiCompanySettingsBanking = <TData = Awaited<ReturnType<typeo
 export const putApiCompanySettingsBanking = (
     updateBankingInfoRequest: UpdateBankingInfoRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings/banking`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -314,7 +314,7 @@ export const putApiCompanySettingsBanking = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCompanySettingsBankingMutationOptions = <TError = unknown,
@@ -322,7 +322,7 @@ export const getPutApiCompanySettingsBankingMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBanking>>, TError,{data: UpdateBankingInfoRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsBanking>>, {data: UpdateBankingInfoRequest}> = (props) => {
@@ -331,7 +331,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCompanySettingsBanking(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -354,23 +354,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCompanySettingsLocalization = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<LocalizationSettings>(
       {url: `/api/company/settings/localization`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsLocalizationQueryKey = () => {
     return [`/api/company/settings/localization`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsLocalizationQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettingsLocalization>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsLocalization>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -378,13 +378,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsLocalizationQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettingsLocalization>>> = ({ signal }) => getApiCompanySettingsLocalization(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsLocalization>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -411,8 +411,8 @@ export const useGetApiCompanySettingsLocalization = <TData = Awaited<ReturnType<
 export const putApiCompanySettingsLocalization = (
     localizationSettings: LocalizationSettings,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings/localization`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -420,7 +420,7 @@ export const putApiCompanySettingsLocalization = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCompanySettingsLocalizationMutationOptions = <TError = unknown,
@@ -428,7 +428,7 @@ export const getPutApiCompanySettingsLocalizationMutationOptions = <TError = unk
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsLocalization>>, TError,{data: LocalizationSettings}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsLocalization>>, {data: LocalizationSettings}> = (props) => {
@@ -437,7 +437,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCompanySettingsLocalization(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -460,23 +460,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCompanySettingsBilling = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<BillingSettings>(
       {url: `/api/company/settings/billing`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsBillingQueryKey = () => {
     return [`/api/company/settings/billing`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsBillingQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettingsBilling>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBilling>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -484,13 +484,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsBillingQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettingsBilling>>> = ({ signal }) => getApiCompanySettingsBilling(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsBilling>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -517,8 +517,8 @@ export const useGetApiCompanySettingsBilling = <TData = Awaited<ReturnType<typeo
 export const putApiCompanySettingsBilling = (
     updateBillingSettingsRequest: UpdateBillingSettingsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings/billing`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -526,7 +526,7 @@ export const putApiCompanySettingsBilling = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiCompanySettingsBillingMutationOptions = <TError = unknown,
@@ -534,7 +534,7 @@ export const getPutApiCompanySettingsBillingMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBilling>>, TError,{data: UpdateBillingSettingsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsBilling>>, {data: UpdateBillingSettingsRequest}> = (props) => {
@@ -543,7 +543,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiCompanySettingsBilling(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -566,23 +566,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       return useMutation(mutationOptions);
     }
     export const getApiCompanySettingsExport = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/company/settings/export`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiCompanySettingsExportQueryKey = () => {
     return [`/api/company/settings/export`] as const;
     }
 
-    
+
 export const getGetApiCompanySettingsExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiCompanySettingsExport>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -590,13 +590,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiCompanySettingsExportQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCompanySettingsExport>>> = ({ signal }) => getApiCompanySettingsExport(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCompanySettingsExport>>, TError, TData> & { queryKey: QueryKey }
 }

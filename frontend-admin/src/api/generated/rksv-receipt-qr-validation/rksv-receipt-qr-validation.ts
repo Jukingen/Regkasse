@@ -27,8 +27,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiRksvValidateReceipt = (
     rksvValidateReceiptQrRequest: RksvValidateReceiptQrRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<RksvValidateReceiptQrResponse>(
       {url: `/api/rksv/validate-receipt`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -36,7 +36,7 @@ export const postApiRksvValidateReceipt = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvValidateReceiptMutationOptions = <TError = ProblemDetails,
@@ -44,7 +44,7 @@ export const getPostApiRksvValidateReceiptMutationOptions = <TError = ProblemDet
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvValidateReceipt>>, TError,{data: RksvValidateReceiptQrRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvValidateReceipt>>, {data: RksvValidateReceiptQrRequest}> = (props) => {
@@ -53,7 +53,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvValidateReceipt(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -75,4 +75,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

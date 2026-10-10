@@ -26,14 +26,14 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiWebhooksPaymentProvider = (
     provider: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PaymentWebhookReceivedResponse>(
       {url: `/api/webhooks/payment/${provider}`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiWebhooksPaymentProviderMutationOptions = <TError = ProblemDetails,
@@ -41,7 +41,7 @@ export const getPostApiWebhooksPaymentProviderMutationOptions = <TError = Proble
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiWebhooksPaymentProvider>>, TError,{provider: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiWebhooksPaymentProvider>>, {provider: string}> = (props) => {
@@ -50,13 +50,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiWebhooksPaymentProvider(provider,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiWebhooksPaymentProviderMutationResult = NonNullable<Awaited<ReturnType<typeof postApiWebhooksPaymentProvider>>>
-    
+
     export type PostApiWebhooksPaymentProviderMutationError = ProblemDetails
 
     export const usePostApiWebhooksPaymentProvider = <TError = ProblemDetails,
@@ -75,14 +75,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiWebhooksPaymentsProvider = (
     provider: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<PaymentWebhookReceivedResponse>(
       {url: `/api/webhooks/payments/${provider}`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiWebhooksPaymentsProviderMutationOptions = <TError = ProblemDetails,
@@ -90,7 +90,7 @@ export const getPostApiWebhooksPaymentsProviderMutationOptions = <TError = Probl
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiWebhooksPaymentsProvider>>, TError,{provider: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiWebhooksPaymentsProvider>>, {provider: string}> = (props) => {
@@ -99,13 +99,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiWebhooksPaymentsProvider(provider,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiWebhooksPaymentsProviderMutationResult = NonNullable<Awaited<ReturnType<typeof postApiWebhooksPaymentsProvider>>>
-    
+
     export type PostApiWebhooksPaymentsProviderMutationError = ProblemDetails
 
     export const usePostApiWebhooksPaymentsProvider = <TError = ProblemDetails,
@@ -121,4 +121,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

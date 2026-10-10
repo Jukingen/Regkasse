@@ -29,21 +29,21 @@ export const getApiReportsHistoryReportTypeId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReportHistoryTimelineDto>(
       {url: `/api/reports/history/${reportType}/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsHistoryReportTypeIdQueryKey = (reportType: string,
     id: string,) => {
     return [`/api/reports/history/${reportType}/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsHistoryReportTypeIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsHistoryReportTypeId>>, TError = ProblemDetails>(reportType: string,
     id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsHistoryReportTypeId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -52,13 +52,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsHistoryReportTypeIdQueryKey(reportType,id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsHistoryReportTypeId>>> = ({ signal }) => getApiReportsHistoryReportTypeId(reportType,id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(reportType && id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsHistoryReportTypeId>>, TError, TData> & { queryKey: QueryKey }
 }

@@ -37,8 +37,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiRksvSpecialReceiptsNullbeleg = (
     createNullbelegRequest: CreateNullbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreateNullbelegResponse>(
       {url: `/api/rksv/special-receipts/nullbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -46,7 +46,7 @@ export const postApiRksvSpecialReceiptsNullbeleg = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvSpecialReceiptsNullbelegMutationOptions = <TError = ProblemDetails,
@@ -54,7 +54,7 @@ export const getPostApiRksvSpecialReceiptsNullbelegMutationOptions = <TError = P
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsNullbeleg>>, TError,{data: CreateNullbelegRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsNullbeleg>>, {data: CreateNullbelegRequest}> = (props) => {
@@ -63,7 +63,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvSpecialReceiptsNullbeleg(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -88,8 +88,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiRksvSpecialReceiptsStartbeleg = (
     createStartbelegRequest: CreateStartbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreateStartbelegResponse>(
       {url: `/api/rksv/special-receipts/startbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -97,7 +97,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvSpecialReceiptsStartbelegMutationOptions = <TError = ProblemDetails,
@@ -105,7 +105,7 @@ export const getPostApiRksvSpecialReceiptsStartbelegMutationOptions = <TError = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsStartbeleg>>, TError,{data: CreateStartbelegRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsStartbeleg>>, {data: CreateStartbelegRequest}> = (props) => {
@@ -114,7 +114,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvSpecialReceiptsStartbeleg(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -140,8 +140,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     createMonatsbelegRequest: CreateMonatsbelegRequest,
     params?: PostApiRksvSpecialReceiptsMonatsbelegParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreateMonatsbelegResponse>(
       {url: `/api/rksv/special-receipts/monatsbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -150,7 +150,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvSpecialReceiptsMonatsbelegMutationOptions = <TError = MonatsbelegWarningResponse | ProblemDetails,
@@ -158,7 +158,7 @@ export const getPostApiRksvSpecialReceiptsMonatsbelegMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, {data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}> = (props) => {
@@ -167,7 +167,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvSpecialReceiptsMonatsbeleg(data,params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -192,8 +192,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiRksvSpecialReceiptsJahresbeleg = (
     createJahresbelegRequest: CreateJahresbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreateJahresbelegResponse>(
       {url: `/api/rksv/special-receipts/jahresbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -201,7 +201,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvSpecialReceiptsJahresbelegMutationOptions = <TError = ProblemDetails,
@@ -209,7 +209,7 @@ export const getPostApiRksvSpecialReceiptsJahresbelegMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsJahresbeleg>>, TError,{data: CreateJahresbelegRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsJahresbeleg>>, {data: CreateJahresbelegRequest}> = (props) => {
@@ -218,7 +218,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvSpecialReceiptsJahresbeleg(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -243,8 +243,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiRksvSpecialReceiptsSchlussbeleg = (
     createSchlussbelegRequest: CreateSchlussbelegRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<CreateSchlussbelegResponse>(
       {url: `/api/rksv/special-receipts/schlussbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -252,7 +252,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiRksvSpecialReceiptsSchlussbelegMutationOptions = <TError = ProblemDetails,
@@ -260,7 +260,7 @@ export const getPostApiRksvSpecialReceiptsSchlussbelegMutationOptions = <TError 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsSchlussbeleg>>, TError,{data: CreateSchlussbelegRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsSchlussbeleg>>, {data: CreateSchlussbelegRequest}> = (props) => {
@@ -269,7 +269,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiRksvSpecialReceiptsSchlussbeleg(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -291,4 +291,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

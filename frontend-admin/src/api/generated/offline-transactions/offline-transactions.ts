@@ -25,8 +25,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiOfflineTransactionsReplay = (
     replayOfflineTransactionsRequest: ReplayOfflineTransactionsRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/offline-transactions/replay`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -34,7 +34,7 @@ export const postApiOfflineTransactionsReplay = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiOfflineTransactionsReplayMutationOptions = <TError = unknown,
@@ -42,7 +42,7 @@ export const getPostApiOfflineTransactionsReplayMutationOptions = <TError = unkn
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiOfflineTransactionsReplay>>, TError,{data: ReplayOfflineTransactionsRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOfflineTransactionsReplay>>, {data: ReplayOfflineTransactionsRequest}> = (props) => {
@@ -51,7 +51,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiOfflineTransactionsReplay(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -73,4 +73,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

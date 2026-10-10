@@ -29,20 +29,20 @@ export const getApiPublicTenantsSlug = (
     slug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PublicTenantProfileDto>(
       {url: `/api/public/tenants/${slug}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPublicTenantsSlugQueryKey = (slug: string,) => {
     return [`/api/public/tenants/${slug}`] as const;
     }
 
-    
+
 export const getGetApiPublicTenantsSlugQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicTenantsSlug>>, TError = ProblemDetails>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicTenantsSlug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -50,13 +50,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPublicTenantsSlugQueryKey(slug);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPublicTenantsSlug>>> = ({ signal }) => getApiPublicTenantsSlug(slug, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPublicTenantsSlug>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -84,20 +84,20 @@ export const getApiPublicTenantsSlugMenu = (
     slug: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<PublicTenantMenuDto>(
       {url: `/api/public/tenants/${slug}/menu`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiPublicTenantsSlugMenuQueryKey = (slug: string,) => {
     return [`/api/public/tenants/${slug}/menu`] as const;
     }
 
-    
+
 export const getGetApiPublicTenantsSlugMenuQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicTenantsSlugMenu>>, TError = ProblemDetails>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicTenantsSlugMenu>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -105,13 +105,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiPublicTenantsSlugMenuQueryKey(slug);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPublicTenantsSlugMenu>>> = ({ signal }) => getApiPublicTenantsSlugMenu(slug, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPublicTenantsSlugMenu>>, TError, TData> & { queryKey: QueryKey }
 }

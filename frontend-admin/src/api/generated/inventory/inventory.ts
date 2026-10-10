@@ -37,23 +37,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiInventory = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<unknown[]>(
       {url: `/api/Inventory`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryQueryKey = () => {
     return [`/api/Inventory`] as const;
     }
 
-    
+
 export const getGetApiInventoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventory>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -61,13 +61,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventory>>> = ({ signal }) => getApiInventory(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -94,8 +94,8 @@ export const useGetApiInventory = <TData = Awaited<ReturnType<typeof getApiInven
 export const postApiInventory = (
     createInventoryItemRequest: CreateInventoryItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<InventoryItem>(
       {url: `/api/Inventory`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -103,7 +103,7 @@ export const postApiInventory = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiInventoryMutationOptions = <TError = unknown,
@@ -111,7 +111,7 @@ export const getPostApiInventoryMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiInventory>>, TError,{data: CreateInventoryItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInventory>>, {data: CreateInventoryItemRequest}> = (props) => {
@@ -120,7 +120,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiInventory(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -146,21 +146,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiInventoryHistoryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<InventoryHistoryPageDto>(
       {url: `/api/Inventory/history`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryHistoryQueryKey = (params?: GetApiInventoryHistoryParams,) => {
     return [`/api/Inventory/history`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiInventoryHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -168,13 +168,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryHistoryQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryHistory>>> = ({ signal }) => getApiInventoryHistory(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -199,23 +199,23 @@ export const useGetApiInventoryHistory = <TData = Awaited<ReturnType<typeof getA
 
 
 export const getApiInventoryReorderSuggestions = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReorderSuggestionDto[]>(
       {url: `/api/Inventory/reorder-suggestions`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryReorderSuggestionsQueryKey = () => {
     return [`/api/Inventory/reorder-suggestions`] as const;
     }
 
-    
+
 export const getGetApiInventoryReorderSuggestionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -223,13 +223,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryReorderSuggestionsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>> = ({ signal }) => getApiInventoryReorderSuggestions(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -254,23 +254,23 @@ export const useGetApiInventoryReorderSuggestions = <TData = Awaited<ReturnType<
 
 
 export const getApiInventoryLowStock = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<unknown[]>(
       {url: `/api/Inventory/low-stock`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryLowStockQueryKey = () => {
     return [`/api/Inventory/low-stock`] as const;
     }
 
-    
+
 export const getGetApiInventoryLowStockQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -278,13 +278,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryLowStockQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryLowStock>>> = ({ signal }) => getApiInventoryLowStock(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -312,20 +312,20 @@ export const getApiInventoryTransactionsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<InventoryTransaction[]>(
       {url: `/api/Inventory/transactions/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryTransactionsIdQueryKey = (id: string,) => {
     return [`/api/Inventory/transactions/${id}`] as const;
     }
 
-    
+
 export const getGetApiInventoryTransactionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -333,13 +333,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryTransactionsIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>> = ({ signal }) => getApiInventoryTransactionsId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -367,20 +367,20 @@ export const getApiInventoryId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiInventoryIdQueryKey = (id: string,) => {
     return [`/api/Inventory/${id}`] as const;
     }
 
-    
+
 export const getGetApiInventoryIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -388,13 +388,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryId>>> = ({ signal }) => getApiInventoryId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -422,8 +422,8 @@ export const putApiInventoryId = (
     id: string,
     updateInventoryItemRequest: UpdateInventoryItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -431,7 +431,7 @@ export const putApiInventoryId = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiInventoryIdMutationOptions = <TError = unknown,
@@ -439,7 +439,7 @@ export const getPutApiInventoryIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiInventoryId>>, TError,{id: string;data: UpdateInventoryItemRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiInventoryId>>, {id: string;data: UpdateInventoryItemRequest}> = (props) => {
@@ -448,7 +448,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiInventoryId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -473,14 +473,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiInventoryId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiInventoryIdMutationOptions = <TError = unknown,
@@ -488,7 +488,7 @@ export const getDeleteApiInventoryIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiInventoryId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiInventoryId>>, {id: string}> = (props) => {
@@ -497,13 +497,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiInventoryId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiInventoryIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiInventoryId>>>
-    
+
     export type DeleteApiInventoryIdMutationError = unknown
 
     export const useDeleteApiInventoryId = <TError = unknown,
@@ -523,8 +523,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     restockRequest: RestockRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}/restock`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -532,7 +532,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiInventoryIdRestockMutationOptions = <TError = unknown,
@@ -540,7 +540,7 @@ export const getPostApiInventoryIdRestockMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiInventoryIdRestock>>, TError,{id: string;data: RestockRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInventoryIdRestock>>, {id: string;data: RestockRequest}> = (props) => {
@@ -549,7 +549,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiInventoryIdRestock(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -575,8 +575,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     adjustInventoryRequest: AdjustInventoryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}/adjust`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -584,7 +584,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiInventoryIdAdjustMutationOptions = <TError = unknown,
@@ -592,7 +592,7 @@ export const getPostApiInventoryIdAdjustMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiInventoryIdAdjust>>, TError,{id: string;data: AdjustInventoryRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInventoryIdAdjust>>, {id: string;data: AdjustInventoryRequest}> = (props) => {
@@ -601,7 +601,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiInventoryIdAdjust(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -627,8 +627,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
     transferInventoryRequest: TransferInventoryRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Inventory/${id}/transfer`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -636,7 +636,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiInventoryIdTransferMutationOptions = <TError = unknown,
@@ -644,7 +644,7 @@ export const getPostApiInventoryIdTransferMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiInventoryIdTransfer>>, TError,{id: string;data: TransferInventoryRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInventoryIdTransfer>>, {id: string;data: TransferInventoryRequest}> = (props) => {
@@ -653,7 +653,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiInventoryIdTransfer(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -675,4 +675,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

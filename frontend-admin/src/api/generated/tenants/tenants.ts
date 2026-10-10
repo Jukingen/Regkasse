@@ -30,21 +30,21 @@ export const getApiTenantsSwitcher = (
     params?: GetApiTenantsSwitcherParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AdminTenantListItemDto[]>(
       {url: `/api/tenants/switcher`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiTenantsSwitcherQueryKey = (params?: GetApiTenantsSwitcherParams,) => {
     return [`/api/tenants/switcher`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiTenantsSwitcherQueryOptions = <TData = Awaited<ReturnType<typeof getApiTenantsSwitcher>>, TError = unknown>(params?: GetApiTenantsSwitcherParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsSwitcher>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -52,13 +52,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTenantsSwitcherQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTenantsSwitcher>>> = ({ signal }) => getApiTenantsSwitcher(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsSwitcher>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -83,23 +83,23 @@ export const useGetApiTenantsSwitcher = <TData = Awaited<ReturnType<typeof getAp
 
 
 export const getApiTenantsCurrent = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<CurrentTenantDto>(
       {url: `/api/tenants/current`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiTenantsCurrentQueryKey = () => {
     return [`/api/tenants/current`] as const;
     }
 
-    
+
 export const getGetApiTenantsCurrentQueryOptions = <TData = Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -107,13 +107,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTenantsCurrentQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTenantsCurrent>>> = ({ signal }) => getApiTenantsCurrent(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTenantsCurrent>>, TError, TData> & { queryKey: QueryKey }
 }

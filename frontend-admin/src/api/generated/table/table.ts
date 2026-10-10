@@ -29,23 +29,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiTable = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TableInfo[]>(
       {url: `/api/Table`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiTableQueryKey = () => {
     return [`/api/Table`] as const;
     }
 
-    
+
 export const getGetApiTableQueryOptions = <TData = Awaited<ReturnType<typeof getApiTable>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTable>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -53,13 +53,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTableQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTable>>> = ({ signal }) => getApiTable(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTable>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -87,20 +87,20 @@ export const getApiTableId = (
     id: number,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TableInfo>(
       {url: `/api/Table/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiTableIdQueryKey = (id: number,) => {
     return [`/api/Table/${id}`] as const;
     }
 
-    
+
 export const getGetApiTableIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiTableId>>, TError = unknown>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiTableId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -108,13 +108,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiTableIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiTableId>>> = ({ signal }) => getApiTableId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiTableId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -142,8 +142,8 @@ export const postApiTableIdStatus = (
     id: number,
     updateTableStatusRequest: UpdateTableStatusRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Table/${id}/status`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -151,7 +151,7 @@ export const postApiTableIdStatus = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiTableIdStatusMutationOptions = <TError = unknown,
@@ -159,7 +159,7 @@ export const getPostApiTableIdStatusMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTableIdStatus>>, TError,{id: number;data: UpdateTableStatusRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTableIdStatus>>, {id: number;data: UpdateTableStatusRequest}> = (props) => {
@@ -168,7 +168,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTableIdStatus(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -190,4 +190,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

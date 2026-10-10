@@ -27,20 +27,20 @@ export const getDataExportEmailToken = (
     token: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/data/export-email/${token}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetDataExportEmailTokenQueryKey = (token: string,) => {
     return [`/data/export-email/${token}`] as const;
     }
 
-    
+
 export const getGetDataExportEmailTokenQueryOptions = <TData = Awaited<ReturnType<typeof getDataExportEmailToken>>, TError = ProblemDetails>(token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataExportEmailToken>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -48,13 +48,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetDataExportEmailTokenQueryKey(token);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataExportEmailToken>>> = ({ signal }) => getDataExportEmailToken(token, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDataExportEmailToken>>, TError, TData> & { queryKey: QueryKey }
 }

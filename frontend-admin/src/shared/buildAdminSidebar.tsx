@@ -26,14 +26,18 @@ import {
   type SidebarLayoutBlock,
   composeAdminSidebarData,
 } from '@/shared/adminSidebarRegistry';
+import { getSidebarPermissionGroupSyncRows } from '@/shared/auth/permissionGroupRegistry';
 import { filterCatalogIdsForInventoryNav } from '@/shared/config/adminInventoryNavUi';
 import {
   FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES,
   fiscalRksvClosingBadgeLabel,
 } from '@/shared/fiscalRksvClosingSidebar';
-import { getSidebarPermissionGroupSyncRows } from '@/shared/auth/permissionGroupRegistry';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { resolveSidebarSubtitle } from '@/shared/sidebarSubtitle';
+import {
+  type VerticalProfileMenuScope,
+  isCatalogItemVisibleForVerticalProfile,
+} from '@/shared/sidebarVerticalProfile';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
   ThunderboltOutlined: Icons.ThunderboltOutlined,
@@ -128,19 +132,22 @@ function resolveSidebarGroupIcon(
   return fallback;
 }
 
-function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
+function visibleCatalogIds(
+  catalogIds: readonly SidebarCatalogId[],
+  verticalProfile?: VerticalProfileMenuScope
+): SidebarCatalogId[] {
   return catalogIds.filter((id) => {
     const item = SIDEBAR_NAV_ITEM_CATALOG[id];
     if (item.sidebarHidden) return false;
     if (item.developmentOnly && process.env.NODE_ENV !== 'development') return false;
+    if (verticalProfile && !isCatalogItemVisibleForVerticalProfile(item, verticalProfile)) {
+      return false;
+    }
     return true;
   });
 }
 
-function labeledTitle(
-  text: string,
-  subtitle: string | undefined
-): React.ReactNode {
+function labeledTitle(text: string, subtitle: string | undefined): React.ReactNode {
   return <AdminSidebarItemLabel title={text} subtitle={subtitle} />;
 }
 
@@ -157,20 +164,29 @@ function buildNestedSidebarGroup(
       icon: SidebarIconToken;
       catalogIds: SidebarCatalogId[];
     }>;
-  }
-): NonNullable<MenuProps['items']>[number] {
+  },
+  verticalProfile?: VerticalProfileMenuScope
+): NonNullable<MenuProps['items']>[number] | null {
   const text = t(block.labelKey);
   const subtitle = resolveSidebarSubtitle(t, block.labelKey);
-  const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
-  const childMenus = (block.childGroups ?? []).map((child) =>
-    buildNestedSidebarGroup(t, { ...child, catalogIds: child.catalogIds })
+  const nestedIds = filterCatalogIdsForInventoryNav(
+    visibleCatalogIds(block.catalogIds, verticalProfile)
   );
+  const childMenus = (block.childGroups ?? [])
+    .map((child) =>
+      buildNestedSidebarGroup(t, { ...child, catalogIds: child.catalogIds }, verticalProfile)
+    )
+    .filter((child): child is NonNullable<MenuProps['items']>[number] => child != null);
+  const children = [...childMenus, ...nestedIds.map((id) => catalogLeaf(t, id))];
+  if (verticalProfile && children.length === 0) {
+    return null;
+  }
   return {
     key: block.menuKey,
     icon: iconEl(block.icon),
     label: labeledTitle(text, subtitle),
     title: text,
-    children: [...childMenus, ...nestedIds.map((id) => catalogLeaf(t, id))],
+    children,
   };
 }
 
@@ -238,19 +254,23 @@ function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuPr
 function buildDomainBlocks(
   t: (key: string) => string,
   blocks: SidebarLayoutBlock[],
-  rksvMenuGroups: RksvMenuGroup[]
+  rksvMenuGroups: RksvMenuGroup[],
+  verticalProfile?: VerticalProfileMenuScope
 ): MenuProps['items'] {
   const out: MenuProps['items'] = [];
   for (const block of blocks) {
     if (block.kind === 'leaves') {
-      const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+      const leafIds = filterCatalogIdsForInventoryNav(
+        visibleCatalogIds(block.catalogIds, verticalProfile)
+      );
       for (const id of leafIds) {
         out.push(catalogLeaf(t, id));
       }
       continue;
     }
     if (block.kind === 'nested') {
-      out.push(buildNestedSidebarGroup(t, block));
+      const nested = buildNestedSidebarGroup(t, block, verticalProfile);
+      if (nested) out.push(nested);
       continue;
     }
     if (block.kind === 'fiscalRksvClosing') {
@@ -301,10 +321,11 @@ export type BuildAdminSidebarMenuItemsResult = {
 export function buildAdminSidebarMenuItems(params: {
   t: (key: string) => string;
   verificationNavLabel: string;
+  verticalProfile?: VerticalProfileMenuScope;
 }): BuildAdminSidebarMenuItemsResult {
   const composed = composeAdminSidebarData(params.t, params.verificationNavLabel);
   const { rksvMenuGroups } = composed;
-  const { t } = params;
+  const { t, verticalProfile } = params;
 
   const menuItems: MenuProps['items'] = [];
 
@@ -315,7 +336,9 @@ export function buildAdminSidebarMenuItems(params: {
     }
 
     if (row.kind === 'leaves') {
-      const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(row.catalogIds));
+      const leafIds = filterCatalogIdsForInventoryNav(
+        visibleCatalogIds(row.catalogIds, verticalProfile)
+      );
       for (const id of leafIds) {
         menuItems.push(catalogLeaf(t, id));
       }
@@ -323,14 +346,15 @@ export function buildAdminSidebarMenuItems(params: {
     }
 
     if (row.kind === 'nested') {
-      menuItems.push(buildNestedSidebarGroup(t, row));
+      const nested = buildNestedSidebarGroup(t, row, verticalProfile);
+      if (nested) menuItems.push(nested);
       continue;
     }
 
     if (row.kind !== 'group') continue;
 
     const meta = SIDEBAR_GROUP_META[row.group];
-    const children = buildDomainBlocks(t, row.blocks, rksvMenuGroups);
+    const children = buildDomainBlocks(t, row.blocks, rksvMenuGroups, verticalProfile);
     if (!children?.length) continue;
     const groupLabel = t(meta.labelKey);
     const groupSubtitle = resolveSidebarSubtitle(t, meta.labelKey);

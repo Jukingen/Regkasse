@@ -37,21 +37,21 @@ export const getApiReportsTagesbericht = (
     params?: GetApiReportsTagesberichtParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TagesberichtListItemDto[]>(
       {url: `/api/reports/tagesbericht`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsTagesberichtQueryKey = (params?: GetApiReportsTagesberichtParams,) => {
     return [`/api/reports/tagesbericht`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsTagesberichtQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsTagesbericht>>, TError = unknown>(params?: GetApiReportsTagesberichtParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsTagesbericht>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -59,13 +59,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsTagesberichtQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsTagesbericht>>> = ({ signal }) => getApiReportsTagesbericht(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsTagesbericht>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -93,20 +93,20 @@ export const getApiReportsTagesberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<TagesberichtDto>(
       {url: `/api/reports/tagesbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsTagesberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/tagesbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsTagesberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsTagesberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsTagesberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -114,13 +114,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsTagesberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsTagesberichtId>>> = ({ signal }) => getApiReportsTagesberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsTagesberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -147,8 +147,8 @@ export const useGetApiReportsTagesberichtId = <TData = Awaited<ReturnType<typeof
 export const postApiReportsTagesberichtGenerate = (
     tagesberichtGenerationRequest: TagesberichtGenerationRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesberichtDto>(
       {url: `/api/reports/tagesbericht/generate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -156,7 +156,7 @@ export const postApiReportsTagesberichtGenerate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsTagesberichtGenerateMutationOptions = <TError = unknown,
@@ -164,7 +164,7 @@ export const getPostApiReportsTagesberichtGenerateMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsTagesberichtGenerate>>, TError,{data: TagesberichtGenerationRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsTagesberichtGenerate>>, {data: TagesberichtGenerationRequest}> = (props) => {
@@ -173,7 +173,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsTagesberichtGenerate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -198,8 +198,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsTagesberichtFinalize = (
     tagesberichtFinalizeRequest: TagesberichtFinalizeRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesberichtDto>(
       {url: `/api/reports/tagesbericht/finalize`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -207,7 +207,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsTagesberichtFinalizeMutationOptions = <TError = unknown,
@@ -215,7 +215,7 @@ export const getPostApiReportsTagesberichtFinalizeMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsTagesberichtFinalize>>, TError,{data: TagesberichtFinalizeRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsTagesberichtFinalize>>, {data: TagesberichtFinalizeRequest}> = (props) => {
@@ -224,7 +224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsTagesberichtFinalize(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -249,8 +249,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsTagesberichtCorrection = (
     tagesberichtCorrectionRequest: TagesberichtCorrectionRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesberichtDto>(
       {url: `/api/reports/tagesbericht/correction`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -258,7 +258,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsTagesberichtCorrectionMutationOptions = <TError = unknown,
@@ -266,7 +266,7 @@ export const getPostApiReportsTagesberichtCorrectionMutationOptions = <TError = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsTagesberichtCorrection>>, TError,{data: TagesberichtCorrectionRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsTagesberichtCorrection>>, {data: TagesberichtCorrectionRequest}> = (props) => {
@@ -275,7 +275,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsTagesberichtCorrection(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -300,14 +300,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsTagesberichtIdSubmitFinanzonline = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<TagesberichtDto>(
       {url: `/api/reports/tagesbericht/${id}/submit-finanzonline`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsTagesberichtIdSubmitFinanzonlineMutationOptions = <TError = unknown,
@@ -315,7 +315,7 @@ export const getPostApiReportsTagesberichtIdSubmitFinanzonlineMutationOptions = 
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsTagesberichtIdSubmitFinanzonline>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsTagesberichtIdSubmitFinanzonline>>, {id: string}> = (props) => {
@@ -324,13 +324,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsTagesberichtIdSubmitFinanzonline(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiReportsTagesberichtIdSubmitFinanzonlineMutationResult = NonNullable<Awaited<ReturnType<typeof postApiReportsTagesberichtIdSubmitFinanzonline>>>
-    
+
     export type PostApiReportsTagesberichtIdSubmitFinanzonlineMutationError = unknown
 
     export const usePostApiReportsTagesberichtIdSubmitFinanzonline = <TError = unknown,
@@ -346,4 +346,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

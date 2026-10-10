@@ -25,23 +25,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiHealthLive = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<string>(
       {url: `/api/health/live`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiHealthLiveQueryKey = () => {
     return [`/api/health/live`] as const;
     }
 
-    
+
 export const getGetApiHealthLiveQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealthLive>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthLive>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -49,13 +49,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiHealthLiveQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealthLive>>> = ({ signal }) => getApiHealthLive(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealthLive>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -80,23 +80,23 @@ export const useGetApiHealthLive = <TData = Awaited<ReturnType<typeof getApiHeal
 
 
 export const getApiHealthReady = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<HealthProbeResponseDto>(
       {url: `/api/health/ready`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiHealthReadyQueryKey = () => {
     return [`/api/health/ready`] as const;
     }
 
-    
+
 export const getGetApiHealthReadyQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealthReady>>, TError = HealthProbeResponseDto>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthReady>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -104,13 +104,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiHealthReadyQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealthReady>>> = ({ signal }) => getApiHealthReady(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealthReady>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -135,23 +135,23 @@ export const useGetApiHealthReady = <TData = Awaited<ReturnType<typeof getApiHea
 
 
 export const getApiHealth = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/health`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiHealthQueryKey = () => {
     return [`/api/health`] as const;
     }
 
-    
+
 export const getGetApiHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealth>>, TError = void>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -159,13 +159,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiHealthQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealth>>> = ({ signal }) => getApiHealth(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealth>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -190,23 +190,23 @@ export const useGetApiHealth = <TData = Awaited<ReturnType<typeof getApiHealth>>
 
 
 export const getApiHealthFiskalyStatus = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<FiskalyStatusDto>(
       {url: `/api/health/fiskaly/status`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiHealthFiskalyStatusQueryKey = () => {
     return [`/api/health/fiskaly/status`] as const;
     }
 
-    
+
 export const getGetApiHealthFiskalyStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -214,13 +214,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiHealthFiskalyStatusQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>> = ({ signal }) => getApiHealthFiskalyStatus(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealthFiskalyStatus>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -245,23 +245,23 @@ export const useGetApiHealthFiskalyStatus = <TData = Awaited<ReturnType<typeof g
 
 
 export const getApiHealthMigrations = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/health/migrations`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiHealthMigrationsQueryKey = () => {
     return [`/api/health/migrations`] as const;
     }
 
-    
+
 export const getGetApiHealthMigrationsQueryOptions = <TData = Awaited<ReturnType<typeof getApiHealthMigrations>>, TError = void>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiHealthMigrations>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -269,13 +269,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiHealthMigrationsQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiHealthMigrations>>> = ({ signal }) => getApiHealthMigrations(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiHealthMigrations>>, TError, TData> & { queryKey: QueryKey }
 }

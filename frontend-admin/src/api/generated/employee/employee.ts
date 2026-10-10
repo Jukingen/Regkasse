@@ -24,20 +24,20 @@ export const getApiEmployeeByNumberEmployeeNumber = (
     employeeNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Employee/by-number/${employeeNumber}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiEmployeeByNumberEmployeeNumberQueryKey = (employeeNumber: string,) => {
     return [`/api/Employee/by-number/${employeeNumber}`] as const;
     }
 
-    
+
 export const getGetApiEmployeeByNumberEmployeeNumberQueryOptions = <TData = Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>, TError = unknown>(employeeNumber: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -45,13 +45,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiEmployeeByNumberEmployeeNumberQueryKey(employeeNumber);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>> = ({ signal }) => getApiEmployeeByNumberEmployeeNumber(employeeNumber, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(employeeNumber), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeByNumberEmployeeNumber>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -76,23 +76,23 @@ export const useGetApiEmployeeByNumberEmployeeNumber = <TData = Awaited<ReturnTy
 
 
 export const getApiEmployeeList = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Employee/list`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiEmployeeListQueryKey = () => {
     return [`/api/Employee/list`] as const;
     }
 
-    
+
 export const getGetApiEmployeeListQueryOptions = <TData = Awaited<ReturnType<typeof getApiEmployeeList>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -100,13 +100,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiEmployeeListQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiEmployeeList>>> = ({ signal }) => getApiEmployeeList(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiEmployeeList>>, TError, TData> & { queryKey: QueryKey }
 }

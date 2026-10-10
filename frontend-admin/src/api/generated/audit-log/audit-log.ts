@@ -41,21 +41,21 @@ export const getApiAuditLog = (
     params?: GetApiAuditLogParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogQueryKey = (params?: GetApiAuditLogParams,) => {
     return [`/api/AuditLog`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLog>>, TError = unknown>(params?: GetApiAuditLogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -63,13 +63,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLog>>> = ({ signal }) => getApiAuditLog(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLog>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -97,20 +97,20 @@ export const getApiAuditLogId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogResponse>(
       {url: `/api/AuditLog/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogIdQueryKey = (id: string,) => {
     return [`/api/AuditLog/${id}`] as const;
     }
 
-    
+
 export const getGetApiAuditLogIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -118,13 +118,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogId>>> = ({ signal }) => getApiAuditLogId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -153,22 +153,22 @@ export const getApiAuditLogPaymentPaymentId = (
     params?: GetApiAuditLogPaymentPaymentIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog/payment/${paymentId}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogPaymentPaymentIdQueryKey = (paymentId: string,
     params?: GetApiAuditLogPaymentPaymentIdParams,) => {
     return [`/api/AuditLog/payment/${paymentId}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogPaymentPaymentIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>, TError = unknown>(paymentId: string,
     params?: GetApiAuditLogPaymentPaymentIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -177,13 +177,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogPaymentPaymentIdQueryKey(paymentId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>> = ({ signal }) => getApiAuditLogPaymentPaymentId(paymentId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(paymentId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogPaymentPaymentId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -213,22 +213,22 @@ export const getApiAuditLogUserUserId = (
     params?: GetApiAuditLogUserUserIdParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog/user/${userId}`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogUserUserIdQueryKey = (userId: string,
     params?: GetApiAuditLogUserUserIdParams,) => {
     return [`/api/AuditLog/user/${userId}`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogUserUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogUserUserId>>, TError = unknown>(userId: string,
     params?: GetApiAuditLogUserUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogUserUserId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -237,13 +237,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogUserUserIdQueryKey(userId,params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogUserUserId>>> = ({ signal }) => getApiAuditLogUserUserId(userId,params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogUserUserId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -272,20 +272,20 @@ export const getApiAuditLogCorrelationCorrelationId = (
     correlationId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog/correlation/${correlationId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogCorrelationCorrelationIdQueryKey = (correlationId: string,) => {
     return [`/api/AuditLog/correlation/${correlationId}`] as const;
     }
 
-    
+
 export const getGetApiAuditLogCorrelationCorrelationIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>, TError = unknown>(correlationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -293,13 +293,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogCorrelationCorrelationIdQueryKey(correlationId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>> = ({ signal }) => getApiAuditLogCorrelationCorrelationId(correlationId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(correlationId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogCorrelationCorrelationId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -327,21 +327,21 @@ export const getApiAuditLogSuspiciousAdminActions = (
     params?: GetApiAuditLogSuspiciousAdminActionsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog/suspicious-admin-actions`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogSuspiciousAdminActionsQueryKey = (params?: GetApiAuditLogSuspiciousAdminActionsParams,) => {
     return [`/api/AuditLog/suspicious-admin-actions`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogSuspiciousAdminActionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError = unknown>(params?: GetApiAuditLogSuspiciousAdminActionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -349,13 +349,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogSuspiciousAdminActionsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>> = ({ signal }) => getApiAuditLogSuspiciousAdminActions(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -383,20 +383,20 @@ export const getApiAuditLogTransactionTransactionId = (
     transactionId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogsResponse>(
       {url: `/api/AuditLog/transaction/${transactionId}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogTransactionTransactionIdQueryKey = (transactionId: string,) => {
     return [`/api/AuditLog/transaction/${transactionId}`] as const;
     }
 
-    
+
 export const getGetApiAuditLogTransactionTransactionIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>, TError = unknown>(transactionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -404,13 +404,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogTransactionTransactionIdQueryKey(transactionId);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>> = ({ signal }) => getApiAuditLogTransactionTransactionId(transactionId, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(transactionId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogTransactionTransactionId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -438,21 +438,21 @@ export const getApiAuditLogStatistics = (
     params?: GetApiAuditLogStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<AuditLogStatisticsResponse>(
       {url: `/api/AuditLog/statistics`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogStatisticsQueryKey = (params?: GetApiAuditLogStatisticsParams,) => {
     return [`/api/AuditLog/statistics`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogStatisticsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogStatistics>>, TError = unknown>(params?: GetApiAuditLogStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -460,13 +460,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogStatisticsQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogStatistics>>> = ({ signal }) => getApiAuditLogStatistics(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogStatistics>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -493,8 +493,8 @@ export const useGetApiAuditLogStatistics = <TData = Awaited<ReturnType<typeof ge
 export const deleteApiAuditLogCleanup = (
     auditLogCleanupRequest: AuditLogCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<AuditLogCleanupResponse>(
       {url: `/api/AuditLog/cleanup`, method: 'DELETE',
       headers: {'Content-Type': 'application/json', },
@@ -502,7 +502,7 @@ export const deleteApiAuditLogCleanup = (
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiAuditLogCleanupMutationOptions = <TError = unknown,
@@ -510,7 +510,7 @@ export const getDeleteApiAuditLogCleanupMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAuditLogCleanup>>, TError,{data: AuditLogCleanupRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAuditLogCleanup>>, {data: AuditLogCleanupRequest}> = (props) => {
@@ -519,7 +519,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiAuditLogCleanup(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -545,21 +545,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     params?: GetApiAuditLogExportParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/AuditLog/export`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiAuditLogExportQueryKey = (params?: GetApiAuditLogExportParams,) => {
     return [`/api/AuditLog/export`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiAuditLogExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogExport>>, TError = unknown>(params?: GetApiAuditLogExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -567,13 +567,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogExportQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogExport>>> = ({ signal }) => getApiAuditLogExport(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogExport>>, TError, TData> & { queryKey: QueryKey }
 }

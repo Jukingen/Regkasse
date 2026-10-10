@@ -37,21 +37,21 @@ export const getApiReportsJahresbericht = (
     params?: GetApiReportsJahresberichtParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<JahresberichtListItemDto[]>(
       {url: `/api/reports/jahresbericht`, method: 'GET',
         params, signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsJahresberichtQueryKey = (params?: GetApiReportsJahresberichtParams,) => {
     return [`/api/reports/jahresbericht`, ...(params ? [params]: [])] as const;
     }
 
-    
+
 export const getGetApiReportsJahresberichtQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsJahresbericht>>, TError = unknown>(params?: GetApiReportsJahresberichtParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsJahresbericht>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -59,13 +59,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsJahresberichtQueryKey(params);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsJahresbericht>>> = ({ signal }) => getApiReportsJahresbericht(params, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsJahresbericht>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -93,20 +93,20 @@ export const getApiReportsJahresberichtId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<JahresberichtDto>(
       {url: `/api/reports/jahresbericht/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiReportsJahresberichtIdQueryKey = (id: string,) => {
     return [`/api/reports/jahresbericht/${id}`] as const;
     }
 
-    
+
 export const getGetApiReportsJahresberichtIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsJahresberichtId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsJahresberichtId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -114,13 +114,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiReportsJahresberichtIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsJahresberichtId>>> = ({ signal }) => getApiReportsJahresberichtId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsJahresberichtId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -147,8 +147,8 @@ export const useGetApiReportsJahresberichtId = <TData = Awaited<ReturnType<typeo
 export const postApiReportsJahresberichtGenerate = (
     jahresberichtGenerationRequest: JahresberichtGenerationRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<JahresberichtDto>(
       {url: `/api/reports/jahresbericht/generate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -156,7 +156,7 @@ export const postApiReportsJahresberichtGenerate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsJahresberichtGenerateMutationOptions = <TError = unknown,
@@ -164,7 +164,7 @@ export const getPostApiReportsJahresberichtGenerateMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsJahresberichtGenerate>>, TError,{data: JahresberichtGenerationRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsJahresberichtGenerate>>, {data: JahresberichtGenerationRequest}> = (props) => {
@@ -173,7 +173,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsJahresberichtGenerate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -198,8 +198,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsJahresberichtFinalize = (
     jahresberichtFinalizeRequest: JahresberichtFinalizeRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<JahresberichtDto>(
       {url: `/api/reports/jahresbericht/finalize`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -207,7 +207,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsJahresberichtFinalizeMutationOptions = <TError = unknown,
@@ -215,7 +215,7 @@ export const getPostApiReportsJahresberichtFinalizeMutationOptions = <TError = u
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsJahresberichtFinalize>>, TError,{data: JahresberichtFinalizeRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsJahresberichtFinalize>>, {data: JahresberichtFinalizeRequest}> = (props) => {
@@ -224,7 +224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsJahresberichtFinalize(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -249,8 +249,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsJahresberichtCorrection = (
     jahresberichtCorrectionRequest: JahresberichtCorrectionRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<JahresberichtDto>(
       {url: `/api/reports/jahresbericht/correction`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -258,7 +258,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsJahresberichtCorrectionMutationOptions = <TError = unknown,
@@ -266,7 +266,7 @@ export const getPostApiReportsJahresberichtCorrectionMutationOptions = <TError =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsJahresberichtCorrection>>, TError,{data: JahresberichtCorrectionRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsJahresberichtCorrection>>, {data: JahresberichtCorrectionRequest}> = (props) => {
@@ -275,7 +275,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsJahresberichtCorrection(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -300,14 +300,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const postApiReportsJahresberichtIdSubmitFinanzonline = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<JahresberichtDto>(
       {url: `/api/reports/jahresbericht/${id}/submit-finanzonline`, method: 'POST'
     },
       options);
     }
-  
+
 
 
 export const getPostApiReportsJahresberichtIdSubmitFinanzonlineMutationOptions = <TError = unknown,
@@ -315,7 +315,7 @@ export const getPostApiReportsJahresberichtIdSubmitFinanzonlineMutationOptions =
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiReportsJahresberichtIdSubmitFinanzonline>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiReportsJahresberichtIdSubmitFinanzonline>>, {id: string}> = (props) => {
@@ -324,13 +324,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiReportsJahresberichtIdSubmitFinanzonline(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiReportsJahresberichtIdSubmitFinanzonlineMutationResult = NonNullable<Awaited<ReturnType<typeof postApiReportsJahresberichtIdSubmitFinanzonline>>>
-    
+
     export type PostApiReportsJahresberichtIdSubmitFinanzonlineMutationError = unknown
 
     export const usePostApiReportsJahresberichtIdSubmitFinanzonline = <TError = unknown,
@@ -346,4 +346,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

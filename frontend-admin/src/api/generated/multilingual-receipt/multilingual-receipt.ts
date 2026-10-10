@@ -33,23 +33,23 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiMultilingualReceipt = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptTemplate[]>(
       {url: `/api/MultilingualReceipt`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptQueryKey = () => {
     return [`/api/MultilingualReceipt`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceipt>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -57,13 +57,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceipt>>> = ({ signal }) => getApiMultilingualReceipt(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceipt>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -90,8 +90,8 @@ export const useGetApiMultilingualReceipt = <TData = Awaited<ReturnType<typeof g
 export const postApiMultilingualReceipt = (
     createReceiptTemplateRequest: CreateReceiptTemplateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<ReceiptTemplate>(
       {url: `/api/MultilingualReceipt`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -99,7 +99,7 @@ export const postApiMultilingualReceipt = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiMultilingualReceiptMutationOptions = <TError = unknown,
@@ -107,7 +107,7 @@ export const getPostApiMultilingualReceiptMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiMultilingualReceipt>>, TError,{data: CreateReceiptTemplateRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiMultilingualReceipt>>, {data: CreateReceiptTemplateRequest}> = (props) => {
@@ -116,7 +116,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiMultilingualReceipt(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -142,20 +142,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptTemplate>(
       {url: `/api/MultilingualReceipt/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptIdQueryKey = (id: string,) => {
     return [`/api/MultilingualReceipt/${id}`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceiptId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -163,13 +163,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceiptId>>> = ({ signal }) => getApiMultilingualReceiptId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -197,8 +197,8 @@ export const putApiMultilingualReceiptId = (
     id: string,
     updateReceiptTemplateRequest: UpdateReceiptTemplateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/MultilingualReceipt/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
@@ -206,7 +206,7 @@ export const putApiMultilingualReceiptId = (
     },
       options);
     }
-  
+
 
 
 export const getPutApiMultilingualReceiptIdMutationOptions = <TError = unknown,
@@ -214,7 +214,7 @@ export const getPutApiMultilingualReceiptIdMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof putApiMultilingualReceiptId>>, TError,{id: string;data: UpdateReceiptTemplateRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiMultilingualReceiptId>>, {id: string;data: UpdateReceiptTemplateRequest}> = (props) => {
@@ -223,7 +223,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  putApiMultilingualReceiptId(id,data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -248,14 +248,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export const deleteApiMultilingualReceiptId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/MultilingualReceipt/${id}`, method: 'DELETE'
     },
       options);
     }
-  
+
 
 
 export const getDeleteApiMultilingualReceiptIdMutationOptions = <TError = unknown,
@@ -263,7 +263,7 @@ export const getDeleteApiMultilingualReceiptIdMutationOptions = <TError = unknow
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiMultilingualReceiptId>>, TError,{id: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiMultilingualReceiptId>>, {id: string}> = (props) => {
@@ -272,13 +272,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  deleteApiMultilingualReceiptId(id,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteApiMultilingualReceiptIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiMultilingualReceiptId>>>
-    
+
     export type DeleteApiMultilingualReceiptIdMutationError = unknown
 
     export const useDeleteApiMultilingualReceiptId = <TError = unknown,
@@ -298,20 +298,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     language: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptTemplate[]>(
       {url: `/api/MultilingualReceipt/language/${language}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptLanguageLanguageQueryKey = (language: string,) => {
     return [`/api/MultilingualReceipt/language/${language}`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptLanguageLanguageQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceiptLanguageLanguage>>, TError = unknown>(language: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptLanguageLanguage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -319,13 +319,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptLanguageLanguageQueryKey(language);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceiptLanguageLanguage>>> = ({ signal }) => getApiMultilingualReceiptLanguageLanguage(language, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(language), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptLanguageLanguage>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -353,20 +353,20 @@ export const getApiMultilingualReceiptTypeType = (
     type: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptTemplate[]>(
       {url: `/api/MultilingualReceipt/type/${type}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptTypeTypeQueryKey = (type: string,) => {
     return [`/api/MultilingualReceipt/type/${type}`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptTypeTypeQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceiptTypeType>>, TError = unknown>(type: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptTypeType>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -374,13 +374,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptTypeTypeQueryKey(type);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceiptTypeType>>> = ({ signal }) => getApiMultilingualReceiptTypeType(type, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(type), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptTypeType>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -407,8 +407,8 @@ export const useGetApiMultilingualReceiptTypeType = <TData = Awaited<ReturnType<
 export const postApiMultilingualReceiptGenerate = (
     generateReceiptRequest: GenerateReceiptRequest,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<GeneratedReceipt>(
       {url: `/api/MultilingualReceipt/generate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
@@ -416,7 +416,7 @@ export const postApiMultilingualReceiptGenerate = (
     },
       options);
     }
-  
+
 
 
 export const getPostApiMultilingualReceiptGenerateMutationOptions = <TError = unknown,
@@ -424,7 +424,7 @@ export const getPostApiMultilingualReceiptGenerateMutationOptions = <TError = un
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiMultilingualReceiptGenerate>>, TError,{data: GenerateReceiptRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiMultilingualReceiptGenerate>>, {data: GenerateReceiptRequest}> = (props) => {
@@ -433,7 +433,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiMultilingualReceiptGenerate(data,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
@@ -459,20 +459,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<ReceiptPreview>(
       {url: `/api/MultilingualReceipt/preview/${id}`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptPreviewIdQueryKey = (id: string,) => {
     return [`/api/MultilingualReceipt/preview/${id}`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptPreviewIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceiptPreviewId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptPreviewId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -480,13 +480,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptPreviewIdQueryKey(id);
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceiptPreviewId>>> = ({ signal }) => getApiMultilingualReceiptPreviewId(id, requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptPreviewId>>, TError, TData> & { queryKey: QueryKey }
 }
@@ -511,23 +511,23 @@ export const useGetApiMultilingualReceiptPreviewId = <TData = Awaited<ReturnType
 
 
 export const getApiMultilingualReceiptExport = (
-    
+
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/MultilingualReceipt/export`, method: 'GET', signal
     },
       options);
     }
-  
+
 
 export const getGetApiMultilingualReceiptExportQueryKey = () => {
     return [`/api/MultilingualReceipt/export`] as const;
     }
 
-    
+
 export const getGetApiMultilingualReceiptExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiMultilingualReceiptExport>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -535,13 +535,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetApiMultilingualReceiptExportQueryKey();
 
-  
+
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMultilingualReceiptExport>>> = ({ signal }) => getApiMultilingualReceiptExport(requestOptions, signal);
 
-      
 
-      
+
+
 
    return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMultilingualReceiptExport>>, TError, TData> & { queryKey: QueryKey }
 }
