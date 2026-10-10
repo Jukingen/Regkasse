@@ -2,10 +2,14 @@
 /**
  * Git pre-commit gate (Husky → `.husky/pre-commit`).
  *
- * Default (fast):
- *   1. API client verify (`--openapi-only`, or full if swagger/generated staged)
- *   2. lint / typecheck only for packages with staged files
- *   3. tests skipped (slow) unless HUSKY_RUN_TESTS=1
+ * Default (fast, staged-path aware):
+ *   1. Secret scan (always)
+ *   2. Full API client verify only when `backend/swagger.json` or
+ *      `frontend-admin/src/api/generated/**` is staged (`HUSKY_FULL_VERIFY=1` forces it)
+ *   3. Lint for packages with any staged file. Backend build only for `backend/**`
+ *   4. Typecheck only for staged source trees:
+ *      frontend-admin/src/**, frontend/src/** or frontend/app/**, frontend-sites/**
+ *   5. Tests skipped unless HUSKY_RUN_TESTS=1
  *
  * Escape hatches:
  *   HUSKY=0                         — disable husky entirely
@@ -21,8 +25,8 @@
  */
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '../..');
@@ -72,14 +76,35 @@ function packagesTouched(files) {
   return set;
 }
 
-function needsFullApiVerify(files) {
-  if (process.env.HUSKY_FULL_VERIFY === '1') return true;
-  return files.some(
-    (f) =>
-      f === 'backend/swagger.json' ||
-      f.startsWith('frontend-admin/src/api/generated/') ||
-      f === 'frontend-admin/orval.config.ts',
-  );
+/**
+ * Which expensive checks a staged set should run.
+ * Lint stays package-scoped. Typecheck, API verify, and the backend build
+ * follow the staged path, not the package root.
+ *
+ * @param {string[]} files
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function selectChecks(files, env = process.env) {
+  const packages = packagesTouched(files);
+  const verifyApiClient =
+    env.HUSKY_FULL_VERIFY === '1' ||
+    files.some(
+      (f) =>
+        f === 'backend/swagger.json' || f.startsWith('frontend-admin/src/api/generated/'),
+    );
+  return {
+    packages,
+    verifyApiClient,
+    lintAdmin: packages.has('admin'),
+    lintPos: packages.has('pos'),
+    lintSites: packages.has('sites'),
+    backendBuild: files.some((f) => f.startsWith('backend/')),
+    typecheckAdmin: files.some((f) => f.startsWith('frontend-admin/src/')),
+    typecheckPos: files.some(
+      (f) => f.startsWith('frontend/src/') || f.startsWith('frontend/app/'),
+    ),
+    typecheckSites: packages.has('sites'),
+  };
 }
 
 function main() {
@@ -89,7 +114,8 @@ function main() {
   }
 
   const files = stagedFiles();
-  const touched = packagesTouched(files);
+  const checks = selectChecks(files);
+  const touched = checks.packages;
   console.log(
     `pre-commit: ${files.length} staged file(s); packages: ${
       touched.size ? [...touched].join(', ') : '(none / docs-only)'
@@ -122,11 +148,12 @@ function main() {
       console.warn(
         'pre-commit: Orval not installed in frontend-admin — skipping API client verify.',
       );
+    } else if (!checks.verifyApiClient) {
+      console.log(
+        'pre-commit: API client verify skipped (no staged swagger.json or generated client).',
+      );
     } else {
-      const full = needsFullApiVerify(files);
-      const cmd = full
-        ? 'node scripts/verify-api-client.mjs'
-        : 'node scripts/verify-api-client.mjs --openapi-only';
+      const cmd = 'node scripts/verify-api-client.mjs';
       console.log(`pre-commit: ${cmd}`);
       try {
         run(cmd, { env: { CI: 'true' } });
@@ -157,8 +184,8 @@ function main() {
         console.log('pre-commit: lint frontend-sites …');
         run('npm run lint -w regkasse-sites');
       }
-      // Backend "lint" is a full build — only when backend sources staged
-      if (touched.has('backend')) {
+      // Backend "lint" is a full build — only staged backend/** (not LicenseGenerator).
+      if (checks.backendBuild) {
         console.log('pre-commit: backend build (lint) …');
         run('npm run lint -w @regkasse/backend');
       }
@@ -174,15 +201,15 @@ function main() {
   // --- 3) Typecheck (TS packages only) ---
   if (process.env.SKIP_PRECOMMIT_TYPECHECK !== '1') {
     try {
-      if (touched.has('admin')) {
+      if (checks.typecheckAdmin) {
         console.log('pre-commit: typecheck frontend-admin …');
         run('npm run typecheck -w registrierkasse-admin');
       }
-      if (touched.has('pos')) {
+      if (checks.typecheckPos) {
         console.log('pre-commit: typecheck frontend (POS) …');
         run('npm run typecheck -w cash-register');
       }
-      if (touched.has('sites')) {
+      if (checks.typecheckSites) {
         console.log('pre-commit: typecheck frontend-sites …');
         run('npm run typecheck -w regkasse-sites');
       }
@@ -217,4 +244,7 @@ function main() {
   console.log('pre-commit: OK');
 }
 
-main();
+const entry = process.argv[1];
+if (entry && import.meta.url === pathToFileURL(resolve(entry)).href) {
+  main();
+}

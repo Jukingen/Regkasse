@@ -47,11 +47,12 @@ npm run verify:api-client   # Orval / OpenAPI drift check
 **Husky pre-commit** (`.husky/pre-commit` → `scripts/git-hooks/pre-commit.mjs`):
 
 1. **Secret scan** (`scripts/git-hooks/scan-secrets.mjs`) — blocks sensitive filenames and high-confidence secrets
-2. API client verify (`--openapi-only`, or full if `swagger.json` / generated client staged)
-3. `lint` / `typecheck` only for **packages with staged files** (keeps commits fast)
-4. Tests **off** by default — set `HUSKY_RUN_TESTS=1` for fast contract tests
+2. API client verify **only** when `backend/swagger.json` or `frontend-admin/src/api/generated/**` is staged (full Orval drift check). `HUSKY_FULL_VERIFY=1` forces that check
+3. `lint` for packages with staged files. The backend build runs only when `backend/**` is staged
+4. `typecheck` follows the staged source tree: `frontend-admin/src/**` for admin, `frontend/src/**` or `frontend/app/**` for POS, any staged `frontend-sites/**` for sites
+5. Tests **off** by default — set `HUSKY_RUN_TESTS=1` for fast contract tests on staged admin and POS packages
 
-Skip: `SKIP_PRECOMMIT=1`, `SKIP_SECRET_SCAN=1`, `SKIP_API_CLIENT_VERIFY=1`, `SKIP_PRECOMMIT_LINT=1`, `SKIP_PRECOMMIT_TYPECHECK=1`.
+Skip: `SKIP_PRECOMMIT=1`, `SKIP_SECRET_SCAN=1`, `SKIP_API_CLIENT_VERIFY=1`, `SKIP_PRECOMMIT_LINT=1`. Emergency typecheck skip: `SKIP_PRECOMMIT_TYPECHECK=1`.
 
 Secrets policy: [`SECURITY.md`](SECURITY.md). Manual scan of tracked files: `npm run verify:secrets`.
 
