@@ -28,7 +28,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "generate:api": "orval",
+    "generate:api": "orval && node ./scripts/strip-generated-trailing-whitespace.mjs",
     "verify:api-client": "node ../scripts/verify-api-client.mjs",
     "verify:permission-keys": "node ../scripts/verify-permission-keys.mjs",
     "verify:menu-permissions": "node ../scripts/verify-menu-permissions.mjs",
