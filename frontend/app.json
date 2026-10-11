@@ -8,7 +8,7 @@
       "policy": "sdkVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/00000000-0000-4000-8000-000000000000",
+      "url": "https://u.expo.dev/60f5039c-20d6-4ebc-adc7-221311f5236c",
       "checkAutomatically": "ON_LOAD"
     },
     "orientation": "portrait",
@@ -141,6 +141,11 @@
     "experiments": {
       "typedRoutes": true,
       "onDemandFilesystem": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "60f5039c-20d6-4ebc-adc7-221311f5236c"
+      }
     }
   }
 }

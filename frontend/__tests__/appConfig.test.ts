@@ -45,7 +45,7 @@ describe('app.config universal binary', () => {
       expect(config.icon).toBe(appJson.expo.icon);
       expect(config.android?.package).toBe(appJson.expo.android.package);
       expect(config.ios?.bundleIdentifier).toBe(appJson.expo.ios.bundleIdentifier);
-      expect(config.extra).toBeUndefined();
+      expect(config.extra?.eas?.projectId).toBe('60f5039c-20d6-4ebc-adc7-221311f5236c');
     });
   });
 
