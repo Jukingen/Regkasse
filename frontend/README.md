@@ -11,9 +11,9 @@ Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` 
 
 | Layer | Package / tool | Version (approx.) |
 | ----- | -------------- | ----------------- |
-| Runtime | Expo | `~56.0.18` |
+| Runtime | Expo | `~56.0.23` |
 | UI | React / React Native | `19.2.3` / `0.85.3` |
-| Navigation | `expo-router` | `~56.2.17` |
+| Navigation | `expo-router` | `~56.2.21` |
 | Screens | `react-native-screens` | `~4.26.0` |
 | Language | TypeScript | `~6.0.3` (`strict`, `jsx: react-jsx`) |
 | Bundler | Metro (`expo/metro-config`) | via Expo 56 |
@@ -23,8 +23,9 @@ Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` 
 | UI state | `zustand` | `^5` (ephemeral checkout UI only) |
 | Animations | `react-native-reanimated` + worklets | `4.3.1` / `0.8.3` |
 | Camera / QR | `expo-camera` | `~56.0.8` |
-| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.23` |
-| Build props | `expo-build-properties` | `~56.0.24` |
+| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.26` |
+| Build props | `expo-build-properties` | `~56.0.27` |
+| OTA | `expo-updates` | `~56.0.28` (`checkAutomatically`: `ON_LOAD`) |
 | Lint / format | ESLint 9 flat + `eslint-config-universe` / Prettier | `^9.39` / `^16` / `^3.9` |
 | Tests | Jest + `jest-expo` + RNTL | `^29` / `~56.0.5` / `^14` |
 
@@ -344,7 +345,7 @@ Device test: run on a physical iOS/Android device (simulators often lack a real 
 
 | Item | Detail |
 | ---- | ------ |
-| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.23 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
+| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.26 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
 | HTML receipts | `services/receiptFormatter.ts` → thermal layout (`max-width: 300px`), viewport meta, escaped text, RKSV QR as `data:image/png;base64,…` |
 | Print entry | `services/receiptPrinter.ts` → `utils/expoPrintShare.printHtmlAsync` (native print preview; PDF fallback if HTML print fails) |
 | Tagesabschluss | `utils/dailyClosingReportPrint.ts` (HTML + server PDF URI) |
@@ -361,13 +362,13 @@ Device smoke (physical tablet recommended):
 
 | Item | Detail |
 | ---- | ------ |
-| Version | `expo-build-properties` ~56.0.24 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
+| Version | `expo-build-properties` ~56.0.27 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
 | Plugin | `app.json` → `plugins[]` entry for `expo-build-properties` |
 | Android cleartext | `usesCleartextTraffic: true` — required for LAN/`http://` API bases in development and optional on-device API IP (`ApiSettingsModal`) |
 | Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 56 defaults) |
 | iOS | `deploymentTarget` `16.4`; ATS cleartext for localhost/LAN also in `ios.infoPlist.NSAppTransportSecurity` |
 | EAS | Single `production` profile in `eas.json` (internal Android APK). One binary for all verticals — see [Native build](#native-build) |
-| Runtime | `runtimeVersion.policy: sdkVersion` in `app.json` |
+| Runtime | `runtimeVersion.policy: sdkVersion` in `app.json`. OTA updates use the same policy so a JS update only applies to binaries built with this SDK. |
 
 After changing this plugin: `npx expo prebuild --clean`, then native build (`eas build` or local Gradle/Xcode). JS-only Metro reload does **not** apply cleartext / SDK pins.
 
@@ -580,6 +581,35 @@ npx eas build --platform android --profile production-apk
 GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). The release input is `profile=universal`. `profile=gastronomy` is future / experimental. The workflow runs `eas build` and does not submit or commit binaries.
 
 Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
+
+### OTA updates (`expo-updates`)
+
+JS and asset changes can ship without a store binary. [`app.json`](app.json) sets `runtimeVersion.policy` to `sdkVersion` and `updates.checkAutomatically` to `ON_LOAD` (the Expo default: check when the app loads).
+
+`updates.url` is still the placeholder `https://u.expo.dev/00000000-0000-4000-8000-000000000000`. Replace it with `https://u.expo.dev/<project-id>` after `npx eas-cli init` prints the project id (`extra.eas.projectId` in `app.json`). OTA requests do nothing useful until that URL is the real project.
+
+[`eas.json`](eas.json) sets one channel per build profile. A binary only receives updates published on the branch linked to its channel. The first `eas build` for a profile creates that link when the channel name matches the branch name.
+
+| Profile | Channel / branch |
+| ------- | ---------------- |
+| `production` | `production` |
+| `production-apk` | `production-apk` |
+| `gastronomy-production` | `gastronomy-production` |
+| `gastronomy-production-apk` | `gastronomy-production-apk` |
+
+Publish a JavaScript or asset update to the universal store binary:
+
+```bash
+cd frontend
+npx eas-cli update --branch production --message "Describe the JS change"
+```
+
+Use the matching branch for the other profiles (`production-apk`, `gastronomy-production`, `gastronomy-production-apk`).
+
+| Change | What to ship |
+| ------ | ------------ |
+| JavaScript, images, and other assets only | `eas update --branch production --message "..."`. No native rebuild. |
+| Native config (`plugins`, `android`, `ios`, new native modules, `runtimeVersion`) | A new binary (`eas build` or local Gradle/Xcode). An OTA update cannot apply those changes. |
 
 ### CNG (prebuild)
 
