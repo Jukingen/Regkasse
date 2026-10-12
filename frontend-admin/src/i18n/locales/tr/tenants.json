@@ -1795,44 +1795,5 @@
       "Served": "Servis edildi",
       "Cancelled": "İptal"
     }
-  },
-  "lodging": {
-    "title": "Odalar",
-    "subtitle": "Konaklama için oda listesi ve konuk hesapları.",
-    "unavailable": "Geçerli POS profili konaklama değil.",
-    "roomsTitle": "Odalar",
-    "foliosTitle": "Konuk hesapları",
-    "create": "Oda ekle",
-    "createSuccess": "Oda kaydedildi.",
-    "createFailed": "Oda oluşturulamadı.",
-    "numberRequired": "Oda numarası gerekli.",
-    "typeRequired": "Oda tipi gerekli.",
-    "readOnly": "Salt okunur — oda eklemek için product.manage gerekir.",
-    "loadError": "Odalar veya hesaplar yüklenemedi.",
-    "emptyRooms": "Oda yok.",
-    "emptyFolios": "Konuk hesabı yok.",
-    "colNumber": "Numara",
-    "colType": "Tip",
-    "colCapacity": "Kapasite",
-    "colStatus": "Doluluk",
-    "colRoom": "Oda",
-    "colCustomer": "Konuk",
-    "colCheckIn": "Check-in",
-    "colCheckOut": "Check-out",
-    "colBalance": "Bakiye",
-    "colFolioStatus": "Durum",
-    "occupied": "Dolu",
-    "free": "Boş",
-    "open": "Açık",
-    "closed": "Kapalı",
-    "analyticsTitle": "Doluluk",
-    "occupancy": "Doluluk",
-    "averageStay": "Ortalama konaklama (gün)",
-    "status": {
-      "Available": "Boş",
-      "Occupied": "Dolu",
-      "Cleaning": "Temizlik",
-      "Maintenance": "Bakım"
-    }
   }
 }

@@ -1795,44 +1795,5 @@
       "Served": "Served",
       "Cancelled": "Cancelled"
     }
-  },
-  "lodging": {
-    "title": "Rooms",
-    "subtitle": "Room list and guest folios for lodging.",
-    "unavailable": "The current POS profile is not lodging.",
-    "roomsTitle": "Rooms",
-    "foliosTitle": "Guest folios",
-    "create": "Add room",
-    "createSuccess": "Room saved.",
-    "createFailed": "The room could not be created.",
-    "numberRequired": "Room number is required.",
-    "typeRequired": "Room type is required.",
-    "readOnly": "Read-only — product.manage is required to add rooms.",
-    "loadError": "Rooms or folios could not be loaded.",
-    "emptyRooms": "No rooms.",
-    "emptyFolios": "No guest folios.",
-    "colNumber": "Number",
-    "colType": "Type",
-    "colCapacity": "Capacity",
-    "colStatus": "Occupancy",
-    "colRoom": "Room",
-    "colCustomer": "Guest",
-    "colCheckIn": "Check-in",
-    "colCheckOut": "Check-out",
-    "colBalance": "Balance",
-    "colFolioStatus": "Status",
-    "occupied": "Occupied",
-    "free": "Free",
-    "open": "Open",
-    "closed": "Closed",
-    "analyticsTitle": "Occupancy",
-    "occupancy": "Occupancy",
-    "averageStay": "Average stay (days)",
-    "status": {
-      "Available": "Available",
-      "Occupied": "Occupied",
-      "Cleaning": "Cleaning",
-      "Maintenance": "Maintenance"
-    }
   }
 }

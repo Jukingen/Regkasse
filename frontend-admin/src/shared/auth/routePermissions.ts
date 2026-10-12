@@ -32,6 +32,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/products': PERMISSIONS.PRODUCT_VIEW,
   '/admin/tickets/redemptions': PERMISSIONS.PRODUCT_VIEW,
   '/admin/rooms': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/folios': PERMISSIONS.PRODUCT_VIEW,
   '/admin/patients': PERMISSIONS.PATIENT_VIEW,
   '/admin/appointments': PERMISSIONS.APPOINTMENT_VIEW,
   '/admin/imeis': PERMISSIONS.IMEI_VIEW,

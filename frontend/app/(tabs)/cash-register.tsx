@@ -36,6 +36,7 @@ import { TableSelector } from '../../components/TableSelector';
 import { ImeiPickerModal } from '../../components/ImeiPickerModal';
 import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
 import { FolioChargeBar } from '../../components/FolioChargeBar';
+import { consumeOpenPayment } from '../../components/lodging/folioCheckoutHandoff';
 import { RoomPicker } from '../../components/RoomPicker';
 import { TaxiSalePanel } from '../../components/TaxiSalePanel';
 import { ToastContainer } from '../../components/ToastNotification';
@@ -395,6 +396,7 @@ export default function CashRegisterScreen() {
     addItemWithAddOns,
     removeByItemId,
     clearCart,
+    fetchTableCart,
     getCartForTable,
     updateItemQuantityByItemId,
     incrementModifier,
@@ -433,6 +435,24 @@ export default function CashRegisterScreen() {
         setSplitMergeVisible(true);
       }
     }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const pending = consumeOpenPayment();
+      if (!pending) return undefined;
+      let cancelled = false;
+      void (async () => {
+        if (activeTableId !== pending.tableNumber) {
+          await switchTable(pending.tableNumber);
+        }
+        await fetchTableCart(pending.tableNumber, true);
+        if (!cancelled) setIsPaymentModalVisible(true);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [activeTableId, fetchTableCart, setIsPaymentModalVisible, switchTable])
   );
 
   const handleOpenPaymentHistory = useCallback(() => {
@@ -976,7 +996,18 @@ export default function CashRegisterScreen() {
             {profileId === 'beherbergung' ? (
               <FolioChargeBar
                 amount={summaryTotals.grandTotalGross}
-                description={t('verticalProfiles:screens.lodging.chargeDefault')}
+                customerId={saleCustomer?.id ?? null}
+                description={
+                  (currentCart?.items ?? [])
+                    .filter((item) => (item.qty ?? 0) > 0 && item.productName)
+                    .map((item) => `${item.qty}× ${item.productName}`)
+                    .join(', ')
+                    .slice(0, 255) || undefined
+                }
+                onCharged={() => {
+                  if (!activeTableId) return;
+                  void clearCart(activeTableId).catch(() => undefined);
+                }}
               />
             ) : null}
 

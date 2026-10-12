@@ -9,7 +9,7 @@ export default function AdminRoomsPage() {
   const { t } = useI18n();
   return (
     <AdminPageShell>
-      <AdminPageHeader title={t('tenants.lodging.title')} subtitle={t('tenants.lodging.subtitle')} />
+      <AdminPageHeader title={t('admin.rooms.title')} subtitle={t('admin.rooms.subtitle')} />
       <LodgingWorkspace />
     </AdminPageShell>
   );

@@ -134,7 +134,7 @@ interface CartContextType {
   getCartForTable: (tableNumber: number) => Cart;
   updateItemQuantity: (productId: string, quantity: number) => Promise<void>;
   updateItemQuantityByItemId: (itemId: string, quantity: number) => Promise<void>;
-  fetchTableCart: (tableNumber: number) => Promise<void>;
+  fetchTableCart: (tableNumber: number, forceRefresh?: boolean) => Promise<void>;
   /** Modifier miktarı bağımsız: ekle (qty 1 veya mevcutsa +1), artır, azalt, kaldır. cartItemId = itemId ?? clientId */
   addModifier: (
     cartItemId: string,

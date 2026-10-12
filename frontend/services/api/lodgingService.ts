@@ -106,6 +106,11 @@ export async function listRooms(): Promise<RoomDto[]> {
   return asRows(payload).map((row) => mapRoom(row));
 }
 
+export async function updateRoomStatus(roomId: string, status: RoomStatusName): Promise<RoomDto> {
+  const response = await apiClient.patch<unknown>(API_PATHS.PRODUCT.ROOM(roomId), { status });
+  return mapRoom(unwrapRecord(response));
+}
+
 export async function listFolios(roomId?: string, openOnly = true): Promise<GuestFolioDto[]> {
   const payload = await apiClient.get<unknown>(API_PATHS.PRODUCT.FOLIOS, {
     params: { roomId, openOnly },
@@ -132,6 +137,26 @@ export async function chargeFolio(
 ): Promise<GuestFolioDto> {
   const response = await apiClient.post<unknown>(API_PATHS.PRODUCT.FOLIO_CHARGE(folioId), body);
   return mapFolio(unwrapRecord(response));
+}
+
+export type StageCheckoutDto = {
+  lineName: string;
+  balance: number;
+  productId: string;
+  tableNumber: number;
+};
+
+export async function stageCheckout(folioId: string, productId: string): Promise<StageCheckoutDto> {
+  const response = await apiClient.post<unknown>(API_PATHS.PRODUCT.FOLIO_STAGE_CHECKOUT(folioId), {
+    productId,
+  });
+  const row = unwrapRecord(response);
+  return {
+    lineName: String(row.lineName ?? ''),
+    balance: Number(row.balance ?? 0),
+    productId: String(row.productId ?? productId),
+    tableNumber: Number(row.tableNumber ?? 1),
+  };
 }
 
 export async function listFolioItems(folioId: string): Promise<GuestFolioItemDto[]> {

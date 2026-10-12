@@ -62,6 +62,7 @@ describe('sidebar vertical profile filter', () => {
     }
 
     expect(keys.includes(GATED.rooms)).toBe(id === 'beherbergung');
+    expect(keys.includes('/admin/folios')).toBe(id === 'beherbergung');
     expect(keys.includes('/admin/patients')).toBe(id === 'vet');
     expect(keys.includes('/admin/appointments')).toBe(id === 'hair-salon');
     expect(keys.includes('/admin/imeis')).toBe(id === 'handy-shop');

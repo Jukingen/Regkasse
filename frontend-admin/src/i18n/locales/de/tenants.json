@@ -1795,44 +1795,5 @@
       "Served": "Serviert",
       "Cancelled": "Storniert"
     }
-  },
-  "lodging": {
-    "title": "Zimmer",
-    "subtitle": "Zimmerliste und Gästekonten für Beherbergung.",
-    "unavailable": "Das aktuelle POS-Profil ist keine Beherbergung.",
-    "roomsTitle": "Zimmer",
-    "foliosTitle": "Gästekonten",
-    "create": "Zimmer anlegen",
-    "createSuccess": "Zimmer gespeichert.",
-    "createFailed": "Zimmer konnte nicht angelegt werden.",
-    "numberRequired": "Zimmernummer ist erforderlich.",
-    "typeRequired": "Zimmertyp ist erforderlich.",
-    "readOnly": "Nur Lesen — zum Anlegen ist product.manage erforderlich.",
-    "loadError": "Zimmer oder Konten konnten nicht geladen werden.",
-    "emptyRooms": "Keine Zimmer.",
-    "emptyFolios": "Keine Gästekonten.",
-    "colNumber": "Nummer",
-    "colType": "Typ",
-    "colCapacity": "Kapazität",
-    "colStatus": "Belegung",
-    "colRoom": "Zimmer",
-    "colCustomer": "Gast",
-    "colCheckIn": "Check-in",
-    "colCheckOut": "Check-out",
-    "colBalance": "Saldo",
-    "colFolioStatus": "Status",
-    "occupied": "Belegt",
-    "free": "Frei",
-    "open": "Offen",
-    "closed": "Abgeschlossen",
-    "analyticsTitle": "Auslastung",
-    "occupancy": "Auslastung",
-    "averageStay": "Durchschnittliche Aufenthaltsdauer (Tage)",
-    "status": {
-      "Available": "Frei",
-      "Occupied": "Belegt",
-      "Cleaning": "Reinigung",
-      "Maintenance": "Wartung"
-    }
   }
 }

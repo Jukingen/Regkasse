@@ -309,6 +309,15 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     permission: PERMISSIONS.PRODUCT_VIEW,
     onlyForProfiles: ['beherbergung'],
   },
+  folios: {
+    id: 'folios',
+    menuKey: '/admin/folios',
+    href: '/admin/folios',
+    labelKey: 'nav.folios',
+    icon: 'FileTextOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['beherbergung'],
+  },
   patients: {
     id: 'patients',
     menuKey: '/admin/patients',
@@ -1784,6 +1793,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'imeis',
           'ticketRedemptions',
           'rooms',
+          'folios',
           'categories',
           'modifierGroups',
           'pricingRules',

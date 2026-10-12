@@ -140,6 +140,7 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
   '/products',
   '/admin/tickets/redemptions',
   '/admin/rooms',
+  '/admin/folios',
   '/admin/kitchen',
   '/categories',
   '/modifier-groups',

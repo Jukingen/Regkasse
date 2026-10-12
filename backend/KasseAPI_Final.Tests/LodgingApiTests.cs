@@ -59,6 +59,39 @@ public sealed class LodgingApiTests
     }
 
     [Fact]
+    public async Task Admin_DeleteRoom_OnlyWhenNeverUsed()
+    {
+        var tenantId = Guid.NewGuid();
+        await using var db = CreateDb(tenantId);
+        SeedTenant(db, tenantId);
+        var controller = CreateAdminController(db, tenantId);
+        var created = await controller.CreateRoom(
+            new CreateRoomRequest { Number = "11", Type = "EZ", Capacity = 1 },
+            CancellationToken.None);
+        var unused = Assert.IsType<RoomDto>(Assert.IsType<ObjectResult>(created.Result).Value);
+        Assert.IsType<NoContentResult>(await controller.DeleteRoom(unused.Id, CancellationToken.None));
+
+        var usedId = await SeedRoomAsync(db, tenantId, "12");
+        var customerId = await SeedCustomerAsync(db, tenantId, "Gast");
+        db.GuestFolios.Add(new GuestFolio
+        {
+            TenantId = tenantId,
+            CustomerId = customerId,
+            RoomId = usedId,
+            CheckIn = DateTime.UtcNow,
+            Status = GuestFolioStatus.Closed,
+            Balance = 0,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var denied = await controller.DeleteRoom(usedId, CancellationToken.None);
+        var conflict = Assert.IsType<ConflictObjectResult>(denied);
+        Assert.Equal(LodgingErrorCodes.RoomInUse, Assert.IsType<LodgingErrorDto>(conflict.Value).Code);
+    }
+
+    [Fact]
     public async Task Pos_CreateFolioThenList_ReturnsOpenFolio()
     {
         var tenantId = Guid.NewGuid();

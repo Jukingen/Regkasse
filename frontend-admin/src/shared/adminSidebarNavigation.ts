@@ -248,6 +248,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/products',
     '/admin/tickets/redemptions',
     '/admin/rooms',
+    '/admin/folios',
     '/modifier-groups',
     '/categories',
     '/inventory',

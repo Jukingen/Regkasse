@@ -69,6 +69,20 @@ public sealed class ChargeFolioRequest
     public decimal Amount { get; set; }
 }
 
+public sealed class StageFolioCheckoutRequest
+{
+    [Required]
+    public Guid ProductId { get; set; }
+}
+
+public sealed class StageFolioCheckoutDto
+{
+    public string LineName { get; init; } = string.Empty;
+    public decimal Balance { get; init; }
+    public Guid ProductId { get; init; }
+    public int TableNumber { get; init; }
+}
+
 public sealed class GuestFolioItemDto
 {
     public Guid Id { get; init; }
@@ -101,6 +115,23 @@ public static class LodgingErrorCodes
     public const string InvalidStay = "INVALID_STAY";
     public const string FolioClosed = "FOLIO_CLOSED";
     public const string InvalidStatus = "INVALID_STATUS";
+    public const string RoomInUse = "ROOM_IN_USE";
+    public const string ZeroBalance = "ZERO_BALANCE";
+    public const string ProductUnsuitable = "PRODUCT_UNSUITABLE";
+}
+
+public sealed class UpdateRoomDetailsRequest
+{
+    [Required]
+    [MaxLength(32)]
+    public string Number { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(64)]
+    public string Type { get; set; } = string.Empty;
+
+    [Range(1, 20)]
+    public int Capacity { get; set; } = 1;
 }
 
 public sealed class LodgingErrorDto

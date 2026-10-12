@@ -45,6 +45,7 @@ vi.mock('@/i18n', () => ({
 
 const GATED = [
   '/admin/rooms',
+  '/admin/folios',
   '/admin/tickets/redemptions',
   '/modifier-groups',
   '/tables',
@@ -148,6 +149,7 @@ describe('Super Admin profile simulation', () => {
 
     const keys = leafKeys(toVerticalProfileMenuScope(result.current));
     expect(keys).not.toContain('/admin/rooms');
+    expect(keys).not.toContain('/admin/folios');
     expect(keys).toContain('/admin/kitchen');
   });
 });

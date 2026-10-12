@@ -40,9 +40,9 @@ export interface Customer {
 
 export interface CreateCustomerRequest {
   name: string;
-  email: string;
-  phone: string;
-  address: string;
+  email?: string;
+  phone?: string;
+  address?: string;
   taxNumber?: string;
   category?: string;
   notes?: string;

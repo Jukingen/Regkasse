@@ -61,6 +61,9 @@ vi.mock('@/api/admin/lodging', () => ({
     mutate: vi.fn(),
     isPending: false,
   }),
+  useUpdateAdminRoomDetails: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateAdminRoomStatus: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteAdminRoom: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 describe('lodging workspace', () => {
@@ -84,8 +87,6 @@ describe('lodging workspace', () => {
     expect(screen.getAllByText('101').length).toBeGreaterThan(0);
     expect(screen.getByText('Anna Gast')).toBeTruthy();
     expect(screen.getByText('Belegt')).toBeTruthy();
-    expect(screen.getByText('Offen')).toBeTruthy();
-    expect(screen.getByText('80.00')).toBeTruthy();
     expect(screen.getAllByText('Auslastung').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Zimmer anlegen' })).toBeTruthy();
   });

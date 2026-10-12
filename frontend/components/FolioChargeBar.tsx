@@ -6,15 +6,31 @@ import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import { useVerticalFeatures } from '../contexts/VerticalProfileContext';
 import { chargeFolio, listFolios, type GuestFolioDto } from '../services/api/lodgingService';
 
-export function FolioChargeBar(props: { amount: number; description?: string }) {
+export function FolioChargeBar(props: {
+  amount: number;
+  description?: string;
+  /** Undefined lists every open folio. Null means no sale customer, so the action stays hidden. */
+  customerId?: string | null;
+  onCharged?: () => void;
+}) {
   const { profileId } = useVerticalFeatures();
-  if (profileId !== 'beherbergung' || props.amount <= 0) {
+  if (profileId !== 'beherbergung' || props.amount <= 0 || props.customerId === null) {
     return null;
   }
   return <FolioChargeFields {...props} />;
 }
 
-function FolioChargeFields({ amount, description }: { amount: number; description?: string }) {
+function FolioChargeFields({
+  amount,
+  description,
+  customerId,
+  onCharged,
+}: {
+  amount: number;
+  description?: string;
+  customerId?: string | null;
+  onCharged?: () => void;
+}) {
   const { t } = useTranslation('verticalProfiles');
   const [folios, setFolios] = useState<GuestFolioDto[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -23,11 +39,12 @@ function FolioChargeFields({ amount, description }: { amount: number; descriptio
   const load = useCallback(async () => {
     try {
       const rows = await listFolios(undefined, true);
-      setFolios(rows.filter((row) => row.isOpen));
+      const open = rows.filter((row) => row.isOpen);
+      setFolios(customerId ? open.filter((row) => row.customerId === customerId) : open);
     } catch {
       setFolios([]);
     }
-  }, []);
+  }, [customerId]);
 
   useEffect(() => {
     void load();
@@ -42,11 +59,27 @@ function FolioChargeFields({ amount, description }: { amount: number; descriptio
     }
     setBusy(true);
     try {
-      await chargeFolio(selectedId, {
+      const updated = await chargeFolio(selectedId, {
         description: description?.trim() || t('screens.lodging.chargeDefault'),
         amount,
       });
-      Alert.alert(t('screens.lodging.chargedTitle'), t('screens.lodging.charged'));
+      if (updated?.id) {
+        setFolios((rows) =>
+          rows.map((row) =>
+            row.id === updated.id
+              ? { ...row, ...updated, balance: Number(updated.balance) }
+              : row
+          )
+        );
+        setSelectedId(updated.id);
+      }
+      Alert.alert(
+        t('screens.lodging.chargedTitle'),
+        t('screens.lodging.chargedBalance', {
+          amount: Number(updated?.balance ?? 0).toFixed(2),
+        })
+      );
+      onCharged?.();
       await load();
     } catch {
       Alert.alert(t('screens.lodging.saveFailedTitle'), t('screens.lodging.chargeFailed'));
@@ -77,9 +110,7 @@ function FolioChargeFields({ amount, description }: { amount: number; descriptio
         accessibilityRole="button"
         accessibilityLabel={t('screens.lodging.chargeToRoom')}
         disabled={busy || !selectedId}
-        onPress={() => {
-          post().catch(() => undefined);
-        }}
+        onPress={() => post()}
         style={[styles.button, (busy || !selectedId) && styles.disabled]}
       >
         <Text style={styles.buttonText}>{t('screens.lodging.chargeToRoom')}</Text>

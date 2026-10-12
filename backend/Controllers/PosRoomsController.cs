@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Lodging;
 using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
@@ -196,6 +197,50 @@ public sealed class PosRoomsController : ControllerBase
             .ChargeFolioAsync(tenantId, id, request, ignoreFilters: false, cancellationToken, userId, role)
             .ConfigureAwait(false);
         return MapFolio(result);
+    }
+
+    [HttpPost("folios/{id:guid}/stage-checkout")]
+    [ProducesResponseType(typeof(StageFolioCheckoutDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StageFolioCheckoutDto>> StageCheckout(
+        Guid id,
+        [FromBody] StageFolioCheckoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("roomTracking", cancellationToken).ConfigureAwait(false);
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
+
+        var userId = User.GetActorUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var result = await _lodging
+            .StageCheckoutCartAsync(tenantId, id, request.ProductId, userId, ignoreFilters: false, cancellationToken)
+            .ConfigureAwait(false);
+        return result switch
+        {
+            StageCheckoutResult.Ok ok => Ok(ok.Checkout),
+            StageCheckoutResult.NotFound => NotFound(),
+            StageCheckoutResult.Conflict conflict => Conflict(
+                new LodgingErrorDto { Code = conflict.Code, Message = conflict.Message }),
+            StageCheckoutResult.BadRequest bad => BadRequest(
+                new LodgingErrorDto { Code = bad.Code, Message = bad.Message }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError),
+        };
     }
 
     [HttpGet("folios/{id:guid}/items")]

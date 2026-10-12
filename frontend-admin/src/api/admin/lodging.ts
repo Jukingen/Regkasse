@@ -34,11 +34,45 @@ export type CreateAdminRoomRequest = {
   capacity: number;
 };
 
+export type AdminFolioListQuery = {
+  openOnly?: boolean;
+  fromUtc?: string;
+  toUtc?: string;
+};
+
+export interface AdminFolioItem {
+  id: string;
+  folioId: string;
+  description: string;
+  amount: number;
+  createdAtUtc: string;
+  paymentDetailId?: string | null;
+}
+
+export type UpdateAdminRoomDetailsRequest = CreateAdminRoomRequest;
+
+export type ChargeAdminFolioRequest = {
+  description: string;
+  amount: number;
+};
+
 export const adminLodgingQueryKeys = {
   all: ['admin', 'lodging'] as const,
   rooms: () => [...adminLodgingQueryKeys.all, 'rooms'] as const,
-  folios: () => [...adminLodgingQueryKeys.all, 'folios'] as const,
+  room: (id: string) => [...adminLodgingQueryKeys.rooms(), id] as const,
+  folios: (query?: AdminFolioListQuery) => [...adminLodgingQueryKeys.all, 'folios', query ?? {}] as const,
+  folio: (id: string) => [...adminLodgingQueryKeys.all, 'folio', id] as const,
+  folioItems: (id: string) => [...adminLodgingQueryKeys.folio(id), 'items'] as const,
 };
+
+function folioSearch(query?: AdminFolioListQuery): string {
+  const params = new URLSearchParams();
+  if (query?.openOnly) params.set('openOnly', 'true');
+  if (query?.fromUtc) params.set('fromUtc', query.fromUtc);
+  if (query?.toUtc) params.set('toUtc', query.toUtc);
+  const text = params.toString();
+  return text ? `?${text}` : '';
+}
 
 export function getAdminRooms(
   options?: SecondParameter<typeof customInstance>,
@@ -47,6 +81,17 @@ export function getAdminRooms(
   return customInstance<AdminRoomRow[]>({ url: '/api/admin/rooms', method: 'GET', signal }, options).then(
     (res) => unwrapData<AdminRoomRow[]>(res)
   );
+}
+
+export function getAdminRoom(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<AdminRoomRow> {
+  return customInstance<AdminRoomRow>(
+    { url: `/api/admin/rooms/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminRoomRow>(res));
 }
 
 export function createAdminRoom(
@@ -59,14 +104,89 @@ export function createAdminRoom(
   ).then((res) => unwrapData<AdminRoomRow>(res));
 }
 
+export function updateAdminRoomStatus(
+  id: string,
+  status: string,
+  options?: SecondParameter<typeof customInstance>
+): Promise<AdminRoomRow> {
+  return customInstance<AdminRoomRow>(
+    { url: `/api/admin/rooms/${id}`, method: 'PATCH', data: { status } },
+    options
+  ).then((res) => unwrapData<AdminRoomRow>(res));
+}
+
+export function updateAdminRoomDetails(
+  id: string,
+  body: UpdateAdminRoomDetailsRequest,
+  options?: SecondParameter<typeof customInstance>
+): Promise<AdminRoomRow> {
+  return customInstance<AdminRoomRow>(
+    { url: `/api/admin/rooms/${id}/details`, method: 'PATCH', data: body },
+    options
+  ).then((res) => unwrapData<AdminRoomRow>(res));
+}
+
+export function deleteAdminRoom(
+  id: string,
+  options?: SecondParameter<typeof customInstance>
+): Promise<void> {
+  return customInstance<void>({ url: `/api/admin/rooms/${id}`, method: 'DELETE' }, options).then(
+    () => undefined
+  );
+}
+
 export function getAdminFolios(
+  query?: AdminFolioListQuery,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminGuestFolioRow[]> {
   return customInstance<AdminGuestFolioRow[]>(
-    { url: '/api/admin/folios', method: 'GET', signal },
+    { url: `/api/admin/folios${folioSearch(query)}`, method: 'GET', signal },
     options
   ).then((res) => unwrapData<AdminGuestFolioRow[]>(res));
+}
+
+export function getAdminFolio(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<AdminGuestFolioRow> {
+  return customInstance<AdminGuestFolioRow>(
+    { url: `/api/admin/folios/${id}`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminGuestFolioRow>(res));
+}
+
+export function getAdminFolioItems(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<AdminFolioItem[]> {
+  return customInstance<AdminFolioItem[]>(
+    { url: `/api/admin/folios/${id}/items`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminFolioItem[]>(res));
+}
+
+export function chargeAdminFolio(
+  id: string,
+  body: ChargeAdminFolioRequest,
+  options?: SecondParameter<typeof customInstance>
+): Promise<AdminGuestFolioRow> {
+  return customInstance<AdminGuestFolioRow>(
+    { url: `/api/admin/folios/${id}/charge`, method: 'POST', data: body },
+    options
+  ).then((res) => unwrapData<AdminGuestFolioRow>(res));
+}
+
+export function checkoutAdminFolio(
+  id: string,
+  options?: SecondParameter<typeof customInstance>
+): Promise<AdminGuestFolioRow> {
+  return customInstance<AdminGuestFolioRow>(
+    { url: `/api/admin/folios/${id}`, method: 'PATCH', data: { status: 'Closed' } },
+    options
+  ).then((res) => unwrapData<AdminGuestFolioRow>(res));
 }
 
 export function useAdminRooms(
@@ -79,22 +199,116 @@ export function useAdminRooms(
   });
 }
 
-export function useAdminFolios(
-  options?: Partial<UseQueryOptions<AdminGuestFolioRow[], Error, AdminGuestFolioRow[]>>
-): UseQueryResult<AdminGuestFolioRow[], Error> {
+export function useAdminRoom(
+  id: string,
+  options?: Partial<UseQueryOptions<AdminRoomRow, Error, AdminRoomRow>>
+): UseQueryResult<AdminRoomRow, Error> {
   return useQuery({
-    queryKey: adminLodgingQueryKeys.folios(),
-    queryFn: ({ signal }) => getAdminFolios(undefined, signal),
+    queryKey: adminLodgingQueryKeys.room(id),
+    queryFn: ({ signal }) => getAdminRoom(id, undefined, signal),
+    enabled: id.length > 0,
     ...options,
   });
 }
 
-export function useCreateAdminRoom(): UseMutationResult<AdminRoomRow, Error, CreateAdminRoomRequest> {
+export function useAdminFolios(
+  query?: AdminFolioListQuery,
+  options?: Partial<UseQueryOptions<AdminGuestFolioRow[], Error, AdminGuestFolioRow[]>>
+): UseQueryResult<AdminGuestFolioRow[], Error> {
+  return useQuery({
+    queryKey: adminLodgingQueryKeys.folios(query),
+    queryFn: ({ signal }) => getAdminFolios(query, undefined, signal),
+    ...options,
+  });
+}
+
+export function useAdminFolio(
+  id: string,
+  options?: Partial<UseQueryOptions<AdminGuestFolioRow, Error, AdminGuestFolioRow>>
+): UseQueryResult<AdminGuestFolioRow, Error> {
+  return useQuery({
+    queryKey: adminLodgingQueryKeys.folio(id),
+    queryFn: ({ signal }) => getAdminFolio(id, undefined, signal),
+    enabled: id.length > 0,
+    ...options,
+  });
+}
+
+export function useAdminFolioItems(
+  id: string,
+  options?: Partial<UseQueryOptions<AdminFolioItem[], Error, AdminFolioItem[]>>
+): UseQueryResult<AdminFolioItem[], Error> {
+  return useQuery({
+    queryKey: adminLodgingQueryKeys.folioItems(id),
+    queryFn: ({ signal }) => getAdminFolioItems(id, undefined, signal),
+    enabled: id.length > 0,
+    ...options,
+  });
+}
+
+function useInvalidateLodging() {
   const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: adminLodgingQueryKeys.all });
+  };
+}
+
+export function useCreateAdminRoom(): UseMutationResult<AdminRoomRow, Error, CreateAdminRoomRequest> {
+  const invalidate = useInvalidateLodging();
   return useMutation({
     mutationFn: (body: CreateAdminRoomRequest) => createAdminRoom(body),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminLodgingQueryKeys.rooms() });
-    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateAdminRoomStatus(): UseMutationResult<
+  AdminRoomRow,
+  Error,
+  { id: string; status: string }
+> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: ({ id, status }) => updateAdminRoomStatus(id, status),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateAdminRoomDetails(): UseMutationResult<
+  AdminRoomRow,
+  Error,
+  { id: string; body: UpdateAdminRoomDetailsRequest }
+> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: ({ id, body }) => updateAdminRoomDetails(id, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteAdminRoom(): UseMutationResult<void, Error, string> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: (id: string) => deleteAdminRoom(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useChargeAdminFolio(): UseMutationResult<
+  AdminGuestFolioRow,
+  Error,
+  { id: string; body: ChargeAdminFolioRequest }
+> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: ({ id, body }) => chargeAdminFolio(id, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCheckoutAdminFolio(): UseMutationResult<AdminGuestFolioRow, Error, string> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: (id: string) => checkoutAdminFolio(id),
+    onSuccess: invalidate,
   });
 }

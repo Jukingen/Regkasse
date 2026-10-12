@@ -32,6 +32,7 @@ export const API_PATHS = {
     FOLIOS: '/pos/folios',
     FOLIO: (id: string) => `/pos/folios/${id}`,
     FOLIO_CHARGE: (id: string) => `/pos/folios/${id}/charge`,
+    FOLIO_STAGE_CHECKOUT: (id: string) => `/pos/folios/${id}/stage-checkout`,
     FOLIO_ITEMS: (id: string) => `/pos/folios/${id}/items`,
     ROOM: (id: string) => `/pos/rooms/${id}`,
     /** PUT - Update product stock */

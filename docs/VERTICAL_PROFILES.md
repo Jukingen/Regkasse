@@ -306,10 +306,10 @@ view after login.
   - `POST /api/pos/folios/{id}/charge` — add a non-fiscal charge. Closed folio → HTTP **409** `FOLIO_CLOSED`.
   - `GET /api/pos/folios/{id}/items` — charge lines.
 - Admin endpoints (`product.view`; create and status change need `product.manage`):
-  - `GET/POST /api/admin/rooms`, `PATCH /api/admin/rooms/{id}`.
-  - `GET /api/admin/folios` — folio view with balance.
-- POS default layout `rooms` opens `frontend/app/(screens)/rooms.tsx`. Cash register shows `RoomPicker` and **Auf Zimmer buchen** only when `profileId === "beherbergung"`.
-- FA page: `/admin/rooms`. Tenant detail shows a **Zimmer** tab when the tenant profile has `roomTracking=true`.
+  - `GET/POST /api/admin/rooms`, `GET /api/admin/rooms/{id}`, `PATCH /api/admin/rooms/{id}`, `PATCH /api/admin/rooms/{id}/details`, `DELETE /api/admin/rooms/{id}` (unused rooms only).
+  - `GET /api/admin/folios`, `GET /api/admin/folios/{id}`, `GET /api/admin/folios/{id}/items`, `POST /api/admin/folios/{id}/charge`, `PATCH /api/admin/folios/{id}` (check-out closes the folio and sets the room to Cleaning; no invoice).
+- FA pages: `/admin/rooms`, `/admin/rooms/{id}`, `/admin/folios`, `/admin/folios/{id}`. Tenant detail shows a **Zimmer** tab when the tenant profile has `roomTracking=true`.
+- POS default layout `rooms` opens `frontend/app/(screens)/rooms.tsx` (color-coded room grid, check-in, folio, check-out). Cash register shows `RoomPicker` and **Auf Zimmer buchen** only when `profileId === "beherbergung"`. **Auf Zimmer buchen** posts the sale to the folio and does not sign a receipt. Check-out closes the folio and sets the room to Cleaning. It does not generate an invoice.
 - Folio charges are not RKSV receipts. Decision record: [`docs/BEHERBERGUNG.md`](BEHERBERGUNG.md).
 
 ## Super Admin config hub
@@ -390,6 +390,22 @@ On the web, open `http://localhost:8081/tenant/{slug}`. A desktop browser does n
 ### Onboarding
 
 `frontend/app/(auth)/onboarding.tsx` shows two or three slides for the linked profile (vet, hair salon, and taxi use three; gastronomy uses two; unknown profiles use the default pair). Copy is the `verticalProfiles` i18n namespace. **Überspringen**, **Weiter**, and **Loslegen** set `pos_onboarding_seen_v1` in device storage. The deck runs once after login, after password-change and license-expired gates. It does not change the payment flow.
+
+## POS API client
+
+Authenticated POS cart calls use the JWT tenant. The list route is the current cart; the item route needs a cart id.
+
+| Method | Path | Result |
+|--------|------|--------|
+| `GET` | `/api/pos/cart/current` | The cashier’s current cart (empty `items` when nothing is open). Optional query `tableNumber` defaults to `1`. |
+| `GET` | `/api/pos/cart/{cartId}` | That cart. `{cartId}` must be a cart id. `GET /api/pos/cart` is not this route. |
+
+## Common issues
+
+| Symptom | Meaning |
+|---------|---------|
+| `POST /api/pos/shift/auto-open` returns HTTP **400** with `REGISTER_MONATSBELEG_REQUIRED` | The previous month’s Monatsbeleg is missing, so the register cannot auto-open. Create the Monatsbeleg (or ask a Mandanten-Admin) before selling. The POS copy is “Monatsbeleg fehlt. Bitte kontaktieren Sie den Administrator.” |
+| `usePosPermissions is not defined` | A POS screen called the permissions hook before it was in scope. Resolved in commit `ddb75011` (`fix(pos): cleanup feature flags and component gates`). The hook is `frontend/hooks/usePosPermissions.ts`. |
 
 ## Current scope and follow-ups
 

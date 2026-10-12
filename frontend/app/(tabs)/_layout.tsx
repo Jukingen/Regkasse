@@ -19,7 +19,9 @@ import { MaintenanceNotice } from '../../components/MaintenanceNotice';
 import { MonatsbelegHeaderBadge } from '../../components/MonatsbelegHeaderBadge';
 import { OFFLINE_CONFIG } from '../../constants/offlineConfig';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { takeFolioCheckout } from '../../components/lodging/folioCheckoutHandoff';
 import PaymentModal from '../../components/PaymentModal';
+import { updateFolio } from '../../services/api/lodgingService';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { TagesabschlussReminder } from '../../components/TagesabschlussReminder';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
@@ -526,6 +528,17 @@ export default function TabLayout() {
   const cartCount = totals.itemCount;
 
   const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+    const pendingFolio = takeFolioCheckout();
+    if (pendingFolio) {
+      try {
+        await updateFolio(pendingFolio.folioId, { status: 'Closed' });
+      } catch {
+        Alert.alert(
+          t('pos.checkout.closeFailedTitle', { ns: 'verticalProfiles' }),
+          t('pos.checkout.closeFailed', { ns: 'verticalProfiles' })
+        );
+      }
+    }
     setSaleCustomer(null);
     resetTrip();
     resetImeis();

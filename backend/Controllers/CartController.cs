@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Lodging;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
@@ -1593,7 +1594,9 @@ namespace KasseAPI_Final.Controllers
                 {
                     Id = ci.Id,
                     ProductId = ci.ProductId,
-                    ProductName = prod?.Name ?? "Unknown Product",
+                    ProductName = LodgingStayLine.IsStayLabel(ci.Notes)
+                        ? ci.Notes!
+                        : prod?.Name ?? "Unknown Product",
                     ProductImage = prod?.ImageUrl,
                     Quantity = ci.Quantity,
                     UnitPrice = ci.UnitPrice,

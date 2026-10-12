@@ -16,6 +16,7 @@ using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Strategies.Germany;
 using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
+using KasseAPI_Final.Services.Lodging;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
@@ -1073,7 +1074,8 @@ namespace KasseAPI_Final.Services
                     decimal totalTaxAmount = 0;
                     var taxDetails = new Dictionary<string, decimal>();
 
-                    var cartSnapshotPrices = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
+                    var cartSnapshot = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
+                    var cartSnapshotPrices = cartSnapshot?.UnitPrices;
 
                     var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
                     var pendingImeiRows = new List<ProductImei>();
@@ -1201,7 +1203,10 @@ namespace KasseAPI_Final.Services
                         paymentItems.Add(new PaymentItem
                         {
                             ProductId = product.Id,
-                            ProductName = product.Name,
+                            ProductName = cartSnapshot != null
+                                && cartSnapshot.StayNames.TryGetValue(product.Id, out var stayName)
+                                ? stayName
+                                : product.Name,
                             Quantity = itemRequest.Quantity,
                             UnitPrice = line.UnitPriceGross,
                             TotalPrice = line.LineGross,
@@ -4463,7 +4468,11 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Aktif sepet satırları ödeme kalemleriyle (ürün + miktar) birebir örtüşüyorsa birim brüt fiyatları döndürür; böylece ödeme toplamı sepetteki anlık fiyatla uyumlu kalır.
         /// </summary>
-        private async Task<Dictionary<Guid, decimal>?> TryGetCartSnapshotUnitPricesAsync(
+        private sealed record CartPriceSnapshot(
+            Dictionary<Guid, decimal> UnitPrices,
+            Dictionary<Guid, string> StayNames);
+
+        private async Task<CartPriceSnapshot?> TryGetCartSnapshotUnitPricesAsync(
             string userId,
             int tableNumber,
             IReadOnlyList<PaymentItemRequest> items)
@@ -4485,17 +4494,21 @@ namespace KasseAPI_Final.Services
                     return null;
             }
 
-            var result = new Dictionary<Guid, decimal>();
+            var prices = new Dictionary<Guid, decimal>();
+            var stayNames = new Dictionary<Guid, string>();
             foreach (var g in cart.Items.GroupBy(ci => ci.ProductId))
             {
                 var qty = g.Sum(x => x.Quantity);
                 if (qty <= 0)
                     return null;
                 var weighted = g.Sum(x => x.UnitPrice * x.Quantity);
-                result[g.Key] = Math.Round(weighted / qty, 2, MidpointRounding.AwayFromZero);
+                prices[g.Key] = Math.Round(weighted / qty, 2, MidpointRounding.AwayFromZero);
+                var stay = g.Select(ci => ci.Notes).FirstOrDefault(LodgingStayLine.IsStayLabel);
+                if (stay != null)
+                    stayNames[g.Key] = stay;
             }
 
-            return result;
+            return new CartPriceSnapshot(prices, stayNames);
         }
 
         private record BenefitCalculationResult(
