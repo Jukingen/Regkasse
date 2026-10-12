@@ -27,8 +27,10 @@ export interface ProductListDto {
   id?: string;
   /** @nullable */
   imageUrl?: string | null;
+  imeiTracked?: boolean;
   isActive?: boolean;
   isTaxable?: boolean;
+  isTicket?: boolean;
   /** @nullable */
   maxStockLevel?: number | null;
   minStockLevel?: number;

@@ -44,6 +44,7 @@ public static class OperationSnapshots
         StaffId = p.StaffId,
         ImeiTracked = p.ImeiTracked,
         IsTicket = p.IsTicket,
+        RequiresPrescription = p.RequiresPrescription,
         Cost = p.Cost,
         Barcode = p.Barcode,
         ImageUrl = p.ImageUrl,
@@ -77,6 +78,7 @@ public static class OperationSnapshots
         target.StaffId = s.StaffId;
         target.ImeiTracked = s.ImeiTracked;
         target.IsTicket = s.IsTicket;
+        target.RequiresPrescription = s.RequiresPrescription;
         target.Cost = s.Cost;
         target.Barcode = s.Barcode;
         target.ImageUrl = s.ImageUrl;
@@ -106,6 +108,13 @@ public static class OperationSnapshots
         PetSpecies = c.PetData?.PetSpecies,
         PetBreed = c.PetData?.PetBreed,
         PetBirthDate = c.PetData?.PetBirthDate,
+        Species = c.PetData?.Species,
+        Breed = c.PetData?.Breed,
+        BirthDate = c.PetData?.BirthDate,
+        Vaccines = c.PetData?.Vaccines,
+        Allergies = c.PetData?.Allergies,
+        ChronicConditions = c.PetData?.ChronicConditions,
+        Insurance = c.PetData?.Insurance,
         IsVip = c.IsVip,
         IsActive = c.IsActive,
         DiscountPercentage = c.DiscountPercentage,
@@ -133,19 +142,24 @@ public static class OperationSnapshots
                 };
         target.TaxNumber = s.TaxNumber;
         target.Notes = s.Notes;
-        target.PetData =
-            s.PetName is null
-            && s.PetSpecies is null
-            && s.PetBreed is null
-            && s.PetBirthDate is null
-                ? null
-                : new CustomerPetData
-                {
-                    PetName = s.PetName,
-                    PetSpecies = s.PetSpecies,
-                    PetBreed = s.PetBreed,
-                    PetBirthDate = s.PetBirthDate,
-                };
+        target.PetData = new CustomerPetData
+        {
+            PetName = s.PetName,
+            PetSpecies = s.PetSpecies,
+            PetBreed = s.PetBreed,
+            PetBirthDate = s.PetBirthDate,
+            Species = s.Species,
+            Breed = s.Breed,
+            BirthDate = s.BirthDate,
+            Vaccines = s.Vaccines,
+            Allergies = s.Allergies,
+            ChronicConditions = s.ChronicConditions,
+            Insurance = s.Insurance,
+        };
+        if (!target.PetData.HasContent())
+            target.PetData = null;
+        else
+            target.PetData.AlignLegacyKeys();
         target.IsVip = s.IsVip;
         target.IsActive = s.IsActive;
         target.DiscountPercentage = s.DiscountPercentage;

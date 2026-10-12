@@ -64,6 +64,7 @@ internal static class PaymentServiceCoverageHarness
         public IEuReceiptSequenceService? EuSequence { get; init; }
         public IVerticalProfileService? VerticalProfiles { get; init; }
         public KasseAPI_Final.Services.Tickets.ITicketRedemptionService? Tickets { get; init; }
+        public KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry? ExtensionRegistry { get; init; }
     }
 
     public static AppDbContext CreateContext(string? databaseName = null)
@@ -244,7 +245,8 @@ internal static class PaymentServiceCoverageHarness
             chSequenceService: options.ChSequence,
             euSequenceService: options.EuSequence,
             verticalProfiles: options.VerticalProfiles,
-            ticketRedemptions: options.Tickets ?? new KasseAPI_Final.Services.Tickets.TicketRedemptionService(context));
+            ticketRedemptions: options.Tickets ?? new KasseAPI_Final.Services.Tickets.TicketRedemptionService(context),
+            extensionRegistry: options.ExtensionRegistry);
     }
 
     public static Mock<IAuditLogService> CreateAuditMock()

@@ -607,7 +607,8 @@
       "imeiTracking": "IMEI-Verfolgung",
       "routeTracking": "Routenverfolgung",
       "roomTracking": "Raum-/Sitzplatzverfolgung",
-      "ticketScan": "Ticket-Scan"
+      "ticketScan": "Ticket-Scan",
+      "prescription": "Rezeptpflicht"
     },
     "taxiTariffTitle": "Taxi-Tarif",
     "taxiTariffHelp": "Kilometertarif für den POS-Fahrpreisvorschlag. Der fiskalische Belegbetrag bleibt die Warenkorb-Leistung.",

@@ -16,6 +16,7 @@ const mockListPosStaff = jest.fn<(...args: unknown[]) => Promise<unknown[]>>();
 const mockScheduleReminder = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 
 type MockVerticalProfile = {
+  profileId?: string;
   posFeatures: Record<string, boolean>;
   requiredFields: Record<string, string[]>;
   optionalFields: Record<string, string[]>;
@@ -119,7 +120,7 @@ describe('vet and hair-salon vertical screens', () => {
       posFeatures: { patientRecord: true, appointment: false },
       requiredFields: { customer: ['name', 'petName'], product: [] },
       optionalFields: {
-        customer: ['phone', 'email', 'petSpecies', 'petBreed', 'petBirthDate'],
+        customer: ['phone', 'email', 'petSpecies', 'petBreed', 'petBirthDate', 'vaccines'],
         product: [],
       },
       posLayout: 'standard',
@@ -127,11 +128,34 @@ describe('vet and hair-salon vertical screens', () => {
 
     await render(<PatientRecordScreen />);
 
-    expect(screen.getByText('Patientenakte')).toBeTruthy();
+    expect(screen.getByText('Tierakte')).toBeTruthy();
     expect(screen.getByLabelText('Tiername')).toBeTruthy();
     expect(screen.getByLabelText('Tierart')).toBeTruthy();
     expect(screen.getByLabelText('Rasse')).toBeTruthy();
     expect(screen.getByLabelText('Geburtsdatum')).toBeTruthy();
+    expect(screen.getByLabelText('Impfungen')).toBeTruthy();
+  });
+
+  it('renders doctor patient fields instead of pet fields', async () => {
+    verticalProfile.current = {
+      profileId: 'doctor',
+      posFeatures: { patientRecord: true, appointment: true, serviceDuration: true },
+      requiredFields: { customer: ['name'], product: [] },
+      optionalFields: {
+        customer: ['phone', 'email', 'birthDate', 'allergies', 'chronicConditions', 'insurance'],
+        product: [],
+      },
+      posLayout: 'appointment',
+    };
+
+    await render(<PatientRecordScreen />);
+
+    expect(screen.getByText('Patientenakte')).toBeTruthy();
+    expect(screen.getByLabelText('Patientenname')).toBeTruthy();
+    expect(screen.getByLabelText('Allergien')).toBeTruthy();
+    expect(screen.getByLabelText('Chronische Erkrankungen')).toBeTruthy();
+    expect(screen.getByLabelText('Versicherung')).toBeTruthy();
+    expect(screen.queryByLabelText('Tiername')).toBeNull();
   });
 
   it('renders hair-salon appointment fields and saves a booking', async () => {

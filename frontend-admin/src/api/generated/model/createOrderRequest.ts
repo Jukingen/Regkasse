@@ -7,6 +7,7 @@
  */
 import type { CustomerKind } from './customerKind';
 import type { OrderItemRequest } from './orderItemRequest';
+import type { OrderLocationData } from './orderLocationData';
 
 export interface CreateOrderRequest {
   /** @nullable */
@@ -23,6 +24,7 @@ export interface CreateOrderRequest {
   idempotencyKey?: string | null;
   /** @nullable */
   items?: OrderItemRequest[] | null;
+  locationData?: OrderLocationData;
   /** @nullable */
   notes?: string | null;
   /** @nullable */

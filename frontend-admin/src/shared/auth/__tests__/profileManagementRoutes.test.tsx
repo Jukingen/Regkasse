@@ -62,6 +62,7 @@ vi.mock('@/features/vertical-profiles/contexts/AdminVerticalProfileContext', () 
 
 const cases = [
   { path: '/admin/patients', wrong: 'hair-salon', right: 'vet' },
+  { path: '/admin/patients', wrong: 'gastronomy', right: 'doctor' },
   { path: '/admin/appointments', wrong: 'vet', right: 'hair-salon' },
   { path: '/admin/imeis', wrong: 'vet', right: 'handy-shop' },
   { path: '/admin/taxi-trips', wrong: 'vet', right: 'taxi' },

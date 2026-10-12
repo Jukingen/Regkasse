@@ -59,10 +59,10 @@ namespace KasseAPI_Final.Models
         public string Notes { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional veterinary patient data. Stored as one JSONB object so non-vet tenants
-        /// retain the existing customer schema and behavior.
+        /// Optional clinical record for vet and doctor profiles. Column <c>clinical_data</c>
+        /// keeps legacy pet keys and the newer clinical keys in the same JSON object.
         /// </summary>
-        [Column("pet_data", TypeName = "jsonb")]
+        [Column("clinical_data", TypeName = "jsonb")]
         public CustomerPetData? PetData { get; set; }
 
         /// <summary>
@@ -114,6 +114,89 @@ namespace KasseAPI_Final.Models
         public string? PetBreed { get; set; }
 
         public DateOnly? PetBirthDate { get; set; }
+
+        /// <summary>Vet species. Mirrors <see cref="PetSpecies"/> so older rows stay readable.</summary>
+        [MaxLength(100)]
+        public string? Species { get; set; }
+
+        /// <summary>Vet breed. Mirrors <see cref="PetBreed"/>.</summary>
+        [MaxLength(100)]
+        public string? Breed { get; set; }
+
+        /// <summary>Shared birth date. Mirrors <see cref="PetBirthDate"/> for existing vet rows.</summary>
+        public DateOnly? BirthDate { get; set; }
+
+        [MaxLength(500)]
+        public string? Vaccines { get; set; }
+
+        [MaxLength(500)]
+        public string? Allergies { get; set; }
+
+        [MaxLength(500)]
+        public string? ChronicConditions { get; set; }
+
+        [MaxLength(200)]
+        public string? Insurance { get; set; }
+
+        /// <summary>
+        /// Copies legacy pet keys and the generalized keys onto each other.
+        /// Existing JSON that only has <c>PetSpecies</c> still loads as <see cref="Species"/>.
+        /// </summary>
+        public void AlignLegacyKeys()
+        {
+            Species ??= NullIfBlank(PetSpecies);
+            PetSpecies ??= NullIfBlank(Species);
+            Breed ??= NullIfBlank(PetBreed);
+            PetBreed ??= NullIfBlank(Breed);
+            BirthDate ??= PetBirthDate;
+            PetBirthDate ??= BirthDate;
+            PetSpecies = NullIfBlank(PetSpecies);
+            Species = NullIfBlank(Species);
+            PetBreed = NullIfBlank(PetBreed);
+            Breed = NullIfBlank(Breed);
+            PetName = NullIfBlank(PetName);
+            Vaccines = NullIfBlank(Vaccines);
+            Allergies = NullIfBlank(Allergies);
+            ChronicConditions = NullIfBlank(ChronicConditions);
+            Insurance = NullIfBlank(Insurance);
+        }
+
+        public bool HasContent() =>
+            !string.IsNullOrWhiteSpace(PetName)
+            || !string.IsNullOrWhiteSpace(PetSpecies)
+            || !string.IsNullOrWhiteSpace(Species)
+            || !string.IsNullOrWhiteSpace(PetBreed)
+            || !string.IsNullOrWhiteSpace(Breed)
+            || PetBirthDate is not null
+            || BirthDate is not null
+            || !string.IsNullOrWhiteSpace(Vaccines)
+            || !string.IsNullOrWhiteSpace(Allergies)
+            || !string.IsNullOrWhiteSpace(ChronicConditions)
+            || !string.IsNullOrWhiteSpace(Insurance);
+
+        private static string? NullIfBlank(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    /// <summary>JSONB (de)serializer for <see cref="Customer.PetData"/> / <c>clinical_data</c>.</summary>
+    public static class CustomerClinicalDataJson
+    {
+        public static string? Serialize(CustomerPetData? value)
+        {
+            if (value is null)
+                return null;
+            value.AlignLegacyKeys();
+            return System.Text.Json.JsonSerializer.Serialize(value);
+        }
+
+        public static CustomerPetData? Deserialize(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            var data = System.Text.Json.JsonSerializer.Deserialize<CustomerPetData>(value);
+            data?.AlignLegacyKeys();
+            return data;
+        }
     }
 
     public sealed class CustomerAddressData

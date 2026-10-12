@@ -5,11 +5,14 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { IssuedTicketDto } from './issuedTicketDto';
 import type { PaymentCreateSuccessDataPayment } from './paymentCreateSuccessDataPayment';
 import type { PaymentCreateTseData } from './paymentCreateTseData';
 
 export interface PaymentCreateSuccessData {
   invoicePersisted?: boolean;
+  /** @nullable */
+  issuedTickets?: IssuedTicketDto[] | null;
   nonFiscalOfflineQueued?: boolean;
   /** @nullable */
   offlineTransactionId?: string | null;

@@ -10,6 +10,13 @@ export interface CustomerPetData {
   petSpecies?: string | null;
   petBreed?: string | null;
   petBirthDate?: string | null;
+  species?: string | null;
+  breed?: string | null;
+  birthDate?: string | null;
+  vaccines?: string | null;
+  allergies?: string | null;
+  chronicConditions?: string | null;
+  insurance?: string | null;
 }
 
 export interface CustomerAddressData {

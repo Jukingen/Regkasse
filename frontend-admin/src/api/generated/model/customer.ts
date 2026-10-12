@@ -5,6 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { CustomerAddressData } from './customerAddressData';
 import type { ApplicationUser } from './applicationUser';
 import type { BenefitAssignment } from './benefitAssignment';
 import type { Cart } from './cart';
@@ -21,6 +22,7 @@ export interface Customer {
    * @nullable
    */
   address?: string | null;
+  addressData?: CustomerAddressData;
   applicationUser?: ApplicationUser;
   /**
    * @maxLength 450

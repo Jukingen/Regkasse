@@ -73,6 +73,7 @@ public static class VerticalProfileIds
     public const string Gastronomy = "gastronomy";
     public const string GastronomyTables = "gastronomy-tables";
     public const string Vet = "vet";
+    public const string Doctor = "doctor";
     public const string HairSalon = "hair-salon";
     public const string MobileServices = "mobile-services";
     public const string HandyShop = "handy-shop";
@@ -115,8 +116,15 @@ public static class VerticalProfileSeedData
             "verticalProfiles.vet.name",
             """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false}""",
             """{"customer":["name","petName"],"product":["name","price","taxGroup"]}""",
-            """{"customer":["phone","email","petSpecies","petBreed","petBirthDate","patientNotes"],"product":["description","category"]}""",
+            """{"customer":["phone","email","petSpecies","petBreed","petBirthDate","vaccines","patientNotes"],"product":["description","category"]}""",
             VerticalProfileLayouts.Standard),
+        Create(
+            VerticalProfileIds.Doctor,
+            "verticalProfiles.doctor.name",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"prescription":true,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":false}""",
+            """{"customer":["name"],"product":["name","price","durationMinutes"]}""",
+            """{"customer":["phone","email","birthDate","allergies","chronicConditions","insurance"],"product":["description","category"]}""",
+            VerticalProfileLayouts.Appointment),
         Create(
             VerticalProfileIds.MobileServices,
             "verticalProfiles.mobileServices.name",

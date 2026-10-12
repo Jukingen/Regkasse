@@ -2,6 +2,7 @@
   "tabs": {
     "kitchen": "Küche",
     "patientRecord": "Patientenakte",
+    "animalRecord": "Tierakte",
     "appointments": "Termine",
     "rooms": "Zimmer"
   },
@@ -43,15 +44,21 @@
     },
     "patientRecord": {
       "title": "Patientenakte",
-      "subtitle": "Kunde und Tier als Patientenakte anlegen.",
+      "vetTitle": "Tierakte",
+      "doctorTitle": "Patientenakte",
+      "subtitle": "Kunde und Tier als Tierakte anlegen.",
+      "doctorSubtitle": "Patientendaten für die Akte erfassen.",
       "validationTitle": "Pflichtfelder",
       "required": "Kundenname und Tiername sind erforderlich.",
-      "save": "Patientenakte speichern",
+      "doctorRequired": "Patientenname ist erforderlich.",
+      "save": "Tierakte speichern",
+      "doctorSave": "Patientenakte speichern",
       "saving": "Wird gespeichert…",
       "savedTitle": "Gespeichert",
       "saved": "Kunde und Tierdaten wurden gespeichert.",
+      "doctorSaved": "Patientendaten wurden gespeichert.",
       "saveFailedTitle": "Speichern fehlgeschlagen",
-      "saveFailed": "Die Patientenakte konnte nicht gespeichert werden."
+      "saveFailed": "Die Akte konnte nicht gespeichert werden."
     },
     "appointments": {
       "title": "Terminkalender",
@@ -125,7 +132,12 @@
       "invalid": "Ungültig",
       "expired": "Ticket abgelaufen.",
       "alreadyRedeemed": "Ticket bereits eingelöst.",
-      "generateToggle": "Ticket erzeugen"
+      "generateToggle": "Ticket erzeugen",
+      "eventLabel": "Veranstaltung",
+      "loadError": "Veranstaltungen konnten nicht geladen werden.",
+      "seatTaken": "Platz ist nicht mehr frei.",
+      "paySeat": "Bezahlen",
+      "printedTitle": "Ticket"
     },
     "lodging": {
       "title": "Zimmer wählen",
@@ -220,6 +232,12 @@
     "petSpecies": "Tierart",
     "petBreed": "Rasse",
     "petBirthDate": "Geburtsdatum",
+    "vaccines": "Impfungen",
+    "birthDate": "Geburtsdatum",
+    "allergies": "Allergien",
+    "chronicConditions": "Chronische Erkrankungen",
+    "insurance": "Versicherung",
+    "patientName": "Patientenname",
     "patientNotes": "Patientennotizen",
     "imei": "IMEI / Seriennummer",
     "street": "Straße",
@@ -258,6 +276,7 @@
   "onboarding": {
     "industries": {
       "vet": "Tierarztpraxis",
+      "doctor": "Arztpraxis",
       "hairSalon": "Friseursalon",
       "taxi": "Taxi-Betrieb",
       "gastronomy": "Gastronomie",
@@ -277,9 +296,9 @@
     "vet": {
       "welcomeTitle": "Willkommen in Ihrer Tierarztpraxis",
       "welcomeBody": "Patienten, Besitzer und Behandlungen gehören zu Ihrer Kasse.",
-      "recordTitle": "Patientenakte",
+      "recordTitle": "Tierakte",
       "recordBody": "Öffnen Sie die Akte, bevor Sie eine Behandlung abrechnen.",
-      "recordPreview": "Patientenakte",
+      "recordPreview": "Tierakte",
       "saleTitle": "Verkauf mit Patientenbezug",
       "saleBody": "Tier und Besitzer bleiben am Verkauf. Die RKSV-Kette bleibt unverändert.",
       "salePreview": "Kasse"

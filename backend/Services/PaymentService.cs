@@ -12,6 +12,7 @@ using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Services.Countries.Strategies;
 using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
 using KasseAPI_Final.Services.Countries.Strategies.Germany;
@@ -92,6 +93,7 @@ namespace KasseAPI_Final.Services
         private readonly IVerticalProfileService? _verticalProfiles;
         private readonly IVerticalProfileGuard? _profileGuard;
         private readonly ITicketRedemptionService? _ticketRedemptions;
+        private readonly ITenantExtensionRegistry? _extensionRegistry;
 
         public PaymentService(
             AppDbContext context,
@@ -143,7 +145,8 @@ namespace KasseAPI_Final.Services
             IChMwstEffectiveRates? chMwstRates = null,
             IVerticalProfileService? verticalProfiles = null,
             ITicketRedemptionService? ticketRedemptions = null,
-            IVerticalProfileGuard? profileGuard = null)
+            IVerticalProfileGuard? profileGuard = null,
+            ITenantExtensionRegistry? extensionRegistry = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -197,7 +200,146 @@ namespace KasseAPI_Final.Services
             _verticalProfiles = verticalProfiles;
             _ticketRedemptions = ticketRedemptions;
             _profileGuard = profileGuard;
+            _extensionRegistry = extensionRegistry;
         }
+
+        private Task RunPaymentHookAsync(
+            Guid tenantId,
+            string hookName,
+            Guid paymentId,
+            decimal? totalAmount = null,
+            string? receiptNumber = null)
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["paymentId"] = paymentId,
+            };
+            if (totalAmount is decimal amount)
+                payload["totalAmount"] = amount;
+            if (!string.IsNullOrEmpty(receiptNumber))
+                payload["receiptNumber"] = receiptNumber;
+
+            return TenantExtensionRunner.RunAsync(
+                _extensionRegistry,
+                tenantId,
+                hookName,
+                payload,
+                CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sale-path <c>payment.before-sign</c>. When an extension returns adjusted line gross
+        /// totals, those amounts are re-taxed with the existing country strategy and written onto
+        /// the payment before the unchanged <c>SignAsync</c> call. Payloads without a matching
+        /// line list leave the cart as calculated.
+        /// </summary>
+        private async Task<(TaxCalculationResult Tax, Dictionary<string, decimal> Details)> ApplyBeforeSignCartAsync(
+            Guid tenantId,
+            PaymentDetails payment,
+            List<PaymentItem> paymentItems,
+            TaxCalculationResult taxResult,
+            Dictionary<string, decimal> taxDetails,
+            ITaxStrategy taxStrategy,
+            CountryStrategyBinding countryBinding,
+            ICountryTaxTypeRegistry rateCatalog,
+            string? buyerVatId)
+        {
+            var lines = paymentItems.Select(item => new ExtensionCartLine(
+                item.ProductId,
+                item.Quantity,
+                item.TaxType,
+                item.TotalPrice)).ToList();
+
+            var payload = new Dictionary<string, object?>
+            {
+                ["paymentId"] = payment.Id,
+                ["totalAmount"] = payment.TotalAmount,
+                ["receiptNumber"] = payment.ReceiptNumber,
+                ["hasPrescription"] = !string.IsNullOrEmpty(payment.PrescriptionReference),
+                [ExtensionCart.LinesKey] = lines,
+            };
+
+            var modified = await TenantExtensionRunner.RunAsync(
+                    _extensionRegistry,
+                    tenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    payload,
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+
+            var adjusted = ExtensionCart.ReadLines(modified);
+            if (adjusted.Count != paymentItems.Count || adjusted.Count != taxResult.Lines.Count)
+                return (taxResult, taxDetails);
+
+            var changed = false;
+            for (var i = 0; i < adjusted.Count; i++)
+            {
+                if (adjusted[i].GrossTotal != paymentItems[i].TotalPrice)
+                {
+                    changed = true;
+                    break;
+                }
+            }
+
+            if (!changed)
+                return (taxResult, taxDetails);
+
+            var inputs = new List<TaxLineItemInput>(adjusted.Count);
+            for (var i = 0; i < adjusted.Count; i++)
+            {
+                inputs.Add(CountryPaymentTaxLineMapper.FromProductTaxType(
+                    countryBinding.Profile,
+                    adjusted[i].GrossTotal,
+                    1,
+                    paymentItems[i].TaxType,
+                    rateCatalog));
+            }
+
+            var recalculated = taxStrategy.CalculateTax(
+                inputs,
+                new TaxCalculationContext
+                {
+                    CountryProfile = countryBinding.Profile,
+                    VatRegime = countryBinding.VatRegime,
+                    TaxExempt = countryBinding.Settings.TaxExempt,
+                    BuyerVatId = buyerVatId,
+                    DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+                        countryBinding.VatRegime,
+                        buyerVatId),
+                    TenantId = countryBinding.Settings.TenantId,
+                });
+
+            for (var i = 0; i < paymentItems.Count && i < recalculated.Lines.Count; i++)
+            {
+                var line = recalculated.Lines[i];
+                var quantity = paymentItems[i].Quantity <= 0 ? 1 : paymentItems[i].Quantity;
+                paymentItems[i].TotalPrice = line.LineGross;
+                paymentItems[i].TaxAmount = line.LineTax;
+                paymentItems[i].LineNet = line.LineNet;
+                paymentItems[i].TaxRate = line.TaxRate;
+                paymentItems[i].TaxType = line.TaxType;
+                paymentItems[i].UnitPrice = quantity == 1
+                    ? line.LineGross
+                    : decimal.Round(line.LineGross / quantity, 2, MidpointRounding.AwayFromZero);
+            }
+
+            var details = recalculated.TaxDetails.ToDictionary(static kv => kv.Key, static kv => kv.Value);
+            payment.TotalAmount = recalculated.Totals.TotalGross;
+            payment.TaxAmount = recalculated.Totals.TotalVat;
+            payment.TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(details));
+            payment.PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems));
+            return (recalculated, details);
+        }
+
+        private static PaymentResult ExtensionRejected(ExtensionFailedException ex) =>
+            new()
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = { ex.Message },
+                IsDeterministicFailure = true,
+                DiagnosticCode = ExtensionFailedException.ErrorCode,
+            };
 
         private ICountryTaxTypeRegistry TaxTypesFor(CountryStrategyBinding binding)
         {
@@ -1679,6 +1821,18 @@ namespace KasseAPI_Final.Services
                     }
                     else if (countryBinding.Profile.FiscalSystem == FiscalSystem.RKSV_AT && effectiveTseRequired)
                     {
+                        (taxResult, taxDetails) = await ApplyBeforeSignCartAsync(
+                            effectiveTenantId,
+                            payment,
+                            paymentItems,
+                            taxResult,
+                            taxDetails,
+                            taxStrategy,
+                            countryBinding,
+                            rateCatalog,
+                            request.Steuernummer);
+                        totalAmount = payment.TotalAmount;
+                        totalTaxAmount = payment.TaxAmount;
                         try
                         {
                             var atSign = await _fiscalSignatureRouter.SignAsync(
@@ -1863,6 +2017,12 @@ namespace KasseAPI_Final.Services
                     // Stock updates: when EnforceStockOnSales is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
 
                     await _context.SaveChangesAsync();
+                    await RunPaymentHookAsync(
+                        effectiveTenantId,
+                        TenantExtensionHooks.PaymentAfterPersist,
+                        payment.Id,
+                        payment.TotalAmount,
+                        payment.ReceiptNumber);
                     await transaction.CommitAsync();
 
                     committedPayment = payment!;
@@ -1959,6 +2119,16 @@ namespace KasseAPI_Final.Services
 
                     _logger.LogError(ex, "Fiscal transaction failed for payment; DbUpdateException after rollback");
                     throw;
+                }
+                catch (ExtensionFailedException ex)
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    _logger.LogWarning(
+                        ex,
+                        "Tenant extension {Feature} rejected payment before commit",
+                        ex.FeatureName);
+                    return ExtensionRejected(ex);
                 }
                 catch (Exception ex)
                 {
@@ -2923,6 +3093,13 @@ namespace KasseAPI_Final.Services
                 CompanyProfileMapper.CopySnapshotFromOriginal(storno, payment, companyProfile);
                 FiscalDocumentCountryStamp.Apply(storno, countryBinding);
 
+                await RunPaymentHookAsync(
+                    effectiveTenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    storno.Id,
+                    storno.TotalAmount,
+                    stornoBelegNr);
+
                 // Fiskaly SIGN AT: negative storno amount is signed as receipt_type=CANCELLATION
                 // (PUT /cash-register/{id}/receipt/{id}) via TseService — same endpoint as the Fiskaly test page.
                 TseSignatureResult sigResult;
@@ -3071,6 +3248,12 @@ namespace KasseAPI_Final.Services
                     }
                 }
                 throw;
+            }
+            catch (ExtensionFailedException ex)
+            {
+                await dbTx.RollbackAsync();
+                _logger.LogWarning(ex, "Tenant extension {Feature} rejected storno for payment {PaymentId}", ex.FeatureName, paymentId);
+                return ExtensionRejected(ex);
             }
             catch (Exception ex)
             {
@@ -3411,6 +3594,13 @@ namespace KasseAPI_Final.Services
                     CompanyProfileMapper.CopySnapshotFromOriginal(refund, payment, companyProfile);
                     FiscalDocumentCountryStamp.Apply(refund, countryBinding);
 
+                    await RunPaymentHookAsync(
+                        effectiveTenantIdForRefund,
+                        TenantExtensionHooks.PaymentBeforeSign,
+                        refund.Id,
+                        refund.TotalAmount,
+                        refundBelegNr);
+
                     TseSignatureResult sigResult;
                     try
                     {
@@ -3546,6 +3736,12 @@ namespace KasseAPI_Final.Services
                         }
                     }
                     throw;
+                }
+                catch (ExtensionFailedException ex)
+                {
+                    await refundTx.RollbackAsync();
+                    _logger.LogWarning(ex, "Tenant extension {Feature} rejected refund for payment {PaymentId}", ex.FeatureName, paymentId);
+                    return ExtensionRejected(ex);
                 }
                 catch (Exception ex)
                 {
@@ -3763,6 +3959,14 @@ namespace KasseAPI_Final.Services
                 var regForSign = await _context.CashRegisters.FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {payment.CashRegisterId} not found.");
 
+                var signTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                await RunPaymentHookAsync(
+                    signTenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    payment.Id,
+                    payment.TotalAmount,
+                    payment.ReceiptNumber);
+
                 var sigResult = await FiscalTseSigning.SignAsync(
                     _tseService,
                     new FiscalSigningRequest(
@@ -3777,6 +3981,10 @@ namespace KasseAPI_Final.Services
                     payment.Id, signature);
 
                 return signature;
+            }
+            catch (ExtensionFailedException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

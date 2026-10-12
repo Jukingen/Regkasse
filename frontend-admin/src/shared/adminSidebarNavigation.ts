@@ -247,6 +247,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: [
     '/products',
     '/admin/tickets/redemptions',
+    '/admin/tickets/events',
     '/admin/rooms',
     '/admin/folios',
     '/modifier-groups',
@@ -274,6 +275,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
   [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
     '/settings',
     '/admin/kitchen',
+    '/admin/extensions',
     ...SETTINGS_AREA_ROUTE_PATHS,
     '/settings/website',
     '/settings/digital',

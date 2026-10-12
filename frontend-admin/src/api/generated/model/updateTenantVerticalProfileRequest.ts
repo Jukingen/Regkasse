@@ -13,4 +13,10 @@ export interface UpdateTenantVerticalProfileRequest {
    * @maxLength 64
    */
   profileId: string;
+  /**
+   * @minimum 0
+   * @maximum 9999.99
+   * @nullable
+   */
+  taxiTariffPerKm?: number | null;
 }

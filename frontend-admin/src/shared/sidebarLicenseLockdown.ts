@@ -119,6 +119,7 @@ const HIDDEN_EXACT = new Set<string>([
   ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,
   '/products',
   '/admin/tickets/redemptions',
+  '/admin/tickets/events',
   '/admin/rooms',
   '/admin/folios',
   '/categories',
@@ -166,6 +167,7 @@ const HIDDEN_EXACT = new Set<string>([
 const HIDDEN_PREFIXES = [
   '/products',
   '/admin/tickets/redemptions',
+  '/admin/tickets/events',
   '/admin/rooms',
   '/admin/folios',
   '/categories',

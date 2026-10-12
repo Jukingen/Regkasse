@@ -45,13 +45,36 @@ export interface CreatePaymentRequest {
    */
   preorderRemainingAmount?: number;
   /**
+   * @maxLength 255
+   * @nullable
+   */
+  prescriptionReference?: string | null;
+  /**
    * @maxLength 256
    * @nullable
    */
   reservedReceiptNumber?: string | null;
+  /**
+   * @maxLength 255
+   * @nullable
+   */
+  routeFrom?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 999999.99
+   * @nullable
+   */
+  routeKm?: number | null;
+  /**
+   * @maxLength 255
+   * @nullable
+   */
+  routeTo?: string | null;
   /** @nullable */
   steuernummer?: string | null;
   stornoReason?: StornoReason;
   tableNumber: number;
   totalAmount?: number;
+  /** @nullable */
+  tripStartedAtUtc?: string | null;
 }

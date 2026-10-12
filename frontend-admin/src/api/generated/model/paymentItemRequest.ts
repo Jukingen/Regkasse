@@ -10,6 +10,13 @@ import type { TaxType } from './taxType';
 
 export interface PaymentItemRequest {
   /**
+   * @maxLength 20
+   * @nullable
+   */
+  imei?: string | null;
+  /** @nullable */
+  imeis?: string[] | null;
+  /**
    * @deprecated
    * @nullable
    */

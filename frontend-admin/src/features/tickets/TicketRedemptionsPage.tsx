@@ -47,6 +47,16 @@ export function TicketRedemptionsPage() {
       render: (value: string | undefined) => tenantName(value),
     },
     {
+      title: t('products.ticketRedemptions.colEvent'),
+      dataIndex: 'eventName',
+      render: (value: string | null | undefined) => value || '—',
+    },
+    {
+      title: t('products.ticketRedemptions.colSeat'),
+      dataIndex: 'seatLabel',
+      render: (value: string | null | undefined) => value || '—',
+    },
+    {
       title: t('products.ticketRedemptions.colStatus'),
       dataIndex: 'status',
       render: (value: string | null | undefined) =>

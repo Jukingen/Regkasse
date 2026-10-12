@@ -2,6 +2,8 @@
 
 Vertical profiles describe POS capabilities, field requirements, and the preferred POS layout for a tenant. They are product configuration, not fiscal regimes or feature flags. No fiscal or compliance behavior is inferred from a vertical profile.
 
+Additive per-tenant hooks live outside the profile catalog. See [`TENANT_EXTENSIONS.md`](TENANT_EXTENSIONS.md).
+
 ## Data model
 
 `vertical_profiles` is a global catalog:
@@ -174,8 +176,10 @@ view after login.
 ### Vet
 
 - Route: `frontend/app/(screens)/patient-record.tsx`.
-- `customers.pet_data` stores optional `petName`, `petSpecies`, `petBreed`, and
-  `petBirthDate` as JSONB.
+- `customers.clinical_data` (formerly `pet_data`) stores the clinical JSON for
+  both `vet` and `doctor`. Existing rows keep `PetName`, `PetSpecies`, `PetBreed`,
+  and `PetBirthDate`. Vet also uses `species`, `breed`, `birthDate`, and `vaccines`.
+  Doctor uses `birthDate`, `allergies`, `chronicConditions`, and `insurance`.
 - POS customer creation uses canonical `POST /api/pos/customers`.
 - Payment UI shows an optional `Rezept` switch only while `patientRecord` is enabled.
   When the switch is on, POS sends `prescriptionReference` on `POST /api/pos/payment`.
@@ -184,6 +188,19 @@ view after login.
   is rejected with HTTP **400** `PRESCRIPTION_NOT_ALLOWED`. The value is not part of the
   RKSV/TSE payload or DEP export. Successful storage emits `AuditEventType.PaymentWithPrescription` (123)
   without logging the reference text.
+- `products.requires_prescription` defaults to false. A tenant that enables the
+  `prescription_required` extension rejects `payment.before-sign` with HTTP 400
+  `EXTENSION_FAILED` when a cart line needs a prescription and the payment has
+  none. The sign call itself is unchanged.
+
+### Doctor
+
+- Same patient screen as vet (`patient-record.tsx`). The title is **Patientenakte**
+  for `doctor` and **Tierakte** for `vet`.
+- Seed id `doctor`, layout `appointment`. Flags: `patientRecord`, `prescription`,
+  `appointment`, `serviceDuration`. Kitchen, tables, rooms, IMEI, tickets, and
+  routes stay off.
+- FA `/admin/patients` and the Patientenakte sidebar entry include `vet` and `doctor`.
 
 ### Hair salon
 
@@ -283,8 +300,15 @@ view after login.
 - Authenticated POS endpoints (`cart.view`):
   - `POST /api/pos/tickets/{code}/validate` — validity only, does not redeem.
   - `POST /api/pos/tickets/{code}/redeem` — marks `Redeemed`. Already redeemed → HTTP **409** `TICKET_ALREADY_REDEEMED`. Expired → HTTP **400** `TICKET_EXPIRED`. Missing/cross-tenant → HTTP **404**.
-- Admin list: `GET /api/admin/tickets/redemptions` (`product.view`). Super Admin may pass `tenantId`; others use the ambient tenant. FA page: `/admin/tickets/redemptions`.
-- POS cash-register (`posLayout === "ticket"`) keeps the sale flow. Ticket products show a **Ticket erzeugen** toggle. After payment, POS prints a ticket HTML/PDF whose QR payload is the ticket code, not the RKSV machine code.
+- Admin list: `GET /api/admin/tickets/redemptions` (`product.view`). Super Admin may pass `tenantId`; others use the ambient tenant. FA page: `/admin/tickets/redemptions`. Rows may include `eventName` and `seatLabel`.
+- Events and seats (`AddTicketEventsAndSeats`): `ticket_events` (tenant-scoped) and `ticket_seats` (no `tenant_id`; reached only through the event). Seat status is `Available`, `Reserved`, or `Sold`. A reservation hold lasts 15 minutes. `ticket_redemptions.event_id` and `seat_id` are nullable foreign keys.
+- POS (`cart.view`, `ticketScan` required; missing tenant or another tenant's event → HTTP **404**):
+  - `GET /api/pos/ticket-events`
+  - `GET /api/pos/ticket-events/{id}/seats`
+  - `POST /api/pos/ticket-events/{id}/seats/reserve`
+  - `POST /api/pos/ticket-events/{id}/seats/sell` — marks the seat `Sold` and inserts a `ticket_redemptions` row with the same `TKT-` code hasher. The plaintext code is returned once. This path does not call payment or TSE signing.
+- Admin events (`product.view` read, `product.manage` write; ambient tenant required, otherwise HTTP **404**): `GET/POST /api/admin/ticket-events`, `PUT/DELETE /api/admin/ticket-events/{id}` (delete sets `is_active=false`), `GET/POST /api/admin/ticket-events/{id}/seats`. FA pages: `/admin/tickets/events` and `/admin/tickets/events/{id}/seats`.
+- POS cash-register (`posLayout === "ticket"`) keeps the sale flow. Ticket products show a **Ticket erzeugen** toggle. The same screen shows an event picker and seat grid when `ticketScan` is on. Tap a free seat to reserve it, then **Bezahlen** calls the seat sell endpoint and shows the ticket code with event and seat. The cart **Bezahlen** path is unchanged. After a catalog-ticket payment, POS prints a ticket HTML/PDF whose QR payload is the ticket code, not the RKSV machine code.
 - POS screen `frontend/app/(tabs)/ticket-validate.tsx` (user menu when `ticketScan` is on): scan via `expo-camera` or enter the code, then Redeem.
 - Ticket codes are not written into RKSV receipt content, TSE payloads, or DEP export.
 

@@ -194,6 +194,12 @@ export interface CompanySettings {
   invoiceNumbering: string;
   isActive?: boolean;
   /**
+   * @minimum 1
+   * @maximum 240
+   */
+  kitchenOrderAutoClearMinutes?: number;
+  kitchenOrderSound?: boolean;
+  /**
    * @minLength 1
    * @maxLength 10
    */
@@ -242,6 +248,8 @@ export interface CompanySettings {
    */
   taxCalculationMethod: string;
   taxExempt?: boolean;
+  /** @nullable */
+  taxiTariffPerKm?: number | null;
   tenant?: Tenant;
   tenantId: string;
   /**

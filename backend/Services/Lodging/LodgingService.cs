@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Lodging;
@@ -130,11 +131,16 @@ public sealed class LodgingService : ILodgingService
 {
     private readonly AppDbContext _db;
     private readonly IAuditLogService? _audit;
+    private readonly ITenantExtensionRegistry? _extensions;
 
-    public LodgingService(AppDbContext db, IAuditLogService? audit = null)
+    public LodgingService(
+        AppDbContext db,
+        IAuditLogService? audit = null,
+        ITenantExtensionRegistry? extensions = null)
     {
         _db = db;
         _audit = audit;
+        _extensions = extensions;
     }
 
     public async Task<IReadOnlyList<RoomDto>> ListRoomsAsync(
@@ -529,6 +535,28 @@ public sealed class LodgingService : ILodgingService
             folio.Room.Status = RoomStatus.Cleaning;
         if (folio.Status == GuestFolioStatus.Cancelled && folio.Room is not null)
             folio.Room.Status = RoomStatus.Available;
+
+        if (closing)
+        {
+            try
+            {
+                await TenantExtensionRunner.RunAsync(
+                    _extensions,
+                    tenantId,
+                    TenantExtensionHooks.FolioBeforeClose,
+                    new Dictionary<string, object?>
+                    {
+                        ["folioId"] = folio.Id,
+                        ["roomId"] = folio.RoomId,
+                    },
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (ExtensionFailedException ex)
+            {
+                _db.ChangeTracker.Clear();
+                return new FolioWriteResult.BadRequest(ExtensionFailedException.ErrorCode, ex.Message);
+            }
+        }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         if (closing)

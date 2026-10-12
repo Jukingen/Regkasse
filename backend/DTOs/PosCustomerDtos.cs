@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.DTOs;
 
 /// <summary>POS customer lookup response (QR scan).</summary>
@@ -23,6 +25,70 @@ public sealed class PosCustomerPetDataDto
     [System.ComponentModel.DataAnnotations.MaxLength(100)]
     public string? PetBreed { get; init; }
     public DateOnly? PetBirthDate { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(100)]
+    public string? Species { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(100)]
+    public string? Breed { get; init; }
+
+    public DateOnly? BirthDate { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(500)]
+    public string? Vaccines { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(500)]
+    public string? Allergies { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(500)]
+    public string? ChronicConditions { get; init; }
+
+    [System.ComponentModel.DataAnnotations.MaxLength(200)]
+    public string? Insurance { get; init; }
+
+    public CustomerPetData? ToEntity()
+    {
+        var entity = new CustomerPetData
+        {
+            PetName = Trim(PetName),
+            PetSpecies = Trim(PetSpecies),
+            PetBreed = Trim(PetBreed),
+            PetBirthDate = PetBirthDate,
+            Species = Trim(Species),
+            Breed = Trim(Breed),
+            BirthDate = BirthDate,
+            Vaccines = Trim(Vaccines),
+            Allergies = Trim(Allergies),
+            ChronicConditions = Trim(ChronicConditions),
+            Insurance = Trim(Insurance),
+        };
+        entity.AlignLegacyKeys();
+        return entity.HasContent() ? entity : null;
+    }
+
+    public static PosCustomerPetDataDto? FromEntity(CustomerPetData? entity)
+    {
+        if (entity is null || !entity.HasContent())
+            return null;
+        entity.AlignLegacyKeys();
+        return new PosCustomerPetDataDto
+        {
+            PetName = entity.PetName,
+            PetSpecies = entity.PetSpecies,
+            PetBreed = entity.PetBreed,
+            PetBirthDate = entity.PetBirthDate,
+            Species = entity.Species,
+            Breed = entity.Breed,
+            BirthDate = entity.BirthDate,
+            Vaccines = entity.Vaccines,
+            Allergies = entity.Allergies,
+            ChronicConditions = entity.ChronicConditions,
+            Insurance = entity.Insurance,
+        };
+    }
+
+    private static string? Trim(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 public sealed class PosCustomerAddressDataDto

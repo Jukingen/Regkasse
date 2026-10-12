@@ -17,7 +17,7 @@ public sealed class VerticalProfileDomainFieldsTests
         var customer = db.Model.FindEntityType(typeof(Customer))!;
         var product = db.Model.FindEntityType(typeof(Product))!;
 
-        Assert.Equal("pet_data", customer.FindProperty(nameof(Customer.PetData))!.GetColumnName());
+        Assert.Equal("clinical_data", customer.FindProperty(nameof(Customer.PetData))!.GetColumnName());
         Assert.Equal("address_data", customer.FindProperty(nameof(Customer.AddressData))!.GetColumnName());
         Assert.Equal(
             "jsonb",
@@ -39,6 +39,9 @@ public sealed class VerticalProfileDomainFieldsTests
         Assert.Equal("staff_id", product.FindProperty(nameof(Product.StaffId))!.GetColumnName());
         Assert.Equal("imei_tracked", product.FindProperty(nameof(Product.ImeiTracked))!.GetColumnName());
         Assert.Equal("is_ticket", product.FindProperty(nameof(Product.IsTicket))!.GetColumnName());
+        Assert.Equal(
+            "requires_prescription",
+            product.FindProperty(nameof(Product.RequiresPrescription))!.GetColumnName());
         var tickets = db.Model.FindEntityType(typeof(TicketRedemption))!;
         Assert.Equal("ticket_redemptions", tickets.GetTableName());
         Assert.Equal("ticket_code_hash", tickets.FindProperty(nameof(TicketRedemption.TicketCodeHash))!.GetColumnName());

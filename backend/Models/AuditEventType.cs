@@ -360,5 +360,11 @@ public enum AuditEventType
     /// <summary>A non-fiscal charge was added to an open guest folio. No TSE receipt.</summary>
     FolioCharged = 136,
 
+    /// <summary>An ambient-tenant extension was enabled or disabled. Not a fiscal event.</summary>
+    TenantExtensionToggled = 137,
+
+    /// <summary>A hair-salon campaign changed a cart gross before signing. The campaign id list is stored; line prices are not.</summary>
+    HairSalonCampaignApplied = 138,
+
     Other = 99
 }

@@ -331,7 +331,15 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IAdminKitchenService, KasseAPI_Final.Services.Kitchen.AdminKitchenService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Imei.IProductImeiService, KasseAPI_Final.Services.Imei.ProductImeiService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketRedemptionService, KasseAPI_Final.Services.Tickets.TicketRedemptionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketEventService, KasseAPI_Final.Services.Tickets.TicketEventService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Lodging.ILodgingService, KasseAPI_Final.Services.Lodging.LodgingService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.HairSalonCampaignExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.PrescriptionRequiredExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry>(
+            sp => sp.GetRequiredService<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>());
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantExtensionAdminService>(
+            sp => sp.GetRequiredService<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>());
         builder.Services.AddScoped<KasseAPI_Final.Services.RiskScoring.IRiskScoringService, KasseAPI_Final.Services.RiskScoring.RiskScoringService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityAnomalyService, KasseAPI_Final.Services.ActivityReports.ActivityAnomalyService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityReportService, KasseAPI_Final.Services.ActivityReports.ActivityReportService>();

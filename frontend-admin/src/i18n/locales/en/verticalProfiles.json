@@ -20,6 +20,9 @@
   "ticketSales": {
     "name": "Ticket sales"
   },
+  "doctor": {
+    "name": "Medical practice"
+  },
   "vet": {
     "name": "Veterinary practice"
   },

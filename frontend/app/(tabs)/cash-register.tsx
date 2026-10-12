@@ -39,6 +39,7 @@ import { FolioChargeBar } from '../../components/FolioChargeBar';
 import { consumeOpenPayment } from '../../components/lodging/folioCheckoutHandoff';
 import { RoomPicker } from '../../components/RoomPicker';
 import { TaxiSalePanel } from '../../components/TaxiSalePanel';
+import { TicketSeatBoard } from '../../components/TicketSeatBoard';
 import { ToastContainer } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePosPermissions } from '../../hooks/usePosPermissions';
@@ -1023,6 +1024,7 @@ export default function CashRegisterScreen() {
             </IfVerticalFeature>
 
             <IfVerticalFeature feature="ticketScan">
+              <TicketSeatBoard onError={(message) => addToast('error', message, 3000)} />
               <View style={styles.verticalFieldSection}>
                 <View style={styles.ticketToggleRow}>
                   <Text style={styles.ticketToggleLabel}>

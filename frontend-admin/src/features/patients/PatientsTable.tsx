@@ -12,14 +12,26 @@ export type PatientRow = {
   petSpecies: string;
   petBreed: string;
   petBirthDate: string;
+  allergies?: string;
+  chronicConditions?: string;
+  insurance?: string;
   lastVisit: string;
   phone: string;
   email: string;
 };
 
-export function PatientsTable({ rows, loading }: { rows: PatientRow[]; loading?: boolean }) {
+export function PatientsTable({
+  rows,
+  loading,
+  kind = 'vet',
+}: {
+  rows: PatientRow[];
+  loading?: boolean;
+  kind?: 'vet' | 'doctor';
+}) {
   const { t } = useI18n();
   const [open, setOpen] = useState<PatientRow | null>(null);
+  const doctor = kind === 'doctor';
 
   return (
     <>
@@ -30,9 +42,20 @@ export function PatientsTable({ rows, loading }: { rows: PatientRow[]; loading?:
         pagination={false}
         locale={{ emptyText: t('admin.patients.empty') }}
         columns={[
-          { title: t('admin.patients.colCustomer'), dataIndex: 'customerName' },
-          { title: t('admin.patients.colPet'), dataIndex: 'petName' },
-          { title: t('admin.patients.colSpecies'), dataIndex: 'petSpecies' },
+          {
+            title: t(doctor ? 'admin.patients.colPatient' : 'admin.patients.colCustomer'),
+            dataIndex: 'customerName',
+          },
+          ...(doctor
+            ? [
+                { title: t('admin.patients.birthDate'), dataIndex: 'petBirthDate' as const },
+                { title: t('admin.patients.colAllergies'), dataIndex: 'allergies' as const },
+                { title: t('admin.patients.colInsurance'), dataIndex: 'insurance' as const },
+              ]
+            : [
+                { title: t('admin.patients.colPet'), dataIndex: 'petName' as const },
+                { title: t('admin.patients.colSpecies'), dataIndex: 'petSpecies' as const },
+              ]),
           { title: t('admin.patients.colLastVisit'), dataIndex: 'lastVisit' },
           {
             title: t('admin.patients.colContact'),
@@ -51,17 +74,32 @@ export function PatientsTable({ rows, loading }: { rows: PatientRow[]; loading?:
       <Modal
         open={open != null}
         destroyOnHidden
-        title={open?.petName || t('admin.patients.title')}
+        title={open?.customerName || t(doctor ? 'admin.patients.doctorTitle' : 'admin.patients.title')}
         onCancel={() => setOpen(null)}
         footer={null}
       >
         {open ? (
           <Descriptions column={1} size="small">
-            <Descriptions.Item label={t('admin.patients.colCustomer')}>{open.customerName}</Descriptions.Item>
-            <Descriptions.Item label={t('admin.patients.colPet')}>{open.petName}</Descriptions.Item>
-            <Descriptions.Item label={t('admin.patients.colSpecies')}>{open.petSpecies}</Descriptions.Item>
-            <Descriptions.Item label={t('admin.patients.breed')}>{open.petBreed}</Descriptions.Item>
-            <Descriptions.Item label={t('admin.patients.birthDate')}>{open.petBirthDate}</Descriptions.Item>
+            <Descriptions.Item label={t(doctor ? 'admin.patients.colPatient' : 'admin.patients.colCustomer')}>
+              {open.customerName}
+            </Descriptions.Item>
+            {doctor ? (
+              <>
+                <Descriptions.Item label={t('admin.patients.birthDate')}>{open.petBirthDate}</Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.colAllergies')}>{open.allergies}</Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.chronicConditions')}>
+                  {open.chronicConditions}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.colInsurance')}>{open.insurance}</Descriptions.Item>
+              </>
+            ) : (
+              <>
+                <Descriptions.Item label={t('admin.patients.colPet')}>{open.petName}</Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.colSpecies')}>{open.petSpecies}</Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.breed')}>{open.petBreed}</Descriptions.Item>
+                <Descriptions.Item label={t('admin.patients.birthDate')}>{open.petBirthDate}</Descriptions.Item>
+              </>
+            )}
             <Descriptions.Item label={t('admin.patients.colLastVisit')}>{open.lastVisit}</Descriptions.Item>
             <Descriptions.Item label={t('admin.patients.phone')}>{open.phone}</Descriptions.Item>
             <Descriptions.Item label={t('admin.patients.email')}>{open.email}</Descriptions.Item>

@@ -81,6 +81,8 @@ public sealed class TicketRedemptionListRowDto
     public DateTime? ValidUntilUtc { get; init; }
     public DateTime? RedeemedAtUtc { get; init; }
     public string? RedeemedByUserId { get; init; }
+    public string? EventName { get; init; }
+    public string? SeatLabel { get; init; }
 }
 
 public sealed class TicketRedemptionListResponse

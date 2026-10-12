@@ -45,6 +45,7 @@ const profiles: Array<{ id: string; posFeatures: Record<string, boolean> }> = [
   { id: 'gastronomy', posFeatures: { kitchenDisplay: true, tables: false } },
   { id: 'gastronomy-tables', posFeatures: { kitchenDisplay: true, tables: true } },
   { id: 'vet', posFeatures: { patientRecord: true } },
+  { id: 'doctor', posFeatures: { patientRecord: true, prescription: true, appointment: true } },
   { id: 'taxi', posFeatures: { routeTracking: true } },
   { id: 'hair-salon', posFeatures: { appointment: true } },
   { id: 'handy-shop', posFeatures: { imeiTracking: true } },
@@ -63,12 +64,13 @@ describe('sidebar vertical profile filter', () => {
 
     expect(keys.includes(GATED.rooms)).toBe(id === 'beherbergung');
     expect(keys.includes('/admin/folios')).toBe(id === 'beherbergung');
-    expect(keys.includes('/admin/patients')).toBe(id === 'vet');
+    expect(keys.includes('/admin/patients')).toBe(id === 'vet' || id === 'doctor');
     expect(keys.includes('/admin/appointments')).toBe(id === 'hair-salon');
     expect(keys.includes('/admin/imeis')).toBe(id === 'handy-shop');
     expect(keys.includes('/admin/taxi-trips')).toBe(id === 'taxi');
     expect(keys.includes('/admin/customer-addresses')).toBe(id === 'mobile-services');
     expect(keys.includes(GATED.tickets)).toBe(id === 'ticket-sales');
+    expect(keys.includes('/admin/tickets/events')).toBe(id === 'ticket-sales');
     expect(keys.includes(GATED.modifierGroups)).toBe(
       id === 'gastronomy' || id === 'gastronomy-tables'
     );
@@ -85,6 +87,7 @@ describe('sidebar vertical profile filter', () => {
     expect(keys).toEqual(expect.arrayContaining([...UNIVERSAL]));
     for (const gated of [
       ...Object.values(GATED),
+      '/admin/tickets/events',
       '/admin/patients',
       '/admin/appointments',
       '/admin/imeis',

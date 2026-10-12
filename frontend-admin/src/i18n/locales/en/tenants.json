@@ -607,7 +607,8 @@
       "imeiTracking": "IMEI tracking",
       "routeTracking": "Route tracking",
       "roomTracking": "Room/seat tracking",
-      "ticketScan": "Ticket scan"
+      "ticketScan": "Ticket scan",
+      "prescription": "Prescription required"
     },
     "taxiTariffTitle": "Taxi tariff",
     "taxiTariffHelp": "Per-kilometre tariff used as a POS fare suggestion. The fiscal receipt amount remains the cart service line.",

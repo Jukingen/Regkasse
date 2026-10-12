@@ -81,6 +81,8 @@ namespace KasseAPI_Final.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductImei> ProductImeis { get; set; }
         public DbSet<TicketRedemption> TicketRedemptions { get; set; }
+        public DbSet<TicketEvent> TicketEvents { get; set; }
+        public DbSet<TicketSeat> TicketSeats { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<BenefitDefinition> BenefitDefinitions { get; set; }
         public DbSet<PaymentMethodDefinition> PaymentMethodDefinitions { get; set; }
@@ -137,6 +139,7 @@ namespace KasseAPI_Final.Data
         public DbSet<GuestFolioItem> GuestFolioItems { get; set; }
         public DbSet<KitchenOrder> KitchenOrders { get; set; }
         public DbSet<KitchenOrderItem> KitchenOrderItems { get; set; }
+        public DbSet<HairSalonCampaign> HairSalonCampaigns { get; set; }
         public DbSet<LocalizationSettings> LocalizationSettings { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<TenantDomain> TenantDomains { get; set; }
@@ -1309,6 +1312,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.StaffId).HasColumnName("staff_id").HasMaxLength(450);
                 entity.Property(e => e.ImeiTracked).HasColumnName("imei_tracked").HasDefaultValue(false);
                 entity.Property(e => e.IsTicket).HasColumnName("is_ticket").HasDefaultValue(false);
+                entity.Property(e => e.RequiresPrescription)
+                    .HasColumnName("requires_prescription")
+                    .HasDefaultValue(false);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
                 entity.Property(e => e.CreatedBy).HasMaxLength(100);
@@ -1393,13 +1399,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TaxNumber).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.PetData)
-                    .HasColumnName("pet_data")
+                    .HasColumnName("clinical_data")
                     .HasColumnType("jsonb")
                     .HasConversion(
-                        value => value == null ? null : JsonSerializer.Serialize(value),
-                        value => string.IsNullOrWhiteSpace(value)
-                            ? null
-                            : JsonSerializer.Deserialize<CustomerPetData>(value),
+                        value => CustomerClinicalDataJson.Serialize(value),
+                        value => CustomerClinicalDataJson.Deserialize(value),
                         JsonCollectionComparer<CustomerPetData>());
                 entity.Property(e => e.AddressData)
                     .HasColumnName("address_data")
@@ -3649,6 +3653,51 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            builder.Entity<HairSalonCampaign>(entity =>
+            {
+                entity.ToTable("hair_salon_campaigns");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.Name)
+                    .HasColumnName("name")
+                    .HasMaxLength(255)
+                    .IsRequired();
+                entity.Property(e => e.DiscountPercent)
+                    .HasColumnName("discount_percent")
+                    .HasColumnType("decimal(5,2)")
+                    .IsRequired();
+                entity.Property(e => e.AppliesToProductIds)
+                    .HasColumnName("applies_to_product_ids")
+                    .HasColumnType("jsonb");
+                entity.Property(e => e.ValidFromUtc)
+                    .HasColumnName("valid_from_utc")
+                    .IsRequired();
+                entity.Property(e => e.ValidUntilUtc)
+                    .HasColumnName("valid_until_utc")
+                    .IsRequired();
+                entity.Property(e => e.IsActive)
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true)
+                    .IsRequired();
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_hair_salon_campaigns_tenant_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             builder.Entity<GuestFolio>(entity =>
             {
                 entity.ToTable("guest_folios");
@@ -3789,6 +3838,69 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.PaymentDetailId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .IsRequired(false);
+                entity.Property(e => e.EventId).HasColumnName("event_id");
+                entity.Property(e => e.SeatId).HasColumnName("seat_id");
+                entity.HasIndex(e => e.EventId)
+                    .HasDatabaseName("ix_ticket_redemptions_event_id");
+                entity.HasIndex(e => e.SeatId)
+                    .HasDatabaseName("ix_ticket_redemptions_seat_id");
+                entity.HasOne(e => e.Event)
+                    .WithMany()
+                    .HasForeignKey(e => e.EventId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+                entity.HasOne(e => e.Seat)
+                    .WithMany()
+                    .HasForeignKey(e => e.SeatId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<TicketEvent>(entity =>
+            {
+                entity.ToTable("ticket_events");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+                entity.Property(e => e.StartAtUtc).HasColumnName("start_at_utc");
+                entity.Property(e => e.EndAtUtc).HasColumnName("end_at_utc");
+                entity.Property(e => e.Venue).HasColumnName("venue").HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Capacity).HasColumnName("capacity");
+                entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("ix_ticket_events_tenant_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<TicketSeat>(entity =>
+            {
+                entity.ToTable("ticket_seats");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.EventId).HasColumnName("event_id").IsRequired();
+                entity.Property(e => e.Row).HasColumnName("row").HasMaxLength(16).IsRequired();
+                entity.Property(e => e.Number).HasColumnName("number").HasMaxLength(16).IsRequired();
+                entity.Property(e => e.Section).HasColumnName("section").HasMaxLength(64);
+                entity.Property(e => e.Status).HasColumnName("status");
+                entity.Property(e => e.ReservedUntilUtc).HasColumnName("reserved_until_utc");
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.EventId).HasDatabaseName("ix_ticket_seats_event_id");
+                entity.HasIndex(e => new { e.EventId, e.Row, e.Number, e.Section })
+                    .IsUnique()
+                    .HasDatabaseName("ux_ticket_seats_event_place");
+                entity.HasOne(e => e.Event)
+                    .WithMany(e => e.Seats)
+                    .HasForeignKey(e => e.EventId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<Appointment>(entity =>

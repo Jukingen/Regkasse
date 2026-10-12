@@ -28,6 +28,16 @@ public sealed class TicketRedemption : ITenantEntity
 
     public PaymentDetails? PaymentDetail { get; set; }
 
+    [Column("event_id")]
+    public Guid? EventId { get; set; }
+
+    public TicketEvent? Event { get; set; }
+
+    [Column("seat_id")]
+    public Guid? SeatId { get; set; }
+
+    public TicketSeat? Seat { get; set; }
+
     /// <summary>
     /// Non-secret display fragment (hash prefix). Never the issued plaintext code.
     /// </summary>

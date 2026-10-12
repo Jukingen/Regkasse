@@ -3238,7 +3238,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<string>("PetData")
                         .HasColumnType("jsonb")
-                        .HasColumnName("pet_data");
+                        .HasColumnName("clinical_data");
 
                     b.Property<string>("Phone")
                         .IsRequired()
@@ -5410,6 +5410,67 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ix_guest_folio_items_payment_detail_id");
 
                     b.ToTable("guest_folio_items", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.HairSalonCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.PrimitiveCollection<string>("AppliesToProductIds")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("applies_to_product_ids");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("discount_percent");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("ValidFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from_utc");
+
+                    b.Property<DateTime>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_hair_salon_campaigns_tenant_id");
+
+                    b.ToTable("hair_salon_campaigns", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryItem", b =>
@@ -9805,6 +9866,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
 
+                    b.Property<bool>("RequiresPrescription")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("requires_prescription");
+
                     b.Property<string>("RksvProductType")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -14068,6 +14135,68 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_vertical_overrides", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("EndAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at_utc");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("StartAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at_utc");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Venue")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("venue");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ticket_events_tenant_id");
+
+                    b.ToTable("ticket_events", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TicketRedemption", b =>
                 {
                     b.Property<Guid>("Id")
@@ -14082,6 +14211,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("created_at_utc")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
                     b.Property<Guid?>("PaymentDetailId")
                         .HasColumnType("uuid")
                         .HasColumnName("payment_detail_id");
@@ -14094,6 +14227,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("redeemed_by_user_id");
+
+                    b.Property<Guid?>("SeatId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seat_id");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -14125,8 +14262,14 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_redemptions_event_id");
+
                     b.HasIndex("PaymentDetailId")
                         .HasDatabaseName("ix_ticket_redemptions_payment_detail_id");
+
+                    b.HasIndex("SeatId")
+                        .HasDatabaseName("ix_ticket_redemptions_seat_id");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_ticket_redemptions_tenant_id");
@@ -14139,6 +14282,61 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ux_ticket_redemptions_tenant_code_hash");
 
                     b.ToTable("ticket_redemptions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("number");
+
+                    b.Property<DateTime?>("ReservedUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_until_utc");
+
+                    b.Property<string>("Row")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("row");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("section");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_seats_event_id");
+
+                    b.HasIndex("EventId", "Row", "Number", "Section")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ticket_seats_event_place");
+
+                    b.ToTable("ticket_seats", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseAnomaly", b =>
@@ -16758,10 +16956,22 @@ namespace KasseAPI_Final.Migrations
                             CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             Name = "verticalProfiles.vet.name",
-                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"petSpecies\",\"petBreed\",\"petBirthDate\",\"patientNotes\"],\"product\":[\"description\",\"category\"]}",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"petSpecies\",\"petBreed\",\"petBirthDate\",\"vaccines\",\"patientNotes\"],\"product\":[\"description\",\"category\"]}",
                             PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":true,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false}",
                             PosLayout = "standard",
                             RequiredFields = "{\"customer\":[\"name\",\"petName\"],\"product\":[\"name\",\"price\",\"taxGroup\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "doctor",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.doctor.name",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"birthDate\",\"allergies\",\"chronicConditions\",\"insurance\"],\"product\":[\"description\",\"category\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":true,\"prescription\":true,\"serviceDuration\":true,\"appointment\":true,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"ticketScan\":false}",
+                            PosLayout = "appointment",
+                            RequiredFields = "{\"customer\":[\"name\"],\"product\":[\"name\",\"price\",\"durationMinutes\"]}",
                             UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
@@ -17885,6 +18095,17 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Folio");
 
                     b.Navigation("PaymentDetail");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.HairSalonCampaign", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryTransaction", b =>
@@ -19029,12 +19250,33 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TicketRedemption", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.TicketEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("KasseAPI_Final.Models.PaymentDetails", "PaymentDetail")
                         .WithMany()
                         .HasForeignKey("PaymentDetailId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.TicketSeat", "Seat")
+                        .WithMany()
+                        .HasForeignKey("SeatId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
@@ -19042,9 +19284,24 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Event");
+
                     b.Navigation("PaymentDetail");
 
+                    b.Navigation("Seat");
+
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketSeat", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TicketEvent", "Event")
+                        .WithMany("Seats")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseAnomaly", b =>
@@ -19745,6 +20002,11 @@ namespace KasseAPI_Final.Migrations
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrderItem", b =>
                 {
                     b.Navigation("Modifiers");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.Navigation("Seats");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>

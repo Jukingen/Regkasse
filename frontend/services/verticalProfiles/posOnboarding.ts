@@ -178,6 +178,7 @@ const PROFILE_SLIDES: Record<string, OnboardingSlide[]> = {
 
 const INDUSTRY_KEYS: Record<string, string> = {
   vet: 'onboarding.industries.vet',
+  doctor: 'onboarding.industries.doctor',
   'hair-salon': 'onboarding.industries.hairSalon',
   taxi: 'onboarding.industries.taxi',
   gastronomy: 'onboarding.industries.gastronomy',

@@ -298,11 +298,40 @@
     "colValidUntil": "Valid until",
     "colRedeemedAt": "Redeemed at",
     "colRedeemedBy": "Redeemed by",
+    "colEvent": "Event",
+    "colSeat": "Seat",
     "status": {
       "Valid": "Valid",
       "Redeemed": "Redeemed",
       "Cancelled": "Cancelled",
       "Expired": "Expired"
     }
+  },
+  "ticketEvents": {
+    "title": "Events",
+    "subtitle": "Dates and seats for ticket sales.",
+    "name": "Name",
+    "venue": "Venue",
+    "capacity": "Capacity",
+    "start": "Start",
+    "end": "End",
+    "save": "Save",
+    "saved": "Event saved.",
+    "saveError": "Event could not be saved.",
+    "empty": "No events.",
+    "loadError": "Events could not be loaded.",
+    "seats": "Seats",
+    "seatsTitle": "Seat map",
+    "row": "Row",
+    "number": "Number",
+    "section": "Section",
+    "addSeat": "Add seat",
+    "seatSaved": "Seat saved.",
+    "seatError": "Seat could not be saved.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "statusAvailable": "Available",
+    "statusReserved": "Reserved",
+    "statusSold": "Sold"
   }
 }

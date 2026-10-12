@@ -7,6 +7,8 @@
  */
 
 export interface EffectiveVerticalProfileDto {
+  readonly isTaxiProfile?: boolean;
+  readonly isTicketSalesProfile?: boolean;
   /** @nullable */
   name?: string | null;
   optionalFields?: unknown;
@@ -17,4 +19,6 @@ export interface EffectiveVerticalProfileDto {
   /** @nullable */
   profileId?: string | null;
   requiredFields?: unknown;
+  /** @nullable */
+  taxiTariffPerKm?: number | null;
 }

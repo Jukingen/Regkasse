@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { Category } from './category';
+import type { ProductImei } from './productImei';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
 import type { TaxGroup } from './taxGroup';
 import type { Tenant } from './tenant';
@@ -73,10 +74,14 @@ export interface Product {
    * @nullable
    */
   imageUrl?: string | null;
+  /** @nullable */
+  imeis?: ProductImei[] | null;
+  imeiTracked?: boolean;
   isActive?: boolean;
   isFiscalCompliant?: boolean;
   isSellableAddOn?: boolean;
   isTaxable?: boolean;
+  isTicket?: boolean;
   /**
    * @minimum 0
    * @maximum 2147483647
@@ -118,6 +123,7 @@ export interface Product {
    * @maximum 1.7976931348623157e+308
    */
   price: number;
+  requiresPrescription?: boolean;
   /**
    * @maxLength 50
    * @nullable

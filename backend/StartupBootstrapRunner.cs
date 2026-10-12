@@ -67,6 +67,7 @@ namespace KasseAPI_Final
                 webEnv,
                 userSeedLogger);
             await DemoTenantAdminSeed.SeedAsync(context, userManager, tenantMembershipProvisioner, webEnv);
+            await DoctorProfileDemoSeed.SeedAsync(context, userManager, tenantMembershipProvisioner, webEnv);
             await AddDemoData.AddDemoDataAsync(context);
 
             if (webEnv.IsDevelopment())

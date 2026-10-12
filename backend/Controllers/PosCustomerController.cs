@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -23,19 +24,22 @@ public sealed class PosCustomerController : BaseController
     private readonly AppDbContext _db;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IVerticalProfileGuard _profileGuard;
+    private readonly ITenantExtensionRegistry? _extensions;
 
     public PosCustomerController(
         IPosCustomerQrLookupService qrLookup,
         AppDbContext db,
         ICurrentTenantAccessor tenantAccessor,
         ILogger<PosCustomerController> logger,
-        IVerticalProfileGuard profileGuard)
+        IVerticalProfileGuard profileGuard,
+        ITenantExtensionRegistry? extensions = null)
         : base(logger)
     {
         _qrLookup = qrLookup;
         _db = db;
         _tenantAccessor = tenantAccessor;
         _profileGuard = profileGuard;
+        _extensions = extensions;
     }
 
     /// <summary>Create a tenant-scoped POS customer, including optional veterinary pet data.</summary>
@@ -77,19 +81,20 @@ public sealed class PosCustomerController : BaseController
             Address = request.Address?.Trim() ?? string.Empty,
             IsActive = true,
             IsSystem = false,
-            PetData = request.PetData is null
-                ? null
-                : new CustomerPetData
-                {
-                    PetName = request.PetData.PetName?.Trim(),
-                    PetSpecies = request.PetData.PetSpecies?.Trim(),
-                    PetBreed = request.PetData.PetBreed?.Trim(),
-                    PetBirthDate = request.PetData.PetBirthDate,
-                },
+            PetData = request.PetData?.ToEntity(),
             AddressData = MapAddress(request.AddressData),
         };
         if (string.IsNullOrWhiteSpace(customer.Address))
             customer.Address = FormatAddress(customer.AddressData) ?? string.Empty;
+
+        var rejectedByExtension = await RunCustomerHookAsync(
+            tenantId,
+            customer.Id,
+            isUpdate: false,
+            cancellationToken);
+        if (rejectedByExtension is ActionResult extensionResult)
+            return extensionResult;
+
         _db.Customers.Add(customer);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -130,6 +135,15 @@ public sealed class PosCustomerController : BaseController
             ? formatted ?? customer.Address
             : request.Address.Trim();
         customer.UpdatedAt = DateTime.UtcNow;
+
+        var rejectedByExtension = await RunCustomerHookAsync(
+            tenantId,
+            customer.Id,
+            isUpdate: true,
+            cancellationToken);
+        if (rejectedByExtension is ActionResult extensionResult)
+            return extensionResult;
+
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return Ok(MapCustomer(customer));
     }
@@ -194,15 +208,7 @@ public sealed class PosCustomerController : BaseController
         Address = dto.Address,
         LoyaltyPoints = dto.LoyaltyPoints,
         AddressData = MapAddress(dto.AddressData),
-        PetData = dto.PetData is null
-            ? null
-            : new CustomerPetData
-            {
-                PetName = dto.PetData.PetName,
-                PetSpecies = dto.PetData.PetSpecies,
-                PetBreed = dto.PetData.PetBreed,
-                PetBirthDate = dto.PetData.PetBirthDate,
-            },
+        PetData = dto.PetData?.ToEntity(),
         IsActive = true,
     };
 
@@ -215,15 +221,7 @@ public sealed class PosCustomerController : BaseController
         Phone = customer.Phone,
         Address = customer.Address,
         LoyaltyPoints = customer.LoyaltyPoints,
-        PetData = customer.PetData is null
-            ? null
-            : new PosCustomerPetDataDto
-            {
-                PetName = customer.PetData.PetName,
-                PetSpecies = customer.PetData.PetSpecies,
-                PetBreed = customer.PetData.PetBreed,
-                PetBirthDate = customer.PetData.PetBirthDate,
-            },
+        PetData = PosCustomerPetDataDto.FromEntity(customer.PetData),
         AddressData = customer.AddressData is null
             ? null
             : new PosCustomerAddressDataDto
@@ -234,6 +232,32 @@ public sealed class PosCustomerController : BaseController
                 Notes = customer.AddressData.Notes,
             },
     };
+
+    private async Task<IActionResult?> RunCustomerHookAsync(
+        Guid tenantId,
+        Guid customerId,
+        bool isUpdate,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await TenantExtensionRunner.RunAsync(
+                _extensions,
+                tenantId,
+                TenantExtensionHooks.CustomerBeforeSave,
+                new Dictionary<string, object?>
+                {
+                    ["customerId"] = customerId,
+                    ["isUpdate"] = isUpdate,
+                },
+                cancellationToken);
+            return null;
+        }
+        catch (ExtensionFailedException ex)
+        {
+            return BadRequest(new { code = ExtensionFailedException.ErrorCode, message = ex.Message });
+        }
+    }
 
     private async Task<IActionResult?> RejectProfileFieldsAsync(
         PosCustomerPetDataDto? pet,
@@ -255,11 +279,7 @@ public sealed class PosCustomerController : BaseController
     }
 
     private static bool HasPetContent(PosCustomerPetDataDto? pet) =>
-        pet is not null
-        && (!string.IsNullOrWhiteSpace(pet.PetName)
-            || !string.IsNullOrWhiteSpace(pet.PetSpecies)
-            || !string.IsNullOrWhiteSpace(pet.PetBreed)
-            || pet.PetBirthDate is not null);
+        pet?.ToEntity() is not null;
 
     private static bool HasAddressContent(PosCustomerAddressDataDto? address) =>
         address is not null

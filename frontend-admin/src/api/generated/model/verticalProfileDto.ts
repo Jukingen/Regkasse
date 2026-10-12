@@ -7,6 +7,7 @@
  */
 
 export interface VerticalProfileDto {
+  featureCount?: number;
   /** @nullable */
   id?: string | null;
   /** @nullable */
@@ -16,4 +17,7 @@ export interface VerticalProfileDto {
   /** @nullable */
   posLayout?: string | null;
   requiredFields?: unknown;
+  /** @nullable */
+  source?: string | null;
+  tenantCount?: number;
 }

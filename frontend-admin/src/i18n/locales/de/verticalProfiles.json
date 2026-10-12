@@ -23,6 +23,9 @@
   "vet": {
     "name": "Tierarztpraxis"
   },
+  "doctor": {
+    "name": "Arztpraxis"
+  },
   "beherbergung": {
     "name": "Beherbergung"
   }

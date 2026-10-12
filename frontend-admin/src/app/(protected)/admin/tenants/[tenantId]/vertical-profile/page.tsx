@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { TenantExtensionsPanel } from '@/features/extensions/TenantExtensionsPanel';
 import { TenantVerticalProfileEditor } from '@/features/super-admin/components/TenantVerticalProfileEditor';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -64,6 +65,7 @@ export default function TenantVerticalProfilePage() {
         {t('tenants.verticalProfile.subtitle')}
       </Typography.Paragraph>
       <TenantVerticalProfileEditor tenantId={tenantId} />
+      <TenantExtensionsPanel tenantId={tenantId} />
     </AdminPageShell>
   );
 }

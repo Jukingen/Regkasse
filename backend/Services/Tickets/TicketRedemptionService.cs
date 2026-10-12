@@ -171,15 +171,40 @@ public sealed class TicketRedemptionService : ITicketRedemptionService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows.Select(row => new TicketRedemptionListRowDto
+        var eventIds = rows.Where(row => row.EventId is not null).Select(row => row.EventId!.Value).Distinct().ToList();
+        var seatIds = rows.Where(row => row.SeatId is not null).Select(row => row.SeatId!.Value).Distinct().ToList();
+        var events = eventIds.Count == 0
+            ? new Dictionary<Guid, TicketEvent>()
+            : await _db.TicketEvents
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(row => eventIds.Contains(row.Id))
+                .ToDictionaryAsync(row => row.Id, cancellationToken)
+                .ConfigureAwait(false);
+        var seats = seatIds.Count == 0
+            ? new Dictionary<Guid, TicketSeat>()
+            : await _db.TicketSeats
+                .AsNoTracking()
+                .Where(row => seatIds.Contains(row.Id))
+                .ToDictionaryAsync(row => row.Id, cancellationToken)
+                .ConfigureAwait(false);
+
+        return rows.Select(row =>
         {
-            Id = row.Id,
-            TenantId = row.TenantId,
-            DisplayCode = row.TicketCode,
-            Status = row.Status.ToString(),
-            ValidUntilUtc = row.ValidUntilUtc,
-            RedeemedAtUtc = row.RedeemedAtUtc,
-            RedeemedByUserId = row.RedeemedByUserId,
+            events.TryGetValue(row.EventId ?? Guid.Empty, out var ticketEvent);
+            seats.TryGetValue(row.SeatId ?? Guid.Empty, out var seat);
+            return new TicketRedemptionListRowDto
+            {
+                Id = row.Id,
+                TenantId = row.TenantId,
+                DisplayCode = row.TicketCode,
+                Status = row.Status.ToString(),
+                ValidUntilUtc = row.ValidUntilUtc,
+                RedeemedAtUtc = row.RedeemedAtUtc,
+                RedeemedByUserId = row.RedeemedByUserId,
+                EventName = ticketEvent?.Name,
+                SeatLabel = seat is null ? null : TicketSeatLabel.Format(seat),
+            };
         }).ToList();
     }
 

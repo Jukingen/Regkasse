@@ -2,6 +2,7 @@
   "tabs": {
     "kitchen": "Kitchen",
     "patientRecord": "Patient record",
+    "animalRecord": "Animal record",
     "appointments": "Appointments",
     "rooms": "Rooms"
   },
@@ -43,15 +44,21 @@
     },
     "patientRecord": {
       "title": "Patient record",
-      "subtitle": "Create a customer and animal patient record.",
+      "vetTitle": "Animal record",
+      "doctorTitle": "Patient record",
+      "subtitle": "Create a customer and animal record.",
+      "doctorSubtitle": "Capture patient details for the record.",
       "validationTitle": "Required fields",
       "required": "Customer name and pet name are required.",
-      "save": "Save patient record",
+      "doctorRequired": "Patient name is required.",
+      "save": "Save animal record",
+      "doctorSave": "Save patient record",
       "saving": "Saving…",
       "savedTitle": "Saved",
       "saved": "Customer and pet data were saved.",
+      "doctorSaved": "Patient data was saved.",
       "saveFailedTitle": "Save failed",
-      "saveFailed": "The patient record could not be saved."
+      "saveFailed": "The record could not be saved."
     },
     "appointments": {
       "title": "Appointment calendar",
@@ -125,7 +132,12 @@
       "invalid": "Invalid",
       "expired": "Ticket expired.",
       "alreadyRedeemed": "Ticket already redeemed.",
-      "generateToggle": "Generate ticket"
+      "generateToggle": "Generate ticket",
+      "eventLabel": "Event",
+      "loadError": "Events could not be loaded.",
+      "seatTaken": "Seat is no longer free.",
+      "paySeat": "Pay",
+      "printedTitle": "Ticket"
     },
     "lodging": {
       "title": "Select room",
@@ -220,6 +232,12 @@
     "petSpecies": "Species",
     "petBreed": "Breed",
     "petBirthDate": "Birth date",
+    "vaccines": "Vaccines",
+    "birthDate": "Birth date",
+    "allergies": "Allergies",
+    "chronicConditions": "Chronic conditions",
+    "insurance": "Insurance",
+    "patientName": "Patient name",
     "patientNotes": "Patient notes",
     "imei": "IMEI / serial number",
     "street": "Street",
@@ -258,6 +276,7 @@
   "onboarding": {
     "industries": {
       "vet": "Veterinary practice",
+      "doctor": "Medical practice",
       "hairSalon": "Hair salon",
       "taxi": "Taxi business",
       "gastronomy": "Gastronomy",
@@ -277,9 +296,9 @@
     "vet": {
       "welcomeTitle": "Welcome to your veterinary practice",
       "welcomeBody": "Patients, owners, and treatments belong on your register.",
-      "recordTitle": "Patient record",
+      "recordTitle": "Animal record",
       "recordBody": "Open the record before you charge a treatment.",
-      "recordPreview": "Patient record",
+      "recordPreview": "Animal record",
       "saleTitle": "Sale with a patient",
       "saleBody": "Pet and owner stay on the sale. The RKSV chain stays unchanged.",
       "salePreview": "Register"

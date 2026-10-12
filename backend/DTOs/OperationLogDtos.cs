@@ -77,6 +77,7 @@ public sealed class ProductOperationSnapshot
     public string? StaffId { get; set; }
     public bool ImeiTracked { get; set; }
     public bool IsTicket { get; set; }
+    public bool RequiresPrescription { get; set; }
     public decimal Cost { get; set; }
     public string Barcode { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
@@ -107,6 +108,13 @@ public sealed class CustomerOperationSnapshot
     public string? PetSpecies { get; set; }
     public string? PetBreed { get; set; }
     public DateOnly? PetBirthDate { get; set; }
+    public string? Species { get; set; }
+    public string? Breed { get; set; }
+    public DateOnly? BirthDate { get; set; }
+    public string? Vaccines { get; set; }
+    public string? Allergies { get; set; }
+    public string? ChronicConditions { get; set; }
+    public string? Insurance { get; set; }
     public bool IsVip { get; set; }
     public bool IsActive { get; set; }
     public decimal DiscountPercentage { get; set; }

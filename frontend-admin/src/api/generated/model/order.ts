@@ -7,6 +7,7 @@
  */
 import type { Customer } from './customer';
 import type { OrderItem } from './orderItem';
+import type { OrderLocationData } from './orderLocationData';
 import type { OrderStatus } from './orderStatus';
 
 export interface Order {
@@ -42,6 +43,7 @@ export interface Order {
   items?: OrderItem[] | null;
   /** @nullable */
   lastPreorderPaymentId?: string | null;
+  locationData?: OrderLocationData;
   /**
    * @maxLength 500
    * @nullable

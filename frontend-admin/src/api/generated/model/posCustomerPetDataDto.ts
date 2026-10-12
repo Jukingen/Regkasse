@@ -7,6 +7,28 @@
  */
 
 export interface PosCustomerPetDataDto {
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  allergies?: string | null;
+  /** @nullable */
+  birthDate?: string | null;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  breed?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  chronicConditions?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  insurance?: string | null;
   /** @nullable */
   petBirthDate?: string | null;
   /**
@@ -24,4 +46,14 @@ export interface PosCustomerPetDataDto {
    * @nullable
    */
   petSpecies?: string | null;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  species?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  vaccines?: string | null;
 }

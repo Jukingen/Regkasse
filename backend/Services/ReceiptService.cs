@@ -4,6 +4,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
@@ -62,6 +63,7 @@ namespace KasseAPI_Final.Services
         private readonly IRksvReportTextService? _reportText;
         private readonly IReportPdfCaptureService? _reportPdfCapture;
         private readonly IReportPdfStorageService? _reportPdfStorage;
+        private readonly ITenantExtensionRegistry? _extensionRegistry;
 
         public ReceiptService(
             AppDbContext context,
@@ -76,7 +78,8 @@ namespace KasseAPI_Final.Services
             IOptions<TseOptions>? tseOptions = null,
             IRksvReportTextService? reportText = null,
             IReportPdfCaptureService? reportPdfCapture = null,
-            IReportPdfStorageService? reportPdfStorage = null)
+            IReportPdfStorageService? reportPdfStorage = null,
+            ITenantExtensionRegistry? extensionRegistry = null)
         {
             _context = context;
             _logger = logger;
@@ -93,10 +96,11 @@ namespace KasseAPI_Final.Services
             _reportText = reportText;
             _reportPdfCapture = reportPdfCapture;
             _reportPdfStorage = reportPdfStorage;
+            _extensionRegistry = extensionRegistry;
         }
 
         /// <inheritdoc />
-        public Task<string> GeneratePlainTextReportAsync(
+        public async Task<string> GeneratePlainTextReportAsync(
             ReceiptDTO receipt,
             CancellationToken cancellationToken = default)
         {
@@ -104,7 +108,19 @@ namespace KasseAPI_Final.Services
             if (_reportText == null)
                 throw new InvalidOperationException("IRksvReportTextService is not configured.");
 
-            return _reportText.RenderReceiptAsync(receipt, cancellationToken);
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+            await TenantExtensionRunner.RunAsync(
+                _extensionRegistry,
+                tenantId,
+                TenantExtensionHooks.ReceiptBeforePrint,
+                new Dictionary<string, object?>
+                {
+                    ["receiptId"] = receipt.ReceiptId,
+                    ["paymentId"] = receipt.PaymentId,
+                },
+                cancellationToken);
+
+            return await _reportText.RenderReceiptAsync(receipt, cancellationToken);
         }
 
         /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>

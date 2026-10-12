@@ -300,6 +300,15 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     permission: PERMISSIONS.PRODUCT_VIEW,
     onlyForProfiles: ['ticket-sales'],
   },
+  ticketEvents: {
+    id: 'ticketEvents',
+    menuKey: '/admin/tickets/events',
+    href: '/admin/tickets/events',
+    labelKey: 'nav.ticketEvents',
+    icon: 'CalendarOutlined',
+    permission: PERMISSIONS.PRODUCT_VIEW,
+    onlyForProfiles: ['ticket-sales'],
+  },
   rooms: {
     id: 'rooms',
     menuKey: '/admin/rooms',
@@ -325,7 +334,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.patients',
     icon: 'UserOutlined',
     permission: PERMISSIONS.PATIENT_VIEW,
-    onlyForProfiles: ['vet'],
+    onlyForProfiles: ['vet', 'doctor'],
   },
   appointments: {
     id: 'appointments',
@@ -663,6 +672,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'ControlOutlined',
     permission: PERMISSIONS.SETTINGS_VIEW,
     requiredFeature: 'kitchenDisplay',
+  },
+  extensions: {
+    id: 'extensions',
+    menuKey: '/admin/extensions',
+    href: '/admin/extensions',
+    labelKey: 'nav.extensions',
+    icon: 'ApiOutlined',
+    permission: PERMISSIONS.SETTINGS_VIEW,
   },
   taxGroups: {
     id: 'taxGroups',
@@ -1792,6 +1809,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'products',
           'imeis',
           'ticketRedemptions',
+          'ticketEvents',
           'rooms',
           'folios',
           'categories',
@@ -1919,6 +1937,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     kind: 'group',
     group: 'settings',
     blocks: [
+      { kind: 'leaves', catalogIds: ['extensions'] },
       {
         kind: 'nested',
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.myAccount,

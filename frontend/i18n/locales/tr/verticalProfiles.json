@@ -2,6 +2,7 @@
   "tabs": {
     "kitchen": "Mutfak",
     "patientRecord": "Hasta kaydı",
+    "animalRecord": "Hayvan dosyası",
     "appointments": "Randevular",
     "rooms": "Odalar"
   },
@@ -43,15 +44,21 @@
     },
     "patientRecord": {
       "title": "Hasta kaydı",
-      "subtitle": "Müşteri ve hayvan hasta kaydı oluşturun.",
+      "vetTitle": "Hayvan dosyası",
+      "doctorTitle": "Hasta kaydı",
+      "subtitle": "Müşteri ve hayvan dosyası oluşturun.",
+      "doctorSubtitle": "Dosya için hasta bilgilerini girin.",
       "validationTitle": "Zorunlu alanlar",
       "required": "Müşteri adı ve hayvan adı zorunludur.",
-      "save": "Hasta kaydını kaydet",
+      "doctorRequired": "Hasta adı zorunludur.",
+      "save": "Hayvan dosyasını kaydet",
+      "doctorSave": "Hasta kaydını kaydet",
       "saving": "Kaydediliyor…",
       "savedTitle": "Kaydedildi",
       "saved": "Müşteri ve hayvan verileri kaydedildi.",
+      "doctorSaved": "Hasta verileri kaydedildi.",
       "saveFailedTitle": "Kayıt başarısız",
-      "saveFailed": "Hasta kaydı kaydedilemedi."
+      "saveFailed": "Dosya kaydedilemedi."
     },
     "appointments": {
       "title": "Randevu takvimi",
@@ -125,7 +132,12 @@
       "invalid": "Geçersiz",
       "expired": "Bilet süresi doldu.",
       "alreadyRedeemed": "Bilet zaten kullanıldı.",
-      "generateToggle": "Bilet oluştur"
+      "generateToggle": "Bilet oluştur",
+      "eventLabel": "Etkinlik",
+      "loadError": "Etkinlikler yüklenemedi.",
+      "seatTaken": "Koltuk artık boş değil.",
+      "paySeat": "Öde",
+      "printedTitle": "Bilet"
     },
     "lodging": {
       "title": "Oda seç",
@@ -220,6 +232,12 @@
     "petSpecies": "Hayvan türü",
     "petBreed": "Irk",
     "petBirthDate": "Doğum tarihi",
+    "vaccines": "Aşılar",
+    "birthDate": "Doğum tarihi",
+    "allergies": "Alerjiler",
+    "chronicConditions": "Kronik durumlar",
+    "insurance": "Sigorta",
+    "patientName": "Hasta adı",
     "patientNotes": "Hasta notları",
     "imei": "IMEI / seri numarası",
     "street": "Sokak",
@@ -258,6 +276,7 @@
   "onboarding": {
     "industries": {
       "vet": "Veteriner kliniği",
+      "doctor": "Muayenehane",
       "hairSalon": "Kuaför",
       "taxi": "Taksi işletmesi",
       "gastronomy": "Gastronomi",
@@ -277,9 +296,9 @@
     "vet": {
       "welcomeTitle": "Veteriner kliniğinize hoş geldiniz",
       "welcomeBody": "Hastalar, sahipler ve tedaviler kasanıza aittir.",
-      "recordTitle": "Hasta kaydı",
+      "recordTitle": "Hayvan dosyası",
       "recordBody": "Bir tedaviyi tahsil etmeden önce kaydı açın.",
-      "recordPreview": "Hasta kaydı",
+      "recordPreview": "Hayvan dosyası",
       "saleTitle": "Hastaya bağlı satış",
       "saleBody": "Hayvan ve sahip satışta kalır. RKSV zinciri değişmez.",
       "salePreview": "Kasa"

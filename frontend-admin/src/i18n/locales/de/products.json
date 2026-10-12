@@ -298,11 +298,40 @@
     "colValidUntil": "Gültig bis",
     "colRedeemedAt": "Eingelöst am",
     "colRedeemedBy": "Eingelöst von",
+    "colEvent": "Veranstaltung",
+    "colSeat": "Platz",
     "status": {
       "Valid": "Gültig",
       "Redeemed": "Eingelöst",
       "Cancelled": "Storniert",
       "Expired": "Abgelaufen"
     }
+  },
+  "ticketEvents": {
+    "title": "Veranstaltungen",
+    "subtitle": "Termine und Plätze für den Ticketverkauf.",
+    "name": "Name",
+    "venue": "Ort",
+    "capacity": "Kapazität",
+    "start": "Beginn",
+    "end": "Ende",
+    "save": "Speichern",
+    "saved": "Veranstaltung gespeichert.",
+    "saveError": "Veranstaltung konnte nicht gespeichert werden.",
+    "empty": "Keine Veranstaltungen.",
+    "loadError": "Veranstaltungen konnten nicht geladen werden.",
+    "seats": "Plätze",
+    "seatsTitle": "Platzplan",
+    "row": "Reihe",
+    "number": "Nummer",
+    "section": "Bereich",
+    "addSeat": "Platz hinzufügen",
+    "seatSaved": "Platz gespeichert.",
+    "seatError": "Platz konnte nicht gespeichert werden.",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "statusAvailable": "Frei",
+    "statusReserved": "Reserviert",
+    "statusSold": "Verkauft"
   }
 }

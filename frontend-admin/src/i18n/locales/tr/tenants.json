@@ -607,7 +607,8 @@
       "imeiTracking": "IMEI takibi",
       "routeTracking": "Rota takibi",
       "roomTracking": "Salon/koltuk takibi",
-      "ticketScan": "Bilet tarama"
+      "ticketScan": "Bilet tarama",
+      "prescription": "Reçete zorunlu"
     },
     "taxiTariffTitle": "Taksi tarife",
     "taxiTariffHelp": "POS ücret önerisi için kilometre tarifesi. Mali fiş tutarı sepet hizmet satırında kalır.",

@@ -347,9 +347,16 @@ function PosTabsInner({
             name="patient-record"
             options={{
               href: posFeatures.patientRecord ? undefined : null,
-              title: t('verticalProfiles:tabs.patientRecord'),
+              title:
+                profileId === 'vet'
+                  ? t('verticalProfiles:tabs.animalRecord')
+                  : t('verticalProfiles:tabs.patientRecord'),
               tabBarIcon: ({ color }) => (
-                <Ionicons name="paw-outline" size={24} color={color} />
+                <Ionicons
+                  name={profileId === 'doctor' ? 'person-outline' : 'paw-outline'}
+                  size={24}
+                  color={color}
+                />
               ),
             }}
           />

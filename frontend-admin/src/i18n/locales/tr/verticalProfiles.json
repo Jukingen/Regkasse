@@ -23,6 +23,9 @@
   "vet": {
     "name": "Veteriner kliniği"
   },
+  "doctor": {
+    "name": "Muayenehane"
+  },
   "beherbergung": {
     "name": "Konaklama"
   }

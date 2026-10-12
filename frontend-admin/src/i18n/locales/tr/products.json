@@ -298,11 +298,40 @@
     "colValidUntil": "Geçerlilik",
     "colRedeemedAt": "Kullanım zamanı",
     "colRedeemedBy": "Kullanan",
+    "colEvent": "Etkinlik",
+    "colSeat": "Koltuk",
     "status": {
       "Valid": "Geçerli",
       "Redeemed": "Kullanıldı",
       "Cancelled": "İptal",
       "Expired": "Süresi doldu"
     }
+  },
+  "ticketEvents": {
+    "title": "Etkinlikler",
+    "subtitle": "Bilet satışı için tarihler ve koltuklar.",
+    "name": "Ad",
+    "venue": "Mekan",
+    "capacity": "Kapasite",
+    "start": "Başlangıç",
+    "end": "Bitiş",
+    "save": "Kaydet",
+    "saved": "Etkinlik kaydedildi.",
+    "saveError": "Etkinlik kaydedilemedi.",
+    "empty": "Etkinlik yok.",
+    "loadError": "Etkinlikler yüklenemedi.",
+    "seats": "Koltuklar",
+    "seatsTitle": "Koltuk planı",
+    "row": "Sıra",
+    "number": "Numara",
+    "section": "Bölüm",
+    "addSeat": "Koltuk ekle",
+    "seatSaved": "Koltuk kaydedildi.",
+    "seatError": "Koltuk kaydedilemedi.",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "statusAvailable": "Boş",
+    "statusReserved": "Rezerve",
+    "statusSold": "Satıldı"
   }
 }

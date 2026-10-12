@@ -104,6 +104,13 @@ namespace KasseAPI_Final.Models
         [Column("is_ticket")]
         public bool IsTicket { get; set; }
 
+        /// <summary>
+        /// When true, a sale of this product needs a prescription reference.
+        /// Enforced only by <c>prescription_required</c> when that extension is enabled.
+        /// </summary>
+        [Column("requires_prescription")]
+        public bool RequiresPrescription { get; set; }
+
         [Column("cost")]
         [Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative")]
         public decimal Cost { get; set; }

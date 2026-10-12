@@ -5,9 +5,13 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
+import type { PosCustomerAddressDataDto } from './posCustomerAddressDataDto';
 import type { PosCustomerPetDataDto } from './posCustomerPetDataDto';
 
 export interface PosCustomerDto {
+  /** @nullable */
+  address?: string | null;
+  addressData?: PosCustomerAddressDataDto;
   /** @nullable */
   customerNumber?: string | null;
   /** @nullable */

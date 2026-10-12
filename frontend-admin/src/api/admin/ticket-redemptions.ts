@@ -14,6 +14,8 @@ export interface AdminTicketRedemptionRow {
   validUntilUtc?: string | null;
   redeemedAtUtc?: string | null;
   redeemedByUserId?: string | null;
+  eventName?: string | null;
+  seatLabel?: string | null;
 }
 
 export interface AdminTicketRedemptionListResponse {

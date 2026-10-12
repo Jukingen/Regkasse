@@ -45,6 +45,7 @@ const KNOWN_PROFILE_NAME_KEYS: Record<string, string> = {
   'ticket-sales': 'verticalProfiles.ticketSales.name',
   beherbergung: 'verticalProfiles.beherbergung.name',
   vet: 'verticalProfiles.vet.name',
+  doctor: 'verticalProfiles.doctor.name',
 };
 const KNOWN_FEATURE_LABEL_KEYS: Record<string, string> = {
   tables: 'tenants.verticalProfile.features.tables',
@@ -56,6 +57,7 @@ const KNOWN_FEATURE_LABEL_KEYS: Record<string, string> = {
   routeTracking: 'tenants.verticalProfile.features.routeTracking',
   roomTracking: 'tenants.verticalProfile.features.roomTracking',
   ticketScan: 'tenants.verticalProfile.features.ticketScan',
+  prescription: 'tenants.verticalProfile.features.prescription',
 };
 const ENTITY_FIELD_LABEL_KEYS: Record<EntityFieldGroup, string> = {
   customer: 'tenants.verticalProfile.customerFields',

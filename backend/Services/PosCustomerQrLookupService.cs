@@ -127,15 +127,7 @@ public sealed class PosCustomerQrLookupService : IPosCustomerQrLookupService
         Phone = customer.Phone,
         Address = customer.Address,
         LoyaltyPoints = customer.LoyaltyPoints,
-        PetData = customer.PetData is null
-            ? null
-            : new PosCustomerPetDataDto
-            {
-                PetName = customer.PetData.PetName,
-                PetSpecies = customer.PetData.PetSpecies,
-                PetBreed = customer.PetData.PetBreed,
-                PetBirthDate = customer.PetData.PetBirthDate,
-            },
+        PetData = PosCustomerPetDataDto.FromEntity(customer.PetData),
         AddressData = customer.AddressData is null
             ? null
             : new PosCustomerAddressDataDto
