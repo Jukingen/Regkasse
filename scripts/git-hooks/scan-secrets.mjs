@@ -18,7 +18,7 @@ import { pathToFileURL } from 'node:url';
 const MAX_BYTES = 1_500_000;
 
 /** Documented Development seed passwords (UserSeedData / DemoTenantAdminSeed). */
-const ALLOWED_SEED_PASSWORDS = new Set(['Admin123!', 'DemoTenant1!']);
+const ALLOWED_SEED_PASSWORDS = new Set(['Admin123!', 'DemoTenant1!', 'DevCashier1!']);
 
 const PLACEHOLDER_RE =
   /^(YOUR_[A-Z0-9_]+_HERE|CHANGE_ME.*|PLACEHOLDER.*|<.*>|\.{3,}|…+|\*{3,}|x{3,}|TODO|FIXME|secret|password|empty|null|none|n\/a|-)$/i;

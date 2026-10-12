@@ -21,6 +21,9 @@ module.exports = defineConfig([
     '**/ios/**',
     '**/backup/**',
     '**/coverage/**',
+    'e2e/**',
+    'playwright-report/**',
+    'test-results/**',
     '**/*.tsbuildinfo',
     // Intentionally excluded from tsconfig — typed lint cannot project-service them
     'examples/**',

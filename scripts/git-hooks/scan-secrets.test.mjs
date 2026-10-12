@@ -67,6 +67,13 @@ describe('scanText', () => {
     assert.deepEqual(ok, []);
   });
 
+  it('allows the documented POS dev cashier password in json fixtures', () => {
+    assert.deepEqual(
+      scanFile('frontend/e2e/fixtures/test-users.json', '{ "password": "DevCashier1!" }'),
+      [],
+    );
+  });
+
   it('allows documented connection-string placeholders in quoted docs', () => {
     assert.deepEqual(
       scanText('dotnet user-secrets set "x" "Host=localhost;Username=postgres;Password=YOUR_PASSWORD"'),

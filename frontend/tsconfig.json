@@ -28,6 +28,7 @@
     "ios",
     "dist",
     "coverage",
+    "e2e",
     "examples/**/*",
     "components/VoiceCommands.tsx",
     "components/TaskMasterDashboard.tsx",

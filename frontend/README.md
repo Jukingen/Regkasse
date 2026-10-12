@@ -559,7 +559,7 @@ The default build is the universal app. [`eas.json`](eas.json) (`appVersionSourc
 | Profile | Artifact | Identity |
 | ------- | -------- | -------- |
 | `production` | Play App Bundle (AAB) and App Store IPA (`distribution: store`) | Universal (`app.json`). **Default release.** |
-| `production-apk` | Sideload APK (`credentialsSource: local`, `credentials.json`) | Universal |
+| `production-apk` | Sideload APK (`distribution: internal`). Same EAS cloud Android credentials as `production`. | Universal |
 
 `gastronomy-production` and `gastronomy-production-apk` are **future / experimental**. They set `EXPO_PUBLIC_BRAND=gastronomy` and are not a shipped industry binary. Use them only for a white-label trial or after the exception in [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (about 10,000 tenants in one industry, or a white-label request). They override `name`, `slug`, `icon`, splash, `android.package`, and `ios.bundleIdentifier`. Version stays the `app.json` version. Replacement art, if a trial needs it, goes under `assets/brands/gastronomy/` (`icon.png`, `adaptive-icon.png`, `splash.png`).
 
@@ -570,7 +570,7 @@ npx eas build --platform android --profile production
 npx eas build --platform ios --profile production
 npx eas build --platform all --profile production
 
-# Universal sideload APK (local keystore; see docs/ANDROID_RELEASE_SIGNING.md)
+# Universal sideload APK (EAS cloud credentials; see Android build credentials below)
 npx eas build --platform android --profile production-apk
 
 # Future / experimental only — not a release profile
@@ -578,15 +578,47 @@ npx eas build --platform android --profile production-apk
 # npx eas build --platform android --profile gastronomy-production-apk
 ```
 
+### Android build credentials
+
+Android signing defaults to **EAS cloud credentials**. No `credentials.json` and no keystore live in this repo. `production` and `production-apk` omit `android.credentialsSource`, so EAS stores the upload keystore on Expo's servers and signs both the Play App Bundle and the sideload APK with it. `gastronomy-production` and `gastronomy-production-apk` inherit that behavior. The first cloud build for the Android package asks you to generate or reuse that keystore; later builds reuse it.
+
+```bash
+cd frontend
+npx eas-cli login
+npx eas credentials --platform android
+```
+
+Use **local credentials** only when you must hold the keystore yourself (offline backup, or the manual `jarsigner` flow in [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md)).
+
+1. Create a release keystore outside git. Steps and the `credentials.json` shape are in that signing guide. `frontend/.gitignore` already ignores `credentials.json` and `*.keystore`.
+2. From `frontend/`, run the interactive helper. Do not run it in CI:
+
+   ```bash
+   npx eas credentials:configure-build --platform android
+   ```
+
+   It can generate a keystore and writes `frontend/credentials.json`. Do not commit either file.
+3. Opt that profile into the file by adding `"credentialsSource": "local"` under its `android` block. Without this flag, EAS ignores `credentials.json`. With the flag and no file, the build fails with `credentials.json does not exist in the project root directory`.
+
+`production-apk` does not set that flag. A sideload APK uses the same cloud keystore as the store build.
+
 GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). The release input is `profile=universal`. `profile=gastronomy` is future / experimental. The workflow runs `eas build` and does not submit or commit binaries.
 
 Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
+
+### Local release measurement
+
+| Check | Result |
+| ----- | ------ |
+| Android APK | `app-release.apk` is about **131 MiB** (137,631,483 bytes). One APK contains every ABI (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`). A Play device download from the `production` AAB is smaller. |
+| iOS archive | Requires **macOS** and `xcodebuild`. Windows `expo prebuild` skips the `ios/` tree, and this repo was measured on Windows. |
+| `npx expo-doctor` | **21/22** checks passed on Expo SDK 56. The remaining failure is Hermes V1 `250829098.0.10` (memory regression). The fix is Hermes V1 `250829098.0.16`, which ships with Expo SDK 57 (`expo@57.0.9` or later) and React Native 0.86.2. Stay on SDK 56 until that upgrade is planned. |
 
 ### OTA updates (`expo-updates`)
 
 JS and asset changes can ship without a store binary. [`app.json`](app.json) sets `runtimeVersion.policy` to `sdkVersion` and `updates.checkAutomatically` to `ON_LOAD` (the Expo default: check when the app loads).
 
-`updates.url` is still the placeholder `https://u.expo.dev/00000000-0000-4000-8000-000000000000`. Replace it with `https://u.expo.dev/<project-id>` after `npx eas-cli init` prints the project id (`extra.eas.projectId` in `app.json`). OTA requests do nothing useful until that URL is the real project.
+`updates.url` is `https://u.expo.dev/60f5039c-20d6-4ebc-adc7-221311f5236c`. `extra.eas.projectId` in [`app.json`](app.json) is the same id. `eas init` still needs an Expo login on this machine before the CLI can confirm the remote binding.
 
 [`eas.json`](eas.json) sets one channel per build profile. A binary only receives updates published on the branch linked to its channel. The first `eas build` for a profile creates that link when the channel name matches the branch name.
 
