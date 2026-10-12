@@ -1,7 +1,7 @@
 # Canary launch runbook (CH, DE, Peppol)
 
 **Last updated:** 2026-09-30  
-**Host:** Staging only (`ASPNETCORE_ENVIRONMENT=Staging`).  
+**Host:** Staging only (`ASPNETCORE_ENVIRONMENT=Staging`). Bring the host up with [`STAGING_SETUP.md`](STAGING_SETUP.md) before this sequence. The Staging example includes `Mwst:CanaryTenantId` as an empty string; set `Mwst__CanaryTenantId` on the host before the CH dry-run.  
 **Hubs:** [`COUNTRIES.md`](COUNTRIES.md) §16 · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`FISCAL_GERMANY.md`](FISCAL_GERMANY.md) · [`FISCAL_SWITZERLAND.md`](FISCAL_SWITZERLAND.md) · [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md)
 
 Order: Staging smoke, then one canary tenant, then Production. This file is the Staging canary sequence. It does not promote a flag and it does not open LIVE HTTP.

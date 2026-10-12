@@ -17,6 +17,7 @@ Human-facing guides for operators and developers.
 | [`MULTI_TENANT.md`](MULTI_TENANT.md) | Dev / ops | Tenant resolution, isolation, hosts, Dev headers |
 | [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md) | Dev / ops | Single POS UI (`pos.regkasse.at`), JWT tenant |
 | [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) | Super Admin / FA | Mandant CRUD, switcher, provisioning |
+| [`TENANT_EXTENSIONS.md`](TENANT_EXTENSIONS.md) | Dev / FA | Additive tenant hooks (`Extensions.Enabled`) |
 | [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) | FA | Platform vs tenant users, Access hub |
 | [`PERMISSIONS_MATRIX.md`](PERMISSIONS_MATRIX.md) | FA / security | Role × permission defaults |
 | [`PERMISSIONS_MENU_MAPPING.md`](PERMISSIONS_MENU_MAPPING.md) | FA / security | Sidebar menu ↔ permission catalog groups |
@@ -115,6 +116,7 @@ FA hub: `/backup` (+ `/backup/costs`, `/backup/compliance`, dashboard, runs, con
 | [`EINVOICING_EU.md`](EINVOICING_EU.md) | EU e-invoicing / ViDA readiness **stub** (no submission) |
 | [`EINVOICING_EU_SUBMISSION_PLAN.md`](EINVOICING_EU_SUBMISSION_PLAN.md) | Paket 22: Peppol/UBL vs national platforms (plan; not implemented) |
 | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) | **Dev / Staging / Production / Canary, RELEASE_STAGE, banners, promotion** |
+| [`STAGING_SETUP.md`](STAGING_SETUP.md) | **Staging hosts, secrets, smoke, local Staging, CH canary prep** |
 | [`CANARY_DEPLOYMENT.md`](CANARY_DEPLOYMENT.md) | **Tenant-based canary: selection, soak monitoring, rollback** |
 | [`DEPLOYMENT_COMPLIANCE.md`](DEPLOYMENT_COMPLIANCE.md) | **Production RKSV gate, ComplianceOfficer, audit trail** |
 | [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | **Feature flags: config defaults, tenant_settings overrides, Admin API, FA UI** |

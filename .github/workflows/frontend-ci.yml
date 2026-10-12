@@ -17,6 +17,11 @@ on:
       - '.github/workflows/frontend-ci.yml'
       - '.github/workflows/frontend-pos-ci.yml'
   workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Run optional POS Playwright E2E (needs a seeded Development API)
+        type: boolean
+        default: false
   workflow_call:
 
 concurrency:
@@ -93,6 +98,20 @@ jobs:
           node localization/scripts/validate-translations.mjs
           --app frontend
           --strictMissing true
+
+      # Optional live browser pass. Off for pull requests. Dispatch with run_e2e
+      # against a Development API that already has the vertical-profile cashiers.
+      # continue-on-error keeps this from blocking the lint/typecheck/unit job.
+      - name: Playwright E2E (optional)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true'
+        continue-on-error: true
+        run: |
+          npx playwright install chromium
+          npm run test:e2e
+        env:
+          CI: 'true'
+          E2E_BASE_URL: http://127.0.0.1:8081
+          EXPO_PUBLIC_API_BASE_URL: http://127.0.0.1:5184/api
 
   notify-failure:
     name: Notify on failure

@@ -46,6 +46,6 @@ secrets:
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/…'
 
 notes:
-  - Soft TSE / FON simulation may be used on staging hosts only — never on production.
+  - Soft TSE / FON simulation is forbidden when Tse:EnforceProductionLockInStaging=true (staging example default). See docs/STAGING_SETUP.md.
   - Auto-rollback on smoke failure is enabled for staging (deploy-backend-stage.yml).
   - Images: ghcr.io/<org>/regkasse-api:sha-<short>

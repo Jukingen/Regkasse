@@ -16,6 +16,18 @@ All tenants share **one** POS application deployment. Tenant identity is **not**
 
 `https://pos.regkasse.at` and the universal native app both serve every vertical profile. The app does not ship separate binaries per industry. After login, `GET /api/pos/vertical-profile` follows `company_settings.vertical_profile_id` and selects gastronomy, vet, hair-salon, taxi, and the other catalog profiles, including Super Admin overrides. Tabs and profile screens follow that payload. A per-industry package (`EXPO_PUBLIC_BRAND=gastronomy`, EAS `gastronomy-production`) is future / experimental and is not a release. See [`frontend/README.md`](../frontend/README.md) (Native build) and [`VERTICAL_PROFILES.md`](VERTICAL_PROFILES.md) (Single Universal App vs. Per-Industry Binaries).
 
+### Native binary, EAS profiles, and OTA
+
+One native binary covers every vertical profile. Profile UI comes from `GET /api/pos/vertical-profile` after login.
+
+| EAS profile | Role |
+|-------------|------|
+| `production` | Default store release (AAB and IPA) for the universal app. Channel `production`. |
+| `production-apk` | Universal sideload APK. Channel `production-apk`. |
+| `gastronomy-production`, `gastronomy-production-apk` | Experimental listing only (`EXPO_PUBLIC_BRAND=gastronomy`). Not a release path. |
+
+OTA policy in `frontend/app.json`: `runtimeVersion.policy` is `sdkVersion`, and `updates.checkAutomatically` is `ON_LOAD`. A JavaScript or asset update ships with `eas update` on the profile’s channel. Native config changes need a new binary. The local release APK that contains every ABI is about 131 MiB. Detail: [`frontend/README.md`](../frontend/README.md) (Native build).
+
 ---
 
 ## 1. Production URLs

@@ -100,7 +100,7 @@ The root npm entry (`directory: /` in `.github/dependabot.yml`) updates the mono
 3. **Deploy** workflow builds/pushes API + Admin + Sites + POS images to GHCR; optional FA webhook.
 4. To also run Staging API deploy from `deploy.yml`, set variable `DEPLOY_YML_RUN_STAGING_API=true` or use Actions → Deploy → `staging`.
 
-Secrets: see [`.github/environments/staging.yml`](../.github/environments/staging.yml).
+Secrets: see [`.github/environments/staging.yml`](../.github/environments/staging.yml). Soft TSE and FinanzOnline simulation are not allowed on that host when `Tse:EnforceProductionLockInStaging=true` (the Staging example default). The environment-file note matches [`STAGING_SETUP.md`](STAGING_SETUP.md).
 
 ### Deploy.yml job graph (why "Resolve deploy target" is Skipped)
 
@@ -245,7 +245,7 @@ Host Compose rollback ≠ `rollback.bat` (git). See [`DOCKER_PRODUCTION.md`](DOC
 | `deploy-docker.bat` / `docker-compose.prod.yml` | Single Docker host / staging VM without webhook CD |
 | GitHub Actions + webhooks | Multi-stage Staging → Canary → Production with GHCR |
 
-Do not merge Soft TSE override with prod Compose.
+Do not merge a Soft TSE override into Staging or Production Compose. `Tse:EnforceProductionLockInStaging=true` rejects Fake TSE and FinanzOnline simulation on Staging. See [`STAGING_SETUP.md`](STAGING_SETUP.md) and [`.github/environments/staging.yml`](../.github/environments/staging.yml).
 
 ---
 
