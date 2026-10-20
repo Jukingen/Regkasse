@@ -300,6 +300,12 @@ namespace KasseAPI_Final.DTOs
         /// Count must match <see cref="Quantity"/>. Not part of the RKSV payload.
         /// </summary>
         public List<string>? Imeis { get; set; }
+
+        /// <summary>
+        /// Optional catalog variant. Metadata only: not stored on payment_details
+        /// and not part of the RKSV receipt, TSE payload, or DEP export.
+        /// </summary>
+        public Guid? VariantId { get; set; }
     }
 
     /// <summary>

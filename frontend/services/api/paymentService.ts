@@ -77,6 +77,8 @@ export interface PaymentItem {
   taxType: 'standard' | 'reduced' | 'special';
   /** Required for IMEI-tracked catalog products. Not part of the RKSV payload. */
   imei?: string;
+  /** Catalog variant metadata. Not part of the RKSV payload. */
+  variantId?: string;
 }
 
 // Backend'deki CreatePaymentRequest ile uyumlu

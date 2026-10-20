@@ -28,12 +28,13 @@ public class ProductListDto
     public bool IsActive { get; set; }
     public bool IsTaxable { get; set; }
     public DateTime CreatedAt { get; set; }
-    public string Barcode { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
     public string Unit { get; set; } = "pcs";
     public int? DurationMinutes { get; set; }
     public string? StaffId { get; set; }
     public bool ImeiTracked { get; set; }
     public bool IsTicket { get; set; }
+    public bool HasVariants { get; set; }
     public decimal Cost { get; set; }
     public string? ImageUrl { get; set; }
 }

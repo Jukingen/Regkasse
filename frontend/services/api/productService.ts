@@ -64,6 +64,8 @@ export interface Product {
   staffId?: string | null;
   imeiTracked?: boolean;
   isTicket?: boolean;
+  hasVariants?: boolean;
+  barcode?: string | null;
   category: string;
   taxType: TaxType; // RKSV vergi tipleri
   isActive: boolean;
@@ -142,6 +144,8 @@ const mapProduct = (p: any): Product => ({
   staffId: p.StaffId ?? p.staffId ?? null,
   imeiTracked: Boolean(p.ImeiTracked ?? p.imeiTracked),
   isTicket: Boolean(p.IsTicket ?? p.isTicket),
+  hasVariants: Boolean(p.HasVariants ?? p.hasVariants),
+  barcode: p.Barcode ?? p.barcode ?? null,
   category: p.Category ?? p.category,
   taxType: p.TaxType ?? p.taxType,
   isActive: p.IsActive ?? p.isActive,
@@ -192,6 +196,28 @@ const unwrapData = <T>(resp: any): T => {
   if (Array.isArray(resp?.data)) return resp.data as T;
   if (Array.isArray(resp?.items)) return resp.items as T;
   return [] as unknown as T;
+};
+
+function unwrapProduct(resp: unknown): Record<string, unknown> | null {
+  const body = (resp as { data?: unknown })?.data ?? resp;
+  if (!body || typeof body !== 'object') return null;
+  const record = body as Record<string, unknown>;
+  const nested = record.data;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  if ('id' in record || 'Id' in record) return record;
+  return null;
+}
+
+/** Active catalog product for a scanned barcode. Does not log the code. */
+export const getProductByBarcode = async (barcode: string): Promise<Product> => {
+  const resp = await apiClient.get<unknown>(API_PATHS.PRODUCT.BY_BARCODE(barcode));
+  const raw = unwrapProduct(resp);
+  if (!raw) {
+    throw new Error('PRODUCT_NOT_FOUND');
+  }
+  return mapProduct(raw);
 };
 
 export const getAllProducts = async (

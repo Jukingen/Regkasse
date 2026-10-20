@@ -80,6 +80,7 @@ public static class VerticalProfileIds
     public const string Taxi = "taxi";
     public const string TicketSales = "ticket-sales";
     public const string Beherbergung = "beherbergung";
+    public const string Retail = "retail";
 }
 
 /// <summary>Stable database seeds for the first two vertical-profile stages.</summary>
@@ -93,73 +94,80 @@ public static class VerticalProfileSeedData
         Create(
             VerticalProfileIds.Gastronomy,
             "verticalProfiles.gastronomy.name",
-            """{"tables":false,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":[],"product":["name","price","taxGroup"]}""",
             """{"customer":["name","phone","email"],"product":["description","category","stock"]}""",
             VerticalProfileLayouts.Standard),
         Create(
             VerticalProfileIds.GastronomyTables,
             "verticalProfiles.gastronomyTables.name",
-            """{"tables":true,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false}""",
+            """{"tables":true,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":[],"product":["name","price","taxGroup"]}""",
             """{"customer":["name","phone","email"],"product":["description","category","stock"]}""",
             VerticalProfileLayouts.Tables),
         Create(
             VerticalProfileIds.HairSalon,
             "verticalProfiles.hairSalon.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":false,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":["name"],"product":["name","price","durationMinutes"]}""",
             """{"customer":["phone","email","notes"],"product":["description","category","staffId"]}""",
             VerticalProfileLayouts.Appointment),
         Create(
             VerticalProfileIds.Vet,
             "verticalProfiles.vet.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":["name","petName"],"product":["name","price","taxGroup"]}""",
             """{"customer":["phone","email","petSpecies","petBreed","petBirthDate","vaccines","patientNotes"],"product":["description","category"]}""",
             VerticalProfileLayouts.Standard),
         Create(
             VerticalProfileIds.Doctor,
             "verticalProfiles.doctor.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"prescription":true,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":true,"prescription":true,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":false,"variants":false,"barcodeScan":false}""",
             """{"customer":["name"],"product":["name","price","durationMinutes"]}""",
             """{"customer":["phone","email","birthDate","allergies","chronicConditions","insurance"],"product":["description","category"]}""",
             VerticalProfileLayouts.Appointment),
         Create(
             VerticalProfileIds.MobileServices,
             "verticalProfiles.mobileServices.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":true,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":true,"appointment":true,"imeiTracking":false,"routeTracking":true,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":["name","phone","address"],"product":["name","price","serviceDuration"]}""",
             """{"customer":["email","notes","street","postalCode","city"],"product":["description","category"],"order":["location"]}""",
             VerticalProfileLayouts.Appointment),
         Create(
             VerticalProfileIds.HandyShop,
             "verticalProfiles.handyShop.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":true,"routeTracking":false,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":true,"routeTracking":false,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":[],"product":["name","price","taxGroup"]}""",
             """{"customer":["name","phone","email"],"product":["description","category","stock","imei","serialNumber","brand","model"]}""",
             VerticalProfileLayouts.Standard),
         Create(
             VerticalProfileIds.Taxi,
             "verticalProfiles.taxi.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":true,"roomTracking":false}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":true,"roomTracking":false,"variants":false,"barcodeScan":false}""",
             """{"customer":[],"product":["name","price"]}""",
             """{"customer":["name","phone","pickupAddress","destinationAddress"],"product":["description"]}""",
             VerticalProfileLayouts.Taxi),
         Create(
             VerticalProfileIds.TicketSales,
             "verticalProfiles.ticketSales.name",
-            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":true}""",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":true,"variants":false,"barcodeScan":false}""",
             """{"customer":[],"product":["name","price"]}""",
             """{"customer":["name","phone","email"],"product":["description","category","room","seat"]}""",
             VerticalProfileLayouts.Ticket),
         Create(
             VerticalProfileIds.Beherbergung,
             "verticalProfiles.beherbergung.name",
-            """{"tables":false,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":true}""",
+            """{"tables":false,"kitchenDisplay":true,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":true,"variants":false,"barcodeScan":false}""",
             """{"customer":["name"],"product":["name","price"]}""",
             """{"customer":["phone","email","notes"],"product":["description","category"]}""",
             VerticalProfileLayouts.Rooms),
+        Create(
+            VerticalProfileIds.Retail,
+            "verticalProfiles.retail.name",
+            """{"tables":false,"kitchenDisplay":false,"patientRecord":false,"serviceDuration":false,"appointment":false,"imeiTracking":false,"routeTracking":false,"roomTracking":false,"ticketScan":false,"variants":true,"lotTracking":false,"multiBranch":false,"barcodeScan":true}""",
+            """{"customer":["name"],"product":["sku","name","price"]}""",
+            """{"customer":["email","phone"],"product":["category","stock"]}""",
+            VerticalProfileLayouts.Standard),
     ];
 
     private static VerticalProfile Create(

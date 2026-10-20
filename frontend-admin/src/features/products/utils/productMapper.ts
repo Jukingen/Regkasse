@@ -177,6 +177,8 @@ export interface ApiProduct {
   imeiTracked?: boolean;
   IsTicket?: boolean;
   isTicket?: boolean;
+  HasVariants?: boolean;
+  hasVariants?: boolean;
   CreatedAt?: string;
   createdAt?: string;
   UpdatedAt?: string;
@@ -241,6 +243,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | null | undefined): Pr
     staffId: apiProduct.StaffId ?? apiProduct.staffId ?? null,
     imeiTracked: Boolean(apiProduct.ImeiTracked ?? apiProduct.imeiTracked),
     isTicket: Boolean(apiProduct.IsTicket ?? apiProduct.isTicket),
+    hasVariants: Boolean(apiProduct.HasVariants ?? apiProduct.hasVariants),
     createdAt: apiProduct.CreatedAt || apiProduct.createdAt || new Date().toISOString(),
     updatedAt: apiProduct.UpdatedAt || apiProduct.updatedAt,
     createdBy: apiProduct.CreatedBy || apiProduct.createdBy,

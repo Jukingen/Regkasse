@@ -36,5 +36,9 @@
     "gridView": "Kategorien als Kacheln"
   },
   "viewChips": "Liste",
-  "viewGrid": "Kacheln"
+  "viewGrid": "Kacheln",
+  "variantPickerTitle": "Variante wählen",
+  "variantOutOfStock": "Nicht auf Lager",
+  "variantAllOutOfStock": "Alle Varianten sind ausverkauft.",
+  "variantRequired": "Bitte wählen Sie eine Variante."
 }

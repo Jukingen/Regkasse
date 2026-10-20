@@ -31,15 +31,18 @@ import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { MonatsbelegSalesWarningBanner } from '../../components/MonatsbelegSalesWarningBanner';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
+import { ProductBarcodeScan } from '../../components/ProductBarcodeScan';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ImeiPickerModal } from '../../components/ImeiPickerModal';
+import { VariantPickerModal } from '../../components/VariantPickerModal';
 import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
 import { FolioChargeBar } from '../../components/FolioChargeBar';
 import { consumeOpenPayment } from '../../components/lodging/folioCheckoutHandoff';
 import { RoomPicker } from '../../components/RoomPicker';
 import { TaxiSalePanel } from '../../components/TaxiSalePanel';
 import { TicketSeatBoard } from '../../components/TicketSeatBoard';
+import { ticketSeatToastMessage } from '../../components/ticketSeatNotice';
 import { ToastContainer } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePosPermissions } from '../../hooks/usePosPermissions';
@@ -66,6 +69,11 @@ import { customerService, isWalkInCustomerId } from '../../services/api/customer
 import type { AddOnSelection } from '../../services/api/productModifiersService';
 import { Product } from '../../services/api/productService';
 import { productRequiresImeiPicker } from '../../services/api/imeiService';
+import {
+  productRequiresVariantPicker,
+  variantCartLineLabel,
+  type ProductVariantDto,
+} from '../../services/api/variantService';
 import { createKitchenOrder } from '../../services/api/kitchenOrderService';
 import { formatPrice } from '../../utils/formatPrice';
 import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
@@ -267,7 +275,7 @@ function usePOSOrderFlow(
   addItem: (
     productId: string,
     qty?: number,
-    options?: { productName?: string; unitPrice?: number }
+    options?: { productName?: string; unitPrice?: number; variantId?: string }
   ) => Promise<void>,
   activeTableId: number,
   addToast: (
@@ -283,16 +291,18 @@ function usePOSOrderFlow(
   >({});
 
   const handleAddProduct = useCallback(
-    async (product: Product) => {
+    async (product: Product, variant?: { id: string; label: string; unitPrice: number }) => {
       if (!activeTableId) {
         addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
       try {
-        const displayName = resolveProductDisplayName(product, displayLocale);
+        const baseName = resolveProductDisplayName(product, displayLocale);
+        const displayName = variant ? variantCartLineLabel(baseName, variant.label) : baseName;
         await addItem(product.id, 1, {
           productName: displayName,
-          unitPrice: product.price ?? 0,
+          unitPrice: variant?.unitPrice ?? product.price ?? 0,
+          variantId: variant?.id,
         });
         addToast(
           'success',
@@ -371,6 +381,7 @@ export default function CashRegisterScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [imeiValue, setImeiValue] = useState('');
   const [pendingImeiProduct, setPendingImeiProduct] = useState<Product | null>(null);
+  const [pendingVariantProduct, setPendingVariantProduct] = useState<Product | null>(null);
   const { reserve: reserveImei } = useImeiSelections();
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
@@ -543,6 +554,10 @@ export default function CashRegisterScreen() {
   const onAddProductGuarded = useCallback(
     (product: Parameters<typeof handleAddProduct>[0]) => {
       if (!guardTakeOrder()) return;
+      if (productRequiresVariantPicker(product)) {
+        setPendingVariantProduct(product);
+        return;
+      }
       if (productRequiresImeiPicker(product)) {
         setPendingImeiProduct(product);
         return;
@@ -561,6 +576,20 @@ export default function CashRegisterScreen() {
       await handleAddProduct(product);
     },
     [handleAddProduct, pendingImeiProduct, reserveImei]
+  );
+
+  const onVariantPicked = useCallback(
+    async (variant: ProductVariantDto) => {
+      if (!pendingVariantProduct) return;
+      const product = pendingVariantProduct;
+      setPendingVariantProduct(null);
+      await handleAddProduct(product, {
+        id: variant.id,
+        label: variant.variantLabel,
+        unitPrice: (product.price ?? 0) + variant.priceDelta,
+      });
+    },
+    [handleAddProduct, pendingVariantProduct]
   );
 
   const onAddAddOnGuarded = useCallback(
@@ -859,6 +888,17 @@ export default function CashRegisterScreen() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+      <VariantPickerModal
+        visible={pendingVariantProduct != null}
+        productId={pendingVariantProduct?.id ?? null}
+        productName={pendingVariantProduct?.name}
+        productPrice={pendingVariantProduct?.price ?? 0}
+        onClose={() => setPendingVariantProduct(null)}
+        onSelect={(variant) => {
+          void onVariantPicked(variant);
+        }}
+      />
+
       <ImeiPickerModal
         visible={pendingImeiProduct != null}
         productId={pendingImeiProduct?.id ?? null}
@@ -1024,7 +1064,15 @@ export default function CashRegisterScreen() {
             </IfVerticalFeature>
 
             <IfVerticalFeature feature="ticketScan">
-              <TicketSeatBoard onError={(message) => addToast('error', message, 3000)} />
+              <TicketSeatBoard
+                onError={(notice) =>
+                  addToast(
+                    'error',
+                    ticketSeatToastMessage((key) => t(`verticalProfiles:${key}`), notice),
+                    3000,
+                  )
+                }
+              />
               <View style={styles.verticalFieldSection}>
                 <View style={styles.ticketToggleRow}>
                   <Text style={styles.ticketToggleLabel}>
@@ -1053,7 +1101,15 @@ export default function CashRegisterScreen() {
 
             {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
-              <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+              <View style={styles.categoryHeaderRow}>
+                <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
+                <ProductBarcodeScan
+                  enabled={posFeatures.barcodeScan === true}
+                  scanBlocked={pendingVariantProduct != null}
+                  onProduct={onAddProductGuarded}
+                  onNotify={(kind, message) => addToast(kind, message, 3000)}
+                />
+              </View>
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -1133,6 +1189,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: SoftColors.accent,
+  },
+  categoryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SoftSpacing.sm,
   },
   categorySection: {
     backgroundColor: SoftColors.bgCard,

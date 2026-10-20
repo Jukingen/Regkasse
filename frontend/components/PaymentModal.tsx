@@ -252,6 +252,7 @@ interface PaymentModalProps {
     unitPrice: number;
     totalPrice: number;
     taxType?: string | number;
+    variantId?: string;
     /** Extra Zutaten � �deme/fi? i�in backend'e g�nderilir (modifierId zorunlu; name/priceDelta opsiyonel) */
     modifiers?: { modifierId: string; name?: string; priceDelta?: number }[];
   }[];
@@ -1284,11 +1285,12 @@ export default function PaymentModal({
             });
           }
         } else {
-          paymentItems.push({
-            productId: item.productId,
-            quantity,
-            taxType: item.taxType as PaymentItem['taxType'],
-          });
+            paymentItems.push({
+              productId: item.productId,
+              quantity,
+              taxType: item.taxType as PaymentItem['taxType'],
+              ...(item.variantId ? { variantId: item.variantId } : {}),
+            });
         }
       }
 

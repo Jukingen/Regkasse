@@ -1,20 +1,31 @@
+using System.Security.Claims;
+using System.Text.Json;
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Metrics;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests.Services;
 
 /// <summary>
-/// Unit tests for <see cref="ProductService"/> read paths (projection + paging).
-/// Does not cover create/update — those live on admin/product controllers, not <see cref="IProductService"/>.
+/// Unit tests for <see cref="ProductService"/> read paths, barcode normalization, and barcode lookup.
 /// </summary>
 public sealed class ProductServiceTests : IAsyncDisposable
 {
@@ -242,6 +253,163 @@ public sealed class ProductServiceTests : IAsyncDisposable
         cache.Verify(
             c => c.RemoveAsync(CacheKeys.Format(CacheKeys.ProductDetail, product.Id), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task PrepareBarcodeAsync_CreateWithBarcode_PersistsNormalizedValue()
+    {
+        var category = NewCategory("Retail");
+        _db.Categories.Add(category);
+        await _db.SaveChangesAsync();
+
+        var prepared = await _service.PrepareBarcodeAsync(_tenantId, "  ab-12  ");
+        Assert.Equal(ProductBarcodeWriteStatus.Ok, prepared.Status);
+        Assert.Equal("ab-12", prepared.Barcode);
+
+        var product = NewProduct(category.Id, "Scanned", 3m);
+        product.Barcode = prepared.Barcode;
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync();
+
+        var found = await _service.GetByBarcodeAsync(_tenantId, "ab-12");
+        Assert.NotNull(found);
+        Assert.Equal(product.Id, found.Id);
+        Assert.False(found.HasVariants);
+    }
+
+    [Fact]
+    public async Task PrepareBarcodeAsync_DuplicateBarcode_ReturnsDuplicateCode()
+    {
+        var category = NewCategory("Retail");
+        _db.Categories.Add(category);
+        var existing = NewProduct(category.Id, "First", 1m);
+        existing.Barcode = "EAN-1";
+        _db.Products.Add(existing);
+        await _db.SaveChangesAsync();
+
+        var duplicate = await _service.PrepareBarcodeAsync(_tenantId, "EAN-1");
+        Assert.Equal(ProductBarcodeWriteStatus.Duplicate, duplicate.Status);
+
+        var controller = CreateAdminController(_db, _service, _tenantId);
+        var payload = NewProduct(category.Id, "Second", 2m);
+        payload.Barcode = "EAN-1";
+        payload.TaxGroupId = await SeedTaxGroupAsync();
+        var result = await controller.Create(payload);
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal(409, conflict.StatusCode);
+        var json = JsonSerializer.Serialize(conflict.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("BARCODE_DUPLICATE", doc.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task GetByBarcodeAsync_OtherTenant_ReturnsNull()
+    {
+        var otherTenantId = Guid.NewGuid();
+        _db.Tenants.Add(new Tenant
+        {
+            Id = otherTenantId,
+            Name = "Other",
+            Slug = $"o-{otherTenantId:N}"[..12],
+        });
+        var category = NewCategory("Foreign");
+        category.TenantId = otherTenantId;
+        _db.Categories.Add(category);
+        var foreign = NewProduct(category.Id, "Foreign", 4m);
+        foreign.TenantId = otherTenantId;
+        foreign.Barcode = "FOREIGN-1";
+        _db.Products.Add(foreign);
+        await _db.SaveChangesAsync();
+
+        var found = await _service.GetByBarcodeAsync(_tenantId, "FOREIGN-1");
+        Assert.Null(found);
+    }
+
+    private async Task<Guid> SeedTaxGroupAsync()
+    {
+        var taxGroupId = Guid.NewGuid();
+        _db.TaxGroups.Add(new TaxGroup
+        {
+            Id = taxGroupId,
+            TenantId = _tenantId,
+            Name = "Normalsatz",
+            Rate = 20m,
+            IsActive = true,
+            IsSystem = true,
+            IsDefault = true,
+            GroupType = TaxGroupType.Standard,
+            AustrianCode = "A",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+        return taxGroupId;
+    }
+
+    private static AdminProductsController CreateAdminController(
+        AppDbContext ctx,
+        IProductService products,
+        Guid tenantId)
+    {
+        var priceHistory = new ProductPriceHistoryService(ctx, NullLogger<ProductPriceHistoryService>.Instance);
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+
+        var priceChange = new PriceChangeService(
+            ctx,
+            priceHistory,
+            new RksvPriceChangeComplianceChecker(
+                ctx,
+                new TaxRegulationService(ctx, NullLogger<TaxRegulationService>.Instance),
+                NullLogger<RksvPriceChangeComplianceChecker>.Instance),
+            audit.Object,
+            NullLogger<PriceChangeService>.Instance);
+
+        var controller = new AdminProductsController(
+            ctx,
+            new GenericRepository<Product>(ctx, NullLogger<GenericRepository<Product>>.Instance),
+            NullLogger<AdminProductsController>.Instance,
+            TenantTestDoubles.SettingsResolverReturning(tenantId),
+            Mock.Of<IWebHostEnvironment>(),
+            Options.Create(new ProductMediaOptions()),
+            new ProductImageThumbnailService(
+                Options.Create(new ProductMediaOptions()),
+                NullLogger<ProductImageThumbnailService>.Instance),
+            Mock.Of<IDemoProductImportService>(),
+            TenantTestDoubles.TenantAccessorReturning(tenantId),
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(tenantId)),
+            products,
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            priceHistory,
+            priceChange);
+
+        var identity = new ClaimsIdentity(
+            [new Claim(ClaimTypes.Role, Roles.Manager), new Claim(ClaimTypes.Name, "manager1")],
+            "Test");
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) },
+        };
+        return controller;
     }
 
     private Category NewCategory(string name, string? key = null) => new()

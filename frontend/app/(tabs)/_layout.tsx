@@ -478,6 +478,7 @@ function PosTabsInner({
             unitPrice: item.unitPrice || item.price || 0,
             totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
             taxType: item.taxType,
+            variantId: item.variantId,
             modifiers: item.modifiers?.map((m) => ({
               modifierId: m.id,
               name: m.name,

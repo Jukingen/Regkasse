@@ -27,22 +27,42 @@ namespace KasseAPI_Final.Controllers
         private readonly IGenericRepository<Product> _productRepository;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ITenantLimitGuard? _tenantLimitGuard;
+        private readonly IProductService? _productService;
 
         public ProductController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
             ILogger<ProductController> logger,
             ISettingsTenantResolver settingsTenantResolver,
-            ITenantLimitGuard? tenantLimitGuard = null) : base(productRepository, logger)
+            ITenantLimitGuard? tenantLimitGuard = null,
+            IProductService? productService = null) : base(productRepository, logger)
         {
             _context = context;
             _productRepository = productRepository;
             _settingsTenantResolver = settingsTenantResolver;
             _tenantLimitGuard = tenantLimitGuard;
+            _productService = productService;
         }
 
         private Task<Guid> EffectiveTenantIdAsync(CancellationToken cancellationToken = default) =>
             _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+
+        private async Task StampHasVariantsAsync(List<Product> products)
+        {
+            if (products.Count == 0)
+                return;
+
+            var ids = products.Select(product => product.Id).ToList();
+            var withVariants = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(variant => ids.Contains(variant.ProductId))
+                .Select(variant => variant.ProductId)
+                .Distinct()
+                .ToListAsync();
+            var variantProducts = withVariants.ToHashSet();
+            foreach (var product in products)
+                product.HasVariants = variantProducts.Contains(product.Id);
+        }
 
         /// <summary>
         /// Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
@@ -80,6 +100,7 @@ namespace KasseAPI_Final.Controllers
                     .Skip((validPageNumber - 1) * validPageSize)
                     .Take(validPageSize)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 var response = new
                 {
@@ -103,6 +124,31 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Retail barcode lookup. Same product shape as the POS list, including <c>hasVariants</c>.
+        /// Unknown or foreign barcodes return 404 <c>BARCODE_NOT_FOUND</c>.
+        /// </summary>
+        [HttpGet("products/by-barcode/{barcode}")]
+        public async Task<IActionResult> GetByBarcode(string barcode, CancellationToken cancellationToken)
+        {
+            var tenantId = await EffectiveTenantIdAsync(cancellationToken);
+            var product = _productService is null
+                ? null
+                : await _productService.GetByBarcodeAsync(tenantId, barcode, cancellationToken);
+            if (product is null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    code = ProductBarcodeWriteResult.NotFoundCode,
+                    message = "No product with this barcode was found.",
+                    timestamp = DateTime.UtcNow,
+                });
+            }
+
+            return SuccessResponse(product, "Product found");
+        }
+
+        /// <summary>
         /// Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
         /// </summary>
         [HttpGet("all")]
@@ -117,6 +163,7 @@ namespace KasseAPI_Final.Controllers
                     .OrderBy(p => p.Category)  // kategori adı (string); CategoryId = FK
                     .ThenBy(p => p.Name)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 _logger.LogInformation($"Retrieved {products.Count} active products without pagination");
                 return SuccessResponse(products, $"Retrieved {products.Count} active products");

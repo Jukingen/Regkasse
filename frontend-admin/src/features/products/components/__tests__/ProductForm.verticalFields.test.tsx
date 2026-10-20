@@ -171,4 +171,25 @@ describe('ProductForm duration and staff fields', () => {
     expect(await screen.findByText('490154203237518')).toBeTruthy();
     expect(await screen.findByText('Verkauft')).toBeTruthy();
   });
+
+  it('hides the variants tab when the profile does not enable variants', () => {
+    mockUseAmbientVerticalProfile.mockReturnValue({
+      data: { posFeatures: { variants: false } },
+    });
+
+    renderForm({ isEditMode: true, initialValues: { id: 'prod-1' } });
+
+    expect(screen.queryByRole('tab', { name: 'Varianten' })).toBeNull();
+  });
+
+  it('shows the variants tab only when variants is enabled', async () => {
+    mockUseAmbientVerticalProfile.mockReturnValue({
+      data: { posFeatures: { variants: true } },
+    });
+
+    renderForm({ isEditMode: true, initialValues: { id: 'prod-1' } });
+
+    expect(await screen.findByRole('tab', { name: 'Varianten' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Varianten' })).not.toBeNull();
+  });
 });

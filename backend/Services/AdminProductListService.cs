@@ -111,6 +111,20 @@ public sealed class AdminProductListService : IAdminProductListService
             })
             .ToListAsync(cancellationToken);
 
+        if (items.Count > 0)
+        {
+            var pageIds = items.Select(item => item.Id).ToList();
+            var withVariants = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(variant => pageIds.Contains(variant.ProductId))
+                .Select(variant => variant.ProductId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            var variantProducts = withVariants.ToHashSet();
+            foreach (var item in items)
+                item.HasVariants = variantProducts.Contains(item.Id);
+        }
+
         var availableFilters = await GetAvailableFiltersAsync(tenantId, cancellationToken);
         var activeFilters = ProductQueryExtensions.BuildFilterSummary(filter);
         activeFilters.AvailableTaxTypes = availableFilters.TaxTypes;
@@ -191,6 +205,7 @@ public static class ProductListDtoMapper
         StaffId = item.StaffId,
         ImeiTracked = item.ImeiTracked,
         IsTicket = item.IsTicket,
+        HasVariants = item.HasVariants,
         Cost = item.Cost,
         ImageUrl = item.ImageUrl,
     };

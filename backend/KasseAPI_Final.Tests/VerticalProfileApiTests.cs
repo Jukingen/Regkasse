@@ -33,7 +33,7 @@ public sealed class VerticalProfileApiTests
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var profiles = Assert.IsAssignableFrom<IReadOnlyList<VerticalProfileDto>>(ok.Value);
-        Assert.Equal(10, profiles.Count);
+        Assert.Equal(11, profiles.Count);
         Assert.Equal(
             new[]
             {
@@ -44,6 +44,7 @@ public sealed class VerticalProfileApiTests
                 VerticalProfileIds.HairSalon,
                 VerticalProfileIds.HandyShop,
                 VerticalProfileIds.MobileServices,
+                VerticalProfileIds.Retail,
                 VerticalProfileIds.Taxi,
                 VerticalProfileIds.TicketSales,
                 VerticalProfileIds.Vet,

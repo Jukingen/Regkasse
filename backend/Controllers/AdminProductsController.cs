@@ -264,6 +264,9 @@ namespace KasseAPI_Final.Controllers
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
+                product.HasVariants = await _context.ProductVariants
+                    .AsNoTracking()
+                    .AnyAsync(variant => variant.ProductId == product.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(product), "Product retrieved");
             }
             catch (Exception ex)
@@ -322,6 +325,10 @@ namespace KasseAPI_Final.Controllers
                     return ProductAnnotationValidationErrorResponse(product.Id, annotationErrors, "create");
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: null);
+                if (barcodeError != null)
+                    return barcodeError;
 
                 if (_tenantLimitGuard != null)
                 {
@@ -419,6 +426,10 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Product not found", 404);
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: id);
+                if (barcodeError != null)
+                    return barcodeError;
 
                 var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
                 if (!taxGroupResult.IsValid)
@@ -648,7 +659,7 @@ namespace KasseAPI_Final.Controllers
                 innerMessage);
 
             if (IsBarcodeDuplicateViolation(ex))
-                return ErrorResponse("A product with this barcode already exists for this tenant.", 409);
+                return BarcodeDuplicateResponse();
 
             if (IsNotNullColumnViolation(ex, "description"))
                 return ErrorResponse("Product description cannot be empty.", 400);
@@ -668,8 +679,38 @@ namespace KasseAPI_Final.Controllers
 
         private const int ProductNameMaxLength = 200;
         private const int ProductDescriptionMaxLength = 2000;
-        private const int ProductBarcodeMaxLength = 50;
         private const int ProductImageUrlMaxLength = 500;
+
+        private async Task<IActionResult?> NormalizeProductBarcodeAsync(
+            Product product,
+            Guid tenantId,
+            Guid? exceptProductId)
+        {
+            var prepared = await _productService.PrepareBarcodeAsync(tenantId, product.Barcode, exceptProductId);
+            if (prepared is null)
+            {
+                product.Barcode = ProductBarcodeRules.Normalize(product.Barcode);
+                return null;
+            }
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Invalid)
+                return ErrorResponse(prepared.Message ?? "Barcode is invalid.", 400);
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Duplicate)
+                return BarcodeDuplicateResponse();
+
+            product.Barcode = prepared.Barcode;
+            return null;
+        }
+
+        private IActionResult BarcodeDuplicateResponse() =>
+            Conflict(new
+            {
+                success = false,
+                code = ProductBarcodeWriteResult.DuplicateCode,
+                message = "A product with this barcode already exists for this tenant.",
+                timestamp = DateTime.UtcNow,
+            });
 
         private static string? GetProductFieldLengthViolation(Product product)
         {
@@ -692,8 +733,8 @@ namespace KasseAPI_Final.Controllers
             if (ExceedsMaxLength(product.DescriptionTr, ProductDescriptionMaxLength))
                 return $"Turkish description must be at most {ProductDescriptionMaxLength} characters.";
 
-            if (product.Barcode.Length > ProductBarcodeMaxLength)
-                return $"Barcode must be at most {ProductBarcodeMaxLength} characters.";
+            if (ExceedsMaxLength(product.Barcode, ProductBarcodeRules.MaxLength))
+                return $"Barcode must be at most {ProductBarcodeRules.MaxLength} characters.";
 
             if (ExceedsMaxLength(product.ImageUrl, ProductImageUrlMaxLength))
                 return $"Image URL must be at most {ProductImageUrlMaxLength} characters.";
