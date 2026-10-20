@@ -3,15 +3,36 @@ import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/r
 import { SecondParameter, unwrapData } from '@/api/admin/httpHelpers';
 import { customInstance } from '@/lib/axios';
 
+export interface MinibarAutoChargeOptions {
+  requireSettlementBeforeClose: boolean;
+}
+
+export interface BreakfastIncludedOptions {
+  pricePerPersonPerNight: number;
+}
+
+export interface LateCheckoutFeeOptions {
+  freeUntilLocalTime: string;
+  fee: number;
+  timeZone: string;
+}
+
+export type TenantExtensionOptions =
+  | MinibarAutoChargeOptions
+  | BreakfastIncludedOptions
+  | LateCheckoutFeeOptions;
+
 export interface TenantExtensionStatus {
   name: string;
   enabled: boolean;
   hooks: string[];
+  options?: TenantExtensionOptions | null;
 }
 
 export interface SetTenantExtensionRequest {
   name: string;
   enabled: boolean;
+  options?: TenantExtensionOptions;
 }
 
 export const tenantExtensionQueryKeys = {

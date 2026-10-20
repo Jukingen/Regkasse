@@ -12,7 +12,18 @@ import { I18nProvider } from '@/i18n';
 const mockSetExtension = vi.fn();
 const mockCreateCampaign = vi.fn();
 const extensionQuery = {
-  data: [] as Array<{ name: string; enabled: boolean; hooks: string[] }>,
+  data: [] as Array<{
+    name: string;
+    enabled: boolean;
+    hooks: string[];
+    options?: {
+      requireSettlementBeforeClose?: boolean;
+      pricePerPersonPerNight?: number;
+      freeUntilLocalTime?: string;
+      fee?: number;
+      timeZone?: string;
+    } | null;
+  }>,
   isLoading: false,
   isError: false,
 };
@@ -120,6 +131,79 @@ describe('extension admin UI', () => {
       expect(mockSetExtension).toHaveBeenCalledWith({
         name: 'hair_salon_campaign',
         enabled: true,
+      });
+    });
+  });
+
+  it('shows the minibar settlement notice only for minibar_auto_charge', async () => {
+    extensionQuery.data = [
+      {
+        name: 'minibar_auto_charge',
+        enabled: true,
+        hooks: ['folio.before-close'],
+        options: { requireSettlementBeforeClose: true },
+      },
+      {
+        name: 'hair_salon_campaign',
+        enabled: false,
+        hooks: ['payment.before-sign'],
+      },
+    ];
+
+    renderWithProviders(<ExtensionManager />);
+
+    expect(await screen.findByTestId('minibar-settlement-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Check-out wird blockiert, solange offene Minibar-Posten vorhanden sind und die Abrechnung vor dem Schließen verlangt wird.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId('minibar-settlement-alert')).toHaveLength(1);
+    expect(screen.getByText('hair_salon_campaign')).toBeInTheDocument();
+  });
+
+  it('shows the breakfast price input when breakfast_included is enabled', async () => {
+    extensionQuery.data = [
+      {
+        name: 'breakfast_included',
+        enabled: true,
+        hooks: ['folio.opened'],
+        options: { pricePerPersonPerNight: 12.5 },
+      },
+    ];
+
+    renderWithProviders(<ExtensionManager />);
+
+    expect(
+      await screen.findByRole('spinbutton', { name: 'Frühstück pro Person und Nacht (€)' })
+    ).toBeInTheDocument();
+  });
+
+  it('renders late checkout options and saves a changed free-until time', async () => {
+    extensionQuery.data = [
+      {
+        name: 'late_checkout_fee',
+        enabled: true,
+        hooks: ['folio.before-close'],
+        options: { freeUntilLocalTime: '11:00', fee: 30, timeZone: 'Europe/Vienna' },
+      },
+    ];
+
+    renderWithProviders(<ExtensionManager />);
+
+    expect(await screen.findByLabelText('Kostenlos bis (Uhrzeit)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gebühr (€)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Zeitzone')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Kostenlos bis (Uhrzeit)'), {
+      target: { value: '12:00' },
+    });
+
+    await waitFor(() => {
+      expect(mockSetExtension).toHaveBeenCalledWith({
+        name: 'late_checkout_fee',
+        enabled: true,
+        options: { freeUntilLocalTime: '12:00', fee: 30, timeZone: 'Europe/Vienna' },
       });
     });
   });
