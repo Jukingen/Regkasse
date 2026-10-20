@@ -68,7 +68,7 @@ describe('POS onboarding', () => {
   it('shows the veterinary slides', async () => {
     await renderOnboarding('vet');
     expect(screen.getByText('Willkommen in Ihrer Tierarztpraxis')).toBeTruthy();
-    expect(screen.getByText('Patientenakte')).toBeTruthy();
+    expect(screen.getByText('Tierakte')).toBeTruthy();
     expect(screen.getByText('1 / 3')).toBeTruthy();
   });
 

@@ -7,7 +7,9 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Extensions;
+using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Services.Rksv;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -157,6 +159,155 @@ public sealed class PaymentHookTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(response);
         var json = JsonSerializer.Serialize(badRequest.Value);
         Assert.Contains(ExtensionFailedException.ErrorCode, json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CreatePayment_VetPrescriptionRequiredWithoutReference_FailsBeforeSign()
+    {
+        await using var ctx = CreateVetContext(out var registry, out var profiles, enabled: true);
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        await MarkRequiresPrescriptionAsync(ctx, productId);
+        var tse = PaymentServiceCoverageHarness.CreateTseMock();
+        var sut = PaymentService(ctx, registry, profiles, tse);
+
+        var result = await sut.CreatePaymentAsync(
+            PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId),
+            PaymentServiceCoverageHarness.CashierId);
+
+        Assert.False(result.Success);
+        Assert.Equal(ExtensionFailedException.ErrorCode, result.DiagnosticCode);
+        Assert.Equal(VetPrescriptionExtension.RejectionCode, result.Message);
+        Assert.Equal(0, await ctx.PaymentDetails.CountAsync());
+        tse.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreatePayment_VetPrescriptionWithReference_SucceedsAndStoresReference()
+    {
+        await using var ctx = CreateVetContext(out var registry, out var profiles, enabled: true);
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        await MarkRequiresPrescriptionAsync(ctx, productId);
+        var tse = PaymentServiceCoverageHarness.CreateTseMock();
+        var sut = PaymentService(ctx, registry, profiles, tse);
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId);
+        request.PrescriptionReference = "RX-100";
+
+        var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Equal("RX-100", result.Payment!.PrescriptionReference);
+        tse.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePayment_WhenVetExtensionDisabled_SucceedsWithoutReference()
+    {
+        await using var ctx = CreateVetContext(out var registry, out var profiles, enabled: false);
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        await MarkRequiresPrescriptionAsync(ctx, productId);
+        var tse = PaymentServiceCoverageHarness.CreateTseMock();
+        var sut = PaymentService(ctx, registry, profiles, tse);
+
+        var result = await sut.CreatePaymentAsync(
+            PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId),
+            PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.Null(result.Payment!.PrescriptionReference);
+        tse.Verify(
+            x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()),
+            Times.Once);
+    }
+
+    private static PaymentService PaymentService(
+        AppDbContext ctx,
+        ITenantExtensionRegistry registry,
+        IVerticalProfileService profiles,
+        Mock<ITseService> tse) =>
+        PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options
+            {
+                TseMock = tse,
+                ExtensionRegistry = registry,
+                VerticalProfiles = profiles,
+            });
+
+    private static async Task MarkRequiresPrescriptionAsync(AppDbContext ctx, Guid productId)
+    {
+        var product = await ctx.Products.SingleAsync(row => row.Id == productId);
+        product.RequiresPrescription = true;
+        await ctx.SaveChangesAsync();
+    }
+
+    private static AppDbContext CreateVetContext(
+        out ITenantExtensionRegistry registry,
+        out IVerticalProfileService profiles,
+        bool enabled)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"PayVet_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        var profileService = new Mock<IVerticalProfileService>();
+        var profile = VetProfile();
+        profileService
+            .Setup(service => service.GetForAdminTenantAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+        profileService
+            .Setup(service => service.GetForCurrentTenantAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(profile);
+        profiles = profileService.Object;
+        registry = new TenantExtensionRegistry(
+            [new VetPrescriptionExtension(profiles)],
+            TenantTestDoubles.DbContextFactoryForTests(options, TenantTestDoubles.TenantAccessorReturning(null)),
+            new MemoryCache(new MemoryCacheOptions()),
+            new PassThroughCache(),
+            Options.Create(new CacheSettings()),
+            Mock.Of<IAuditLogService>(),
+            NullLogger<TenantExtensionRegistry>.Instance);
+        if (enabled)
+            SeedEnabled(ctx, TenantExtensionNames.VetPrescription);
+        return ctx;
+    }
+
+    private static EffectiveVerticalProfileDto VetProfile()
+    {
+        var features = JsonSerializer.SerializeToElement(new Dictionary<string, bool>
+        {
+            [VerticalProfileFeatureKeys.PatientRecord] = true,
+            ["prescription"] = true,
+        });
+        return new EffectiveVerticalProfileDto("vet", "Vet", features, default, default, "standard", default);
     }
 
     private static AppDbContext CreateContext(out ITenantExtensionRegistry registry, PaymentProbeExtension probe)
