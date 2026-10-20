@@ -251,6 +251,7 @@ Also expected in Development:
 
 - `BenefitDailyUsage` / `BenefitAssignment` / `PaymentDetails` → `Customer` (Customer filter includes the walk-in `IsSystem` exemption)
 - `LicenseReminder` → `LicenseSale` (reminder is not `ITenantEntity`)
+- `GuestFolioItem` → `GuestFolio`, `KitchenOrderItem` → `KitchenOrder`, `TicketSeat` → `TicketEvent`, `TicketEventCategoryPrice` → `TicketEvent` / `TicketPriceCategory` (line/seat/price rows have no `tenant_id`; the parent event is the tenant filter). `room_minibar_items` and `ticket_price_categories` are `ITenantEntity`, so they are not in this list.
 
 **Expected remaining pairs** (unfiltered dependent, required FK to a filtered principal — documented in `AppDbContextTenantModelTests`):
 
