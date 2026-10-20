@@ -51,6 +51,10 @@ const COUNTRIES: CountryProfileSummaryDto[] = [
   },
 ];
 
+vi.mock('@/hooks/useDebounce', () => ({
+  useDebounce: <T,>(value: T) => value,
+}));
+
 vi.mock('@/features/tenancy/hooks/useCountries', () => ({
   useCountries: () => ({ data: COUNTRIES, isLoading: false }),
 }));
@@ -67,7 +71,10 @@ vi.mock('@/features/super-admin/api/adminTenants', async (importOriginal) => {
 
 function renderWizard() {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false },
+      mutations: { retry: false },
+    },
   });
   const onClose = vi.fn();
   const onCreated = vi.fn();
@@ -123,6 +130,11 @@ beforeAll(() => {
 describe('CreateTenantWizard country step', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCheckSlug.mockImplementation(async (slug: string) => ({
+      normalizedSlug: slug,
+      isValid: true,
+      available: true,
+    }));
     mockCreateAdminTenant.mockResolvedValue({
       id: '11111111-1111-1111-1111-111111111111',
       name: 'Cafe Muster',
@@ -217,8 +229,8 @@ describe('CreateTenantWizard country step', () => {
       const modal = nameInput.closest('.ant-modal') as HTMLElement;
 
       // React's onChange listens for the input event. Per-keystroke user.type
-      // re-renders this wizard until the 15s budget is gone, and the submit
-      // button stays disabled until the debounced slug check returns.
+      // re-renders this wizard until the 15s budget is gone. "Kunden anlegen"
+      // stays disabled until the slug-availability query resolves.
       const companyName = within(modal).getByLabelText('Firmenname');
       fireEvent.input(companyName, { target: { value: 'Cafe Muster' } });
       fireEvent.blur(companyName);
@@ -229,14 +241,15 @@ describe('CreateTenantWizard country step', () => {
       fireEvent.input(slugInput, { target: { value: 'cafe-muster' } });
       fireEvent.blur(slugInput);
 
-      await waitFor(
-        () => {
-          expect(within(modal).getByRole('button', { name: 'Kunden anlegen' })).not.toBeDisabled();
-        },
-        { timeout: 3000 }
-      );
+      const submitButton = await within(modal).findByRole('button', {
+        name: /Kunden anlegen/i,
+      });
+      await waitFor(() => {
+        expect(mockCheckSlug).toHaveBeenCalled();
+        expect(submitButton).toBeEnabled();
+      });
 
-      await user.click(within(modal).getByRole('button', { name: 'Kunden anlegen' }));
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(mockCreateAdminTenant).toHaveBeenCalled();

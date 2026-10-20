@@ -325,6 +325,8 @@ backend/CreateTableOrderTables.sql
 
 # TestSprite
 test-results/
+playwright-report/
+**/playwright-report/
 tmp/
 *.pyc
 __pycache__/
