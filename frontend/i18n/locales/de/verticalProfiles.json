@@ -136,8 +136,27 @@
       "eventLabel": "Veranstaltung",
       "loadError": "Veranstaltungen konnten nicht geladen werden.",
       "seatTaken": "Platz ist nicht mehr frei.",
+      "seatTakenHold": "Platz ist für kurze Zeit reserviert. Bitte anderen Platz wählen.",
+      "seatAisle": "Gang",
+      "seatAccessible": "Rollstuhl",
+      "seatCompanion": "Begleitung",
+      "stageLabel": "Bühne",
+      "seatCategoryStandard": "Standard",
+      "seatCategoryVip": "VIP",
+      "seatCategoryStudent": "Student",
+      "seatCategoryCapacity": "Diese Kategorie ist ausverkauft. Bitte anderen Platz wählen.",
+      "seatCategoryPriceMissing": "Für diese Kategorie ist kein Preis hinterlegt.",
+      "emptySeats": "Keine Plätze vorhanden.",
+      "companionTargetNotSold": "Begleiterplatz kann erst nach dem Hauptplatz verkauft werden.",
+      "companionOfLabel": "Begleitung von {{row}}, Sitz {{number}}",
       "paySeat": "Bezahlen",
       "printedTitle": "Ticket"
+    },
+    "barcode": {
+      "scanButton": "Scannen",
+      "scanProductTitle": "Barcode scannen",
+      "barcodeNotFound": "Kein Produkt mit diesem Barcode gefunden.",
+      "barcodeCameraPermission": "Kamerazugriff wird benötigt."
     },
     "lodging": {
       "title": "Zimmer wählen",
@@ -419,7 +438,11 @@
       "balance": "Saldo {{amount}}",
       "empty": "Keine Buchungen.",
       "chargeLine": "{{description}} · {{amount}} · {{time}}",
-      "close": "Konto schließen"
+      "close": "Konto schließen",
+      "changeRoom": "Oda değiştir",
+      "newRoomNumber": "Neue Zimmernummer",
+      "switchRoom": "Wechseln",
+      "moveFailed": "Der Zimmerwechsel konnte nicht gespeichert werden."
     },
     "checkout": {
       "toRegister": "Zur Kasse",

@@ -114,6 +114,7 @@
   "backupOverview": "Genel bakış",
   "backupPerformance": "Performans",
   "backupCompliance": "RKSV uyumluluk",
+  "backupDrills": "Geri yükleme tatbikatları",
   "backupCosts": "Depolama maliyetleri",
   "backupRetention": "Saklama",
   "backupPitr": "Zaman noktası geri yükleme",

@@ -136,8 +136,27 @@
       "eventLabel": "Event",
       "loadError": "Events could not be loaded.",
       "seatTaken": "Seat is no longer free.",
+      "seatTakenHold": "This seat is held for a short time. Please choose another seat.",
+      "seatAisle": "Aisle",
+      "seatAccessible": "Wheelchair",
+      "seatCompanion": "Companion",
+      "stageLabel": "Stage",
+      "seatCategoryStandard": "Standard",
+      "seatCategoryVip": "VIP",
+      "seatCategoryStudent": "Student",
+      "seatCategoryCapacity": "This category is sold out. Please choose another seat.",
+      "seatCategoryPriceMissing": "This category has no price.",
+      "emptySeats": "No seats available.",
+      "companionTargetNotSold": "A companion seat can be sold only after its main seat.",
+      "companionOfLabel": "Companion of {{row}}, seat {{number}}",
       "paySeat": "Pay",
       "printedTitle": "Ticket"
+    },
+    "barcode": {
+      "scanButton": "Scan",
+      "scanProductTitle": "Scan barcode",
+      "barcodeNotFound": "No product found for this barcode.",
+      "barcodeCameraPermission": "Camera access is required."
     },
     "lodging": {
       "title": "Select room",
@@ -419,7 +438,11 @@
       "balance": "Balance {{amount}}",
       "empty": "No charges.",
       "chargeLine": "{{description}} · {{amount}} · {{time}}",
-      "close": "Close folio"
+      "close": "Close folio",
+      "changeRoom": "Oda değiştir",
+      "newRoomNumber": "New room number",
+      "switchRoom": "Switch",
+      "moveFailed": "The room change could not be saved."
     },
     "checkout": {
       "toRegister": "To the register",

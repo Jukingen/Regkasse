@@ -136,8 +136,27 @@
       "eventLabel": "Etkinlik",
       "loadError": "Etkinlikler yüklenemedi.",
       "seatTaken": "Koltuk artık boş değil.",
+      "seatTakenHold": "Koltuk kısa süre rezerve. Lütfen başka koltuk seçin.",
+      "seatAisle": "Koridor",
+      "seatAccessible": "Tekerlekli sandalye",
+      "seatCompanion": "Refakatçi",
+      "stageLabel": "Sahne",
+      "seatCategoryStandard": "Standart",
+      "seatCategoryVip": "VIP",
+      "seatCategoryStudent": "Öğrenci",
+      "seatCategoryCapacity": "Bu kategori tükendi. Lütfen başka koltuk seçin.",
+      "seatCategoryPriceMissing": "Bu kategori için fiyat yok.",
+      "emptySeats": "Koltuk yok.",
+      "companionTargetNotSold": "Refakatçi koltuk ancak ana koltuk satıldıktan sonra satılabilir.",
+      "companionOfLabel": "{{row}} refakati, koltuk {{number}}",
       "paySeat": "Öde",
       "printedTitle": "Bilet"
+    },
+    "barcode": {
+      "scanButton": "Tara",
+      "scanProductTitle": "Barkod tara",
+      "barcodeNotFound": "Bu barkoda ait ürün bulunamadı.",
+      "barcodeCameraPermission": "Kamera erişimi gerekli."
     },
     "lodging": {
       "title": "Oda seç",
@@ -419,7 +438,11 @@
       "balance": "Bakiye {{amount}}",
       "empty": "Kayıt yok.",
       "chargeLine": "{{description}} · {{amount}} · {{time}}",
-      "close": "Hesabı kapat"
+      "close": "Hesabı kapat",
+      "changeRoom": "Oda değiştir",
+      "newRoomNumber": "Yeni oda numarası",
+      "switchRoom": "Değiştir",
+      "moveFailed": "Oda değişikliği kaydedilemedi."
     },
     "checkout": {
       "toRegister": "Kasaya",

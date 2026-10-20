@@ -320,6 +320,17 @@
     "occupancy": "Doluluk",
     "back": "Oda listesine dön",
     "noGuest": "Konuk yok",
+    "minibarTitle": "Minibar",
+    "minibarEmpty": "Minibar satırı yok.",
+    "minibarDescription": "Açıklama",
+    "minibarQuantity": "Adet",
+    "minibarUnitPrice": "Birim fiyat",
+    "minibarStatus": "Durum",
+    "minibarStatusValue": {
+      "Pending": "Bekliyor",
+      "Charged": "İşlendi",
+      "Voided": "İptal"
+    },
     "status": {
       "Available": "Boş",
       "Occupied": "Dolu",
@@ -361,6 +372,10 @@
     "checkoutSuccess": "Hesap kapatıldı. Oda temizlikte.",
     "checkoutFailed": "Check-out saklanamadı.",
     "checkoutHint": "Check-out fatura veya TSE belgesi oluşturmaz. Ödeme normal kasa satışı olarak kalır.",
+    "moveRoom": "Oda değiştir",
+    "newRoom": "Yeni oda numarası",
+    "moveSuccess": "Oda değiştirildi. Bakiye aynı kaldı.",
+    "moveFailed": "Oda değişikliği kaydedilemedi.",
     "back": "Hesap listesine dön"
   },
   "extensions": {
@@ -376,6 +391,12 @@
     "loadError": "Uzantılar yüklenemedi.",
     "saveError": "Uzantı kaydedilemedi.",
     "saved": "Uzantı kaydedildi.",
+    "minibarSettlementInfo": "Açık minibar ücretleri varken ve kapanıştan önce tahsilat zorunluysa check-out engellenir.",
+    "minibarSettlementSwitch": "Check-out öncesi tahsilat iste",
+    "breakfastPriceLabel": "Kişi ve gece başına kahvaltı (€)",
+    "lateCheckoutFreeUntil": "Şu saate kadar ücretsiz",
+    "lateCheckoutFee": "Ücret (€)",
+    "lateCheckoutTimeZone": "Saat dilimi",
     "empty": "Kayıtlı uzantı yok.",
     "manageCampaigns": "Kampanyalar",
     "profileTitle": "Uzantılar",

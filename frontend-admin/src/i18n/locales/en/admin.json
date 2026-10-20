@@ -320,6 +320,17 @@
     "occupancy": "Occupancy",
     "back": "Back to rooms",
     "noGuest": "No guest",
+    "minibarTitle": "Minibar",
+    "minibarEmpty": "No minibar rows.",
+    "minibarDescription": "Description",
+    "minibarQuantity": "Quantity",
+    "minibarUnitPrice": "Unit price",
+    "minibarStatus": "Status",
+    "minibarStatusValue": {
+      "Pending": "Pending",
+      "Charged": "Charged",
+      "Voided": "Voided"
+    },
     "status": {
       "Available": "Available",
       "Occupied": "Occupied",
@@ -361,6 +372,10 @@
     "checkoutSuccess": "Folio closed. The room is set to cleaning.",
     "checkoutFailed": "Check-out could not be saved.",
     "checkoutHint": "Check-out does not create an invoice or a TSE receipt. Payment stays a normal cash-register sale.",
+    "moveRoom": "Change room",
+    "newRoom": "New room number",
+    "moveSuccess": "The room was changed. The balance stays.",
+    "moveFailed": "The room change could not be saved.",
     "back": "Back to folios"
   },
   "extensions": {
@@ -376,6 +391,12 @@
     "loadError": "Extensions could not be loaded.",
     "saveError": "The extension could not be saved.",
     "saved": "Extension saved.",
+    "minibarSettlementInfo": "Check-out is blocked while minibar charges are still pending and settlement is required before close.",
+    "minibarSettlementSwitch": "Require settlement before check-out",
+    "breakfastPriceLabel": "Breakfast per person per night (€)",
+    "lateCheckoutFreeUntil": "Free until (time)",
+    "lateCheckoutFee": "Fee (€)",
+    "lateCheckoutTimeZone": "Time zone",
     "empty": "No extensions are registered.",
     "manageCampaigns": "Campaigns",
     "profileTitle": "Extensions",

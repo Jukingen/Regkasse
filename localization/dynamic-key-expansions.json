@@ -606,6 +606,18 @@
           "storecove_http_5xx",
           "unknown"
         ]
+      },
+      {
+        "id": "backupDr.compliance.gate.color",
+        "description": "Backup compliance gate color labels",
+        "staticPrefix": "backupDr.compliance.gate",
+        "suffixes": ["green", "yellow", "red"]
+      },
+      {
+        "id": "admin.rooms.minibarStatusValue",
+        "description": "Room minibar line status labels",
+        "staticPrefix": "admin.rooms.minibarStatusValue",
+        "suffixes": ["Pending", "Charged", "Voided"]
       }
     ]
   }

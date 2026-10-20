@@ -54,6 +54,7 @@ import deTseWebhooks from './locales/de/tseWebhooks.json';
 import deTseBlockchain from './locales/de/tseBlockchain.json';
 import deTseTraining from './locales/de/tseTraining.json';
 import deImpactSimulator from './locales/de/impactSimulator.json';
+import deFinanzOnline from './locales/de/finanzOnline.json';
 import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
 import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
@@ -145,6 +146,7 @@ import enTseWebhooks from './locales/en/tseWebhooks.json';
 import enTseBlockchain from './locales/en/tseBlockchain.json';
 import enTseTraining from './locales/en/tseTraining.json';
 import enImpactSimulator from './locales/en/impactSimulator.json';
+import enFinanzOnline from './locales/en/finanzOnline.json';
 import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
 import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
@@ -236,6 +238,7 @@ import trTseWebhooks from './locales/tr/tseWebhooks.json';
 import trTseBlockchain from './locales/tr/tseBlockchain.json';
 import trTseTraining from './locales/tr/tseTraining.json';
 import trImpactSimulator from './locales/tr/impactSimulator.json';
+import trFinanzOnline from './locales/tr/finanzOnline.json';
 import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
 import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
@@ -292,6 +295,7 @@ const catalogs = {
     users: deUsers,
     settings: deSettings,
     products: deProducts,
+    finanzOnline: deFinanzOnline,
     finanzOnlineOutbox: deFinanzOnlineOutbox,
     finanzOnlineReconciliation: deFinanzOnlineReconciliation,
     rksvHub: deRksvHub,
@@ -385,6 +389,7 @@ const catalogs = {
     users: enUsers,
     settings: enSettings,
     products: enProducts,
+    finanzOnline: enFinanzOnline,
     finanzOnlineOutbox: enFinanzOnlineOutbox,
     finanzOnlineReconciliation: enFinanzOnlineReconciliation,
     rksvHub: enRksvHub,
@@ -478,6 +483,7 @@ const catalogs = {
     users: trUsers,
     settings: trSettings,
     products: trProducts,
+    finanzOnline: trFinanzOnline,
     finanzOnlineOutbox: trFinanzOnlineOutbox,
     finanzOnlineReconciliation: trFinanzOnlineReconciliation,
     rksvHub: trRksvHub,

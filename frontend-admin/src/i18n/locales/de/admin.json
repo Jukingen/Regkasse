@@ -320,6 +320,17 @@
     "occupancy": "Auslastung",
     "back": "Zur Zimmerliste",
     "noGuest": "Kein Gast",
+    "minibarTitle": "Minibar",
+    "minibarEmpty": "Keine Minibar-Einträge.",
+    "minibarDescription": "Beschreibung",
+    "minibarQuantity": "Menge",
+    "minibarUnitPrice": "Einzelpreis",
+    "minibarStatus": "Status",
+    "minibarStatusValue": {
+      "Pending": "Offen",
+      "Charged": "Gebucht",
+      "Voided": "Storniert"
+    },
     "status": {
       "Available": "Frei",
       "Occupied": "Belegt",
@@ -361,6 +372,10 @@
     "checkoutSuccess": "Konto geschlossen. Zimmer ist in Reinigung.",
     "checkoutFailed": "Check-out konnte nicht gespeichert werden.",
     "checkoutHint": "Check-out erzeugt keine Rechnung und keinen TSE-Beleg. Die Zahlung bleibt ein normaler Kassiervorgang.",
+    "moveRoom": "Zimmer wechseln",
+    "newRoom": "Neue Zimmernummer",
+    "moveSuccess": "Das Zimmer wurde gewechselt. Der Saldo bleibt.",
+    "moveFailed": "Der Zimmerwechsel konnte nicht gespeichert werden.",
     "back": "Zur Kontenliste"
   },
   "extensions": {
@@ -376,6 +391,12 @@
     "loadError": "Erweiterungen konnten nicht geladen werden.",
     "saveError": "Die Erweiterung konnte nicht gespeichert werden.",
     "saved": "Erweiterung gespeichert.",
+    "minibarSettlementInfo": "Check-out wird blockiert, solange offene Minibar-Posten vorhanden sind und die Abrechnung vor dem Schließen verlangt wird.",
+    "minibarSettlementSwitch": "Abrechnung vor Check-out verlangen",
+    "breakfastPriceLabel": "Frühstück pro Person und Nacht (€)",
+    "lateCheckoutFreeUntil": "Kostenlos bis (Uhrzeit)",
+    "lateCheckoutFee": "Gebühr (€)",
+    "lateCheckoutTimeZone": "Zeitzone",
     "empty": "Keine Erweiterungen registriert.",
     "manageCampaigns": "Kampagnen",
     "profileTitle": "Erweiterungen",

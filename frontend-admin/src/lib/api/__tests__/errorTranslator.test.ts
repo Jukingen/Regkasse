@@ -74,6 +74,100 @@ describe('translateApiError', () => {
     ).toBe('common.apiErrors.SLUG_CONFLICT');
   });
 
+  it('maps FinanzOnline outbox codes to German copy', () => {
+    const german: Record<string, string> = {
+      'common.apiErrors.finanzOnlineOutboxNotFound': 'Die Outbox-Meldung wurde nicht gefunden.',
+      'common.apiErrors.finanzOnlineOutboxAlreadySent':
+        'Die Outbox-Meldung wurde bereits übermittelt.',
+      'common.apiErrors.finanzOnlineOutboxInProgress':
+        'Die Outbox-Meldung wird gerade verarbeitet.',
+      'common.apiErrors.finanzOnlineOutboxReasonRequired':
+        'Zum Abschließen ohne Übermittlung ist eine Begründung erforderlich.',
+    };
+    const tg = (key: string) => german[key] ?? key;
+    expect(
+      translateApiError(
+        tg,
+        {
+          response: {
+            status: 404,
+            data: { code: 'FINANZONLINE_OUTBOX_NOT_FOUND', message: 'Outbox message not found.' },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('Die Outbox-Meldung wurde nicht gefunden.');
+    expect(
+      translateApiError(
+        tg,
+        {
+          response: {
+            status: 400,
+            data: {
+              code: 'FINANZONLINE_OUTBOX_ALREADY_SENT',
+              message: 'Outbox message was already sent.',
+            },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('Die Outbox-Meldung wurde bereits übermittelt.');
+    expect(
+      translateApiError(
+        tg,
+        {
+          response: {
+            status: 409,
+            data: {
+              code: 'FINANZONLINE_OUTBOX_IN_PROGRESS',
+              message: 'Outbox message is being processed.',
+            },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('Die Outbox-Meldung wird gerade verarbeitet.');
+    expect(
+      translateApiError(
+        tg,
+        {
+          response: {
+            status: 400,
+            data: {
+              code: 'FINANZONLINE_OUTBOX_REASON_REQUIRED',
+              message: 'Reason is required.',
+            },
+          },
+        },
+        { skipLog: true }
+      )
+    ).toBe('Zum Abschließen ohne Übermittlung ist eine Begründung erforderlich.');
+  });
+
+  it.each([
+    [404, 'FINANZONLINE_OUTBOX_NOT_FOUND', 'common.apiErrors.finanzOnlineOutboxNotFound'],
+    [400, 'FINANZONLINE_OUTBOX_ALREADY_SENT', 'common.apiErrors.finanzOnlineOutboxAlreadySent'],
+    [409, 'FINANZONLINE_OUTBOX_IN_PROGRESS', 'common.apiErrors.finanzOnlineOutboxInProgress'],
+    [400, 'FINANZONLINE_OUTBOX_REASON_REQUIRED', 'common.apiErrors.finanzOnlineOutboxReasonRequired'],
+    [400, 'FINANZONLINE_OUTBOX_INVALID_BUCKET', 'common.apiErrors.finanzOnlineOutboxInvalidBucket'],
+    [500, 'FINANZONLINE_OUTBOX_LIST_ERROR', 'common.apiErrors.finanzOnlineOutboxListError'],
+    [400, 'FO_OUTBOX_WORKER_INVALID', 'common.apiErrors.finanzOnlineOutboxWorkerInvalid'],
+    [
+      400,
+      'FO_OUTBOX_PRODUCTION_DISABLE_CONFIRM_REQUIRED',
+      'common.apiErrors.finanzOnlineOutboxProductionDisableConfirm',
+    ],
+  ] as const)('maps %s %s to i18n key %s', (status, code, i18nKey) => {
+    const identity = (key: string) => key;
+    expect(
+      translateApiError(
+        identity,
+        { response: { status, data: { code, message: 'English server text' } } },
+        { skipLog: true }
+      )
+    ).toBe(i18nKey);
+  });
+
   it('falls back to HTTP status keys when code is unknown', () => {
     expect(
       translateApiError(

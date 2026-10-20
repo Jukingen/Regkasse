@@ -51,6 +51,7 @@
         "products",
         "profile",
         "quickActions",
+        "finanzOnline",
         "finanzOnlineOutbox",
         "finanzOnlineReconciliation",
         "fiscalExportAudit",

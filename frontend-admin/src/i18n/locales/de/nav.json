@@ -114,6 +114,7 @@
   "backupOverview": "Übersicht",
   "backupPerformance": "Performance",
   "backupCompliance": "RKSV-Compliance",
+  "backupDrills": "Restore-Drills",
   "backupCosts": "Speicherkosten",
   "backupRetention": "Aufbewahrung",
   "backupPitr": "Point-in-Time Wiederherstellung",

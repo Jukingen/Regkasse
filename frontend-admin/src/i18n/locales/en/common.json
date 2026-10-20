@@ -85,6 +85,20 @@
     "http503": "Service temporarily unavailable.",
     "network": "Network error. Check your connection."
   },
+  "apiErrors": {
+    "finanzOnlineOutboxNotFound": "The outbox message was not found.",
+    "finanzOnlineOutboxAlreadySent": "The outbox message was already sent.",
+    "finanzOnlineOutboxInProgress": "The outbox message is being processed.",
+    "finanzOnlineOutboxReasonRequired": "A reason is required to close the message without sending it.",
+    "finanzOnlineOutboxInvalidBucket": "The status filter is unknown.",
+    "finanzOnlineOutboxListError": "The outbox list could not be loaded.",
+    "finanzOnlineOutboxWorkerInvalid": "A worker setting is outside the allowed range.",
+    "finanzOnlineOutboxProductionDisableConfirm": "Disabling the outbox worker in production requires explicit confirmation.",
+    "backupKnownGapUnknown": "At least one Backup/DR gap id is unknown.",
+    "extensionOptionsUnsupported": "This extension does not accept options.",
+    "barcodeDuplicate": "This barcode is already in use.",
+    "barcodeNotFound": "No product found for this barcode."
+  },
   "backend": {
     "serverHintIntro": "Message from server (language not guaranteed):",
     "rawMessagesNotice": "The following lines are passed through unchanged from the server (not localized)."

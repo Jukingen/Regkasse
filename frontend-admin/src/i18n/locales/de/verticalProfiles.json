@@ -28,5 +28,8 @@
   },
   "beherbergung": {
     "name": "Beherbergung"
+  },
+  "retail": {
+    "name": "Einzelhandel"
   }
 }

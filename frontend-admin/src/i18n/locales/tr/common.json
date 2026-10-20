@@ -85,6 +85,20 @@
     "http503": "Hizmet gecici olarak kullanilamiyor.",
     "network": "Ag hatasi. Baglantiyi kontrol edin."
   },
+  "apiErrors": {
+    "finanzOnlineOutboxNotFound": "Outbox mesajı bulunamadı.",
+    "finanzOnlineOutboxAlreadySent": "Outbox mesajı zaten gönderildi.",
+    "finanzOnlineOutboxInProgress": "Outbox mesajı şu anda işleniyor.",
+    "finanzOnlineOutboxReasonRequired": "Göndermeden kapatmak için bir gerekçe gerekli.",
+    "finanzOnlineOutboxInvalidBucket": "Durum filtresi tanınmıyor.",
+    "finanzOnlineOutboxListError": "Outbox listesi yüklenemedi.",
+    "finanzOnlineOutboxWorkerInvalid": "Bir worker ayarı izin verilen aralığın dışında.",
+    "finanzOnlineOutboxProductionDisableConfirm": "Üretimde outbox workerını kapatmak açık onay gerektirir.",
+    "backupKnownGapUnknown": "En az bir Backup/DR boşluk kimliği tanınmıyor.",
+    "extensionOptionsUnsupported": "Bu uzantı seçenek kabul etmiyor.",
+    "barcodeDuplicate": "Bu barkod zaten kullanılıyor.",
+    "barcodeNotFound": "Bu barkoda ait ürün bulunamadı."
+  },
   "backend": {
     "serverHintIntro": "Sunucu mesaji (dil garanti degil):",
     "rawMessagesNotice": "Asagidaki satirlar sunucudan oldugu gibi gelir (yerellestirilmez)."
