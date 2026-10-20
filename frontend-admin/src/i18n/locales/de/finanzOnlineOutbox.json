@@ -6,6 +6,7 @@
     "leadLegacyQueueLink": "Zahlungs-Abgleich (Legacy)",
     "authoritativeLine": "Authoritative Quelle für Übermittlungs-Lebenszyklus und Protokollnachweise: diese Outbox-Liste (nicht die Legacy-Zahlungszeilen-Ansicht)."
   },
+  "advancedSettings": "Erweiterte Einstellungen",
   "transportPath": {
     "bannerSimulated": "Simulierter FinanzOnline-Transport aktiv — Erfolgs- und Protokollzustände gelten hier nur für die Simulation, nicht für eine reale BMF-Verbindung.",
     "bannerReal": "Echter FinanzOnline-Transport (keine Transportsimulation) — Protokoll- und Statusangaben beziehen sich auf den konfigurierten SOAP-Pfad.",

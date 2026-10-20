@@ -52,6 +52,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     private readonly IFinanzOnlineOutboxSettingsService _workerSettings;
     private readonly IFinanzOnlineRuntimeSettingsService _runtimeSettings;
     private readonly FinanzOnlineRuntimeOptionsAccessor _runtimeOptions;
+    private readonly IFinanzOnlineOutboxActionService _actions;
 
     public FinanzOnlineOutboxAdminController(
         AppDbContext context,
@@ -64,7 +65,8 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions,
         IFinanzOnlineOutboxSettingsService workerSettings,
         IFinanzOnlineRuntimeSettingsService runtimeSettings,
-        FinanzOnlineRuntimeOptionsAccessor runtimeOptions)
+        FinanzOnlineRuntimeOptionsAccessor runtimeOptions,
+        IFinanzOnlineOutboxActionService actions)
     {
         _context = context;
         _logger = logger;
@@ -77,6 +79,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         _workerSettings = workerSettings;
         _runtimeSettings = runtimeSettings;
         _runtimeOptions = runtimeOptions;
+        _actions = actions;
     }
 
     /// <summary>
@@ -295,6 +298,58 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         return Ok(MapToDto(row, anySim));
     }
 
+    /// <summary>
+    /// Reset one row to Pending and wake the outbox worker. Does not submit SOAP itself.
+    /// ProtocolSuccess and AwaitingProtocol stay rejected so an already-sent row is not submitted again.
+    /// </summary>
+    [HttpPost("{id:guid}/retry")]
+    [HasPermission(AppPermissions.FinanzOnlineSubmit)]
+    public async Task<IActionResult> Retry(Guid id, CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.RetryAsync(id, User, cancellationToken).ConfigureAwait(false);
+        return ToActionResult(outcome);
+    }
+
+    /// <summary>
+    /// Reset matching failed rows to Pending and wake the worker once.
+    /// </summary>
+    [HttpPost("retry-failed")]
+    [HasPermission(AppPermissions.FinanzOnlineSubmit)]
+    public async Task<IActionResult> RetryFailed(
+        [FromBody] FinanzOnlineOutboxRetryFailedRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.RetryFailedAsync(request, User, cancellationToken).ConfigureAwait(false);
+        if (outcome.StatusCode != StatusCodes.Status200OK)
+            return ToActionResult(outcome);
+        return Ok(new { retriedCount = outcome.RetriedCount });
+    }
+
+    /// <summary>
+    /// Close a row without another FinanzOnline submit. Super Admin only.
+    /// </summary>
+    [HttpPost("{id:guid}/mark-resolved")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    public async Task<IActionResult> MarkResolved(
+        Guid id,
+        [FromBody] FinanzOnlineOutboxMarkResolvedRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var outcome = await _actions.MarkResolvedAsync(id, request, User, cancellationToken).ConfigureAwait(false);
+        return ToActionResult(outcome);
+    }
+
+    private IActionResult ToActionResult(FinanzOnlineOutboxActionOutcome outcome)
+    {
+        if (outcome.StatusCode == StatusCodes.Status200OK && outcome.Row != null)
+            return Ok(MapToDto(outcome.Row, TransportSimulationActive()));
+        if (outcome.StatusCode == StatusCodes.Status404NotFound)
+            return NotFound(new { message = outcome.Message, code = outcome.Code });
+        if (outcome.StatusCode == StatusCodes.Status409Conflict)
+            return Conflict(new { message = outcome.Message, code = outcome.Code });
+        return BadRequest(new { message = outcome.Message, code = outcome.Code });
+    }
+
     private bool TransportSimulationActive() =>
         _runtimeOptions.Session.UseSimulation
         || _runtimeOptions.Registrierkassen.UseSimulation
@@ -385,6 +440,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             LastResponsePreview = TruncatePreview(x.LastResponseJson),
             CreatedAtUtc = x.CreatedAt,
             ProcessedAtUtc = x.ProcessedAt,
+            ResolutionReason = x.ResolutionReason,
+            ResolvedByUserId = x.ResolvedByUserId,
+            ResolvedAtUtc = x.ResolvedAtUtc,
             IsTerminal = IsTerminalStatus(x.Status),
             IdempotencyKeySuffix = IdempotencySuffix(x.IdempotencyKey)
         };
@@ -404,7 +462,8 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             or FinanzOnlineOutboxStatuses.ProtocolFailure
             or FinanzOnlineOutboxStatuses.PermanentFailure
             or FinanzOnlineOutboxStatuses.ManualReviewRequired
-            or FinanzOnlineOutboxStatuses.DeadLetter;
+            or FinanzOnlineOutboxStatuses.DeadLetter
+            or FinanzOnlineOutboxStatuses.Resolved;
     }
 
     private static string MapOperatorLabel(string status)
@@ -420,6 +479,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
             FinanzOnlineOutboxStatuses.PermanentFailure => "Permanent failure",
             FinanzOnlineOutboxStatuses.ManualReviewRequired => "Manual review required",
             FinanzOnlineOutboxStatuses.DeadLetter => "Dead letter",
+            FinanzOnlineOutboxStatuses.Resolved => "Resolved",
             _ => status
         };
     }
@@ -553,6 +613,9 @@ public sealed class FinanzOnlineOutboxItemDto
     public string? LastResponsePreview { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
+    public string? ResolutionReason { get; set; }
+    public string? ResolvedByUserId { get; set; }
+    public DateTime? ResolvedAtUtc { get; set; }
     public bool IsTerminal { get; set; }
     public string? IdempotencyKeySuffix { get; set; }
 }

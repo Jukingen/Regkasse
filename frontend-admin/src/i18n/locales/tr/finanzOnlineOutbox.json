@@ -6,6 +6,7 @@
     "leadLegacyQueueLink": "Ödeme mutabakatı (eski)",
     "authoritativeLine": "Gönderim yaşam döngüsü ve protokol kanıtları için otoriter kaynak: bu Outbox listesi (eski ödeme satırı görünümü değil)."
   },
+  "advancedSettings": "Gelişmiş ayarlar",
   "transportPath": {
     "bannerSimulated": "Simüle FinanzOnline aktarımı açık — buradaki başarı ve protokol durumları yalnızca simülasyondur; canlı BMF bağlantısı değildir.",
     "bannerReal": "Gerçek FinanzOnline aktarımı (aktarım simülasyonu yok) — protokol ve durum, yapılandırılmış SOAP yolunu ifade eder.",

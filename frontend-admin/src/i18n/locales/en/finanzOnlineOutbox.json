@@ -6,6 +6,7 @@
     "leadLegacyQueueLink": "Payment reconciliation (legacy)",
     "authoritativeLine": "Authoritative source for submission lifecycle and protocol evidence: this outbox list (not the legacy payment-row view)."
   },
+  "advancedSettings": "Advanced settings",
   "transportPath": {
     "bannerSimulated": "Simulated FinanzOnline transport is active — success and protocol states here reflect simulation only, not a live BMF connection.",
     "bannerReal": "Real FinanzOnline transport (no transport simulation) — protocol and status refer to the configured SOAP path.",

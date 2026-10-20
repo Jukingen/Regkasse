@@ -1,0 +1,52 @@
+{
+  "outbox": {
+    "title": "Outbox-Eingang",
+    "analytics": {
+      "title": "Letzte 7 Tage",
+      "successRate": "Erfolgsquote",
+      "averageRetries": "Durchschnittliche Versuche",
+      "topFailures": "Häufigste Fehlertypen",
+      "empty": "Keine Meldungen im Zeitraum"
+    },
+    "filters": {
+      "status": "Status",
+      "statusPending": "Pending",
+      "statusSent": "Sent",
+      "statusFailed": "Failed",
+      "dateRange": "Zeitraum",
+      "cashRegister": "Kasse"
+    },
+    "columns": {
+      "messageType": "Meldungstyp",
+      "status": "Status",
+      "attempts": "Versuche",
+      "lastAttemptedAt": "Letzter Versuch",
+      "errorCode": "Fehlercode"
+    },
+    "actions": {
+      "retrySelected": "Auswahl erneut senden",
+      "retryAllFailed": "Alle Fehlgeschlagenen erneut senden",
+      "retry": "Erneut senden",
+      "resolve": "Als erledigt markieren",
+      "details": "Details"
+    },
+    "detail": {
+      "title": "Outbox-Meldung",
+      "payload": "Payload (maskiert)",
+      "timeline": "Versuchsverlauf",
+      "errorCode": "Fehlercode",
+      "errorMessage": "Fehlermeldung",
+      "resolveReason": "Grund für den Abschluss ohne erneute Übermittlung"
+    },
+    "timeline": {
+      "created": "Angelegt",
+      "attempts": "Versuche bisher: {{count}}",
+      "processed": "Verarbeitet",
+      "next": "Nächster Versuch"
+    },
+    "empty": "Keine Outbox-Meldungen",
+    "retryQueued": "Erneutes Senden wurde angefordert.",
+    "resolved": "Meldung wurde als erledigt markiert.",
+    "retryError": "Erneutes Senden ist fehlgeschlagen."
+  }
+}

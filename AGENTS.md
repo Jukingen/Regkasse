@@ -458,7 +458,7 @@ Every fiscal or security-sensitive operation MUST log:
 ### Audit Event Types (`AuditEventType`)
 Security and lifecycle audit log — source of truth: `backend/Models/AuditEventType.cs`.
 
-Key values include: `UserCreated`, `UserUpdated`, `UserRoleChanged`, `UserDeactivated`, `UserReactivated`, `UserDeleted`, `UserNameChanged`, `PasswordResetForced`, `UserTenantMembershipChanged`, `RestoreRequested`, `RestoreApproved`, `RestoreRejected`, `RestoreCompleted`, `RestoreFailed`.
+Key values include: `UserCreated`, `UserUpdated`, `UserRoleChanged`, `UserDeactivated`, `UserReactivated`, `UserDeleted`, `UserNameChanged`, `PasswordResetForced`, `UserTenantMembershipChanged`, `RestoreRequested`, `RestoreApproved`, `RestoreRejected`, `RestoreCompleted`, `RestoreFailed`, `FinanzOnlineOutboxRetried` (139), `FinanzOnlineOutboxBulkRetried` (140), `FinanzOnlineOutboxMarkedResolved` (141).
 
 Do **not** confuse with `ActivityEventType` (admin activity feed / notifications).
 
@@ -484,6 +484,8 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 - Production mode MUST use real SOAP submission
 - Test mode MUST use simulation (`FinanzOnline:Mode=Simulation`)
 - Failed submissions MUST retry with exponential backoff (maximum 5 attempts)
+- Operator retry (`POST /api/admin/finanzonline-outbox/{id}/retry`, `POST …/retry-failed`, permission `finanzonline.submit`) resets matching rows to `Pending` and wakes the worker. It does not change SOAP, claim, or backoff. `ProtocolSuccess` and `AwaitingProtocol` are rejected (HTTP 400). Super Admin close-without-submit is `POST …/{id}/mark-resolved` (`system.critical`) and sets status `Resolved`.
+- Outbox rows are not `ITenantEntity` (`tenant_id` is a string). **Super Admin** may retry or resolve any row even when the ambient tenant differs from the row (including a null or non-Guid `tenant_id`). **Mandanten-Admin** may retry only rows whose `tenant_id` matches the ambient tenant (`D` or `N` Guid); a foreign row or a missing ambient tenant returns HTTP 404. `/api/admin/finanzonline-outbox` is **not** a Super Admin ambient-tenant exemption — non–SuperAdmin callers still need ambient tenant.
 - Submission status MUST be visible in admin panel
 
 ### Signature Chain Validation
