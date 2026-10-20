@@ -330,11 +330,16 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderBroadcaster, KasseAPI_Final.Services.Kitchen.KitchenOrderBroadcaster>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IAdminKitchenService, KasseAPI_Final.Services.Kitchen.AdminKitchenService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Imei.IProductImeiService, KasseAPI_Final.Services.Imei.ProductImeiService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Products.IProductVariantService, KasseAPI_Final.Services.Products.ProductVariantService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketRedemptionService, KasseAPI_Final.Services.Tickets.TicketRedemptionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketEventService, KasseAPI_Final.Services.Tickets.TicketEventService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Lodging.ILodgingService, KasseAPI_Final.Services.Lodging.LodgingService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.HairSalonCampaignExtension>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.PrescriptionRequiredExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.VetPrescriptionExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.MinibarAutoChargeExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.BreakfastIncludedExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.LateCheckoutFeeExtension>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry>(
             sp => sp.GetRequiredService<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>());
@@ -538,6 +543,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionService, KasseAPI_Final.Services.Countries.EInvoicing.PeppolSubmissionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();
         builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGapCatalog>();
+        builder.Services.AddSingleton<IBackupKnownGapsCatalog, BackupKnownGapsCatalog>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IChQrGapAcceptanceService, KasseAPI_Final.Services.Countries.QrRechnung.ChQrGapAcceptanceService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
         builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();
@@ -606,6 +612,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ILicenseRenewalFunnelService, LicenseRenewalFunnelService>();
         builder.Services.AddHostedService<LicenseReminderHostedService>();
         builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetSection(LicenseReportEmailOptions.SectionName));
+        builder.Services.Configure<BackupDrillReportOptions>(builder.Configuration.GetSection(BackupDrillReportOptions.SectionName));
         builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
         builder.Services.AddScoped<ILicenseExportService, LicenseExportService>();
         builder.Services.AddHostedService<LicenseScheduledReportsHostedService>();
@@ -631,6 +638,8 @@ internal static class ApplicationHost
 
             builder.Services.AddOptions<BackupReVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupKnownGapsAcceptanceOptions>()
+                .Bind(builder.Configuration.GetSection(BackupKnownGapsAcceptanceOptions.SectionName));
         }
         else
         {
@@ -640,6 +649,8 @@ internal static class ApplicationHost
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName));
             builder.Services.AddOptions<BackupReVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupKnownGapsAcceptanceOptions>()
+                .Bind(builder.Configuration.GetSection(BackupKnownGapsAcceptanceOptions.SectionName));
         }
 
         // Local development iÃ§in explicit host binding; production host binding platform tarafÄ±ndan yÃ¶netilmelidir.
@@ -1296,6 +1307,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFinanzOnlineCommandMapper, DefaultFinanzOnlineCommandMapper>();
         builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
         builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxActionService, FinanzOnlineOutboxActionService>();
         builder.Services.AddScoped<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<RksvAusfallFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<IRksvAusfallEpisodeService, RksvAusfallEpisodeService>();
@@ -1475,6 +1487,7 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
         builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
         builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
+        builder.Services.AddSingleton<IFinanzOnlineOutboxWorkerSignal, FinanzOnlineOutboxWorkerSignal>();
         builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
         builder.Services.AddHostedService<NtpTimeSyncService>();
 
@@ -1572,6 +1585,8 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IBackupStagingDiskMonitor, BackupStagingDiskMonitor>();
         builder.Services.AddSingleton<IBackupEncryptionService, BackupEncryptionService>();
         builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
+        builder.Services.AddScoped<IBackupKnownGapAcceptanceService, BackupKnownGapAcceptanceService>();
+        builder.Services.AddScoped<IBackupKnownGapStatusService, BackupKnownGapStatusService>();
         builder.Services.AddScoped<IBackupComplianceStatusService, BackupComplianceStatusService>();
         builder.Services.AddScoped<IBackupStorageCostService, BackupStorageCostService>();
         builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
@@ -1593,6 +1608,7 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<StorageAlertService>();
         builder.Services.AddHostedService<BackupReVerificationHostedService>();
         builder.Services.AddHostedService<BackupRpoOverdueAlertService>();
+        builder.Services.AddHostedService<BackupDrillReportHostedService>();
         builder.Services.AddHostedService<AutomaticCleanupService>();
         builder.Services.AddHostedService<WalArchiveRetentionHostedService>();
         builder.Services.AddHostedService<IncrementalBackupScheduledEnqueueService>();

@@ -80,9 +80,12 @@ namespace KasseAPI_Final.Data
         // DbSet properties
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductImei> ProductImeis { get; set; }
+        public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<TicketRedemption> TicketRedemptions { get; set; }
         public DbSet<TicketEvent> TicketEvents { get; set; }
         public DbSet<TicketSeat> TicketSeats { get; set; }
+        public DbSet<TicketPriceCategory> TicketPriceCategories { get; set; }
+        public DbSet<TicketEventCategoryPrice> TicketEventCategoryPrices { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<BenefitDefinition> BenefitDefinitions { get; set; }
         public DbSet<PaymentMethodDefinition> PaymentMethodDefinitions { get; set; }
@@ -137,6 +140,7 @@ namespace KasseAPI_Final.Data
         public DbSet<Room> Rooms { get; set; }
         public DbSet<GuestFolio> GuestFolios { get; set; }
         public DbSet<GuestFolioItem> GuestFolioItems { get; set; }
+        public DbSet<RoomMinibarItem> RoomMinibarItems { get; set; }
         public DbSet<KitchenOrder> KitchenOrders { get; set; }
         public DbSet<KitchenOrderItem> KitchenOrderItems { get; set; }
         public DbSet<HairSalonCampaign> HairSalonCampaigns { get; set; }
@@ -1357,9 +1361,12 @@ namespace KasseAPI_Final.Data
                 // Tenant-scoped name lookup (CategoryId+TenantId already covered by composite FK index).
                 entity.HasIndex(e => new { e.TenantId, e.Name })
                     .HasDatabaseName("idx_products_tenant_name");
+                entity.Property(e => e.Barcode)
+                    .HasMaxLength(64)
+                    .IsRequired(false);
                 entity.HasIndex(e => new { e.TenantId, e.Barcode })
                     .IsUnique()
-                    .HasFilter("barcode IS NOT NULL AND barcode <> ''");
+                    .HasFilter("barcode IS NOT NULL");
 
                 // Composite FK: product category must belong to the same tenant
                 entity.HasOne(p => p.CategoryNavigation)
@@ -3611,6 +3618,63 @@ namespace KasseAPI_Final.Data
                     .IsRequired(false);
             });
 
+            builder.Entity<ProductVariant>(entity =>
+            {
+                entity.ToTable("product_variants");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.ProductId)
+                    .HasColumnName("product_id")
+                    .IsRequired();
+                entity.Property(e => e.Sku)
+                    .HasColumnName("sku")
+                    .HasMaxLength(64)
+                    .IsRequired();
+                entity.Property(e => e.VariantLabel)
+                    .HasColumnName("variant_label")
+                    .HasMaxLength(128)
+                    .IsRequired();
+                entity.Property(e => e.PriceDelta)
+                    .HasColumnName("price_delta")
+                    .HasPrecision(18, 2)
+                    .HasDefaultValue(0m);
+                entity.Property(e => e.Stock)
+                    .HasColumnName("stock")
+                    .HasDefaultValue(0);
+                entity.Property(e => e.IsActive)
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_product_variants_tenant_id");
+                entity.HasIndex(e => e.ProductId)
+                    .HasDatabaseName("ix_product_variants_product_id");
+                entity.HasIndex(e => new { e.TenantId, e.Sku })
+                    .IsUnique()
+                    .HasDatabaseName("ux_product_variants_tenant_sku");
+                entity.HasIndex(e => new { e.ProductId, e.VariantLabel })
+                    .IsUnique()
+                    .HasDatabaseName("ux_product_variants_product_label");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.Variants)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             builder.Entity<Room>(entity =>
             {
                 entity.ToTable("rooms");
@@ -3784,9 +3848,75 @@ namespace KasseAPI_Final.Data
                     .WithMany(folio => folio.Items)
                     .HasForeignKey(e => e.FolioId)
                     .OnDelete(DeleteBehavior.Cascade);
+                // GuestFolio has a tenant query filter; GuestFolioItem is not ITenantEntity.
+                // Optional navigation avoids the filter-interaction warning (folio_id stays required).
+                entity.Navigation(e => e.Folio).IsRequired(false);
                 entity.HasOne(e => e.PaymentDetail)
                     .WithMany()
                     .HasForeignKey(e => e.PaymentDetailId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            builder.Entity<RoomMinibarItem>(entity =>
+            {
+                entity.ToTable("room_minibar_items");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired();
+                entity.Property(e => e.RoomId)
+                    .HasColumnName("room_id")
+                    .IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.Description)
+                    .HasColumnName("description")
+                    .HasMaxLength(255)
+                    .IsRequired();
+                entity.Property(e => e.Quantity).HasColumnName("quantity");
+                entity.Property(e => e.UnitPrice)
+                    .HasColumnName("unit_price")
+                    .HasColumnType("decimal(10,2)");
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .HasConversion<string>()
+                    .HasMaxLength(16);
+                entity.Property(e => e.ChargedFolioId).HasColumnName("charged_folio_id");
+                entity.Property(e => e.ChargedAtUtc).HasColumnName("charged_at_utc");
+                entity.Property(e => e.CreatedAtUtc)
+                    .HasColumnName("created_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc)
+                    .HasColumnName("updated_at_utc")
+                    .HasDefaultValueSql("now()");
+                entity.HasIndex(e => new { e.TenantId, e.Id })
+                    .IsUnique()
+                    .HasDatabaseName("ux_room_minibar_items_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.RoomId, e.Status })
+                    .HasDatabaseName("ix_room_minibar_items_tenant_room_status");
+                entity.HasIndex(e => e.ProductId)
+                    .HasDatabaseName("ix_room_minibar_items_product_id");
+                entity.HasIndex(e => e.ChargedFolioId)
+                    .HasDatabaseName("ix_room_minibar_items_charged_folio_id");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Room)
+                    .WithMany()
+                    .HasForeignKey(e => e.RoomId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+                entity.HasOne(e => e.ChargedFolio)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChargedFolioId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .IsRequired(false);
             });
@@ -3870,6 +4000,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Venue).HasColumnName("venue").HasMaxLength(255).IsRequired();
                 entity.Property(e => e.Capacity).HasColumnName("capacity");
                 entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(e => e.StageEdge).HasColumnName("stage_edge").HasMaxLength(16).IsRequired().HasDefaultValue("top");
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
                 entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("now()");
                 entity.HasIndex(e => e.TenantId).HasDatabaseName("ix_ticket_events_tenant_id");
@@ -3892,8 +4023,16 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Section).HasColumnName("section").HasMaxLength(64);
                 entity.Property(e => e.Status).HasColumnName("status");
                 entity.Property(e => e.ReservedUntilUtc).HasColumnName("reserved_until_utc");
+                entity.Property(e => e.CategoryId).HasColumnName("category_id");
+                entity.Property(e => e.GridColumn).HasColumnName("grid_column");
+                entity.Property(e => e.SeatRole).HasColumnName("seat_role").HasDefaultValue(TicketSeatRole.Standard);
+                entity.Property(e => e.CompanionOfSeatId).HasColumnName("companion_of_seat_id");
+                entity.Property(e => e.ReservedByUserId).HasColumnName("reserved_by_user_id").HasMaxLength(450);
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("now()");
                 entity.HasIndex(e => e.EventId).HasDatabaseName("ix_ticket_seats_event_id");
+                entity.HasIndex(e => e.CategoryId).HasDatabaseName("ix_ticket_seats_category_id");
+                entity.HasIndex(e => e.CompanionOfSeatId).HasDatabaseName("ix_ticket_seats_companion_of_seat_id");
                 entity.HasIndex(e => new { e.EventId, e.Row, e.Number, e.Section })
                     .IsUnique()
                     .HasDatabaseName("ux_ticket_seats_event_place");
@@ -3901,6 +4040,77 @@ namespace KasseAPI_Final.Data
                     .WithMany(e => e.Seats)
                     .HasForeignKey(e => e.EventId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Category)
+                    .WithMany()
+                    .HasForeignKey(e => e.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+                entity.HasOne(e => e.CompanionOfSeat)
+                    .WithMany()
+                    .HasForeignKey(e => e.CompanionOfSeatId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+                // TicketEvent has a tenant query filter; TicketSeat is not ITenantEntity.
+                // Optional navigation avoids the filter-interaction warning (event_id stays required).
+                entity.Navigation(e => e.Event).IsRequired(false);
+            });
+
+            builder.Entity<TicketPriceCategory>(entity =>
+            {
+                entity.ToTable("ticket_price_categories");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.Code).HasColumnName("code").HasMaxLength(32).IsRequired();
+                entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(64).IsRequired();
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+                entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("ix_ticket_price_categories_tenant_id");
+                entity.HasIndex(e => new { e.TenantId, e.Code })
+                    .IsUnique()
+                    .HasDatabaseName("ux_ticket_price_categories_tenant_code");
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<TicketEventCategoryPrice>(entity =>
+            {
+                entity.ToTable("ticket_event_category_prices");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.EventId).HasColumnName("event_id").IsRequired();
+                entity.Property(e => e.CategoryId).HasColumnName("category_id").IsRequired();
+                entity.Property(e => e.Price).HasColumnName("price").HasColumnType("numeric(18,2)");
+                entity.Property(e => e.Capacity).HasColumnName("capacity");
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("now()");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasDefaultValueSql("now()");
+                entity.HasIndex(e => e.EventId).HasDatabaseName("ix_ticket_event_category_prices_event_id");
+                entity.HasIndex(e => e.CategoryId).HasDatabaseName("ix_ticket_event_category_prices_category_id");
+                entity.HasIndex(e => new { e.EventId, e.CategoryId })
+                    .IsUnique()
+                    .HasDatabaseName("ux_ticket_event_category_prices_event_category");
+                entity.HasOne(e => e.Event)
+                    .WithMany()
+                    .HasForeignKey(e => e.EventId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Category)
+                    .WithMany()
+                    .HasForeignKey(e => e.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                // TicketEvent and TicketPriceCategory have tenant query filters.
+                // TicketEventCategoryPrice is not ITenantEntity (same reason as TicketSeat):
+                // the parent event is the tenant boundary. Optional navigations keep the
+                // required FK columns while avoiding the filter-interaction warning.
+                entity.Navigation(e => e.Event).IsRequired(false);
+                entity.Navigation(e => e.Category).IsRequired(false);
             });
 
             builder.Entity<Appointment>(entity =>
@@ -4049,6 +4259,9 @@ namespace KasseAPI_Final.Data
                     .WithMany(order => order.Items)
                     .HasForeignKey(e => e.KitchenOrderId)
                     .OnDelete(DeleteBehavior.Cascade);
+                // KitchenOrder has a tenant query filter; KitchenOrderItem is not ITenantEntity.
+                // Optional navigation avoids the filter-interaction warning (kitchen_order_id stays required).
+                entity.Navigation(e => e.KitchenOrder).IsRequired(false);
                 entity.HasOne(e => e.Product)
                     .WithMany()
                     .HasForeignKey(e => e.ProductId)
@@ -5072,6 +5285,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ProtocolSummary).HasMaxLength(500);
                 entity.Property(e => e.ProcessingToken).HasMaxLength(64);
                 entity.Property(e => e.CorrelationId).HasMaxLength(120);
+                entity.Property(e => e.ResolutionReason).HasMaxLength(500);
+                entity.Property(e => e.ResolvedByUserId).HasMaxLength(64);
 
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique();
                 entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
