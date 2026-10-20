@@ -1,14 +1,17 @@
 'use client';
 
-import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, Space, Table, Typography } from 'antd';
+import { useState } from 'react';
+import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, Select, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 
 import {
   useAdminFolio,
   useAdminFolioItems,
+  useAdminRooms,
   useChargeAdminFolio,
   useCheckoutAdminFolio,
+  useMoveAdminFolio,
   type AdminFolioItem,
 } from '@/api/admin/lodging';
 import { useAmbientVerticalProfile } from '@/api/admin/vertical-profile';
@@ -32,8 +35,11 @@ export function FolioDetail({ folioId }: { folioId: string }) {
   const isLodging = ambientProfile.data?.profileId === 'beherbergung';
   const folio = useAdminFolio(folioId, { enabled: isLodging || !ambientProfile.isFetched });
   const items = useAdminFolioItems(folioId, { enabled: isLodging || !ambientProfile.isFetched });
+  const rooms = useAdminRooms({ enabled: isLodging || !ambientProfile.isFetched });
   const charge = useChargeAdminFolio();
   const checkout = useCheckoutAdminFolio();
+  const moveRoom = useMoveAdminFolio();
+  const [nextRoomId, setNextRoomId] = useState<string>();
   const [form] = Form.useForm<{ description: string; amount: number }>();
 
   if (ambientProfile.isFetched && !isLodging) {
@@ -116,6 +122,39 @@ export function FolioDetail({ folioId }: { folioId: string }) {
               </Button>
             </Form.Item>
           </Form>
+          <Space style={{ marginTop: 16 }} wrap>
+            <Select
+              aria-label={t('admin.folios.newRoom')}
+              placeholder={t('admin.folios.newRoom')}
+              style={{ minWidth: 220 }}
+              value={nextRoomId}
+              onChange={setNextRoomId}
+              options={(rooms.data ?? [])
+                .filter((room) => room.status === 'Available' && room.id !== row.roomId)
+                .map((room) => ({ value: room.id, label: room.number }))}
+            />
+            <Button
+              disabled={!nextRoomId}
+              loading={moveRoom.isPending}
+              onClick={() => {
+                if (!nextRoomId) return;
+                moveRoom.mutate(
+                  { id: folioId, newRoomId: nextRoomId },
+                  {
+                    onSuccess: () => {
+                      setNextRoomId(undefined);
+                      notify.success(t('admin.folios.moveSuccess'));
+                      void folio.refetch();
+                      void rooms.refetch();
+                    },
+                    onError: () => notify.error(t('admin.folios.moveFailed')),
+                  }
+                );
+              }}
+            >
+              {t('admin.folios.moveRoom')}
+            </Button>
+          </Space>
           <Alert style={{ marginTop: 16 }} type="info" showIcon title={t('admin.folios.checkoutHint')} />
           <Button
             style={{ marginTop: 16 }}

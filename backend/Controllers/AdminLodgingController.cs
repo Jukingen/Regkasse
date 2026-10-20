@@ -118,6 +118,22 @@ public sealed class AdminLodgingController : ControllerBase
         return Ok(folios);
     }
 
+    [HttpGet("rooms/{id:guid}/minibar")]
+    [ProducesResponseType(typeof(IReadOnlyList<RoomMinibarItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<RoomMinibarItemDto>>> ListRoomMinibar(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        var rows = await _lodging
+            .ListRoomMinibarAsync(tenantId, id, ignoreFilters: false, cancellationToken)
+            .ConfigureAwait(false);
+        return rows is null ? NotFound() : Ok(rows);
+    }
+
     [HttpGet("rooms/{id:guid}")]
     [ProducesResponseType(typeof(RoomDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -243,6 +259,28 @@ public sealed class AdminLodgingController : ControllerBase
         var (userId, role) = Actor();
         var result = await _lodging
             .UpdateFolioAsync(tenantId, id, request, ignoreFilters: false, cancellationToken, userId, role)
+            .ConfigureAwait(false);
+        return MapFolio(result);
+    }
+
+    [HttpPost("folios/{id:guid}/move-room")]
+    [HasPermission(AppPermissions.ProductManage)]
+    [ProducesResponseType(typeof(GuestFolioDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GuestFolioDto>> MoveRoom(
+        Guid id,
+        [FromBody] MoveFolioRoomRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        var (userId, role) = Actor();
+        var result = await _lodging
+            .MoveRoomAsync(tenantId, id, request.NewRoomId, ignoreFilters: false, cancellationToken, userId, role)
             .ConfigureAwait(false);
         return MapFolio(result);
     }

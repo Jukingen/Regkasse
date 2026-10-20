@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing } from '../../constants/SoftTheme';
-import type { GuestFolioDto, GuestFolioItemDto } from '../../services/api/lodgingService';
+import type { GuestFolioDto, GuestFolioItemDto, RoomDto } from '../../services/api/lodgingService';
 
 function formatChargeTime(iso: string): string {
   const date = new Date(iso);
@@ -16,13 +16,18 @@ export function FolioViewModal(props: {
   roomNumber: string;
   folio: GuestFolioDto | null;
   items: GuestFolioItemDto[];
+  availableRooms: RoomDto[];
   busy: boolean;
   onClose: () => void;
   onCheckOut: () => void;
+  onMoveRoom: (roomId: string) => void;
 }) {
   const { t } = useTranslation('verticalProfiles');
+  const [picking, setPicking] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const folio = props.folio;
   if (!folio) return null;
+  const canMove = folio.isOpen && folio.status === 'Open';
 
   return (
     <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
@@ -52,6 +57,47 @@ export function FolioViewModal(props: {
                 </Text>
               );
             })}
+            {canMove ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('pos.folio.changeRoom')}
+                disabled={props.busy}
+                onPress={() => setPicking(true)}
+                style={styles.secondary}
+              >
+                <Text style={styles.secondaryText}>{t('pos.folio.changeRoom')}</Text>
+              </Pressable>
+            ) : null}
+            {canMove && picking ? (
+              <View>
+                <Text style={styles.meta}>{t('pos.folio.newRoomNumber')}</Text>
+                {props.availableRooms.map((room) => (
+                  <Pressable
+                    key={room.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={room.number}
+                    onPress={() => setSelectedRoomId(room.id)}
+                    style={styles.secondary}
+                  >
+                    <Text style={styles.secondaryText}>
+                      {room.number}
+                      {selectedRoomId === room.id ? ' ·' : ''}
+                    </Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('pos.folio.switchRoom')}
+                  disabled={props.busy || !selectedRoomId}
+                  onPress={() => {
+                    if (selectedRoomId) props.onMoveRoom(selectedRoomId);
+                  }}
+                  style={styles.button}
+                >
+                  <Text style={styles.buttonText}>{t('pos.folio.switchRoom')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('pos.rooms.checkOut')}

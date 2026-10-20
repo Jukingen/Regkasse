@@ -25,6 +25,7 @@ import {
   listFolioItems,
   listFolios,
   listRooms,
+  moveFolioRoom,
   stageCheckout,
   updateFolio,
   updateRoomStatus,
@@ -169,6 +170,23 @@ export default function RoomsScreen() {
     }
   };
 
+  const moveRoom = async (newRoomId: string) => {
+    if (!folio) return;
+    setBusy(true);
+    try {
+      const updated = await moveFolioRoom(folio.id, newRoomId);
+      const rows = await load();
+      const next = rows?.find((room) => room.id === updated.roomId) ?? null;
+      setFolio(updated.id ? { ...folio, ...updated } : folio);
+      if (next) setSelected(next);
+      setDetailOpen(Boolean(next));
+    } catch {
+      Alert.alert(t('pos.rooms.saveFailedTitle'), t('pos.folio.moveFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sendToRegister = async () => {
     if (!folio || !selected) return;
     if (folio.balance <= 0) {
@@ -289,6 +307,7 @@ export default function RoomsScreen() {
         room={selected}
         folio={folio}
         items={items}
+        availableRooms={rooms.filter((room) => room.status === 'Available' && !room.occupied)}
         busy={busy}
         confirmingOut={confirmingOut}
         chargeDescription={chargeDescription}
@@ -301,6 +320,9 @@ export default function RoomsScreen() {
         }}
         onCheckIn={() => startCheckIn(selected?.id)}
         onCheckOut={() => setConfirmingOut(true)}
+        onMoveRoom={(roomId) => {
+          moveRoom(roomId).catch(() => undefined);
+        }}
         onConfirmCheckOut={() => performCheckOut()}
         onToRegister={() => sendToRegister()}
         onCancelCheckOut={() => setConfirmingOut(false)}
