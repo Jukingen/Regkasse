@@ -26,7 +26,7 @@ bb16d066 feat(backup): known-gap acceptance and weekly drill summary
 3ac6a61b feat(lodging): add folio detail, stay charges, and room checkout
 ```
 
-Product commits listed above `579b17fa`: **11**. This file is the 12th commit on the branch.
+Product commits listed above `579b17fa`: **11**. Later commits on this branch only add this handoff file.
 
 ## Test summary
 
