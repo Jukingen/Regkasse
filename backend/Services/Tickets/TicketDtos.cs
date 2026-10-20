@@ -83,6 +83,8 @@ public sealed class TicketRedemptionListRowDto
     public string? RedeemedByUserId { get; init; }
     public string? EventName { get; init; }
     public string? SeatLabel { get; init; }
+    public Guid? SeatId { get; init; }
+    public string? CategoryName { get; init; }
 }
 
 public sealed class TicketRedemptionListResponse

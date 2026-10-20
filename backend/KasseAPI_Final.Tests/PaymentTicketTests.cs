@@ -1,8 +1,10 @@
 using System.Text.Json;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Services.Tickets;
 using KasseAPI_Final.Services.VerticalProfiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -39,7 +41,64 @@ public sealed class PaymentTicketTests
         Assert.Equal(TicketRedemptionStatus.Valid, row.Status);
         Assert.Equal(result.PaymentId, row.PaymentDetailId);
         Assert.True(row.ValidUntilUtc > DateTime.UtcNow.AddDays(360));
+        // v2 seat categories stay off this path: the RKSV QR payload must never be the ticket code.
         Assert.False(string.Equals(result.QrPayload, issued.Code, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task CategoryPricedSeatSell_DoesNotWriteTicketCodeIntoPaymentQr()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) =
+            await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        var product = await ctx.Products.SingleAsync(row => row.Id == productId);
+        product.IsTicket = true;
+        await ctx.SaveChangesAsync();
+
+        var tenantId = SystemTenantIds.Platform;
+        var events = new TicketEventService(ctx, TicketAuditTestDoubles.Loose().Object, NullLogger<TicketEventService>.Instance);
+        var created = await events.CreateAsync(tenantId, new UpsertTicketEventRequest
+        {
+            Name = "Kammerkonzert",
+            Venue = "Saal 1",
+            Capacity = 20,
+            IsActive = true,
+            StartAtUtc = new DateTime(2026, 11, 1, 18, 0, 0, DateTimeKind.Utc),
+            EndAtUtc = new DateTime(2026, 11, 1, 20, 0, 0, DateTimeKind.Utc),
+        }, CancellationToken.None);
+        var category = Assert.IsType<TicketCatalogResult.CategoryOk>(
+            await events.CreateCategoryAsync(
+                tenantId,
+                new UpsertTicketPriceCategoryRequest { Code = "standard", Name = "Standard" },
+                "manager-1",
+                CancellationToken.None));
+        Assert.IsType<TicketCatalogResult.PriceOk>(
+            await events.SetCategoryPriceAsync(
+                created!.Id,
+                new SetTicketEventCategoryPriceRequest { CategoryId = category.Category.Id, Price = 25m, Capacity = 4 },
+                "manager-1",
+                CancellationToken.None));
+        var seat = Assert.IsType<TicketSeatActionResult.OkSeat>(
+            await events.AddSeatAsync(
+                created.Id,
+                new CreateTicketSeatRequest { Row = "A", Number = "1", CategoryId = category.Category.Id, GridColumn = 1 },
+                CancellationToken.None));
+        var sold = Assert.IsType<TicketSeatActionResult.OkSale>(
+            await events.SellAsync(tenantId, created.Id, seat.Seat.Id, "cashier-seat", CancellationToken.None));
+        Assert.Equal(25m, sold.Ticket.Price);
+        var seatRedemption = await ctx.TicketRedemptions.SingleAsync(row => row.SeatId == seat.Seat.Id);
+        Assert.Null(seatRedemption.PaymentDetailId);
+
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(
+            ctx,
+            new PaymentServiceCoverageHarness.Options { VerticalProfiles = Profile(ticketSales: true) });
+        var result = await sut.CreatePaymentAsync(
+            PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId),
+            PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        Assert.False(string.Equals(result.QrPayload, sold.Ticket.Code, StringComparison.Ordinal));
+        Assert.DoesNotContain(sold.Ticket.Code, result.QrPayload ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]

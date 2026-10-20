@@ -151,6 +151,7 @@ export default function TicketValidateScreen() {
 
       <BarcodeScannerModal
         visible={scannerOpen}
+        mode="ticket"
         title={t('verticalProfiles:screens.tickets.scan')}
         hint={t('verticalProfiles:screens.tickets.scanHint')}
         onClose={() => setScannerOpen(false)}

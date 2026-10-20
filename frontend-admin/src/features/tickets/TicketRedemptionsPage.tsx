@@ -57,6 +57,11 @@ export function TicketRedemptionsPage() {
       render: (value: string | null | undefined) => value || '—',
     },
     {
+      title: t('products.ticketRedemptions.colCategory'),
+      dataIndex: 'categoryName',
+      render: (value: string | null | undefined, row) => (row.seatId ? value || '—' : '—'),
+    },
+    {
       title: t('products.ticketRedemptions.colStatus'),
       dataIndex: 'status',
       render: (value: string | null | undefined) =>

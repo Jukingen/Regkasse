@@ -24,6 +24,9 @@ vi.mock('@/api/admin/ticket-redemptions', () => ({
           validUntilUtc: '2027-09-30T00:00:00Z',
           redeemedAtUtc: null,
           redeemedByUserId: null,
+          seatId: 'seat-1',
+          seatLabel: 'A-1',
+          categoryName: 'VIP',
         },
       ],
     },
@@ -58,6 +61,8 @@ describe('ticket redemptions list', () => {
     expect(await screen.findByText('Ticket-Einlösungen')).toBeTruthy();
     expect(screen.getByText('ABCDEF123456')).toBeTruthy();
     expect(screen.getByText('Gültig')).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Kategorie' })).toBeTruthy();
+    expect(screen.getByText('VIP')).toBeTruthy();
     expect(await screen.findByText('Alpha GmbH')).toBeTruthy();
   });
 });

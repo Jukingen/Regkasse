@@ -21,10 +21,25 @@ const createMock = vi.fn(async () => ({
   endAtUtc: '2026-11-01T20:00:00.000Z',
 }));
 
+const createCategoryMock = vi.fn(async () => ({
+  id: 'cat-1',
+  code: 'vip',
+  name: 'VIP',
+  sortOrder: 0,
+  isActive: true,
+}));
+
 vi.mock('@/api/admin/ticket-events', () => ({
   adminTicketEventQueryKeys: { all: ['admin', 'ticket-events'] },
   useAdminTicketEvents: () => ({ data: [], isLoading: false, isError: false }),
   createAdminTicketEvent: (body: unknown) => createMock(body),
+}));
+
+vi.mock('@/api/admin/ticket-price-categories', () => ({
+  adminTicketPriceCategoryQueryKeys: { all: ['admin', 'ticket-price-categories'] },
+  useAdminTicketPriceCategories: () => ({ data: [], isLoading: false, isError: false }),
+  createAdminTicketPriceCategory: (body: unknown) => createCategoryMock(body),
+  updateAdminTicketPriceCategory: vi.fn(),
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -69,6 +84,38 @@ describe('ticket event editor', () => {
           isActive: true,
         })
       )
+    );
+  });
+
+  it('renders price categories and posts a new category', async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <I18nProvider>
+        <QueryClientProvider client={client}>
+          <App>
+            <TicketEventsPage />
+          </App>
+        </QueryClientProvider>
+      </I18nProvider>
+    );
+
+    await user.click(await screen.findByRole('tab', { name: 'Preis-kategorien' }));
+    expect(await screen.findByRole('columnheader', { name: 'Code' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Reihenfolge' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Aktiv' })).toBeTruthy();
+
+    await user.type(screen.getByLabelText('Code'), 'vip');
+    await user.type(screen.getByLabelText('Name'), 'VIP');
+    await user.click(screen.getByRole('button', { name: 'Neue Kategorie' }));
+
+    await waitFor(() =>
+      expect(createCategoryMock).toHaveBeenCalledWith({
+        code: 'vip',
+        name: 'VIP',
+        sortOrder: 0,
+        isActive: true,
+      })
     );
   });
 });

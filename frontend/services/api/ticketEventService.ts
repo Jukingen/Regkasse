@@ -8,6 +8,7 @@ export type TicketEventSummary = {
   venue: string;
   capacity: number;
   isActive: boolean;
+  stageEdge?: string | null;
 };
 
 export type TicketSeat = {
@@ -18,6 +19,13 @@ export type TicketSeat = {
   section?: string | null;
   status: 'Available' | 'Reserved' | 'Sold' | string;
   reservedUntilUtc?: string | null;
+  categoryId?: string | null;
+  categoryCode?: string | null;
+  categoryName?: string | null;
+  gridColumn?: number | null;
+  seatRole?: string | null;
+  companionOfSeatId?: string | null;
+  price?: number | null;
 };
 
 export type SoldSeatTicket = {
