@@ -31,6 +31,19 @@ export type BackupComplianceStatusResponseDto = {
   restoreRequestsCompleted?: number;
   restoreRequestsFailed?: number;
   backups: BackupComplianceListItemDto[];
+  /** Ambient-tenant known-gap card. Acceptance is amber, not a pass. */
+  knownGaps?: Array<{
+    id: string;
+    title: string;
+    severity: string;
+    accepted: boolean;
+    acceptedAtUtc?: string | null;
+    acceptedBy?: string | null;
+    open?: boolean;
+    displayColor?: string;
+  }>;
+  knownGapVerdict?: string | null;
+  knownGapsAllowGateOverride?: boolean;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -63,6 +76,20 @@ export function normalizeBackupComplianceStatusResponse(
     restoreRequestsTotal: toInt(raw.restoreRequestsTotal),
     restoreRequestsCompleted: toInt(raw.restoreRequestsCompleted),
     restoreRequestsFailed: toInt(raw.restoreRequestsFailed),
+    knownGapVerdict: typeof raw.knownGapVerdict === 'string' ? raw.knownGapVerdict : null,
+    knownGapsAllowGateOverride: raw.knownGapsAllowGateOverride === true,
+    knownGaps: Array.isArray(raw.knownGaps)
+      ? raw.knownGaps.filter(isRecord).map((gap) => ({
+          id: String(gap.id ?? ''),
+          title: typeof gap.title === 'string' ? gap.title : '',
+          severity: typeof gap.severity === 'string' ? gap.severity : '',
+          accepted: gap.accepted === true,
+          acceptedAtUtc: gap.acceptedAtUtc == null ? null : String(gap.acceptedAtUtc),
+          acceptedBy: gap.acceptedBy == null ? null : String(gap.acceptedBy),
+          open: gap.open === true,
+          displayColor: typeof gap.displayColor === 'string' ? gap.displayColor : undefined,
+        }))
+      : [],
     backups: (Array.isArray(backupsRaw) ? backupsRaw : []).map((item) => {
       const row = isRecord(item) ? item : {};
       return {

@@ -15,6 +15,30 @@ vi.mock('@/features/backup/hooks/useComplianceStatus', () => ({
   useComplianceStatus: (...args: unknown[]) => useComplianceStatusMock(...args),
 }));
 
+vi.mock('@/features/backup/hooks/useBackupRuns', () => ({
+  useBackupRuns: () => ({ data: { items: [] }, isLoading: false }),
+}));
+
+vi.mock('@/features/backup/hooks/useRestoreVerificationRuns', () => ({
+  useRestoreVerificationRuns: () => ({ data: { items: [] }, isLoading: false, isSuccess: true }),
+}));
+
+vi.mock('@/api/generated/admin-backup/admin-backup', () => ({
+  useGetApiAdminBackupRecoverabilitySummary: () => ({ data: undefined, isLoading: false }),
+}));
+
+vi.mock('@/features/backup/hooks/useBackupKnownGaps', () => ({
+  useBackupKnownGaps: () => ({ data: undefined, isLoading: false, isSuccess: false, isError: false }),
+}));
+
+vi.mock('@/features/backup/components/BackupKnownGapAcceptancePanel', () => ({
+  BackupKnownGapAcceptancePanel: () => null,
+}));
+
+vi.mock('@/features/tenancy/providers/TenantProvider', () => ({
+  useTenantProviderValue: () => null,
+}));
+
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,

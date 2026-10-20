@@ -679,6 +679,24 @@
     "title": "Known limits (outbox / TSE / infra)",
     "body": "Database backup does not replace full RKSV/TSE protection; outbox and signature needs may require separate operations. RPO/RTO targets depend on infrastructure, not this UI."
   },
+  "knownGapAcceptance": {
+    "title": "Known Backup/DR gaps",
+    "description": "Acceptance does not turn the check off. A known gap is shown in amber instead of red. The overall gate stays failed while AllowsGateOverride is off.",
+    "save": "Save acknowledgement",
+    "saved": "Known gaps were saved.",
+    "loadFailed": "Known gaps could not be loaded.",
+    "invalidGaps": "At least one gap id is unknown.",
+    "acceptedOn": "Known, accepted on {{date}}",
+    "verdictPass": "Gate passed",
+    "verdictFail": "Gate not passed",
+    "noTenant": "Select a tenant to acknowledge known gaps.",
+    "gaps": {
+      "externalArchiveNotSet": "External archive is not set",
+      "scheduledDrillNotRun": "Scheduled restore drill is overdue",
+      "systemLegalHoldNotConfigured": "System legal hold is not configured",
+      "devOnlyFakeAdapter": "Development only: fake adapter"
+    }
+  },
   "manual": {
     "title": "Manual actions (enqueue only)",
     "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below (including Fake/ProductionStub stub files when on disk — not production pg_dump proof). “Manage settings”; audit-logged.",
@@ -1652,6 +1670,33 @@
       "findings": "Findings"
     }
   },
+  "drills": {
+    "pageTitle": "Restore drills",
+    "pageSubtitle": "Past restore checks: time, duration, and result. No file paths.",
+    "timelineTitle": "Drill timeline",
+    "empty": "No restore drills loaded.",
+    "columns": {
+      "date": "Date",
+      "duration": "Duration",
+      "result": "Result",
+      "reason": "Reason"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "successRate": "Success rate (30 days)",
+    "lastSuccess": "Last scheduled drill proof",
+    "daysSince": "Days since scheduled proof",
+    "durationUnknown": "Duration unknown",
+    "reasonHidden": "Details hidden",
+    "scheduleTitle": "Drill schedule",
+    "scheduleNext": "Next window (default): {{date}}",
+    "scheduleOverdue": "Window overdue since {{date}}",
+    "scheduleEmpty": "No scheduled drill proof yet.",
+    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override."
+  },
   "compliance": {
     "pageTitle": "RKSV compliance status",
     "pageSubtitle": "Backup restore-readiness gates (30 days) — product controls, not BMF certification.",
@@ -1691,6 +1736,18 @@
       "missingLogicalDump": "No logical dump",
       "backupNotSucceeded": "Not succeeded",
       "unknown": "Other"
+    },
+    "gate": {
+      "title": "Product gate",
+      "systemBackup": "Last successful system backup",
+      "legalHold": "7-year legal hold",
+      "drill": "Last scheduled restore proof",
+      "drillThreshold": "Same timestamp as the dashboard restore proof (scheduled success only). Green: at most 14 days old. Yellow: older than 14 days. Red: older than 30 days, or no scheduled proof.",
+      "missing": "No evidence",
+      "simulated": "Simulated run",
+      "green": "Green",
+      "yellow": "Yellow",
+      "red": "Red"
     }
   },
   "costs": {
@@ -1754,6 +1811,16 @@
         "title": "Storage cost profile looks healthy",
         "description": "Budget usage and tier mix are within expected ranges. Keep monitoring after large tenant growth."
       }
+    },
+    "insights": {
+      "trendTitle": "Storage cost trend (90 days)",
+      "trendHint": "Estimate from succeeded dump size times the current €/GB rate. Not an invoice.",
+      "retentionTitle": "Retention policy impact",
+      "retentionActual": "Current estimate",
+      "retentionAllHot": "All priced as Hot",
+      "tierTitle": "Tier distribution",
+      "monthlyEstimate": "Monthly estimate",
+      "emptyTrend": "No dump sizes in the last 90 days."
     }
   },
   "retention": {

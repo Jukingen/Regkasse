@@ -15,6 +15,10 @@ vi.mock('@/features/backup/hooks/useStorageCosts', () => ({
   useStorageCosts: (...args: unknown[]) => useStorageCostsMock(...args),
 }));
 
+vi.mock('@/features/backup/hooks/useBackupRuns', () => ({
+  useBackupRuns: () => ({ data: { items: [] }, isLoading: false }),
+}));
+
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,

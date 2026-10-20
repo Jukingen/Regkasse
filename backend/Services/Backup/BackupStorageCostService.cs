@@ -89,13 +89,19 @@ public sealed class BackupStorageCostService : IBackupStorageCostService
                 ? Round4(monthly * 1.05)
                 : monthly;
 
+        var sizeParts = new[] { Round3(hotGb), Round3(warmGb), Round3(coldGb) };
+        var costParts = new[] { Round4(hotCost), Round4(warmCost), Round4(coldCost) };
+        // Independent rounding can make Hot+Warm+Cold miss the headline total (pie shares then fail to reach 100%).
+        AssignRoundingResidual(sizeParts, new[] { hotGb, warmGb, coldGb }, totalGb, 3);
+        AssignRoundingResidual(costParts, new[] { hotCost, warmCost, coldCost }, monthly, 4);
+
         var tiers = new List<BackupStorageTierCostRowDto>
         {
             new()
             {
                 Name = "Hot",
-                SizeGb = Round3(hotGb),
-                CostEur = Round4(hotCost),
+                SizeGb = sizeParts[0],
+                CostEur = costParts[0],
                 Access = "fast",
                 Retention = $"≤{StorageTierService.HotRetentionDays}d",
                 ArtifactCount = dumpRows.Count(r => r.Tier == BackupStorageTier.Hot)
@@ -103,8 +109,8 @@ public sealed class BackupStorageCostService : IBackupStorageCostService
             new()
             {
                 Name = "Warm",
-                SizeGb = Round3(warmGb),
-                CostEur = Round4(warmCost),
+                SizeGb = sizeParts[1],
+                CostEur = costParts[1],
                 Access = "medium",
                 Retention = $"≤{StorageTierService.WarmRetentionDays}d",
                 ArtifactCount = dumpRows.Count(r => r.Tier == BackupStorageTier.Warm)
@@ -112,8 +118,8 @@ public sealed class BackupStorageCostService : IBackupStorageCostService
             new()
             {
                 Name = "Cold",
-                SizeGb = Round3(coldGb),
-                CostEur = Round4(coldCost),
+                SizeGb = sizeParts[2],
+                CostEur = costParts[2],
                 Access = "slow",
                 Retention = $">{StorageTierService.WarmRetentionDays}d",
                 ArtifactCount = dumpRows.Count(r => r.Tier == BackupStorageTier.Cold)
@@ -240,4 +246,24 @@ public sealed class BackupStorageCostService : IBackupStorageCostService
 
     private static double Round3(double v) => Math.Round(v, 3, MidpointRounding.AwayFromZero);
     private static double Round4(double v) => Math.Round(v, 4, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// Puts the rounding remainder on the largest exact part so displayed slices sum to <paramref name="target"/>.
+    /// </summary>
+    private static void AssignRoundingResidual(double[] parts, double[] exact, double target, int decimals)
+    {
+        double RoundN(double v) => Math.Round(v, decimals, MidpointRounding.AwayFromZero);
+        var delta = RoundN(target - RoundN(parts.Sum()));
+        if (delta == 0)
+            return;
+
+        foreach (var index in Enumerable.Range(0, parts.Length).OrderByDescending(i => exact[i]))
+        {
+            var adjusted = RoundN(parts[index] + delta);
+            if (adjusted < 0)
+                continue;
+            parts[index] = adjusted;
+            return;
+        }
+    }
 }

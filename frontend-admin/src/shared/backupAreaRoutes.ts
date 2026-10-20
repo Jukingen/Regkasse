@@ -14,6 +14,7 @@ export const BACKUP_DASHBOARD_PATH = '/backup/dashboard' as const;
 export const BACKUP_PERFORMANCE_PATH = '/backup/performance' as const;
 export const BACKUP_COMPLIANCE_PATH = '/backup/compliance' as const;
 export const BACKUP_COSTS_PATH = '/backup/costs' as const;
+export const BACKUP_DRILLS_PATH = '/backup/drills' as const;
 export const BACKUP_RETENTION_PATH = '/backup/retention' as const;
 export const BACKUP_PITR_PATH = '/backup/pitr' as const;
 export const BACKUP_RESTORE_HISTORY_PATH = '/backup/restore-history' as const;
@@ -32,6 +33,7 @@ export const BACKUP_AREA_ROUTE_PATHS = [
   BACKUP_PERFORMANCE_PATH,
   BACKUP_COMPLIANCE_PATH,
   BACKUP_COSTS_PATH,
+  BACKUP_DRILLS_PATH,
   BACKUP_RETENTION_PATH,
   BACKUP_PITR_PATH,
   BACKUP_RESTORE_HISTORY_PATH,
@@ -72,6 +74,12 @@ export const BACKUP_SECONDARY_NAV_ITEMS = [
     menuKey: BACKUP_PERFORMANCE_PATH,
     href: BACKUP_PERFORMANCE_PATH,
     labelKey: 'nav.backupPerformance',
+  },
+  {
+    id: 'drills',
+    menuKey: BACKUP_DRILLS_PATH,
+    href: BACKUP_DRILLS_PATH,
+    labelKey: 'nav.backupDrills',
   },
   {
     id: 'compliance',
@@ -171,6 +179,7 @@ export function backupPathFromPathname(pathname: string | null | undefined): str
   if (p === '/backup' || p === BACKUP_DASHBOARD_PATH) return BACKUP_HUB_LANDING_PATH;
   if (p === BACKUP_PERFORMANCE_PATH) return BACKUP_PERFORMANCE_PATH;
   if (p === BACKUP_COMPLIANCE_PATH) return BACKUP_COMPLIANCE_PATH;
+  if (p === BACKUP_DRILLS_PATH) return BACKUP_DRILLS_PATH;
   if (p === BACKUP_COSTS_PATH) return BACKUP_COSTS_PATH;
   if (p === BACKUP_RETENTION_PATH || p === '/settings/backup-retention') return BACKUP_RETENTION_PATH;
   if (p === BACKUP_PITR_PATH) return BACKUP_PITR_PATH;

@@ -679,6 +679,24 @@
     "title": "Bilinen sınırlar (outbox / TSE / altyapı)",
     "body": "Veritabanı yedeği tam RKSV/TSE korumasının yerini tutmaz; outbox ve imza ihtiyaçları ayrı süreç gerektirebilir. RPO/RTO hedefleri bu arayüzden değil altyapıdan gelir."
   },
+  "knownGapAcceptance": {
+    "title": "Bilinen Backup/DR boşlukları",
+    "description": "Kabul, kontrolü kapatmaz. Bilinen bir boşluk kırmızı yerine amber görünür. AllowsGateOverride kapalıyken genel kapı başarısız kalır.",
+    "save": "Kabulü kaydet",
+    "saved": "Bilinen boşluklar kaydedildi.",
+    "loadFailed": "Bilinen boşluklar yüklenemedi.",
+    "invalidGaps": "En az bir boşluk kimliği tanınmıyor.",
+    "acceptedOn": "Biliniyor, {{date}} tarihinde kabul edildi",
+    "verdictPass": "Kapı geçti",
+    "verdictFail": "Kapı geçmedi",
+    "noTenant": "Bilinen boşlukları kabul etmek için bir mandant seçin.",
+    "gaps": {
+      "externalArchiveNotSet": "Harici arşiv ayarlı değil",
+      "scheduledDrillNotRun": "Zamanlanmış geri yükleme tatbikatı gecikmiş",
+      "systemLegalHoldNotConfigured": "Sistem yasal saklaması yapılandırılmamış",
+      "devOnlyFakeAdapter": "Yalnızca geliştirme: sahte adaptör"
+    }
+  },
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
     "hint": "İşler API üzerinden asenkron kuyruğa alınır. Başarıdan sonra artefaktlar aşağıdan indirilebilir (Fake/ProductionStub stub’ları sunucudaysa — üretim pg_dump değil). „Ayarları yönet“; denetim.",
@@ -1652,6 +1670,33 @@
       "findings": "Bulgular"
     }
   },
+  "drills": {
+    "pageTitle": "Geri yükleme tatbikatları",
+    "pageSubtitle": "Geçmiş geri yükleme kontrolleri: zaman, süre ve sonuç. Dosya yolu yok.",
+    "timelineTitle": "Tatbikat zaman çizelgesi",
+    "empty": "Yüklü geri yükleme tatbikatı yok.",
+    "columns": {
+      "date": "Tarih",
+      "duration": "Süre",
+      "result": "Sonuç",
+      "reason": "Gerekçe"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Bekliyor"
+    },
+    "successRate": "Başarı oranı (30 gün)",
+    "lastSuccess": "Son zamanlanmış tatbikat kanıtı",
+    "daysSince": "Zamanlanmış kanıttan bu yana gün",
+    "durationUnknown": "Süre bilinmiyor",
+    "reasonHidden": "Ayrıntı gizlendi",
+    "scheduleTitle": "Tatbikat planı",
+    "scheduleNext": "Sonraki pencere (varsayılan): {{date}}",
+    "scheduleOverdue": "Pencere {{date}} tarihinden beri gecikmiş",
+    "scheduleEmpty": "Henüz zamanlanmış tatbikat kanıtı yok.",
+    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz."
+  },
   "compliance": {
     "pageTitle": "RKSV uyumluluk durumu",
     "pageSubtitle": "Yedek geri yükleme hazırlık kapıları (30 gün) — ürün kontrolleri, BMF sertifikası değil.",
@@ -1691,6 +1736,18 @@
       "missingLogicalDump": "Mantıksal dump yok",
       "backupNotSucceeded": "Başarısız",
       "unknown": "Diğer"
+    },
+    "gate": {
+      "title": "Ürün kapısı",
+      "systemBackup": "Son başarılı sistem yedeği",
+      "legalHold": "7 yıllık yasal saklama",
+      "drill": "Son zamanlanmış geri yükleme kanıtı",
+      "drillThreshold": "Paneldeki geri yükleme kanıtı ile aynı zaman (yalnızca zamanlanmış başarı). Yeşil: en fazla 14 gün. Sarı: 14 günden eski. Kırmızı: 30 günden eski veya zamanlanmış kanıt yok.",
+      "missing": "Kanıt yok",
+      "simulated": "Simüle çalıştırma",
+      "green": "Yeşil",
+      "yellow": "Sarı",
+      "red": "Kırmızı"
     }
   },
   "costs": {
@@ -1754,6 +1811,16 @@
         "title": "Maliyet profili sağlıklı görünüyor",
         "description": "Bütçe ve katman dağılımı beklenen aralıkta. Büyük mandant büyümesinden sonra izlemeye devam edin."
       }
+    },
+    "insights": {
+      "trendTitle": "Depolama maliyet eğilimi (90 gün)",
+      "trendHint": "Başarılı dump boyutu çarpı güncel €/GB. Fatura değildir.",
+      "retentionTitle": "Saklama politikası etkisi",
+      "retentionActual": "Güncel tahmin",
+      "retentionAllHot": "Tümü Hot fiyatı",
+      "tierTitle": "Katman dağılımı",
+      "monthlyEstimate": "Aylık tahmin",
+      "emptyTrend": "Son 90 günde dump boyutu yok."
     }
   },
   "retention": {

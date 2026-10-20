@@ -48,6 +48,7 @@ import { BackupDrSection } from '@/features/backup-dr/components/BackupDrSection
 import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
 import { BackupManualActionsPanel } from '@/features/backup-dr/components/BackupManualActionsPanel';
 import { BackupMonitoringSection } from '@/features/backup-dr/components/BackupMonitoringSection';
+import { BackupKnownGapSummary } from '@/features/backup/components/BackupKnownGapSummary';
 import { BackupRecentRestoreDrillsTable } from '@/features/backup-dr/components/BackupRecentRestoreDrillsTable';
 import { BackupRecentRunsTable } from '@/features/backup-dr/components/BackupRecentRunsTable';
 import { BackupRecoverabilityCard } from '@/features/backup-dr/components/BackupRecoverabilityCard';
@@ -527,6 +528,8 @@ export function BackupDrDashboard({
               t={t}
             />
           </Space>
+
+          <BackupKnownGapSummary />
 
           <BackupMonitoringSection
             statusPayload={statusQuery.data}

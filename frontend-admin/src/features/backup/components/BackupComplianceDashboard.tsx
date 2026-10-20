@@ -9,6 +9,8 @@ import React, { useMemo } from 'react';
 
 import { dateColumnRender } from '@/components/DateColumn';
 import { PageSkeleton } from '@/components/Skeleton';
+import { BackupComplianceGateCard } from '@/features/backup/components/BackupComplianceGateCard';
+import { BackupKnownGapAcceptancePanel } from '@/features/backup/components/BackupKnownGapAcceptancePanel';
 import { useComplianceStatus } from '@/features/backup/hooks/useComplianceStatus';
 import type { BackupComplianceListItemDto } from '@/features/backup/logic/backupComplianceStatusApi';
 import { useI18n } from '@/i18n';
@@ -193,6 +195,9 @@ export function BackupComplianceDashboard() {
           </Col>
         </Row>
       ) : null}
+
+      <BackupComplianceGateCard />
+      <BackupKnownGapAcceptancePanel />
 
       <Card size="small" title={t('backupDr.compliance.listTitle')} style={{ marginTop: 16 }}>
         <Table<BackupComplianceListItemDto>

@@ -129,8 +129,12 @@ public sealed class BackupDashboardStatsService : IBackupDashboardStatsService
             rtoMinutes = Math.Round(durationStats.AverageDurationSeconds.Value / 60.0, 1);
         }
 
+        // Same predicate as recoverability lastSuccessfulRestoreProofAt and the weekly cadence:
+        // only a scheduled terminal success counts. Manual successes must not move this timestamp.
         var lastRestoreProof = await _db.RestoreVerificationRuns.AsNoTracking()
-            .Where(r => r.Status == RestoreVerificationStatus.Succeeded && r.CompletedAt != null)
+            .Where(r => r.TriggerSource == RestoreVerificationTriggerSource.Scheduled
+                        && r.Status == RestoreVerificationStatus.Succeeded
+                        && r.CompletedAt != null)
             .OrderByDescending(r => r.CompletedAt)
             .Select(r => new { r.CompletedAt })
             .FirstOrDefaultAsync(cancellationToken);

@@ -9,11 +9,23 @@ import {
   type RestoreVerificationRunListParams,
 } from '@/features/backup/logic/restoreVerificationApi';
 
-export function useRestoreVerificationRuns(params: RestoreVerificationRunListParams, enabled = true) {
+export type UseRestoreVerificationRunsOptions = {
+  staleTime?: number;
+  refetchInterval?: number | false;
+};
+
+export function useRestoreVerificationRuns(
+  params: RestoreVerificationRunListParams,
+  enabled = true,
+  options?: UseRestoreVerificationRunsOptions
+) {
   return useQuery({
     queryKey: getRestoreVerificationRunsQueryKey(params),
     queryFn: () => getRestoreVerificationRuns(params),
     enabled,
+    staleTime: options?.staleTime,
+    refetchInterval: options?.refetchInterval,
+    refetchOnWindowFocus: true,
   });
 }
 

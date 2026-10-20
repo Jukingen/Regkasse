@@ -94,6 +94,9 @@
     <EmbeddedResource Include="Services\Countries\QrRechnung\ChQrKnownGaps.json">
       <LogicalName>KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGaps.json</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Services\Backup\BackupKnownGaps.json">
+      <LogicalName>KasseAPI_Final.Services.Backup.BackupKnownGaps.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <!-- Align embedded resource names with AddLocalization(ResourcesPath = "Resources"). -->

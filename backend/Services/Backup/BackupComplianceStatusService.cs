@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -14,11 +15,19 @@ public sealed class BackupComplianceStatusService : IBackupComplianceStatusServi
 {
     private readonly AppDbContext _db;
     private readonly TimeProvider _timeProvider;
+    private readonly IBackupKnownGapStatusService? _knownGaps;
+    private readonly ICurrentTenantAccessor? _tenantAccessor;
 
-    public BackupComplianceStatusService(AppDbContext db, TimeProvider timeProvider)
+    public BackupComplianceStatusService(
+        AppDbContext db,
+        TimeProvider timeProvider,
+        IBackupKnownGapStatusService? knownGaps = null,
+        ICurrentTenantAccessor? tenantAccessor = null)
     {
         _db = db;
         _timeProvider = timeProvider;
+        _knownGaps = knownGaps;
+        _tenantAccessor = tenantAccessor;
     }
 
     public async Task<BackupComplianceStatusResponseDto> GetAsync(
@@ -90,6 +99,10 @@ public sealed class BackupComplianceStatusService : IBackupComplianceStatusServi
                 .FirstOrDefaultAsync(cancellationToken)
             : null;
 
+        BackupKnownGapViewDto? known = null;
+        if (_knownGaps is not null && _tenantAccessor?.TenantId is Guid tenantId && tenantId != Guid.Empty)
+            known = await _knownGaps.GetViewAsync(tenantId, cancellationToken).ConfigureAwait(false);
+
         return new BackupComplianceStatusResponseDto
         {
             Total = items.Count,
@@ -100,7 +113,10 @@ public sealed class BackupComplianceStatusService : IBackupComplianceStatusServi
             RestoreRequestsTotal = restoreWindow?.Total ?? 0,
             RestoreRequestsCompleted = restoreWindow?.Completed ?? 0,
             RestoreRequestsFailed = restoreWindow?.Failed ?? 0,
-            Backups = items
+            Backups = items,
+            KnownGaps = known?.Gaps ?? [],
+            KnownGapVerdict = known?.Verdict,
+            KnownGapsAllowGateOverride = known?.AllowsGateOverride ?? false,
         };
     }
 

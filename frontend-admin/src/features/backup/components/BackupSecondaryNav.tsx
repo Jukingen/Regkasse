@@ -29,6 +29,7 @@ import {
   BACKUP_CONFIGURATION_PATH,
   BACKUP_COSTS_PATH,
   BACKUP_DASHBOARD_PATH,
+  BACKUP_DRILLS_PATH,
   BACKUP_PITR_PATH,
   BACKUP_RETENTION_PATH,
   BACKUP_HUB_LANDING_PATH,
@@ -46,6 +47,7 @@ const BACKUP_TAB_META: Record<
   { Icon: ComponentType }
 > = {
   overview: { Icon: DashboardOutlined },
+  drills: { Icon: HistoryOutlined },
   performance: { Icon: LineChartOutlined },
   compliance: { Icon: SafetyCertificateOutlined },
   costs: { Icon: EuroCircleOutlined },
@@ -61,6 +63,7 @@ const BACKUP_TAB_META: Record<
 const NAV_ID_BY_PATH: Record<string, (typeof BACKUP_SECONDARY_NAV_ITEMS)[number]['id']> = {
   [BACKUP_HUB_LANDING_PATH]: 'overview',
   [BACKUP_DASHBOARD_PATH]: 'overview',
+  [BACKUP_DRILLS_PATH]: 'drills',
   [BACKUP_PERFORMANCE_PATH]: 'performance',
   [BACKUP_COMPLIANCE_PATH]: 'compliance',
   [BACKUP_COSTS_PATH]: 'costs',

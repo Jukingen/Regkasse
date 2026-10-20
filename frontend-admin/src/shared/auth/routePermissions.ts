@@ -176,6 +176,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
   '/backup/performance': PERMISSIONS.SETTINGS_VIEW,
   '/backup/compliance': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/drills': PERMISSIONS.SETTINGS_VIEW,
   '/backup/costs': PERMISSIONS.SETTINGS_VIEW,
   '/backup/retention': PERMISSIONS.SETTINGS_VIEW,
   '/backup/pitr': PERMISSIONS.SETTINGS_VIEW,
