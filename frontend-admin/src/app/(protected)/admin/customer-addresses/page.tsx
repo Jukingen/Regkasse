@@ -19,7 +19,7 @@ function text(value: string | null | undefined): string {
   return value?.trim() ? value : '—';
 }
 
-export function toAddressRows(customers: CustomerWithAddress[]): CustomerAddressRow[] {
+function toAddressRows(customers: CustomerWithAddress[]): CustomerAddressRow[] {
   return customers.flatMap((customer) => {
     const address = customer.addressData;
     if (!address?.street?.trim() && !address?.postalCode?.trim() && !address?.city?.trim()) {
