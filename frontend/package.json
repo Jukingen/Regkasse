@@ -72,7 +72,7 @@
     "react-native-idle-timer-detection": "^1.0.1",
     "react-native-qrcode-svg": "^6.3.27",
     "react-native-reanimated": "4.3.1",
-    "react-native-safe-area-context": "~5.7.0",
+    "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.4",
