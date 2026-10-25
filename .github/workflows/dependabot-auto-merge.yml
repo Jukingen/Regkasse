@@ -30,8 +30,58 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for patch and minor updates
+      # Root `npm ci` reads package-lock.json. A workspace package.json that
+      # only updates <workspace>/package-lock.json still breaks that install
+      # (Dependabot #119 / #120). The workspace lock does not replace the root lock.
+      - name: Require root lockfile for package.json changes
+        id: lockfile
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          diff_file="$(mktemp)"
+          gh pr diff "$PR_URL" --name-only > "$diff_file"
+
+          has_root_lock=0
+          manifests=()
+          while IFS= read -r path || [ -n "$path" ]; do
+            [ -z "$path" ] && continue
+            if [ "$path" = "package-lock.json" ]; then
+              has_root_lock=1
+            fi
+            case "$path" in
+              package.json|*/package.json)
+                manifests+=("$path")
+                ;;
+            esac
+          done < "$diff_file"
+
+          if [ "${#manifests[@]}" -eq 0 ] || [ "$has_root_lock" -eq 1 ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          comment_file="${RUNNER_TEMP:-/tmp}/dependabot-lockfile-guard.md"
+          {
+            echo "Auto-merge skipped: this pull request changes a \`package.json\` without the root \`package-lock.json\`."
+            echo
+            echo "Root \`npm ci\` installs the npm workspaces from that lockfile. A workspace-local \`package-lock.json\` does not satisfy it."
+            echo
+            echo "Manifests in this diff:"
+            for path in "${manifests[@]}"; do
+              echo "- \`$path\`"
+            done
+            echo
+            echo "Refresh the root lock (\`npm install\` at the repository root) and push \`package-lock.json\` on this branch. Auto-merge stays off until that file is part of the diff."
+          } > "$comment_file"
+
+          gh pr comment "$PR_URL" --body-file "$comment_file"
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge for patch and minor updates
+        if: (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor') && steps.lockfile.outputs.ok == 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
