@@ -2095,6 +2095,25 @@
         }
       }
     },
+    "/api/admin/backup/pitr/wal-status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/pitr/chain": {
       "get": {
         "tags": [
@@ -111084,6 +111103,24 @@
         },
         "additionalProperties": false
       },
+      "WalArchiveHealthLevel": {
+        "enum": [
+          "Healthy",
+          "Degraded",
+          "Critical"
+        ],
+        "type": "string",
+        "x-enum-varnames": [
+          "Healthy",
+          "Degraded",
+          "Critical"
+        ],
+        "x-enumNames": [
+          "Healthy",
+          "Degraded",
+          "Critical"
+        ]
+      },
       "WalArchiveStatusDto": {
         "type": "object",
         "properties": {
@@ -111128,6 +111165,50 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WalStatusDto": {
+        "type": "object",
+        "properties": {
+          "lastSuccessfulSegmentAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSuccessfulSegmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastAttemptedSegmentAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lagSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "archivedCountLast24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCountLast24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastFailureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "healthLevel": {
+            "$ref": "#/components/schemas/WalArchiveHealthLevel"
+          },
+          "healthReason": {
             "type": "string",
             "nullable": true
           }

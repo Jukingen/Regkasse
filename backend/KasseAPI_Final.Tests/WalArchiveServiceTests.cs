@@ -39,6 +39,11 @@ public sealed class WalArchiveServiceTests
             Assert.True(sut.CoversWindow(
                 new DateTime(2026, 9, 1, 2, 0, 0, DateTimeKind.Utc),
                 new DateTime(2026, 9, 6, 12, 0, 0, DateTimeKind.Utc)));
+
+            var live = sut.GetObservation();
+            Assert.Equal("000000010000000000000002", live.LastSuccessfulSegmentName);
+            Assert.DoesNotContain(dir, live.LastSuccessfulSegmentName ?? "", StringComparison.OrdinalIgnoreCase);
+            Assert.Null(live.LastFailureReason);
         }
         finally
         {

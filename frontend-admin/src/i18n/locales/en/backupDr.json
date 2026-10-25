@@ -2099,6 +2099,22 @@
     "dryRunOk": "Enqueue dry-run",
     "dryRunAccepted": "Isolated restore drill enqueued."
   },
+  "walStatus": {
+    "title": "WAL archiving",
+    "lastSegment": "Last segment",
+    "lag": "Lag",
+    "segments24h": "Segments (24 h)",
+    "empty": "WAL archiving has not started yet.",
+    "loadFailed": "WAL archive status could not be loaded.",
+    "lagValue": "{{seconds}} s",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} archived / {{failed}} failed",
+    "health": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "critical": "Critical"
+    }
+  },
   "backupList": {
     "fileName": "Backup name",
     "tenant": "Tenant",

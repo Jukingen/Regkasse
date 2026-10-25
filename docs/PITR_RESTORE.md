@@ -41,9 +41,11 @@ App settings:
 
 `WalArchiveRetentionHostedService` deletes expired files hourly. Point `archive_command` at the same directory the API reads.
 
+The FA PITR page shows live WAL status; use it before running a PITR.
+
 ## Restore procedure (validation only)
 
-1. Super Admin opens FA `/backup/pitr`.
+1. Super Admin opens FA `/backup/pitr` and reads the live WAL status at the top of the page.
 2. Confirm WAL status and the backup chain (full + incrementals + System dumps).
 3. Pick a UTC date/time. The API selects the nearest succeeded backup at or before that time and estimates data loss (seconds after that backup, minus WAL coverage when files exist).
 4. Pre-restore validation runs:
@@ -61,6 +63,7 @@ Dual Super Admin approval still applies to manual restore requests (`POST /api/a
 | GET | `/api/admin/backup/pitr/availability` | `settings.view` | Super Admin may omit ambient tenant |
 | POST | `/api/admin/backup/pitr/validate` | `settings.view` | Restore-point plan |
 | GET | `/api/admin/backup/pitr/wal` | `settings.view` | Archive inventory |
+| GET | `/api/admin/backup/pitr/wal-status` | Super Admin + `system.critical` | Live WAL archival health (no paths, no WAL bytes) |
 | GET | `/api/admin/backup/pitr/chain` | `settings.view` | Manager: own Tenant chain |
 | POST | `/api/admin/backup/pitr/pre-restore-validate` | `settings.view` | Hash / schema / TSE |
 | POST | `/api/admin/backup/pitr/dry-run` | Super Admin + `settings.manage` | Isolated drill |
