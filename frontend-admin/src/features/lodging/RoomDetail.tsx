@@ -59,7 +59,18 @@ export function RoomDetail({ roomId }: { roomId: string }) {
               {
                 title: t('admin.rooms.minibarStatus'),
                 dataIndex: 'status',
-                render: (status: string) => t(`admin.rooms.minibarStatusValue.${status}`),
+                render: (status: string) => {
+                  switch (status) {
+                    case 'Pending':
+                      return t('admin.rooms.minibarStatusValue.Pending');
+                    case 'Charged':
+                      return t('admin.rooms.minibarStatusValue.Charged');
+                    case 'Voided':
+                      return t('admin.rooms.minibarStatusValue.Voided');
+                    default:
+                      return status;
+                  }
+                },
               },
             ]}
           />

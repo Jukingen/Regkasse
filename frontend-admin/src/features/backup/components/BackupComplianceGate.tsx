@@ -40,7 +40,18 @@ export function BackupComplianceGate({
   verdict?: 'pass' | 'fail' | null;
 }) {
   const { t } = useI18n();
-  const colorLabel = (color: GateColor) => t(`backupDr.compliance.gate.${color}`);
+  const colorLabel = (color: GateColor) => {
+    switch (color) {
+      case 'green':
+        return t('backupDr.compliance.gate.green');
+      case 'yellow':
+        return t('backupDr.compliance.gate.yellow');
+      case 'red':
+        return t('backupDr.compliance.gate.red');
+      default:
+        return color;
+    }
+  };
   const rowLabel = (status: KnownGapCardRow['status']) => {
     if (status === 'green') return t('backupDr.compliance.gate.green');
     if (status === 'amber') return t('backupDr.compliance.gate.yellow');
