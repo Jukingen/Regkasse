@@ -69,9 +69,27 @@
     "testsprite:smoke": "node testsprite/run-api-smoke.mjs"
   },
   "devDependencies": {
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "@react-native/jest-preset": "0.85.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3"
   },
   "dependencies": {
     "ajv": "^8.20.0"
+  },
+  "overrides": {
+    "cash-register": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    },
+    "registrierkasse-admin": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    },
+    "regkasse-sites": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    }
   }
 }

@@ -85,6 +85,11 @@ updates:
           - next
           - react
           - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
           - antd
           - '@ant-design/*'
       root-minor-patch:
@@ -94,6 +99,11 @@ updates:
         exclude-patterns:
           - react
           - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
           - next
           - antd
           - '@ant-design/*'
