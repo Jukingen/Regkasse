@@ -102,5 +102,6 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 
 - Phase 1 orchestration: [`backup-phase1-runbook.md`](backup-phase1-runbook.md)
 - PITR + incremental + WAL archive: [`PITR_RESTORE.md`](PITR_RESTORE.md)
+- `GET /api/admin/backup/pitr/wal-status` returns live WAL archival health; `/backup/pitr` shows it at the top.
 - Phase 2 `pg_dump`: [`backup-phase2-runbook.md`](backup-phase2-runbook.md)
 - Distributed lock (restore verification): [`restore-verification-distributed-lock.md`](restore-verification-distributed-lock.md)

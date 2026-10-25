@@ -10,6 +10,12 @@ public interface IWalArchiveService
 {
     WalArchiveStatusDto GetStatus();
 
+    /// <summary>
+    /// Live archival observation from the existing segment inventory (file name + timestamps only).
+    /// Does not read WAL payload bytes and does not include archive paths.
+    /// </summary>
+    WalArchiveObservation GetObservation();
+
     IReadOnlyList<WalArchiveFileInfo> ListFiles(int take = 200);
 
     /// <summary>Deletes files older than <c>Backup:WalArchiveRetentionDays</c>. Returns deleted count.</summary>

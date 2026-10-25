@@ -1052,6 +1052,7 @@ import type {
   VerticalProfileTenantSummaryDto,
   VoidInvoiceRequest,
   WalArchiveStatusDto,
+  WalStatusDto,
   WebsiteTemplateDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -4183,6 +4184,61 @@ export const useGetApiAdminBackupPitrWal = <TData = Awaited<ReturnType<typeof ge
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminBackupPitrWalQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupPitrWalStatus = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<WalStatusDto>(
+      {url: `/api/admin/backup/pitr/wal-status`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminBackupPitrWalStatusQueryKey = () => {
+    return [`/api/admin/backup/pitr/wal-status`] as const;
+    }
+
+
+export const getGetApiAdminBackupPitrWalStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupPitrWalStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>> = ({ signal }) => getApiAdminBackupPitrWalStatus(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupPitrWalStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>>
+export type GetApiAdminBackupPitrWalStatusQueryError = unknown
+
+export const useGetApiAdminBackupPitrWalStatus = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrWalStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupPitrWalStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

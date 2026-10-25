@@ -24,25 +24,42 @@ public sealed class AdminBackupPitrController : ControllerBase
     private readonly IBackupChainService _chain;
     private readonly IIncrementalBackupService _incremental;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly TimeProvider _time;
 
     public AdminBackupPitrController(
         IPitrService pitr,
         IWalArchiveService wal,
         IBackupChainService chain,
         IIncrementalBackupService incremental,
-        ICurrentTenantAccessor tenantAccessor)
+        ICurrentTenantAccessor tenantAccessor,
+        TimeProvider time)
     {
         _pitr = pitr;
         _wal = wal;
         _chain = chain;
         _incremental = incremental;
         _tenantAccessor = tenantAccessor;
+        _time = time;
     }
 
     [HttpGet("pitr/wal")]
     [HasPermission(AppPermissions.SettingsView)]
     [ProducesResponseType(typeof(WalArchiveStatusDto), StatusCodes.Status200OK)]
     public ActionResult<WalArchiveStatusDto> GetWalStatus() => Ok(_wal.GetStatus());
+
+    /// <summary>
+    /// Live WAL archival health for Super Admin. Reads <see cref="IWalArchiveService.GetObservation"/> only.
+    /// Does not audit, and does not return WAL bytes, archive paths, or secrets.
+    /// </summary>
+    [HttpGet("pitr/wal-status")]
+    [Authorize(Roles = Roles.SuperAdmin)]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(typeof(WalStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<WalStatusDto> GetWalLiveStatus()
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+        return Ok(WalStatusEvaluator.Evaluate(_wal.GetObservation(), now));
+    }
 
     [HttpGet("pitr/chain")]
     [HasPermission(AppPermissions.SettingsView)]

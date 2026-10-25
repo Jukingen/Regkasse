@@ -2032,6 +2032,22 @@
     "dryRunOk": "Dry-Run einreihen",
     "dryRunAccepted": "Isolierter Restore-Drill wurde eingereiht."
   },
+  "walStatus": {
+    "title": "WAL-Archivierung",
+    "lastSegment": "Letztes Segment",
+    "lag": "Verzögerung",
+    "segments24h": "Segmente (24 h)",
+    "empty": "WAL-Archivierung ist noch nicht gestartet.",
+    "loadFailed": "Der WAL-Archivstatus konnte nicht geladen werden.",
+    "lagValue": "{{seconds}} s",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} archiviert / {{failed}} fehlgeschlagen",
+    "health": {
+      "healthy": "Gesund",
+      "degraded": "Beeinträchtigt",
+      "critical": "Kritisch"
+    }
+  },
   "backupList": {
     "fileName": "Backup-Name",
     "tenant": "Mandant",

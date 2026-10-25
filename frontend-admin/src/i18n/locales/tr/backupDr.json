@@ -2032,6 +2032,22 @@
     "dryRunOk": "Dry-run kuyruğa al",
     "dryRunAccepted": "İzole restore drill kuyruğa alındı."
   },
+  "walStatus": {
+    "title": "WAL arşivleme",
+    "lastSegment": "Son segment",
+    "lag": "Gecikme",
+    "segments24h": "Segmentler (24 sa)",
+    "empty": "WAL arşivleme henüz başlamadı.",
+    "loadFailed": "WAL arşiv durumu yüklenemedi.",
+    "lagValue": "{{seconds}} sn",
+    "segmentWhen": "{{when}} ({{age}})",
+    "segmentsValue": "{{archived}} arşivlendi / {{failed}} başarısız",
+    "health": {
+      "healthy": "Sağlıklı",
+      "degraded": "Düşük",
+      "critical": "Kritik"
+    }
+  },
   "backupList": {
     "fileName": "Yedek adı",
     "tenant": "Kiracı",

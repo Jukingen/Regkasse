@@ -11,10 +11,17 @@ public sealed class WalArchiveService : IWalArchiveService
 {
     public const string DefaultRelativeDirectory = "App_Data/wal-archive";
 
+    public const string InventoryUnreadableReason = "wal-archive-unreadable";
+    public const string RetentionFailedReason = "wal-archive-retention-failed";
+
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly TimeProvider _time;
     private readonly ILogger<WalArchiveService> _logger;
+    private readonly object _failureGate = new();
+    private readonly List<DateTime> _failureAtUtc = new();
+    private string? _lastFailureReason;
+    private DateTime? _lastFailureAtUtc;
 
     public WalArchiveService(
         IOptionsMonitor<BackupOptions> options,
@@ -33,7 +40,7 @@ public sealed class WalArchiveService : IWalArchiveService
         var opts = _options.CurrentValue;
         var directory = ResolveDirectory(opts);
         var exists = Directory.Exists(directory);
-        var files = exists ? EnumerateFiles(directory) : Array.Empty<WalArchiveFileInfo>();
+        var files = exists ? EnumerateFiles(directory, out _) : Array.Empty<WalArchiveFileInfo>();
         var oldest = files.Count > 0 ? files.Min(f => f.LastWriteUtc) : (DateTime?)null;
         var newest = files.Count > 0 ? files.Max(f => f.LastWriteUtc) : (DateTime?)null;
         var enabled = opts.PitrWalArchivingDeclaredEnabled || files.Count > 0;
@@ -63,6 +70,47 @@ public sealed class WalArchiveService : IWalArchiveService
         };
     }
 
+    public WalArchiveObservation GetObservation()
+    {
+        var opts = _options.CurrentValue;
+        var now = AsUtc(_time.GetUtcNow().UtcDateTime);
+        var directory = ResolveDirectory(opts);
+        var exists = Directory.Exists(directory);
+        var unreadable = false;
+        var files = exists
+            ? EnumerateFiles(directory, out unreadable)
+            : Array.Empty<WalArchiveFileInfo>();
+        if (unreadable)
+            RecordFailure(InventoryUnreadableReason);
+
+        WalArchiveFileInfo? newest = null;
+        var archivedLast24h = 0;
+        var cutoff = now.AddHours(-24);
+        foreach (var file in files)
+        {
+            if (newest == null || file.LastWriteUtc > newest.LastWriteUtc)
+                newest = file;
+            if (file.LastWriteUtc >= cutoff)
+                archivedLast24h++;
+        }
+
+        var (failed, lastFailureAt, lastFailureReason) = SnapshotFailures(now);
+        DateTime? attempted = newest?.LastWriteUtc;
+        if (lastFailureAt.HasValue && (attempted == null || lastFailureAt.Value > attempted.Value))
+            attempted = lastFailureAt;
+
+        return new WalArchiveObservation
+        {
+            Configured = opts.PitrWalArchivingDeclaredEnabled,
+            LastSuccessfulSegmentAtUtc = newest?.LastWriteUtc,
+            LastSuccessfulSegmentName = newest?.FileName,
+            LastAttemptedSegmentAtUtc = attempted,
+            ArchivedCountLast24h = archivedLast24h,
+            FailedCountLast24h = failed,
+            LastFailureReason = lastFailureReason,
+        };
+    }
+
     public IReadOnlyList<WalArchiveFileInfo> ListFiles(int take = 200)
     {
         var directory = ResolveDirectory(_options.CurrentValue);
@@ -70,7 +118,7 @@ public sealed class WalArchiveService : IWalArchiveService
             return Array.Empty<WalArchiveFileInfo>();
 
         var limit = Math.Clamp(take, 1, 2000);
-        return EnumerateFiles(directory)
+        return EnumerateFiles(directory, out _)
             .OrderByDescending(f => f.LastWriteUtc)
             .Take(limit)
             .ToList();
@@ -86,7 +134,14 @@ public sealed class WalArchiveService : IWalArchiveService
         var retentionDays = Math.Max(1, opts.WalArchiveRetentionDays);
         var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-retentionDays);
         var deleted = 0;
-        foreach (var file in EnumerateFiles(directory))
+        var files = EnumerateFiles(directory, out var unreadable);
+        if (unreadable)
+        {
+            RecordFailure(InventoryUnreadableReason);
+            return 0;
+        }
+
+        foreach (var file in files)
         {
             if (file.LastWriteUtc >= cutoff)
                 continue;
@@ -99,6 +154,7 @@ public sealed class WalArchiveService : IWalArchiveService
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
+                RecordFailure(RetentionFailedReason);
                 _logger.LogWarning(ex, "WAL archive retention could not delete {Path}", path);
             }
         }
@@ -143,8 +199,35 @@ public sealed class WalArchiveService : IWalArchiveService
         return Path.GetFullPath(Path.Combine(_hostEnvironment.ContentRootPath, DefaultRelativeDirectory));
     }
 
-    private static IReadOnlyList<WalArchiveFileInfo> EnumerateFiles(string directory)
+    private void RecordFailure(string reason)
     {
+        var now = AsUtc(_time.GetUtcNow().UtcDateTime);
+        lock (_failureGate)
+        {
+            _failureAtUtc.Add(now);
+            var cutoff = now.AddHours(-24);
+            _failureAtUtc.RemoveAll(t => t < cutoff);
+            _lastFailureAtUtc = now;
+            _lastFailureReason = reason;
+        }
+    }
+
+    private (int Count, DateTime? At, string? Reason) SnapshotFailures(DateTime now)
+    {
+        lock (_failureGate)
+        {
+            var cutoff = now.AddHours(-24);
+            _failureAtUtc.RemoveAll(t => t < cutoff);
+            return (_failureAtUtc.Count, _lastFailureAtUtc, _lastFailureReason);
+        }
+    }
+
+    private static DateTime AsUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+    private static IReadOnlyList<WalArchiveFileInfo> EnumerateFiles(string directory, out bool unreadable)
+    {
+        unreadable = false;
         try
         {
             return Directory.EnumerateFiles(directory)
@@ -160,6 +243,7 @@ public sealed class WalArchiveService : IWalArchiveService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            unreadable = true;
             return Array.Empty<WalArchiveFileInfo>();
         }
     }
