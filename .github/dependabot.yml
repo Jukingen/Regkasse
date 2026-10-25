@@ -87,6 +87,7 @@ updates:
           - react-dom
           - react-native
           - 'react-native-*'
+          - '@react-native/*'
           - expo
           - 'expo-*'
           - antd
@@ -100,6 +101,7 @@ updates:
           - react-dom
           - react-native
           - 'react-native-*'
+          - '@react-native/*'
           - expo
           - 'expo-*'
           - next
