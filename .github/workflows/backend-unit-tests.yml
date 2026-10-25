@@ -43,7 +43,8 @@ jobs:
   unit-tests:
     name: dotnet build + test (exclude Category=PostgreSql)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 30 min was too tight after the PostgreSQL-tagged test suite grew; 45 min gives headroom without hiding a hang.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout

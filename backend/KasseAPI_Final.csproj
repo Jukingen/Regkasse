@@ -67,9 +67,9 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.13" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <!-- Stay on 3.1.x: ImageSharp 4.0 requires a Six Labors license key at build for direct refs. -->
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.2.0" />
-    <PackageReference Include="QuestPDF" Version="2026.9.1" />
+    <!-- Stay on 3.1.x: ImageSharp 3.2+ and 4.0 require a Six Labors license key at Release build for direct refs. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="QuestPDF" Version="2026.7.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="QRCoder" Version="1.8.1" />
     <PackageReference Include="StackExchange.Redis" Version="3.4.20" />
