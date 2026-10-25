@@ -245,6 +245,18 @@ The project defines `<UserSecretsId>` in `KasseAPI_Final.csproj` so `dotnet user
 
 Alternative: set the same keys as **User** or **Machine** environment variables (names use `__` for `:`).
 
+### Weekly backup drill summary
+
+Section `BackupDrillReport` (`BackupDrillReport__*` env vars). Hosted service: `BackupDrillReportHostedService`. SMTP stays `Email:Smtp`. Default is off, Monday 06:00 UTC. An empty `Recipients` logs at Information and does not send or write an audit row.
+
+| Setting | Default | Notes |
+|---------|---------|--------|
+| `BackupDrillReport:Enabled` | `false` | |
+| `BackupDrillReport:DayOfWeekUtc` | `1` | 0 = Sunday … 6 = Saturday |
+| `BackupDrillReport:RunHourUtc` | `6` | |
+| `BackupDrillReport:RunMinuteUtc` | `0` | |
+| `BackupDrillReport:Recipients` | empty | Comma- or semicolon-separated addresses |
+
 ### Backup & DR (optional — RealPgDump selectable in Development)
 
 Repo defaults keep `Backup:ExecutionAdapterKind` = **Fake** and staging/archive roots empty so hypothetical PgDump health stays **Unhealthy** until you configure local paths. **Do not** commit machine-specific directories to tracked `appsettings*.json`; use **user secrets** or environment variables.

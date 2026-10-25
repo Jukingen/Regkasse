@@ -106,6 +106,12 @@ public sealed class CreateGuestFolioRequest
     public DateTime? CheckOut { get; set; }
 
     public decimal Balance { get; set; }
+
+    /// <summary>
+    /// Free text stored on the folio. <c>breakfast</c> (any case) opts the stay into
+    /// <c>breakfast_included</c> when that extension is enabled.
+    /// </summary>
+    public string? Notes { get; set; }
 }
 
 public static class LodgingErrorCodes
@@ -118,6 +124,14 @@ public static class LodgingErrorCodes
     public const string RoomInUse = "ROOM_IN_USE";
     public const string ZeroBalance = "ZERO_BALANCE";
     public const string ProductUnsuitable = "PRODUCT_UNSUITABLE";
+    public const string FolioNotOpen = "FOLIO_NOT_OPEN";
+    public const string RoomNotAvailable = "ROOM_NOT_AVAILABLE";
+}
+
+public sealed class MoveFolioRoomRequest
+{
+    [Required]
+    public Guid NewRoomId { get; set; }
 }
 
 public sealed class UpdateRoomDetailsRequest
@@ -138,4 +152,33 @@ public sealed class LodgingErrorDto
 {
     public string Code { get; init; } = string.Empty;
     public string Message { get; init; } = string.Empty;
+}
+
+public sealed class AddRoomMinibarRequest
+{
+    [Required]
+    [MaxLength(255)]
+    public string Description { get; set; } = string.Empty;
+
+    [Range(1, 10000)]
+    public int Quantity { get; set; }
+
+    [Range(0, 999999.99)]
+    public decimal UnitPrice { get; set; }
+
+    public Guid? ProductId { get; set; }
+}
+
+public sealed class RoomMinibarItemDto
+{
+    public Guid Id { get; init; }
+    public Guid RoomId { get; init; }
+    public Guid? ProductId { get; init; }
+    public string Description { get; init; } = string.Empty;
+    public int Quantity { get; init; }
+    public decimal UnitPrice { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public Guid? ChargedFolioId { get; init; }
+    public DateTime? ChargedAtUtc { get; init; }
+    public DateTime CreatedAtUtc { get; init; }
 }

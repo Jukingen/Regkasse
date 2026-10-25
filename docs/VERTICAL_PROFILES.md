@@ -40,6 +40,7 @@ The initial catalog contains:
 - `taxi` — taxi layout with route tracking and an optional per-kilometre tariff.
 - `ticket-sales` — ticket layout with `ticketScan`, optional room and seat fields, and no kitchen display.
 - `beherbergung` — `rooms` layout with lodging `roomTracking` and `kitchenDisplay` (hotel rooms and guest folios, not ticket seats). See [`docs/BEHERBERGUNG.md`](BEHERBERGUNG.md).
+- `retail` — standard Kassa layout. v1 requires a product SKU plus name and price, and treats category and stock as optional. v1.1 adds `product_variants` behind `pos_features.variants`. `lotTracking` and `multiBranch` stay `false`. `retail` sets `barcodeScan` to `true`. There is no separate retail screen; the tenant uses the standard cash register.
 
 Profile names use localization keys such as `verticalProfiles.gastronomy.name`.
 
@@ -270,6 +271,16 @@ view after login.
   `payment_details.route_from`, `route_to`, `route_km`, and `taxi_trip_started_at_utc`
   and are not part of the RKSV/TSE payload.
 
+### Retail
+
+- Catalog id `retail`. Layout stays `standard`. Only this seed sets `pos_features.variants` to `true`; every other seed sets it to `false`.
+- `product_variants` is per-product metadata: `sku` (unique per tenant), `variant_label` (unique per product), `price_delta` (`numeric(18,2)`), `stock`, and `is_active`. Deactivate sets `is_active` false. Rows are not hard-deleted.
+- `products.stock_quantity` stays the top-level stock used when a product has no variants. A variant does not add a column to `products`, `payment_details`, invoices, receipts, or DEP export. A sale still writes one `payment_details` row.
+- Admin (`product.view` / `product.manage`): `GET/POST /api/admin/products/{id}/variants`, `PUT/DELETE /api/admin/products/{id}/variants/{variantId}`, `POST …/stock` with `{ delta }`. POS read: `GET /api/pos/products/{id}/variants` (`product.view`). Cross-tenant or unknown product/variant → HTTP 404. Duplicate SKU → HTTP 409 `SKU_DUPLICATE`. Duplicate label on the same product → HTTP 409 `VARIANT_LABEL_DUPLICATE`.
+- The FA product form shows a Varianten tab only when the effective profile has `variants: true`. The product list shows a badge when `hasVariants` is true.
+- POS shows a variant picker before adding a variant product to the cart; the variant id is passed as metadata to the payment and is not written into the RKSV receipt, TSE payload, or DEP export.
+- Barcode scanning is behind `pos_features.barcodeScan`. The code is stored on `products.barcode` only (nullable, unique per tenant when set). Variant barcodes are v1.3 material and are not on `product_variants`. The cash-register **Scannen** button reuses `BarcodeScannerModal` in product mode (`ean13`, `ean8`, `code128`, `qr`). A hit adds the product the same way as a grid tap, and opens the existing variant picker when `hasVariants` is true. A scan while that picker is open is ignored and the picker stays open. The barcode is lookup metadata only: it is not written to `payment_details`, receipts, invoices, RKSV, TSE, or DEP. The admin product form accepts a barcode on every profile; only the POS scan button is gated.
+
 ### Handy shop
 
 - Catalog id `handy-shop` (already seeded). Layout is `standard` with `imeiTracking`.
@@ -301,7 +312,7 @@ view after login.
   - `POST /api/pos/tickets/{code}/validate` — validity only, does not redeem.
   - `POST /api/pos/tickets/{code}/redeem` — marks `Redeemed`. Already redeemed → HTTP **409** `TICKET_ALREADY_REDEEMED`. Expired → HTTP **400** `TICKET_EXPIRED`. Missing/cross-tenant → HTTP **404**.
 - Admin list: `GET /api/admin/tickets/redemptions` (`product.view`). Super Admin may pass `tenantId`; others use the ambient tenant. FA page: `/admin/tickets/redemptions`. Rows may include `eventName` and `seatLabel`.
-- Events and seats (`AddTicketEventsAndSeats`): `ticket_events` (tenant-scoped) and `ticket_seats` (no `tenant_id`; reached only through the event). Seat status is `Available`, `Reserved`, or `Sold`. A reservation hold lasts 15 minutes. `ticket_redemptions.event_id` and `seat_id` are nullable foreign keys.
+- Events and seats (`AddTicketEventsAndSeats`): `ticket_events` (tenant-scoped) and `ticket_seats` (no `tenant_id`; reached only through the event). Seat status is `Available`, `Reserved`, or `Sold`. A reservation hold lasts 15 minutes and is owned by `reserved_by_user_id`; another cashier cannot sell an active hold. v2 adds `ticket_price_categories`, per-event category price and capacity, and seat-map fields (`stage_edge`, `grid_column`, `seat_role`). Companion seats are pairable at creation (`companion_of_seat_id`) and, when paired, require the target seat to be sold first. `ticketScan` is still the only profile switch. `ticket_redemptions.event_id` and `seat_id` are nullable foreign keys.
 - POS (`cart.view`, `ticketScan` required; missing tenant or another tenant's event → HTTP **404**):
   - `GET /api/pos/ticket-events`
   - `GET /api/pos/ticket-events/{id}/seats`
@@ -328,10 +339,11 @@ view after login.
   - `POST /api/pos/folios` — open a folio. Duplicate occupancy → HTTP **409** `ROOM_OCCUPIED`. Check-out ≤ check-in → HTTP **400** `INVALID_STAY`. Missing/cross-tenant room or customer → HTTP **404**.
   - `PATCH /api/pos/folios/{id}` — note, check-out, or status.
   - `POST /api/pos/folios/{id}/charge` — add a non-fiscal charge. Closed folio → HTTP **409** `FOLIO_CLOSED`.
+  - `POST /api/pos/folios/{id}/move-room` — move an open folio to an available room. The folio and its balance stay. See [Room change](BEHERBERGUNG.md#room-change).
   - `GET /api/pos/folios/{id}/items` — charge lines.
 - Admin endpoints (`product.view`; create and status change need `product.manage`):
   - `GET/POST /api/admin/rooms`, `GET /api/admin/rooms/{id}`, `PATCH /api/admin/rooms/{id}`, `PATCH /api/admin/rooms/{id}/details`, `DELETE /api/admin/rooms/{id}` (unused rooms only).
-  - `GET /api/admin/folios`, `GET /api/admin/folios/{id}`, `GET /api/admin/folios/{id}/items`, `POST /api/admin/folios/{id}/charge`, `PATCH /api/admin/folios/{id}` (check-out closes the folio and sets the room to Cleaning; no invoice).
+  - `GET /api/admin/folios`, `GET /api/admin/folios/{id}`, `GET /api/admin/folios/{id}/items`, `POST /api/admin/folios/{id}/charge`, `POST /api/admin/folios/{id}/move-room`, `PATCH /api/admin/folios/{id}` (check-out closes the folio and sets the room to Cleaning; no invoice).
 - FA pages: `/admin/rooms`, `/admin/rooms/{id}`, `/admin/folios`, `/admin/folios/{id}`. Tenant detail shows a **Zimmer** tab when the tenant profile has `roomTracking=true`.
 - POS default layout `rooms` opens `frontend/app/(screens)/rooms.tsx` (color-coded room grid, check-in, folio, check-out). Cash register shows `RoomPicker` and **Auf Zimmer buchen** only when `profileId === "beherbergung"`. **Auf Zimmer buchen** posts the sale to the folio and does not sign a receipt. Check-out closes the folio and sets the room to Cleaning. It does not generate an invoice.
 - Folio charges are not RKSV receipts. Decision record: [`docs/BEHERBERGUNG.md`](BEHERBERGUNG.md).

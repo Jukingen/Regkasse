@@ -35,6 +35,23 @@ Check-in sets the room to Occupied. Check-out sets the folio to Closed and the r
 4. **Konto anzeigen** lists those charges with amounts and timestamps. Check-out confirms the balance.
 5. **Check-out bestätigen** closes the folio (`PATCH /api/pos/folios/{id}` with status `Closed`) and sets the room to Cleaning. That path does not sign a receipt. **Zur Kasse** calls `POST /api/pos/folios/{id}/stage-checkout`, which replaces the cashier's cart with one line `Zimmer {room} — Aufenthalt` priced at the folio balance. The existing POS payment creates the RKSV receipt. After that payment succeeds, the folio is closed and the room goes to Cleaning.
 
+## Room change
+
+An open stay can move to another free room without closing the folio. The folio id, charges, and balance stay on the same row. The move does not insert a `guest_folio_items` row, a `payment_details` row, or a receipt.
+
+`POST /api/pos/folios/{id}/move-room` (`cart.view`, and the profile must have `roomTracking`) takes `{ "newRoomId": "uuid" }` and returns the updated folio. FA uses the same service at `POST /api/admin/folios/{id}/move-room` (`product.manage`).
+
+| Case | Result |
+|------|--------|
+| Folio status is not `Open` | HTTP **409** `FOLIO_NOT_OPEN` |
+| Target room status is not `Available` | HTTP **409** `ROOM_NOT_AVAILABLE` |
+| Target room is missing or belongs to another tenant | HTTP **404** |
+| Target room is the folio's current room | No-op. Statuses and notes stay as they are. |
+
+On success, in one transaction: the old room becomes `Cleaning`, the new room becomes `Occupied`, and `guest_folios.room_id` points at the new room. A line is appended to `guest_folios.notes`: `Zimmerwechsel: {oldNumber} → {newNumber} ({utc})`. Audit event `FolioRoomMoved` (150) stores `tenantId`, `folioId`, `oldRoomId`, `newRoomId`, and `actorUserId`.
+
+POS shows **Oda değiştir** inside the open-folio view and lists free rooms. FA shows **Zimmer wechseln** on `/admin/folios/{id}` while the folio is open. Check-out is unchanged.
+
 ## RKSV decision
 
 **A folio charge is a non-fiscal deferred posting. It does not create a `payment_details` row, a receipt, or a TSE signature.**
@@ -45,6 +62,9 @@ Why:
 - `PaymentService.CreatePaymentAsync` allocates a receipt number and enters the signature path. Calling it for a room charge would add a fiscal document before payment.
 - A zero-amount receipt would still be a signature-chain entry. This change does not add one.
 - `payment_detail_id` on `guest_folio_items` stays null so a later, explicit payment can be linked without inventing a receipt at charge time.
+- Minibar charges posted by the `minibar_auto_charge` extension on folio close are the same non-fiscal deferred posting: they insert `guest_folio_items` and do not create `payment_details` or TSE signatures.
+- `guest_folio_items` rows may be added automatically at folio open by an extension; they are still non-fiscal deferred postings.
+- A late-checkout fee can be added automatically at close via an extension.
 - **Check-out bestätigen** only closes the folio and marks the room Cleaning. It does not sign anything.
 - **Zur Kasse** does not accept a client price. The server writes `CartItem.UnitPrice` from the open folio balance and a stay label in `Notes`. The existing cart-snapshot pricing uses that gross on the RKSV receipt and the stay label as the line name. The folio closes only after that payment succeeds.
 

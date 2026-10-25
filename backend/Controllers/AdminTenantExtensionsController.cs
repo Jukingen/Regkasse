@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Tenancy;
@@ -60,9 +61,24 @@ public sealed class AdminTenantExtensionsController : ControllerBase
         try
         {
             var status = await _extensions
-                .SetEnabledAsync(tenantId, body.Name, body.Enabled, actorUserId, actorRole, cancellationToken)
+                .SetEnabledAsync(
+                    tenantId,
+                    body.Name,
+                    body.Enabled,
+                    actorUserId,
+                    actorRole,
+                    cancellationToken,
+                    body.Options)
                 .ConfigureAwait(false);
             return Ok(status);
+        }
+        catch (ExtensionOptionsUnsupportedException ex)
+        {
+            return BadRequest(new { message = ex.Message, code = ExtensionOptionsUnsupportedException.ErrorCode });
+        }
+        catch (ArgumentException ex) when (ex.ParamName == "options")
+        {
+            return BadRequest(new { message = ex.Message, code = "EXTENSION_OPTIONS_INVALID" });
         }
         catch (ArgumentException ex)
         {
@@ -76,4 +92,10 @@ public sealed class SetTenantExtensionRequest
     public string Name { get; set; } = string.Empty;
 
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Optional. Only extensions that declare an options schema accept this object.
+    /// Omitted leaves stored options unchanged.
+    /// </summary>
+    public JsonElement? Options { get; set; }
 }

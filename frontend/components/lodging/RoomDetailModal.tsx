@@ -41,6 +41,7 @@ export function RoomDetailModal(props: {
   room: RoomDto | null;
   folio: GuestFolioDto | null;
   items: GuestFolioItemDto[];
+  availableRooms: RoomDto[];
   busy: boolean;
   confirmingOut: boolean;
   chargeDescription: string;
@@ -50,6 +51,7 @@ export function RoomDetailModal(props: {
   onClose: () => void;
   onCheckIn: () => void;
   onCheckOut: () => void;
+  onMoveRoom: (roomId: string) => void;
   onConfirmCheckOut: () => void;
   onToRegister: () => void;
   onCancelCheckOut: () => void;
@@ -226,11 +228,15 @@ export function RoomDetailModal(props: {
               roomNumber={room.number}
               folio={folio}
               items={props.items}
+              availableRooms={props.availableRooms}
               busy={props.busy}
               onClose={() => setFolioOpen(false)}
               onCheckOut={() => {
                 setFolioOpen(false);
                 props.onCheckOut();
+              }}
+              onMoveRoom={(roomId) => {
+                props.onMoveRoom(roomId);
               }}
             />
             <Pressable

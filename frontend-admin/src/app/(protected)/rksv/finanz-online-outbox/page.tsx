@@ -10,6 +10,7 @@ import {
   Alert,
   Button,
   Card,
+  Collapse,
   DatePicker,
   Descriptions,
   Divider,
@@ -37,9 +38,10 @@ import {
 } from '@/api/generated/admin/admin';
 import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnlineOutboxItemDto';
 import type { GetApiAdminFinanzonlineOutboxParams } from '@/api/generated/model/getApiAdminFinanzonlineOutboxParams';
+import { DateColumn } from '@/components/DateColumn';
 import { CardSkeleton, FormSkeleton, TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { DateColumn } from '@/components/DateColumn';
+import { FinanzOnlineOutboxInbox } from '@/features/rksv-operations/components/FinanzOnlineOutboxInbox';
 import { FinanzOnlineOutboxWorkerSwitch } from '@/features/rksv-operations/components/FinanzOnlineOutboxWorkerSwitch';
 import { FinanzOnlineRuntimeSettingsPanel } from '@/features/rksv-operations/components/FinanzOnlineRuntimeSettingsPanel';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -476,6 +478,8 @@ export default function FinanzOnlineOutboxPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
+      <FinanzOnlineOutboxInbox />
+
       <Alert
         type="info"
         showIcon
@@ -506,155 +510,6 @@ export default function FinanzOnlineOutboxPage() {
           title={t('finanzOnlineOutbox.transportPath.bannerReal')}
         />
       ) : null}
-
-      <Card
-        size="small"
-        style={{ marginBottom: 16 }}
-        title={t('finanzOnlineOutbox.readiness.cardTitle')}
-      >
-        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-          {t('finanzOnlineOutbox.readiness.cardSubtitle')}
-        </Typography.Paragraph>
-        {readinessLoading && !readiness && !readinessError ? (
-          <CardSkeleton count={1} />
-        ) : readinessError ? (
-          <Alert
-            type="error"
-            showIcon
-            title={t('finanzOnlineOutbox.readiness.loadError')}
-            description={
-              <ApiErrorAlertDescription
-                t={t}
-                error={readinessError}
-                logContext="FinanzOnlineOutbox.readiness"
-                fallbackKey="finanzOnlineOutbox.readiness.loadError"
-              />
-            }
-          />
-        ) : readiness ? (
-          <>
-            <Space wrap size="middle" align="center" style={{ marginBottom: 12 }}>
-              <Typography.Text type="secondary">
-                {t('finanzOnlineOutbox.readiness.overall')}:
-              </Typography.Text>
-              <Tag color={readinessOverallTagColor(readiness.overallStatus)}>
-                {readiness.overallStatus ?? emDash}
-              </Tag>
-              <Typography.Text type="secondary">
-                {t('finanzOnlineOutbox.readiness.transportMode')}:
-              </Typography.Text>
-              <Tag>{readiness.transportMode ?? emDash}</Tag>
-            </Space>
-            <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.realTestSubmit')}>
-                {fmtReadinessBool(readiness.realTestSubmissionPossible)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.protocol')}>
-                {fmtReadinessBool(readiness.protocolReconciliationPossible)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.outboxWorker')}>
-                {fmtReadinessBool(readiness.outboxWorkerEnabled)}
-              </Descriptions.Item>
-              <Descriptions.Item
-                label={t('finanzOnlineOutbox.workerSwitch.label')}
-                span={2}
-              >
-                <FinanzOnlineOutboxWorkerSwitch />
-              </Descriptions.Item>
-              <Descriptions.Item
-                label={t('finanzOnlineOutbox.runtime.title')}
-                span={2}
-              >
-                <FinanzOnlineRuntimeSettingsPanel />
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioConfigured')}>
-                {readiness.configuredSimulationScenario?.trim() || emDash}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioEffective')}>
-                {readiness.effectiveSimulationScenario?.trim() || emDash}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioDelay')}>
-                {readiness.simulationFixedDelayMs != null
-                  ? String(readiness.simulationFixedDelayMs)
-                  : emDash}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioSeed')}>
-                {readiness.simulationSeed != null ? String(readiness.simulationSeed) : emDash}
-              </Descriptions.Item>
-            </Descriptions>
-            {readiness.summary?.trim() ? (
-              <Typography.Paragraph style={{ marginTop: 12, marginBottom: 0 }}>
-                <Typography.Text strong>
-                  {t('finanzOnlineOutbox.readiness.apiSummary')}:{' '}
-                </Typography.Text>
-                <Typography.Text code style={{ whiteSpace: 'pre-wrap' }}>
-                  {readiness.summary.trim()}
-                </Typography.Text>
-              </Typography.Paragraph>
-            ) : null}
-            <Typography.Paragraph
-              type="secondary"
-              style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}
-            >
-              {t('finanzOnlineOutbox.readiness.healthProbeHint')}
-            </Typography.Paragraph>
-            <Divider titlePlacement="left" plain>
-              {t('finanzOnlineOutbox.readiness.findingsTitle')}
-            </Divider>
-            <Typography.Paragraph
-              type="secondary"
-              style={{ marginTop: -8, marginBottom: 12, fontSize: 12 }}
-            >
-              {t('finanzOnlineOutbox.readiness.findingsDetailHint')}
-            </Typography.Paragraph>
-            {(readiness.findings ?? []).length === 0 ? (
-              <Typography.Text type="secondary">—</Typography.Text>
-            ) : (
-              <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-                {(readiness.findings ?? []).map((f, i) => (
-                  <Alert
-                    key={`${f.code ?? 'finding'}-${i}`}
-                    type={readinessFindingAlertType(f.severity)}
-                    showIcon
-                    title={
-                      <Typography.Text strong style={{ display: 'block' }}>
-                        {finanzOnlineReadinessFindingGermanTitle(t, f.code)}
-                      </Typography.Text>
-                    }
-                    description={
-                      <Space orientation="vertical" size={6} style={{ width: '100%' }}>
-                        <Space wrap size="small">
-                          {f.code ? <Tag>{f.code}</Tag> : null}
-                          {f.severity ? <Tag>{f.severity}</Tag> : null}
-                        </Space>
-                        <Typography.Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>
-                          {f.message ?? emDash}
-                        </Typography.Text>
-                      </Space>
-                    }
-                  />
-                ))}
-              </Space>
-            )}
-            <Divider titlePlacement="left" plain>
-              {t('finanzOnlineOutbox.readiness.outboxCountsTitle')}
-            </Divider>
-            {outboxCountEntries.length === 0 ? (
-              <Typography.Text type="secondary">{emDash}</Typography.Text>
-            ) : (
-              <Descriptions bordered size="small" column={1}>
-                {outboxCountEntries.map(([statusKey, n]) => (
-                  <Descriptions.Item key={statusKey} label={statusKey}>
-                    {n}
-                  </Descriptions.Item>
-                ))}
-              </Descriptions>
-            )}
-          </>
-        ) : (
-          <Empty />
-        )}
-      </Card>
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap size="middle" align="start">
@@ -773,6 +628,176 @@ export default function FinanzOnlineOutboxPage() {
           })}
         />
       )}
+
+      <Collapse
+        style={{ marginBottom: 16 }}
+        data-testid="fon-outbox-advanced"
+        defaultActiveKey={[]}
+        items={[
+          {
+            key: 'advanced',
+            label: t('finanzOnlineOutbox.advancedSettings'),
+            children: (
+              <>
+                <Card
+                  size="small"
+                  style={{ marginBottom: 16 }}
+                  title={t('finanzOnlineOutbox.readiness.cardTitle')}
+                >
+                  <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+                    {t('finanzOnlineOutbox.readiness.cardSubtitle')}
+                  </Typography.Paragraph>
+                  {readinessLoading && !readiness && !readinessError ? (
+                    <CardSkeleton count={1} />
+                  ) : readinessError ? (
+                    <Alert
+                      type="error"
+                      showIcon
+                      title={t('finanzOnlineOutbox.readiness.loadError')}
+                      description={
+                        <ApiErrorAlertDescription
+                          t={t}
+                          error={readinessError}
+                          logContext="FinanzOnlineOutbox.readiness"
+                          fallbackKey="finanzOnlineOutbox.readiness.loadError"
+                        />
+                      }
+                    />
+                  ) : readiness ? (
+                    <>
+                      <Space wrap size="middle" align="center" style={{ marginBottom: 12 }}>
+                        <Typography.Text type="secondary">
+                          {t('finanzOnlineOutbox.readiness.overall')}:
+                        </Typography.Text>
+                        <Tag color={readinessOverallTagColor(readiness.overallStatus)}>
+                          {readiness.overallStatus ?? emDash}
+                        </Tag>
+                        <Typography.Text type="secondary">
+                          {t('finanzOnlineOutbox.readiness.transportMode')}:
+                        </Typography.Text>
+                        <Tag>{readiness.transportMode ?? emDash}</Tag>
+                      </Space>
+                      <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.readiness.realTestSubmit')}>
+                          {fmtReadinessBool(readiness.realTestSubmissionPossible)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.readiness.protocol')}>
+                          {fmtReadinessBool(readiness.protocolReconciliationPossible)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.readiness.outboxWorker')}>
+                          {fmtReadinessBool(readiness.outboxWorkerEnabled)}
+                        </Descriptions.Item>
+                        <Descriptions.Item
+                          label={t('finanzOnlineOutbox.workerSwitch.label')}
+                          span={2}
+                        >
+                          <FinanzOnlineOutboxWorkerSwitch />
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.runtime.title')} span={2}>
+                          <FinanzOnlineRuntimeSettingsPanel />
+                        </Descriptions.Item>
+                        <Descriptions.Item
+                          label={t('finanzOnlineOutbox.readiness.scenarioConfigured')}
+                        >
+                          {readiness.configuredSimulationScenario?.trim() || emDash}
+                        </Descriptions.Item>
+                        <Descriptions.Item
+                          label={t('finanzOnlineOutbox.readiness.scenarioEffective')}
+                        >
+                          {readiness.effectiveSimulationScenario?.trim() || emDash}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioDelay')}>
+                          {readiness.simulationFixedDelayMs != null
+                            ? String(readiness.simulationFixedDelayMs)
+                            : emDash}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('finanzOnlineOutbox.readiness.scenarioSeed')}>
+                          {readiness.simulationSeed != null
+                            ? String(readiness.simulationSeed)
+                            : emDash}
+                        </Descriptions.Item>
+                      </Descriptions>
+                      {readiness.summary?.trim() ? (
+                        <Typography.Paragraph style={{ marginTop: 12, marginBottom: 0 }}>
+                          <Typography.Text strong>
+                            {t('finanzOnlineOutbox.readiness.apiSummary')}:{' '}
+                          </Typography.Text>
+                          <Typography.Text code style={{ whiteSpace: 'pre-wrap' }}>
+                            {readiness.summary.trim()}
+                          </Typography.Text>
+                        </Typography.Paragraph>
+                      ) : null}
+                      <Typography.Paragraph
+                        type="secondary"
+                        style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}
+                      >
+                        {t('finanzOnlineOutbox.readiness.healthProbeHint')}
+                      </Typography.Paragraph>
+                      <Divider titlePlacement="left" plain>
+                        {t('finanzOnlineOutbox.readiness.findingsTitle')}
+                      </Divider>
+                      <Typography.Paragraph
+                        type="secondary"
+                        style={{ marginTop: -8, marginBottom: 12, fontSize: 12 }}
+                      >
+                        {t('finanzOnlineOutbox.readiness.findingsDetailHint')}
+                      </Typography.Paragraph>
+                      {(readiness.findings ?? []).length === 0 ? (
+                        <Typography.Text type="secondary">—</Typography.Text>
+                      ) : (
+                        <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+                          {(readiness.findings ?? []).map((f, i) => (
+                            <Alert
+                              key={`${f.code ?? 'finding'}-${i}`}
+                              type={readinessFindingAlertType(f.severity)}
+                              showIcon
+                              title={
+                                <Typography.Text strong style={{ display: 'block' }}>
+                                  {finanzOnlineReadinessFindingGermanTitle(t, f.code)}
+                                </Typography.Text>
+                              }
+                              description={
+                                <Space orientation="vertical" size={6} style={{ width: '100%' }}>
+                                  <Space wrap size="small">
+                                    {f.code ? <Tag>{f.code}</Tag> : null}
+                                    {f.severity ? <Tag>{f.severity}</Tag> : null}
+                                  </Space>
+                                  <Typography.Text
+                                    type="secondary"
+                                    style={{ whiteSpace: 'pre-wrap' }}
+                                  >
+                                    {f.message ?? emDash}
+                                  </Typography.Text>
+                                </Space>
+                              }
+                            />
+                          ))}
+                        </Space>
+                      )}
+                      <Divider titlePlacement="left" plain>
+                        {t('finanzOnlineOutbox.readiness.outboxCountsTitle')}
+                      </Divider>
+                      {outboxCountEntries.length === 0 ? (
+                        <Typography.Text type="secondary">{emDash}</Typography.Text>
+                      ) : (
+                        <Descriptions bordered size="small" column={1}>
+                          {outboxCountEntries.map(([statusKey, n]) => (
+                            <Descriptions.Item key={statusKey} label={statusKey}>
+                              {n}
+                            </Descriptions.Item>
+                          ))}
+                        </Descriptions>
+                      )}
+                    </>
+                  ) : (
+                    <Empty />
+                  )}
+                </Card>
+              </>
+            ),
+          },
+        ]}
+      />
 
       <Drawer
         title={t('finanzOnlineOutbox.drawer.title')}

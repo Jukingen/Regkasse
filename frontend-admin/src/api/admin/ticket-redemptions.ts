@@ -16,6 +16,8 @@ export interface AdminTicketRedemptionRow {
   redeemedByUserId?: string | null;
   eventName?: string | null;
   seatLabel?: string | null;
+  seatId?: string | null;
+  categoryName?: string | null;
 }
 
 export interface AdminTicketRedemptionListResponse {

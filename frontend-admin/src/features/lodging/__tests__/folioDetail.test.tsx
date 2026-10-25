@@ -60,8 +60,10 @@ vi.mock('@/api/admin/lodging', () => ({
     isLoading: false,
     isError: false,
   }),
+  useAdminRooms: () => ({ data: [], isLoading: false, refetch: vi.fn() }),
   useChargeAdminFolio: () => ({ mutate: vi.fn(), isPending: false }),
   useCheckoutAdminFolio: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useMoveAdminFolio: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 describe('folio detail', () => {

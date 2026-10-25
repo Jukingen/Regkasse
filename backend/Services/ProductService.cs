@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -29,6 +30,22 @@ public interface IProductService
     /// Call after create / update / delete / stock changes — writes live on admin/product controllers.
     /// </summary>
     Task InvalidateProductsCacheAsync(Guid tenantId, Guid? productId = null);
+
+    /// <summary>
+    /// Trims and validates an optional product barcode. Empty becomes null.
+    /// Duplicate within the ambient tenant returns <see cref="ProductBarcodeWriteStatus.Duplicate"/>.
+    /// </summary>
+    Task<ProductBarcodeWriteResult> PrepareBarcodeAsync(
+        Guid tenantId,
+        string? rawBarcode,
+        Guid? exceptProductId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Active product for the ambient tenant, or null when the barcode is unknown.</summary>
+    Task<Product?> GetByBarcodeAsync(
+        Guid tenantId,
+        string barcode,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -128,8 +145,99 @@ public sealed class ProductService : IProductService
             CreatedAt = p.CreatedAt,
         });
 
+    public async Task<ProductBarcodeWriteResult> PrepareBarcodeAsync(
+        Guid tenantId,
+        string? rawBarcode,
+        Guid? exceptProductId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = ProductBarcodeRules.Normalize(rawBarcode);
+        if (normalized is null)
+            return ProductBarcodeWriteResult.Ok(null);
+
+        if (!ProductBarcodeRules.IsValid(normalized))
+        {
+            return ProductBarcodeWriteResult.Invalid(
+                "Barcode must be 1-64 letters, digits, or hyphens.");
+        }
+
+        var taken = await _db.Products.AsNoTracking().AnyAsync(
+            product => product.TenantId == tenantId
+                && product.Barcode == normalized
+                && (exceptProductId == null || product.Id != exceptProductId),
+            cancellationToken);
+        if (taken)
+            return ProductBarcodeWriteResult.Duplicate();
+
+        return ProductBarcodeWriteResult.Ok(normalized);
+    }
+
+    public async Task<Product?> GetByBarcodeAsync(
+        Guid tenantId,
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = ProductBarcodeRules.Normalize(barcode);
+        if (normalized is null || !ProductBarcodeRules.IsValid(normalized))
+            return null;
+
+        var product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(
+            item => item.TenantId == tenantId && item.IsActive && item.Barcode == normalized,
+            cancellationToken);
+        if (product is null)
+            return null;
+
+        product.HasVariants = await _db.ProductVariants.AsNoTracking().AnyAsync(
+            variant => variant.ProductId == product.Id,
+            cancellationToken);
+        return product;
+    }
+
     private static string BuildProductsListCacheKey(Guid tenantId, Guid? categoryId) =>
         categoryId is { } cat
             ? CacheKeys.Format(CacheKeys.ProductListByCategory, tenantId, cat)
             : CacheKeys.Format(CacheKeys.ProductList, tenantId);
+}
+
+public enum ProductBarcodeWriteStatus
+{
+    Ok,
+    Invalid,
+    Duplicate,
+}
+
+public sealed record ProductBarcodeWriteResult(ProductBarcodeWriteStatus Status, string? Barcode, string? Message)
+{
+    public const string DuplicateCode = "BARCODE_DUPLICATE";
+    public const string NotFoundCode = "BARCODE_NOT_FOUND";
+
+    public static ProductBarcodeWriteResult Ok(string? barcode) =>
+        new(ProductBarcodeWriteStatus.Ok, barcode, null);
+
+    public static ProductBarcodeWriteResult Invalid(string message) =>
+        new(ProductBarcodeWriteStatus.Invalid, null, message);
+
+    public static ProductBarcodeWriteResult Duplicate() =>
+        new(
+            ProductBarcodeWriteStatus.Duplicate,
+            null,
+            "A product with this barcode already exists for this tenant.");
+}
+
+public static class ProductBarcodeRules
+{
+    public const int MaxLength = 64;
+
+    private static readonly Regex Pattern = new(
+        "^[A-Za-z0-9-]{1,64}$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    public static string? Normalize(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        return raw.Trim();
+    }
+
+    public static bool IsValid(string barcode) => Pattern.IsMatch(barcode);
 }

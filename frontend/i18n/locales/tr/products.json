@@ -36,5 +36,9 @@
     "gridView": "Kategoriler kutu olarak"
   },
   "viewChips": "Liste",
-  "viewGrid": "Kutular"
+  "viewGrid": "Kutular",
+  "variantPickerTitle": "Varyant seçin",
+  "variantOutOfStock": "Stokta yok",
+  "variantAllOutOfStock": "Tüm varyantlar tükendi.",
+  "variantRequired": "Lütfen bir varyant seçin."
 }

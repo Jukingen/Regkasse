@@ -72,6 +72,33 @@ public sealed class PosRoomsController : ControllerBase
         };
     }
 
+    [HttpPost("rooms/{roomId:guid}/minibar")]
+    [ProducesResponseType(typeof(RoomMinibarItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RoomMinibarItemDto>> AddMinibar(
+        Guid roomId,
+        [FromBody] AddRoomMinibarRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        var result = await _lodging
+            .AddRoomMinibarAsync(tenantId, roomId, request, ignoreFilters: false, cancellationToken)
+            .ConfigureAwait(false);
+        return result switch
+        {
+            MinibarWriteResult.Ok ok => StatusCode(StatusCodes.Status201Created, ok.Item),
+            MinibarWriteResult.NotFound => NotFound(),
+            MinibarWriteResult.BadRequest bad => BadRequest(
+                new LodgingErrorDto { Code = bad.Code, Message = bad.Message }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError),
+        };
+    }
+
     [HttpPatch("rooms/{id:guid}")]
     [ProducesResponseType(typeof(RoomDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status400BadRequest)]
@@ -195,6 +222,36 @@ public sealed class PosRoomsController : ControllerBase
         var (userId, role) = Actor();
         var result = await _lodging
             .ChargeFolioAsync(tenantId, id, request, ignoreFilters: false, cancellationToken, userId, role)
+            .ConfigureAwait(false);
+        return MapFolio(result);
+    }
+
+    [HttpPost("folios/{id:guid}/move-room")]
+    [ProducesResponseType(typeof(GuestFolioDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LodgingErrorDto), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GuestFolioDto>> MoveRoom(
+        Guid id,
+        [FromBody] MoveFolioRoomRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return NotFound();
+
+        try
+        {
+            await _profileGuard.EnforceEndpointAsync("roomTracking", cancellationToken).ConfigureAwait(false);
+        }
+        catch (ProfileEndpointDisabledException ex)
+        {
+            return VerticalProfileGuardResponses.From(ex);
+        }
+
+        var (userId, role) = Actor();
+        var result = await _lodging
+            .MoveRoomAsync(tenantId, id, request.NewRoomId, ignoreFilters: false, cancellationToken, userId, role)
             .ConfigureAwait(false);
         return MapFolio(result);
     }

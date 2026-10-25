@@ -19,6 +19,8 @@ public static class FinanzOnlineOutboxStatuses
     public const string PermanentFailure = "PermanentFailure";
     public const string ManualReviewRequired = "ManualReviewRequired";
     public const string DeadLetter = "DeadLetter";
+    /// <summary>Operator closed the row without another FON submit. The worker does not claim this status.</summary>
+    public const string Resolved = "Resolved";
 }
 
 public static class FinanzOnlineFailureCategories
@@ -234,6 +236,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
     private readonly IOptionsMonitor<FinanzOnlineOutboxOptions> _options;
     private readonly ILogger<FinanzOnlineOutboxHostedService> _logger;
     private readonly FinanzOnlineOutboxEnabledOverrideCache? _enabledCache;
+    private readonly IFinanzOnlineOutboxWorkerSignal? _workerSignal;
     private long _cycleIndex;
     private string? _lastLoggedFingerprint;
 
@@ -241,12 +244,14 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         IServiceProvider serviceProvider,
         IOptionsMonitor<FinanzOnlineOutboxOptions> options,
         ILogger<FinanzOnlineOutboxHostedService> logger,
-        FinanzOnlineOutboxEnabledOverrideCache? enabledCache = null)
+        FinanzOnlineOutboxEnabledOverrideCache? enabledCache = null,
+        IFinanzOnlineOutboxWorkerSignal? workerSignal = null)
     {
         _serviceProvider = serviceProvider;
         _options = options;
         _logger = logger;
         _enabledCache = enabledCache;
+        _workerSignal = workerSignal;
     }
 
     private FinanzOnlineOutboxOptions EffectiveOptions() =>
@@ -308,7 +313,10 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                 }
             }
 
-            await Task.Delay(opts.PollInterval, stoppingToken).ConfigureAwait(false);
+            if (_workerSignal != null)
+                await _workerSignal.DelayAsync(opts.PollInterval, stoppingToken).ConfigureAwait(false);
+            else
+                await Task.Delay(opts.PollInterval, stoppingToken).ConfigureAwait(false);
         }
     }
 

@@ -242,6 +242,9 @@ export function getPaymentErrorDisplayMessage(err: unknown): string {
     }
     const reg = mapBackendCashRegisterCodeToGerman(err.diagnosticCode);
     if (reg) return reg;
+    if (err.diagnosticCode === 'VARIANT_REQUIRED') {
+      return i18n.t('products:variantRequired');
+    }
     return getPaymentErrorMessage(err.code);
   }
   return err instanceof Error ? err.message : i18n.t('payment:errors.retry');
@@ -288,6 +291,9 @@ export function getPaymentResponseFailureMessage(response: {
   }
   const reg = mapBackendCashRegisterCodeToGerman(response.diagnosticCode);
   if (reg) return reg;
+  if (response.diagnosticCode === 'VARIANT_REQUIRED' || response.code === 'VARIANT_REQUIRED') {
+    return i18n.t('products:variantRequired');
+  }
   if (!response.diagnosticCode && looksLikeTseFailure(response.message, response.error)) {
     return i18n.t('payment:errors.tseUnavailable');
   }

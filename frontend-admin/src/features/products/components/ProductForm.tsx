@@ -1,7 +1,7 @@
 'use client';
 
 import { UploadOutlined } from '@ant-design/icons';
-import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Table, Tag, Upload } from 'antd';
+import { Alert, Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Table, Tabs, Tag, Upload } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { MAX_PRODUCT_IMAGE_BYTES, uploadAdminProductImage } from '@/api/admin/products';
@@ -12,8 +12,9 @@ import { Product } from '@/api/generated/model';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { TaxSelect } from '@/components/TaxSelect';
 import { useCategories } from '@/features/categories/hooks/useCategories';
+import ProductVariantsPanel from '@/features/products/components/ProductVariantsPanel';
 import { taxRateToType } from '@/features/products/utils/productMapper';
-import { shouldShowDurationAndStaffFields, shouldShowImeiTracking, shouldShowTicketFlag } from '@/features/products/utils/productVerticalFields';
+import { shouldShowDurationAndStaffFields, shouldShowImeiTracking, shouldShowTicketFlag, shouldShowVariants } from '@/features/products/utils/productVerticalFields';
 import { PriceChangeModal } from '@/features/tax/components/PriceChangeModal';
 import { PriceHistoryCard } from '@/features/tax/components/PriceHistoryCard';
 import type { PriceChangeResult } from '@/features/tax/api/priceHistory';
@@ -21,6 +22,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCurrentTaxRegulation } from '@/hooks/useCurrentTaxRegulation';
 import { resolveTaxGroupForProduct, useTaxGroups } from '@/hooks/useTaxGroups';
 import { useI18n } from '@/i18n';
+import { translateApiError } from '@/lib/api/errorTranslator';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 import {
   type ModifierGroupDto,
   getModifierGroups,
@@ -56,7 +59,8 @@ const { TextArea } = Input;
 /** Aligned with backend Product model / AdminProductsController field limits. */
 const PRODUCT_NAME_MAX_LENGTH = 200;
 const PRODUCT_DESCRIPTION_MAX_LENGTH = 2000;
-const PRODUCT_BARCODE_MAX_LENGTH = 50;
+const PRODUCT_BARCODE_MAX_LENGTH = 64;
+const PRODUCT_BARCODE_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 export default function ProductForm(props: ProductFormProps) {
   if (!props.visible) {
@@ -155,6 +159,9 @@ function ProductFormContent({
   const { data: verticalProfile } = useAmbientVerticalProfile(visible);
   const showDurationStaff = shouldShowDurationAndStaffFields(verticalProfile?.posFeatures);
   const showImeiTracking = shouldShowImeiTracking(verticalProfile?.posFeatures);
+  const showVariants = shouldShowVariants(verticalProfile?.posFeatures);
+  const showVariantsTab = showVariants && isEditMode && Boolean(initialValues?.id);
+  const [detailTab, setDetailTab] = useState<'product' | 'variants'>('product');
   const showTicketFlag = shouldShowTicketFlag(
     verticalProfile?.profileId,
     verticalProfile?.posFeatures
@@ -197,6 +204,19 @@ function ProductFormContent({
     () => ({
       max: PRODUCT_BARCODE_MAX_LENGTH,
       message: t('products.form.fieldMaxLength', { max: PRODUCT_BARCODE_MAX_LENGTH }),
+    }),
+    [t]
+  );
+
+  const barcodePatternRule = useMemo(
+    () => ({
+      validator: async (_: unknown, value: unknown) => {
+        const raw = typeof value === 'string' ? value.trim() : '';
+        if (!raw) return;
+        if (!PRODUCT_BARCODE_PATTERN.test(raw)) {
+          throw new Error(t('products.form.barcodeInvalid'));
+        }
+      },
     }),
     [t]
   );
@@ -358,6 +378,13 @@ function ProductFormContent({
 
         // If there's an error on a hidden field (shouldn't happen with defaults, but just in case),
         // we might want to know.
+      } else if (normalizeApiError(error).code === 'BARCODE_DUPLICATE') {
+        message.error(
+          translateApiError(t, error, {
+            skipLog: true,
+            fallbackKey: 'products.messages.updateError',
+          })
+        );
       } else if (axiosError.response?.data?.title) {
         message.error(axiosError.response.data.title);
       }
@@ -380,6 +407,19 @@ function ProductFormContent({
       okText={t('common.buttons.save')}
       cancelText={t('common.buttons.cancel')}
     >
+      {showVariantsTab ? (
+        <Tabs
+          activeKey={detailTab}
+          onChange={(key) => setDetailTab(key as 'product' | 'variants')}
+          destroyOnHidden={false}
+          styles={{ content: { display: 'none' } }}
+          items={[
+            { key: 'product', label: t('products.form.tabProduct') },
+            { key: 'variants', label: t('products.variants.tab') },
+          ]}
+        />
+      ) : null}
+      <div style={{ display: showVariantsTab && detailTab === 'variants' ? 'none' : 'block' }}>
       <Form form={form} layout="vertical" initialValues={{ isActive: true }}>
         {/* Hidden Fields to hold state */}
         <Form.Item name="unit" hidden>
@@ -469,7 +509,7 @@ function ProductFormContent({
           <Form.Item
             name="barcode"
             label={t('products.form.barcode')}
-            rules={[barcodeMaxLengthRule]}
+            rules={[barcodeMaxLengthRule, barcodePatternRule]}
           >
             <Input
               placeholder={t('products.form.barcodePlaceholder')}
@@ -719,6 +759,10 @@ function ProductFormContent({
           />
         </Form.Item>
       </Form>
+      </div>
+      {showVariantsTab && detailTab === 'variants' ? (
+        <ProductVariantsPanel productId={String(initialValues?.id)} />
+      ) : null}
     </Modal>
 
       {isEditMode && initialValues?.id ? (

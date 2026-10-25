@@ -63,6 +63,8 @@ export interface CartItem {
   taxType?: number | string;
   /** Extra Zutaten – her biri kendi quantity ile; toplam = sum(price * quantity). */
   modifiers?: CartItemModifier[];
+  /** Catalog variant metadata. Not a fiscal field and not written into the receipt. */
+  variantId?: string;
 }
 
 /** Satır toplamı: (ürün birim fiyat * ürün miktarı) + (her modifier: price * quantity). */
@@ -70,6 +72,38 @@ export function getCartLineTotal(item: CartItem): number {
   const base = (item.unitPrice ?? item.price ?? 0) * (item.qty ?? 0);
   const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
   return base + modTotal;
+}
+
+/** Keep variant lines after the cart API replaces local items. Tax fields come from the backend line. */
+export function overlayVariantLines(optimistic: CartItem[], backend: CartItem[]): CartItem[] {
+  if (!optimistic.some((item) => item.variantId)) return backend;
+  return optimistic.map((local) => {
+    const match = backend.find((row) => row.productId === local.productId);
+    if (!local.variantId) {
+      return match ? { ...match, clientId: local.clientId ?? match.clientId } : local;
+    }
+    return {
+      ...local,
+      taxType: match?.taxType ?? local.taxType,
+      taxRate: match?.taxRate ?? local.taxRate,
+      itemId: local.itemId ?? match?.itemId,
+    };
+  });
+}
+
+function cartsWithoutVariantIds(carts: Record<number, Cart>): Record<number, Cart> {
+  const next: Record<number, Cart> = {};
+  for (const [tableId, cart] of Object.entries(carts)) {
+    next[Number(tableId)] = {
+      ...cart,
+      items: cart.items.map((item) => {
+        const next = { ...item };
+        delete next.variantId;
+        return next;
+      }),
+    };
+  }
+  return next;
 }
 
 export interface Cart {
@@ -116,7 +150,12 @@ interface CartContextType {
   addItem: (
     productId: string,
     quantity?: number,
-    options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
+    options?: {
+      modifiers?: CartItemModifier[];
+      productName?: string;
+      unitPrice?: number;
+      variantId?: string;
+    }
   ) => Promise<void>;
   /** Base + add-ons: one line for base, one per add-on (flat cart). No parent_product_id in backend; order implies link. */
   addItemWithAddOns: (
@@ -197,7 +236,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await storage.setJson('cart-storage', {
           state: {
             activeTableId,
-            cartsByTable,
+            cartsByTable: cartsWithoutVariantIds(cartsByTable),
           },
           version: 0,
         });
@@ -420,7 +459,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     async (
       productId: string,
       quantity: number = 1,
-      options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
+      options?: {
+        modifiers?: CartItemModifier[];
+        productName?: string;
+        unitPrice?: number;
+        variantId?: string;
+      }
     ) => {
       const currentCart = cartsByTable[activeTableId] || { items: [] };
       const rawMods = options?.modifiers ?? [];
@@ -432,6 +476,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         groupId: m.groupId,
       }));
       const modKey = getModifierKey(modifiers);
+      const variantKey = options?.variantId ?? '';
       const productName = options?.productName ?? 'Loading...';
       const baseUnitPrice = options?.unitPrice ?? 0;
       const modifierTotal = modifiers.reduce((s, m) => s + m.price * m.quantity, 0);
@@ -445,7 +490,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Aynı productId + aynı modifier set (id:qty) = mevcut satıra sadece ürün miktarı ekle; modifier miktarları değişmez
       const existingItemIndex = currentCart.items.findIndex(
-        (item) => item.productId === productId && getModifierKey(item.modifiers) === modKey
+        (item) =>
+          item.productId === productId &&
+          getModifierKey(item.modifiers) === modKey &&
+          (item.variantId ?? '') === variantKey
       );
       let optimisticCart: Cart;
 
@@ -478,6 +526,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               unitPrice: baseUnitPrice,
               totalPrice: lineTotalPrice,
               modifiers: modifiers.length ? modifiers : undefined,
+              variantId: options?.variantId,
               itemId: undefined,
               clientId,
             },
@@ -563,16 +612,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             };
           });
 
+          const items = overlayVariantLines(optimisticCart.items, localItems);
+          const variantLineGross = items.some((item) => item.variantId)
+            ? items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
+            : undefined;
           setCartsByTable((prev) => ({
             ...prev,
             [activeTableId]: {
-              items: localItems,
+              items,
               updatedAt: Date.now(),
               cartId: backendCart.CartId || backendCart.cartId,
-              subtotalGross: backendCart.SubtotalGross ?? backendCart.subtotalGross,
+              subtotalGross: variantLineGross ?? backendCart.SubtotalGross ?? backendCart.subtotalGross,
               subtotalNet: backendCart.SubtotalNet ?? backendCart.subtotalNet,
               includedTaxTotal: backendCart.IncludedTaxTotal ?? backendCart.includedTaxTotal,
-              grandTotalGross: backendCart.GrandTotalGross ?? backendCart.grandTotalGross,
+              grandTotalGross:
+                variantLineGross ?? backendCart.GrandTotalGross ?? backendCart.grandTotalGross,
               taxSummary: backendCart.TaxSummary ?? backendCart.taxSummary,
             },
           }));

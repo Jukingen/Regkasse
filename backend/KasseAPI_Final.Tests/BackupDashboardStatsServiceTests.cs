@@ -124,6 +124,59 @@ public sealed class BackupDashboardStatsServiceTests
         var stats = await sut.GetAsync();
 
         Assert.Equal(20, stats.RtoMinutes);
+        Assert.Equal(completed, stats.LastSuccessfulRestoreDrillAtUtc);
+    }
+
+    [Fact]
+    public async Task GetAsync_ManualRestoreSuccess_DoesNotSetScheduledDrillProof()
+    {
+        var now = new DateTime(2026, 5, 27, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_ManualRestoreSuccess_DoesNotSetScheduledDrillProof), now);
+        var scheduledAt = now.AddDays(-3);
+        var manualAt = now.AddHours(-1);
+
+        db.RestoreVerificationRuns.AddRange(
+            new RestoreVerificationRun
+            {
+                Status = RestoreVerificationStatus.Succeeded,
+                TriggerSource = RestoreVerificationTriggerSource.Scheduled,
+                RequestedAt = scheduledAt.AddMinutes(-5),
+                StartedAt = scheduledAt.AddMinutes(-5),
+                CompletedAt = scheduledAt,
+            },
+            new RestoreVerificationRun
+            {
+                Status = RestoreVerificationStatus.Succeeded,
+                TriggerSource = RestoreVerificationTriggerSource.Manual,
+                RequestedAt = manualAt.AddMinutes(-10),
+                StartedAt = manualAt.AddMinutes(-10),
+                CompletedAt = manualAt,
+            });
+        await db.SaveChangesAsync();
+
+        var stats = await sut.GetAsync();
+
+        Assert.Equal(scheduledAt, stats.LastSuccessfulRestoreDrillAtUtc);
+    }
+
+    [Fact]
+    public async Task GetAsync_OnlyManualRestoreSuccess_LeavesDrillProofEmpty()
+    {
+        var now = new DateTime(2026, 5, 27, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_OnlyManualRestoreSuccess_LeavesDrillProofEmpty), now);
+
+        db.RestoreVerificationRuns.Add(new RestoreVerificationRun
+        {
+            Status = RestoreVerificationStatus.Succeeded,
+            TriggerSource = RestoreVerificationTriggerSource.Manual,
+            RequestedAt = now.AddHours(-1),
+            CompletedAt = now.AddHours(-1),
+        });
+        await db.SaveChangesAsync();
+
+        var stats = await sut.GetAsync();
+
+        Assert.Null(stats.LastSuccessfulRestoreDrillAtUtc);
     }
 
     [Fact]

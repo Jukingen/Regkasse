@@ -61,7 +61,7 @@ public sealed class PosTicketEventsController : ControllerBase
     {
         if (!await AllowAsync(cancellationToken).ConfigureAwait(false))
             return NotFound();
-        var result = await _events.ReserveAsync(id, request.SeatId, cancellationToken).ConfigureAwait(false);
+        var result = await _events.ReserveAsync(id, request.SeatId, ActorUserId(), cancellationToken).ConfigureAwait(false);
         return From(result);
     }
 
@@ -78,9 +78,14 @@ public sealed class PosTicketEventsController : ControllerBase
             return NotFound();
         if (!await ProfileAllowsAsync(cancellationToken).ConfigureAwait(false))
             return NotFound();
-        var result = await _events.SellAsync(tenantId, id, request.SeatId, cancellationToken).ConfigureAwait(false);
+        var result = await _events.SellAsync(tenantId, id, request.SeatId, ActorUserId(), cancellationToken).ConfigureAwait(false);
         return From(result);
     }
+
+    private string ActorUserId() =>
+        User.FindFirst("sub")?.Value
+        ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+        ?? string.Empty;
 
     private async Task<bool> AllowAsync(CancellationToken cancellationToken)
     {

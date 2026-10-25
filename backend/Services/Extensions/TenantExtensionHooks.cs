@@ -8,6 +8,7 @@ public static class TenantExtensionHooks
     public const string ReceiptBeforePrint = "receipt.before-print";
     public const string CustomerBeforeSave = "customer.before-save";
     public const string FolioBeforeClose = "folio.before-close";
+    public const string FolioOpened = "folio.opened";
 }
 
 public static class TenantExtensionSettings
@@ -20,6 +21,10 @@ public static class TenantExtensionNames
 {
     public const string HairSalonCampaign = "hair_salon_campaign";
     public const string PrescriptionRequired = "prescription_required";
+    public const string VetPrescription = "vet_prescription";
+    public const string MinibarAutoCharge = "minibar_auto_charge";
+    public const string BreakfastIncluded = "breakfast_included";
+    public const string LateCheckoutFee = "late_checkout_fee";
 }
 
 /// <summary>

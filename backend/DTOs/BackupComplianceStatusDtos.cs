@@ -39,6 +39,20 @@ public sealed class BackupComplianceStatusResponseDto
 
     [JsonPropertyName("backups")]
     public List<BackupComplianceListItemDto> Backups { get; init; } = new();
+
+    /// <summary>
+    /// Known-gap card for the ambient tenant. Empty when no tenant is selected.
+    /// Accepted open gaps are amber. The verdict stays fail unless gate override is enabled.
+    /// </summary>
+    [JsonPropertyName("knownGaps")]
+    public IReadOnlyList<BackupKnownGapCardDto> KnownGaps { get; init; } = [];
+
+    /// <summary><c>pass</c> or <c>fail</c>. Null when the card was not evaluated.</summary>
+    [JsonPropertyName("knownGapVerdict")]
+    public string? KnownGapVerdict { get; init; }
+
+    [JsonPropertyName("knownGapsAllowGateOverride")]
+    public bool KnownGapsAllowGateOverride { get; init; }
 }
 
 public sealed class BackupComplianceListItemDto

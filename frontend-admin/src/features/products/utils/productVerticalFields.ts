@@ -11,6 +11,12 @@ export function shouldShowImeiTracking(
   return posFeatures?.imeiTracking === true;
 }
 
+export function shouldShowVariants(
+  posFeatures: Record<string, boolean> | undefined | null
+): boolean {
+  return posFeatures?.variants === true;
+}
+
 export function shouldShowTicketFlag(
   profileId: string | undefined | null,
   posFeatures?: Record<string, boolean> | undefined | null

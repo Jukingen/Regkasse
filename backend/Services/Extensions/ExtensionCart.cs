@@ -1,13 +1,20 @@
 namespace KasseAPI_Final.Services.Extensions;
 
 /// <summary>One gross cart line passed through <c>payment.before-sign</c>.</summary>
-public sealed record ExtensionCartLine(Guid ProductId, int Quantity, int TaxType, decimal GrossTotal);
+public sealed record ExtensionCartLine(
+    Guid ProductId,
+    int Quantity,
+    int TaxType,
+    decimal GrossTotal,
+    bool RequiresPrescription = false);
 
 public static class ExtensionCart
 {
     public const string LinesKey = "lines";
     public const string TotalGrossKey = "totalGross";
     public const string AppliedCampaignIdsKey = "appliedCampaignIds";
+    public const string HasPrescriptionKey = "hasPrescription";
+    public const string PrescriptionReferenceKey = "prescriptionReference";
 
     public static List<ExtensionCartLine> ReadLines(IReadOnlyDictionary<string, object?>? payload)
     {

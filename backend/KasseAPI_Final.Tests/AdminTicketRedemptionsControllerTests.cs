@@ -44,6 +44,72 @@ public sealed class AdminTicketRedemptionsControllerTests
         var row = Assert.Single(body.Items);
         Assert.Equal(TicketCodeHasher.DisplayPrefix(hash), row.DisplayCode);
         Assert.DoesNotContain(plaintext, row.DisplayCode, StringComparison.Ordinal);
+        Assert.Null(row.SeatId);
+        Assert.Null(row.CategoryName);
+    }
+
+    [Fact]
+    public async Task List_IncludesCategoryName_WhenSeatIsSet()
+    {
+        var tenantId = Guid.NewGuid();
+        await using var db = await CreateDbAsync(tenantId);
+        SeedTenant(db, tenantId);
+        var categoryId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+        var seatId = Guid.NewGuid();
+        db.TicketPriceCategories.Add(new TicketPriceCategory
+        {
+            Id = categoryId,
+            TenantId = tenantId,
+            Code = "vip",
+            Name = "VIP",
+            SortOrder = 1,
+            IsActive = true,
+        });
+        db.TicketEvents.Add(new TicketEvent
+        {
+            Id = eventId,
+            TenantId = tenantId,
+            Name = "Kammerkonzert",
+            Venue = "Saal 1",
+            Capacity = 20,
+            IsActive = true,
+            StageEdge = "top",
+            StartAtUtc = DateTime.UtcNow,
+            EndAtUtc = DateTime.UtcNow.AddHours(2),
+        });
+        db.TicketSeats.Add(new TicketSeat
+        {
+            Id = seatId,
+            EventId = eventId,
+            Row = "A",
+            Number = "1",
+            CategoryId = categoryId,
+            GridColumn = 1,
+            SeatRole = TicketSeatRole.Accessible,
+        });
+        var hash = TicketCodeHasher.HashRaw("TKT-SEATCAT0001");
+        db.TicketRedemptions.Add(new TicketRedemption
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            EventId = eventId,
+            SeatId = seatId,
+            TicketCode = TicketCodeHasher.DisplayPrefix(hash),
+            TicketCodeHash = hash,
+            Status = TicketRedemptionStatus.Valid,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.List(status: null, tenantId: null, CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<TicketRedemptionListResponse>(ok.Value);
+        var row = Assert.Single(body.Items);
+        Assert.Equal(seatId, row.SeatId);
+        Assert.Equal("VIP", row.CategoryName);
+        Assert.Equal("Kammerkonzert", row.EventName);
     }
 
     [Fact]

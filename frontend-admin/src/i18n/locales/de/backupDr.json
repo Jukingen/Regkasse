@@ -679,6 +679,24 @@
     "title": "Bekannte Grenzen (Outbox / TSE / Infra)",
     "body": "Datenbank-Backup ersetzt keine vollständige RKSV-/TSE-Sicherung; Outbox- und Signatur-Anforderungen können zusätzliche Betriebsprozesse brauchen. Ziele wie RPO/RTO hängen von Infrastruktur ab, nicht von dieser Oberfläche."
   },
+  "knownGapAcceptance": {
+    "title": "Bekannte Backup/DR-Lücken",
+    "description": "Bestätigung schaltet die Prüfung nicht ab. Eine bekannte Lücke wird gelb statt rot. Das Gesamt-Gate bleibt fehlgeschlagen, solange AllowsGateOverride aus ist.",
+    "save": "Bestätigung speichern",
+    "saved": "Bekannte Lücken wurden gespeichert.",
+    "loadFailed": "Bekannte Lücken konnten nicht geladen werden.",
+    "invalidGaps": "Mindestens eine Lücken-ID ist unbekannt.",
+    "acceptedOn": "Bekannt, akzeptiert am {{date}}",
+    "verdictPass": "Gate bestanden",
+    "verdictFail": "Gate nicht bestanden",
+    "noTenant": "Bitte einen Mandanten wählen, um bekannte Lücken zu bestätigen.",
+    "gaps": {
+      "externalArchiveNotSet": "Externes Archiv nicht gesetzt",
+      "scheduledDrillNotRun": "Geplanter Restore-Drill überfällig",
+      "systemLegalHoldNotConfigured": "System-Legal-Hold nicht konfiguriert",
+      "devOnlyFakeAdapter": "Nur Entwicklung: Fake-Adapter"
+    }
+  },
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
     "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach Erfolg: Artefakte unten herunterladbar (auch Fake/ProductionStub-Stubs auf dem Server — kein Produktions-pg_dump). „Einstellungen verwalten“; Audit.",
@@ -1652,6 +1670,33 @@
       "findings": "Hinweise"
     }
   },
+  "drills": {
+    "pageTitle": "Restore-Drills",
+    "pageSubtitle": "Vergangene Restore-Prüfungen: Zeit, Dauer, Ergebnis. Keine Dateipfade.",
+    "timelineTitle": "Drill-Verlauf",
+    "empty": "Keine Restore-Drills geladen.",
+    "columns": {
+      "date": "Datum",
+      "duration": "Dauer",
+      "result": "Ergebnis",
+      "reason": "Grund"
+    },
+    "result": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "pending": "Offen"
+    },
+    "successRate": "Erfolgsquote (30 Tage)",
+    "lastSuccess": "Letzter geplanter Drill-Nachweis",
+    "daysSince": "Tage seit dem geplanten Nachweis",
+    "durationUnknown": "Dauer unbekannt",
+    "reasonHidden": "Details ausgeblendet",
+    "scheduleTitle": "Drill-Plan",
+    "scheduleNext": "Nächster Termin (Standard): {{date}}",
+    "scheduleOverdue": "Fenster überfällig seit {{date}}",
+    "scheduleEmpty": "Noch kein geplanter Drill-Nachweis.",
+    "cadenceNote": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard. Manuelle Drills setzen ihn nicht zurück. Standardrhythmus {{days}} Tage; diese Ansicht liest keine Deployment-Abweichung."
+  },
   "compliance": {
     "pageTitle": "RKSV-Compliance-Status",
     "pageSubtitle": "Backup Restore-Readiness (30 Tage) — Produktregeln, keine BMF-Zertifizierung.",
@@ -1691,6 +1736,18 @@
       "missingLogicalDump": "Kein Logikdump",
       "backupNotSucceeded": "Nicht erfolgreich",
       "unknown": "Sonstiges"
+    },
+    "gate": {
+      "title": "Produkt-Gate",
+      "systemBackup": "Letztes erfolgreiches System-Backup",
+      "legalHold": "7-Jahres-Legal-Hold",
+      "drill": "Letzter geplanter Restore-Nachweis",
+      "drillThreshold": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard (nur geplante Erfolge). Grün: höchstens 14 Tage alt. Gelb: älter als 14 Tage. Rot: älter als 30 Tage oder kein geplanter Nachweis.",
+      "missing": "Kein Nachweis",
+      "simulated": "Simulierter Lauf",
+      "green": "Grün",
+      "yellow": "Gelb",
+      "red": "Rot"
     }
   },
   "costs": {
@@ -1754,6 +1811,16 @@
         "title": "Kostenprofil wirkt gesund",
         "description": "Budget und Tier-Mix liegen im erwarteten Bereich. Bei starkem Mandantenwachstum weiter beobachten."
       }
+    },
+    "insights": {
+      "trendTitle": "Speicherkostentrend (90 Tage)",
+      "trendHint": "Schätzung aus der Größe erfolgreicher Dumps mal aktuellem €/GB. Keine Rechnung.",
+      "retentionTitle": "Auswirkung der Aufbewahrung",
+      "retentionActual": "Aktuelle Schätzung",
+      "retentionAllHot": "Alles als Hot",
+      "tierTitle": "Tier-Verteilung",
+      "monthlyEstimate": "Monatsschätzung",
+      "emptyTrend": "Keine Dump-Größen in den letzten 90 Tagen."
     }
   },
   "retention": {

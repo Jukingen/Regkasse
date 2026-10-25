@@ -83,6 +83,25 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 
 ---
 
+## Known-gap acceptance
+
+Super Admin can acknowledge a known Backup/DR gap for one mandant. The record is `tenant_settings` key `Backup:KnownGapsAccepted` (`acceptedGaps`, `acceptedBy`, `acceptedAtUtc`). There is no new table and no deployment-wide row. The catalog is `backend/Services/Backup/BackupKnownGaps.json` (version 1):
+
+| Id | Meaning when accepted |
+|----|------------------------|
+| `external-archive-not-set` | Archive root is missing (health Degraded). The operator knows; dumps stay in the database path only. |
+| `scheduled-drill-not-run` | The weekly scheduled drill is more than 7 days late. The operator knows; the next scheduled run is unchanged. |
+| `system-legal-hold-not-configured` | Legal hold is missing on the latest succeeded system backup. Legal review is on file. |
+| `dev-only-fake-adapter` | Development is using the fake adapter. Expected in that environment. |
+
+Acceptance does **not** disable the check and does **not** move `lastSuccessfulRestoreProofAt` or `lastSuccessfulRestoreDrillAtUtc`. An accepted open gap is amber ("known") on `/backup/compliance`, `/backup/dashboard`, and an overdue drill row on `/backup/drills`. The compliance verdict stays fail unless `Backup:KnownGapsAcceptance` is `{ "AllowsGateOverride": true }` (default false). Even then the card stays amber; it does not turn green.
+
+API (Super Admin, `system.critical`): `GET /api/admin/backup/known-gaps?tenantId=` and `PUT /api/admin/backup/known-gaps` with `{ tenantId, acceptedGapIds, acceptedBy }`. Unknown ids are HTTP 400 `BACKUP_KNOWN_GAP_UNKNOWN`. A missing tenant is HTTP 404. Every save writes audit `BackupKnownGapsAccepted` (142). The FA panel is on `/backup/compliance` only (no new route, no sidebar entry).
+
+## Weekly drill summary
+
+`BackupDrillReport` (default off, Monday 06:00 UTC) emails the recoverability proof time, days since that proof, the next drill cadence, the 30-day drill success rate, and `Backup:KnownGapsAccepted` rows. If no recipients are configured, the run is recorded as `BackupDrillReportSkipped` (145, reason: no-recipients) and no email is sent. A send writes `BackupDrillReportSent` (143), and a failed send writes `BackupDrillReportFailed` (144).
+
 ## Key code
 
 | Area | Path |
@@ -92,7 +111,8 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 | Access filter | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | Tenant export | `TenantScopedLogicalBackupExecutionAdapter`, `TenantScopedBackupExporter` |
 | System export | `CompositeSystemBackupExecutionAdapter`, `SystemScopedBackupExporter` |
-| API | `AdminBackupController`, `AdminBackupPitrController`, `AdminRestoreController` |
+| API | `AdminBackupController`, `AdminBackupKnownGapsController`, `AdminBackupPitrController`, `AdminRestoreController` |
+| Weekly drill summary | `BackupDrillReportHostedService`, `BackupDrillReport` |
 | PITR / incremental / WAL | `PitrService`, `IncrementalBackupService`, `WalArchiveService`, `BackupChainService` |
 | FA hub | `frontend-admin/src/app/(protected)/backup/page.tsx` |
 

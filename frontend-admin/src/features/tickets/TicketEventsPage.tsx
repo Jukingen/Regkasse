@@ -1,11 +1,12 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, DatePicker, Form, Input, InputNumber, Space, Table, Typography } from 'antd';
+import { Button, DatePicker, Form, Input, InputNumber, Space, Table, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { useState } from 'react';
 
 import {
   adminTicketEventQueryKeys,
@@ -14,6 +15,7 @@ import {
   type AdminTicketEvent,
 } from '@/api/admin/ticket-events';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TicketPriceCategoriesPanel } from '@/features/tickets/TicketPriceCategoriesPanel';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -34,6 +36,7 @@ export function TicketEventsPage() {
   const canManage = hasPermission(PERMISSIONS.PRODUCT_MANAGE);
   const queryClient = useQueryClient();
   const [form] = Form.useForm<EventFormValues>();
+  const [tab, setTab] = useState('events');
   const list = useAdminTicketEvents();
 
   const create = useMutation({
@@ -69,12 +72,8 @@ export function TicketEventsPage() {
     },
   ];
 
-  return (
+  const eventsPanel = (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-      <AdminPageHeader
-        title={t('products.ticketEvents.title')}
-        subtitle={t('products.ticketEvents.subtitle')}
-      />
       {canManage ? (
         <Form<EventFormValues>
           form={form}
@@ -135,6 +134,32 @@ export function TicketEventsPage() {
         columns={columns}
         pagination={false}
         locale={{ emptyText: t('products.ticketEvents.empty') }}
+      />
+    </Space>
+  );
+
+  return (
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+      <AdminPageHeader
+        title={t('products.ticketEvents.title')}
+        subtitle={t('products.ticketEvents.subtitle')}
+      />
+      <Tabs
+        activeKey={tab}
+        destroyOnHidden
+        onChange={setTab}
+        items={[
+          {
+            key: 'events',
+            label: t('products.ticketEvents.tabEvents'),
+            children: tab === 'events' ? eventsPanel : null,
+          },
+          {
+            key: 'categories',
+            label: t('products.ticketEvents.tabCategories'),
+            children: tab === 'categories' ? <TicketPriceCategoriesPanel /> : null,
+          },
+        ]}
       />
     </Space>
   );

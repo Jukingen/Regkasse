@@ -14,6 +14,13 @@ import { I18nProvider } from '@/i18n';
 
 import SuperAdminTenantsPage from '../page';
 
+vi.mock('next/dynamic', async () => {
+  const { default: TenantsTable } = await import('@/features/super-admin/components/TenantsTable');
+  return {
+    default: () => TenantsTable,
+  };
+});
+
 const mockListAdminTenantsPaged = vi.fn();
 const mockSoftDeleteAdminTenant = vi.fn();
 const mockRestoreAdminTenant = vi.fn();
@@ -134,7 +141,10 @@ function paged(items: AdminTenantListItem[]) {
 
 function renderPage() {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false },
+      mutations: { retry: false },
+    },
   });
   return render(
     <QueryClientProvider client={queryClient}>
@@ -167,7 +177,8 @@ describe('SuperAdminTenantsPage', () => {
 
   it('renders includeDeleted toggle for Super Admin', async () => {
     renderPage();
-    await waitFor(() => expect(mockListAdminTenantsPaged).toHaveBeenCalled());
+    expect(await screen.findByText('Cafe Demo')).toBeInTheDocument();
+    expect(mockListAdminTenantsPaged).toHaveBeenCalled();
     expect(mockListAdminTenantsPaged.mock.calls[0][0]).toMatchObject({ includeDeleted: false });
     expect(screen.getByText('Gelöschte anzeigen')).toBeInTheDocument();
     expect(screen.getByRole('switch')).toBeInTheDocument();
@@ -175,7 +186,7 @@ describe('SuperAdminTenantsPage', () => {
 
   it('shows export CSV and filter controls', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Cafe Demo')).toBeInTheDocument());
+    expect(await screen.findByText('Cafe Demo')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /CSV exportieren/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Name oder Subdomain/i)).toBeInTheDocument();
     expect(screen.getByText('Gastronomie')).toBeInTheDocument();
@@ -193,7 +204,7 @@ describe('SuperAdminTenantsPage', () => {
 
   it('archive button opens modal and calls soft-delete API', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByText('Cafe Demo')).toBeInTheDocument());
+    expect(await screen.findByText('Cafe Demo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Archivieren/i }));
 
@@ -207,7 +218,7 @@ describe('SuperAdminTenantsPage', () => {
   it('hard delete submit disabled until slug, phrase and retention ack confirmed', async () => {
     mockListAdminTenantsPaged.mockResolvedValue(paged([deletedTenant]));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Closed Shop')).toBeInTheDocument());
+    expect(await screen.findByText('Closed Shop')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Endgültig löschen/i }));
 
@@ -230,7 +241,7 @@ describe('SuperAdminTenantsPage', () => {
   it('restore button appears for deleted tenants', async () => {
     mockListAdminTenantsPaged.mockResolvedValue(paged([deletedTenant]));
     renderPage();
-    await waitFor(() => expect(screen.getByText('Closed Shop')).toBeInTheDocument());
+    expect(await screen.findByText('Closed Shop')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Wiederherstellen/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Endgültig löschen/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Archivieren/i })).not.toBeInTheDocument();

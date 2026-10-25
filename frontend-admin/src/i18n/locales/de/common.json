@@ -85,6 +85,20 @@
     "http503": "Dienst voruebergehend nicht verfuegbar.",
     "network": "Netzwerkfehler. Bitte Verbindung pruefen."
   },
+  "apiErrors": {
+    "finanzOnlineOutboxNotFound": "Die Outbox-Meldung wurde nicht gefunden.",
+    "finanzOnlineOutboxAlreadySent": "Die Outbox-Meldung wurde bereits übermittelt.",
+    "finanzOnlineOutboxInProgress": "Die Outbox-Meldung wird gerade verarbeitet.",
+    "finanzOnlineOutboxReasonRequired": "Zum Abschließen ohne Übermittlung ist eine Begründung erforderlich.",
+    "finanzOnlineOutboxInvalidBucket": "Der Statusfilter ist unbekannt.",
+    "finanzOnlineOutboxListError": "Die Outbox-Liste konnte nicht geladen werden.",
+    "finanzOnlineOutboxWorkerInvalid": "Eine Worker-Einstellung liegt außerhalb des zulässigen Bereichs.",
+    "finanzOnlineOutboxProductionDisableConfirm": "Das Deaktivieren des Outbox-Workers in Produktion erfordert eine ausdrückliche Bestätigung.",
+    "backupKnownGapUnknown": "Mindestens eine Backup/DR-Lücken-ID ist unbekannt.",
+    "extensionOptionsUnsupported": "Diese Erweiterung akzeptiert keine Optionen.",
+    "barcodeDuplicate": "Dieser Barcode ist bereits vergeben.",
+    "barcodeNotFound": "Kein Produkt mit diesem Barcode gefunden."
+  },
   "backend": {
     "serverHintIntro": "Hinweis vom Server (Sprache nicht garantiert):",
     "rawMessagesNotice": "Die folgenden Zeilen stammen unveraendert vom Server (nicht uebersetzt)."

@@ -340,7 +340,7 @@ No direct DEP export; data is taken from server/admin APIs.
 
 ### What
 - **Configuration and diagnostics:** `FinanzOnlineController` — `api/FinanzOnline/config`, `status`, test connection, error history, and similar (`SettingsView` / `FinanzOnlineView` / `FinanzOnlineManage` combinations are split per endpoint in the file).
-- **Outbox (primary lifecycle):** `FinanzOnlineOutboxAdminController` — `GET api/admin/finanzonline-outbox` (`FinanzOnlineView`).
+- **Outbox (primary lifecycle):** `FinanzOnlineOutboxAdminController` — `GET api/admin/finanzonline-outbox` (`FinanzOnlineView`); `POST …/{id}/retry` and `POST …/retry-failed` (`FinanzOnlineSubmit`); `POST …/{id}/mark-resolved` (`SystemCritical`).
 - **Legacy payment-row reconciliation:** `FinanzOnlineReconciliationController` — `GET api/admin/finanzonline-reconciliation` (`FinanzOnlineView`), `POST .../retry/{paymentId}` (`FinanzOnlineSubmit`); the controller description notes it is **legacy** and that the outbox should be preferred.
 - **Readiness summary:** `FinanzOnlineReadinessController` — `GET api/admin/finanzonline-readiness` (`FinanzOnlineView`).
 

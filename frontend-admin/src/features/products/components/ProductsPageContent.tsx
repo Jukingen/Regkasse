@@ -83,6 +83,7 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -311,7 +312,9 @@ export default function ProductsPage() {
       setFormVisible(false);
       invalidateList();
     } catch (err) {
-      toastLimitExceededOrFallback(message, t, err, t('products.messages.createError'));
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        toastLimitExceededOrFallback(message, t, err, t('products.messages.createError'));
+      }
       throw err;
     }
   };
@@ -341,7 +344,9 @@ export default function ProductsPage() {
       setEditingProductId(null);
       invalidateList();
     } catch (err) {
-      message.error(t('products.messages.updateError'));
+      if (normalizeApiError(err).code !== 'BARCODE_DUPLICATE') {
+        message.error(t('products.messages.updateError'));
+      }
       throw err;
     }
   };
@@ -587,6 +592,9 @@ export default function ProductsPage() {
               <Typography.Text strong ellipsis style={{ display: 'block' }}>
                 {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
               </Typography.Text>
+              {(record as Product & { hasVariants?: boolean }).hasVariants ? (
+                <Tag variant="filled">{t('products.table.variantsBadge')}</Tag>
+              ) : null}
               {category.name ? (
                 <ProductCategoryBadge
                   name={category.name}

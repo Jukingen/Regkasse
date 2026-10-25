@@ -131,6 +131,13 @@ export async function updateFolio(
   return mapFolio(unwrapRecord(response));
 }
 
+export async function moveFolioRoom(folioId: string, newRoomId: string): Promise<GuestFolioDto> {
+  const response = await apiClient.post<unknown>(API_PATHS.PRODUCT.FOLIO_MOVE_ROOM(folioId), {
+    newRoomId,
+  });
+  return mapFolio(unwrapRecord(response));
+}
+
 export async function chargeFolio(
   folioId: string,
   body: { description: string; amount: number }

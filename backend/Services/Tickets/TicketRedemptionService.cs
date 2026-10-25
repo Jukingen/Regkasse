@@ -188,11 +188,29 @@ public sealed class TicketRedemptionService : ITicketRedemptionService
                 .Where(row => seatIds.Contains(row.Id))
                 .ToDictionaryAsync(row => row.Id, cancellationToken)
                 .ConfigureAwait(false);
+        var categoryIds = seats.Values
+            .Where(seat => seat.CategoryId is Guid)
+            .Select(seat => seat.CategoryId!.Value)
+            .Distinct()
+            .ToList();
+        // Same reason as the event lookup above: a Super Admin tenantId filter can differ from
+        // the ambient tenant, and the category name is display-only for seats already on this list.
+        var categories = categoryIds.Count == 0
+            ? new Dictionary<Guid, TicketPriceCategory>()
+            : await _db.TicketPriceCategories
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(row => categoryIds.Contains(row.Id))
+                .ToDictionaryAsync(row => row.Id, cancellationToken)
+                .ConfigureAwait(false);
 
         return rows.Select(row =>
         {
             events.TryGetValue(row.EventId ?? Guid.Empty, out var ticketEvent);
             seats.TryGetValue(row.SeatId ?? Guid.Empty, out var seat);
+            TicketPriceCategory? category = null;
+            if (seat?.CategoryId is Guid categoryId)
+                categories.TryGetValue(categoryId, out category);
             return new TicketRedemptionListRowDto
             {
                 Id = row.Id,
@@ -204,6 +222,8 @@ public sealed class TicketRedemptionService : ITicketRedemptionService
                 RedeemedByUserId = row.RedeemedByUserId,
                 EventName = ticketEvent?.Name,
                 SeatLabel = seat is null ? null : TicketSeatLabel.Format(seat),
+                SeatId = row.SeatId,
+                CategoryName = category?.Name,
             };
         }).ToList();
     }

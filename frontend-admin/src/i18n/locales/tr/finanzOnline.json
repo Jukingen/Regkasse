@@ -1,0 +1,52 @@
+{
+  "outbox": {
+    "title": "Outbox gelen kutusu",
+    "analytics": {
+      "title": "Son 7 gün",
+      "successRate": "Başarı oranı",
+      "averageRetries": "Ortalama deneme",
+      "topFailures": "En çok hata veren mesaj türleri",
+      "empty": "Bu aralıkta mesaj yok"
+    },
+    "filters": {
+      "status": "Durum",
+      "statusPending": "Pending",
+      "statusSent": "Sent",
+      "statusFailed": "Failed",
+      "dateRange": "Tarih aralığı",
+      "cashRegister": "Kasa"
+    },
+    "columns": {
+      "messageType": "Mesaj türü",
+      "status": "Durum",
+      "attempts": "Deneme",
+      "lastAttemptedAt": "Son deneme",
+      "errorCode": "Hata kodu"
+    },
+    "actions": {
+      "retrySelected": "Seçilenleri yeniden dene",
+      "retryAllFailed": "Başarısızların tümünü yeniden dene",
+      "retry": "Yeniden dene",
+      "resolve": "Çözüldü olarak işaretle",
+      "details": "Ayrıntı"
+    },
+    "detail": {
+      "title": "Outbox mesajı",
+      "payload": "Payload (maskeli)",
+      "timeline": "Deneme geçmişi",
+      "errorCode": "Hata kodu",
+      "errorMessage": "Hata mesajı",
+      "resolveReason": "Yeniden göndermeden kapatma gerekçesi"
+    },
+    "timeline": {
+      "created": "Oluşturuldu",
+      "attempts": "Şimdiye kadarki deneme: {{count}}",
+      "processed": "İşlendi",
+      "next": "Sonraki deneme"
+    },
+    "empty": "Outbox mesajı yok",
+    "retryQueued": "Yeniden deneme istendi.",
+    "resolved": "Mesaj çözüldü olarak işaretlendi.",
+    "retryError": "Yeniden deneme başarısız."
+  }
+}

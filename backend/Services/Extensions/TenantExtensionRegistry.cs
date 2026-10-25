@@ -13,7 +13,8 @@ namespace KasseAPI_Final.Services.Extensions;
 public sealed record TenantExtensionStatusDto(
     string Name,
     bool Enabled,
-    IReadOnlyList<string> Hooks);
+    IReadOnlyList<string> Hooks,
+    object? Options = null);
 
 public interface ITenantExtensionAdminService
 {
@@ -25,7 +26,18 @@ public interface ITenantExtensionAdminService
         bool enabled,
         string actorUserId,
         string actorRole,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        JsonElement? options = null);
+}
+
+public sealed class ExtensionOptionsUnsupportedException : Exception
+{
+    public const string ErrorCode = "EXTENSION_OPTIONS_UNSUPPORTED";
+
+    public ExtensionOptionsUnsupportedException()
+        : base("This extension does not accept options.")
+    {
+    }
 }
 
 public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantExtensionAdminService
@@ -75,19 +87,40 @@ public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantE
             .ToList();
     }
 
-    public Task<IReadOnlyList<TenantExtensionStatusDto>> ListAsync(
+    public async Task<IReadOnlyList<TenantExtensionStatusDto>> ListAsync(
         Guid tenantId,
         CancellationToken cancellationToken)
     {
         var enabled = LoadEnabled(tenantId).ToHashSet(StringComparer.Ordinal);
-        IReadOnlyList<TenantExtensionStatusDto> list = _extensions
+        var optionKeys = new List<string>();
+        if (_extensions.Any(ext => ext.FeatureName == TenantExtensionNames.MinibarAutoCharge))
+            optionKeys.Add(MinibarAutoChargePolicy.SettingsKey);
+        if (_extensions.Any(ext => ext.FeatureName == TenantExtensionNames.BreakfastIncluded))
+            optionKeys.Add(BreakfastIncludedPolicy.SettingsKey);
+        if (_extensions.Any(ext => ext.FeatureName == TenantExtensionNames.LateCheckoutFee))
+            optionKeys.Add(LateCheckoutFeePolicy.SettingsKey);
+
+        var storedOptions = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (optionKeys.Count > 0)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            var rows = await db.TenantSettings.AsNoTracking()
+                .Where(row => row.TenantId == tenantId && optionKeys.Contains(row.Key))
+                .Select(row => new { row.Key, row.Value })
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var row in rows)
+                storedOptions[row.Key] = row.Value;
+        }
+
+        return _extensions
             .Select(ext => new TenantExtensionStatusDto(
                 ext.FeatureName,
                 enabled.Contains(ext.FeatureName),
-                HooksOf(ext)))
+                HooksOf(ext),
+                OptionsOf(ext.FeatureName, storedOptions)))
             .OrderBy(row => row.Name, StringComparer.Ordinal)
             .ToList();
-        return Task.FromResult(list);
     }
 
     public async Task<TenantExtensionStatusDto> SetEnabledAsync(
@@ -96,16 +129,48 @@ public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantE
         bool enabled,
         string actorUserId,
         string actorRole,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        JsonElement? options = null)
     {
         var featureName = (name ?? string.Empty).Trim();
-        if (!NamePattern.IsMatch(featureName))
-            throw new ArgumentException("Extension name is invalid.", nameof(name));
-
         var extension = _extensions.FirstOrDefault(ext =>
             string.Equals(ext.FeatureName, featureName, StringComparison.Ordinal));
+        var hasOptions = options is JsonElement element
+            && element.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null;
+        var isMinibar = string.Equals(featureName, TenantExtensionNames.MinibarAutoCharge, StringComparison.Ordinal);
+        var isBreakfast = string.Equals(featureName, TenantExtensionNames.BreakfastIncluded, StringComparison.Ordinal);
+        var isLateCheckout = string.Equals(featureName, TenantExtensionNames.LateCheckoutFee, StringComparison.Ordinal);
+        var declaresOptions = extension is not null && (isMinibar || isBreakfast || isLateCheckout);
+        if (hasOptions && !declaresOptions)
+            throw new ExtensionOptionsUnsupportedException();
+        if (!NamePattern.IsMatch(featureName))
+            throw new ArgumentException("Extension name is invalid.", nameof(name));
         if (extension is null)
             throw new ArgumentException($"Unknown extension '{featureName}'.", nameof(name));
+
+        bool? requestedFlag = null;
+        decimal? requestedPrice = null;
+        LateCheckoutFeeOptionsDto? requestedLate = null;
+        if (hasOptions && isMinibar)
+        {
+            if (!TryReadRequireSettlement(options!.Value, out var flag))
+                throw new ArgumentException("requireSettlementBeforeClose must be a boolean.", "options");
+            requestedFlag = flag;
+        }
+        else if (hasOptions && isBreakfast)
+        {
+            if (!BreakfastIncludedPolicy.TryReadPrice(options!.Value, out var price))
+                throw new ArgumentException("pricePerPersonPerNight must be a non-negative number.", "options");
+            requestedPrice = price;
+        }
+        else if (hasOptions && isLateCheckout)
+        {
+            if (!LateCheckoutFeePolicy.TryRead(options!.Value, out var late))
+                throw new ArgumentException(
+                    "freeUntilLocalTime, fee, and timeZone are required.",
+                    "options");
+            requestedLate = late;
+        }
 
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         var row = await db.TenantSettings
@@ -121,7 +186,71 @@ public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantE
         else
             names.Remove(featureName);
 
-        if (wasEnabled != enabled)
+        var enabledChanged = wasEnabled != enabled;
+        TenantSetting? policyRow = null;
+        var optionsChanged = false;
+        var previousFlag = true;
+        var previousPrice = 0m;
+        var previousLate = LateCheckoutFeePolicy.Defaults;
+        string? policyKey = isMinibar
+            ? MinibarAutoChargePolicy.SettingsKey
+            : isBreakfast
+                ? BreakfastIncludedPolicy.SettingsKey
+                : isLateCheckout
+                    ? LateCheckoutFeePolicy.SettingsKey
+                    : null;
+        if (policyKey is not null)
+        {
+            policyRow = await db.TenantSettings
+                .FirstOrDefaultAsync(
+                    setting => setting.TenantId == tenantId && setting.Key == policyKey,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (isMinibar)
+                previousFlag = MinibarAutoChargePolicy.RequireSettlementBeforeClose(policyRow?.Value);
+            else if (isBreakfast && BreakfastIncludedPolicy.TryReadPrice(policyRow?.Value, out var storedPrice))
+                previousPrice = storedPrice;
+            else if (isLateCheckout && LateCheckoutFeePolicy.TryRead(policyRow?.Value, out var storedLate))
+                previousLate = storedLate;
+        }
+
+        if (requestedFlag is bool nextFlag && nextFlag != previousFlag)
+            optionsChanged = true;
+        if (requestedPrice is decimal nextPrice && nextPrice != previousPrice)
+            optionsChanged = true;
+        if (requestedLate is LateCheckoutFeeOptionsDto nextLate
+            && !LateCheckoutFeePolicy.Same(nextLate, previousLate))
+            optionsChanged = true;
+
+        if (optionsChanged && policyKey is not null)
+        {
+            var storedPolicy = isBreakfast
+                ? JsonSerializer.Serialize(new BreakfastIncludedOptionsDto(requestedPrice!.Value), JsonOptions)
+                : isLateCheckout
+                    ? JsonSerializer.Serialize(requestedLate, JsonOptions)
+                    : JsonSerializer.Serialize(new MinibarAutoChargeOptionsDto(requestedFlag!.Value), JsonOptions);
+            if (policyRow is null)
+            {
+                policyRow = new TenantSetting
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    Key = policyKey,
+                    Value = storedPolicy,
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedByUserId = actorUserId,
+                };
+                db.TenantSettings.Add(policyRow);
+            }
+            else
+            {
+                policyRow.Value = storedPolicy;
+                policyRow.UpdatedAtUtc = DateTime.UtcNow;
+                policyRow.UpdatedByUserId = actorUserId;
+            }
+        }
+
+        if (enabledChanged)
         {
             var stored = JsonSerializer.Serialize(
                 names.OrderBy(item => item, StringComparer.Ordinal).ToArray(),
@@ -148,21 +277,50 @@ public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantE
                 row.UpdatedAtUtc = DateTime.UtcNow;
                 row.UpdatedByUserId = actorUserId;
             }
+        }
 
+        if (enabledChanged || optionsChanged)
+        {
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await InvalidateAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            if (enabledChanged)
+                await InvalidateAsync(tenantId, cancellationToken).ConfigureAwait(false);
+
+            var auditEntityId = enabledChanged ? row!.Id : policyRow!.Id;
+            object? oldOptions = isBreakfast
+                ? new { PricePerPersonPerNight = previousPrice }
+                : isLateCheckout
+                    ? previousLate
+                    : new { RequireSettlementBeforeClose = previousFlag };
+            object? newOptions = isBreakfast
+                ? new { PricePerPersonPerNight = requestedPrice }
+                : isLateCheckout
+                    ? requestedLate
+                    : new { RequireSettlementBeforeClose = requestedFlag };
+            object oldValues = optionsChanged
+                ? new { Name = featureName, Enabled = wasEnabled, Options = oldOptions }
+                : new { Name = featureName, Enabled = wasEnabled };
+            object newValues = optionsChanged
+                ? new { Name = featureName, Enabled = enabled, Options = newOptions }
+                : new { Name = featureName, Enabled = enabled };
+            var description = !optionsChanged
+                ? $"Extension {featureName} enabled={enabled}"
+                : isBreakfast
+                    ? $"Extension {featureName} enabled={enabled} pricePerPersonPerNight={requestedPrice}"
+                    : isLateCheckout
+                        ? $"Extension {featureName} enabled={enabled} fee={requestedLate?.Fee}"
+                        : $"Extension {featureName} enabled={enabled} requireSettlementBeforeClose={requestedFlag}";
 
             await _audit.LogSystemOperationAsync(
                     action: "TENANT_EXTENSION_TOGGLED",
                     entityType: "TenantSetting",
                     userId: actorUserId,
                     userRole: actorRole,
-                    description: $"Extension {featureName} enabled={enabled}",
+                    description: description,
                     actionType: AuditEventType.TenantExtensionToggled,
-                    entityId: row.Id,
+                    entityId: auditEntityId,
                     tenantId: tenantId,
-                    oldValues: new { Name = featureName, Enabled = wasEnabled },
-                    newValues: new { Name = featureName, Enabled = enabled })
+                    oldValues: oldValues,
+                    newValues: newValues)
                 .ConfigureAwait(false);
 
             _logger.LogInformation(
@@ -172,7 +330,52 @@ public sealed class TenantExtensionRegistry : ITenantExtensionRegistry, ITenantE
                 tenantId);
         }
 
-        return new TenantExtensionStatusDto(featureName, enabled, HooksOf(extension));
+        object? optionsDto = isMinibar
+            ? new MinibarAutoChargeOptionsDto(requestedFlag ?? previousFlag)
+            : isBreakfast
+                ? new BreakfastIncludedOptionsDto(requestedPrice ?? previousPrice)
+                : isLateCheckout
+                    ? requestedLate ?? previousLate
+                    : null;
+        return new TenantExtensionStatusDto(featureName, enabled, HooksOf(extension), optionsDto);
+    }
+
+    private static object? OptionsOf(string featureName, IReadOnlyDictionary<string, string?> stored)
+    {
+        if (string.Equals(featureName, TenantExtensionNames.MinibarAutoCharge, StringComparison.Ordinal))
+        {
+            stored.TryGetValue(MinibarAutoChargePolicy.SettingsKey, out var json);
+            return new MinibarAutoChargeOptionsDto(MinibarAutoChargePolicy.RequireSettlementBeforeClose(json));
+        }
+
+        if (string.Equals(featureName, TenantExtensionNames.BreakfastIncluded, StringComparison.Ordinal))
+        {
+            stored.TryGetValue(BreakfastIncludedPolicy.SettingsKey, out var json);
+            var price = BreakfastIncludedPolicy.TryReadPrice(json, out var parsed) ? parsed : 0m;
+            return new BreakfastIncludedOptionsDto(price);
+        }
+
+        if (string.Equals(featureName, TenantExtensionNames.LateCheckoutFee, StringComparison.Ordinal))
+        {
+            stored.TryGetValue(LateCheckoutFeePolicy.SettingsKey, out var json);
+            return LateCheckoutFeePolicy.TryRead(json, out var parsed)
+                ? parsed
+                : LateCheckoutFeePolicy.Defaults;
+        }
+
+        return null;
+    }
+
+    private static bool TryReadRequireSettlement(JsonElement options, out bool requireSettlementBeforeClose)
+    {
+        requireSettlementBeforeClose = true;
+        if (options.ValueKind != JsonValueKind.Object
+            || !options.TryGetProperty("requireSettlementBeforeClose", out var flag)
+            || flag.ValueKind is not JsonValueKind.True and not JsonValueKind.False)
+            return false;
+
+        requireSettlementBeforeClose = flag.GetBoolean();
+        return true;
     }
 
     internal static IReadOnlyList<string> HooksOf(ITenantFeatureExtension extension) =>

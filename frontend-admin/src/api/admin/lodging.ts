@@ -179,6 +179,17 @@ export function chargeAdminFolio(
   ).then((res) => unwrapData<AdminGuestFolioRow>(res));
 }
 
+export function moveAdminFolio(
+  id: string,
+  newRoomId: string,
+  options?: SecondParameter<typeof customInstance>
+): Promise<AdminGuestFolioRow> {
+  return customInstance<AdminGuestFolioRow>(
+    { url: `/api/admin/folios/${id}/move-room`, method: 'POST', data: { newRoomId } },
+    options
+  ).then((res) => unwrapData<AdminGuestFolioRow>(res));
+}
+
 export function checkoutAdminFolio(
   id: string,
   options?: SecondParameter<typeof customInstance>
@@ -195,6 +206,42 @@ export function useAdminRooms(
   return useQuery({
     queryKey: adminLodgingQueryKeys.rooms(),
     queryFn: ({ signal }) => getAdminRooms(undefined, signal),
+    ...options,
+  });
+}
+
+export interface AdminRoomMinibarRow {
+  id: string;
+  roomId: string;
+  productId?: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  status: string;
+  chargedFolioId?: string | null;
+  chargedAtUtc?: string | null;
+  createdAtUtc: string;
+}
+
+export function getAdminRoomMinibar(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<AdminRoomMinibarRow[]> {
+  return customInstance<AdminRoomMinibarRow[]>(
+    { url: `/api/admin/rooms/${id}/minibar`, method: 'GET', signal },
+    options
+  ).then((res) => unwrapData<AdminRoomMinibarRow[]>(res));
+}
+
+export function useAdminRoomMinibar(
+  id: string,
+  options?: Partial<UseQueryOptions<AdminRoomMinibarRow[], Error, AdminRoomMinibarRow[]>>
+): UseQueryResult<AdminRoomMinibarRow[], Error> {
+  return useQuery({
+    queryKey: [...adminLodgingQueryKeys.room(id), 'minibar'] as const,
+    queryFn: ({ signal }) => getAdminRoomMinibar(id, undefined, signal),
+    enabled: id.length > 0,
     ...options,
   });
 }
@@ -301,6 +348,18 @@ export function useChargeAdminFolio(): UseMutationResult<
   const invalidate = useInvalidateLodging();
   return useMutation({
     mutationFn: ({ id, body }) => chargeAdminFolio(id, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMoveAdminFolio(): UseMutationResult<
+  AdminGuestFolioRow,
+  Error,
+  { id: string; newRoomId: string }
+> {
+  const invalidate = useInvalidateLodging();
+  return useMutation({
+    mutationFn: ({ id, newRoomId }) => moveAdminFolio(id, newRoomId),
     onSuccess: invalidate,
   });
 }

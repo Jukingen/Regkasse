@@ -9,7 +9,10 @@ import type { ColumnsType } from 'antd/es/table';
 import React, { useMemo } from 'react';
 
 import { PageSkeleton } from '@/components/Skeleton';
+import { BackupCostCharts } from '@/features/backup/components/BackupCostCharts';
+import { useBackupRuns } from '@/features/backup/hooks/useBackupRuns';
 import { useStorageCosts } from '@/features/backup/hooks/useStorageCosts';
+import { buildDumpCreationCostTrend, retentionImpact } from '@/features/backup/logic/backupDrInsights';
 import type {
   BackupStorageCostRecommendationDto,
   BackupStorageTierCostRowDto,
@@ -70,6 +73,20 @@ function recommendationDescKey(code: string): string | null {
 export function BackupStorageCostsDashboard() {
   const { t } = useI18n();
   const { data: costs, isLoading, isError } = useStorageCosts();
+  const trendSince = useMemo(() => {
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() - 90);
+    return start.toISOString();
+  }, []);
+  const runsQuery = useBackupRuns({ page: 1, pageSize: 200, fromUtc: trendSince });
+  const trend = useMemo(
+    () => buildDumpCreationCostTrend(runsQuery.data?.items ?? [], costs?.costPerGbEur ?? 0),
+    [runsQuery.data?.items, costs?.costPerGbEur]
+  );
+  const retention = useMemo(
+    () => retentionImpact(costs?.monthlyCostEur ?? 0, costs?.retentionSavingsPercent ?? 0),
+    [costs?.monthlyCostEur, costs?.retentionSavingsPercent]
+  );
 
   const columns: ColumnsType<BackupStorageTierCostRowDto> = useMemo(
     () => [
@@ -212,6 +229,17 @@ export function BackupStorageCostsDashboard() {
           </Card>
         </Col>
       </Row>
+
+      <BackupCostCharts
+        trend={trend}
+        tiers={(costs.tiers ?? []).map((tier) => ({
+          name: tier.name,
+          sizeGb: tier.sizeGb,
+          costEur: tier.costEur,
+        }))}
+        retention={retention}
+        monthlyEstimate={costs.projectedMonthlyEur}
+      />
 
       <Card title={t('backupDr.costs.tiersTitle')} style={{ marginTop: 16 }}>
         <Table<BackupStorageTierCostRowDto>

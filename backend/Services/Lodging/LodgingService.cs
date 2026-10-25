@@ -3,6 +3,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Lodging;
 
@@ -85,6 +86,15 @@ public interface ILodgingService
         string? actorUserId = null,
         string? actorRole = null);
 
+    Task<FolioWriteResult> MoveRoomAsync(
+        Guid tenantId,
+        Guid folioId,
+        Guid newRoomId,
+        bool ignoreFilters,
+        CancellationToken cancellationToken,
+        string? actorUserId = null,
+        string? actorRole = null);
+
     /// <summary>
     /// Replaces the cashier's active cart with one stay line priced at the open folio balance.
     /// Does not create a payment or a TSE receipt.
@@ -99,6 +109,19 @@ public interface ILodgingService
     Task<IReadOnlyList<GuestFolioItemDto>?> ListFolioItemsAsync(
         Guid tenantId,
         Guid folioId,
+        bool ignoreFilters,
+        CancellationToken cancellationToken);
+
+    Task<MinibarWriteResult> AddRoomMinibarAsync(
+        Guid tenantId,
+        Guid roomId,
+        AddRoomMinibarRequest request,
+        bool ignoreFilters,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<RoomMinibarItemDto>?> ListRoomMinibarAsync(
+        Guid tenantId,
+        Guid roomId,
         bool ignoreFilters,
         CancellationToken cancellationToken);
 }
@@ -119,6 +142,13 @@ public abstract record FolioWriteResult
     public sealed record BadRequest(string Code, string Message) : FolioWriteResult;
 }
 
+public abstract record MinibarWriteResult
+{
+    public sealed record Ok(RoomMinibarItemDto Item) : MinibarWriteResult;
+    public sealed record NotFound() : MinibarWriteResult;
+    public sealed record BadRequest(string Code, string Message) : MinibarWriteResult;
+}
+
 public abstract record StageCheckoutResult
 {
     public sealed record Ok(StageFolioCheckoutDto Checkout) : StageCheckoutResult;
@@ -132,15 +162,18 @@ public sealed class LodgingService : ILodgingService
     private readonly AppDbContext _db;
     private readonly IAuditLogService? _audit;
     private readonly ITenantExtensionRegistry? _extensions;
+    private readonly ILogger<LodgingService>? _logger;
 
     public LodgingService(
         AppDbContext db,
         IAuditLogService? audit = null,
-        ITenantExtensionRegistry? extensions = null)
+        ITenantExtensionRegistry? extensions = null,
+        ILogger<LodgingService>? logger = null)
     {
         _db = db;
         _audit = audit;
         _extensions = extensions;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<RoomDto>> ListRoomsAsync(
@@ -444,6 +477,7 @@ public sealed class LodgingService : ILodgingService
         }
 
         var staysOpen = checkOut is null || checkOut > now;
+        var previousRoomStatus = room.Status;
         var folio = new GuestFolio
         {
             TenantId = tenantId,
@@ -453,15 +487,55 @@ public sealed class LodgingService : ILodgingService
             CheckOut = checkOut,
             Status = staysOpen ? GuestFolioStatus.Open : GuestFolioStatus.Closed,
             Balance = request.Balance,
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow,
             Customer = customer,
             Room = room,
         };
+
+        // The folio row must exist before folio.opened. Save and the extension share one
+        // transaction. A rejecting extension rolls the row back. The extension may add
+        // guest_folio_items and update Balance; this method saves that change before commit.
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
         if (staysOpen)
             room.Status = RoomStatus.Occupied;
         _db.GuestFolios.Add(folio);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await TenantExtensionRunner.RunAsync(
+                _extensions,
+                tenantId,
+                TenantExtensionHooks.FolioOpened,
+                new Dictionary<string, object?>
+                {
+                    ["folioId"] = folio.Id,
+                    ["roomId"] = folio.RoomId,
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (ExtensionFailedException ex)
+        {
+            _logger?.LogWarning(
+                ex,
+                "folio.opened rejected folio {FolioId} for tenant {TenantId}",
+                folio.Id,
+                tenantId);
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            _db.ChangeTracker.Clear();
+            await RemoveRejectedFolioAsync(
+                folio.Id,
+                room.Id,
+                staysOpen ? previousRoomStatus : null,
+                cancellationToken).ConfigureAwait(false);
+            return new FolioWriteResult.BadRequest(ExtensionFailedException.ErrorCode, ex.Message);
+        }
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         await AuditAsync(
             AuditEventType.GuestFolioOpened,
             "FOLIO_OPENED",
@@ -473,6 +547,51 @@ public sealed class LodgingService : ILodgingService
             $"Folio opened for room {room.Number}.",
             cancellationToken).ConfigureAwait(false);
         return new FolioWriteResult.Ok(MapFolio(folio, DateTime.UtcNow));
+    }
+
+    /// <summary>
+    /// In-memory tests ignore database transactions. After a real rollback this finds nothing.
+    /// </summary>
+    private async Task RemoveRejectedFolioAsync(
+        Guid folioId,
+        Guid roomId,
+        RoomStatus? restoreRoomStatus,
+        CancellationToken cancellationToken)
+    {
+        var changed = false;
+        var items = await _db.GuestFolioItems
+            .Where(row => row.FolioId == folioId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (items.Count > 0)
+        {
+            _db.GuestFolioItems.RemoveRange(items);
+            changed = true;
+        }
+
+        var folio = await _db.GuestFolios
+            .FirstOrDefaultAsync(row => row.Id == folioId, cancellationToken)
+            .ConfigureAwait(false);
+        if (folio is not null)
+        {
+            _db.GuestFolios.Remove(folio);
+            changed = true;
+        }
+
+        if (restoreRoomStatus is RoomStatus status)
+        {
+            var room = await _db.Rooms
+                .FirstOrDefaultAsync(row => row.Id == roomId, cancellationToken)
+                .ConfigureAwait(false);
+            if (room is not null && room.Status != status)
+            {
+                room.Status = status;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<FolioWriteResult> UpdateFolioAsync(
@@ -623,6 +742,90 @@ public sealed class LodgingService : ILodgingService
             $"Folio charge {amount:0.00} ({description}). No payment row and no TSE receipt.",
             cancellationToken).ConfigureAwait(false);
         return new FolioWriteResult.Ok(MapFolio(folio, DateTime.UtcNow));
+    }
+
+    public async Task<FolioWriteResult> MoveRoomAsync(
+        Guid tenantId,
+        Guid folioId,
+        Guid newRoomId,
+        bool ignoreFilters,
+        CancellationToken cancellationToken,
+        string? actorUserId = null,
+        string? actorRole = null)
+    {
+        var folio = await TrackingFolios(ignoreFilters)
+            .Include(row => row.Customer)
+            .Include(row => row.Room)
+            .FirstOrDefaultAsync(row => row.Id == folioId && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (folio is null)
+            return new FolioWriteResult.NotFound();
+        if (folio.Status != GuestFolioStatus.Open)
+        {
+            return new FolioWriteResult.Conflict(
+                LodgingErrorCodes.FolioNotOpen,
+                "Only an open folio can change rooms.");
+        }
+
+        if (folio.RoomId == newRoomId)
+            return new FolioWriteResult.Ok(MapFolio(folio, DateTime.UtcNow));
+
+        var rooms = ignoreFilters ? _db.Rooms.IgnoreQueryFilters() : _db.Rooms;
+        var next = await rooms
+            .FirstOrDefaultAsync(row => row.Id == newRoomId && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (next is null)
+            return new FolioWriteResult.NotFound();
+        if (next.Status != RoomStatus.Available)
+        {
+            return new FolioWriteResult.Conflict(
+                LodgingErrorCodes.RoomNotAvailable,
+                "The target room is not available.");
+        }
+
+        var previous = folio.Room ?? await rooms
+            .FirstOrDefaultAsync(row => row.Id == folio.RoomId && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (previous is null)
+            return new FolioWriteResult.NotFound();
+
+        var now = DateTime.UtcNow;
+        var line = $"Zimmerwechsel: {previous.Number} → {next.Number} ({now:yyyy-MM-dd HH:mm} UTC)";
+        var oldRoomId = previous.Id;
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        previous.Status = RoomStatus.Cleaning;
+        previous.UpdatedAtUtc = now;
+        next.Status = RoomStatus.Occupied;
+        next.UpdatedAtUtc = now;
+        folio.RoomId = next.Id;
+        folio.Room = next;
+        folio.Notes = string.IsNullOrWhiteSpace(folio.Notes)
+            ? line
+            : folio.Notes.TrimEnd() + Environment.NewLine + line;
+        folio.UpdatedAtUtc = now;
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+        await AuditAsync(
+            AuditEventType.FolioRoomMoved,
+            "FOLIO_ROOM_MOVED",
+            "GuestFolio",
+            folio.Id,
+            tenantId,
+            actorUserId,
+            actorRole,
+            line,
+            cancellationToken,
+            new
+            {
+                tenantId,
+                folioId = folio.Id,
+                oldRoomId,
+                newRoomId = next.Id,
+                actorUserId = string.IsNullOrWhiteSpace(actorUserId) ? "system" : actorUserId,
+            }).ConfigureAwait(false);
+
+        return new FolioWriteResult.Ok(MapFolio(folio, now));
     }
 
     public async Task<StageCheckoutResult> StageCheckoutCartAsync(
@@ -844,6 +1047,97 @@ public sealed class LodgingService : ILodgingService
             IsOpen = IsOpen(row, now),
         };
 
+    public async Task<MinibarWriteResult> AddRoomMinibarAsync(
+        Guid tenantId,
+        Guid roomId,
+        AddRoomMinibarRequest request,
+        bool ignoreFilters,
+        CancellationToken cancellationToken)
+    {
+        var rooms = ignoreFilters ? _db.Rooms.IgnoreQueryFilters() : _db.Rooms;
+        var room = await rooms
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.Id == roomId && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (room is null)
+            return new MinibarWriteResult.NotFound();
+
+        if (request.ProductId is Guid productId)
+        {
+            var products = ignoreFilters ? _db.Products.IgnoreQueryFilters() : _db.Products;
+            var exists = await products
+                .AsNoTracking()
+                .AnyAsync(row => row.Id == productId && row.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+            if (!exists)
+                return new MinibarWriteResult.NotFound();
+        }
+
+        var description = request.Description.Trim();
+        if (description.Length == 0 || request.Quantity < 1)
+        {
+            return new MinibarWriteResult.BadRequest(
+                LodgingErrorCodes.InvalidStatus,
+                "Minibar description and quantity are required.");
+        }
+
+        var now = DateTime.UtcNow;
+        var row = new RoomMinibarItem
+        {
+            TenantId = tenantId,
+            RoomId = roomId,
+            ProductId = request.ProductId,
+            Description = description,
+            Quantity = request.Quantity,
+            UnitPrice = decimal.Round(request.UnitPrice, 2, MidpointRounding.AwayFromZero),
+            Status = RoomMinibarItemStatus.Pending,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+        };
+        _db.RoomMinibarItems.Add(row);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return new MinibarWriteResult.Ok(MapMinibar(row));
+    }
+
+    public async Task<IReadOnlyList<RoomMinibarItemDto>?> ListRoomMinibarAsync(
+        Guid tenantId,
+        Guid roomId,
+        bool ignoreFilters,
+        CancellationToken cancellationToken)
+    {
+        var rooms = ignoreFilters ? _db.Rooms.IgnoreQueryFilters() : _db.Rooms;
+        var roomExists = await rooms
+            .AsNoTracking()
+            .AnyAsync(row => row.Id == roomId && row.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!roomExists)
+            return null;
+
+        var items = ignoreFilters ? _db.RoomMinibarItems.IgnoreQueryFilters() : _db.RoomMinibarItems;
+        var rows = await items
+            .AsNoTracking()
+            .Where(row => row.TenantId == tenantId && row.RoomId == roomId)
+            .OrderByDescending(row => row.CreatedAtUtc)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return rows.Select(MapMinibar).ToArray();
+    }
+
+    private static RoomMinibarItemDto MapMinibar(RoomMinibarItem row) =>
+        new()
+        {
+            Id = row.Id,
+            RoomId = row.RoomId,
+            ProductId = row.ProductId,
+            Description = row.Description,
+            Quantity = row.Quantity,
+            UnitPrice = row.UnitPrice,
+            Status = row.Status.ToString(),
+            ChargedFolioId = row.ChargedFolioId,
+            ChargedAtUtc = row.ChargedAtUtc,
+            CreatedAtUtc = row.CreatedAtUtc,
+        };
+
     private async Task AuditAsync(
         AuditEventType actionType,
         string action,
@@ -853,7 +1147,8 @@ public sealed class LodgingService : ILodgingService
         string? actorUserId,
         string? actorRole,
         string description,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        object? newValues = null)
     {
         if (_audit is null)
             return;
@@ -868,7 +1163,8 @@ public sealed class LodgingService : ILodgingService
                 correlationIdOverride: Guid.NewGuid().ToString("N"),
                 actionType: actionType,
                 entityId: entityId,
-                tenantId: tenantId)
+                tenantId: tenantId,
+                newValues: newValues)
             .ConfigureAwait(false);
     }
 }

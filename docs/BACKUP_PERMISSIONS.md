@@ -78,6 +78,7 @@ Canonical list: `backend/Authorization/RolePermissionMatrix.cs`.
 | `GET` | `/api/admin/backup/list` | `settings.view` | Super Admin: all succeeded dumps. Mandanten-Admin: `strategy=Tenant` + own `tenant_id` only. |
 | `POST` | `/api/admin/backup/artifacts/import` | `backup.manage` | Register uploaded dump (+ optional manifest) for current tenant; **no automatic DB restore**. |
 | `PUT` | `/api/admin/backup/execution-mode` | `settings.manage` | Super Admin / platform operator only. |
+| `GET` / `PUT` | `/api/admin/backup/known-gaps` | `system.critical` | Super Admin acknowledgement of catalog ids in `BackupKnownGaps.json`. **Not** `backup.manage`. Does not change restore-proof timestamps or turn a failing gate into a pass (unless `Backup:KnownGapsAcceptance:AllowsGateOverride`). |
 | Restore / restore-drill | `/api/admin/restore/*`, restore-verification | Super Admin trigger + System-dump drills. Manager may **read** own Tenant-strategy drill rows only (`settings.view`); System dumps → 404. FA: `/admin/restore-verification`. | Validation-only; never production restore. |
 
 Controller: `AdminBackupController`, `SettingsController` (legacy), `AdminRestoreController`.
@@ -145,6 +146,7 @@ Manage actions remain component-gated: `backup.manage` or `settings.manage` via 
 | Artifact download + import | `canDownloadBackup` = `backup.manage` ∨ `settings.manage` (own Tenant packages for Manager) |
 | Execution mode, deployment paths | `settings.manage` only |
 | Restore / restore drill | Super Admin only |
+| Known-gap acceptance (`/backup/compliance` panel) | `system.critical` only. Mandanten-Admin `backup.manage` cannot save it. |
 
 **Key files:**
 

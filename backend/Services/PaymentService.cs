@@ -242,20 +242,23 @@ namespace KasseAPI_Final.Services
             ITaxStrategy taxStrategy,
             CountryStrategyBinding countryBinding,
             ICountryTaxTypeRegistry rateCatalog,
-            string? buyerVatId)
+            string? buyerVatId,
+            IReadOnlyDictionary<Guid, bool> requiresPrescriptionByProduct)
         {
             var lines = paymentItems.Select(item => new ExtensionCartLine(
                 item.ProductId,
                 item.Quantity,
                 item.TaxType,
-                item.TotalPrice)).ToList();
+                item.TotalPrice,
+                requiresPrescriptionByProduct.TryGetValue(item.ProductId, out var required) && required)).ToList();
 
             var payload = new Dictionary<string, object?>
             {
                 ["paymentId"] = payment.Id,
                 ["totalAmount"] = payment.TotalAmount,
                 ["receiptNumber"] = payment.ReceiptNumber,
-                ["hasPrescription"] = !string.IsNullOrEmpty(payment.PrescriptionReference),
+                [ExtensionCart.HasPrescriptionKey] = !string.IsNullOrEmpty(payment.PrescriptionReference),
+                [ExtensionCart.PrescriptionReferenceKey] = payment.PrescriptionReference,
                 [ExtensionCart.LinesKey] = lines,
             };
 
@@ -505,6 +508,108 @@ namespace KasseAPI_Final.Services
                 }
 
                 pendingImeiRows.Add(row);
+            }
+
+            return null;
+        }
+
+        private static PaymentResult VariantPaymentFailure(string code, string message) => new()
+        {
+            Success = false,
+            Message = message,
+            Errors = { code },
+            DiagnosticCode = code,
+            IsDeterministicFailure = true,
+        };
+
+        /// <summary>
+        /// Variant stock is an operational side effect inside the payment transaction.
+        /// The variant id is not written onto payment_details, the receipt, or the TSE payload.
+        /// </summary>
+        private async Task<PaymentResult?> TryApplyVariantForLineAsync(
+            Product product,
+            PaymentItemRequest itemRequest,
+            Dictionary<PaymentItemRequest, decimal> variantPriceDeltas,
+            IDbContextTransaction transaction,
+            string userId)
+        {
+            var hasActiveVariant = await _context.ProductVariants
+                .AnyAsync(variant => variant.ProductId == product.Id && variant.IsActive)
+                .ConfigureAwait(false);
+            var variantId = itemRequest.VariantId;
+
+            if (!hasActiveVariant)
+            {
+                if (variantId is null || variantId == Guid.Empty)
+                    return null;
+
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.NotAllowed,
+                    "Variant is not allowed for this product.");
+            }
+
+            if (variantId is null || variantId == Guid.Empty)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.Required,
+                    "A variant is required for this product.");
+            }
+
+            var row = await _context.ProductVariants
+                .FirstOrDefaultAsync(variant =>
+                    variant.Id == variantId
+                    && variant.ProductId == product.Id
+                    && variant.IsActive)
+                .ConfigureAwait(false);
+            if (row == null || row.TenantId != product.TenantId)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.Invalid,
+                    "Variant does not belong to this product.");
+            }
+
+            if (row.Stock < itemRequest.Quantity)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.StockInsufficient,
+                    "Variant stock is insufficient.");
+            }
+
+            row.Stock -= itemRequest.Quantity;
+            row.UpdatedAtUtc = DateTime.UtcNow;
+            variantPriceDeltas[itemRequest] = row.PriceDelta;
+
+            try
+            {
+                await _auditLogService.LogSystemOperationAsync(
+                    action: "PRODUCT_VARIANT_STOCK_ADJUSTED",
+                    entityType: "ProductVariant",
+                    userId: string.IsNullOrWhiteSpace(userId) ? "system" : userId,
+                    userRole: "Cashier",
+                    description: "PRODUCT_VARIANT_STOCK_ADJUSTED",
+                    actionType: AuditEventType.ProductVariantStockAdjusted,
+                    entityId: row.Id,
+                    tenantId: product.TenantId,
+                    newValues: new
+                    {
+                        tenantId = product.TenantId,
+                        productId = product.Id,
+                        variantId = row.Id,
+                        delta = -itemRequest.Quantity,
+                        newStock = row.Stock,
+                    }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Variant stock audit failed for {VariantId}", row.Id);
             }
 
             return null;
@@ -1222,6 +1327,7 @@ namespace KasseAPI_Final.Services
                     var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
                     var pendingImeiRows = new List<ProductImei>();
                     var reservedImeiCodes = new HashSet<string>(StringComparer.Ordinal);
+                    var variantPriceDeltas = new Dictionary<PaymentItemRequest, decimal>();
                     foreach (var itemRequest in request.Items)
                     {
                         var product = await _context.Products
@@ -1252,9 +1358,22 @@ namespace KasseAPI_Final.Services
                             };
                         }
 
+                        if (!request.IsStorno && !request.IsRefund)
+                        {
+                            var variantFailure = await TryApplyVariantForLineAsync(
+                                product,
+                                itemRequest,
+                                variantPriceDeltas,
+                                transaction,
+                                userId).ConfigureAwait(false);
+                            if (variantFailure != null)
+                                return variantFailure;
+                        }
+
                         // Phase 2: Sellable add-ons are product-only payment lines; no stock deduction (stok düşülmez).
+                        // Products with variants keep top-level stock unchanged; the variant row is the stock.
                         // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
-                        if (!product.IsSellableAddOn)
+                        if (!product.IsSellableAddOn && !variantPriceDeltas.ContainsKey(itemRequest))
                         {
                             if (_inventoryOptions.EnforceStockOnSales)
                             {
@@ -1312,6 +1431,19 @@ namespace KasseAPI_Final.Services
                                 cashRegisterId,
                                 DateTime.UtcNow);
                             unitGross = priceRes.UnitPriceGross;
+                        }
+
+                        if (variantPriceDeltas.TryGetValue(itemRequest, out var priceDelta))
+                        {
+                            unitGross = decimal.Round(unitGross + priceDelta, 2, MidpointRounding.AwayFromZero);
+                            if (unitGross < 0)
+                            {
+                                await transaction.RollbackAsync().ConfigureAwait(false);
+                                _context.ChangeTracker.Clear();
+                                return VariantPaymentFailure(
+                                    ProductVariantSaleCodes.Invalid,
+                                    "Variant price delta makes the line total negative.");
+                            }
                         }
 
                         pricedLines.Add((itemRequest, product, unitGross));
@@ -1821,6 +1953,10 @@ namespace KasseAPI_Final.Services
                     }
                     else if (countryBinding.Profile.FiscalSystem == FiscalSystem.RKSV_AT && effectiveTseRequired)
                     {
+                        var requiresPrescriptionByProduct = new Dictionary<Guid, bool>();
+                        foreach (var priced in pricedLines)
+                            requiresPrescriptionByProduct[priced.Product.Id] = priced.Product.RequiresPrescription;
+
                         (taxResult, taxDetails) = await ApplyBeforeSignCartAsync(
                             effectiveTenantId,
                             payment,
@@ -1830,7 +1966,8 @@ namespace KasseAPI_Final.Services
                             taxStrategy,
                             countryBinding,
                             rateCatalog,
-                            request.Steuernummer);
+                            request.Steuernummer,
+                            requiresPrescriptionByProduct);
                         totalAmount = payment.TotalAmount;
                         totalTaxAmount = payment.TaxAmount;
                         try

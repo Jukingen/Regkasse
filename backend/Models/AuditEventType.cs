@@ -155,6 +155,15 @@ public enum AuditEventType
     /// <summary>Super Admin changed the FinanzOnline outbox worker enable/disable overlay.</summary>
     FinanzOnlineOutboxSettingsChanged = 73,
 
+    /// <summary>Operator reset one outbox row to Pending so the worker can submit it again.</summary>
+    FinanzOnlineOutboxRetried = 139,
+
+    /// <summary>Operator reset every matching failed outbox row to Pending.</summary>
+    FinanzOnlineOutboxBulkRetried = 140,
+
+    /// <summary>Super Admin closed an outbox row without another FinanzOnline submit.</summary>
+    FinanzOnlineOutboxMarkedResolved = 141,
+
     /// <summary>Super Admin force-logged-out a user (security stamp + all sessions).</summary>
     UserForceLogout = 74,
 
@@ -365,6 +374,66 @@ public enum AuditEventType
 
     /// <summary>A hair-salon campaign changed a cart gross before signing. The campaign id list is stored; line prices are not.</summary>
     HairSalonCampaignApplied = 138,
+
+    /// <summary>
+    /// Super Admin acknowledged Backup/DR known gaps for one tenant.
+    /// This does not disable the checks, does not move restore-proof timestamps, and does not pass the compliance gate.
+    /// Numeric 142: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupKnownGapsAccepted = 142,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary email was sent.
+    /// Recipients and SMTP secrets are not stored.
+    /// Numeric 143: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportSent = 143,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary email was not sent.
+    /// Recipients and SMTP secrets are not stored.
+    /// Numeric 144: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportFailed = 144,
+
+    /// <summary>
+    /// Weekly Backup/DR drill summary did not send because no recipients were configured.
+    /// The audit row stores <c>Reason=no-recipients</c> and a correlation id. Addresses are not stored.
+    /// Numeric 145: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    BackupDrillReportSkipped = 145,
+
+    /// <summary>
+    /// Admin changed a ticket price category or an event's category price and capacity.
+    /// Not a fiscal event. The ticket plaintext is not stored.
+    /// Numeric 146: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TicketPriceCategoryChanged = 146,
+
+    /// <summary>
+    /// A seat was sold on the non-fiscal ticket-events sell path.
+    /// Does not call payment or TSE. The ticket plaintext is not stored.
+    /// Numeric 147: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TicketSeatSold = 147,
+
+    /// <summary>
+    /// Admin created, updated, or deactivated a product variant.
+    /// Product metadata only. Not a fiscal event. Numeric 148: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    ProductVariantChanged = 148,
+
+    /// <summary>
+    /// Variant stock changed by a delta. Not a payment or TSE event.
+    /// Numeric 149: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    ProductVariantStockAdjusted = 149,
+
+    /// <summary>
+    /// An open guest folio moved to another room. The folio row and its balance stay.
+    /// Not a receipt, a folio item, or a payment. Numeric 150: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    FolioRoomMoved = 150,
 
     Other = 99
 }

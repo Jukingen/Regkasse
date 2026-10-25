@@ -123,10 +123,10 @@ namespace KasseAPI_Final.Models
         [Column("tax_group_id")]
         public Guid TaxGroupId { get; set; }
 
-        [Required]
+        /// <summary>Optional retail lookup code. Not part of RKSV, TSE, or DEP.</summary>
         [Column("barcode")]
-        [MaxLength(50)]
-        public string Barcode { get; set; } = string.Empty;
+        [MaxLength(64)]
+        public string? Barcode { get; set; }
 
         [Column("category_id")]
         public Guid CategoryId { get; set; }
@@ -189,6 +189,12 @@ namespace KasseAPI_Final.Models
         public virtual ICollection<ProductModifierGroupAssignment> ModifierGroupAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
 
         public virtual ICollection<ProductImei> Imeis { get; set; } = new List<ProductImei>();
+
+        public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+
+        /// <summary>List payload only. Not stored. Detail variants stay on the variants endpoint.</summary>
+        [NotMapped]
+        public bool HasVariants { get; set; }
     }
 
     /// <summary>

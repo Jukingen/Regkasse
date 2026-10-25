@@ -50,6 +50,10 @@ public sealed class BackupDashboardStatsResponseDto
     /// <summary>Average restore drill duration (minutes) or backup duration fallback.</summary>
     public double? RtoMinutes { get; init; }
 
+    /// <summary>
+    /// <c>CompletedAt</c> of the latest scheduled restore drill that succeeded.
+    /// Manual successes are excluded so this matches recoverability <c>lastSuccessfulRestoreProofAt</c>.
+    /// </summary>
     public DateTime? LastSuccessfulRestoreDrillAtUtc { get; init; }
 
     public RestoreVerificationStatus? LatestRestoreDrillStatus { get; init; }

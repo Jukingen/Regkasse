@@ -3,8 +3,17 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Caching;
+using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Services.Lodging;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
+using CacheSettings = KasseAPI_Final.Configuration.CacheSettings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -250,6 +259,137 @@ public sealed class LodgingApiTests
     }
 
     [Fact]
+    public async Task Pos_CloseWithPendingMinibar_FollowsSettlementPolicy()
+    {
+        var tenantId = Guid.NewGuid();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"LodgingMinibar_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(tenantId));
+        SeedTenant(db, tenantId);
+        var roomId = await SeedRoomAsync(db, tenantId, "701");
+        var customerId = await SeedCustomerAsync(db, tenantId, "Minibar Gast");
+        db.RoomMinibarItems.Add(new RoomMinibarItem
+        {
+            TenantId = tenantId,
+            RoomId = roomId,
+            Description = "Water",
+            Quantity = 2,
+            UnitPrice = 3.50m,
+            Status = RoomMinibarItemStatus.Pending,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+        });
+        db.TenantSettings.Add(new TenantSetting
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Key = TenantExtensionSettings.EnabledKey,
+            Value = "[\"minibar_auto_charge\"]",
+            UpdatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(service => service.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+        var profiles = new Mock<IVerticalProfileService>();
+        profiles
+            .Setup(service => service.GetForAdminTenantAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectiveVerticalProfileDto(
+                VerticalProfileIds.Beherbergung,
+                "Lodging",
+                default,
+                default,
+                default,
+                "rooms",
+                default));
+        var registry = new TenantExtensionRegistry(
+            [new MinibarAutoChargeExtension(db, profiles.Object, audit.Object)],
+            TenantTestDoubles.DbContextFactoryForTests(options, TenantTestDoubles.TenantAccessorReturning(null)),
+            new MemoryCache(new MemoryCacheOptions()),
+            new EmptyLodgingCache(),
+            Options.Create(new CacheSettings()),
+            Mock.Of<IAuditLogService>(),
+            NullLogger<TenantExtensionRegistry>.Instance);
+        var controller = new PosRoomsController(
+            new LodgingService(db, audit.Object, registry),
+            TenantTestDoubles.TenantAccessorReturning(tenantId),
+            new PermissiveVerticalProfileGuard())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                        [new Claim(ClaimTypes.Role, Roles.Cashier)],
+                        authenticationType: "test")),
+                },
+            },
+        };
+
+        var created = await controller.CreateFolio(
+            new CreateGuestFolioRequest { CustomerId = customerId, RoomId = roomId },
+            CancellationToken.None);
+        var folio = Assert.IsType<GuestFolioDto>(Assert.IsType<ObjectResult>(created.Result).Value);
+
+        var blocked = await controller.UpdateFolio(
+            folio.Id,
+            new UpdateGuestFolioRequest { Status = "Closed" },
+            CancellationToken.None);
+        var blockedResult = Assert.IsType<BadRequestObjectResult>(blocked.Result);
+        var blockedError = Assert.IsType<LodgingErrorDto>(blockedResult.Value);
+        Assert.Equal(ExtensionFailedException.ErrorCode, blockedError.Code);
+        Assert.Equal(MinibarAutoChargePolicy.RejectionCode, blockedError.Message);
+        Assert.Equal(GuestFolioStatus.Open, (await db.GuestFolios.SingleAsync(row => row.Id == folio.Id)).Status);
+        Assert.Equal(RoomMinibarItemStatus.Pending, (await db.RoomMinibarItems.SingleAsync()).Status);
+        Assert.Equal(0, await db.GuestFolioItems.CountAsync());
+        Assert.Equal(0, await db.PaymentDetails.CountAsync());
+
+        db.TenantSettings.Add(new TenantSetting
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Key = MinibarAutoChargePolicy.SettingsKey,
+            Value = "{\"requireSettlementBeforeClose\":false}",
+            UpdatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var closed = await controller.UpdateFolio(
+            folio.Id,
+            new UpdateGuestFolioRequest { Status = "Closed" },
+            CancellationToken.None);
+        var closedFolio = Assert.IsType<GuestFolioDto>(Assert.IsType<OkObjectResult>(closed.Result).Value);
+        Assert.Equal("Closed", closedFolio.Status);
+        Assert.Equal(7.00m, closedFolio.Balance);
+        var line = Assert.Single(await db.GuestFolioItems.ToListAsync());
+        Assert.Null(line.PaymentDetailId);
+        Assert.Equal("Water", line.Description);
+        Assert.Equal(RoomMinibarItemStatus.Charged, (await db.RoomMinibarItems.SingleAsync()).Status);
+        Assert.Equal(0, await db.PaymentDetails.CountAsync());
+    }
+
+    [Fact]
     public async Task Pos_CrossTenantFolio_Returns404()
     {
         var tenantA = Guid.NewGuid();
@@ -374,6 +514,34 @@ public sealed class LodgingApiTests
                 },
             },
         };
+    }
+
+    private sealed class EmptyLodgingCache : ICacheService
+    {
+        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult<T?>(default);
+
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<T> GetOrCreateAsync<T>(
+            string key,
+            Func<CancellationToken, Task<T>> factory,
+            TimeSpan? expiry = null,
+            CancellationToken cancellationToken = default) =>
+            factory(cancellationToken);
+
+        public Task RemoveByPrefixAsync(string prefix, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task ClearAllAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
     }
 
     private static AppDbContext CreateDb(Guid tenantId)
