@@ -29,7 +29,7 @@ function hasClinicalRecord(pet: CustomerPetData | null | undefined): boolean {
   );
 }
 
-export function toPatientRows(customers: Customer[]): PatientRow[] {
+function toPatientRows(customers: Customer[]): PatientRow[] {
   return customers.flatMap((customer) => {
     const pet = customer.petData;
     if (!hasClinicalRecord(pet)) return [];
