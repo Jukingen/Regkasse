@@ -41,6 +41,17 @@ updates:
       - dependencies
       - frontend-sites
     groups:
+      # One PR for the framework set, so the lockfile moves once.
+      # Auto-merge still requires the root package-lock.json.
+      frontend-sites-framework:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - '@types/*'
+        update-types:
+          - minor
+          - patch
       frontend-sites-minor-patch:
         update-types:
           - minor
@@ -49,6 +60,7 @@ updates:
           - next
           - react
           - react-dom
+          - '@types/*'
 
   # npm workspaces. CI npm ci at repo root uses package-lock.json.
   # Do NOT re-add directory: /frontend-admin — its lock is not used by root npm ci.
