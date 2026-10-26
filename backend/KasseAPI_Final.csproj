@@ -69,8 +69,9 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Sentry" Version="5.16.3" />
     <PackageReference Include="Sentry.AspNetCore" Version="5.16.3" />
-    <!-- Stay on 3.1.x: ImageSharp 3.2+ and 4.0 require a Six Labors license key at Release build for direct refs. -->
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <!-- MIT. NativeAssets.Linux.NoDependencies: the aspnet slim image has no libfontconfig. -->
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
     <PackageReference Include="QuestPDF" Version="2026.7.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="QRCoder" Version="1.8.1" />
