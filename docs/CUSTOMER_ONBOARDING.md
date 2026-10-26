@@ -68,6 +68,22 @@ Live UI: `CreateTenantWizard.tsx` — phases `country` → `form` → processing
 
 **Rollback:** If provisioning fails after the tenant row is inserted, the transaction is rolled back (no partial customer). UI: `OnboardingErrorModal` with German rollback note.
 
+### Demo-Mandant anlegen
+
+Super Admin operators who need a customer demo do not fill the catalog by hand. **Demo-Mandant anlegen** sits next to **Mandant anlegen** on `/admin/tenants` and is shown only when the signed-in user has `system.critical`.
+
+The button opens the same `CreateTenantWizard` with:
+
+- Country **AT**
+- Trial **14 days** (editable)
+- Name `Demo YYYY-MM-DD` and slug `demo-YYYYMMDDHHmm` (both editable)
+- Hidden `seedDemo: true` on submit
+- Restaurant demo-menu import is not applied. The server also skips the three generic provisioning products, so the catalog is the vertical seed only
+
+After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder` for that tenant. The tenant then has **44 products** (4 per vertical profile), **22 customers** (2 per profile), and one open **KASSE-001**. The success modal shows the tenant name, the one-time admin username, email, and password, and the line `44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+
+`seedDemo` defaults to false. A regular **Mandant anlegen** does not seed this catalog. A caller who is not Super Admin and sends `seedDemo: true` receives **HTTP 403** before the tenant is created. The seed writes audit event `TenantDemoSeeded` (152) with tenant id, added counts, and cash register id. It does not write receipts, TSE signatures, or payments.
+
 ### Slug check
 
 - Live: `GET /api/admin/tenants/slug-availability?slug={slug}`
