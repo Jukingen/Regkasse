@@ -32,6 +32,7 @@ export type TenantOnboardingSuccessState = {
   slug: string;
   contactEmail: string;
   provisioning: TenantProvisioning | null;
+  demoSeeded?: boolean;
 };
 
 export type OnboardingSuccessModalProps = {
@@ -158,6 +159,10 @@ export function OnboardingSuccessModal({
             icon={<CheckCircleFilled />}
             title={t('tenants.provisioning.successHeadline', { name: success.tenantName })}
           />
+
+          {success.demoSeeded ? (
+            <Alert type="success" showIcon title={t('tenants.provisioning.demoReady')} />
+          ) : null}
 
           {demoMenuImported ? (
             <Alert

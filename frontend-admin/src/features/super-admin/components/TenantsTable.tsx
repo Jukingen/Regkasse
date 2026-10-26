@@ -44,6 +44,7 @@ import {
   updateAdminTenant,
   updateTenantStatus,
 } from '@/features/super-admin/api/adminTenants';
+import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { TenantTrialBadge } from '@/features/super-admin/components/TenantTrialBadge';
@@ -111,6 +112,7 @@ export function TenantsTable() {
   const closeEditModal = useCallback(() => setEditRow(null), []);
   useKeyboardShortcutListener(KEYBOARD_SHORTCUT_EVENTS.closeModal, closeEditModal, !!editRow);
 
+  const [demoWizardOpen, setDemoWizardOpen] = useState(false);
   const canAccess = isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
   const isSuperAdminUser = isSuperAdmin(user?.role);
   const canManageDeletion = useCanManageTenantDeletion();
@@ -456,6 +458,15 @@ export function TenantsTable() {
                 )}
               </span>
             </Tooltip>
+            {hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL) ? (
+              <Button
+                data-testid="create-demo-tenant"
+                disabled={isMaintenanceMode}
+                onClick={() => setDemoWizardOpen(true)}
+              >
+                {t('tenants.actions.createDemo')}
+              </Button>
+            ) : null}
           </Space>
         }
       />
@@ -595,6 +606,15 @@ export function TenantsTable() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <CreateTenantWizard
+        open={demoWizardOpen}
+        demoSeed
+        onClose={() => setDemoWizardOpen(false)}
+        onCreated={() => {
+          void queryClient.invalidateQueries({ queryKey: ADMIN_TENANTS_QUERY_KEY });
+        }}
+      />
     </AdminPageShell>
   );
 }

@@ -1,4 +1,5 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -32,6 +33,7 @@ public sealed class AdminTenantsController : ControllerBase
     private readonly ITrialConversionService _trialConversion;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
+    private readonly ITenantDemoSeeder _demoSeeder;
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
@@ -42,7 +44,8 @@ public sealed class AdminTenantsController : ControllerBase
         IAuditLogService auditLogService,
         ITrialConversionService trialConversion,
         IHostEnvironment environment,
-        ILogger<AdminTenantsController> logger)
+        ILogger<AdminTenantsController> logger,
+        ITenantDemoSeeder demoSeeder)
     {
         _tenantService = tenantService;
         _csvExport = csvExport;
@@ -53,6 +56,7 @@ public sealed class AdminTenantsController : ControllerBase
         _trialConversion = trialConversion;
         _environment = environment;
         _logger = logger;
+        _demoSeeder = demoSeeder;
     }
 
     private string? ActorUserId => User.GetActorUserId();
@@ -269,12 +273,16 @@ public sealed class AdminTenantsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<AdminTenantDetailDto>> Create(
         [FromBody] CreateAdminTenantRequest request,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        if (request.SeedDemo && !User.IsInRole(Roles.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Demo seed requires SuperAdmin." });
 
         try
         {
@@ -289,6 +297,27 @@ public sealed class AdminTenantsController : ControllerBase
                     code = failure.Code,
                     suggestions = failure.SlugSuggestions,
                 });
+            }
+
+            if (request.SeedDemo)
+            {
+                var seeded = await _demoSeeder.SeedAsync(result!.Id, cancellationToken).ConfigureAwait(false);
+                await _auditLogService.LogSystemOperationAsync(
+                    "TENANT_DEMO_SEEDED",
+                    "Tenant",
+                    ActorUserId ?? "system",
+                    ActorRole ?? Roles.SuperAdmin,
+                    description: "Demo catalog seeded",
+                    actionType: AuditEventType.TenantDemoSeeded,
+                    entityId: result.Id,
+                    tenantId: result.Id,
+                    newValues: new
+                    {
+                        tenantId = result.Id,
+                        productsAdded = seeded.ProductsAdded,
+                        customersAdded = seeded.CustomersAdded,
+                        cashRegisterId = seeded.CashRegisterId,
+                    }).ConfigureAwait(false);
             }
 
             return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);

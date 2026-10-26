@@ -124,7 +124,8 @@ public sealed class TenantOnboardingCountryValidationTests
             Mock.Of<IAuditLogService>(),
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
 
         controller.ControllerContext = new ControllerContext
         {

@@ -5,7 +5,7 @@
  */
 import { useMutation } from '@tanstack/react-query';
 import { Button, Form, Modal, Steps } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   type AdminTenantDetail,
@@ -26,6 +26,7 @@ import { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenan
 import { useTenantOnboardingProgress } from '@/features/super-admin/hooks/useTenantOnboardingProgress';
 import type { TenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
 import { parseTenantOnboardingError } from '@/features/super-admin/lib/parseTenantOnboardingError';
+import { buildDemoTenantDefaults } from '@/features/super-admin/lib/demoTenantDefaults';
 import { normalizeTenantSlugInput } from '@/features/super-admin/lib/tenantSlug';
 import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import { useI18n } from '@/i18n';
@@ -40,6 +41,8 @@ export type CreateTenantWizardProps = {
   onCreateAnother?: () => void;
   onSwitchToTenant?: (tenantId: string) => void;
   switchToTenantLoading?: boolean;
+  /** Prefills an Austrian 14-day demo and sends `seedDemo: true`. */
+  demoSeed?: boolean;
 };
 
 type WizardPhase = 'country' | 'form' | 'processing' | 'processingDone';
@@ -74,6 +77,7 @@ function CreateTenantWizardContent({
   onCreateAnother,
   onSwitchToTenant,
   switchToTenantLoading,
+  demoSeed = false,
 }: CreateTenantWizardProps) {
   const { t } = useI18n();
   const baseDomain = getTenantAppBaseDomain();
@@ -124,6 +128,7 @@ function CreateTenantWizardContent({
           slug: created.slug,
           contactEmail,
           provisioning: created.provisioning ?? null,
+          demoSeeded: demoSeed,
         });
       }, 500);
     },
@@ -148,14 +153,34 @@ function CreateTenantWizardContent({
     }
   }, [open, form, resetFlow, phase]);
 
+  const demoDefaultsApplied = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open || !demoSeed || demoDefaultsApplied.current) return;
+    const catalog = countriesQuery.data ?? [];
+    const austria = catalog.find((country) => country.code === 'AT');
+    const regime = austria?.allowedVatRegimes?.find((value) => Boolean(value));
+    const defaults = buildDemoTenantDefaults();
+    form.setFieldsValue({
+      countryCode: 'AT',
+      vatRegime: regime ? String(regime) : 'AT_RKSV_STANDARD',
+      name: defaults.name,
+      slug: defaults.slug,
+      grantTrialLicense: true,
+      trialDurationDays: 14,
+      importDemoProducts: false,
+    });
+    demoDefaultsApplied.current = true;
+  }, [open, demoSeed, form, countriesQuery.data]);
+
+  useEffect(() => {
+    if (!open || demoSeed) return;
     if (form.getFieldValue('countryCode')) return;
     const seeded = initialCountryFromCatalog(countriesQuery.data ?? []);
     if (seeded.countryCode) {
       form.setFieldsValue(seeded);
     }
-  }, [open, form, countriesQuery.data]);
+  }, [open, demoSeed, form, countriesQuery.data]);
 
   const isProcessing =
     phase === 'processing' || phase === 'processingDone' || createMutation.isPending;
@@ -196,7 +221,8 @@ function CreateTenantWizardContent({
       address: values.address?.trim() || undefined,
       grantTrialLicense: grantTrial,
       trialDurationDays: grantTrial ? (values.trialDurationDays ?? 14) : undefined,
-      importDemoMenu: values.importDemoProducts ?? true,
+      importDemoMenu: demoSeed ? (values.importDemoProducts ?? false) : (values.importDemoProducts ?? true),
+      ...(demoSeed ? { seedDemo: true } : { seedDemo: false }),
     });
   };
 

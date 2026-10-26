@@ -220,6 +220,12 @@ public sealed class CreateAdminTenantRequest
 
     /// <summary>When true and an industry template is set, seed deactivated starter users for template slots.</summary>
     public bool SeedIndustryStarterUsers { get; set; } = true;
+
+    /// <summary>
+    /// When true, Super Admin create also applies the vertical demo catalog (products, customers, open KASSE-001).
+    /// Regular create leaves this false. A non-SuperAdmin caller that sets it is rejected with HTTP 403.
+    /// </summary>
+    public bool SeedDemo { get; set; }
 }
 
 public sealed class HardDeleteAdminTenantRequest

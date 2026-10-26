@@ -52,8 +52,15 @@ vi.mock('@/api/generated/admin/admin', async (importOriginal) => {
   };
 });
 
+const wizardSpy = vi.hoisted(() => ({
+  current: null as null | { open?: boolean; demoSeed?: boolean },
+}));
+
 vi.mock('@/features/super-admin/components/CreateTenantWizard', () => ({
-  CreateTenantWizard: () => null,
+  CreateTenantWizard: (props: { open?: boolean; demoSeed?: boolean }) => {
+    wizardSpy.current = props;
+    return props.open ? <div data-testid="demo-wizard-open" /> : null;
+  },
 }));
 
 vi.mock('@/features/super-admin/components/TenantLicenseBadge', () => ({
@@ -200,6 +207,24 @@ describe('SuperAdminTenantsPage', () => {
     await waitFor(() => expect(mockListAdminTenantsPaged).toHaveBeenCalled());
     expect(screen.queryByText('Gelöschte anzeigen')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Demo-Mandant anlegen' })).toBeInTheDocument();
+  });
+
+  it('hides Demo-Mandant anlegen without system.critical', async () => {
+    renderPage();
+    expect(await screen.findByText('Cafe Demo')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Demo-Mandant anlegen' })).not.toBeInTheDocument();
+  });
+
+  it('opens the demo wizard with seedDemo when Demo-Mandant anlegen is clicked', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 'mgr-1', role: 'Manager', permissions: ['system.critical'] },
+    });
+    renderPage();
+    await waitFor(() => expect(mockListAdminTenantsPaged).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Demo-Mandant anlegen' }));
+    expect(screen.getByTestId('demo-wizard-open')).toBeInTheDocument();
+    expect(wizardSpy.current).toMatchObject({ open: true, demoSeed: true });
   });
 
   it('archive button opens modal and calls soft-delete API', async () => {

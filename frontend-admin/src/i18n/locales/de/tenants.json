@@ -884,6 +884,7 @@
     "successTitle": "Mandant angelegt",
     "successHeadline": "Kunde „{{name}}“ wurde erfolgreich angelegt!",
     "demoMenuImported": "Demo-Menü importiert: {{count}} Produkte angelegt.",
+    "demoReady": "44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.",
     "missingWarning": "Die automatische Einrichtung konnte nicht bestätigt werden. Bitte Mandant prüfen oder Support kontaktieren.",
     "passwordWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
     "credentialsTitle": "Zugangsdaten (einmalige Anzeige!)",
@@ -942,6 +943,7 @@
   },
   "actions": {
     "create": "Mandant anlegen",
+    "createDemo": "Demo-Mandant anlegen",
     "edit": "Bearbeiten",
     "exportCsv": "CSV exportieren",
     "exportSuccess": "Export gestartet.",

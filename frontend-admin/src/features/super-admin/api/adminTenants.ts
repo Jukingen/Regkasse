@@ -153,6 +153,8 @@ export type CreateAdminTenantRequest = {
   industryTemplateId?: string | null;
   /** When true, seed starter users for industry template slots. */
   seedIndustryStarterUsers?: boolean;
+  /** Super Admin only. Applies the vertical demo catalog after create. Regular create sends false. */
+  seedDemo?: boolean;
 };
 
 export type UpdateAdminTenantRequest = {

@@ -62,6 +62,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         int? trialDurationDays = null,
         CountryProfile? countryProfile = null,
         VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
+        bool skipGenericDemoProducts = false,
         CancellationToken cancellationToken = default)
     {
         var profile = countryProfile ?? new CountryProfileRegistry().Default;
@@ -189,7 +190,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            if (isAustrian)
+            if (isAustrian && !skipGenericDemoProducts)
             {
                 var products = await CreateDemoProductsAsync(tenant.Id, category, cancellationToken)
                     .ConfigureAwait(false);
