@@ -156,3 +156,20 @@ Windows:
 | HighErrorRate | Grafana API error panel; recent deploy tag; Sentry |
 
 More: [`DEPLOYMENT.md`](../DEPLOYMENT.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md).
+
+---
+
+## Critical event thresholds
+
+These are the production signals that should page a human. Slack uses the repository secret `SLACK_WEBHOOK_URL` (uptime workflow and `notify-failure.yml`). Email already covers billing and license events; reuse that mailbox for critical Sentry issues. This section does not add an email sender.
+
+| Signal | Threshold | Channel |
+|--------|-----------|---------|
+| Error rate | > 5% over a 5 minute window | Slack + Sentry |
+| p95 latency | > 1s | Slack |
+| Restore drill failed | any failed drill | Slack + email |
+| Backup failed | any failed backup run | Slack + email (existing backup failure mail) |
+| TSE offline | fleet or device offline | Slack + email |
+| FinanzOnline dead-letter | count > 0 | Slack + email |
+
+`SLACK_WEBHOOK_URL` is the same secret the uptime check uses. Do not commit the webhook URL.
