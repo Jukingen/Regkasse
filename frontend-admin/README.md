@@ -684,7 +684,7 @@ Full guide: [`docs/MONITORING.md`](docs/MONITORING.md). Alert recipes: [`monitor
 | **FA process health** | `/api/monitoring/health` (uptime, memory, Sentry flag) | Probe + `/admin/monitoring` |
 | **Web Vitals** | See [Performance monitoring](#performance-monitoring) | LCP > 2.5 s |
 
-**In-app dashboard (Super Admin):** `/admin/monitoring` — live error rate, p50/p95/p99, health probe, recent sanitized API calls.
+**In-app dashboard (Super Admin):** `/admin/monitoring` — live error rate, p50/p95/p99, health probe, recent sanitized API calls, and a Health card for API live/ready, the last five restore drills, the last `BackupDrillReportSent` audit row, and the Sentry environment.
 
 ```bash
 curl -sS http://localhost:3000/health

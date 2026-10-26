@@ -29,5 +29,13 @@
   "colDuration": "Dauer",
   "noSamples": "Noch keine API-Samples — Admin-UI nutzen, um Metriken zu sammeln.",
   "externalLinks": "Probes & Exporte",
-  "grafanaHint": "monitoring/grafana-fa-dashboard.json in Grafana importieren, wenn FA-stdout gescraped wird."
+  "grafanaHint": "monitoring/grafana-fa-dashboard.json in Grafana importieren, wenn FA-stdout gescraped wird.",
+  "apiHealthTitle": "API-Health",
+  "apiLive": "API live",
+  "apiReady": "API ready",
+  "recentDrills": "Letzte Restore-Drills",
+  "noDrills": "Keine Drills",
+  "lastDrillReport": "Letzter Wochenbericht",
+  "sentryEnvironment": "Sentry-Umgebung: {{env}}",
+  "sentryDsnMissing": "Konfigurieren Sie NEXT_PUBLIC_SENTRY_DSN"
 }

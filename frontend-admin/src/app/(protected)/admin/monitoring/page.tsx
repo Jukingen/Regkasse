@@ -20,6 +20,7 @@ import {
   subscribeApiMetrics,
 } from '@/lib/monitoring/apiMetricsStore';
 import { MONITORING_THRESHOLDS } from '@/lib/monitoring/thresholds';
+import { MonitoringApiHealthCard } from './MonitoringApiHealthCard';
 
 type HealthPayload = {
   status?: string;
@@ -240,6 +241,8 @@ export default function AdminMonitoringPage() {
           locale={{ emptyText: t('monitoring.noSamples') }}
         />
       </Card>
+
+      <MonitoringApiHealthCard />
 
       <Card size="small" title={t('monitoring.externalLinks')} style={{ marginTop: 16 }}>
         <Space wrap>
