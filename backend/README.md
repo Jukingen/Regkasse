@@ -18,7 +18,7 @@ ASP.NET Core Web API for Regkasse POS / Admin: multi-tenant auth, payments, RKSV
 | Container | Multi-stage [`Dockerfile`](Dockerfile) → self-contained on `aspnet:10.0`, port **8080** |
 | Tests | xUnit + FluentAssertions + Moq; `Microsoft.AspNetCore.Mvc.Testing`; Testcontainers (PostgreSQL) |
 
-Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`).
+Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`). Image thumbnails use SkiaSharp (MIT). ImageSharp was removed due to a security advisory and the Six Labors commercial license.
 
 ## Setup
 

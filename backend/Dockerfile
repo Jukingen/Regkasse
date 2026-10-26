@@ -49,8 +49,8 @@ RUN dotnet publish backend/KasseAPI_Final.csproj \
     /p:PublishTrimmed=false
 
 # --- Runtime ------------------------------------------------------------------
-# Keep aspnet base (not bare runtime-deps) for native deps used by QuestPDF /
-# ImageSharp (fonts, libgdi-related libs on Debian).
+# Keep aspnet base (not bare runtime-deps) for QuestPDF fonts. SkiaSharp uses
+# NativeAssets.Linux.NoDependencies because this slim image has no libfontconfig.
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
 WORKDIR /app
 
