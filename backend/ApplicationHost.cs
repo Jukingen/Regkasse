@@ -1585,6 +1585,7 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IBackupStagingDiskMonitor, BackupStagingDiskMonitor>();
         builder.Services.AddSingleton<IBackupEncryptionService, BackupEncryptionService>();
         builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
+        builder.Services.AddSingleton<RestoreDrillPdfRenderer>();
         builder.Services.AddScoped<IBackupKnownGapAcceptanceService, BackupKnownGapAcceptanceService>();
         builder.Services.AddScoped<IBackupKnownGapStatusService, BackupKnownGapStatusService>();
         builder.Services.AddScoped<IBackupComplianceStatusService, BackupComplianceStatusService>();

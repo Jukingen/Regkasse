@@ -1,6 +1,7 @@
 /**
  * POST /api/admin/backup/drill/run — alias for restore-verification trigger.
  */
+import { postApiAdminBackupDrillsIdPdf } from '@/api/generated/admin/admin';
 import { customInstance } from '@/lib/axios';
 
 export const BACKUP_DRILL_RUN_PATH = '/api/admin/backup/drill/run' as const;
@@ -32,4 +33,9 @@ export async function runRestoreDrill(
     headers: { 'Content-Type': 'application/json' },
     data: body ?? {},
   });
+}
+
+export async function downloadRestoreDrillPdf(id: string): Promise<Blob> {
+  // OpenAPI declares application/pdf binary, so the generated client returns a Blob.
+  return postApiAdminBackupDrillsIdPdf(id);
 }

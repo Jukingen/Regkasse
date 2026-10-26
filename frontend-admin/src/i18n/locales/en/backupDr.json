@@ -1695,7 +1695,10 @@
     "scheduleNext": "Next window (default): {{date}}",
     "scheduleOverdue": "Window overdue since {{date}}",
     "scheduleEmpty": "No scheduled drill proof yet.",
-    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override."
+    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override.",
+    "downloadPdf": "Download PDF",
+    "downloadPdfSuccess": "Inspection report downloaded",
+    "downloadPdfFailed": "The inspection report could not be downloaded."
   },
   "compliance": {
     "pageTitle": "RKSV compliance status",

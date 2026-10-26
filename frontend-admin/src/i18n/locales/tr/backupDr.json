@@ -1695,7 +1695,10 @@
     "scheduleNext": "Sonraki pencere (varsayılan): {{date}}",
     "scheduleOverdue": "Pencere {{date}} tarihinden beri gecikmiş",
     "scheduleEmpty": "Henüz zamanlanmış tatbikat kanıtı yok.",
-    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz."
+    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz.",
+    "downloadPdf": "PDF indir",
+    "downloadPdfSuccess": "Denetim raporu indirildi",
+    "downloadPdfFailed": "Denetim raporu indirilemedi."
   },
   "compliance": {
     "pageTitle": "RKSV uyumluluk durumu",

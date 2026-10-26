@@ -1695,7 +1695,10 @@
     "scheduleNext": "Nächster Termin (Standard): {{date}}",
     "scheduleOverdue": "Fenster überfällig seit {{date}}",
     "scheduleEmpty": "Noch kein geplanter Drill-Nachweis.",
-    "cadenceNote": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard. Manuelle Drills setzen ihn nicht zurück. Standardrhythmus {{days}} Tage; diese Ansicht liest keine Deployment-Abweichung."
+    "cadenceNote": "Gleicher Zeitpunkt wie der Restore-Nachweis im Dashboard. Manuelle Drills setzen ihn nicht zurück. Standardrhythmus {{days}} Tage; diese Ansicht liest keine Deployment-Abweichung.",
+    "downloadPdf": "PDF herunterladen",
+    "downloadPdfSuccess": "Prüfbericht heruntergeladen",
+    "downloadPdfFailed": "Prüfbericht konnte nicht heruntergeladen werden."
   },
   "compliance": {
     "pageTitle": "RKSV-Compliance-Status",

@@ -435,5 +435,12 @@ public enum AuditEventType
     /// </summary>
     FolioRoomMoved = 150,
 
+    /// <summary>
+    /// Super Admin downloaded a single restore-drill PDF.
+    /// The row stores tenant id, drill id, and actor id. PDF bytes, dump content, and secrets are not stored.
+    /// Numeric 151: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    RestoreDrillPdfDownloaded = 151,
+
     Other = 99
 }
