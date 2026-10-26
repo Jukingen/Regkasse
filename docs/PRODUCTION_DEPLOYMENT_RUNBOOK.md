@@ -487,3 +487,4 @@ Also:
 | TSE Device + FON Real cutover | Ops + compliance |
 | First real System backup verified | Ops |
 | Monitoring / on-call | Ops |
+| Set `Sentry:Dsn`, `NEXT_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_SENTRY_DSN`, and `SLACK_WEBHOOK_URL` before promoting | Ops |

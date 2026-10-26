@@ -27,6 +27,7 @@ Inventory of CI/CD under `.github/workflows/`. Prefer path filters where noted t
 | [`dep-prueftool.yml`](dep-prueftool.yml) | BMF DEP Prüftool: JDK 17 + fixture smoke + seeded export smoke | `pull_request`, `push` → `main`/`master` (path-filtered), `workflow_dispatch` |
 | [`scripts-bat-ps1-pairing.yml`](scripts-bat-ps1-pairing.yml) | Scripts validation: pairing + `SCRIPTS_REFERENCE.md` coverage (`validate-scripts.ps1`) + structural dry-run (`test-scripts.ps1`) | path-filtered PR/push; `workflow_dispatch` |
 | [`secret-scan.yml`](secret-scan.yml) | Tracked-file secret scan (`scan-secrets.mjs`) + scanner unit tests | PR; push `main`/`master`; `workflow_dispatch` |
+| [`uptime-check.yml`](uptime-check.yml) | Production probes (API live/ready, admin login, POS) and optional Slack | every 5 minutes; `workflow_dispatch` |
 | [`fiscal-validation.yml`](fiscal-validation.yml) | Fiscal schema migrate + go-live script (manual) | `workflow_dispatch` |
 | [`testsprite.yml`](testsprite.yml) | TestSprite YAML ↔ OpenAPI validate (+ optional live smoke) | path-filtered PR/push; `workflow_dispatch` for live |
 | [`notify-failure.yml`](notify-failure.yml) | Reusable Slack (optional) failure notifier | `workflow_call` only |

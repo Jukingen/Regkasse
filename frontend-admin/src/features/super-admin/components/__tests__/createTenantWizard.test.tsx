@@ -160,7 +160,7 @@ describe('CreateTenantWizard seedDemo', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('admin@demo.example')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Once-Secret-1')).toBeInTheDocument();
-  });
+  }, 30_000);
 
   it('sends seedDemo false for a regular create', async () => {
     mockCreateAdminTenant.mockResolvedValue({

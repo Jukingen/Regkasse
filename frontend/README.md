@@ -65,6 +65,7 @@ Copy from `.env.example`. Common keys:
 | `EXPO_PUBLIC_API_BASE_URL` | API base including `/api` (e.g. `http://localhost:5184/api`) |
 | `EXPO_PUBLIC_DEV_TENANT_ID` | Dev tenant slug (`dev` by default in `__DEV__`) |
 | `EXPO_PUBLIC_ADMIN_BASE_URL` | Optional FA base for “extend license” deep links |
+| `EXPO_PUBLIC_SENTRY_DSN` | POS error reporting. Leave empty to keep Sentry off. |
 
 Restart Metro after changing `.env`.
 

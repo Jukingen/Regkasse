@@ -108,12 +108,30 @@ function withEasProject(config, brandId) {
   };
 }
 
+function withOptionalSentry(config) {
+  const dsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
+  if (!dsn) return config;
+  return {
+    ...config,
+    plugins: [
+      ...(config.plugins ?? []),
+      [
+        '@sentry/react-native/expo',
+        {
+          organization: (process.env.SENTRY_ORG || '').trim() || undefined,
+          project: (process.env.SENTRY_PROJECT || '').trim() || undefined,
+        },
+      ],
+    ],
+  };
+}
+
 /** @param {{ config?: import('expo/config').ExpoConfig }} ctx */
 module.exports = ({ config } = {}) => {
   const base = config && config.slug ? config : appJson.expo;
   const brandId = (process.env.EXPO_PUBLIC_BRAND ?? '').trim().toLowerCase();
   if (!brandId || brandId === 'universal' || brandId === 'default') {
-    return withEasProject(base, null);
+    return withOptionalSentry(withEasProject(base, null));
   }
   const brand = BRANDS[brandId];
   if (!brand) {
@@ -121,5 +139,5 @@ module.exports = ({ config } = {}) => {
       `Unknown EXPO_PUBLIC_BRAND "${brandId}". Supported: ${Object.keys(BRANDS).join(', ')}. Leave it unset for the universal POS binary.`
     );
   }
-  return withEasProject(withBrandAssets(base, brand), brandId);
+  return withOptionalSentry(withEasProject(withBrandAssets(base, brand), brandId));
 };
