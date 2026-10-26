@@ -442,5 +442,12 @@ public enum AuditEventType
     /// </summary>
     RestoreDrillPdfDownloaded = 151,
 
+    /// <summary>
+    /// Super Admin seeded a demo catalog after tenant create. The row stores tenant id,
+    /// added product and customer counts, and the cash register id. Product names and passwords are not stored.
+    /// Numeric 152: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TenantDemoSeeded = 152,
+
     Other = 99
 }

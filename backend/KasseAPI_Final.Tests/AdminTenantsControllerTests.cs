@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Countries;
@@ -199,7 +200,9 @@ public sealed class AdminTenantsControllerTests
         IAdminTenantLicenseService? tenantLicenseService = null,
         ITenantDeletionService? tenantDeletionService = null,
         IHostEnvironment? environment = null,
-        ClaimsPrincipal? user = null)
+        ClaimsPrincipal? user = null,
+        ITenantDemoSeeder? demoSeeder = null,
+        IAuditLogService? auditLog = null)
     {
         var controller = new AdminTenantsController(
             tenantService ?? Mock.Of<IAdminTenantService>(),
@@ -207,10 +210,11 @@ public sealed class AdminTenantsControllerTests
             tenantLicenseService ?? Mock.Of<IAdminTenantLicenseService>(),
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<KasseAPI_Final.Services.ActivityReports.IActivityReportService>(),
-            Mock.Of<IAuditLogService>(),
+            auditLog ?? Mock.Of<IAuditLogService>(),
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            demoSeeder ?? Mock.Of<ITenantDemoSeeder>());
 
         controller.ControllerContext = new ControllerContext
         {
@@ -257,8 +261,9 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<int?>(),
                 It.IsAny<CountryProfile?>(),
                 It.IsAny<VatRegime>(),
+                It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CountryProfile? ______, VatRegime _______, CancellationToken _) =>
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, bool _, string? ___, bool ____, int? _____, CountryProfile? ______, VatRegime _______, bool ________, CancellationToken _) =>
             {
                 if (grantTrial)
                     t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);
@@ -2399,7 +2404,8 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<IAuditLogService>(),
             conversion.Object,
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2456,7 +2462,8 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<IAuditLogService>(),
             conversion.Object,
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2932,6 +2939,167 @@ public sealed class AdminTenantsControllerTests
             new UpdateAdminTenantCountryRequest { Country = "DE", VatRegime = VatRegime.DE_USTG_STANDARD });
 
         Assert.IsType<ConflictObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoTrue_AsSuperAdmin_SeedsTenantAndWritesAudit()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var tenants = new Mock<IAdminTenantService>();
+        tenants
+            .Setup(s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreatedTenant(tenantId), (TenantOnboardingFailureDto?)null));
+
+        var seeder = new Mock<ITenantDemoSeeder>();
+        seeder
+            .Setup(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantDemoSeedResult(44, 22, registerId));
+
+        var audit = new Mock<IAuditLogService>();
+        audit
+            .Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object, auditLog: audit.Object);
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Demo 2026-10-26",
+            Slug = "demo-202610261132",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+            SeedDemo = true,
+        });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        seeder.Verify(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()), Times.Once);
+        audit.Verify(a => a.LogSystemOperationAsync(
+            "TENANT_DEMO_SEEDED",
+            "Tenant",
+            "super-admin",
+            Roles.SuperAdmin,
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            AuditLogStatus.Success,
+            It.IsAny<string?>(),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            It.IsAny<string?>(),
+            It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+            AuditEventType.TenantDemoSeeded,
+            tenantId,
+            tenantId,
+            It.IsAny<object?>(),
+            It.Is<object?>(values => DemoSeedAuditMatches(values, tenantId, registerId)),
+            It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoFalse_DoesNotSeed()
+    {
+        var tenantId = Guid.NewGuid();
+        var tenants = new Mock<IAdminTenantService>();
+        tenants
+            .Setup(s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreatedTenant(tenantId), (TenantOnboardingFailureDto?)null));
+        var seeder = new Mock<ITenantDemoSeeder>();
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object);
+
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Cafe",
+            Slug = "cafe",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+        });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_SeedDemoTrue_AsNonSuperAdmin_Returns403AndDoesNotCreate()
+    {
+        var tenants = new Mock<IAdminTenantService>();
+        var seeder = new Mock<ITenantDemoSeeder>();
+        var manager = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, "manager-1"),
+                new Claim(ClaimTypes.Role, Roles.Manager),
+            ],
+            authenticationType: "TestAuth"));
+        var controller = CreateController(tenantService: tenants.Object, demoSeeder: seeder.Object, user: manager);
+
+        var result = await controller.Create(new CreateAdminTenantRequest
+        {
+            Name = "Demo",
+            Slug = "demo",
+            CountryCode = "AT",
+            VatRegime = VatRegime.AT_RKSV_STANDARD,
+            SeedDemo = true,
+        });
+
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, status.StatusCode);
+        tenants.Verify(
+            s => s.CreateWithFailureDetailAsync(
+                It.IsAny<CreateAdminTenantRequest>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static AdminTenantDetailDto CreatedTenant(Guid id) => new(
+        id,
+        "Demo",
+        "demo",
+        null,
+        null,
+        null,
+        "active",
+        true,
+        null,
+        null,
+        DateTime.UtcNow,
+        null,
+        null);
+
+    private static bool DemoSeedAuditMatches(object? values, Guid tenantId, Guid registerId)
+    {
+        if (values is null)
+            return false;
+        var type = values.GetType();
+        return type.GetProperty("password") is null
+            && type.GetProperty("productNames") is null
+            && (Guid)type.GetProperty("tenantId")!.GetValue(values)! == tenantId
+            && (int)type.GetProperty("productsAdded")!.GetValue(values)! == 44
+            && (int)type.GetProperty("customersAdded")!.GetValue(values)! == 22
+            && (Guid)type.GetProperty("cashRegisterId")!.GetValue(values)! == registerId;
     }
 
     private static void SeedCompanySettings(

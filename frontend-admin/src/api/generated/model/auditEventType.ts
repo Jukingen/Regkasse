@@ -161,4 +161,5 @@ export const AuditEventType = {
   ProductVariantStockAdjusted: 149,
   FolioRoomMoved: 150,
   RestoreDrillPdfDownloaded: 151,
+  TenantDemoSeeded: 152,
 } as const;

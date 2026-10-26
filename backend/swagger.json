@@ -24834,6 +24834,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -58822,7 +58832,8 @@
           148,
           149,
           150,
-          151
+          151,
+          152
         ],
         "type": "integer",
         "format": "int32",
@@ -58976,7 +58987,8 @@
           "ProductVariantChanged",
           "ProductVariantStockAdjusted",
           "FolioRoomMoved",
-          "RestoreDrillPdfDownloaded"
+          "RestoreDrillPdfDownloaded",
+          "TenantDemoSeeded"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -59128,7 +59140,8 @@
           "ProductVariantChanged",
           "ProductVariantStockAdjusted",
           "FolioRoomMoved",
-          "RestoreDrillPdfDownloaded"
+          "RestoreDrillPdfDownloaded",
+          "TenantDemoSeeded"
         ]
       },
       "AuditExportJobStatus": {
@@ -66154,6 +66167,9 @@
             "nullable": true
           },
           "seedIndustryStarterUsers": {
+            "type": "boolean"
+          },
+          "seedDemo": {
             "type": "boolean"
           }
         },

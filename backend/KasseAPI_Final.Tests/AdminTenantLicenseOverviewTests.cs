@@ -179,7 +179,8 @@ public sealed class AdminTenantsLicenseOverviewControllerTests
             Mock.Of<IAuditLogService>(),
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(),
-            Mock.Of<ILogger<AdminTenantsController>>());
+            Mock.Of<ILogger<AdminTenantsController>>(),
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
 
         controller.ControllerContext = new ControllerContext
         {

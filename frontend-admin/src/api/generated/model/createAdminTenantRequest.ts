@@ -59,6 +59,7 @@ export interface CreateAdminTenantRequest {
    * @nullable
    */
   phone?: string | null;
+  seedDemo?: boolean;
   seedIndustryStarterUsers?: boolean;
   /**
    * @minLength 1

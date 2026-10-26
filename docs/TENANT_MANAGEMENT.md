@@ -92,6 +92,7 @@ Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|setti
 **UI:** `CreateTenantWizard` — Super Admin flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md). Country layer: [`COUNTRIES.md`](COUNTRIES.md) §5.
 
 - **Entry:** `/admin/tenants` → **Mandant anlegen** → `/admin/tenants/create` (modal wizard)
+- **Demo:** **Demo-Mandant anlegen** on the same page opens this wizard with Austria, a 14-day trial, and the vertical demo catalog. See [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md).
 - Steps: **Country** (`CreateTenantCountryStep`) → **tenant form** (`TenantFormFields`) → processing → success
 - Country list: `GET /api/admin/countries` (AT / DE / CH; `EU_DEFAULT` omitted). Payload includes `country` and `vatRegime`.
 - Live slug availability: `GET /api/admin/tenants/slug-availability`

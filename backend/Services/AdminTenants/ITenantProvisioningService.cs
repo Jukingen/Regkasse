@@ -21,5 +21,6 @@ public interface ITenantProvisioningService
         int? trialDurationDays = null,
         CountryProfile? countryProfile = null,
         VatRegime vatRegime = VatRegime.AT_RKSV_STANDARD,
+        bool skipGenericDemoProducts = false,
         CancellationToken cancellationToken = default);
 }

@@ -926,6 +926,7 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<RksvDataCleanupHostedService>();
         builder.Services.AddScoped<ITenantService, TenantService>();
         builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+        builder.Services.AddScoped<KasseAPI_Final.Data.Seed.ITenantDemoSeeder, KasseAPI_Final.Data.Seed.TenantDemoSeeder>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitCacheService, KasseAPI_Final.Services.Limits.TenantLimitCacheService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitService, KasseAPI_Final.Services.Limits.TenantLimitService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitGuard, KasseAPI_Final.Services.Limits.TenantLimitGuard>();

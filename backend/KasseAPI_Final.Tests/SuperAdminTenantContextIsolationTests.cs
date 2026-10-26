@@ -33,7 +33,8 @@ public sealed class SuperAdminTenantContextIsolationTests
             Mock.Of<IAuditLogService>(),
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            NullLogger<AdminTenantsController>.Instance);
+            NullLogger<AdminTenantsController>.Instance,
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
 
         var http = new DefaultHttpContext
         {
@@ -110,7 +111,8 @@ public sealed class SuperAdminTenantContextIsolationTests
             audit.Object,
             Mock.Of<KasseAPI_Final.Services.Trial.ITrialConversionService>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
-            NullLogger<AdminTenantsController>.Instance);
+            NullLogger<AdminTenantsController>.Instance,
+            Mock.Of<KasseAPI_Final.Data.Seed.ITenantDemoSeeder>());
 
         controller.ControllerContext = new ControllerContext
         {

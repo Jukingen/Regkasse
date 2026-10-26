@@ -189,12 +189,13 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.AdminEmail,
                     request.AdminPassword,
                     request.GrantTrialLicense,
-                    request.ImportDemoMenu,
+                    request.SeedDemo ? false : request.ImportDemoMenu,
                     request.CashRegisterNumber,
                     request.SeedIndustryStarterUsers,
                     request.TrialDurationDays,
                     profile,
                     request.VatRegime,
+                    skipGenericDemoProducts: request.SeedDemo,
                     cancellationToken)
                 .ConfigureAwait(false);
 
