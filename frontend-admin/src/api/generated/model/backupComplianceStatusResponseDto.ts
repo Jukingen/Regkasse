@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { BackupComplianceListItemDto } from './backupComplianceListItemDto';
+import type { BackupKnownGapCardDto } from './backupKnownGapCardDto';
 
 export interface BackupComplianceStatusResponseDto {
   allCompliant?: boolean;
@@ -14,6 +15,11 @@ export interface BackupComplianceStatusResponseDto {
   compliant?: number;
   /** @nullable */
   disclaimer?: string | null;
+  /** @nullable */
+  knownGaps?: BackupKnownGapCardDto[] | null;
+  knownGapsAllowGateOverride?: boolean;
+  /** @nullable */
+  knownGapVerdict?: string | null;
   lastCheckUtc?: string;
   nonCompliant?: number;
   restoreRequestsCompleted?: number;

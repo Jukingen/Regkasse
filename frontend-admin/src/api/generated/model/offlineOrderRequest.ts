@@ -5,12 +5,10 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
-import type { OfflineOrderRequestOrderData } from './offlineOrderRequestOrderData';
 
 export interface OfflineOrderRequest {
   cashRegisterId?: string;
-  /** @nullable */
-  orderData?: OfflineOrderRequestOrderData;
+  orderData?: unknown;
   orderTotal?: number;
   /** @nullable */
   paymentMethod?: string | null;

@@ -5,9 +5,7 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
-import type { CreateInvoiceRequestInvoiceItems } from './createInvoiceRequestInvoiceItems';
 import type { PaymentMethod } from './paymentMethod';
-import type { CreateInvoiceRequestTaxDetails } from './createInvoiceRequestTaxDetails';
 
 export interface CreateInvoiceRequest {
   cashRegisterId?: string;
@@ -33,8 +31,7 @@ export interface CreateInvoiceRequest {
   customerTaxNumber?: string | null;
   dueDate?: string;
   invoiceDate?: string;
-  /** @nullable */
-  invoiceItems?: CreateInvoiceRequestInvoiceItems;
+  invoiceItems?: unknown;
   /** @nullable */
   invoiceNumber?: string | null;
   /** @nullable */
@@ -44,8 +41,7 @@ export interface CreateInvoiceRequest {
   paymentReference?: string | null;
   subtotal?: number;
   taxAmount?: number;
-  /** @nullable */
-  taxDetails?: CreateInvoiceRequestTaxDetails;
+  taxDetails?: unknown;
   totalAmount?: number;
   /** @nullable */
   tseSignature?: string | null;

@@ -10,4 +10,5 @@ export interface SetTenantExtensionRequest {
   enabled?: boolean;
   /** @nullable */
   name?: string | null;
+  options?: unknown;
 }

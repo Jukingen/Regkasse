@@ -54,6 +54,12 @@ export interface FinanzOnlineOutboxItemDto {
   protocolSummary?: string | null;
   /** @nullable */
   registerId?: string | null;
+  /** @nullable */
+  resolutionReason?: string | null;
+  /** @nullable */
+  resolvedAtUtc?: string | null;
+  /** @nullable */
+  resolvedByUserId?: string | null;
   scope?: FinanzOnlineOutboxScopeDto;
   /** @nullable */
   status?: string | null;

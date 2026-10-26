@@ -24,6 +24,7 @@ import type {
   AddFavoriteRequest,
   AddItemToCartRequest,
   AddProductImeiRequest,
+  AddRoomMinibarRequest,
   AppointmentConflictDto,
   AppointmentDto,
   AssignItemRequest,
@@ -88,6 +89,7 @@ import type {
   MaintenanceModeStatusDto,
   MaintenanceNotificationDto,
   MergeTableCartsRequest,
+  MoveFolioRoomRequest,
   NotifyMonatsbelegManagerRequest,
   NotifyMonatsbelegManagerResult,
   OfflineOrderRequest,
@@ -116,12 +118,14 @@ import type {
   Product,
   ProductImeiDto,
   ProductImeiErrorDto,
+  ProductVariantDto,
   ReceiptDTO,
   ReceiptReprintResponse,
   RefundPaymentRequest,
   ReorderFavoritesRequest,
   ResetCartAfterPaymentRequest,
   RoomDto,
+  RoomMinibarItemDto,
   SeatActionRequest,
   SetDefaultCashRegisterRequest,
   SetProductModifierGroupsRequest,
@@ -4702,7 +4706,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosReceiptsRecent = (
+    export const getApiPosProductsProductIdVariants = (
+    productId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<ProductVariantDto[]>(
+      {url: `/api/pos/products/${productId}/variants`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiPosProductsProductIdVariantsQueryKey = (productId: string,) => {
+    return [`/api/pos/products/${productId}/variants`] as const;
+    }
+
+
+export const getGetApiPosProductsProductIdVariantsQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>, TError = ProblemDetails>(productId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosProductsProductIdVariantsQueryKey(productId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>> = ({ signal }) => getApiPosProductsProductIdVariants(productId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(productId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosProductsProductIdVariantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>>
+export type GetApiPosProductsProductIdVariantsQueryError = ProblemDetails
+
+export const useGetApiPosProductsProductIdVariants = <TData = Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>, TError = ProblemDetails>(
+ productId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsProductIdVariants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosProductsProductIdVariantsQueryOptions(productId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosReceiptsRecent = (
     params?: GetApiPosReceiptsRecentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5094,6 +5153,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiPosRoomsRoomIdMinibar = (
+    roomId: string,
+    addRoomMinibarRequest: AddRoomMinibarRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<RoomMinibarItemDto>(
+      {url: `/api/pos/rooms/${roomId}/minibar`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: addRoomMinibarRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiPosRoomsRoomIdMinibarMutationOptions = <TError = LodgingErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>, TError,{roomId: string;data: AddRoomMinibarRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>, TError,{roomId: string;data: AddRoomMinibarRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>, {roomId: string;data: AddRoomMinibarRequest}> = (props) => {
+          const {roomId,data} = props ?? {};
+
+          return  postApiPosRoomsRoomIdMinibar(roomId,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosRoomsRoomIdMinibarMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>>
+    export type PostApiPosRoomsRoomIdMinibarMutationBody = AddRoomMinibarRequest
+    export type PostApiPosRoomsRoomIdMinibarMutationError = LodgingErrorDto | ProblemDetails
+
+    export const usePostApiPosRoomsRoomIdMinibar = <TError = LodgingErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>, TError,{roomId: string;data: AddRoomMinibarRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosRoomsRoomIdMinibar>>,
+        TError,
+        {roomId: string;data: AddRoomMinibarRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosRoomsRoomIdMinibarMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const patchApiPosRoomsId = (
     id: string,
     updateRoomStatusRequest: UpdateRoomStatusRequest,
@@ -5354,6 +5465,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiPosFoliosIdChargeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiPosFoliosIdMoveRoom = (
+    id: string,
+    moveFolioRoomRequest: MoveFolioRoomRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<GuestFolioDto>(
+      {url: `/api/pos/folios/${id}/move-room`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: moveFolioRoomRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiPosFoliosIdMoveRoomMutationOptions = <TError = ProblemDetails | LodgingErrorDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>, {id: string;data: MoveFolioRoomRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiPosFoliosIdMoveRoom(id,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosFoliosIdMoveRoomMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>>
+    export type PostApiPosFoliosIdMoveRoomMutationBody = MoveFolioRoomRequest
+    export type PostApiPosFoliosIdMoveRoomMutationError = ProblemDetails | LodgingErrorDto
+
+    export const usePostApiPosFoliosIdMoveRoom = <TError = ProblemDetails | LodgingErrorDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosFoliosIdMoveRoom>>,
+        TError,
+        {id: string;data: MoveFolioRoomRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosFoliosIdMoveRoomMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -6828,6 +6991,61 @@ export const useGetApiPosList = <TData = Awaited<ReturnType<typeof getApiPosList
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiPosListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosProductsByBarcodeBarcode = (
+    barcode: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<void>(
+      {url: `/api/pos/products/by-barcode/${barcode}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiPosProductsByBarcodeBarcodeQueryKey = (barcode: string,) => {
+    return [`/api/pos/products/by-barcode/${barcode}`] as const;
+    }
+
+
+export const getGetApiPosProductsByBarcodeBarcodeQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError = unknown>(barcode: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosProductsByBarcodeBarcodeQueryKey(barcode);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>> = ({ signal }) => getApiPosProductsByBarcodeBarcode(barcode, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(barcode), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosProductsByBarcodeBarcodeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>>
+export type GetApiPosProductsByBarcodeBarcodeQueryError = unknown
+
+export const useGetApiPosProductsByBarcodeBarcode = <TData = Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError = unknown>(
+ barcode: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosProductsByBarcodeBarcode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosProductsByBarcodeBarcodeQueryOptions(barcode,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

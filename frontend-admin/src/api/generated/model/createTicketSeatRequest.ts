@@ -7,6 +7,12 @@
  */
 
 export interface CreateTicketSeatRequest {
+  /** @nullable */
+  categoryId?: string | null;
+  /** @nullable */
+  companionOfSeatId?: string | null;
+  /** @nullable */
+  gridColumn?: number | null;
   /**
    * @minLength 1
    * @maxLength 16
@@ -17,6 +23,11 @@ export interface CreateTicketSeatRequest {
    * @maxLength 16
    */
   row: string;
+  /**
+   * @minimum 0
+   * @maximum 2
+   */
+  seatRole?: number;
   /**
    * @maxLength 64
    * @nullable

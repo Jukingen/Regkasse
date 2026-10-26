@@ -6,7 +6,6 @@
  * OpenAPI spec version: v1
  */
 import type { IssuedTicketDto } from './issuedTicketDto';
-import type { PaymentCreateSuccessDataPayment } from './paymentCreateSuccessDataPayment';
 import type { PaymentCreateTseData } from './paymentCreateTseData';
 
 export interface PaymentCreateSuccessData {
@@ -16,8 +15,7 @@ export interface PaymentCreateSuccessData {
   nonFiscalOfflineQueued?: boolean;
   /** @nullable */
   offlineTransactionId?: string | null;
-  /** @nullable */
-  payment?: PaymentCreateSuccessDataPayment;
+  payment?: unknown;
   paymentId?: string;
   timeSyncWarning?: boolean;
   tse?: PaymentCreateTseData;

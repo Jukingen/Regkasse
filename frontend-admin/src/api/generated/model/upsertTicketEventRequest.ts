@@ -19,6 +19,11 @@ export interface UpsertTicketEventRequest {
    * @maxLength 255
    */
   name: string;
+  /**
+   * @maxLength 16
+   * @nullable
+   */
+  stageEdge?: string | null;
   startAtUtc?: string;
   /**
    * @minLength 1

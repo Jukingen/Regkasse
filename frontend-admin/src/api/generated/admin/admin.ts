@@ -33,6 +33,7 @@ import type {
   AddSupportTicketMessageRequest,
   AddTenantDomainRequestDto,
   AddTseIncidentActionRequestDto,
+  AdjustProductVariantStockRequest,
   AdminActiveSessionDto,
   AdminCardTransactionListItemDto,
   AdminCardTransactionListResponse,
@@ -106,6 +107,7 @@ import type {
   BackupHistoryListResponse,
   BackupHistoryResponse,
   BackupHistoryResponseDto,
+  BackupKnownGapViewDto,
   BackupLatestStatusResponseDto,
   BackupLegalHoldRequestDto,
   BackupListItemResponseDto,
@@ -189,6 +191,7 @@ import type {
   CreatePermissionConfigBackupRequest,
   CreatePermissionRequestBody,
   CreatePricingRuleRequest,
+  CreateProductVariantRequest,
   CreateQuickTenantUserRequest,
   CreateRoomRequest,
   CreateSensitiveExportApprovalBody,
@@ -280,6 +283,8 @@ import type {
   FinanzOnlineMetricsResponse,
   FinanzOnlineOutboxItemDto,
   FinanzOnlineOutboxListResponse,
+  FinanzOnlineOutboxMarkResolvedRequest,
+  FinanzOnlineOutboxRetryFailedRequest,
   FinanzOnlineOutboxWorkerSettingsDto,
   FinanzOnlineReadinessResponse,
   FinanzOnlineReconciliationListResponse,
@@ -317,6 +322,7 @@ import type {
   GetApiAdminAuditPermissionsParams,
   GetApiAdminAuditPermissionsReportParams,
   GetApiAdminAuditTenantTenantIdParams,
+  GetApiAdminBackupKnownGapsParams,
   GetApiAdminBackupPitrChainParams,
   GetApiAdminBackupRunsIdDownloadHistoryParams,
   GetApiAdminBackupRunsParams,
@@ -605,6 +611,7 @@ import type {
   MonatsbelegPolicyDto,
   MonatsbelegSummaryDto,
   MonthlyInvoiceGenerationResult,
+  MoveFolioRoomRequest,
   MwstCanaryStatusDto,
   NotificationConfig,
   NtpAdminConfigurationDto,
@@ -708,6 +715,8 @@ import type {
   ProductMovementReportDto,
   ProductPriceHistoryItemDto,
   ProductPriceVersionItemDto,
+  ProductVariantDto,
+  ProductVariantErrorDto,
   ProvisionTseRequestDto,
   ProvisionTseResponseDto,
   PublishTenantSiteRequestDto,
@@ -778,7 +787,9 @@ import type {
   RolePermissionSimulateRequest,
   RolePermissionSimulateResultDto,
   RoomDto,
+  RoomMinibarItemDto,
   RunRestoreDrillRequestDto,
+  SaveBackupKnownGapsRequest,
   SaveDashboardPreferencesRequestDto,
   SaveUserPreferencesRequestDto,
   ScheduleAuditReportRequest,
@@ -798,6 +809,7 @@ import type {
   SetTenantExtensionRequest,
   SetTenantIndustryTemplateRequest,
   SetTenantLicenseTierRequest,
+  SetTicketEventCategoryPriceRequest,
   SettingsChangeResultDto,
   SignaturkarteProgramDeviceDto,
   SignaturkarteProgramMarkCompliantRequest,
@@ -868,7 +880,9 @@ import type {
   TerminateSessionsCountDto,
   TestPrueftoolRequest,
   TicketErrorDto,
+  TicketEventCategoryPriceDto,
   TicketEventDto,
+  TicketPriceCategoryDto,
   TicketRedemptionListResponse,
   TicketSeatDto,
   TimeSyncDriftSummaryDto,
@@ -1015,6 +1029,7 @@ import type {
   UpdatePaymentGatewaySettingsRequestDto,
   UpdatePaymentMethodDefinitionRequest,
   UpdatePricingRuleRequest,
+  UpdateProductVariantRequest,
   UpdateReceiptSettingsRequest,
   UpdateRoomDetailsRequest,
   UpdateRoomStatusRequest,
@@ -1034,6 +1049,7 @@ import type {
   UpsertTaxGroupRequest,
   UpsertTenantCustomizationRequestDto,
   UpsertTicketEventRequest,
+  UpsertTicketPriceCategoryRequest,
   UpsertVerticalProfileRequest,
   UserActivityReportDto,
   UserPerformanceReportDto,
@@ -4136,6 +4152,163 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminBackupExecutionModeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBackupDrillsIdPdf = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<Blob>(
+      {url: `/api/admin/backup/drills/${id}/pdf`, method: 'POST',
+        responseType: 'blob'
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminBackupDrillsIdPdfMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminBackupDrillsIdPdf(id,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupDrillsIdPdfMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>>
+
+    export type PostApiAdminBackupDrillsIdPdfMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupDrillsIdPdf = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupDrillsIdPdf>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupDrillsIdPdfMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupKnownGaps = (
+    params?: GetApiAdminBackupKnownGapsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BackupKnownGapViewDto>(
+      {url: `/api/admin/backup/known-gaps`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminBackupKnownGapsQueryKey = (params?: GetApiAdminBackupKnownGapsParams,) => {
+    return [`/api/admin/backup/known-gaps`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminBackupKnownGapsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError = ProblemDetails>(params?: GetApiAdminBackupKnownGapsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupKnownGapsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>> = ({ signal }) => getApiAdminBackupKnownGaps(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupKnownGapsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>>
+export type GetApiAdminBackupKnownGapsQueryError = ProblemDetails
+
+export const useGetApiAdminBackupKnownGaps = <TData = Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError = ProblemDetails>(
+ params?: GetApiAdminBackupKnownGapsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupKnownGaps>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupKnownGapsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminBackupKnownGaps = (
+    saveBackupKnownGapsRequest: SaveBackupKnownGapsRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<BackupKnownGapViewDto>(
+      {url: `/api/admin/backup/known-gaps`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: saveBackupKnownGapsRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminBackupKnownGapsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>, TError,{data: SaveBackupKnownGapsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>, TError,{data: SaveBackupKnownGapsRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>, {data: SaveBackupKnownGapsRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminBackupKnownGaps(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminBackupKnownGapsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>>
+    export type PutApiAdminBackupKnownGapsMutationBody = SaveBackupKnownGapsRequest
+    export type PutApiAdminBackupKnownGapsMutationError = ProblemDetails
+
+    export const usePutApiAdminBackupKnownGaps = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>, TError,{data: SaveBackupKnownGapsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminBackupKnownGaps>>,
+        TError,
+        {data: SaveBackupKnownGapsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminBackupKnownGapsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -15593,6 +15766,61 @@ export const useGetApiAdminFolios = <TData = Awaited<ReturnType<typeof getApiAdm
 
 
 
+export const getApiAdminRoomsIdMinibar = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<RoomMinibarItemDto[]>(
+      {url: `/api/admin/rooms/${id}/minibar`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminRoomsIdMinibarQueryKey = (id: string,) => {
+    return [`/api/admin/rooms/${id}/minibar`] as const;
+    }
+
+
+export const getGetApiAdminRoomsIdMinibarQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRoomsIdMinibarQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>> = ({ signal }) => getApiAdminRoomsIdMinibar(id, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRoomsIdMinibarQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>>
+export type GetApiAdminRoomsIdMinibarQueryError = ProblemDetails
+
+export const useGetApiAdminRoomsIdMinibar = <TData = Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRoomsIdMinibar>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRoomsIdMinibarQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const patchApiAdminRoomsIdDetails = (
     id: string,
     updateRoomDetailsRequest: UpdateRoomDetailsRequest,
@@ -15856,6 +16084,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminFoliosIdChargeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminFoliosIdMoveRoom = (
+    id: string,
+    moveFolioRoomRequest: MoveFolioRoomRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<GuestFolioDto>(
+      {url: `/api/admin/folios/${id}/move-room`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: moveFolioRoomRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminFoliosIdMoveRoomMutationOptions = <TError = ProblemDetails | LodgingErrorDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>, {id: string;data: MoveFolioRoomRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminFoliosIdMoveRoom(id,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminFoliosIdMoveRoomMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>>
+    export type PostApiAdminFoliosIdMoveRoomMutationBody = MoveFolioRoomRequest
+    export type PostApiAdminFoliosIdMoveRoomMutationError = ProblemDetails | LodgingErrorDto
+
+    export const usePostApiAdminFoliosIdMoveRoom = <TError = ProblemDetails | LodgingErrorDto,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>, TError,{id: string;data: MoveFolioRoomRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminFoliosIdMoveRoom>>,
+        TError,
+        {id: string;data: MoveFolioRoomRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminFoliosIdMoveRoomMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -23046,6 +23326,269 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminProductsDevPurgeCatalogMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminProductsProductIdVariants = (
+    productId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<ProductVariantDto[]>(
+      {url: `/api/admin/products/${productId}/variants`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminProductsProductIdVariantsQueryKey = (productId: string,) => {
+    return [`/api/admin/products/${productId}/variants`] as const;
+    }
+
+
+export const getGetApiAdminProductsProductIdVariantsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>, TError = ProblemDetails>(productId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminProductsProductIdVariantsQueryKey(productId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>> = ({ signal }) => getApiAdminProductsProductIdVariants(productId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(productId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminProductsProductIdVariantsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>>
+export type GetApiAdminProductsProductIdVariantsQueryError = ProblemDetails
+
+export const useGetApiAdminProductsProductIdVariants = <TData = Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>, TError = ProblemDetails>(
+ productId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsProductIdVariants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminProductsProductIdVariantsQueryOptions(productId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminProductsProductIdVariants = (
+    productId: string,
+    createProductVariantRequest: CreateProductVariantRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<ProductVariantDto>(
+      {url: `/api/admin/products/${productId}/variants`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createProductVariantRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminProductsProductIdVariantsMutationOptions = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>, TError,{productId: string;data: CreateProductVariantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>, TError,{productId: string;data: CreateProductVariantRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>, {productId: string;data: CreateProductVariantRequest}> = (props) => {
+          const {productId,data} = props ?? {};
+
+          return  postApiAdminProductsProductIdVariants(productId,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsProductIdVariantsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>>
+    export type PostApiAdminProductsProductIdVariantsMutationBody = CreateProductVariantRequest
+    export type PostApiAdminProductsProductIdVariantsMutationError = ProductVariantErrorDto | ProblemDetails
+
+    export const usePostApiAdminProductsProductIdVariants = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>, TError,{productId: string;data: CreateProductVariantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsProductIdVariants>>,
+        TError,
+        {productId: string;data: CreateProductVariantRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsProductIdVariantsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const putApiAdminProductsProductIdVariantsVariantId = (
+    productId: string,
+    variantId: string,
+    updateProductVariantRequest: UpdateProductVariantRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<ProductVariantDto>(
+      {url: `/api/admin/products/${productId}/variants/${variantId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateProductVariantRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminProductsProductIdVariantsVariantIdMutationOptions = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string;data: UpdateProductVariantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string;data: UpdateProductVariantRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>, {productId: string;variantId: string;data: UpdateProductVariantRequest}> = (props) => {
+          const {productId,variantId,data} = props ?? {};
+
+          return  putApiAdminProductsProductIdVariantsVariantId(productId,variantId,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminProductsProductIdVariantsVariantIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>>
+    export type PutApiAdminProductsProductIdVariantsVariantIdMutationBody = UpdateProductVariantRequest
+    export type PutApiAdminProductsProductIdVariantsVariantIdMutationError = ProductVariantErrorDto | ProblemDetails
+
+    export const usePutApiAdminProductsProductIdVariantsVariantId = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string;data: UpdateProductVariantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminProductsProductIdVariantsVariantId>>,
+        TError,
+        {productId: string;variantId: string;data: UpdateProductVariantRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminProductsProductIdVariantsVariantIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const deleteApiAdminProductsProductIdVariantsVariantId = (
+    productId: string,
+    variantId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<ProductVariantDto>(
+      {url: `/api/admin/products/${productId}/variants/${variantId}`, method: 'DELETE'
+    },
+      options);
+    }
+
+
+
+export const getDeleteApiAdminProductsProductIdVariantsVariantIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>, {productId: string;variantId: string}> = (props) => {
+          const {productId,variantId} = props ?? {};
+
+          return  deleteApiAdminProductsProductIdVariantsVariantId(productId,variantId,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminProductsProductIdVariantsVariantIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>>
+
+    export type DeleteApiAdminProductsProductIdVariantsVariantIdMutationError = ProblemDetails
+
+    export const useDeleteApiAdminProductsProductIdVariantsVariantId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>, TError,{productId: string;variantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminProductsProductIdVariantsVariantId>>,
+        TError,
+        {productId: string;variantId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminProductsProductIdVariantsVariantIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminProductsProductIdVariantsVariantIdStock = (
+    productId: string,
+    variantId: string,
+    adjustProductVariantStockRequest: AdjustProductVariantStockRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<ProductVariantDto>(
+      {url: `/api/admin/products/${productId}/variants/${variantId}/stock`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: adjustProductVariantStockRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminProductsProductIdVariantsVariantIdStockMutationOptions = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>, TError,{productId: string;variantId: string;data: AdjustProductVariantStockRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>, TError,{productId: string;variantId: string;data: AdjustProductVariantStockRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>, {productId: string;variantId: string;data: AdjustProductVariantStockRequest}> = (props) => {
+          const {productId,variantId,data} = props ?? {};
+
+          return  postApiAdminProductsProductIdVariantsVariantIdStock(productId,variantId,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsProductIdVariantsVariantIdStockMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>>
+    export type PostApiAdminProductsProductIdVariantsVariantIdStockMutationBody = AdjustProductVariantStockRequest
+    export type PostApiAdminProductsProductIdVariantsVariantIdStockMutationError = ProductVariantErrorDto | ProblemDetails
+
+    export const usePostApiAdminProductsProductIdVariantsVariantIdStock = <TError = ProductVariantErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>, TError,{productId: string;variantId: string;data: AdjustProductVariantStockRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsProductIdVariantsVariantIdStock>>,
+        TError,
+        {productId: string;variantId: string;data: AdjustProductVariantStockRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsProductIdVariantsVariantIdStockMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -35280,7 +35823,7 @@ export const postApiAdminTicketEventsIdSeats = (
 
 
 
-export const getPostApiAdminTicketEventsIdSeatsMutationOptions = <TError = ProblemDetails | TicketErrorDto,
+export const getPostApiAdminTicketEventsIdSeatsMutationOptions = <TError = TicketErrorDto | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketEventsIdSeats>>, TError,{id: string;data: CreateTicketSeatRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketEventsIdSeats>>, TError,{id: string;data: CreateTicketSeatRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -35301,9 +35844,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminTicketEventsIdSeatsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTicketEventsIdSeats>>>
     export type PostApiAdminTicketEventsIdSeatsMutationBody = CreateTicketSeatRequest
-    export type PostApiAdminTicketEventsIdSeatsMutationError = ProblemDetails | TicketErrorDto
+    export type PostApiAdminTicketEventsIdSeatsMutationError = TicketErrorDto | ProblemDetails
 
-    export const usePostApiAdminTicketEventsIdSeats = <TError = ProblemDetails | TicketErrorDto,
+    export const usePostApiAdminTicketEventsIdSeats = <TError = TicketErrorDto | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketEventsIdSeats>>, TError,{id: string;data: CreateTicketSeatRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTicketEventsIdSeats>>,
@@ -35313,6 +35856,375 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminTicketEventsIdSeatsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminTicketEventsIdCategoryPrices = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TicketEventCategoryPriceDto[]>(
+      {url: `/api/admin/ticket-events/${id}/category-prices`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminTicketEventsIdCategoryPricesQueryKey = (id: string,) => {
+    return [`/api/admin/ticket-events/${id}/category-prices`] as const;
+    }
+
+
+export const getGetApiAdminTicketEventsIdCategoryPricesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTicketEventsIdCategoryPricesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>> = ({ signal }) => getApiAdminTicketEventsIdCategoryPrices(id, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTicketEventsIdCategoryPricesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>>
+export type GetApiAdminTicketEventsIdCategoryPricesQueryError = ProblemDetails
+
+export const useGetApiAdminTicketEventsIdCategoryPrices = <TData = Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketEventsIdCategoryPrices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTicketEventsIdCategoryPricesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminTicketEventsIdCategoryPrices = (
+    id: string,
+    setTicketEventCategoryPriceRequest: SetTicketEventCategoryPriceRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<TicketEventCategoryPriceDto>(
+      {url: `/api/admin/ticket-events/${id}/category-prices`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: setTicketEventCategoryPriceRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminTicketEventsIdCategoryPricesMutationOptions = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>, TError,{id: string;data: SetTicketEventCategoryPriceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>, TError,{id: string;data: SetTicketEventCategoryPriceRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>, {id: string;data: SetTicketEventCategoryPriceRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiAdminTicketEventsIdCategoryPrices(id,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminTicketEventsIdCategoryPricesMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>>
+    export type PutApiAdminTicketEventsIdCategoryPricesMutationBody = SetTicketEventCategoryPriceRequest
+    export type PutApiAdminTicketEventsIdCategoryPricesMutationError = TicketErrorDto | ProblemDetails
+
+    export const usePutApiAdminTicketEventsIdCategoryPrices = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>, TError,{id: string;data: SetTicketEventCategoryPriceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminTicketEventsIdCategoryPrices>>,
+        TError,
+        {id: string;data: SetTicketEventCategoryPriceRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminTicketEventsIdCategoryPricesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminTicketPriceCategories = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TicketPriceCategoryDto[]>(
+      {url: `/api/admin/ticket-price-categories`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminTicketPriceCategoriesQueryKey = () => {
+    return [`/api/admin/ticket-price-categories`] as const;
+    }
+
+
+export const getGetApiAdminTicketPriceCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTicketPriceCategoriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>> = ({ signal }) => getApiAdminTicketPriceCategories(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTicketPriceCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>>
+export type GetApiAdminTicketPriceCategoriesQueryError = ProblemDetails
+
+export const useGetApiAdminTicketPriceCategories = <TData = Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTicketPriceCategoriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminTicketPriceCategories = (
+    upsertTicketPriceCategoryRequest: UpsertTicketPriceCategoryRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<TicketPriceCategoryDto>(
+      {url: `/api/admin/ticket-price-categories`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertTicketPriceCategoryRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminTicketPriceCategoriesMutationOptions = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>, TError,{data: UpsertTicketPriceCategoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>, TError,{data: UpsertTicketPriceCategoryRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>, {data: UpsertTicketPriceCategoryRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminTicketPriceCategories(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTicketPriceCategoriesMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>>
+    export type PostApiAdminTicketPriceCategoriesMutationBody = UpsertTicketPriceCategoryRequest
+    export type PostApiAdminTicketPriceCategoriesMutationError = TicketErrorDto | ProblemDetails
+
+    export const usePostApiAdminTicketPriceCategories = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>, TError,{data: UpsertTicketPriceCategoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTicketPriceCategories>>,
+        TError,
+        {data: UpsertTicketPriceCategoryRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTicketPriceCategoriesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminTicketPriceCategoriesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TicketPriceCategoryDto>(
+      {url: `/api/admin/ticket-price-categories/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminTicketPriceCategoriesIdQueryKey = (id: string,) => {
+    return [`/api/admin/ticket-price-categories/${id}`] as const;
+    }
+
+
+export const getGetApiAdminTicketPriceCategoriesIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTicketPriceCategoriesIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>> = ({ signal }) => getApiAdminTicketPriceCategoriesId(id, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTicketPriceCategoriesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>>
+export type GetApiAdminTicketPriceCategoriesIdQueryError = ProblemDetails
+
+export const useGetApiAdminTicketPriceCategoriesId = <TData = Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTicketPriceCategoriesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTicketPriceCategoriesIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminTicketPriceCategoriesId = (
+    id: string,
+    upsertTicketPriceCategoryRequest: UpsertTicketPriceCategoryRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<TicketPriceCategoryDto>(
+      {url: `/api/admin/ticket-price-categories/${id}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertTicketPriceCategoryRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminTicketPriceCategoriesIdMutationOptions = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>, TError,{id: string;data: UpsertTicketPriceCategoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>, TError,{id: string;data: UpsertTicketPriceCategoryRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>, {id: string;data: UpsertTicketPriceCategoryRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiAdminTicketPriceCategoriesId(id,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminTicketPriceCategoriesIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>>
+    export type PutApiAdminTicketPriceCategoriesIdMutationBody = UpsertTicketPriceCategoryRequest
+    export type PutApiAdminTicketPriceCategoriesIdMutationError = TicketErrorDto | ProblemDetails
+
+    export const usePutApiAdminTicketPriceCategoriesId = <TError = TicketErrorDto | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>, TError,{id: string;data: UpsertTicketPriceCategoryRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminTicketPriceCategoriesId>>,
+        TError,
+        {id: string;data: UpsertTicketPriceCategoryRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminTicketPriceCategoriesIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const deleteApiAdminTicketPriceCategoriesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/ticket-price-categories/${id}`, method: 'DELETE'
+    },
+      options);
+    }
+
+
+
+export const getDeleteApiAdminTicketPriceCategoriesIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiAdminTicketPriceCategoriesId(id,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminTicketPriceCategoriesIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>>
+
+    export type DeleteApiAdminTicketPriceCategoriesIdMutationError = ProblemDetails
+
+    export const useDeleteApiAdminTicketPriceCategoriesId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminTicketPriceCategoriesId>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminTicketPriceCategoriesIdMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -47495,7 +48407,159 @@ export const useGetApiAdminFinanzonlineOutboxId = <TData = Awaited<ReturnType<ty
 
 
 
-export const getApiAdminFinanzonlineReadiness = (
+export const postApiAdminFinanzonlineOutboxIdRetry = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/finanzonline-outbox/${id}/retry`, method: 'POST'
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminFinanzonlineOutboxIdRetryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminFinanzonlineOutboxIdRetry(id,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminFinanzonlineOutboxIdRetryMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>>
+
+    export type PostApiAdminFinanzonlineOutboxIdRetryMutationError = unknown
+
+    export const usePostApiAdminFinanzonlineOutboxIdRetry = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdRetry>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminFinanzonlineOutboxIdRetryMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminFinanzonlineOutboxRetryFailed = (
+    finanzOnlineOutboxRetryFailedRequest: FinanzOnlineOutboxRetryFailedRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/finanzonline-outbox/retry-failed`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: finanzOnlineOutboxRetryFailedRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminFinanzonlineOutboxRetryFailedMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>, TError,{data: FinanzOnlineOutboxRetryFailedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>, TError,{data: FinanzOnlineOutboxRetryFailedRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>, {data: FinanzOnlineOutboxRetryFailedRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminFinanzonlineOutboxRetryFailed(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminFinanzonlineOutboxRetryFailedMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>>
+    export type PostApiAdminFinanzonlineOutboxRetryFailedMutationBody = FinanzOnlineOutboxRetryFailedRequest
+    export type PostApiAdminFinanzonlineOutboxRetryFailedMutationError = unknown
+
+    export const usePostApiAdminFinanzonlineOutboxRetryFailed = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>, TError,{data: FinanzOnlineOutboxRetryFailedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxRetryFailed>>,
+        TError,
+        {data: FinanzOnlineOutboxRetryFailedRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminFinanzonlineOutboxRetryFailedMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminFinanzonlineOutboxIdMarkResolved = (
+    id: string,
+    finanzOnlineOutboxMarkResolvedRequest: FinanzOnlineOutboxMarkResolvedRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/finanzonline-outbox/${id}/mark-resolved`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: finanzOnlineOutboxMarkResolvedRequest
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminFinanzonlineOutboxIdMarkResolvedMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>, TError,{id: string;data: FinanzOnlineOutboxMarkResolvedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>, TError,{id: string;data: FinanzOnlineOutboxMarkResolvedRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>, {id: string;data: FinanzOnlineOutboxMarkResolvedRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminFinanzonlineOutboxIdMarkResolved(id,data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminFinanzonlineOutboxIdMarkResolvedMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>>
+    export type PostApiAdminFinanzonlineOutboxIdMarkResolvedMutationBody = FinanzOnlineOutboxMarkResolvedRequest
+    export type PostApiAdminFinanzonlineOutboxIdMarkResolvedMutationError = unknown
+
+    export const usePostApiAdminFinanzonlineOutboxIdMarkResolved = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>, TError,{id: string;data: FinanzOnlineOutboxMarkResolvedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminFinanzonlineOutboxIdMarkResolved>>,
+        TError,
+        {id: string;data: FinanzOnlineOutboxMarkResolvedRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminFinanzonlineOutboxIdMarkResolvedMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminFinanzonlineReadiness = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
