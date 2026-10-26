@@ -1,0 +1,51 @@
+# Production uptime probes. Posts to Slack when a probe fails and a webhook is configured.
+# A missing SLACK_WEBHOOK_URL is logged and does not fail the job.
+
+name: Uptime check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: Probe production surfaces
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Probe API, admin, and POS
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -u
+          failures=""
+          probe() {
+            url="$1"
+            code="$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 "$url" || echo "000")"
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              echo "OK $url HTTP $code"
+            else
+              echo "FAIL $url HTTP $code"
+              failures="${failures}${url} HTTP ${code}"$'\n'
+            fi
+          }
+          probe "https://api.regkasse.at/api/health/live"
+          probe "https://api.regkasse.at/api/health/ready"
+          probe "https://admin.regkasse.at/login"
+          probe "https://pos.regkasse.at"
+          if [ -z "$failures" ]; then
+            exit 0
+          fi
+          echo "Uptime failures:"
+          printf '%s' "$failures"
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_WEBHOOK_URL secret not set — logged the failure and exiting 0."
+            exit 0
+          fi
+          payload=$(printf '%s' "$failures" | python3 -c 'import json,sys; body=sys.stdin.read().strip(); print(json.dumps({"text": ":x: Regkasse uptime check failed\n" + body}))')
+          curl -sS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+          echo "Slack notification sent."
+          exit 1
