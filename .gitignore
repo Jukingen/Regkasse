@@ -452,3 +452,6 @@ backend/**/Tests/_jar_extract/
 # Generated report PDFs on disk (DB metadata is enough; never commit blobs)
 backend/report-pdfs/
 
+# Next.js-generated local file (do not commit)
+frontend-marketing/AGENTS.md
+
