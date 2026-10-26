@@ -12,6 +12,7 @@
     "frontend",
     "frontend-admin",
     "frontend-sites",
+    "frontend-marketing",
     "localization"
   ],
   "scripts": {
@@ -24,24 +25,29 @@
     "dev:admin": "npm run dev -w registrierkasse-admin",
     "dev:pos": "npm run dev -w cash-register",
     "dev:sites": "npm run dev -w regkasse-sites",
+    "dev:marketing": "npm run dev -w regkasse-marketing",
     "build": "npm run build --workspaces --if-present",
     "build:backend": "npm run build -w @regkasse/backend",
     "build:admin": "npm run build -w registrierkasse-admin",
     "build:pos": "npm run build -w cash-register",
     "build:sites": "npm run build -w regkasse-sites",
+    "build:marketing": "npm run build -w regkasse-marketing",
     "test": "npm run test --workspaces --if-present",
     "test:backend": "npm run test -w @regkasse/backend",
     "test:admin": "npm run test -w registrierkasse-admin",
     "test:pos": "npm run test -w cash-register",
     "test:sites": "npm run test -w regkasse-sites",
+    "test:marketing": "npm run test -w regkasse-marketing",
     "lint": "npm run lint --workspaces --if-present",
     "lint:admin": "npm run lint -w registrierkasse-admin",
     "lint:pos": "npm run lint -w cash-register",
     "lint:sites": "npm run lint -w regkasse-sites",
+    "lint:marketing": "npm run lint -w regkasse-marketing",
     "typecheck:admin": "npm run typecheck -w registrierkasse-admin",
     "typecheck:pos": "npm run typecheck -w cash-register",
     "typecheck:sites": "npm run typecheck -w regkasse-sites",
-    "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present",
+    "typecheck:marketing": "npm run typecheck -w regkasse-marketing",
+    "typecheck": "npm run typecheck -w registrierkasse-admin --if-present && npm run typecheck -w cash-register --if-present && npm run typecheck -w regkasse-sites --if-present && npm run typecheck -w regkasse-marketing --if-present",
     "clean": "node scripts/clean-artifacts.mjs",
     "seed:test-data": "node scripts/seed-test-data.mjs",
     "smoke:kassensicherheit-test": "node scripts/smoke/kassensicherheit-test-smoke.mjs",
@@ -88,6 +94,10 @@
       "react-dom": "19.3.1"
     },
     "regkasse-sites": {
+      "react": "19.3.1",
+      "react-dom": "19.3.1"
+    },
+    "regkasse-marketing": {
       "react": "19.3.1",
       "react-dom": "19.3.1"
     }

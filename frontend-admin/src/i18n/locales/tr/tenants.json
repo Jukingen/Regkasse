@@ -1798,5 +1798,21 @@
       "Served": "Servis edildi",
       "Cancelled": "İptal"
     }
+  },
+  "demoRequests": {
+    "title": "Demo talepleri",
+    "empty": "Demo talebi yok.",
+    "loadError": "Demo talepleri yüklenemedi.",
+    "statusNew": "Yeni",
+    "statusContacted": "İletişime geçildi",
+    "statusClosed": "Kapalı",
+    "columns": {
+      "name": "Ad",
+      "email": "E-posta",
+      "company": "Firma",
+      "industry": "Sektör",
+      "status": "Durum",
+      "created": "Alındı"
+    }
   }
 }

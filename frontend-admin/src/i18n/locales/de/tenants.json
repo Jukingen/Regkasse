@@ -1798,5 +1798,21 @@
       "Served": "Serviert",
       "Cancelled": "Storniert"
     }
+  },
+  "demoRequests": {
+    "title": "Demo-Anfragen",
+    "empty": "Keine Demo-Anfragen.",
+    "loadError": "Demo-Anfragen konnten nicht geladen werden.",
+    "statusNew": "Neu",
+    "statusContacted": "Kontaktiert",
+    "statusClosed": "Geschlossen",
+    "columns": {
+      "name": "Name",
+      "email": "E-Mail",
+      "company": "Firma",
+      "industry": "Branche",
+      "status": "Status",
+      "created": "Eingegangen"
+    }
   }
 }

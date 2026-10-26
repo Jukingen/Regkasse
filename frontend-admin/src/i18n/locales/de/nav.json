@@ -136,6 +136,7 @@
   "tenants": "Mandanten",
   "createTenant": "Mandant anlegen",
   "trials": "Trial-Verwaltung",
+  "demoRequests": "Demo-Anfragen",
   "approvals": "Kritische Freigaben",
   "maintenance": "Systemwartung",
   "featureFlags": "Feature Flags",

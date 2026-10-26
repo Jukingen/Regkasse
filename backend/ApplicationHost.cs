@@ -34,6 +34,7 @@ using KasseAPI_Final.Services.GracePeriods;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataExport;
 using KasseAPI_Final.Services.DataRetention;
+using KasseAPI_Final.Services.DemoRequests;
 using KasseAPI_Final.Services.DigitalServices;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -311,6 +312,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAppGeneratorService>(sp => sp.GetRequiredService<AppGeneratorService>());
         builder.Services.AddScoped<ITenantAppGenerator, TenantAppGenerator>();
         builder.Services.AddScoped<IPublicTenantCatalogService, PublicTenantCatalogService>();
+        builder.Services.AddSingleton<DemoRequestRateLimiter>();
+        builder.Services.AddScoped<IDemoRequestService, DemoRequestService>();
         builder.Services.AddScoped<ITenantWebsiteService, TenantWebsiteService>();
         builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
         builder.Services.AddSingleton<IDigitalServicePricingService, DigitalServicePricingService>();

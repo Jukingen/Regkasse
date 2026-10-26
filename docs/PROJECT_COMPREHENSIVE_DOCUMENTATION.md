@@ -45,6 +45,7 @@
 - Cashier **POS** (cart → payment → receipt → Tagesabschluss)
 - **Admin (FA)** for Mandanten-Admin and Super Admin
 - Shared **tenant websites** / online-order intake (non-fiscal)
+- **Marketing** site for `regkasse.at` (landing, pricing, demo request — non-fiscal)
 - ASP.NET Core **API** with TSE/RKSV signing, FinanzOnline outbox, backup/DR, licensing
 
 **Production hosts (single POS UI)**
@@ -55,7 +56,7 @@
 | Admin (FA) | `https://admin.regkasse.at` |
 | API | `https://api.regkasse.at` |
 
-Local defaults: POS `:8081`, FA `:3000`, Sites `:3001`, API `:5184`.  
+Local defaults: POS `:8081`, FA `:3000`, Sites `:3001`, Marketing `:3002`, API `:5184`.  
 Detail: [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md).
 
 ### 1.2 Repository structure
@@ -66,6 +67,7 @@ Detail: [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MU
 | POS | `frontend/` | Expo SDK 56 + React Native — cashier UI (**German de-DE**) |
 | Admin | `frontend-admin/` | Next.js 16 + Ant Design 6 — Mandanten + Super Admin (**i18n de/en/tr**) |
 | Sites | `frontend-sites/` | Next.js storefronts `/[slug]`, online orders (non-fiscal) |
+| Marketing | `frontend-marketing/` | Next.js landing for `regkasse.at` (port 3002) |
 | Localization | `localization/` | Shared i18n validate/import/export + CI budgets |
 | Scripts | `scripts/` | OpenAPI verify, seeds, git hooks, helpers |
 | Tools | `tools/` | License generator |

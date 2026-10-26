@@ -29,6 +29,7 @@ public sealed class CsrfMiddlewareTests
     [InlineData("/api/webhooks")]
     [InlineData("/api/webhooks/stripe")]
     [InlineData("/api/csrf/token")]
+    [InlineData("/api/public/demo-requests")]
     public void IsExemptPath_skips_public_and_ops_endpoints(string path)
     {
         Assert.True(CsrfMiddleware.IsExemptPath(path));

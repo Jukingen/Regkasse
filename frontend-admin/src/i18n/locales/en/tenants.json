@@ -1798,5 +1798,21 @@
       "Served": "Served",
       "Cancelled": "Cancelled"
     }
+  },
+  "demoRequests": {
+    "title": "Demo requests",
+    "empty": "No demo requests.",
+    "loadError": "Demo requests could not be loaded.",
+    "statusNew": "New",
+    "statusContacted": "Contacted",
+    "statusClosed": "Closed",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "industry": "Industry",
+      "status": "Status",
+      "created": "Received"
+    }
   }
 }

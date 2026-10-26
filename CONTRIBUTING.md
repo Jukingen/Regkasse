@@ -208,10 +208,10 @@ cd frontend && npm run lint && npm run typecheck
 
 ## Why npm workspaces (with care)?
 
-Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`.
+Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `frontend-marketing`, `localization`.
 
 - **`build` / `test` / `lint`:** `npm run <script> --workspaces --if-present`
-- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS+sites too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. Admin/Sites cap webpack workers (`experimental.cpus: 2`) so 24-thread hosts do not exhaust RAM. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
+- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS, sites, and marketing too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. Admin/Sites cap webpack workers (`experimental.cpus: 2`) so 24-thread hosts do not exhaust RAM. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
 - **`.npmrc`:** `legacy-peer-deps=true` for Expo / TypeScript peer ranges
 - Apps may still keep local `node_modules`; prefer `npm install` from the repo root after clone
 

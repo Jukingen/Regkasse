@@ -138,4 +138,5 @@ export const ActivityEventType = {
   ChQrKnownGapsOutstanding: 'ChQrKnownGapsOutstanding',
   EinvoiceAckReceived: 'EinvoiceAckReceived',
   EinvoiceSubmissionRetry: 'EinvoiceSubmissionRetry',
+  DemoRequestReceived: 'DemoRequestReceived',
 } as const;

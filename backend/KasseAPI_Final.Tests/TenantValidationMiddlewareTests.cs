@@ -93,6 +93,7 @@ public sealed class TenantValidationMiddlewareTests
     [InlineData("/api/admin/support/admin/tickets")]
     [InlineData("/api/admin/trials")]
     [InlineData("/api/admin/trials/analytics")]
+    [InlineData("/api/admin/demo-requests")]
     [InlineData("/api/admin/fiskaly")]
     [InlineData("/api/admin/fiskaly/settings")]
     [InlineData("/api/admin/limits")]

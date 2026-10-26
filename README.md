@@ -62,7 +62,7 @@ cd ..
 
 ```bash
 npm run dev                 # parallel RAM-safe: API + Admin (cleanup orphans first)
-npm run dev:all             # parallel full: API + Admin + POS + Sites
+npm run dev:all             # parallel full: API + Admin + POS + Sites + Marketing
 npm run dev:cleanup         # kill leftover Next/Expo node workers (RAM leak)
 npm run dev:cleanup:orphans # kill only `.next/dev/build` workers (safe while Admin/POS run)
 ```

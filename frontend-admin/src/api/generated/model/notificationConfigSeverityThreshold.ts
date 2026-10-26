@@ -32,6 +32,7 @@ export type NotificationConfigSeverityThreshold = {
   DailyClosingPendingReminder?: string;
   DataAccessDeleteRequested?: string;
   DataExportReady?: string;
+  DemoRequestReceived?: string;
   DepExportDueSoon?: string;
   DepExportOverdue?: string;
   DepExportValidationFailed?: string;

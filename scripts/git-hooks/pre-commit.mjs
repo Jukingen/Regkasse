@@ -61,6 +61,7 @@ function packagesTouched(files) {
   for (const f of files) {
     if (f.startsWith('frontend-admin/')) set.add('admin');
     else if (f.startsWith('frontend-sites/')) set.add('sites');
+    else if (f.startsWith('frontend-marketing/')) set.add('marketing');
     else if (f.startsWith('frontend/')) set.add('pos');
     else if (f.startsWith('backend/') || f.startsWith('tools/LicenseGenerator')) set.add('backend');
     else if (f.startsWith('localization/')) set.add('localization');
@@ -98,12 +99,14 @@ export function selectChecks(files, env = process.env) {
     lintAdmin: packages.has('admin'),
     lintPos: packages.has('pos'),
     lintSites: packages.has('sites'),
+    lintMarketing: packages.has('marketing'),
     backendBuild: files.some((f) => f.startsWith('backend/')),
     typecheckAdmin: files.some((f) => f.startsWith('frontend-admin/src/')),
     typecheckPos: files.some(
       (f) => f.startsWith('frontend/src/') || f.startsWith('frontend/app/'),
     ),
     typecheckSites: packages.has('sites'),
+    typecheckMarketing: packages.has('marketing'),
   };
 }
 
@@ -184,6 +187,10 @@ function main() {
         console.log('pre-commit: lint frontend-sites …');
         run('npm run lint -w regkasse-sites');
       }
+      if (touched.has('marketing')) {
+        console.log('pre-commit: lint frontend-marketing …');
+        run('npm run lint -w regkasse-marketing');
+      }
       // Backend "lint" is a full build — only staged backend/** (not LicenseGenerator).
       if (checks.backendBuild) {
         console.log('pre-commit: backend build (lint) …');
@@ -212,6 +219,10 @@ function main() {
       if (checks.typecheckSites) {
         console.log('pre-commit: typecheck frontend-sites …');
         run('npm run typecheck -w regkasse-sites');
+      }
+      if (checks.typecheckMarketing) {
+        console.log('pre-commit: typecheck frontend-marketing …');
+        run('npm run typecheck -w regkasse-marketing');
       }
     } catch {
       console.error('\npre-commit blocked: typecheck failed.');

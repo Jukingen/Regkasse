@@ -101,6 +101,7 @@ public class CsrfMiddleware
             || path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/api/webhooks", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("/api/csrf/token", StringComparison.OrdinalIgnoreCase);
+            || path.Equals("/api/csrf/token", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/public/demo-requests", StringComparison.OrdinalIgnoreCase);
     }
 }

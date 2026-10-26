@@ -219,6 +219,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/trials': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/demo-requests': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/maintenance': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/feature-flags': PERMISSIONS.SYSTEM_CRITICAL,

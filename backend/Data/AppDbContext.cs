@@ -158,6 +158,7 @@ namespace KasseAPI_Final.Data
         public DbSet<MonatsbelegAutoRun> MonatsbelegAutoRuns { get; set; }
         public DbSet<AdminUserFeedback> AdminUserFeedback { get; set; }
         public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<DemoRequest> DemoRequests { get; set; }
         public DbSet<SupportTicketMessage> SupportTicketMessages { get; set; }
         public DbSet<TenantSettingsHistory> TenantSettingsHistory { get; set; }
 
