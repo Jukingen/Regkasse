@@ -180,6 +180,10 @@ frontend-sites/.env
 frontend-sites/.env.local
 frontend-sites/.env.development
 frontend-sites/.env.production
+frontend-marketing/.env
+frontend-marketing/.env.local
+frontend-marketing/.env.development
+frontend-marketing/.env.production
 
 # Frontend POS — local env
 frontend/.env

@@ -30,6 +30,7 @@ const ALL_WORKSPACES = [
   ['admin', 'registrierkasse-admin'],
   ['pos', 'cash-register'],
   ['sites', 'regkasse-sites'],
+  ['marketing', 'regkasse-marketing'],
 ];
 
 const DEFAULT_LABELS = ['backend', 'admin'];
@@ -88,7 +89,7 @@ function printHelp() {
   console.log(`Regkasse parallel dev launcher
 
 Default: backend + admin (RAM-safe)
-Full:    --all   (backend + admin + pos + sites)
+Full:    --all   (backend + admin + pos + sites + marketing)
 
   --with=pos,sites     add apps to the default set
   --only=backend,admin explicit set (ignores default/--all/--with)
