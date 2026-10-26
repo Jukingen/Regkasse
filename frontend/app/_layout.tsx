@@ -34,7 +34,10 @@ import { ImeiSelectionProvider } from '../contexts/ImeiSelectionContext';
 import { i18nReady } from '../i18n';
 import { OfflineSyncService } from '../services/offline/offlineSyncService';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
+import { initPosSentry } from '../src/monitoring/initPosSentry';
 import { safeLog } from '../utils/loggingUtils';
+
+initPosSentry();
 
 // Native screen containers + freeze inactive routes (react-native-screens / Expo Router).
 // Must run before navigators mount — module scope of the root layout.
