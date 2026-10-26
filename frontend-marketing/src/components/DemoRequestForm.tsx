@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { INDUSTRIES } from '@/content/landing';
+import { useTranslations } from '@/i18n/useTranslations';
 
 type Notice = { tone: 'ok' | 'error'; text: string };
 
@@ -12,6 +13,7 @@ function apiBase(): string {
 }
 
 export function DemoRequestForm() {
+  const { t } = useTranslations();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
@@ -20,7 +22,7 @@ export function DemoRequestForm() {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setNotice(null);
@@ -31,7 +33,7 @@ export function DemoRequestForm() {
         body: JSON.stringify({ name, email, company, industry, message }),
       });
       if (response.status === 201) {
-        setNotice({ tone: 'ok', text: 'Vielen Dank. Wir haben Ihre Demo-Anfrage erhalten.' });
+        setNotice({ tone: 'ok', text: t.form.success });
         setName('');
         setEmail('');
         setCompany('');
@@ -39,25 +41,16 @@ export function DemoRequestForm() {
         return;
       }
       if (response.status === 429) {
-        setNotice({
-          tone: 'error',
-          text: 'Zu viele Anfragen. Bitte versuchen Sie es in einer Stunde erneut.',
-        });
+        setNotice({ tone: 'error', text: t.form.rateLimit });
         return;
       }
       if (response.status === 400) {
-        setNotice({ tone: 'error', text: 'Bitte prüfen Sie Ihre Angaben.' });
+        setNotice({ tone: 'error', text: t.form.invalid });
         return;
       }
-      setNotice({
-        tone: 'error',
-        text: 'Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.',
-      });
+      setNotice({ tone: 'error', text: t.form.failed });
     } catch {
-      setNotice({
-        tone: 'error',
-        text: 'Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.',
-      });
+      setNotice({ tone: 'error', text: t.form.failed });
     } finally {
       setPending(false);
     }
@@ -66,11 +59,11 @@ export function DemoRequestForm() {
   return (
     <form className="form" id="demo" onSubmit={onSubmit}>
       <label>
-        Name
+        {t.form.name}
         <input name="name" autoComplete="name" required value={name} onChange={(event) => setName(event.target.value)} />
       </label>
       <label>
-        E-Mail
+        {t.form.email}
         <input
           name="email"
           type="email"
@@ -81,25 +74,25 @@ export function DemoRequestForm() {
         />
       </label>
       <label>
-        Firma
+        {t.form.company}
         <input name="company" autoComplete="organization" value={company} onChange={(event) => setCompany(event.target.value)} />
       </label>
       <label>
-        Branche
+        {t.form.industry}
         <select name="industry" required value={industry} onChange={(event) => setIndustry(event.target.value)}>
           {INDUSTRIES.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.name}
+              {t.industries[item.id]?.name ?? item.id}
             </option>
           ))}
         </select>
       </label>
       <label>
-        Nachricht
+        {t.form.message}
         <textarea name="message" rows={4} value={message} onChange={(event) => setMessage(event.target.value)} />
       </label>
       <button className="button" type="submit" disabled={pending}>
-        {pending ? 'Wird gesendet…' : 'Demo anfordern'}
+        {pending ? t.form.pending : t.form.submit}
       </button>
       {notice ? (
         <p className={notice.tone === 'ok' ? 'toast' : 'toast error'} role="status">

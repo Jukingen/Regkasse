@@ -64,6 +64,58 @@ a {
   text-decoration: none;
 }
 
+.lang-switch {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.lang-switch button {
+  min-height: 2rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.lang-switch button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.video-frame {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: #123528;
+  color: #ffffff;
+  text-align: center;
+}
+
+.video-frame p {
+  max-width: 36rem;
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 1rem;
+}
+
 .hero {
   padding: 4.5rem 0 2.5rem;
 }
