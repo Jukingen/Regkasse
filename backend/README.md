@@ -332,6 +332,7 @@ Stop the other `KasseAPI_Final` / `dotnet run` process, or change `Urls` in Deve
 | Doc | Topic |
 |-----|--------|
 | [`CONFIGURATION.md`](CONFIGURATION.md) | Secrets, env layering, Redis |
+| `Sentry:Dsn` | API error reporting. Leave empty to disable Sentry. See [`../docs/MONITORING.md`](../docs/MONITORING.md). |
 | [`docs/SWAGGER_GUARDRAILS.md`](docs/SWAGGER_GUARDRAILS.md) | OpenAPI inclusion / regenerate |
 | [`docs/MIDDLEWARE_GUARDRAILS.md`](docs/MIDDLEWARE_GUARDRAILS.md) | Pipeline order |
 | [`docs/HEALTH_GUARDRAILS.md`](docs/HEALTH_GUARDRAILS.md) | Live / ready probes |

@@ -44,6 +44,7 @@ using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.LicenseTest;
 using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.Metrics;
+using KasseAPI_Final.Services.Monitoring;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.Order;
 using KasseAPI_Final.Services.Preorder;
@@ -276,6 +277,7 @@ internal static class ApplicationHost
         }
 
         var isDevelopment = builder.Environment.IsDevelopment();
+        builder.UseRegkasseSentry();
 
         // Invariant number parsing so Range("0.01") and decimal binders work on de-AT hosts.
         // Do not set DefaultThreadCurrentUICulture — LanguageMiddleware still localizes messages (de/en/tr).
@@ -1859,6 +1861,9 @@ internal static class ApplicationHost
             app.Urls.Clear();
             app.Urls.Add($"http://localhost:{devListenPort}");
         }
+
+        // Capture unhandled exceptions for Sentry, then rethrow so response bodies stay unchanged.
+        app.UseMiddleware<SentryExceptionCaptureMiddleware>();
 
         // Middleware pipeline â€” Swagger UI at /swagger (JSON at /swagger/v1/swagger.json).
         if (app.Environment.IsDevelopment())
