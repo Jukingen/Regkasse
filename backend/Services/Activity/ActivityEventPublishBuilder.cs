@@ -178,6 +178,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.ChQrKnownGapsOutstanding => "CH QR known gaps are not accepted",
             ActivityEventType.EinvoiceAckReceived => "E-invoice acknowledged",
             ActivityEventType.EinvoiceSubmissionRetry => "E-invoice submission retry scheduled",
+            ActivityEventType.DemoRequestReceived => "Demo request received",
             _ => type.ToString(),
         };
 

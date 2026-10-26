@@ -81,6 +81,21 @@ public static class VerticalProfileIds
     public const string TicketSales = "ticket-sales";
     public const string Beherbergung = "beherbergung";
     public const string Retail = "retail";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Gastronomy,
+        GastronomyTables,
+        Vet,
+        Doctor,
+        HairSalon,
+        MobileServices,
+        HandyShop,
+        Taxi,
+        TicketSales,
+        Beherbergung,
+        Retail,
+    };
 }
 
 /// <summary>Stable database seeds for the first two vertical-profile stages.</summary>

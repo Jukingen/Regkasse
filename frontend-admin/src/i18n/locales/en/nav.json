@@ -136,6 +136,7 @@
   "tenants": "Tenants",
   "createTenant": "Create Tenant",
   "trials": "Trial management",
+  "demoRequests": "Demo requests",
   "approvals": "Critical approvals",
   "maintenance": "System maintenance",
   "featureFlags": "Feature Flags",

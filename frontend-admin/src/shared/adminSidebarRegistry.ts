@@ -1011,6 +1011,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'ClockCircleOutlined',
     permission: PERMISSIONS.SYSTEM_CRITICAL,
   },
+  superAdminDemoRequests: {
+    id: 'superAdminDemoRequests',
+    menuKey: '/admin/demo-requests',
+    href: '/admin/demo-requests',
+    labelKey: 'nav.demoRequests',
+    icon: 'MailOutlined',
+    permission: PERMISSIONS.SYSTEM_CRITICAL,
+  },
   superAdminApprovals: {
     id: 'superAdminApprovals',
     menuKey: '/admin/approvals',
@@ -2062,6 +2070,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'superAdminVerticalProfiles',
           'superAdminCreateTenant',
           'superAdminTrials',
+          'superAdminDemoRequests',
           'superAdminCashRegisters',
           'adminSupportInbox',
         ],

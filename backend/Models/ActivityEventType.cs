@@ -302,4 +302,10 @@ public enum ActivityEventType
     /// Severity is Warning. This is not a Peppol compliance claim.
     /// </summary>
     EinvoiceSubmissionRetry = 263,
+
+    /// <summary>
+    /// Anonymous marketing-site demo request. Metadata is request id, email, and industry.
+    /// The raw message is stored on <c>demo_requests</c> only, never in the activity payload.
+    /// </summary>
+    DemoRequestReceived = 265,
 }

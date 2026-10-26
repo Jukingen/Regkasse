@@ -51,6 +51,7 @@ public class TenantValidationMiddleware
     /// <item><description><c>/api/admin/cache</c> — deployment/tenant cache clear; optional body tenantId.</description></item>
     /// <item><description><c>/api/admin/support</c> — Super Admin ticket inbox (all tenants).</description></item>
     /// <item><description><c>/api/admin/trials</c> — SaaS trial dashboard / conversion (SystemCritical).</description></item>
+    /// <item><description><c>/api/admin/demo-requests</c> — marketing demo-request inbox (deployment-wide, not mandant data).</description></item>
     /// <item><description><c>/api/admin/fiskaly</c> — Super Admin may set a global Fiskaly overlay without ambient tenant. Mandanten-Admin still needs ambient tenant (tenant overlay).</description></item>
     /// <item><description><c>/api/admin/limits</c> — usage is ambient-tenant; dashboard may aggregate all mandants for Super Admin.</description></item>
     /// <item><description><c>/api/admin/sessions</c> — Super Admin may list/terminate deployment-wide <c>auth_sessions</c> without ambient tenant. Mandanten-Admin still needs ambient tenant (own-tenant sessions only).</description></item>
@@ -71,6 +72,7 @@ public class TenantValidationMiddleware
         "/api/admin/cache",
         "/api/admin/support",
         "/api/admin/trials",
+        "/api/admin/demo-requests",
         "/api/admin/fiskaly",
         "/api/admin/limits",
         "/api/admin/sessions",

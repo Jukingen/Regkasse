@@ -136,6 +136,7 @@
   "tenants": "Kiracılar",
   "createTenant": "Kiracı Oluştur",
   "trials": "Deneme yonetimi",
+  "demoRequests": "Demo talepleri",
   "approvals": "Kritik onaylar",
   "maintenance": "Sistem bakımı",
   "featureFlags": "Feature Flags",
