@@ -98,6 +98,10 @@ Acceptance does **not** disable the check and does **not** move `lastSuccessfulR
 
 API (Super Admin, `system.critical`): `GET /api/admin/backup/known-gaps?tenantId=` and `PUT /api/admin/backup/known-gaps` with `{ tenantId, acceptedGapIds, acceptedBy }`. Unknown ids are HTTP 400 `BACKUP_KNOWN_GAP_UNKNOWN`. A missing tenant is HTTP 404. Every save writes audit `BackupKnownGapsAccepted` (142). The FA panel is on `/backup/compliance` only (no new route, no sidebar entry).
 
+## Restore drills
+
+`POST /api/admin/backup/drills/{id}/pdf` (`system.critical`) returns a single-drill A4 PDF for a Passed or Failed drill. A cancelled drill is HTTP 400 `DRILL_NOT_REPORTABLE`. A missing or cross-tenant drill is HTTP 404. The response is not stored. Each download writes audit `RestoreDrillPdfDownloaded` (151) with tenant id, drill id, and actor id. FA `/backup/drills` shows "PDF herunterladen" on Passed and Failed rows. The `/backup/dashboard` section "Wiederherstellbarkeit prüfen" shows the live recoverability summary and compares it with the last 5 drills.
+
 ## Weekly drill summary
 
 `BackupDrillReport` (default off, Monday 06:00 UTC) emails the recoverability proof time, days since that proof, the next drill cadence, the 30-day drill success rate, and `Backup:KnownGapsAccepted` rows. If no recipients are configured, the run is recorded as `BackupDrillReportSkipped` (145, reason: no-recipients) and no email is sent. A send writes `BackupDrillReportSent` (143), and a failed send writes `BackupDrillReportFailed` (144).
