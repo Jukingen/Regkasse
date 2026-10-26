@@ -84,6 +84,14 @@ After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder`
 
 `seedDemo` defaults to false. A regular **Mandant anlegen** does not seed this catalog. A caller who is not Super Admin and sends `seedDemo: true` receives **HTTP 403** before the tenant is created. The seed writes audit event `TenantDemoSeeded` (152) with tenant id, added counts, and cash register id. It does not write receipts, TSE signatures, or payments.
 
+### From a demo request to a demo tenant
+
+1. Super Admin opens `/admin/demo-requests` and reads the inbound request (name, email, company, industry, status).
+2. On `/admin/tenants`, Super Admin clicks **Demo-Mandant anlegen**. The industry on the request is the branch to show the customer; the seed still loads all 11 vertical profiles, including that one.
+3. Follow the demo flow: Austria, 14-day trial, then the success line `44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+
+The public form on `regkasse.at` posts to `POST /api/public/demo-requests`. That write is not a tenant and does not touch receipts, TSE, or payments.
+
 ### Slug check
 
 - Live: `GET /api/admin/tenants/slug-availability?slug={slug}`
