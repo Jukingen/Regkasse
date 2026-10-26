@@ -5,19 +5,15 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
-import type { PaymentDetailsAppliedBenefitsSnapshot } from './paymentDetailsAppliedBenefitsSnapshot';
 import type { CashRegister } from './cashRegister';
 import type { Customer } from './customer';
 import type { OfflineTransaction } from './offlineTransaction';
-import type { PaymentDetailsPaymentItems } from './paymentDetailsPaymentItems';
 import type { PaymentMethod } from './paymentMethod';
 import type { StornoReason } from './stornoReason';
-import type { PaymentDetailsTaxDetails } from './paymentDetailsTaxDetails';
 import type { VatRegime } from './vatRegime';
 
 export interface PaymentDetails {
-  /** @nullable */
-  appliedBenefitsSnapshot?: PaymentDetailsAppliedBenefitsSnapshot;
+  appliedBenefitsSnapshot?: unknown;
   /**
    * @maxLength 64
    * @nullable
@@ -122,8 +118,7 @@ export interface PaymentDetails {
   originalPaymentId?: string | null;
   /** @nullable */
   originalReceiptId?: string | null;
-  /** @nullable */
-  paymentItems?: PaymentDetailsPaymentItems;
+  paymentItems?: unknown;
   paymentMethod?: PaymentMethod;
   /**
    * @minLength 1
@@ -194,8 +189,7 @@ export interface PaymentDetails {
   swissQrText?: string | null;
   tableNumber: number;
   taxAmount: number;
-  /** @nullable */
-  taxDetails?: PaymentDetailsTaxDetails;
+  taxDetails?: unknown;
   timeSyncWarning?: boolean;
   totalAmount: number;
   /**

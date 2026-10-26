@@ -10,15 +10,16 @@ import type { ProductImei } from './productImei';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
 import type { TaxGroup } from './taxGroup';
 import type { Tenant } from './tenant';
+import type { ProductVariant } from './productVariant';
 
 export interface Product {
   /** @nullable */
   archivedAt?: string | null;
   /**
-   * @minLength 1
-   * @maxLength 50
+   * @maxLength 64
+   * @nullable
    */
-  barcode: string;
+  barcode?: string | null;
   /**
    * @minLength 1
    * @maxLength 100
@@ -68,6 +69,7 @@ export interface Product {
    * @nullable
    */
   fiscalCategoryCode?: string | null;
+  hasVariants?: boolean;
   id?: string;
   /**
    * @maxLength 500
@@ -166,5 +168,7 @@ export interface Product {
    * @nullable
    */
   updatedBy?: string | null;
+  /** @nullable */
+  variants?: ProductVariant[] | null;
   version?: number;
 }

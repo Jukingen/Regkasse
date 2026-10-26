@@ -2076,6 +2076,152 @@
         }
       }
     },
+    "/api/admin/backup/drills/{id}/pdf": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/known-gaps": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupKnownGapViewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveBackupKnownGapsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupKnownGapViewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/pitr/wal": {
       "get": {
         "tags": [
@@ -11005,6 +11151,49 @@
         }
       }
     },
+    "/api/admin/rooms/{id}/minibar": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomMinibarItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/rooms/{id}/details": {
       "patch": {
         "tags": [
@@ -11225,6 +11414,65 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChargeFolioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestFolioDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LodgingErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/folios/{id}/move-room": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveFolioRoomRequest"
               }
             }
           }
@@ -16557,6 +16805,309 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products/{productId}/variants": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariantDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductVariantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/products/{productId}/variants/{variantId}": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductVariantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/products/{productId}/variants/{variantId}/stock": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustProductVariantStockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVariantErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -26610,6 +27161,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -26619,6 +27180,332 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/ticket-events/{id}/category-prices": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketEventCategoryPriceDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTicketEventCategoryPriceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketEventCategoryPriceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/ticket-price-categories": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketPriceCategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertTicketPriceCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketPriceCategoryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/ticket-price-categories/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketPriceCategoryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertTicketPriceCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketPriceCategoryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "404": {
             "description": "Not Found",
@@ -38673,6 +39560,82 @@
         }
       }
     },
+    "/api/admin/finanzonline-outbox/{id}/retry": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/finanzonline-outbox/retry-failed": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinanzOnlineOutboxRetryFailedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/finanzonline-outbox/{id}/mark-resolved": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinanzOnlineOutboxMarkResolvedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/finanzonline-readiness": {
       "get": {
         "tags": [
@@ -46219,6 +47182,49 @@
         }
       }
     },
+    "/api/pos/products/{productId}/variants": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductVariantDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/receipts/recent": {
       "get": {
         "tags": [
@@ -46631,6 +47637,65 @@
         }
       }
     },
+    "/api/pos/rooms/{roomId}/minibar": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRoomMinibarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomMinibarItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LodgingErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pos/rooms/{id}": {
       "patch": {
         "tags": [
@@ -46897,6 +47962,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LodgingErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LodgingErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/folios/{id}/move-room": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveFolioRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestFolioDto"
                 }
               }
             }
@@ -48127,6 +49251,28 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pos/products/by-barcode/{barcode}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "barcode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -54165,6 +55311,37 @@
         },
         "additionalProperties": false
       },
+      "AddRoomMinibarRequest": {
+        "required": [
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "maximum": 999999.99,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AddSupportTicketMessageRequest": {
         "type": "object",
         "properties": {
@@ -54225,6 +55402,16 @@
             "maxLength": 500,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdjustProductVariantStockRequest": {
+        "type": "object",
+        "properties": {
+          "delta": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -57622,7 +58809,20 @@
           135,
           136,
           137,
-          138
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147,
+          148,
+          149,
+          150,
+          151
         ],
         "type": "integer",
         "format": "int32",
@@ -57763,7 +58963,20 @@
           "FolioClosed",
           "FolioCharged",
           "TenantExtensionToggled",
-          "HairSalonCampaignApplied"
+          "HairSalonCampaignApplied",
+          "FinanzOnlineOutboxRetried",
+          "FinanzOnlineOutboxBulkRetried",
+          "FinanzOnlineOutboxMarkedResolved",
+          "BackupKnownGapsAccepted",
+          "BackupDrillReportSent",
+          "BackupDrillReportFailed",
+          "BackupDrillReportSkipped",
+          "TicketPriceCategoryChanged",
+          "TicketSeatSold",
+          "ProductVariantChanged",
+          "ProductVariantStockAdjusted",
+          "FolioRoomMoved",
+          "RestoreDrillPdfDownloaded"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -57902,7 +59115,20 @@
           "FolioClosed",
           "FolioCharged",
           "TenantExtensionToggled",
-          "HairSalonCampaignApplied"
+          "HairSalonCampaignApplied",
+          "FinanzOnlineOutboxRetried",
+          "FinanzOnlineOutboxBulkRetried",
+          "FinanzOnlineOutboxMarkedResolved",
+          "BackupKnownGapsAccepted",
+          "BackupDrillReportSent",
+          "BackupDrillReportFailed",
+          "BackupDrillReportSkipped",
+          "TicketPriceCategoryChanged",
+          "TicketSeatSold",
+          "ProductVariantChanged",
+          "ProductVariantStockAdjusted",
+          "FolioRoomMoved",
+          "RestoreDrillPdfDownloaded"
         ]
       },
       "AuditExportJobStatus": {
@@ -59217,6 +60443,20 @@
               "$ref": "#/components/schemas/BackupComplianceListItemDto"
             },
             "nullable": true
+          },
+          "knownGaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupKnownGapCardDto"
+            },
+            "nullable": true
+          },
+          "knownGapVerdict": {
+            "type": "string",
+            "nullable": true
+          },
+          "knownGapsAllowGateOverride": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -60036,6 +61276,92 @@
           "totalCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupKnownGapAcceptanceDto": {
+        "type": "object",
+        "properties": {
+          "acceptedGaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "acceptedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "acceptedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupKnownGapCardDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "acceptedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "acceptedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayColor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupKnownGapViewDto": {
+        "type": "object",
+        "properties": {
+          "catalogVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allowsGateOverride": {
+            "type": "boolean"
+          },
+          "verdict": {
+            "type": "string",
+            "nullable": true
+          },
+          "acceptance": {
+            "$ref": "#/components/schemas/BackupKnownGapAcceptanceDto"
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupKnownGapCardDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -65231,6 +66557,10 @@
           "balance": {
             "type": "number",
             "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -65368,12 +66698,8 @@
             "type": "string",
             "nullable": true
           },
-          "invoiceItems": {
-            "nullable": true
-          },
-          "taxDetails": {
-            "nullable": true
-          }
+          "invoiceItems": { },
+          "taxDetails": { }
         },
         "additionalProperties": false
       },
@@ -66341,6 +67667,34 @@
         },
         "additionalProperties": false
       },
+      "CreateProductVariantRequest": {
+        "required": [
+          "sku",
+          "variantLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "sku": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "variantLabel": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "priceDelta": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreatePublicOnlineOrderItemDto": {
         "required": [
           "productId"
@@ -66958,6 +68312,27 @@
           "section": {
             "maxLength": 64,
             "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "gridColumn": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "seatRole": {
+            "maximum": 2,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "companionOfSeatId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -72231,6 +73606,19 @@
             "format": "date-time",
             "nullable": true
           },
+          "resolutionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "isTerminal": {
             "type": "boolean"
           },
@@ -72261,6 +73649,36 @@
           },
           "finanzOnlineDeveloperSimulationProfile": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineOutboxMarkResolvedRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineOutboxRetryFailedRequest": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fromUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "toUtc": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -75253,9 +76671,7 @@
             "format": "date-time",
             "nullable": true
           },
-          "invoiceItems": {
-            "nullable": true
-          },
+          "invoiceItems": { },
           "taxDetails": { },
           "sourcePaymentId": {
             "type": "string",
@@ -80363,6 +81779,19 @@
         },
         "additionalProperties": false
       },
+      "MoveFolioRoomRequest": {
+        "required": [
+          "newRoomId"
+        ],
+        "type": "object",
+        "properties": {
+          "newRoomId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "MwstCanaryStatusDto": {
         "type": "object",
         "properties": {
@@ -81486,9 +82915,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "orderData": {
-            "nullable": true
-          },
+          "orderData": { },
           "orderTotal": {
             "type": "number",
             "format": "double"
@@ -83609,9 +85036,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "payment": {
-            "nullable": true
-          },
+          "payment": { },
           "invoicePersisted": {
             "type": "boolean"
           },
@@ -83911,12 +85336,8 @@
             "type": "string",
             "nullable": true
           },
-          "taxDetails": {
-            "nullable": true
-          },
-          "paymentItems": {
-            "nullable": true
-          },
+          "taxDetails": { },
+          "paymentItems": { },
           "receiptNumber": {
             "minLength": 1,
             "type": "string"
@@ -83924,9 +85345,7 @@
           "isPrinted": {
             "type": "boolean"
           },
-          "appliedBenefitsSnapshot": {
-            "nullable": true
-          },
+          "appliedBenefitsSnapshot": { },
           "idempotencyKey": {
             "maxLength": 64,
             "type": "string",
@@ -84217,6 +85636,11 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          },
+          "variantId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -87625,7 +89049,6 @@
       },
       "Product": {
         "required": [
-          "barcode",
           "category",
           "createdAt",
           "minStockLevel",
@@ -87789,9 +89212,9 @@
             "format": "uuid"
           },
           "barcode": {
-            "maxLength": 50,
-            "minLength": 1,
-            "type": "string"
+            "maxLength": 64,
+            "type": "string",
+            "nullable": true
           },
           "categoryId": {
             "type": "string",
@@ -87860,6 +89283,16 @@
               "$ref": "#/components/schemas/ProductImei"
             },
             "nullable": true
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductVariant"
+            },
+            "nullable": true
+          },
+          "hasVariants": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -88172,6 +89605,9 @@
             "type": "boolean"
           },
           "isTicket": {
+            "type": "boolean"
+          },
+          "hasVariants": {
             "type": "boolean"
           },
           "cost": {
@@ -88658,6 +90094,110 @@
             "items": {
               "$ref": "#/components/schemas/ProductMonthlySalesDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductVariant": {
+        "required": [
+          "sku",
+          "variantLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "variantLabel": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "priceDelta": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/Tenant"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductVariantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "variantLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "priceDelta": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductVariantErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -93501,6 +95041,55 @@
         },
         "additionalProperties": false
       },
+      "RoomMinibarItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "chargedFolioId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "chargedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "RunRestoreDrillRequestDto": {
         "type": "object",
         "properties": {
@@ -93575,6 +95164,27 @@
             "items": {
               "$ref": "#/components/schemas/DailySales"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SaveBackupKnownGapsRequest": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "acceptedGapIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "acceptedBy": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -94178,7 +95788,8 @@
           },
           "enabled": {
             "type": "boolean"
-          }
+          },
+          "options": { }
         },
         "additionalProperties": false
       },
@@ -94210,6 +95821,24 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetTicketEventCategoryPriceRequest": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -94531,6 +96160,16 @@
           },
           "seatLabel": {
             "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -98784,7 +100423,8 @@
               "type": "string"
             },
             "nullable": true
-          }
+          },
+          "options": { }
         },
         "additionalProperties": false
       },
@@ -99937,6 +101577,40 @@
         },
         "additionalProperties": false
       },
+      "TicketEventCategoryPriceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "TicketEventDto": {
         "type": "object",
         "properties": {
@@ -99961,6 +101635,35 @@
             "nullable": true
           },
           "capacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "stageEdge": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TicketPriceCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
             "type": "integer",
             "format": "int32"
           },
@@ -100023,6 +101726,15 @@
           "seatLabel": {
             "type": "string",
             "nullable": true
+          },
+          "seatId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -100057,6 +101769,42 @@
           "reservedUntilUtc": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "reservedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gridColumn": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "seatRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "companionOfSeatId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
@@ -100675,9 +102423,7 @@
             "type": "string",
             "nullable": true
           },
-          "payload": {
-            "nullable": true
-          }
+          "payload": { }
         },
         "additionalProperties": false
       },
@@ -108246,12 +109992,8 @@
             "type": "string",
             "nullable": true
           },
-          "invoiceItems": {
-            "nullable": true
-          },
-          "taxDetails": {
-            "nullable": true
-          }
+          "invoiceItems": { },
+          "taxDetails": { }
         },
         "additionalProperties": false
       },
@@ -108758,6 +110500,37 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateProductVariantRequest": {
+        "required": [
+          "sku",
+          "variantLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "sku": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "variantLabel": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "priceDelta": {
+            "type": "number",
+            "format": "double"
+          },
+          "stock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -109708,6 +111481,38 @@
           "capacity": {
             "maximum": 100000,
             "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "stageEdge": {
+            "maxLength": 16,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertTicketPriceCategoryRequest": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sortOrder": {
             "type": "integer",
             "format": "int32"
           },
@@ -111633,6 +113438,12 @@
       "name": "AdminBackup"
     },
     {
+      "name": "AdminBackupDrills"
+    },
+    {
+      "name": "AdminBackupKnownGaps"
+    },
+    {
       "name": "AdminBackupPitr"
     },
     {
@@ -111831,6 +113642,9 @@
       "name": "AdminProducts"
     },
     {
+      "name": "AdminProductVariants"
+    },
+    {
       "name": "AdminReceiptSettings"
     },
     {
@@ -111952,6 +113766,9 @@
     },
     {
       "name": "AdminTicketEvents"
+    },
+    {
+      "name": "AdminTicketPriceCategories"
     },
     {
       "name": "AdminTicketRedemptions"
@@ -112231,6 +114048,9 @@
     },
     {
       "name": "PosProductImeis"
+    },
+    {
+      "name": "PosProductVariants"
     },
     {
       "name": "PosReceipts"

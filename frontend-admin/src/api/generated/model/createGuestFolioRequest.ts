@@ -13,5 +13,7 @@ export interface CreateGuestFolioRequest {
   /** @nullable */
   checkOut?: string | null;
   customerId: string;
+  /** @nullable */
+  notes?: string | null;
   roomId: string;
 }

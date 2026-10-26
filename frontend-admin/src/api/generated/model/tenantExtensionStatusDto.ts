@@ -12,4 +12,5 @@ export interface TenantExtensionStatusDto {
   hooks?: string[] | null;
   /** @nullable */
   name?: string | null;
+  options?: unknown;
 }

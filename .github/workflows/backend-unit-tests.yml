@@ -80,7 +80,7 @@ jobs:
       #   backend/Services/Countries/EInvoicing/**
       #   backend/Data/AppDbContext.cs
       # backend/Fiscal/** is included by backend/** (router tests).
-      # CountryBaseline is not in this filter. It runs in "Test with coverage".
+      # CountryBaseline is not in this filter. It runs in "Test".
       # MigrationChronologyTests: migration ids must sort after InitialCreate.
       - name: Country layer bypass gate
         working-directory: backend
@@ -91,7 +91,7 @@ jobs:
           --filter "FullyQualifiedName~CountryLayerBypassGateTests|FullyQualifiedName~GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames|FullyQualifiedName~AuditEventType_And_ActivityEventType_Are_In_OpenApi|FullyQualifiedName~CountryLayerNewPackagesGateTests|FullyQualifiedName~FeatureFlagNamesTests|FullyQualifiedName~SwitzerlandTaxStrategyTests|FullyQualifiedName~SwitzerlandInvoiceStrategyTests|FullyQualifiedName~FiscalSignatureRouterAtDeTests|FullyQualifiedName~FiscalSignatureRouterChTests|FullyQualifiedName~FiscalSignatureRouterEuTests|FullyQualifiedName~ChMwstEffectiveRatesTests|FullyQualifiedName~En16931XmlBuilderTests|FullyQualifiedName~QrRechnungBuilderTests|FullyQualifiedName~GermanyTaxStrategyTests|FullyQualifiedName~GermanyInvoiceStrategyTests|FullyQualifiedName~KassenSicherheitHostOptionsValidatorTests|FullyQualifiedName~DeTseSignaturePersistenceTests|FullyQualifiedName~PeppolReservedFlagGuardTests|FullyQualifiedName~ChQrKnownGapsTests|FullyQualifiedName~PeppolReservedExitTests|FullyQualifiedName~ChQrGapAcceptanceTests|FullyQualifiedName~PeppolParticipantSchemaTests|FullyQualifiedName~PeppolSubmissionTests|FullyQualifiedName~PeppolCanarySubmissionTests|FullyQualifiedName~EnumVarnamesSchemaFilterTests|FullyQualifiedName~EnumVarnamesOpenApiDocumentTests|FullyQualifiedName~SoftKassenSicherheitServiceTests|FullyQualifiedName~ActivityDtoTypeWireFormatTests|FullyQualifiedName~OssVatRateIsolationTests|FullyQualifiedName~StorecovePeppolAccessPointClientTests|FullyQualifiedName~PeppolStorecoveOptionsValidatorTests|FullyQualifiedName~PeppolAckPollingServiceTests|FullyQualifiedName~PeppolCanaryEndToEndTests|FullyQualifiedName~PeppolAckRetryTests|FullyQualifiedName~MigrationAttributeTests|FullyQualifiedName~MigrationChronologyTests"
           --verbosity minimal
 
-      - name: Test with coverage
+      - name: Test
         working-directory: backend
         run: >-
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
@@ -99,17 +99,6 @@ jobs:
           --no-build
           --filter "Category!=PostgreSql"
           --verbosity minimal
-          --collect:"XPlat Code Coverage"
-          --results-directory ./TestResults
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-unit-coverage
-          path: backend/TestResults
-          if-no-files-found: ignore
-          retention-days: 14
 
   notify-failure:
     name: Notify on failure

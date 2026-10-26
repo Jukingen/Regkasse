@@ -51,7 +51,7 @@ export function RestoreDrillBoard() {
     () =>
       lastSuccessfulDrill(
         proofAt
-          ? [{ id: 'scheduled-proof', at: proofAt, durationMs: null, result: 'Succeeded', reason: '' }]
+          ? [{ id: 'scheduled-proof', at: proofAt, durationMs: null, result: 'Succeeded' as const, reason: '', reportable: false }]
           : []
       ),
     [proofAt]

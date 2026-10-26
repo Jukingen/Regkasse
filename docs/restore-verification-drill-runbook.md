@@ -84,6 +84,7 @@ Response DTO highlights: `DumpInspectionPassed`, `RestoreAttemptExecuted` / `Res
 - [x] Integrity reflects `IIntegrityCheckService` when enabled.
 - [x] No destructive restore on prod app DB; no restore work on HTTP thread.
 - [x] Manual trigger + optional weekly enqueue.
+- Attach the per-drill PDF to the operator record.
 
 ## Related
 

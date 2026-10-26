@@ -33,6 +33,7 @@ describe('backup DR UI', () => {
             durationMs: 90000,
             result: 'Succeeded',
             reason: 'checksum-ok',
+            reportable: true,
           },
           {
             id: 'drill-2',
@@ -40,6 +41,7 @@ describe('backup DR UI', () => {
             durationMs: null,
             result: 'Failed',
             reason: '***',
+            reportable: true,
           },
         ]}
         successRate={50}

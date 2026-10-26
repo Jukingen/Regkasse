@@ -24,6 +24,7 @@ export interface ProductListDto {
   descriptionTr?: string | null;
   /** @nullable */
   durationMinutes?: number | null;
+  hasVariants?: boolean;
   id?: string;
   /** @nullable */
   imageUrl?: string | null;

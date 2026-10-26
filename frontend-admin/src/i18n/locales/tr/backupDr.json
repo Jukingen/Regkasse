@@ -1695,7 +1695,22 @@
     "scheduleNext": "Sonraki pencere (varsayılan): {{date}}",
     "scheduleOverdue": "Pencere {{date}} tarihinden beri gecikmiş",
     "scheduleEmpty": "Henüz zamanlanmış tatbikat kanıtı yok.",
-    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz."
+    "cadenceNote": "Paneldeki geri yükleme kanıtı ile aynı zaman. Manuel tatbikatlar bu süreyi sıfırlamaz. Varsayılan aralık {{days}} gün; bu ekran dağıtım ayarını okumaz.",
+    "downloadPdf": "PDF indir",
+    "downloadPdfSuccess": "Denetim raporu indirildi",
+    "downloadPdfFailed": "Denetim raporu indirilemedi."
+  },
+  "recoverabilityCheck": {
+    "title": "Kurtarılabilirliği denetle",
+    "lastProof": "Son geri yükleme kanıtı",
+    "lastDrill": "Son başarılı tatbikat",
+    "daysSince": "Kanıttan bu yana gün",
+    "nextDrill": "Sonraki planlı tatbikat",
+    "successRate": "Başarı oranı (30 gün)",
+    "acceptedGaps": "Kabul edilen bilinen boşluklar",
+    "compare": "Son 5 tatbikatla karşılaştır",
+    "drift": "Sapma",
+    "driftTooltip": "Son kanıt, son başarılı tatbikatla aynı değil."
   },
   "compliance": {
     "pageTitle": "RKSV uyumluluk durumu",

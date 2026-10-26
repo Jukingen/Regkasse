@@ -1,10 +1,13 @@
 'use client';
 
-import { Card, Col, Empty, Progress, Row, Statistic, Timeline, Typography } from 'antd';
+import { Button, Card, Col, Empty, Progress, Row, Statistic, Timeline, Typography } from 'antd';
 import React from 'react';
 
 import type { DrillTimelineItem } from '@/features/backup/logic/backupDrInsights';
+import { downloadRestoreDrillPdf } from '@/features/backup/logic/backupDrillApi';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+import { translateApiError } from '@/lib/api/errorTranslator';
 
 function formatDuration(ms: number | null): string | null {
   if (ms == null || !Number.isFinite(ms) || ms < 0) return null;
@@ -40,6 +43,27 @@ export function RestoreDrillVisualization({
   cadenceDays,
 }: RestoreDrillVisualizationProps) {
   const { t } = useI18n();
+  const notify = useNotify();
+
+  const downloadPdf = async (id: string) => {
+    try {
+      const blob = await downloadRestoreDrillPdf(id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `restore-drill-${id}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      notify.success(t('backupDr.drills.downloadPdfSuccess'));
+    } catch (error) {
+      notify.error(
+        translateApiError(t, error, {
+          logContext: 'RestoreDrillVisualization.downloadPdf',
+          fallbackKey: 'backupDr.drills.downloadPdfFailed',
+        })
+      );
+    }
+  };
   const scheduleStatus = !overdue ? 'green' : overdueAccepted ? 'amber' : 'red';
   const resultKey = (result: DrillTimelineItem['result']) => {
     if (result === 'Succeeded') return 'backupDr.drills.result.succeeded';
@@ -128,6 +152,15 @@ export function RestoreDrillVisualization({
                         : '—'
                       : item.reason}
                   </div>
+                  {item.reportable ? (
+                    <Button
+                      size="small"
+                      data-testid={`backup-drill-pdf-${item.id}`}
+                      onClick={() => void downloadPdf(item.id)}
+                    >
+                      {t('backupDr.drills.downloadPdf')}
+                    </Button>
+                  ) : null}
                 </div>
               ),
             }))}

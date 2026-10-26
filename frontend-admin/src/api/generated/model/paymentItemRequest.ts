@@ -33,4 +33,6 @@ export interface PaymentItemRequest {
    */
   quantity: number;
   taxType: TaxType;
+  /** @nullable */
+  variantId?: string | null;
 }

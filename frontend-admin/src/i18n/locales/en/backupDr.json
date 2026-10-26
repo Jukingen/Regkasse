@@ -1695,7 +1695,22 @@
     "scheduleNext": "Next window (default): {{date}}",
     "scheduleOverdue": "Window overdue since {{date}}",
     "scheduleEmpty": "No scheduled drill proof yet.",
-    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override."
+    "cadenceNote": "Same timestamp as the dashboard restore proof. Manual drills do not reset it. Default cadence is {{days}} days; this screen does not read a deployment override.",
+    "downloadPdf": "Download PDF",
+    "downloadPdfSuccess": "Inspection report downloaded",
+    "downloadPdfFailed": "The inspection report could not be downloaded."
+  },
+  "recoverabilityCheck": {
+    "title": "Check recoverability",
+    "lastProof": "Last restore proof",
+    "lastDrill": "Last successful drill",
+    "daysSince": "Days since proof",
+    "nextDrill": "Next scheduled drill",
+    "successRate": "Success rate (30 days)",
+    "acceptedGaps": "Accepted known gaps",
+    "compare": "Compare with the last 5 drills",
+    "drift": "Drift",
+    "driftTooltip": "The last proof does not match the last passed drill."
   },
   "compliance": {
     "pageTitle": "RKSV compliance status",

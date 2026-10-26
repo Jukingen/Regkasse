@@ -8,6 +8,8 @@
 
 export interface TicketRedemptionListRowDto {
   /** @nullable */
+  categoryName?: string | null;
+  /** @nullable */
   displayCode?: string | null;
   /** @nullable */
   eventName?: string | null;
@@ -16,6 +18,8 @@ export interface TicketRedemptionListRowDto {
   redeemedAtUtc?: string | null;
   /** @nullable */
   redeemedByUserId?: string | null;
+  /** @nullable */
+  seatId?: string | null;
   /** @nullable */
   seatLabel?: string | null;
   /** @nullable */

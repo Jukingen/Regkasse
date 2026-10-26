@@ -5,11 +5,9 @@
  * Registrierkasse API â€” RKSV-compliant POS / Admin / shared Auth surfaces
  * OpenAPI spec version: v1
  */
-import type { TriggerTseWebhookRequestDtoPayload } from './triggerTseWebhookRequestDtoPayload';
 
 export interface TriggerTseWebhookRequestDto {
   /** @nullable */
   eventType?: string | null;
-  /** @nullable */
-  payload?: TriggerTseWebhookRequestDtoPayload;
+  payload?: unknown;
 }

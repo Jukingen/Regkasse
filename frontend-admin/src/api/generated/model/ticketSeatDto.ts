@@ -7,14 +7,30 @@
  */
 
 export interface TicketSeatDto {
+  /** @nullable */
+  categoryCode?: string | null;
+  /** @nullable */
+  categoryId?: string | null;
+  /** @nullable */
+  categoryName?: string | null;
+  /** @nullable */
+  companionOfSeatId?: string | null;
   eventId?: string;
+  /** @nullable */
+  gridColumn?: number | null;
   id?: string;
   /** @nullable */
   number?: string | null;
   /** @nullable */
+  price?: number | null;
+  /** @nullable */
+  reservedByUserId?: string | null;
+  /** @nullable */
   reservedUntilUtc?: string | null;
   /** @nullable */
   row?: string | null;
+  /** @nullable */
+  seatRole?: string | null;
   /** @nullable */
   section?: string | null;
   /** @nullable */

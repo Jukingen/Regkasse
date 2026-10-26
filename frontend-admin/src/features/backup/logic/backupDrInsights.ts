@@ -13,6 +13,8 @@ export type DrillTimelineItem = {
   durationMs: number | null;
   result: DrillResult;
   reason: string;
+  /** Passed and Failed drills can download a PDF. Cancelled and pending drills cannot. */
+  reportable: boolean;
 };
 
 const SENSITIVE = /(\\|\/|password|secret|credential|connectionstring|postgres:\/\/|host=)/i;
@@ -73,12 +75,14 @@ export function toDrillTimeline(runs: readonly RestoreVerificationRunDto[]): Dri
         result === 'Failed'
           ? run.failureCode || run.failureDetail || run.restoreAttemptSkipReason
           : run.restoreAttemptSkipReason || run.failureCode;
+      const cancelled = (run.failureCode ?? '').toUpperCase() === 'CANCELLED';
       return {
         id: run.id,
         at: run.completedAt || run.requestedAt,
         durationMs: durationMs(run),
         result,
         reason: maskSensitiveOperatorText(rawReason),
+        reportable: !cancelled && (result === 'Succeeded' || result === 'Failed'),
       };
     })
     .filter((item) => item.at)

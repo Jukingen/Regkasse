@@ -6,7 +6,6 @@
  * OpenAPI spec version: v1
  */
 import type { DocumentType } from './documentType';
-import type { InvoiceInvoiceItems } from './invoiceInvoiceItems';
 import type { PaymentMethod } from './paymentMethod';
 import type { InvoiceStatus } from './invoiceStatus';
 import type { Tenant } from './tenant';
@@ -102,8 +101,7 @@ export interface Invoice {
   /** @nullable */
   invoiceDataProvenance?: string | null;
   invoiceDate: string;
-  /** @nullable */
-  invoiceItems?: InvoiceInvoiceItems;
+  invoiceItems?: unknown;
   /**
    * @minLength 0
    * @maxLength 50

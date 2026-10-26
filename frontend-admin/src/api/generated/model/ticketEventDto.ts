@@ -13,6 +13,8 @@ export interface TicketEventDto {
   isActive?: boolean;
   /** @nullable */
   name?: string | null;
+  /** @nullable */
+  stageEdge?: string | null;
   startAtUtc?: string;
   /** @nullable */
   venue?: string | null;

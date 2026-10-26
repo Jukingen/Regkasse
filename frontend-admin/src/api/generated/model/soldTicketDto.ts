@@ -8,11 +8,15 @@
 
 export interface SoldTicketDto {
   /** @nullable */
+  categoryId?: string | null;
+  /** @nullable */
   code?: string | null;
   /** @nullable */
   displayCode?: string | null;
   /** @nullable */
   eventName?: string | null;
+  /** @nullable */
+  price?: number | null;
   redemptionId?: string;
   /** @nullable */
   seatLabel?: string | null;
