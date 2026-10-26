@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
+import { jsonLdScript, buildMetadata } from '@/seo/metadata';
 import './globals.css';
 
-export const metadata: Metadata = {
-  title: 'Regkasse',
-  description: 'Die Kasse für jede Branche. RKSV-konform, mandantenfähig, in Minuten startklar.',
-};
+export const metadata: Metadata = buildMetadata();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de">
-      <body>{children}</body>
+      <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript() }} />
+        {children}
+      </body>
     </html>
   );
 }
