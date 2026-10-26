@@ -143,11 +143,6 @@ updates:
           - Microsoft.AspNetCore.*
           - Microsoft.EntityFrameworkCore.*
           - Npgsql*
-    # ImageSharp 4.x requires a Six Labors license key at Release build for direct refs.
-    ignore:
-      - dependency-name: SixLabors.ImageSharp
-        update-types: ['version-update:semver-major']
-
   # --- GitHub Actions ------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /
