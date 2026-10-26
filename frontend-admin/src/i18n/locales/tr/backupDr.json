@@ -1700,6 +1700,18 @@
     "downloadPdfSuccess": "Denetim raporu indirildi",
     "downloadPdfFailed": "Denetim raporu indirilemedi."
   },
+  "recoverabilityCheck": {
+    "title": "Kurtarılabilirliği denetle",
+    "lastProof": "Son geri yükleme kanıtı",
+    "lastDrill": "Son başarılı tatbikat",
+    "daysSince": "Kanıttan bu yana gün",
+    "nextDrill": "Sonraki planlı tatbikat",
+    "successRate": "Başarı oranı (30 gün)",
+    "acceptedGaps": "Kabul edilen bilinen boşluklar",
+    "compare": "Son 5 tatbikatla karşılaştır",
+    "drift": "Sapma",
+    "driftTooltip": "Son kanıt, son başarılı tatbikatla aynı değil."
+  },
   "compliance": {
     "pageTitle": "RKSV uyumluluk durumu",
     "pageSubtitle": "Yedek geri yükleme hazırlık kapıları (30 gün) — ürün kontrolleri, BMF sertifikası değil.",

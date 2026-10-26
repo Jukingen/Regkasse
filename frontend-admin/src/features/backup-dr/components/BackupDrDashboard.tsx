@@ -52,6 +52,7 @@ import { BackupKnownGapSummary } from '@/features/backup/components/BackupKnownG
 import { BackupRecentRestoreDrillsTable } from '@/features/backup-dr/components/BackupRecentRestoreDrillsTable';
 import { BackupRecentRunsTable } from '@/features/backup-dr/components/BackupRecentRunsTable';
 import { BackupRecoverabilityCard } from '@/features/backup-dr/components/BackupRecoverabilityCard';
+import { RecoverabilityVerifySection } from '@/features/backup-dr/components/RecoverabilityVerifySection';
 import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 import { BackupScheduleSettings } from '@/features/backup-dr/components/BackupScheduleSettings';
 import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
@@ -780,6 +781,8 @@ export function BackupDrDashboard({
                 hideProofTimestampBlock
                 t={t}
               />
+
+              <RecoverabilityVerifySection />
 
               <Card
                 id="backup-dr-nondb-checklist"

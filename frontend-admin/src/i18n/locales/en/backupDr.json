@@ -1700,6 +1700,18 @@
     "downloadPdfSuccess": "Inspection report downloaded",
     "downloadPdfFailed": "The inspection report could not be downloaded."
   },
+  "recoverabilityCheck": {
+    "title": "Check recoverability",
+    "lastProof": "Last restore proof",
+    "lastDrill": "Last successful drill",
+    "daysSince": "Days since proof",
+    "nextDrill": "Next scheduled drill",
+    "successRate": "Success rate (30 days)",
+    "acceptedGaps": "Accepted known gaps",
+    "compare": "Compare with the last 5 drills",
+    "drift": "Drift",
+    "driftTooltip": "The last proof does not match the last passed drill."
+  },
   "compliance": {
     "pageTitle": "RKSV compliance status",
     "pageSubtitle": "Backup restore-readiness gates (30 days) — product controls, not BMF certification.",
