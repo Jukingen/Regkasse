@@ -1,0 +1,122 @@
+{
+  "languageLabel": "Dil",
+  "nav": {
+    "label": "Ana menü",
+    "features": "Özellikler",
+    "industries": "Sektörler",
+    "pricing": "Fiyatlar",
+    "demo": "Demo",
+    "login": "Giriş",
+    "legal": "Yasal"
+  },
+  "hero": {
+    "headline": "Her sektör için kasa",
+    "subheadline": "RKSV uyumlu, çok kiracılı, dakikalar içinde hazır.",
+    "primaryCta": "Demo talep et",
+    "secondaryCta": "Özellikleri gör"
+  },
+  "video": {
+    "title": "Ürün demosu",
+    "body": "Video demo hazırlanıyor. O zamana kadar bir demo işletme talep edin."
+  },
+  "featuresTitle": "Özellikler",
+  "features": [
+    {
+      "title": "RKSV ve TSE",
+      "text": "Fişler imzalanır. Özel fişler, DEP dışa aktarma ve FinanzOnline üründe kalır."
+    },
+    {
+      "title": "Çok kiracılı",
+      "text": "Tek sistem, ayrı işletmeler. Her işletme yalnızca kendi verisini görür."
+    },
+    {
+      "title": "Yedekleme ve GDPR",
+      "text": "Yedekler ve veri dışa aktarma. Mali kayıtlar yasanın gerektirdiği süre boyunca saklanır."
+    }
+  ],
+  "industriesTitle": "Sektörler",
+  "industries": {
+    "gastronomy": { "name": "Gastronomi", "description": "Tezgâhta yemek ve içecek." },
+    "gastronomy-tables": { "name": "Masalı gastronomi", "description": "Masada sipariş ve servis." },
+    "vet": { "name": "Veteriner", "description": "Hasta kaydı ve tedavi." },
+    "doctor": { "name": "Muayenehane", "description": "Randevu ve tedavi." },
+    "hair-salon": { "name": "Kuaför", "description": "Randevu ve hizmetler." },
+    "mobile-services": { "name": "Mobil hizmetler", "description": "Sahada iş ve adres." },
+    "handy-shop": { "name": "Telefon mağazası", "description": "Cihaz, aksesuar ve IMEI." },
+    "taxi": { "name": "Taksi", "description": "Seferler ve tarifeler." },
+    "ticket-sales": { "name": "Bilet satışı", "description": "Etkinlikler, koltuklar ve kategoriler." },
+    "beherbergung": { "name": "Konaklama", "description": "Odalar ve folyolar." },
+    "retail": { "name": "Perakende", "description": "Kasa, mal ve barkod." }
+  },
+  "pricingTitle": "Fiyatlar",
+  "pricing": {
+    "annualToggle": "Yıllık ödeyin, 2 ay kazanın",
+    "trialCta": "14 gün ücretsiz deneyin",
+    "vatNote": "Tüm fiyatlar %20 KDV hariçtir.",
+    "perMonth": "ay",
+    "perYear": "yıl",
+    "custom": "Özel",
+    "tiers": {
+      "starter": { "name": "Starter", "detail": "1 kasa, en fazla 3 kullanıcı, RKSV ve TSE dahil." },
+      "professional": { "name": "Professional", "detail": "3 kasa, en fazla 10 kullanıcı, yedekleme dahil, öncelikli destek." },
+      "enterprise": { "name": "Enterprise", "detail": "Sınırsız, kendi altyapınız, SLA, özel irtibat kişisi." }
+    }
+  },
+  "demoTitle": "Demo talep edin",
+  "form": {
+    "name": "Ad",
+    "email": "E-posta",
+    "company": "Firma",
+    "industry": "Sektör",
+    "message": "Mesaj",
+    "submit": "Demo talep et",
+    "pending": "Gönderiliyor…",
+    "success": "Teşekkürler. Demo talebinizi aldık.",
+    "rateLimit": "Çok fazla istek. Lütfen bir saat sonra yeniden deneyin.",
+    "invalid": "Lütfen bilgilerinizi kontrol edin.",
+    "failed": "İstek gönderilemedi. Lütfen daha sonra yeniden deneyin."
+  },
+  "faqTitle": "Sorular",
+  "faq": [
+    {
+      "question": "RKSV uyumlu mu?",
+      "answer": "Evet. Avusturya kasası fişleri TSE üzerinden imzalar ve RKSV yolunda kalır."
+    },
+    {
+      "question": "Kurulum ne kadar sürer?",
+      "answer": "Bir demo işletme dakikalar içinde hazırdır. Canlı kurulum kasaya, TSE'ye ve ana verilere bağlıdır."
+    },
+    {
+      "question": "Verilerimi dışa aktarabilir miyim?",
+      "answer": "Evet. Dışa aktarma ve GDPR veri hakları durur. Mali kayıtlar yasanın gerektirdiği süre boyunca saklanır."
+    },
+    {
+      "question": "Hangi sektörler?",
+      "answer": "Gastronomiden muayenehaneye, taksiden konaklama ve perakendeye on bir sektör profili."
+    },
+    {
+      "question": "Fesih ne kadar tutar?",
+      "answer": "14 gün ücretsiz denenebilir. Sonrasında abonelik dönem sonunda biter, ek fesih ücreti yoktur."
+    },
+    {
+      "question": "Deneme işletmesi?",
+      "answer": "Evet. Bir demo talebinden örnek verili bir deneme işletmesi açılabilir. Süre 14 günlük deneme teklifine uyar."
+    },
+    {
+      "question": "Yedekleme sıklığı?",
+      "answer": "Yedekler planlanabilir. Kurulum yedeği varsayılan olarak her gün çalışır. Professional pakette yedekleme dahildir."
+    },
+    {
+      "question": "GDPR?",
+      "answer": "Verilerinizi görüntüleyebilir ve dışa aktarabilirsiniz. Silme, vergi hukukunun saklanmasını istediği fişleri kaldırmaz."
+    },
+    {
+      "question": "Destek dilleri?",
+      "answer": "Destek Almanca, İngilizce ve Türkçe yanıtlar."
+    },
+    {
+      "question": "Birden fazla şube?",
+      "answer": "Evet. Bir işletme birden fazla kasa ve şube çalıştırabilir. Diğer işletmeler bu veriyi görmez."
+    }
+  ]
+}

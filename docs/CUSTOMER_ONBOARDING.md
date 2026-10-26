@@ -90,7 +90,7 @@ After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder`
 2. On `/admin/tenants`, Super Admin clicks **Demo-Mandant anlegen**. The industry on the request is the branch to show the customer; the seed still loads all 11 vertical profiles, including that one.
 3. Follow the demo flow: Austria, 14-day trial, then the success line `44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
 
-The public form on `regkasse.at` posts to `POST /api/public/demo-requests`. That write is not a tenant and does not touch receipts, TSE, or payments.
+The marketing site at `https://regkasse.at` links to the demo form. That form posts to `POST /api/public/demo-requests`. The write is not a tenant and does not touch receipts, TSE, or payments.
 
 ### Slug check
 
