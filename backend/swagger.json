@@ -5492,6 +5492,55 @@
         }
       }
     },
+    "/api/admin/demo-requests": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRequestListDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/deployments": {
       "get": {
         "tags": [
@@ -49697,6 +49746,54 @@
         }
       }
     },
+    "/api/public/demo-requests": {
+      "post": {
+        "tags": [
+          "PublicDemoRequests"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDemoRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRequestCreatedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRequestErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRequestErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/public/online-orders": {
       "post": {
         "tags": [
@@ -54752,7 +54849,8 @@
           "ChQrKnownGapsAccepted",
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
-          "EinvoiceSubmissionRetry"
+          "EinvoiceSubmissionRetry",
+          "DemoRequestReceived"
         ],
         "type": "string",
         "x-enum-varnames": [
@@ -54882,7 +54980,8 @@
           "ChQrKnownGapsAccepted",
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
-          "EinvoiceSubmissionRetry"
+          "EinvoiceSubmissionRetry",
+          "DemoRequestReceived"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -55011,7 +55110,8 @@
           "ChQrKnownGapsAccepted",
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
-          "EinvoiceSubmissionRetry"
+          "EinvoiceSubmissionRetry",
+          "DemoRequestReceived"
         ]
       },
       "ActivityReportDateRangeDto": {
@@ -66505,6 +66605,32 @@
         },
         "additionalProperties": false
       },
+      "CreateDemoRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateDepExportScheduleRequest": {
         "type": "object",
         "properties": {
@@ -70357,6 +70483,97 @@
             "items": {
               "$ref": "#/components/schemas/DemoImportProductOverrideDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemoRequestCreatedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemoRequestErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemoRequestListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DemoRequestListItemDto"
+            },
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DemoRequestListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "type": "string",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -82263,6 +82480,9 @@
               },
               "EinvoiceSubmissionRetry": {
                 "type": "boolean"
+              },
+              "DemoRequestReceived": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -82650,6 +82870,9 @@
                 "type": "string"
               },
               "EinvoiceSubmissionRetry": {
+                "type": "string"
+              },
+              "DemoRequestReceived": {
                 "type": "string"
               }
             },
@@ -113502,6 +113725,9 @@
       "name": "AdminDataManagement"
     },
     {
+      "name": "AdminDemoRequests"
+    },
+    {
       "name": "AdminDeployments"
     },
     {
@@ -114109,6 +114335,9 @@
     },
     {
       "name": "PublicCustomer"
+    },
+    {
+      "name": "PublicDemoRequests"
     },
     {
       "name": "PublicOnlineOrders"

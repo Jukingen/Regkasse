@@ -32,6 +32,7 @@ export type NotificationConfigEnabledEvents = {
   DailyClosingPendingReminder?: boolean;
   DataAccessDeleteRequested?: boolean;
   DataExportReady?: boolean;
+  DemoRequestReceived?: boolean;
   DepExportDueSoon?: boolean;
   DepExportOverdue?: boolean;
   DepExportValidationFailed?: boolean;

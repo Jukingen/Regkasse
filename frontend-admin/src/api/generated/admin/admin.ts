@@ -225,6 +225,7 @@ import type {
   DemoImportJobStartResponseDto,
   DemoImportJobStatusDto,
   DemoImportRequest,
+  DemoRequestListDto,
   DemoTemplateValidationResultDto,
   DepExportArchiveReport,
   DepExportArchiveResult,
@@ -340,6 +341,7 @@ import type {
   GetApiAdminDailyClosingCalendarParams,
   GetApiAdminDailyClosingDashboardSummaryParams,
   GetApiAdminDatabaseMigrationsParams,
+  GetApiAdminDemoRequestsParams,
   GetApiAdminDeploymentsComplianceGateParams,
   GetApiAdminDeploymentsGoLiveStatusParams,
   GetApiAdminDeploymentsParams,
@@ -8131,6 +8133,62 @@ export const useGetApiAdminDataManagement = <TData = Awaited<ReturnType<typeof g
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminDataManagementQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminDemoRequests = (
+    params?: GetApiAdminDemoRequestsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<DemoRequestListDto>(
+      {url: `/api/admin/demo-requests`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminDemoRequestsQueryKey = (params?: GetApiAdminDemoRequestsParams,) => {
+    return [`/api/admin/demo-requests`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminDemoRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminDemoRequests>>, TError = ApiError>(params?: GetApiAdminDemoRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDemoRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminDemoRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminDemoRequests>>> = ({ signal }) => getApiAdminDemoRequests(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDemoRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminDemoRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDemoRequests>>>
+export type GetApiAdminDemoRequestsQueryError = ApiError
+
+export const useGetApiAdminDemoRequests = <TData = Awaited<ReturnType<typeof getApiAdminDemoRequests>>, TError = ApiError>(
+ params?: GetApiAdminDemoRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDemoRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminDemoRequestsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
