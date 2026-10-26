@@ -1,4 +1,5 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -91,6 +92,7 @@ namespace KasseAPI_Final
                 await CashRegisterBootstrapSeed.EnsureMinimalOperationalCashRegisterWhenTableEmptyAsync(
                     context,
                     cashRegisterLogger);
+                await DevTenantSeeder.SeedAsync(context);
             }
 
             Console.WriteLine("Database seeding completed successfully");
