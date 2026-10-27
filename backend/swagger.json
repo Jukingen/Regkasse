@@ -58933,7 +58933,8 @@
           149,
           150,
           151,
-          152
+          152,
+          153
         ],
         "type": "integer",
         "format": "int32",
@@ -59088,7 +59089,8 @@
           "ProductVariantStockAdjusted",
           "FolioRoomMoved",
           "RestoreDrillPdfDownloaded",
-          "TenantDemoSeeded"
+          "TenantDemoSeeded",
+          "TenantDemoSeedPartial"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -59241,7 +59243,8 @@
           "ProductVariantStockAdjusted",
           "FolioRoomMoved",
           "RestoreDrillPdfDownloaded",
-          "TenantDemoSeeded"
+          "TenantDemoSeeded",
+          "TenantDemoSeedPartial"
         ]
       },
       "AuditExportJobStatus": {
