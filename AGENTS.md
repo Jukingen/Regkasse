@@ -20,6 +20,10 @@ This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.m
 
 For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md), optionally [`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md), and the relevant file under [`ai/`](ai/).
 
+## Where to read more
+
+- [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) — one-page start for a new chat
+
 ## Section index
 
 Headings below keep existing doc anchors. The rule text lives in the linked file.
