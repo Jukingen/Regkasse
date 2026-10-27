@@ -38,7 +38,7 @@ public sealed class TenantDemoSeederTests
         var seeder = new TenantDemoSeeder(db);
         var first = await seeder.SeedAsync(tenantId);
 
-        Assert.Equal(DevTenantSeeder.Catalog.Count * 4, first.ProductsAdded);
+        Assert.Equal(DevTenantSeeder.Catalog.Count * 4 + 2, first.ProductsAdded);
         Assert.Equal(DevTenantSeeder.Catalog.Count * 2, first.CustomersAdded);
         Assert.NotNull(first.CashRegisterId);
 
@@ -57,9 +57,14 @@ public sealed class TenantDemoSeederTests
                     && row.IsActive
                     && profile.CustomerNames.Contains(row.Name));
 
-            Assert.Equal(4, productCount);
+            var expectedProducts = profile.ProductNames.Count
+                + (profile.ProfileId is VerticalProfileIds.HandyShop or VerticalProfileIds.HairSalon ? 1 : 0);
+            Assert.Equal(expectedProducts, productCount);
             Assert.Equal(2, customerCount);
         }
+
+        Assert.Null(first.FailedProfile);
+        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
 
         var register = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.TenantId == tenantId);
         Assert.Equal(first.CashRegisterId, register.Id);
@@ -77,6 +82,8 @@ public sealed class TenantDemoSeederTests
         Assert.Equal(first.ProductsAdded, await db.Products.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Equal(first.CustomersAdded, await db.Customers.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Equal(1, await db.CashRegisters.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
+        Assert.Null(second.FailedProfile);
+        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
     }
 
     [Fact]
@@ -106,5 +113,7 @@ public sealed class TenantDemoSeederTests
         Assert.Equal(0, again.CustomersAdded);
         Assert.Equal(productsBefore, await db.Products.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Equal(customersBefore, await db.Customers.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
+        Assert.Null(again.FailedProfile);
+        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
     }
 }

@@ -80,7 +80,7 @@ The button opens the same `CreateTenantWizard` with:
 - Hidden `seedDemo: true` on submit
 - Restaurant demo-menu import is not applied. The server also skips the three generic provisioning products, so the catalog is the vertical seed only
 
-After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder` for that tenant. The tenant then has **44 products** (4 per vertical profile), **22 customers** (2 per profile), and one open **KASSE-001**. The success modal shows the tenant name, the one-time admin username, email, and password, and the line `44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder` for that tenant. The tenant then has **46 products** (4 per vertical profile, plus `iPhone 15` and `Haarschnitt Damen`), **22 customers** (2 per profile), and one open **KASSE-001**. The success modal shows the tenant name, the one-time admin username, email, and password, and the line `46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
 
 `seedDemo` defaults to false. A regular **Mandant anlegen** does not seed this catalog. A caller who is not Super Admin and sends `seedDemo: true` receives **HTTP 403** before the tenant is created. The seed writes audit event `TenantDemoSeeded` (152) with tenant id, added counts, and cash register id. It does not write receipts, TSE signatures, or payments.
 
@@ -88,7 +88,24 @@ After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder`
 
 1. Super Admin opens `/admin/demo-requests` and reads the inbound request (name, email, company, industry, status).
 2. On `/admin/tenants`, Super Admin clicks **Demo-Mandant anlegen**. The industry on the request is the branch to show the customer; the seed still loads all 11 vertical profiles, including that one.
-3. Follow the demo flow: Austria, 14-day trial, then the success line `44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+3. Follow the demo flow: Austria, 14-day trial, then the success line `46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+
+The demo tenant has one open cash register (`KASSE-001`), four catalog products per profile, two customers per profile, and vertical-specific rows:
+
+| Profile | Demo rows |
+|---------|-----------|
+| `beherbergung` | Rooms `101` (Deluxe, Occupied, folio with one charge `Frühstück`), `102` (Standard, Available), `103` (Standard, Cleaning). Folio balance equals the sum of its items. |
+| `ticket-sales` | Event `Konzert A` (starts in 7 days, venue Wiener Konzerthaus), 20 seats (rows A–B × 10, 2 VIP), prices standard €49 and VIP €89. |
+| `handy-shop` | Product `iPhone 15` (`is_ticket=false`, `imei_tracked=true`) and 3 IMEIs in stock. |
+| `vet` | First customer `clinical_data`: species Hund, breed Labrador, birth date 2020-05-15, vaccines Tollwut and Parvovirose. |
+| `doctor` | First customer `clinical_data`: allergy Penicillin, chronic condition Diabetes Typ 2. |
+| `hair-salon` | Product `Haarschnitt Damen` (`duration_minutes=60`) and two `Waiter` users with `MustChangePasswordOnNextLogin`. |
+| `gastronomy-tables` | No dining-table entity exists (`table_orders` stores orders), so no table rows are added. |
+| `taxi` | Catalog product `Stadtfahrt` price €25.00. |
+| `mobile-services` | First customer `address_data`: Hauptstraße 1, 1010 Wien. |
+| `gastronomy`, `retail` | Catalog products and customers only. |
+
+Clinical and address values use the existing JSON columns (`clinical_data`, `address_data`). Vaccine, allergy, and condition values are stored in those string fields. The seed does not write receipts, TSE signatures, or payments. A failed profile rolls the seed back and writes audit `TenantDemoSeedPartial` (153) with tenant id and the failed profile. Tenant creation still succeeds.
 
 The marketing site at `https://regkasse.at` links to the demo form. That form posts to `POST /api/public/demo-requests`. The write is not a tenant and does not touch receipts, TSE, or payments.
 

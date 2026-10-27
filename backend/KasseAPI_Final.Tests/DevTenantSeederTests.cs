@@ -46,10 +46,14 @@ public sealed class DevTenantSeederTests
                 .Where(row => row.TenantId == DemoTenantIds.Dev && row.CategoryId == categoryId)
                 .ToListAsync();
 
-            Assert.Equal(profile.ProductNames.Count, products.Count);
+            var expectedProducts = profile.ProductNames.Count
+                + (profile.ProfileId is VerticalProfileIds.HandyShop or VerticalProfileIds.HairSalon ? 1 : 0);
+            Assert.Equal(expectedProducts, products.Count);
             Assert.All(products, product => Assert.True(product.IsActive));
             Assert.InRange(products.Count, 3, 5);
         }
+
+        await DemoVerticalSeedAssertions.AssertAsync(db, DemoTenantIds.Dev);
 
         var register = await db.CashRegisters.IgnoreQueryFilters()
             .SingleAsync(row => row.TenantId == DemoTenantIds.Dev);
@@ -64,5 +68,6 @@ public sealed class DevTenantSeederTests
         await DevTenantSeeder.SeedAsync(db);
         Assert.Equal(before, await db.Products.IgnoreQueryFilters().CountAsync(row => row.TenantId == DemoTenantIds.Dev));
         Assert.Equal(RegisterStatus.Open, (await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.TenantId == DemoTenantIds.Dev)).Status);
+        await DemoVerticalSeedAssertions.AssertAsync(db, DemoTenantIds.Dev);
     }
 }
