@@ -156,7 +156,7 @@ describe('CreateTenantWizard seedDemo', () => {
     expect(String(mockCreateAdminTenant.mock.calls[0][0].name)).toMatch(/^Demo \d{4}-\d{2}-\d{2}$/);
 
     expect(
-      await screen.findByText('44 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.')
+      await screen.findByText('46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.')
     ).toBeInTheDocument();
     expect(screen.getByText('admin@demo.example')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Once-Secret-1')).toBeInTheDocument();

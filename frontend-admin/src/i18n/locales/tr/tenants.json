@@ -884,7 +884,7 @@
     "successTitle": "Kiracı oluşturuldu",
     "successHeadline": "“{{name}}” müşterisi başarıyla oluşturuldu!",
     "demoMenuImported": "Demo menü içe aktarıldı: demo kategorilerinde {{count}} ürün oluşturuldu.",
-    "demoReady": "44 ürün, 22 müşteri, KASSE-001 açık. Demo hazır.",
+    "demoReady": "46 ürün, 22 müşteri, KASSE-001 açık. Demo hazır.",
     "missingWarning": "Otomatik kurulum doğrulanamadı. Kiracıyı elle kontrol edin veya destekle iletişime geçin.",
     "passwordWarning": "Bu şifre yalnızca ŞİMDİ, bir kez gösterilir!",
     "credentialsTitle": "Erişim bilgileri (tek seferlik!)",

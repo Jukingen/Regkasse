@@ -884,7 +884,7 @@
     "successTitle": "Tenant created",
     "successHeadline": "Customer “{{name}}” was created successfully!",
     "demoMenuImported": "Demo menu imported: {{count}} products across demo categories.",
-    "demoReady": "44 products, 22 customers, KASSE-001 is open. Demo ready.",
+    "demoReady": "46 products, 22 customers, KASSE-001 is open. Demo ready.",
     "missingWarning": "Automatic setup could not be confirmed. Please verify the tenant or contact support.",
     "passwordWarning": "This password is shown only NOW, once!",
     "credentialsTitle": "Credentials (one-time display!)",
