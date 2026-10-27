@@ -1,1064 +1,136 @@
 # AGENTS.md - Regkasse POS System Development Rules
 
+This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc) on every task. Other rules attach by glob, or manually for workflow and deploy. Edit the matching `.mdc` file. Do not paste the full rule set back here.
+
+**Last updated:** 2026-10-27
+
+## Rule files
+
+| File | Applies | Contents |
+|------|---------|----------|
+| [`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc) | Always | Repo layout, source of truth, working style, language, tenancy, API boundaries, high-risk list |
+| [`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc) | `backend/**/*.cs` | EF Core, no `IgnoreQueryFilters()` except Super Admin, auth, limits, backup, caching, security |
+| [`.cursor/rules/101-frontend-admin.mdc`](.cursor/rules/101-frontend-admin.mdc) | `frontend-admin/**/*.{ts,tsx}` | FA conventions, `useNotify()`, `useAntdApp()`, no static Ant Design APIs |
+| [`.cursor/rules/102-frontend-pos.mdc`](.cursor/rules/102-frontend-pos.mdc) | `frontend/**/*.{ts,tsx}` | German POS UI, offline queue, vouchers, working hours |
+| [`.cursor/rules/103-database.mdc`](.cursor/rules/103-database.mdc) | `**/Migrations/**/*.cs`, `**/*.sql` | Additive migrations only; do not edit committed migrations |
+| [`.cursor/rules/104-fiscal.mdc`](.cursor/rules/104-fiscal.mdc) | `backend/Services/Tse*`, `backend/Services/Rksv*`, `backend/Tse/**` | Signature chain, receipt numbers, DEP, country regimes |
+| [`.cursor/rules/105-testing.mdc`](.cursor/rules/105-testing.mdc) | `**/*.test.*`, `**/*.spec.*`, `**/*Tests.cs` | Test conventions and validation commands |
+| [`.cursor/rules/200-workflow.mdc`](.cursor/rules/200-workflow.mdc) | Manual | Pull requests, commit messages, no direct push to `main` / `master` |
+| [`.cursor/rules/201-deploy.mdc`](.cursor/rules/201-deploy.mdc) | Manual | Deployment checklist and environment variables |
+
+For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md), optionally [`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md), and the relevant file under [`ai/`](ai/).
+
+## Section index
+
+Headings below keep existing doc anchors. The rule text lives in the linked file.
+
 ## Purpose
-This repository is a POS monorepo. Prefer safe, incremental improvements over broad rewrites. Follow real package boundaries, preserve current architecture unless explicitly asked otherwise, and make the smallest safe change that satisfies the task.
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Cursor / AI Agent Integration
-- Cursor loads **`AGENTS.md`** as an **always-applied workspace rule** — agents see it on every task.
-- **`.cursorrules`** is a **redirect + project index** only (stack snapshot, context file order, quick reminders). Do **not** duplicate full rules there — update this file instead.
-- For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`**, optionally **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`**, and relevant docs under `ai/`.
-- Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
-
-**Last updated:** 2026-09-29
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Language Rules
-Follow these language rules strictly:
-
-| Context | Language | Example |
-|---------|----------|---------|
-| Code identifiers | English | `GetUserByIdAsync` |
-| Code comments | English/Turkish | `// User validation` or `// Kullanıcı doğrulama` |
-| POS UI texts | German (de-DE) | "Benutzername", "Passwort zurücksetzen" |
-| Admin UI texts | i18n (de/en/tr) | Use locale files under `frontend-admin/src/i18n/` |
-| Backend logs | English | "User created successfully" |
-| API error messages | English | "Invalid login credentials" |
-| Database schema | English | users, tenants, payment_details |
-| Git commits | English | "feat: add username login support" |
-| **Explanations in IDE** | **Turkish** | When explaining plans, changes, or reviews |
-| **Repository documentation** | **English (US)** | READMEs, `docs/`, `ai/` — [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md) |
-
-**Do not** translate POS UI text into English or Turkish. Keep the product name **POS** in docs; use **cash register** for the device/session (Kasse). Do not rewrite `AGENTS.md` into a second copy of the README.
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Working Style
-- Prefer minimal, targeted changes over broad refactors.
-- Preserve existing architecture and naming conventions unless explicitly asked for restructuring.
-- Before editing, inspect nearby files and follow local patterns.
-- Do not invent commands, package relationships, or framework conventions.
-- State uncertainty explicitly when repo evidence is missing.
-- Do not mix unrelated refactors into feature work.
-- Prefer controlled evolution, small reversible steps, and behavior-preserving refactors.
-- Prefer updating existing code paths over introducing parallel implementations.
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Source of Truth
-When deciding how to work, trust these in order:
-
-1. Actual implementation in the nearest relevant files
-2. Package-level config files
-3. Root config files
-4. CI workflows
-5. README, `docs/`, and **`REGKASSE_AI_ONBOARDING.md`**
-6. `ai/` guidance docs for domain-specific safety
-
-If they conflict, follow the most local and executable truth.
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Read Before Changing Code
-Before making changes:
-
-1. For project-wide fiscal/RKSV/POS context, read **`REGKASSE_AI_ONBOARDING.md`**; then read relevant docs under `/ai`
-2. Respect compliance and fiscal/TSE/RKSV rules
-3. Follow existing repo patterns
-4. Preserve backward compatibility unless explicitly told otherwise
-
-For medium or large changes, always provide:
-- a short implementation plan
-- affected files
-- main risks
-- backward compatibility impact
-- a test strategy
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Recent Improvements (2026-07)
-
-Developer experience and CI (see root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md)):
-
-- **Monorepo onboarding:** Root `README.md` / `CONTRIBUTING.md`; per-package READMEs (`backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`, `scripts`, `tools`, `docs`, `ai`).
-- **npm workspaces:** Root `package.json` workspaces = `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`. Backend scripts wrap `dotnet`. Prefer `npm run dev` (parallel **backend + admin**, orphan cleanup) or `npm run dev:all` / `dev:admin` / `dev:pos` / `dev:sites` / `dev:backend`. `build` / `test` / `lint` use `npm run … --workspaces --if-present`.
-- **CI/CD:** Path-filtered workflows for backend unit + PostgreSQL integration, FA (lint/typecheck/test/build/E2E), POS, Sites; NuGet + `node_modules` caches; optional Slack via `SLACK_WEBHOOK_URL` (`notify-failure.yml`).
-- **OpenAPI → Orval:** `node scripts/verify-api-client.mjs`; Husky pre-commit (`npm run prepare` / `install:git-hooks`); auto-commit workflow `api-client-auto-generate.yml` on `backend/swagger.json` push to `main`/`master`.
-- **i18n hard gate:** `localization-validation.yml` + FA/POS CI run `validate-translations` / usage with `--strictMissing true` (admin also `--orphanPolicy error`). `frontend-sites` is **deferred** in `namespace-manifest.json` until locale catalogs exist.
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Repo Map
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ### Updated Stack Versions
-
-| Component | Version (pinned / package.json) |
-|-----------|----------------------------------|
-| Backend (.NET) | **10.0** (`net10.0`; ASP.NET / EF packages **10.0.10**) |
-| EF Core | **10.0.10** |
-| Next.js (FA) | **16.2.10** |
-| Next.js (Sites) | **16.2.6** (caret in `frontend-sites`) |
-| React (FA) | **19.2.7** |
-| React (POS) | **19.2.3** |
-| Ant Design | **6.4.3** |
-| Expo | SDK **56** (`~56.0.18`) |
-| React Native | **0.85.3** |
-
-- Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`). Fail-closed: non-public routes require a non-expired JWT cookie/header → else redirect `/login`. Permission RBAC is client-side (`PermissionRouteGuard` → inline 403), not in `proxy.ts`.
-- Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` — toasts via `useNotify()` / `NotificationService`; modal via `useAntdApp()`.
-
-### Packages
-- `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI); npm workspace `@regkasse/backend` wraps `dotnet`
-- `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript); package `cash-register`
-- `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query); package `registrierkasse-admin`
-- `frontend-sites/` - Shared multi-tenant customer websites (Next.js; `/[slug]` + public catalog / online-order UI; optional custom host via `TenantDomain`); package `regkasse-sites`
-- `localization/` - Shared i18n import/export/validation tooling (`@regkasse/localization`)
-- `scripts/` - Cross-repo validation and consistency scripts (OpenAPI verify, seeds, git hooks)
-- `tools/` - License generator and i18n utility tools
-- `testsprite/` - API/E2E test definitions and TestSprite CI integration
-- `.github/workflows/` - CI source of executable truth ([inventory](.github/workflows/README.md))
-- `docs/` - Human documentation and reference material
-- `ai/` - Internal implementation and guardrail docs
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Multi-Tenant Architecture (CRITICAL)
-
-### Production hosts (Single POS UI)
-
-| Surface | URL |
-|---------|-----|
-| POS UI | `https://pos.regkasse.at` |
-| FA UI | `https://admin.regkasse.at` |
-| API | `https://api.regkasse.at` |
-
-**Decision:** One shared POS UI for all tenants. Detail: [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
-
-### Tenant Identification
-- **Production (POS):** Shared host `pos.regkasse.at` — tenant from JWT `tenant_id` after login (not from Host slug). Reserved labels: `pos`, `api`, `admin`, `www`.
-- **Production (API):** `api.regkasse.at` — authenticated traffic scoped by JWT `tenant_id`; do not use `X-Tenant-Id` / `?tenant=` in Production.
-- **Development:** Prefer `X-Tenant-Id` header; `?tenant={slug}` remains a fallback (POS: `EXPO_PUBLIC_DEV_TENANT_ID` + DevTenantSwitcher; FA: header switcher). Prefer slug **`dev`** (seeded demo). There is **no** business tenant slug `default`.
-- **Platform sentinel:** Wave-0 Guid `SystemTenantIds.Platform` / slug `platform` — inactive system row for audit/host fallbacks; hidden from switchers; not a mandant. Do not hard-delete while FKs reference it.
-- JWT contains `tenant_id` claim after authentication
-- Super Admin / FA: `admin.regkasse.at`
-- **Custom website domains:** verified `TenantDomain` rows map Host → tenant slug before `TenantHostNames` (`ITenantDomainService`); FA: `/settings/website` (`website.manage`)
-
-#### Tenant resolution order
-
-| Environment | Order (first match wins) |
-|-------------|--------------------------|
-| **Development** | `X-Tenant-Id` header → `?tenant=` query → Host slug → DX default (`dev` when Host is loopback / `admin`) |
-| **Production** (shared `api`/`pos`/`admin`/`www`) | JWT `tenant_id` after auth (pre-auth ambient left unset; header/query ignored) |
-| **Production** (mandant subdomain / custom domain) | Host slug (pre-auth) → JWT `tenant_id` rebind after auth |
-
-- Prefer **header** over query in Development (more RESTful, less likely to be cached). FA axios sends `X-Tenant-Id` only; query is opt-in fallback.
-- Production `?tenant=` presence is logged as **Warning** (`TenantResolutionMiddleware`) for ops alerting — the value is never applied.
-
-### Tenant Isolation
-- Tenant-scoped tables MUST have non-null `tenant_id` on entities implementing `ITenantEntity`
-- EF Core global query filters in `AppDbContext` automatically filter by `ICurrentTenantAccessor.TenantId`
-- Tenants can NEVER see other tenants' data
-- Cross-tenant access MUST return HTTP 404 (NOT 403)
-- NEVER use `IgnoreQueryFilters()` except for Super Admin operations
-
-### Super Admin
-- Role: `SuperAdmin` (system.critical permission)
-- Access via `admin.regkasse.at`
-- Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
-- Tenant CRUD via `/api/admin/tenants/*`
-- **Ambient tenant exemptions (middleware):** `TenantValidationMiddleware` allows **authenticated SuperAdmin only** to call platform SaaS prefixes without ambient `ICurrentTenantAccessor.TenantId`: `/api/admin/tenants`, `/api/admin/billing`, `/api/admin/cache`, `/api/admin/support`, `/api/admin/trials`, `/api/admin/sessions`, `/api/admin/limits`, `/api/admin/countries` (tenant-selectable country catalog), `/api/admin/rksv/config` (exact overlay API; not `/api/admin/rksv/*` DEP), `/api/admin/backup`, `/api/admin/restore-verification`, `/api/admin/restore` (segment-safe; not `restore-verification`), `/api/settings/backup`, and exact `/api/tenants/switcher`. Segment-safe prefixes (no `/api/admin/tenantsfoo`). **Non–SuperAdmin** on those URLs still need ambient tenant (404). Mandant data APIs (`/api/admin/products`, POS, etc.) always require ambient tenant — even for SuperAdmin. Super Admin backup ACL is deployment-wide even when the JWT has an ambient tenant (`BackupRunAccessScope.IsDeploymentWide`).
-- **Route/body tenant target:** Super Admin ops that touch a specific mandant MUST validate the tenant exists (`GetByIdAsync` / equivalent → HTTP 404). Do not rely on ambient JWT tenant alone for cross-tenant SaaS actions; use the explicit `tenantId` from the route or body.
-- **Impersonation:** issues JWT with target `tenant_id` + `tenant_impersonation=true`; subsequent EF filters bind to the target. Host↔JWT match is skipped for impersonation tokens (`Auth:RequireTenantHostMatch`).
-- **Cache management:** Super Admins can clear tenant-specific or all caches via `POST /api/admin/cache/clear` (`{"tenantId":"…"}` or `{"clearAll":true}`). Use this only in emergency situations or after database migrations / manual DB fixes — not for routine deploys. Clearing all caches will temporarily impact performance as caches are rebuilt. FA: Systemwartung → Cache leeren. Prefer automatic invalidation; see [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md) § Cache Management.
-- **Session management:** Super Admin and Mandanten-Admin (`Manager`) can list/terminate `auth_sessions` including POS (`/api/admin/sessions`, FA `/admin/sessions`). List requires `user.view`; logout requires `user.manage`. Manager is limited to the ambient tenant; Super Admin sees all tenants. The caller’s current session cannot be terminated. Super Admin force-logout (user detail) rotates Identity `SecurityStamp` (JWT `sst` claim) and revokes refresh tokens; the next API call fails in JWT `OnTokenValidated`. Platform/tenant “terminate all” keeps the caller’s current session. User logout (FA/POS cookie split, CSRF, client cleanup): [`docs/AUTH_LOGOUT.md`](docs/AUTH_LOGOUT.md).
-- **Digital services:** create / publish / edit / delete websites and apps; approve digital requests (`/admin/digital`, `/admin/digital/requests`)
-- **Online orders:** full FA control including optional POS cart bridge (`digital.orders.approve`)
-- **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**
-- Cross-tenant SaaS metrics API is not yet a separate surface
-
-### Impersonation Flow
-1. Super Admin clicks "Login as" on `/admin/tenants` (FA)
-2. Backend issues JWT with target `tenant_id` claim and `tenant_impersonation=true`
-3. Production target: stay on FA / hand off token for mandant session (POS remains `pos.regkasse.at` with JWT tenant — not `{slug}` POS hosts)
-4. Subsequent API calls use tenant-scoped JWT; EF filters apply to target tenant
-5. Structured server logs record actor + tenant
-
-### Tenant Resolution in Background Services
-- Startup and singleton hosted services have **no HTTP request**; `ICurrentTenantAccessor.TenantId` may be null
-- Singletons that need EF must use **`IServiceScopeFactory.CreateScope()`** before `IDbContextFactory<AppDbContext>`
-- `AppDbContext` + `ICurrentTenantAccessor` are **scoped** - do not create DbContext from root provider inside a singleton
-
-```csharp
-using var scope = _scopeFactory.CreateScope();
-var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-await using var db = await factory.CreateDbContextAsync(ct);
-```
-
-### Development URLs
-
-```text
-POS UI:     http://localhost:8081
-FA UI:      http://admin.regkasse.local:3000
-API:        http://localhost:5184
-```
-
-### Testing Multi-Tenant Locally
-
-```bash
-# Prefer header (Development only)
-curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
-
-# Query parameter (Development fallback; ignored + Warning-logged in Production)
-curl http://localhost:5184/api/health?tenant=dev
-
-# Hosts file simulation (optional; FA often uses admin.regkasse.local)
-127.0.0.1 admin.regkasse.local
-127.0.0.1 dev.regkasse.local
-# Then: http://dev.regkasse.local:5184  or  http://admin.regkasse.local:3000
-```
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## API Boundaries (DO NOT CROSS)
-
-| Client | Allowed Prefix | Forbidden |
-|--------|---------------|-----------|
-| POS (frontend) | `/api/pos/*`, `/api/Auth/*`, `/api/Receipts/*` | `/api/admin/*` |
-| Admin (frontend-admin) | `/api/admin/*`, `/api/Auth/*` | `/api/pos/*` |
-| Shared | `/api/Auth/*`, `/api/user/*`, `/api/rksv/*` | - |
-
-### Removed legacy aliases (DO NOT REINTRODUCE)
-- `/api/Payment`, `/api/Cart`, `/api/Product` were **hard-removed on 2026-08-13**. Same handlers remain on `/api/pos/payment/*`, `/api/pos/cart/*`, `/api/pos/*`.
-- Admin catalog CRUD: `/api/admin/products`. New features MUST use canonical boundaries.
-- See [`docs/API_LEGACY_DEPRECATION.md`](docs/API_LEGACY_DEPRECATION.md).
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## License Sales (Super Admin Only)
-
-- License sales are independent from RKSV/fiscal system
-- All sales are logged in `billing_audit_log` (not fiscal audit)
-- Invoices are generated as PDF with company logo and VAT breakdown
-- Unified license keys: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{8 alnum}` (mandant). Deployment keys use slug `system`. Legacy `REGK-XXXXX-XXXXX-XXXXX` is still accepted for on-prem display keys.
-- Mandanten-Admins (`Manager` role) can extend licenses using license keys provided by Super Admin. Activation: `POST /api/license/activate` (POS + FA).
-
-**Docs:** `docs/BILLING_TENANT_LICENSE.md`, `docs/API_CONTRACTS.md` (Billing section), `ai/modules/billing_license.md`
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Trial / Demo system
-
-SaaS mandant trials are first-class (`Trial` config section, `ITrialService`). Not a POS/RKSV flow.
-
-| Item | Detail |
-|------|--------|
-| Config | `Trial:*` — `Enabled`, `DefaultDurationDays` (14), `AllowedDurationDays` `[14,30,60,90]`, `GracePeriodDays` (7), `AutoDeleteAfterGraceDays` (30), `ReminderDays` `[7,3,1]`, `MaxRegistersInTrial` (1), `MaxUsersInTrial` (3), `DemoCatalogImport` |
-| Statuses | `active` → `expired` (grace) → soft `deleted` (RKSV retained) or `converted` |
-| Super Admin API | `/api/admin/trials` (dashboard, analytics, grant/extend/convert/delete) |
-| Super Admin UI | `/admin/trials` |
-| Conversion | `ITrialConversionService` + license sale (`ConvertedFromTrial`); keeps remaining trial days by default |
-| Jobs | `TrialReminderHostedService` (interval hours), `TrialCleanupHostedService` (daily UTC hour) |
-| Limits | `TrialLimitGuard` — extra registers/users while trial is open → `TrialLimitExceededException` |
-
-Wizard create-tenant can start a managed trial (syncs `LicenseValidUntilUtc`, no paid `LicenseKey` until conversion).
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Tenant Limits
-
-Per-mandant operational caps (`tenant_limits`, one row per tenant). Defaults are applied when the row is missing. Full reference: [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md). Config TTL: `CacheSettings:TenantLimitsCacheMinutes` (5).
-
-| Key | Default | Where it fires |
-|-----|---------|----------------|
-| `maxActiveRegistersPerUser` | 5 | FA cash-register assignment |
-| `maxProductsPerTenant` | 10000 | Product create |
-| `maxUsersPerTenant` | 50 | User create / invite |
-| `dailyMaxTransactions` | 1000 | POS sale |
-| `maxTransactionAmount` | 10000 EUR | POS sale |
-| `dailyMaxRevenue` | 50000 EUR | POS sale |
-| `maxBackupsPerTenant` | 50 | Tenant backup trigger |
-| `maxBackupSizeMB` | 500 | Tenant backup (cumulative dump size) |
-| `maxOfflineTransactions` | 50 | TSE offline intent queue (tenant-wide) |
-
-- HTTP **409** + `LimitErrorDto` (`code=LIMIT_EXCEEDED`, `limitKey`, `limit`, `current`, `message`, `canForce`).
-- SuperAdmin **override** (`force=true`) exists **only** for assignment (`maxActiveRegistersPerUser`).
-- Offline queue SoT is `tenant_limits`, **not** `TseOptions.MaxOfflineTransactionsPerCashRegister` (obsolete bind-only).
-- Distinct from `TrialLimitGuard` and `TenantOperationLimits` — do not merge.
-
-Usage: `GET /api/admin/limits`. Dashboard: `GET /api/admin/limits/dashboard` (`license.manage`). Super Admin: `?allTenants=true` or no ambient tenant = all mandants; `?tenantId=` = one mandant. Mandanten-Admin: **own ambient tenant only** — `tenantId` / `allTenants` query is **ignored** (HTTP **200** own dashboard, not 404). DTO: `lastUpdated`, `summary` (healthy/warning/critical/total), per-limit `Healthy`/`Warning` (≥80%)/`Critical` (≥100%) with 7-day trend, critical users (`Approaching`/`Full`/`Exceeded`), `recentActivity`. Super Admin CRUD: `/api/admin/tenants/{id}/limits`.
-Activity feed: `LimitApproaching` (≥80%) and `LimitExceeded` (>100%) — in-app + email/webhook to Mandanten-Admin and Super Admin. FA: `/admin/limits/dashboard`.
-
-**Development Limit Test Panel** (`/admin/development/limits`, `/api/dev/limits/*`): SuperAdmin + Development only (`system.critical`). SuperAdmin + Production → FA UI 404 + API 404. Mandanten-Admin / Cashier → FA **403** (not 404). `/api/dev/limits` is **not** a SuperAdmin ambient-tenant exemption — missing ambient tenant → middleware **404**. Caps move relative to live usage (`near` / `at` / `tiny` / `reset`); no fiscal test rows. Details: [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md) § Development Limit Test Panel.
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Self-service portal (Mein Konto)
-
-Mandanten-Admin hub for license, invoices, profile, and support. Permission: `license.manage` (Super Admin via `system.critical`).
-
-| FA page | Purpose | API |
-|---------|---------|-----|
-| `/tenant/portal` | Mein Konto hub | onboarding + license status |
-| `/tenant/license` | Activate / extend / status | `POST /api/license/activate`, tenant license APIs |
-| `/tenant/invoices` | Billing invoices + PDF | `GET /api/admin/billing/tenant-invoices` |
-| `/tenant/profile` | Company / account profile | tenant settings |
-| `/tenant/support` | Own tickets | `GET/POST /api/admin/support/tickets` |
-| `/admin/support` | Super Admin inbox (all tenants) | `/api/admin/support/admin/tickets` |
-
-Cross-tenant ticket access → HTTP **404**. Staff internal notes are hidden from Mandanten-Admin.
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Unified license
-
-One REGK format for mandant billing and deployment keys (`LicenseKeyGenerator`):
-
-- **Mandant:** `REGK-yyyyMMdd-{tenantSlug}-{8}` — slug is the mandant; date is `validUntil` UTC.
-- **Deployment / system:** slug `system` (`LicenseKeyKinds.System`).
-- **Legacy on-prem display:** `REGK-XXXXX-XXXXX-XXXXX` still validates via `RegkTenantLicenseKeyFormat`.
-- Activate once: `POST /api/license/activate`. Status: `GET /api/license/status`. Cache key `license_status_{tenantId}` (5 min) + invalidation on sale/activate/extend.
-
-Do not invent a second key family. Reserved slugs (`pos`, `api`, `admin`, `www`) are rejected as key slugs.
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Authentication & User Management
-
-### Login Methods
-- **Email:** `user@example.com`
-- **Username:** `manager1`, `cashier2` (case-insensitive)
-- Login endpoint: `POST /api/Auth/login` with `loginIdentifier` field
-
-```typescript
-// Use this:
-{ "loginIdentifier": "manager1", "password": "..." }
-// loginIdentifier can be email OR username (case-insensitive)
-
-// Deprecated (do not use in new code):
-{ "email": "user@example.com", "password": "..." }
-```
-
-### Username Rules
-- Min 3, max 50 characters
-- Allowed: `a-z`, `0-9`, `_`, `-`
-- Case-insensitive (`Mustafa = mustafa = MUSTAFA`)
-- Auto-generated on Quick Create: `{rolePrefix}{nextNumber}`
-
-### Password Rules
-- Min 8 characters
-- Generated on user creation (displayed once, never stored in plain text)
-- Force change on first login when configured
-
-### SuperAdmin two-factor authentication (2FA)
-
-**Hub:** [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md)
-
-| Environment | SuperAdmin | Others |
-|-------------|------------|--------|
-| Development (`TwoFactorAuth:BypassInDevelopment=true`) | No 2FA challenge | Unchanged |
-| Production (`TwoFactorAuth:Enabled=true`) | TOTP after password (`POST /api/Auth/verify-2fa`) | Unchanged |
-
-- Config section: `TwoFactorAuth` (`Enabled`, `BypassInDevelopment`, `TestToken`). Bypass codes (`DEV-2FA-BYPASS` / `TestToken`) work **only** in Development.
-- FA: `TwoFactorAuth.tsx` — Dev Alert + Continue; Production authenticator form.
-- Not SMS; Identity authenticator TOTP. Not applied to Mandanten-Admin / Cashier by default.
-
-### Username Change Requirements
-- MUST log `AuditEventType.UserNameChanged`
-- MUST store both `old_username` and `new_username` in audit
-- MUST require reason field (optional but recommended)
-- MUST invalidate all active sessions for the user
-- MUST check username uniqueness (case-insensitive)
-
-### Roles
-
-Canonical backend role names (database / JWT / API) and Admin UI display labels (German default):
-
-| Backend (`Roles.cs`) | UI display (de) | Scope |
-|----------------------|-----------------|-------|
-| **SuperAdmin** | Super-Administrator | System-wide administrator |
-| **Manager** | **Mandanten-Admin** | Tenant-level administrator |
-| **Cashier** | Kassierer | POS operations |
-| **Waiter** | Kellner | Order taking |
-| **Kitchen** | Küche | Kitchen display |
-| **Accountant** | Buchhaltung | Financial reporting |
-| **ReportViewer** | Berichte (nur Lesen) | Read-only reports |
-
-- **SuperAdmin**: Full system access; platform operator on `admin.regkasse.at`.
-- **Cache troubleshooting:** Super Admin may clear domain cache via `POST /api/admin/cache/clear` (`tenantId` / `prefix` / `clearAll`) or FA Systemwartung → Cache leeren. Prefer automatic invalidation; manual clear is for emergencies (see `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` § Cache Management).
-- **Mandanten-Admin (`Manager`)**: Tenant administrator — users, settings, reports, backup (`backup.manage`) for **their** tenant only; cannot access other tenants.
-- Backend role string remains `"Manager"` for compatibility; only UI labels use **Mandanten-Admin** (see `users.roles.displayNames` in FA i18n).
-
-#### Digital services & online orders (role matrix)
-
-Source of truth: `backend/Authorization/RolePermissionMatrix.cs`, `AppPermissions.cs`. Website/app generation and online orders are **not** POS/RKSV/TSE flows (`online_orders` table; status-only fulfillment).
-
-| Role | Digital services (website / app) | Online orders (website / app) |
-|------|----------------------------------|-------------------------------|
-| **SuperAdmin** | Create, publish, edit, delete, activate, pricing (`digital.create` / `publish` / `edit` / `delete` / `manage` / …) | Full: view, status manage, optional POS cart bridge approve (`digital.orders.view` / `manage` / `approve`) |
-| **Manager** (Mandanten-Admin) | View own services, preview templates, request creation (`digital.view` / `preview` / `request`). **No** create / publish / delete | View + status lifecycle only (`digital.orders.view` / `manage`). **No** POS cart push (`digital.orders.approve`) |
-| **Cashier** (and other POS roles) | **No** digital service permissions by default | **No** `digital.orders.*` by default (POS `order.*` is separate) |
-
-**FA surfaces:** Super Admin `/admin/digital`, `/admin/digital/requests`; Manager `/settings/digital`, `/orders/online` (alias `/online-orders`), `/tenant/{id}/website-preview`, `/tenant/{id}/orders`. Sidebar: nested **Digitale Dienste** under Einstellungen (Manager) and Lizenzverwaltung (Super Admin). i18n: `digital.*`, `nav.digital*`, `tenants.digitalServices.*`, `onlineOrders.*`.
-
-**Customer website runtime (`frontend-sites/`):** Shared Next.js app for tenant storefronts (`/[slug]`), public catalog (`/api/public/tenants/*`, `/api/sites/{slug}/status`), and online-order intake UI. Not fiscal/POS. Working hours gate intake only. Locale catalogs for Sites are **deferred** in `localization/namespace-manifest.json` (German hardcoded UI today) — register namespaces when i18n is added. Dev: `npm run dev:sites` (port **3001**).
-
-#### Working hours (website/app only)
-
-**Hub:** [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md)
-
-Working hours (`CompanySettings.WorkingHours` JSON) restrict **customer online-order intake only**. They must **never** gate POS, FA, or authenticated POS/admin APIs.
-
-| Applies to | Does **not** apply to |
-|------------|------------------------|
-| Tenant websites / PWAs / native apps (display + order CTAs) | POS FE — always open for cart / payment / register |
-| `GET /api/sites/{tenantSlug}/status` (website status) | FA — full schedule management (`/settings/working-hours`) |
-| `POST /api/public/online-orders` when `!canOrder` → `ONLINE_ORDERS_CLOSED` | Authenticated `/api/pos/*`, `/api/admin/*`, Auth, fiscal flows |
-
-- **Server gate:** `OnlineOrderIntakeService` → `WorkingHoursSettings.EvaluateWebsiteStatus` / `CanOrder` (stop-before-close cutoff included).
-- **POS:** `app/(tabs)/cash-register.tsx` never checks hours; `useWorkingHours` / `posOperationsAllowed` is **always** `true` — schedule is display + Tagesabschluss reminder only.
-- **FA:** configures hours; protection note in i18n (`settings.workingHours.protectionNote`); never access-gated by open/closed.
-- **Contract tests:** `WorkingHoursPosFaNonGatingContractTests`, POS `workingHoursStatus` tests, FA `workingHoursNonGating.contract.test.ts`.
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 #### Expired license — customer data management (RKSV)
-
-| State | Days overdue | POS | FA | Data |
-|-------|--------------|-----|----|------|
-| **Active** | ≤0 | Full | Full | Full |
-| **Grace** | 1–7 | Full (warnings) | Full | Full |
-| **Locked** | 8–30 | Blocked | Read-only | Read-only |
-| **Archived** | &gt;30 | Blocked | Read-only | Read-only |
-| **ExportRequest** | overlay | Blocked | Limited | Export + deletion request |
-| **Deleted** | purge done | Blocked | Limited | RKSV-only retained |
-
-##### GDPR data request types
-
-| Type | Description | Approval | Processing time |
-|------|-------------|----------|-----------------|
-| **View** | View all data (inventory summary) | Auto | Instant |
-| **Export** | Download all data (ZIP artifact) | Auto | &lt; 24 hours |
-| **Delete** | Delete all non-RKSV data | Manual + 7 days | 7 days |
-
-- Entity: `TenantDataRightsRequest` (`tenant_data_rights_requests`); services: `IDataAccessService` (access control), `ICustomerDataRightsService` (fulfillment).
-- Access control (`DataAccessService.ProcessRequestAsync`): **View/Export** auto-approved then processed; **Delete** → `pending_approval` + Super Admin notify (`DataAccessDeleteRequested` activity + email) before Manager confirm / 7-day purge.
-- API: `GET …/data-management/request-types`, `GET/POST …/requests` (returns `DataAccessResult`; Delete → HTTP 202), `GET …/requests/{id}/download`, `POST …/requests/{id}/confirm|execute` (`backup.manage`; execute Super Admin only).
-- Legacy sync routes (`GET …/export`, `POST …/deletion-request*`) remain; they create/link typed rights requests where applicable.
-- Export flow (`DataExportService.CreateExportAsync(requestId)`): collect → ZIP → `App_Data/data-exports/` → opaque download token (7 days) → notify requester (`DataExportReady` + email). Public download: `GET /data/download/{token}` (`DataExport:PublicApiBaseUrl`, default `https://api.regkasse.at`). Retry via `DataRightsExportProcessorService` (15 min).
-- Export JSON shape (`data-export.json` in ZIP, `regkasse.tenant-data-export.v2`): `{ tenant: { name, slug, exportedAt }, data: { products, categories, customers, payments, receipts, invoices, orders, vouchers, settings }, rksv: { note, retentionUntil } }`. RKSV rows (`payments` / `receipts` / `invoices`) are **masked** (TSE/JWS/QR secrets → `***`); Identity credentials excluded.
-- Delete links to `TenantDataDeletionRequest` + `DataDeletionService` (RKSV retention unchanged).
-
-- Thresholds: `LicenseGracePeriodConfig` (`GracePeriodDays=7`, `ArchiveAfterDays=30`); resolver: `ILicenseLifecycleResolver`.
-- POS lockdown: `LicenseMiddleware` blocks `IsPosOperation`; FA writes gated by `TenantOperationalGateMiddleware` (data-management routes allowed).
-- FA page: `/tenant/[id]/data-management` — GDPR request types, inventory, ZIP export, deletion request/confirm, RKSV 7-year note.
-- API: `GET/POST …/data-management*` (`backup.manage`); Super Admin `POST …/execute`; services: `DataExportService`, `DataDeletionService`, `CustomerDataRightsService`.
-- Deletion flow: **Archived only** → request → FA confirm (Manager + Super Admin CC email) → **7-day wait** → auto-purge (`AutoPurgeService`, daily) or Super Admin execute.
-- Purge deletes: products, categories, customers, company settings, customizations, non-fiscal invoices (`SourcePaymentId` null); soft-removes memberships + deactivates users.
-- Purge **keeps**: payments, receipts, fiscal invoices, audit, TSE, online orders, vouchers. Irreversible (`CustomerDataPurgedAtUtc`); restore from backup only.
-
-### User Permissions
-- `users.view` - View user list
-- `users.manage` - Create/edit/delete users
-- `settings.view` - View system settings (includes backup status/history routes)
-- `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Mandanten-Admin (`Manager`) by default)
-- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Mandanten-Admin default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`. Also covers expired-license **data management** export / deletion request.
-- `website.manage` - Tenant domain / customization (implies digital view/preview/request, not create/publish)
-- `digital.view` / `digital.preview` / `digital.request` - Mandanten digital portal (status, preview, request)
-- `digital.create` / `digital.publish` / `digital.edit` / `digital.delete` / `digital.manage` - Super Admin website/app generators and platform digital control
-- `digital.orders.view` / `digital.orders.manage` - FA online-order inbox (status updates; **not** fiscal POS)
-- `digital.orders.approve` - Super Admin only (optional POS cart bridge on accept)
-- `reports.view` - View reports
-- `reports.export` - Export reports
-- **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
-- **Admin session filter:** JWT/`/me` permissions for `app_context=admin` via `AdminAppPermissionProfile` (Cashier whitelist; Mandanten-Admin strips POS-terminal keys)
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Audit & Compliance
-
-### Mandatory Audit Fields
-Every fiscal or security-sensitive operation MUST log:
-- `actor_user_id` - Who performed the action
-- `actor_role` - Their role (`SuperAdmin`, `Manager`, `Cashier`)
-- `tenant_id` - Which tenant (`NULL` only for system operations)
-- `action_type` - From `AuditEventType` enum (see `backend/Models/AuditEventType.cs`)
-- `old_values` / `new_values` - For sensitive changes
-- `correlation_id` - For tracking related events
-- `ip_address` - Client IP
-- `timestamp_utc` - UTC timestamp
-
-### Audit Event Types (`AuditEventType`)
-Security and lifecycle audit log — source of truth: `backend/Models/AuditEventType.cs`.
-
-Key values include: `UserCreated`, `UserUpdated`, `UserRoleChanged`, `UserDeactivated`, `UserReactivated`, `UserDeleted`, `UserNameChanged`, `PasswordResetForced`, `UserTenantMembershipChanged`, `RestoreRequested`, `RestoreApproved`, `RestoreRejected`, `RestoreCompleted`, `RestoreFailed`, `FinanzOnlineOutboxRetried` (139), `FinanzOnlineOutboxBulkRetried` (140), `FinanzOnlineOutboxMarkedResolved` (141).
-
-Do **not** confuse with `ActivityEventType` (admin activity feed / notifications).
-
-### Activity Feed Event Types (`ActivityEventType`)
-Admin bell / SSE / email / webhook — source of truth: `backend/Models/ActivityEventType.cs`.
-
-Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`, `DailyClosingBackdatedCreated`, `DailyClosingPendingReminder`.
-
-### Data Retention
-- Audit logs: minimum 7 years
-- Payment data: minimum 7 years
-- User data: keep until account deletion; preserve when legal hold applies
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Fiscal Rules (RKSV/TSE)
-
-### RKSV Special Receipts
-- `Nullbeleg`, `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg` MUST each include TSE signature
-- `Monatsbeleg` MUST be created within 7 days of month end
-- `Jahresbeleg` MUST be created by January 31st of the following year
-- Show admin warning 14 days before RKSV deadline; email alert 7 days before deadline
-
-### FinanzOnline Rules
-- Production mode MUST use real SOAP submission
-- Test mode MUST use simulation (`FinanzOnline:Mode=Simulation`)
-- Failed submissions MUST retry with exponential backoff (maximum 5 attempts)
-- Operator retry (`POST /api/admin/finanzonline-outbox/{id}/retry`, `POST …/retry-failed`, permission `finanzonline.submit`) resets matching rows to `Pending` and wakes the worker. It does not change SOAP, claim, or backoff. `ProtocolSuccess` and `AwaitingProtocol` are rejected (HTTP 400). Super Admin close-without-submit is `POST …/{id}/mark-resolved` (`system.critical`) and sets status `Resolved`.
-- Outbox rows are not `ITenantEntity` (`tenant_id` is a string). **Super Admin** may retry or resolve any row even when the ambient tenant differs from the row (including a null or non-Guid `tenant_id`). **Mandanten-Admin** may retry only rows whose `tenant_id` matches the ambient tenant (`D` or `N` Guid); a foreign row or a missing ambient tenant returns HTTP 404. `/api/admin/finanzonline-outbox` is **not** a Super Admin ambient-tenant exemption — non–SuperAdmin callers still need ambient tenant.
-- Submission status MUST be visible in admin panel
-
-### Signature Chain Validation
-- Receipt numbers MUST be sequential per register
-- Duplicate receipt numbers are forbidden
-- Any detected gap MUST be logged and trigger an alert
-
-### TSE Requirements
-- Every fiscal receipt MUST have TSE signature
-- Signature chain MUST be continuous (no gaps)
-- TSE health status MUST be monitored continuously
-
-### TSE Offline Mode
-- Max **50** offline TSE intents **per tenant** by default (`tenant_limits.max_offline_transactions`)
-- When the limit is reached, POS must block new offline transactions (HTTP 409 `LIMIT_EXCEEDED`)
-- Show warning at 80% of the tenant cap
-- `TseOptions.MaxOfflineTransactionsPerCashRegister` is obsolete and is not used for enforcement
-- Offline queue must persist across app restarts
-
-### NTP Time Sync
-- Check NTP time sync status before treating online fiscal payments as allowed
-- Block when sync failed or offset exceeds configured `MaxAllowedOffsetSeconds`
-
-### Voucher (Gutschein) Rules
-- Never queue voucher payments for offline non-fiscal replay
-- Backend must reject; POS must not enqueue voucher payloads
-
-### Storno Flows
-- Must supply `OriginalReceiptId` and a `StornoReason` where contract requires them
-- Do not conflate with partial refund
+[`.cursor/rules/104-fiscal.mdc`](.cursor/rules/104-fiscal.mdc)
 
 ### DEP §7 Export (Datenerfassungsprotokoll / Signaturjournal)
-
-**Status:** ✅ Implemented (F1–F5 complete)
-
-**Features:**
-- BMF-compliant JSON export with `Belege-Gruppe` structure
-- Certificate grouping by thumbprint
-- Includes all receipt types (normal, special, daily closings)
-- Compact JWS signatures (not QR payload)
-- RKSV §9 `BelegdatenPayload` machine code (`_R1-AT1_…`) for Prüftool receipt verification
-- Chronological ordering
-
-**Purpose:** Betriebsprüfung (tax audit) compliant export of signed receipt data per cash register and period.
-
-**Technical rules:**
-
-1. **Format:** BMF JSON schema with `Belege-Gruppe` structure (`RksvDepExportRootDto`; property names via `[JsonPropertyName]` — e.g. `Belege-Gruppe`, `Belege-kompakt`)
-2. **Signature format:** Compact JWS (`header.payload.signature`), **not** QR payload
-3. **Grouping:** All receipts signed with the same certificate thumbprint in one `Belege-Gruppe`
-4. **Order:** Chronological by issue date/time (`IssuedAt`), then `SequenceNumber` (BelegNr seq or closing date)
-5. **Included items:**
-   - Normal payment receipts (`payment_details`, `RksvSpecialReceiptKind` null)
-   - Special receipts: `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg`, `Nullbeleg` (when `includeSpecialReceipts=true`)
-   - Daily closings (`DailyClosings.TseSignature`, when `includeDailyClosings=true`; filter by `ClosingDate`)
-6. **Certificate chain:** Leaf signing cert + issuer CA chain (`Zertifizierungsstellen`), DER Base64 per group
-7. **Excluded:** Rows without TSE signature or invalid compact JWS (not exactly three segments)
-8. **Thumbprint storage:** `payment_details.certificate_thumbprint`, `DailyClosings.certificate_thumbprint` (stamped at sign time; legacy rows fall back to active TSE cert)
-
-**Implementation status:**
-
-| Phase | Scope | Status |
-|-------|--------|--------|
-| F1 | Controller + service + DTO skeleton | Done |
-| F2 | Certificate grouping + CA chain | Done |
-| F3 | Special receipts + daily closings | Done |
-| F4 | Prüftool test script (`scripts/rksv/verify-rksv-dep-export.ps1`) | Done |
-| F5 | Full RKSV §9 `BelegdatenPayload` Prüftool compliance | Done |
-
-**Key files:** `AdminRksvDepExportController`, `RksvDepExportService`, `RksvDepExportDtos`, `ITseKeyProvider`, `TseCertificateChainBuilder`, `BelegdatenPayload`, `BelegdatenPayloadBuilder`, `RksvMachineCodeBuilder`, `SignaturePipeline`, `TseService`
-
-**API:** `GET /api/admin/rksv/dep-export` (Admin only)
-
-| Parameter | Required | Default | Notes |
-|-----------|----------|---------|-------|
-| `cashRegisterId` | Yes | — | Target register UUID |
-| `fromUtc` | Yes | — | Period start (UTC) |
-| `toUtc` | Yes | — | Period end (UTC); max 366 days |
-| `includeSpecialReceipts` | No | `true` | Sonderbelege |
-| `includeDailyClosings` | No | `true` | Tagesabschluss signatures |
-
-**Permission required:** `ReportExport` + `AuditView` (`AppPermissions.ReportExport` / `report.export`, `AppPermissions.AuditView` / `audit.view`).
-
-**Auth:** JWT + tenant context. Cross-tenant / missing tenant → HTTP 404. All DEP exports MUST be logged in audit log (`RksvDepExportJson`).
-
-**Testing:**
-
-```bash
-cd backend && dotnet test --filter "RksvDepExportServiceTests"
-```
-
-```powershell
-.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
-```
-
-Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.
-
-**Developer guide:** `docs/DEP_EXPORT_DEVELOPMENT.md`
+[`.cursor/rules/104-fiscal.mdc`](.cursor/rules/104-fiscal.mdc)
 
 ## Country & Fiscal Regimes (Multi-Country)
-
-Austria (`company_settings.country = 'AT'`) remains the production fiscal path (RKSV/TSE/FinanzOnline). Hub: [`docs/COUNTRIES.md`](docs/COUNTRIES.md). Detail: [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](docs/COUNTRY_LAYER_CUTOVER.md). Paket 30-d (OSS destination rates) is done.
-
-- **AT:** production fiscal path. Unchanged.
-- **DE:** contract (`IKassenSicherheitService`) plus the Development soft signer (`SoftKassenSicherheitService`) plus fiskaly-de outbound HTTP (`FiskalyDeKassenSicherheitService`) plus `PaymentService` wiring via `IFiscalSignatureRouter` (`SignDeAsync` → `SignAsync`). Not production-ready: DSFinV-K (`ExportDsfinvkAsync` is a PUT only), DE offline (§13 of [`docs/FISCAL_ROUTER_PLAN.md`](docs/FISCAL_ROUTER_PLAN.md)), and DE BelegNr as a production fiscal number (`DeReceiptSequenceService.FormatDeBelegNr` allocates `de_receipt_sequences`; it is not the Austrian RKSV Beleg). Signatures go to `de_tse_signatures`; `payment_details.TseSignature` stays null for DE. Do not enable `Fiscal.KassenSicherheitDe` for a real tenant. `CountryFeatureFlagDefaults.TryGet` returns false for that flag, so a DE tenant stays off until an explicit tenant override.
-- **CH:** MWST rates (`ICountryTaxTypeRegistry` / `ChMwstEffectiveRates`) plus QR-Rechnung payload (`QrRechnungBuilder`) plus PDF (`QrRechnungPdf`). `SwitzerlandTaxStrategy.ProjectFiscalTaxSets` uses `ChTaxSetMapper`. `SwitzerlandInvoiceStrategy.AllocateReceiptNumberAsync` uses `ch_receipt_sequences` (`CH-{slug}-{register}-{seq}`). Not production-ready: bank submit (`QrRechnung:BankSubmit:Enabled` defaults false; `true` fails Production/Staging startup) and the print gaps in `ChQrKnownGaps.json` (`ChQrKnownGapsTests`).
-- **EU:** UBL builder (`En16931UblXmlBuilder`, `EU_DEFAULT` only) plus the embedded Schematron validator (`En16931Schematron`, `En16931InvoiceValidationService`). Not production-ready: XRechnung (`NotImplementedXrechnungXmlBuilder`), ZUGFeRD (`NotImplementedZugferdXmlBuilder`), and Peppol submission. `EInvoicing.Peppol` stays in `FeatureFlagNames.Reserved` and out of `All`. `Peppol:ReservedExit` can mark one canary. `SubmitAsync` opens HTTP only for that tenant when `Provider=storecove` and `Peppol:Storecove:Environment=TEST`. HTTP 2xx is `Sent`, not an ACK.
-
-- Resolve country from `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`, added in `20260723190000_AddTenantSettingsHistory`). Unknown/legacy value = AT. **Never add a `CountryCode` column or a second country field.** `VatRegime`, `BillingCountry`, and `TaxExempt` shipped in migration `20260916110000_AddCompanySettingsCountryBilling` — that file is the only later country-schema change on `company_settings`. Issue-time snapshots live on invoices/receipts/payment_details (`CountryCodeAtIssue` / `VatRegimeAtIssue`); do not rewrite historical rows on country change. `CountryLayerBypassGateTests` enforces this (CI job step in [`.github/workflows/backend-unit-tests.yml`](.github/workflows/backend-unit-tests.yml), on every PR that touches `backend/**`, including `backend/Models/Countries/**`, `backend/Services/Countries/**`, and `backend/Data/AppDbContext.cs`).
-- `ICountryProfileRegistry` (seeds: AT, DE, CH, registry-only `EU_DEFAULT`) is **shipped and called** (strategy resolvers, `IFeatureFlagService` country defaults, `GET /api/admin/countries`, `IVatIdValidator`). `GetOrDefault` → AT for unknown/legacy codes; `Get` throws `UNKNOWN_COUNTRY_CODE`. Profiles hold no VAT rates. AT seed mirrors the live company-settings defaults and is pinned by tests.
-- `ITaxStrategy` / `IInvoiceStrategy` are **wired** into `PaymentService` and `InvoiceService` (Paket 30-c). `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). Offline BelegNr goes through `IInvoiceStrategy.AllocateReceiptNumberAsync` (Paket 30-b). AT + `EU_REVERSE_CHARGE` routes to EuDefault strategies (Paket 12-c). Unknown pairs throw `UNKNOWN_TAX_REGIME` (never an AT fallback). Do not fork `PaymentService` or `TseService` internals.
-- The Austrian strategies are **adapters only**: `CalculateTax` → `CartMoneyHelper`, `ProjectFiscalTaxSets` → `RksvTaxSetMapper`, `AllocateReceiptNumberAsync` → `ISequenceReservationService`, `BuildInvoiceDocumentAsync` → `IReceiptService`, VAT-ID shape → `CountryProfile`. Never restate a rate, rounding rule, or bucket rule inside a strategy. TSE signing input / machine code / QR stay out of `IInvoiceStrategy`. DE/CH `CalculateTax` uses `ICountryTaxTypeRegistry`. `GermanyTaxStrategy.ProjectFiscalTaxSets` delegates to `DeTaxSetMapper`. `GermanyInvoiceStrategy.AllocateReceiptNumberAsync` uses `DeReceiptSequenceService`. `EuDefaultTaxStrategy.ProjectFiscalTaxSets` and `EuDefaultInvoiceStrategy.AllocateReceiptNumberAsync` still throw `NotImplementedException`.
-- Gate country features with `IFeatureFlagService` (`tenant_settings` keys `FeatureFlags:{Name}`). Country-derived defaults: tenant override → profile. `Fiscal.RksvAt` is always on for AT and cannot be disabled (**locked**; name is in `FeatureFlagNames`).
-- Tenant create requires an ISO 3166-1 alpha-2 country in the request payload, persisted to `company_settings.country` (FA `CreateTenantWizard`: country step then form). Super Admin tenant detail: Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Non-AT tenants must not enable RKSV/TSE.
-- VAT-ID regexes, rates, and labels live in CountryProfile seeds / `ICountryTaxTypeRegistry` — not in controllers or FA form constants. `EU_DEFAULT` is registry-only, not selectable.
-- POS vertical profiles are product configuration, separate from country regimes and `FeatureFlagNames`; schema, seeds, override merge rules, and APIs: [`docs/VERTICAL_PROFILES.md`](docs/VERTICAL_PROFILES.md).
-- **One VAT-ID literal:** `Models/Countries/VatIdPatterns` (`Austria` = `^ATU\d{8}$`, …) is referenced by the CountryProfile seeds, the two `[RegularExpression]` attributes, and every runtime consumer (`PaymentService`, `TenantSettingsService`, fiskaly services, `InvoiceController`). Never declare a local `^ATU\d{8}$` or another country's VAT-ID regex again. `CountryLayerBypassGateTests` scans production sources and fails with the offending paths when a literal appears outside `VatIdPatterns` and `CountryProfileRegistry`. The same gate asserts every `ITaxStrategy` / `IInvoiceStrategy` resolves for AT, DE, CH, and `EU_DEFAULT`, and that an unknown pair throws `UNKNOWN_TAX_REGIME`. Matching is **strict** (no trim, no case folding); normalization stays at the call site that needs it.
+[`.cursor/rules/104-fiscal.mdc`](.cursor/rules/104-fiscal.mdc)
 
 ## Backup & Disaster Recovery
-
-**Hub doc:** [`docs/BACKUP_AND_DISASTER_RECOVERY.md`](docs/BACKUP_AND_DISASTER_RECOVERY.md) · Full guide: [`docs/BACKUP_SYSTEM.md`](docs/BACKUP_SYSTEM.md)  
-**Permissions:** [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md) · **Content/cost:** [`docs/BACKUP_CONTENT_POLICY.md`](docs/BACKUP_CONTENT_POLICY.md) · **Restore boundary:** [`docs/restore-boundary-notes.md`](docs/restore-boundary-notes.md)
-
-### Backup Types
-- **Tenant Backup** (`BackupStrategyKind.Tenant`): Mandanten-Admin (`Manager`) — single-tenant business/fiscal package (`*.tenant.zip`). Facade: `IBackupService.CreateTenantBackupAsync`.
-- **System Backup** (`BackupStrategyKind.System`): Super Admin — full instance `pg_dump` + structured `*.system.zip` (all active tenants, Identity, licenses, platform). Facade: `IBackupService.CreateSystemBackupAsync`. Scheduled cron uses System strategy (`BackupScheduledEnqueueService`).
-
-### Backup Content
-| Included | Tenant | System |
-|----------|--------|--------|
-| Payments, receipts, products, customers, vouchers, cash registers, fiscal rows | Yes (own tenant) | Yes (all tenants) |
-| Reports / invoices (DB metadata; PDF bytes under `report-pdfs/` are filesystem, not in dump) | Yes | Yes |
-| Audit logs (read-only history in package) | Tenant-scoped | Full / deployment |
-| User credentials (`AspNet*` Identity) | **No** | **Yes** |
-
-Sensitive data in manifests/logs MUST be masked. Backup metadata MUST include `strategy`, optional `tenant_id`, actor, timestamps, and `status`.
-
-### Retention Policy
-- **Tenant Backup:** default **30** days (admin API / FA clamp **7–90**)
-- **System Backup:** default **90** days
-- Auto-delete of expired succeeded artifacts after each succeeded run (`BackupSucceededRunRetentionCleaner`)
-- Optional GFS smart retention (`Backup:SmartRetentionEnabled`): 7 daily / 4 weekly / 12 monthly / 7 yearly sparse archives via `SmartRetentionService` (replaces flat cutoff when enabled)
-- Optional storage tiers (`Backup:StorageTierManagementEnabled`): Hot ≤30d / Warm ≤90d / Cold &gt;90d via `StorageTierService` (Super Admin FA `/backup/retention`). Cold upload is explicit via `ICloudStorageService` (Filesystem WORM, S3 Glacier, Azure Archive, GCS Coldline). System backups keep a 7-year Legal Hold (BAO §132).
-- Storage cost dashboard: `GET /api/admin/backup/storage-costs` + FA `/backup/costs` (indicative EUR rates, not invoices)
-- Optional daily cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`): retention delete + tier retag + `BACKUP_AUTO_DELETED` audit
-
-### Restore Rules (HIGH RISK)
-- Restore only into **same tenant** when ambient tenant and `backup_runs.tenant_id` are both set (RKSV / isolation gate via `IRestoreService`)
-- **No backdating** of restored fiscal timestamps (`IssuedAt` / receipt times are not rewritten)
-- **Full audit trail** required (`AuditEventType.Restore*`, correlation IDs)
-- Cross-tenant restore via API is **prohibited** (404 semantics)
-- NEVER automatic restore to production; validation-only isolated DB (`restore_validation_*`); dual Super Admin approval
-- Tenant ZIP packages are **not** `pg_restore`-compatible; validation restore stays on System `pg_dump` artifacts
-
-### Permissions
-
-| Actor | Allowed |
-|-------|---------|
-| **Mandanten-Admin (`Manager`)** | View / list / trigger **own Tenant** backups (`settings.view` + `backup.manage`); download own tenant packages; schedule/retention for tenant scope. **No** System list/download. **No** restore / restore-drill. |
-| **Super Admin** | View / list **all** backups + System backup; trigger System; execution mode (`settings.manage`); validation restore + restore drills (dual approval where required) |
-
-**Permission keys:** `settings.view` (read), `backup.manage` (trigger + schedule + tenant download/import), `settings.manage` (platform ops; implies `backup.manage`). Mandanten-Admin must **not** receive `settings.manage` for backup-only access.
-
-**Tenant scoping:** Trigger body does not accept client `tenantId`; non–Super Admin requires JWT tenant context (`TENANT_CONTEXT_REQUIRED`). List/download/run access: `BackupRunAccessEvaluator` — Managers see only `strategy=Tenant` + own `tenant_id` (System dumps are Super Admin only).
-
-**FA UI:** `/backup` hub is role-aware (`TenantBackupView` vs `SystemBackupView`). Related: `/backup/dashboard`, runs, configuration, audit, **`/backup/costs`** (storage cost), **`/backup/compliance`** (RKSV product-gate readiness).
-
-### Backup Status (`BackupRunStatus`)
-`Queued`, `Running`, `AwaitingVerification`, `Succeeded`, `Failed`, `VerificationFailed`, `Cancelled`
-
-### Operational extras
-- Staging disk usage alerts at **80%** (`Backup:StagingDiskUsageAlertPercent`) + periodic `StorageAlertService`
-- Enqueue storage budget guard (~**10 GB** succeeded dumps via `BackupService.MaxStorageBytes`)
-- Optional automatic cleanup (`Backup:AutomaticCleanupEnabled` → `AutomaticCleanupService`) with `BACKUP_AUTO_DELETED` audit
-
-### Backup Configuration
-```yaml
-enabled: true
-scheduleCron: "0 2 * * *"  # Daily 02:00 UTC (System strategy)
-retentionDays: 30           # Tenant default; System default 90 via strategy policy
-# SmartRetentionEnabled: false  # optional GFS 7/4/12/7 via SmartRetentionService
-# StorageTierManagementEnabled: false
-# AutomaticCleanupEnabled: false
-executionMode: "PgDump"     # Fake, PgDump, ProductionStub
-externalArchiveRoot: "/backup/archive"  # Super Admin only
-```
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Activity Feed & Notifications
-
-### Activity Feed
-- Important business and security events MUST be written to activity feed
-- Feed entries MUST be tenant-scoped and permission-filtered
-- Feed payloads must avoid raw secrets and sensitive payment data
-
-### Event Types to Track
-- User actions (create, update, delete, username change)
-- Cash register actions (open, close, decommission)
-- Backup events (start, success, failure)
-- License events (expiring, expired)
-- FinanzOnline events (submission success, submission failure)
-
-### Notification Rules
-- Critical failures (TSE/RKSV, backup, restore, auth anomalies) MUST generate notifications
-- Use Server-Sent Events (SSE) for in-app notifications
-- Optional email channel for critical events
-- Optional outbound webhooks (Slack/Discord/Teams) when configured
-
-### Permissions UI (Admin)
-- Show/hide frontend elements based on `hasPermission()`
-- Redirect unauthorized users to 403 page
-- Denied access attempts MUST be written to audit log
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Security Rules
-
-### CSRF (double-submit)
-
-**Hub config:** `Security:Csrf` (`Enabled`, `BypassInDevelopment`). Middleware: `CsrfMiddleware`. Token API: `GET /api/csrf/token`.
-
-| When enabled | Behavior |
-|--------------|----------|
-| POST / PUT / PATCH / DELETE | Require `X-XSRF-TOKEN` header matching `XSRF-TOKEN` cookie (or `X-CSRF-COOKIE` mirror for native clients) + server cache entry |
-| GET / HEAD / OPTIONS | Not checked |
-| Exempt | `/api/Auth/login`, `/api/Auth/refresh`, `/health`, `/api/health`, `/swagger`, `/metrics`, `/api/webhooks/*`, `/api/csrf/token` |
-| Development | Skipped when `BypassInDevelopment=true` (Development env only) |
-
-Defaults: Development `Enabled=false` + bypass; Production `Enabled=true` + no bypass. Clients: fetch token once, send header on mutations. Auth remains JWT Bearer.
-
-### Input Validation
-- ALL user inputs MUST be validated on backend
-- Client-side validation is UX-only and is NOT a security boundary
-- Username regex: `^[a-zA-Z0-9_-]{3,50}$`
-- Email format: RFC 5322 compliant
-- Tax number regex: `^ATU\d{8}$`
-
-### Session Management
-- Use JWT with 24h expiry
-- Enforce refresh token rotation
-- Auto-logout after 30 minutes inactivity
-- Username change MUST invalidate all active sessions:
-  1. Update `SecurityStamp`
-  2. Invalidate all existing JWTs
-  3. Force re-login on all devices
-
-### Sensitive Data
-- NEVER log passwords (including hashed form)
-- NEVER log voucher codes
-- Mask payment card numbers as `**** **** **** 1234`
-- Encrypt secrets in `appsettings.Production.json`
-
-### Error Handling
-User-facing errors (German):
-- `Benutzername oder Passwort ist falsch`
-- `Sie haben keine Berechtigung für diese Aktion`
-- `Das Backup ist fehlgeschlagen. Bitte kontaktieren Sie den Support.`
-- `Die TSE-Signatur konnte nicht erstellt werden`
-
-Technical logs (English):
-- `User login failed: invalid credentials`
-- `Permission denied for user {id} on resource {resource}`
-- `Backup failed: pg_dump exited with code {code}`
-- `TSE signature creation timeout after 30s`
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Directory Hints
-Before editing in each area, inspect these first:
-- `backend/` - controllers, services, DTOs, EF entities, migrations, tenancy files, impacted tests
-- `frontend/` - screens, hooks, contexts, navigation, API usage, impacted tests
-- `frontend-admin/` - routes, feature components, hooks, queries, auth gates, impacted tests
-- `localization/` - validation scripts, catalog ownership, CI budget checks
-
-### Offline — two separate systems (do not merge)
-
-| System | Table | Admin UI | AI module |
-|--------|-------|----------|-----------|
-| Legacy TSE payment intents | `offline_transactions` | `/admin/tse/offline-transactions` | `ai/modules/offline_transactions_legacy.md` |
-| Full order snapshots | `offline_orders` | `/rksv/offline-orders` | `ai/modules/offline_orders.md` |
-
-**Guide:** [`docs/OFFLINE_SYSTEM_INDEX.md`](docs/OFFLINE_SYSTEM_INDEX.md), [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](docs/release/OFFLINE_SYSTEMS_SEPARATION.md)
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## AI Docs Routing Hints
-Use `/ai` docs selectively based on the task:
-- Backend/API/auth/contract work → `ai/01_BACKEND_CONTRACT.md`, `ai/03_API_CONTRACT.md`
-- Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
-- Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
-- **Country / VAT / e-invoicing work** → `docs/COUNTRIES.md` + `docs/FISCAL_GERMANY.md` + `docs/FISCAL_SWITZERLAND.md` + `docs/EINVOICING_EU.md` + `docs/COUNTRY_LAYER_CUTOVER.md`. Current status is [`docs/COUNTRIES.md`](docs/COUNTRIES.md) §16. Implemented there: DE sign/status/certificate HTTP, start/finish/export HTTP (PUT only, no DSFinV-K download), Development soft signer, payment wiring (`Fiscal.KassenSicherheitDe` profile default off), `de_tse_signatures`; CH QR payload, PDF, `ProjectFiscalTaxSets`, receipt numbers; EU UBL, embedded Schematron, validation persist, `EinvoiceValidated`. Blocked: DE offline (§13), CH bank submit and `ChQrKnownGapsTests`, XRechnung, ZUGFeRD, Peppol ACK and promotion (`Reserved`; 22-b-2 may open TEST HTTP for `CanaryTenantId` only), Storecove onboarding, KoSIT/CII. Paket 30-d (OSS destination rates) is done.
-- **Super Admin TSE ops** (health, failover, healing, scaling, knowledge, … — diagnostic; not DEP rewrite) → `ai/modules/tse_admin_ops.md`, `docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`
-- **RKSV Demo/Production overlay** (receipt DEMO label; `TseMode=Real` also disables Development TSE health bypass) → [`docs/RKSV_RUNTIME_CONFIG.md`](docs/RKSV_RUNTIME_CONFIG.md); API `GET/POST /api/admin/rksv/config`; FA `/admin/rksv/config`. Do **not** treat `/settings/development-mode` `bypassTseCheck` as `RKSV.Mode`. TSE health bypass is opt-in (`DevelopmentOptions:BypassTseInDevelopment`, default `false`).
-- **POS production hosts / Single POS UI** → `docs/POS_PRODUCTION_ARCHITECTURE.md`, `docs/MULTI_TENANT.md`
-- **Tagesabschluss sonrası (ödeme engeli, çift kapanış)** → `docs/RKSV_AFTER_TAGESABSCHLUSS.md`, `docs/RKSV_CASH_REGISTER_OPERATIONS.md` §11
-- **Offline TSE intents (legacy)** → `ai/modules/offline_transactions_legacy.md`
-- **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
-- Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
-- Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
-- **Trial / demo SaaS** → `AGENTS.md` § Trial / Demo system; config `Trial:*` in `backend/CONFIGURATION.md`
-- **Self-service portal / support tickets** → `AGENTS.md` § Self-service portal; FA `/tenant/portal`, `/tenant/support`, `/admin/support`
-- **Digital services / website generator / online orders (non-fiscal)** → [`docs/DIGITAL_SERVICES.md`](docs/DIGITAL_SERVICES.md), [`docs/ONLINE_ORDERS.md`](docs/ONLINE_ORDERS.md), [`docs/PERMISSIONS_MATRIX.md`](docs/PERMISSIONS_MATRIX.md), [`docs/CHANGELOG.md`](docs/CHANGELOG.md); `AGENTS.md` § Roles (Digital services & online orders); `RolePermissionMatrix`; FA `/settings/digital`, `/orders/online`, `/admin/digital`; runtime Sites app `frontend-sites/`
-- **Expired license data management / GDPR data rights (RKSV retention)** → `AGENTS.md` § Expired license — customer data management; `CustomerDataRightsService` (View/Export/Delete), `DataExportService`, `DataDeletionService`, `ILicenseLifecycleResolver`, FA `/tenant/[id]/data-management`
-- **CI / monorepo DX** → root [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/workflows/README.md`](.github/workflows/README.md); Orval verify + Husky; i18n hard gate in `localization-validation.yml`
-- **Working hours (website/app only — never POS/FA)** → [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md); `AGENTS.md` § Working hours; `WebsiteStatusController`; `OnlineOrderIntakeService`; POS `useWorkingHours` (`posOperationsAllowed` always true)
-- **Tenant limits (users / catalog / sales volume / backup / offline queue)** → [`docs/TENANT_LIMITS.md`](docs/TENANT_LIMITS.md); `AGENTS.md` § Tenant Limits; `backend/CONFIGURATION.md` § Tenant Limits. Dashboard: Manager ignores `tenantId` (200 own tenant). Dev Limit Test: SuperAdmin+Development only; Manager/Cashier **403**; `/api/dev/limits` needs ambient tenant
-- **SuperAdmin 2FA (TOTP; Dev bypass)** → [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md); `TwoFactorAuthOptions`; `ITwoFactorService`; FA `TwoFactorAuth.tsx`
-- **Backup & Disaster Recovery (hub)** → `docs/BACKUP_AND_DISASTER_RECOVERY.md`, `docs/BACKUP_SYSTEM.md`, `AGENTS.md` § Backup & Disaster Recovery
-- **Backup RBAC / Mandanten-Admin tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
-- **Backup content / cost / Tenant vs System strategy** → `docs/BACKUP_CONTENT_POLICY.md`, `BackupStrategyKind`, `IBackupService.CreateTenantBackupAsync` / `CreateSystemBackupAsync`
-- **Restore boundary (no production restore)** → `docs/restore-boundary-notes.md`
-- **Restore RKSV compliance / audit trail** → `docs/RKSV_COMPLIANCE.md`
-- High-risk areas → `ai/07_DO_NOT_TOUCH.md`
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Code Quality Rules
-
-### Required for Every PR
-- Unit tests pass
-- Integration tests pass (if applicable)
-- No `console.log` in production code
-- No TypeScript `any` type (use `unknown` instead)
-- No hardcoded user-facing strings (use i18n)
-- Audit events exist for sensitive operations
+[`.cursor/rules/105-testing.mdc`](.cursor/rules/105-testing.mdc)
 
 ## High-Risk Flows (DO NOT TOUCH WITHOUT CAREFUL VALIDATION)
-- Cart → Payment → Receipt → DailyClosing
-- Pricing and modifier behavior
-- Table cart switching and recovery
-- Inventory / payment / order synchronization
-- TSE / RKSV signing and auditability
-- Auth / RBAC behavior
-- Payment processing (money, rounding, idempotency)
-- TSE signature chain (fiscal compliance)
-- Country profile resolution, VAT strategy selection, e-invoicing builder selection
-- RKSV special receipts
-- Decommissioned register lifecycle (no new sessions/payments)
-- Voucher ledger balance integrity
-- FinanzOnline outbox SOAP submission flow
-- Tenant isolation (query filters, 404 semantics)
-- Singleton + EF pattern (always use `IServiceScopeFactory`)
-- Backup / restore (Tenant vs System strategy, no production restore, Manager must not access System dumps)
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Do NOT
-- Do not introduce a parallel architecture or broad rewrite
-- Do not casually change API contracts, auth behavior, role names, or payment flows
-- Do not mix unrelated refactors into feature work
-- Do not rename or reshape public APIs, DTOs, config keys, or role semantics without checking downstream consumers
-- Do not weaken validation, auditability, authorization, or fiscal guarantees
-- Do not hardcode country codes, VAT rates, or VAT-ID regexes outside `CountryProfile` seeds.
-- Do not enable `Fiscal.KassenSicherheitDe` or `QrRechnung:BankSubmit` for a real tenant until the corresponding package is marked production-ready in `docs/COUNTRIES.md` §16.
-- Do not commit secrets
-- Do not delete columns directly; mark as `is_deleted` or deprecated
-- Do not modify existing migration files after they are committed
-- Use additive schema changes only (new columns, new tables)
-- Perform data backfill in separate migration/step from schema introduction
+[`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc)
 
 ## Database Baseline Rules
-- `id uuid PRIMARY KEY`, `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at timestamptz`
-- `is_active boolean NOT NULL DEFAULT true`
-- `tenant_id uuid REFERENCES tenants(id)` on tenant-scoped tables (indexed)
-- All foreign keys MUST have indexes
+[`.cursor/rules/103-database.mdc`](.cursor/rules/103-database.mdc)
 
 ## Caching (Backend)
-
-The system uses Redis as a distributed cache (`RedisCacheService`) with automatic fallback to process-local `IMemoryCache`. Prefer incremental Cache-Aside on hot reads — do not invent parallel cache stacks. Always depend on `ICacheService` (`backend/Services/Caching/`), never Redis or `IMemoryCache` directly from domain services.
-
-| Environment | Implementation | Notes |
-|-------------|----------------|-------|
-| Development | `MemoryCacheService` | Default unless `Redis:Enabled=true` |
-| Staging/Production | `RedisCacheService` (`IDistributedCache`) | Falls back to `IMemoryCache` if Redis fails |
-
-### When to use cache
-
-- **Do cache:** Read-heavy, rarely changing domain snapshots — mandant license status, product catalogs, effective user permissions, tenant settings, tenant operational caps.
-- **Do not put on `ICacheService`:** CSRF tokens, lockout counters, rate-limits, 2FA challenges — those stay on process-local `IMemoryCache`.
-- **Never cache sensitive data:** passwords (including hashes), voucher codes, payment card / payment detail payloads, PII, TSE/JWS secrets, raw fiscal signature material.
-- **Never cache real-time accuracy data:** live stock levels, payment/checkout status, open cart contents.
-
-### TTL recommendations (defaults via `CacheSettings`)
-
-| Domain | Default TTL | Config key |
-|--------|-------------|------------|
-| Licenses (`license_status_{tenantId}` / `CacheKeys.LicenseStatus`) | **5 min** | `CacheSettings:LicenseCacheMinutes` |
-| Products (`product_list_{tenantId}` / `CacheKeys.ProductList`) | **15 min** | `CacheSettings:ProductCacheMinutes` |
-| Permissions (`user_permissions_{userId}` / `CacheKeys.UserPermissions`) | **30 min** | `CacheSettings:PermissionCacheMinutes` |
-| Tenant settings (`tenant_settings_{tenantId}` / `CacheKeys.TenantSettings`) | **60 min** | `CacheSettings:TenantSettingsCacheMinutes` |
-| Tenant limits (`tenant_limits_{tenantId}` / `CacheKeys.TenantLimits`) | **5 min** | `CacheSettings:TenantLimitsCacheMinutes` |
-| TSE health (`tse_health_{scopeId}` / `CacheKeys.TseHealth`) | **30 sec** | `CacheSettings:TseHealthCacheSeconds` (reserved; process monitor is in-memory) |
-
-Override per environment in appsettings / env (`CacheSettings__*`). Details: `backend/CONFIGURATION.md`.
-
-### Cache-Aside pattern
-
-```csharp
-// Always use Cache-Aside (via ICacheService.GetOrCreateAsync or explicit get/set)
-var cached = await _cache.GetAsync<MyDto>(key);
-if (cached != null) return cached;
-var data = await _db.QueryAsync(/* … */);
-await _cache.SetAsync(key, data, ttl);
-return data;
-```
-
-Prefer `GetOrCreateAsync` + `CacheKeys.Format(...)` + `IOptions<CacheSettings>` TTLs over ad-hoc strings / hardcoded `TimeSpan`s.
-
-### Invalidation patterns
-
-- **Event-based (preferred):** After writes, call `CacheInvalidationHelper` with `CacheKeys.*` — license sale/activate/extend, product create/update/delete/stock, user role change → drop `user_permissions_{userId}`. Do not rely on TTL alone for correctness after mutations.
-- **Time-based:** TTL expiry is a safety net for missed invalidation and natural refresh; keep license TTL short so SaaS gating stays fresh.
-- **Ops / emergency:** Super Admin `POST /api/admin/cache/clear` (tenant / prefix / clearAll) — not a substitute for automatic invalidation.
-
-### Best practices
-
-1. Always use `ICacheService` (not Redis or `IMemoryCache` directly from domain code).
-2. Use Cache-Aside: check cache → on miss load from DB → store with TTL.
-3. Include tenant (or user) id in keys via `CacheKeys` for multi-tenant isolation.
-4. Log cache get/set/hit/miss at **Debug**; Redis failures at **Error**.
-5. Monitor hit/miss in Staging before changing Production TTLs (`docs/CACHE_OPTIMIZATION.md`).
-
-**Keys:** Always use `CacheKeys.*` — no magic strings.
-
-**Ops / health:** Readiness includes `cache` on `/api/health/ready` with top-level `redisStatus` (`Healthy`\|`Degraded`). Redis failure must not fail the process solely for cache.
-
-**Logging:** `RedisCacheService` logs get/set/remove and hit/miss at **Debug**, Redis failures at **Error**. In Development, enable cache observability by setting `Logging:LogLevel:KasseAPI_Final.Services.Caching` to `Debug` (hit/miss) or at least `Information`/`Warning` (errors only). Production example keeps Caching at **Warning** to avoid log noise.
+[`.cursor/rules/100-backend.mdc`](.cursor/rules/100-backend.mdc)
 
 ## Frontend-Admin (FA) Conventions
-- Routes: `frontend-admin/src/app/(protected)/`
-- Features: `frontend-admin/src/features/{domain}/` (components, api hooks)
-- **Client state (do not invent a second source of truth):**
- - **Server / API data:** TanStack Query (Orval hooks). Do not mirror API payloads in global client stores. Align React Query `staleTime` with backend `CacheSettings` TTLs where the same entity is cached server-side (e.g. product lists ~15m backend → avoid FA refetch storms below that window unless the user explicitly refreshes).
- - **Auth:** `AuthProvider` + `useAuth` / `authStorage` (tokens in `localStorage` via `authStorage` only — never in a UI store).
- - **UI preferences:** React context + `localStorage` today (`ThemeProvider` / personalization under `src/lib/personalization/`, sidebar width via `usePersistedAdminSiderWidth`, language via `languageStorage` / `I18nProvider`). Synced prefs use React Query (`useUserPreferences` → `/api/admin/user/preferences`).
- - **Zustand:** used only for ephemeral UI prefs in `frontend-admin/src/stores/` (`uiPreferencesStore`, `siderWidthStore` — theme/density/landing/formats/a11y, sidebar width). **Never** put tokens, user profiles, tenant secrets, payment/RKSV payloads, or React Query cache duplicates in Zustand. Auth stays in `AuthProvider` + `authStorage` + React Query; tenant stays in `TenantProvider` + RQ; i18n stays in `I18nProvider`.
-- Generate API client: after OpenAPI changes run `node scripts/generate-backend-openapi.mjs`, then `cd frontend-admin && npm run generate:api`; verify with `node scripts/verify-api-client.mjs` (CI: `api-client-alignment.yml`; optional hook: `npm run install:git-hooks`)
-- UI: Ant Design 6 + `@ant-design/nextjs-registry` (`AntdRegistry` in `src/app/layout.tsx`); no official `@ant-design/codemod-v6` — migrate deprecated props manually (see stack table above)
-- **Toasts / notifications:** prefer `useNotify()` (`frontend-admin/src/hooks/useNotify.ts`) in React components; plain modules use `notifySuccess` / `notifyError` / … from `frontend-admin/src/lib/notificationService.ts` (registered by `AntdAppBridgeRegistrar` via `useAntdApp`). Defaults: message duration 3s, notification duration 8s, placement `topRight`. Pass already-translated strings or i18n keys (`successKey` / `errorKey` / dotted keys). Do **not** import static `message` / `notification` from `antd`. Keep `useAntdApp()` for `modal` (and rare escape hatches).
-- **Ant Design 6 feedback APIs (message / notification / modal):** `<App>` wraps the tree in `ThemeProvider`. Do **not** import `message`, `notification`, or call `Modal.confirm` statically from `antd`.
-
-### Ant Design 6 — batch fix pattern (message / notification / modal)
-
-Static APIs cannot consume theme context. Replace as follows (FA standard: `useNotify()` for toasts; `useAntdApp()` for modal).
-
-**Message / notification toasts**
-
-```tsx
-// Before (wrong)
-import { message } from 'antd';
-message.success(t('common.auth.loginSuccess'));
-
-// After (correct)
-import { useNotify } from '@/hooks/useNotify';
-
-const notify = useNotify();
-notify.successKey('common.auth.loginSuccess');
-// API errors (localized):
-notify.apiError(err, { logContext: 'Feature.action', fallbackKey: 'common.errorGeneric' });
-```
-
-**Notification panels (long errors)**
-
-```tsx
-notify.error(t('common.errorLoadTitle'), {
-  mode: 'notification',
-  description: detail,
-});
-// or
-notify.apiErrorNotification(err, { logContext: '…', fallbackKey: '…' });
-```
-
-**Modal static methods** (`confirm`, `success`, `warning`, `error`, `info`): use `modal` from `useAntdApp()`, not `Modal.confirm`. Keep `import { Modal } from 'antd'` only for JSX `<Modal>`.
-
-```tsx
-// Before (wrong)
-import { Modal } from 'antd';
-Modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
-
-// After (correct)
-import { useAntdApp } from '@/hooks/useAntdApp';
-const { modal } = useAntdApp();
-modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
-```
-
-**Non-React callers** (axios interceptors, query client defaults): `notifyError` / `showAntdError` from `@/lib/notificationService` (via `@/lib/antdAppBridge` re-export; registered by `AntdAppBridgeRegistrar`).
+[`.cursor/rules/101-frontend-admin.mdc`](.cursor/rules/101-frontend-admin.mdc)
 
 ## Frontend-POS (FE) Conventions
-- Routes: `frontend/app/(tabs)/`
-- Offline queue: persist across restarts; never store plain-text voucher codes offline
-- TSE via fiskaly API; offline sync when connectivity restored
+[`.cursor/rules/102-frontend-pos.mdc`](.cursor/rules/102-frontend-pos.mdc)
 
 ## Quick Reference
-
-### Useful Commands
-```bash
-# From repo root (npm workspaces)
-npm install
-npm run dev                 # parallel RAM-safe: backend + admin (+ orphan cleanup)
-npm run dev:all             # parallel full: backend + admin + POS + sites
-npm run dev:cleanup         # kill leftover Next/Expo node workers
-npm run dev:cleanup:orphans # kill only `.next/dev/build` workers (safe while apps run)
-npm run dev:backend | dev:admin | dev:pos | dev:sites
-npm run test
-npm run verify:api-client
-npm run generate:api
-npm run install:git-hooks   # Husky → verify-api-client on commit
-
-# Backend
-dotnet run --project backend/KasseAPI_Final.csproj
-dotnet ef migrations add <Name> --project backend
-dotnet test backend/KasseAPI_Final.sln
-
-# Frontend Admin / POS / Sites
-cd frontend-admin && npm run dev
-cd frontend-admin && npm run generate:api
-cd frontend && npm run dev
-cd frontend-sites && npm run dev   # :3001
-```
-
-### Useful API Endpoints (dev)
-```bash
-curl http://localhost:5184/api/health
-curl -H "X-Tenant-Id: dev" http://localhost:5184/api/tenants/switcher
-curl -X POST http://localhost:5184/api/Auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"loginIdentifier":"admin","password":"***"}'
-curl -X POST http://localhost:5184/api/admin/backup/trigger \
-  -H "Authorization: Bearer ***"
-curl http://localhost:5184/api/admin/activities/unread-count \
-  -H "Authorization: Bearer ***"
-```
+[`.cursor/rules/200-workflow.mdc`](.cursor/rules/200-workflow.mdc)
 
 ## Validation Commands
-Run from repository root when relevant:
-
-```bash
-node scripts/verify-api-client.mjs
-node scripts/validate-critical-openapi-paths.mjs
-node scripts/verify-permission-keys.mjs
-node scripts/verify-menu-permissions.mjs
-node scripts/git-hooks/scan-secrets.mjs --tracked
-node localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error
-node localization/scripts/validate-translations.mjs --app frontend --strictMissing true
-node localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile localization/i18n-ci-budgets.json
-node localization/scripts/check-translation-boundary.mjs --app frontend-admin
-
-dotnet test backend/KasseAPI_Final.sln
-npm run test:admin
-npm run test:pos
-```
+[`.cursor/rules/105-testing.mdc`](.cursor/rules/105-testing.mdc)
 
 ## Development Workflow
-
-### Local Setup
-1. Start PostgreSQL (Docker or local)
-2. `npm install` at repo root (workspaces + Husky prepare)
-3. Configure backend user-secrets (see `backend/README.md`)
-4. `npm run dev` (API+Admin) — or `dev:all` / `dev:backend` / `dev:admin` / `dev:pos` / `dev:sites`
-
-### Environment Variables
-
-Backend:
-```env
-ASPNETCORE_ENVIRONMENT=Development
-ConnectionStrings__DefaultConnection=Host=localhost;Database=kasse_db;Username=postgres;Password=***
-JwtSettings__SecretKey=*** (min 32 chars)
-```
-
-Frontend Admin:
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
-NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST
-```
-
-Frontend POS:
-```env
-EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:5184/api
-EXPO_PUBLIC_DEV_TENANT_ID=dev
-# Production target: EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
-# (single POS UI — see docs/POS_PRODUCTION_ARCHITECTURE.md)
-```
-
-Frontend Sites:
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
-```
+[`.cursor/rules/200-workflow.mdc`](.cursor/rules/200-workflow.mdc) (local setup) and [`.cursor/rules/201-deploy.mdc`](.cursor/rules/201-deploy.mdc) (environment variables)

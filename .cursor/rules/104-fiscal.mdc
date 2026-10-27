@@ -1,0 +1,148 @@
+---
+description: High-risk RKSV/TSE fiscal rules — signature chain, receipt numbers, and DEP export
+globs: backend/Services/Tse*,backend/Services/Tse/**,backend/Services/Rksv*,backend/Services/Rksv/**,backend/Tse/**
+alwaysApply: false
+---
+
+# Fiscal / RKSV / TSE (high risk)
+
+Do not change the signature chain, sequential receipt numbers, or DEP export behavior unless the task explicitly requires it. Read `ai/07_DO_NOT_TOUCH.md` and `ai/05_SECURITY_COMPLIANCE.md` first.
+
+## Fiscal Rules (RKSV/TSE)
+
+### RKSV Special Receipts
+- `Nullbeleg`, `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg` MUST each include TSE signature
+- `Monatsbeleg` MUST be created within 7 days of month end
+- `Jahresbeleg` MUST be created by January 31st of the following year
+- Show admin warning 14 days before RKSV deadline; email alert 7 days before deadline
+
+### FinanzOnline Rules
+- Production mode MUST use real SOAP submission
+- Test mode MUST use simulation (`FinanzOnline:Mode=Simulation`)
+- Failed submissions MUST retry with exponential backoff (maximum 5 attempts)
+- Operator retry (`POST /api/admin/finanzonline-outbox/{id}/retry`, `POST …/retry-failed`, permission `finanzonline.submit`) resets matching rows to `Pending` and wakes the worker. It does not change SOAP, claim, or backoff. `ProtocolSuccess` and `AwaitingProtocol` are rejected (HTTP 400). Super Admin close-without-submit is `POST …/{id}/mark-resolved` (`system.critical`) and sets status `Resolved`.
+- Outbox rows are not `ITenantEntity` (`tenant_id` is a string). **Super Admin** may retry or resolve any row even when the ambient tenant differs from the row (including a null or non-Guid `tenant_id`). **Mandanten-Admin** may retry only rows whose `tenant_id` matches the ambient tenant (`D` or `N` Guid); a foreign row or a missing ambient tenant returns HTTP 404. `/api/admin/finanzonline-outbox` is **not** a Super Admin ambient-tenant exemption — non–SuperAdmin callers still need ambient tenant.
+- Submission status MUST be visible in admin panel
+
+### Signature Chain Validation
+- Receipt numbers MUST be sequential per register
+- Duplicate receipt numbers are forbidden
+- Any detected gap MUST be logged and trigger an alert
+
+### TSE Requirements
+- Every fiscal receipt MUST have TSE signature
+- Signature chain MUST be continuous (no gaps)
+- TSE health status MUST be monitored continuously
+
+### TSE Offline Mode
+- Max **50** offline TSE intents **per tenant** by default (`tenant_limits.max_offline_transactions`)
+- When the limit is reached, POS must block new offline transactions (HTTP 409 `LIMIT_EXCEEDED`)
+- Show warning at 80% of the tenant cap
+- `TseOptions.MaxOfflineTransactionsPerCashRegister` is obsolete and is not used for enforcement
+- Offline queue must persist across app restarts
+
+### NTP Time Sync
+- Check NTP time sync status before treating online fiscal payments as allowed
+- Block when sync failed or offset exceeds configured `MaxAllowedOffsetSeconds`
+
+### Voucher (Gutschein) Rules
+- Never queue voucher payments for offline non-fiscal replay
+- Backend must reject; POS must not enqueue voucher payloads
+
+### Storno Flows
+- Must supply `OriginalReceiptId` and a `StornoReason` where contract requires them
+- Do not conflate with partial refund
+
+### DEP §7 Export (Datenerfassungsprotokoll / Signaturjournal)
+
+**Status:** ✅ Implemented (F1–F5 complete)
+
+**Features:**
+- BMF-compliant JSON export with `Belege-Gruppe` structure
+- Certificate grouping by thumbprint
+- Includes all receipt types (normal, special, daily closings)
+- Compact JWS signatures (not QR payload)
+- RKSV §9 `BelegdatenPayload` machine code (`_R1-AT1_…`) for Prüftool receipt verification
+- Chronological ordering
+
+**Purpose:** Betriebsprüfung (tax audit) compliant export of signed receipt data per cash register and period.
+
+**Technical rules:**
+
+1. **Format:** BMF JSON schema with `Belege-Gruppe` structure (`RksvDepExportRootDto`; property names via `[JsonPropertyName]` — e.g. `Belege-Gruppe`, `Belege-kompakt`)
+2. **Signature format:** Compact JWS (`header.payload.signature`), **not** QR payload
+3. **Grouping:** All receipts signed with the same certificate thumbprint in one `Belege-Gruppe`
+4. **Order:** Chronological by issue date/time (`IssuedAt`), then `SequenceNumber` (BelegNr seq or closing date)
+5. **Included items:**
+   - Normal payment receipts (`payment_details`, `RksvSpecialReceiptKind` null)
+   - Special receipts: `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg`, `Nullbeleg` (when `includeSpecialReceipts=true`)
+   - Daily closings (`DailyClosings.TseSignature`, when `includeDailyClosings=true`; filter by `ClosingDate`)
+6. **Certificate chain:** Leaf signing cert + issuer CA chain (`Zertifizierungsstellen`), DER Base64 per group
+7. **Excluded:** Rows without TSE signature or invalid compact JWS (not exactly three segments)
+8. **Thumbprint storage:** `payment_details.certificate_thumbprint`, `DailyClosings.certificate_thumbprint` (stamped at sign time; legacy rows fall back to active TSE cert)
+
+**Implementation status:**
+
+| Phase | Scope | Status |
+|-------|--------|--------|
+| F1 | Controller + service + DTO skeleton | Done |
+| F2 | Certificate grouping + CA chain | Done |
+| F3 | Special receipts + daily closings | Done |
+| F4 | Prüftool test script (`scripts/rksv/verify-rksv-dep-export.ps1`) | Done |
+| F5 | Full RKSV §9 `BelegdatenPayload` Prüftool compliance | Done |
+
+**Key files:** `AdminRksvDepExportController`, `RksvDepExportService`, `RksvDepExportDtos`, `ITseKeyProvider`, `TseCertificateChainBuilder`, `BelegdatenPayload`, `BelegdatenPayloadBuilder`, `RksvMachineCodeBuilder`, `SignaturePipeline`, `TseService`
+
+**API:** `GET /api/admin/rksv/dep-export` (Admin only)
+
+| Parameter | Required | Default | Notes |
+|-----------|----------|---------|-------|
+| `cashRegisterId` | Yes | — | Target register UUID |
+| `fromUtc` | Yes | — | Period start (UTC) |
+| `toUtc` | Yes | — | Period end (UTC); max 366 days |
+| `includeSpecialReceipts` | No | `true` | Sonderbelege |
+| `includeDailyClosings` | No | `true` | Tagesabschluss signatures |
+
+**Permission required:** `ReportExport` + `AuditView` (`AppPermissions.ReportExport` / `report.export`, `AppPermissions.AuditView` / `audit.view`).
+
+**Auth:** JWT + tenant context. Cross-tenant / missing tenant → HTTP 404. All DEP exports MUST be logged in audit log (`RksvDepExportJson`).
+
+**Testing:**
+
+```bash
+cd backend && dotnet test --filter "RksvDepExportServiceTests"
+```
+
+```powershell
+.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+```
+
+Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.
+
+**Developer guide:** `docs/DEP_EXPORT_DEVELOPMENT.md`
+
+## Country & Fiscal Regimes (Multi-Country)
+
+Austria (`company_settings.country = 'AT'`) remains the production fiscal path (RKSV/TSE/FinanzOnline). Hub: [`docs/COUNTRIES.md`](../../docs/COUNTRIES.md). Detail: [`docs/FISCAL_GERMANY.md`](../../docs/FISCAL_GERMANY.md), [`docs/FISCAL_SWITZERLAND.md`](../../docs/FISCAL_SWITZERLAND.md), [`docs/EINVOICING_EU.md`](../../docs/EINVOICING_EU.md). Cutover: [`docs/COUNTRY_LAYER_CUTOVER.md`](../../docs/COUNTRY_LAYER_CUTOVER.md). Paket 30-d (OSS destination rates) is done.
+
+- **AT:** production fiscal path. Unchanged.
+- **DE:** contract (`IKassenSicherheitService`) plus the Development soft signer (`SoftKassenSicherheitService`) plus fiskaly-de outbound HTTP (`FiskalyDeKassenSicherheitService`) plus `PaymentService` wiring via `IFiscalSignatureRouter` (`SignDeAsync` → `SignAsync`). Not production-ready: DSFinV-K (`ExportDsfinvkAsync` is a PUT only), DE offline (§13 of [`docs/FISCAL_ROUTER_PLAN.md`](../../docs/FISCAL_ROUTER_PLAN.md)), and DE BelegNr as a production fiscal number (`DeReceiptSequenceService.FormatDeBelegNr` allocates `de_receipt_sequences`; it is not the Austrian RKSV Beleg). Signatures go to `de_tse_signatures`; `payment_details.TseSignature` stays null for DE. Do not enable `Fiscal.KassenSicherheitDe` for a real tenant. `CountryFeatureFlagDefaults.TryGet` returns false for that flag, so a DE tenant stays off until an explicit tenant override.
+- **CH:** MWST rates (`ICountryTaxTypeRegistry` / `ChMwstEffectiveRates`) plus QR-Rechnung payload (`QrRechnungBuilder`) plus PDF (`QrRechnungPdf`). `SwitzerlandTaxStrategy.ProjectFiscalTaxSets` uses `ChTaxSetMapper`. `SwitzerlandInvoiceStrategy.AllocateReceiptNumberAsync` uses `ch_receipt_sequences` (`CH-{slug}-{register}-{seq}`). Not production-ready: bank submit (`QrRechnung:BankSubmit:Enabled` defaults false; `true` fails Production/Staging startup) and the print gaps in `ChQrKnownGaps.json` (`ChQrKnownGapsTests`).
+- **EU:** UBL builder (`En16931UblXmlBuilder`, `EU_DEFAULT` only) plus the embedded Schematron validator (`En16931Schematron`, `En16931InvoiceValidationService`). Not production-ready: XRechnung (`NotImplementedXrechnungXmlBuilder`), ZUGFeRD (`NotImplementedZugferdXmlBuilder`), and Peppol submission. `EInvoicing.Peppol` stays in `FeatureFlagNames.Reserved` and out of `All`. `Peppol:ReservedExit` can mark one canary. `SubmitAsync` opens HTTP only for that tenant when `Provider=storecove` and `Peppol:Storecove:Environment=TEST`. HTTP 2xx is `Sent`, not an ACK.
+
+- Resolve country from `CompanySettings.Country` (column `country`, `NOT NULL DEFAULT 'AT'`, added in `20260723190000_AddTenantSettingsHistory`). Unknown/legacy value = AT. **Never add a `CountryCode` column or a second country field.** `VatRegime`, `BillingCountry`, and `TaxExempt` shipped in migration `20260916110000_AddCompanySettingsCountryBilling` — that file is the only later country-schema change on `company_settings`. Issue-time snapshots live on invoices/receipts/payment_details (`CountryCodeAtIssue` / `VatRegimeAtIssue`); do not rewrite historical rows on country change. `CountryLayerBypassGateTests` enforces this (CI job step in [`.github/workflows/backend-unit-tests.yml`](../../.github/workflows/backend-unit-tests.yml), on every PR that touches `backend/**`, including `backend/Models/Countries/**`, `backend/Services/Countries/**`, and `backend/Data/AppDbContext.cs`).
+- `ICountryProfileRegistry` (seeds: AT, DE, CH, registry-only `EU_DEFAULT`) is **shipped and called** (strategy resolvers, `IFeatureFlagService` country defaults, `GET /api/admin/countries`, `IVatIdValidator`). `GetOrDefault` → AT for unknown/legacy codes; `Get` throws `UNKNOWN_COUNTRY_CODE`. Profiles hold no VAT rates. AT seed mirrors the live company-settings defaults and is pinned by tests.
+- `ITaxStrategy` / `IInvoiceStrategy` are **wired** into `PaymentService` and `InvoiceService` (Paket 30-c). `TseService` tax-set projection and `RksvSpecialReceiptService` stay Austria-only (`NotSupportedException`). Offline BelegNr goes through `IInvoiceStrategy.AllocateReceiptNumberAsync` (Paket 30-b). AT + `EU_REVERSE_CHARGE` routes to EuDefault strategies (Paket 12-c). Unknown pairs throw `UNKNOWN_TAX_REGIME` (never an AT fallback). Do not fork `PaymentService` or `TseService` internals.
+- The Austrian strategies are **adapters only**: `CalculateTax` → `CartMoneyHelper`, `ProjectFiscalTaxSets` → `RksvTaxSetMapper`, `AllocateReceiptNumberAsync` → `ISequenceReservationService`, `BuildInvoiceDocumentAsync` → `IReceiptService`, VAT-ID shape → `CountryProfile`. Never restate a rate, rounding rule, or bucket rule inside a strategy. TSE signing input / machine code / QR stay out of `IInvoiceStrategy`. DE/CH `CalculateTax` uses `ICountryTaxTypeRegistry`. `GermanyTaxStrategy.ProjectFiscalTaxSets` delegates to `DeTaxSetMapper`. `GermanyInvoiceStrategy.AllocateReceiptNumberAsync` uses `DeReceiptSequenceService`. `EuDefaultTaxStrategy.ProjectFiscalTaxSets` and `EuDefaultInvoiceStrategy.AllocateReceiptNumberAsync` still throw `NotImplementedException`.
+- Gate country features with `IFeatureFlagService` (`tenant_settings` keys `FeatureFlags:{Name}`). Country-derived defaults: tenant override → profile. `Fiscal.RksvAt` is always on for AT and cannot be disabled (**locked**; name is in `FeatureFlagNames`).
+- Tenant create requires an ISO 3166-1 alpha-2 country in the request payload, persisted to `company_settings.country` (FA `CreateTenantWizard`: country step then form). Super Admin tenant detail: Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Non-AT tenants must not enable RKSV/TSE.
+- VAT-ID regexes, rates, and labels live in CountryProfile seeds / `ICountryTaxTypeRegistry` — not in controllers or FA form constants. `EU_DEFAULT` is registry-only, not selectable.
+- POS vertical profiles are product configuration, separate from country regimes and `FeatureFlagNames`; schema, seeds, override merge rules, and APIs: [`docs/VERTICAL_PROFILES.md`](../../docs/VERTICAL_PROFILES.md).
+- **One VAT-ID literal:** `Models/Countries/VatIdPatterns` (`Austria` = `^ATU\d{8}$`, …) is referenced by the CountryProfile seeds, the two `[RegularExpression]` attributes, and every runtime consumer (`PaymentService`, `TenantSettingsService`, fiskaly services, `InvoiceController`). Never declare a local `^ATU\d{8}$` or another country's VAT-ID regex again. `CountryLayerBypassGateTests` scans production sources and fails with the offending paths when a literal appears outside `VatIdPatterns` and `CountryProfileRegistry`. The same gate asserts every `ITaxStrategy` / `IInvoiceStrategy` resolves for AT, DE, CH, and `EU_DEFAULT`, and that an unknown pair throws `UNKNOWN_TAX_REGIME`. Matching is **strict** (no trim, no case folding); normalization stays at the call site that needs it.
+
+
+## Related prohibitions
+- Do not weaken validation, auditability, authorization, or fiscal guarantees.
+- Do not hardcode country codes, VAT rates, or VAT-ID regexes outside `CountryProfile` seeds.
+- Do not enable `Fiscal.KassenSicherheitDe` or `QrRechnung:BankSubmit` for a real tenant until the corresponding package is marked production-ready in `docs/COUNTRIES.md` §16.
+- Cart → Payment → Receipt → DailyClosing, TSE/RKSV signing, voucher ledger, and FinanzOnline outbox SOAP are high-risk flows.

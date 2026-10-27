@@ -1,0 +1,70 @@
+---
+description: Test conventions and validation commands
+globs: "**/*.test.*,**/*.spec.*,**/*Tests.cs"
+alwaysApply: false
+---
+
+# Testing
+
+`**/*Tests.cs` is included because backend tests use that filename, alongside `*.test.*` and `*.spec.*`.
+
+## Code Quality Rules
+
+### Required for Every PR
+- Unit tests pass
+- Integration tests pass (if applicable)
+- No `console.log` in production code
+- No TypeScript `any` type (use `unknown` instead)
+- No hardcoded user-facing strings (use i18n)
+- Audit events exist for sensitive operations
+
+## Validation Commands
+Run from repository root when relevant:
+
+```bash
+node scripts/verify-api-client.mjs
+node scripts/validate-critical-openapi-paths.mjs
+node scripts/verify-permission-keys.mjs
+node scripts/verify-menu-permissions.mjs
+node scripts/git-hooks/scan-secrets.mjs --tracked
+node localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error
+node localization/scripts/validate-translations.mjs --app frontend --strictMissing true
+node localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile localization/i18n-ci-budgets.json
+node localization/scripts/check-translation-boundary.mjs --app frontend-admin
+
+dotnet test backend/KasseAPI_Final.sln
+npm run test:admin
+npm run test:pos
+```
+
+
+### DEP export checks
+
+```bash
+cd backend && dotnet test --filter "RksvDepExportServiceTests"
+```
+
+```powershell
+.\scripts\rksv\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+```
+
+Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.
+
+### Multi-tenant local checks
+
+```bash
+curl -H "X-Tenant-Id: dev" http://localhost:5184/api/health
+curl http://localhost:5184/api/health?tenant=dev
+```
+
+From [`CONTRIBUTING.md`](../../CONTRIBUTING.md), when relevant before a PR:
+
+```bash
+npm run test:backend
+npm run test:admin
+npm run test:pos
+npm run verify:api-client
+npm run verify:bat-ps1
+npm run validate:scripts
+npm run i18n:ci
+```
