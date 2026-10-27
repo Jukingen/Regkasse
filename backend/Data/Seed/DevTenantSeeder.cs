@@ -6,8 +6,8 @@ namespace KasseAPI_Final.Data.Seed;
 
 /// <summary>
 /// Additive Development catalog for the <c>dev</c> tenant so each vertical profile
-/// has a few sellable products, named customers, and an open register shift.
-/// Does not create fiscal receipts or change an existing profile assignment.
+/// has a few sellable products, named customers, an open register shift, and the
+/// vertical demo rows (rooms, seats, IMEIs, clinical data). Does not create fiscal receipts.
 /// </summary>
 public static class DevTenantSeeder
 {

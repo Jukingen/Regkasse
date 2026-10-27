@@ -302,22 +302,25 @@ public sealed class AdminTenantsController : ControllerBase
             if (request.SeedDemo)
             {
                 var seeded = await _demoSeeder.SeedAsync(result!.Id, cancellationToken).ConfigureAwait(false);
-                await _auditLogService.LogSystemOperationAsync(
-                    "TENANT_DEMO_SEEDED",
-                    "Tenant",
-                    ActorUserId ?? "system",
-                    ActorRole ?? Roles.SuperAdmin,
-                    description: "Demo catalog seeded",
-                    actionType: AuditEventType.TenantDemoSeeded,
-                    entityId: result.Id,
-                    tenantId: result.Id,
-                    newValues: new
-                    {
-                        tenantId = result.Id,
-                        productsAdded = seeded.ProductsAdded,
-                        customersAdded = seeded.CustomersAdded,
-                        cashRegisterId = seeded.CashRegisterId,
-                    }).ConfigureAwait(false);
+                if (seeded.FailedProfile is null)
+                {
+                    await _auditLogService.LogSystemOperationAsync(
+                        "TENANT_DEMO_SEEDED",
+                        "Tenant",
+                        ActorUserId ?? "system",
+                        ActorRole ?? Roles.SuperAdmin,
+                        description: "Demo catalog seeded",
+                        actionType: AuditEventType.TenantDemoSeeded,
+                        entityId: result.Id,
+                        tenantId: result.Id,
+                        newValues: new
+                        {
+                            tenantId = result.Id,
+                            productsAdded = seeded.ProductsAdded,
+                            customersAdded = seeded.CustomersAdded,
+                            cashRegisterId = seeded.CashRegisterId,
+                        }).ConfigureAwait(false);
+                }
             }
 
             return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);

@@ -449,5 +449,12 @@ public enum AuditEventType
     /// </summary>
     TenantDemoSeeded = 152,
 
+    /// <summary>
+    /// Demo catalog seed rolled back. The row stores tenant id and the profile that failed.
+    /// Product names, clinical data, and passwords are not stored.
+    /// Numeric 153: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    TenantDemoSeedPartial = 153,
+
     Other = 99
 }
