@@ -219,7 +219,7 @@ Do not add `pnpm-workspace.yaml` unless the team migrates package managers expli
 
 ## Further reading
 
-- [`AGENTS.md`](AGENTS.md) — always-applied development rules
+- [`AGENTS.md`](AGENTS.md) — index of development rules; detail in [`.cursor/rules/`](.cursor/rules/)
 - [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) — product/architecture brief
 - [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md) — Windows scripts reference
 - [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md) — which script for which task

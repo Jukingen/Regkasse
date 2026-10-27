@@ -1,8 +1,8 @@
 # Regkasse — Cursor Rules (redirect + project index)
 
-> **Single source of truth:** `AGENTS.md` at the repository root.
-> Do **not** duplicate full development rules here — update `AGENTS.md` instead.
-> This file is a short index so agents load the right context and stack before coding.
+> **Index:** `AGENTS.md` at the repository root.
+> **Rules:** `.cursor/rules/*.mdc` (`000-core.mdc` is always applied).
+> Do **not** duplicate full development rules here — update the matching `.mdc` and keep the `AGENTS.md` index in sync.
 
 ```yaml
 project:
@@ -19,6 +19,7 @@ project:
 context_files:
   always:
     - AGENTS.md
+    - .cursor/rules/000-core.mdc
   medium_or_large_tasks:
     - REGKASSE_AI_ONBOARDING.md
     - docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md
@@ -64,7 +65,7 @@ ai_assistance:
 ```
 
 ## Read order for AI agents
-1. **`AGENTS.md`** — always-applied workspace rules (languages, multi-tenant, API boundaries, fiscal/backup guardrails, validation commands, recent DX/CI improvements)
+1. **`AGENTS.md`** — index. Always-applied detail is **`.cursor/rules/000-core.mdc`**. Domain rules attach by glob (see the index).
 2. **`REGKASSE_AI_ONBOARDING.md`** — project brief for medium/large tasks
 3. **`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`** — broader system map when needed
 4. **`ai/`** — domain contracts (`07_DO_NOT_TOUCH.md`, API/database/compliance, module docs)
@@ -78,4 +79,4 @@ ai_assistance:
 - **High-risk:** payments, TSE/RKSV chain, tenant isolation, FinanzOnline outbox, voucher ledger, backup/restore.
 - **Recent DX (2026-07):** npm workspaces, path-filtered CI, OpenAPI→Orval + Husky verify, i18n hard gate — details in `AGENTS.md` § Recent Improvements.
 
-**Last updated:** 2026-07-24 — enhanced project index; rules remain in AGENTS.md only.
+**Last updated:** 2026-10-27 — rules live in `.cursor/rules/*.mdc`; this file stays a redirect.

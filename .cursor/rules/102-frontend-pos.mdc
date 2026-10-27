@@ -1,0 +1,53 @@
+---
+description: POS conventions — Expo, German UI, offline queue, voucher and working-hours limits
+globs: frontend/**/*.ts,frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend POS
+
+POS UI texts are German (de-DE). Do **not** translate POS UI text into English or Turkish. Keep the product name **POS** in docs; use **cash register** for the device/session (Kasse).
+
+POS calls `/api/pos/*`, `/api/Auth/*`, and `/api/Receipts/*`. Do not call `/api/admin/*`.
+
+## Frontend-POS (FE) Conventions
+- Routes: `frontend/app/(tabs)/`
+- Offline queue: persist across restarts; never store plain-text voucher codes offline
+- TSE via fiskaly API; offline sync when connectivity restored
+
+### TSE Offline Mode
+- Max **50** offline TSE intents **per tenant** by default (`tenant_limits.max_offline_transactions`)
+- When the limit is reached, POS must block new offline transactions (HTTP 409 `LIMIT_EXCEEDED`)
+- Show warning at 80% of the tenant cap
+- `TseOptions.MaxOfflineTransactionsPerCashRegister` is obsolete and is not used for enforcement
+- Offline queue must persist across app restarts
+
+### Voucher (Gutschein) Rules
+- Never queue voucher payments for offline non-fiscal replay
+- Backend must reject; POS must not enqueue voucher payloads
+
+#### Working hours (website/app only)
+
+**Hub:** [`docs/WORKING_HOURS.md`](../../docs/WORKING_HOURS.md)
+
+Working hours (`CompanySettings.WorkingHours` JSON) restrict **customer online-order intake only**. They must **never** gate POS, FA, or authenticated POS/admin APIs.
+
+| Applies to | Does **not** apply to |
+|------------|------------------------|
+| Tenant websites / PWAs / native apps (display + order CTAs) | POS FE — always open for cart / payment / register |
+| `GET /api/sites/{tenantSlug}/status` (website status) | FA — full schedule management (`/settings/working-hours`) |
+| `POST /api/public/online-orders` when `!canOrder` → `ONLINE_ORDERS_CLOSED` | Authenticated `/api/pos/*`, `/api/admin/*`, Auth, fiscal flows |
+
+- **Server gate:** `OnlineOrderIntakeService` → `WorkingHoursSettings.EvaluateWebsiteStatus` / `CanOrder` (stop-before-close cutoff included).
+- **POS:** `app/(tabs)/cash-register.tsx` never checks hours; `useWorkingHours` / `posOperationsAllowed` is **always** `true` — schedule is display + Tagesabschluss reminder only.
+- **FA:** configures hours; protection note in i18n (`settings.workingHours.protectionNote`); never access-gated by open/closed.
+- **Contract tests:** `WorkingHoursPosFaNonGatingContractTests`, POS `workingHoursStatus` tests, FA `workingHoursNonGating.contract.test.ts`.
+
+### Offline — two separate systems (do not merge)
+
+| System | Table | Admin UI | AI module |
+|--------|-------|----------|-----------|
+| Legacy TSE payment intents | `offline_transactions` | `/admin/tse/offline-transactions` | `ai/modules/offline_transactions_legacy.md` |
+| Full order snapshots | `offline_orders` | `/rksv/offline-orders` | `ai/modules/offline_orders.md` |
+
+**Guide:** [`docs/OFFLINE_SYSTEM_INDEX.md`](../../docs/OFFLINE_SYSTEM_INDEX.md), [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](../../docs/release/OFFLINE_SYSTEMS_SEPARATION.md)
