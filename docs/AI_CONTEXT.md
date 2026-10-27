@@ -31,6 +31,7 @@ Regkasse is a multi-tenant SaaS point-of-sale system for Austria. The production
 - `.cursor/rules/*.mdc` — modular Cursor rules (`000-core.mdc` always applies)
 - `docs/` — human documentation
 - `ai/` — domain contracts and guardrails
+- Cutover checklist: `docs/PRODUCTION_CUTOVER.md`.
 
 ## Recent milestones
 
