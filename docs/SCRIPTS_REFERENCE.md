@@ -785,6 +785,21 @@ Edit that file to set DEFAULT_TEST_EMAIL / BASE_URL.
 
 ## 🚢 Deployment Scripts
 
+### pre-flight-cutover.mjs
+
+**Path:** [`../scripts/pre-flight-cutover.mjs`](../scripts/pre-flight-cutover.mjs)
+
+**Purpose:** Manual production cutover pre-flight. Prints PASS/FAIL for required environment variables, FA/POS build env, `/api/health/live` and `/api/health/ready`, and `dotnet ef migrations list` (`pendingCount=0`). Exits 1 on any FAIL. Not a CI job.
+
+**When to use:** On the target host, or a shell that already has that host's environment, before [`PRODUCTION_CUTOVER.md`](PRODUCTION_CUTOVER.md) D-1 / D-0.
+
+**Example:**
+
+```bash
+node scripts/pre-flight-cutover.mjs --help
+node scripts/pre-flight-cutover.mjs --api-base https://api.regkasse.at --admin-base https://admin.regkasse.at --pos-base https://pos.regkasse.at
+```
+
 ### deploy.bat
 
 **Path:** [`./scripts/ops/deploy.DANGER.bat`](../scripts/ops/deploy.DANGER.bat)

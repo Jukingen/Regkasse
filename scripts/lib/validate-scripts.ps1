@@ -160,6 +160,7 @@ if (-not $SkipDocs) {
             'validate-scripts.ps1',
             'test-scripts.ps1',
             'verify-bat-ps1-pairing.mjs',
+            'pre-flight-cutover.mjs',
             'clean-backend.bat',
             'dev-purge-tenant.DANGER.bat',
             'generate-dep-export.bat',
