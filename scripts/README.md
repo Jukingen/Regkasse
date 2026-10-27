@@ -113,6 +113,7 @@ Also: root [`Makefile`](../Makefile) / [`Justfile`](../Justfile) for `dev`, `bui
 | [`verify-api-contract.mjs`](verify-api-contract.mjs) | Lightweight swagger endpoint presence smoke | Optional; used by `run-all-tests.sh` |
 | [`verify-bat-ps1-pairing.mjs`](verify-bat-ps1-pairing.mjs) | `.bat` / `.ps1` pairing allowlists | `scripts-bat-ps1-pairing.yml`, `npm run verify:bat-ps1` |
 | [`generate-backend-openapi.mjs`](generate-backend-openapi.mjs) | Regenerate `backend/swagger.json` (do **not** hand-edit swagger) | Docs / regen workflow |
+| [`pre-flight-cutover.mjs`](pre-flight-cutover.mjs) | Manual cutover checks (env, health, `pendingCount=0`). Not a CI job | `npm run validate:scripts` documents the filename; run by hand against a host |
 
 ```bash
 node scripts/verify-api-client.mjs
