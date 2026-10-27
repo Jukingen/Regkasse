@@ -7,6 +7,7 @@
 | Related | Link |
 |---------|------|
 | Full deploy map | [`../DEPLOYMENT.md`](../DEPLOYMENT.md) |
+| Ordered cutover checklist | [`PRODUCTION_CUTOVER.md`](PRODUCTION_CUTOVER.md) |
 | Release notes (2026-08-08) | [`RELEASE_NOTES_2026-08-08.md`](RELEASE_NOTES_2026-08-08.md) |
 | Go-live checklist | [`GO_LIVE_CHECKLIST.md`](GO_LIVE_CHECKLIST.md) |
 | Sign-off packet | [`GO_LIVE_SIGN_OFF_PACKET.md`](GO_LIVE_SIGN_OFF_PACKET.md) |
