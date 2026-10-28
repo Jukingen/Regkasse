@@ -13,7 +13,7 @@ cd backend
 dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "Category=PostgreSql"
 ```
 
-`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute (they should **not** all skip).
+`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute. If that connection string is set and migrate fails, the fixture throws. The run fails. It does not skip the category and stay green. The workflow host is `127.0.0.1` with `SSL Mode=Disable`. Two product migrations dated `20250115` sort before `InitialCreate` and assume `products` already exists; on an empty database the fixture records those two ids as applied so `InitialCreate` can create the table. Later migrations still rename the PascalCase columns.
 
 ## Local
 
