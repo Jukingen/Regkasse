@@ -79,6 +79,7 @@
     "OnlineOrderPushedToPos": "Online order pushed to POS",
     "OnlineOrderPaid": "Online order paid",
     "OnlineOrderStatusChanged": "Online order status changed",
+    "OnlineOrderIntegrationFailed": "Online order integration failed",
     "OnlineOrderConfirmed": "Online order confirmed",
     "DigitalServiceRequested": "Digital service requested",
     "SupportTicketCreated": "Support ticket created",

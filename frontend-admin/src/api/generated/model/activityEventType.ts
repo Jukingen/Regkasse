@@ -139,4 +139,5 @@ export const ActivityEventType = {
   EinvoiceAckReceived: 'EinvoiceAckReceived',
   EinvoiceSubmissionRetry: 'EinvoiceSubmissionRetry',
   DemoRequestReceived: 'DemoRequestReceived',
+  OnlineOrderIntegrationFailed: 'OnlineOrderIntegrationFailed',
 } as const;

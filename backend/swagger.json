@@ -12692,6 +12692,57 @@
         }
       }
     },
+    "/api/admin/online-order-integrations/locations": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertOnlineOrderIntegrationLocationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/online-orders": {
       "get": {
         "tags": [
@@ -43462,6 +43513,48 @@
         }
       }
     },
+    "/api/webhooks/online-order-integrations/{provider}": {
+      "post": {
+        "tags": [
+          "OnlineOrderIntegrationWebhook"
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Reports/operational/user-performance": {
       "get": {
         "tags": [
@@ -54850,7 +54943,8 @@
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
           "EinvoiceSubmissionRetry",
-          "DemoRequestReceived"
+          "DemoRequestReceived",
+          "OnlineOrderIntegrationFailed"
         ],
         "type": "string",
         "x-enum-varnames": [
@@ -54981,7 +55075,8 @@
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
           "EinvoiceSubmissionRetry",
-          "DemoRequestReceived"
+          "DemoRequestReceived",
+          "OnlineOrderIntegrationFailed"
         ],
         "x-enumNames": [
           "UserCreated",
@@ -55111,7 +55206,8 @@
           "ChQrKnownGapsOutstanding",
           "EinvoiceAckReceived",
           "EinvoiceSubmissionRetry",
-          "DemoRequestReceived"
+          "DemoRequestReceived",
+          "OnlineOrderIntegrationFailed"
         ]
       },
       "ActivityReportDateRangeDto": {
@@ -82486,6 +82582,9 @@
               },
               "DemoRequestReceived": {
                 "type": "boolean"
+              },
+              "OnlineOrderIntegrationFailed": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false,
@@ -82876,6 +82975,9 @@
                 "type": "string"
               },
               "DemoRequestReceived": {
+                "type": "string"
+              },
+              "OnlineOrderIntegrationFailed": {
                 "type": "string"
               }
             },
@@ -111549,6 +111651,37 @@
         },
         "additionalProperties": false
       },
+      "UpsertOnlineOrderIntegrationLocationRequest": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalLocationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "claimingUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "deliveryFeeProductId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "serviceFeeProductId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpsertPermissionPackageRequest": {
         "type": "object",
         "properties": {
@@ -113827,6 +113960,9 @@
       "name": "AdminOnboarding"
     },
     {
+      "name": "AdminOnlineOrderIntegrationLocations"
+    },
+    {
       "name": "AdminOnlineOrders"
     },
     {
@@ -114242,6 +114378,9 @@
     },
     {
       "name": "OfflineTransactions"
+    },
+    {
+      "name": "OnlineOrderIntegrationWebhook"
     },
     {
       "name": "OperationalReports"

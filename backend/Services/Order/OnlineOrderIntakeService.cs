@@ -89,6 +89,8 @@ public sealed class OnlineOrderIntakeService : IOnlineOrderIntakeService
         var orderType = NormalizeOrderType(request.OrderType);
         var paymentMethod = NormalizePaymentMethod(request.PaymentMethod);
         var source = NormalizeSource(request.Source);
+        if (source is null)
+            return Fail(ValidationCode, "source marketplace is not accepted on public intake.");
 
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var tenant = await db.Tenants.AsNoTracking()
@@ -255,9 +257,16 @@ public sealed class OnlineOrderIntakeService : IOnlineOrderIntakeService
         return OnlineOrderPaymentMethods.All.Contains(v) ? v : OnlineOrderPaymentMethods.Cash;
     }
 
-    private static string NormalizeSource(string? value)
+    /// <summary>
+    /// Public website/app sources only. <see cref="OnlineOrderSources.Marketplace"/> is rejected
+    /// (null) and is not rewritten to <see cref="OnlineOrderSources.Web"/>.
+    /// </summary>
+    private static string? NormalizeSource(string? value)
     {
         var v = (value ?? OnlineOrderSources.Web).Trim().ToLowerInvariant();
+        if (string.Equals(v, OnlineOrderSources.Marketplace, StringComparison.Ordinal))
+            return null;
+
         return OnlineOrderSources.All.Contains(v) ? v : OnlineOrderSources.Web;
     }
 

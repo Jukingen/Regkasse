@@ -1047,6 +1047,7 @@ import type {
   UpdateVerticalProfileFeaturesRequest,
   UpgradeLicenseRequestBody,
   UpsertHairSalonCampaignRequest,
+  UpsertOnlineOrderIntegrationLocationRequest,
   UpsertPermissionPackageRequest,
   UpsertTaxGroupRequest,
   UpsertTenantCustomizationRequestDto,
@@ -17894,6 +17895,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminOnboardingTenantIdStepsStepCompleteMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const putApiAdminOnlineOrderIntegrationsLocations = (
+    upsertOnlineOrderIntegrationLocationRequest: UpsertOnlineOrderIntegrationLocationRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/locations`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertOnlineOrderIntegrationLocationRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsLocationsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>, TError,{data: UpsertOnlineOrderIntegrationLocationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>, TError,{data: UpsertOnlineOrderIntegrationLocationRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>, {data: UpsertOnlineOrderIntegrationLocationRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsLocations(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsLocationsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>>
+    export type PutApiAdminOnlineOrderIntegrationsLocationsMutationBody = UpsertOnlineOrderIntegrationLocationRequest
+    export type PutApiAdminOnlineOrderIntegrationsLocationsMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsLocations = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>, TError,{data: UpsertOnlineOrderIntegrationLocationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLocations>>,
+        TError,
+        {data: UpsertOnlineOrderIntegrationLocationRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsLocationsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

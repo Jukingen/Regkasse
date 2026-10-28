@@ -278,10 +278,14 @@ public static class OnlineOrderSources
     public const string Pwa = "pwa";
     public const string Native = "native";
 
+    /// <summary>Marketplace intake (Deliverect and later channels). Not accepted by public website intake.</summary>
+    public const string Marketplace = "marketplace";
+
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         Web,
         Pwa,
         Native,
+        Marketplace,
     };
 }
