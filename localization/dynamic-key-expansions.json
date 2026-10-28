@@ -411,6 +411,7 @@
           "OnlineOrderPushedToPos",
           "OnlineOrderPaid",
           "OnlineOrderStatusChanged",
+          "OnlineOrderIntegrationFailed",
           "OnlineOrderConfirmed"
         ]
       },

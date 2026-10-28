@@ -64,6 +64,7 @@ export type NotificationConfigEnabledEvents = {
   OfflineQueueGrowing?: boolean;
   OfflineSyncStalled?: boolean;
   OnlineOrderConfirmed?: boolean;
+  OnlineOrderIntegrationFailed?: boolean;
   OnlineOrderPaid?: boolean;
   OnlineOrderPushedToPos?: boolean;
   OnlineOrderStatusChanged?: boolean;

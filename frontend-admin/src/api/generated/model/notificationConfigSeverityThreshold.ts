@@ -64,6 +64,7 @@ export type NotificationConfigSeverityThreshold = {
   OfflineQueueGrowing?: string;
   OfflineSyncStalled?: string;
   OnlineOrderConfirmed?: string;
+  OnlineOrderIntegrationFailed?: string;
   OnlineOrderPaid?: string;
   OnlineOrderPushedToPos?: string;
   OnlineOrderStatusChanged?: string;

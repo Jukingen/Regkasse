@@ -79,6 +79,7 @@
     "OnlineOrderPushedToPos": "Online-Bestellung an Kasse übergeben",
     "OnlineOrderPaid": "Online-Bestellung bezahlt",
     "OnlineOrderStatusChanged": "Online-Bestellstatus geändert",
+    "OnlineOrderIntegrationFailed": "Online-Bestellintegration fehlgeschlagen",
     "OnlineOrderConfirmed": "Online-Bestellung bestätigt",
     "DigitalServiceRequested": "Digitale Dienste angefordert",
     "SupportTicketCreated": "Support-Ticket erstellt",

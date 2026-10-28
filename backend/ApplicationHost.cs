@@ -1465,6 +1465,13 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
         builder.Services.AddScoped<IOnlinePaymentAdminService, OnlinePaymentAdminService>();
         builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
+        builder.Services.Configure<KasseAPI_Final.Configuration.OnlineOrderIntegrationOptions>(
+            builder.Configuration.GetSection(KasseAPI_Final.Configuration.OnlineOrderIntegrationOptions.SectionName));
+        builder.Services.AddScoped<IOnlineOrderIntegrationProcessor, OnlineOrderIntegrationProcessor>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationWebhookService, OnlineOrderIntegrationWebhookService>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationLocationService, OnlineOrderIntegrationLocationService>();
+        if (!OpenApiExportMode.IsEnabled)
+            builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OnlineOrderIntegrationRetryHostedService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
 
         // Register repositories

@@ -111,6 +111,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.OnlineOrderPushedToPos => "Online order pushed to POS",
             ActivityEventType.OnlineOrderPaid => "Online order paid",
             ActivityEventType.OnlineOrderStatusChanged => "Online order status changed",
+            ActivityEventType.OnlineOrderIntegrationFailed => "Online order integration failed",
             ActivityEventType.OnlineOrderConfirmed => "Online order confirmed",
             ActivityEventType.DigitalServiceRequested => "Digital service creation requested",
             ActivityEventType.DataAccessDeleteRequested => "Data deletion request (GDPR)",

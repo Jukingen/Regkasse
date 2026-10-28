@@ -57,6 +57,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.OnlineOrderPushedToPos => ActivitySeverityNames.Warning,
             ActivityEventType.OnlineOrderPaid => ActivitySeverityNames.Info,
             ActivityEventType.OnlineOrderStatusChanged => ActivitySeverityNames.Info,
+            ActivityEventType.OnlineOrderIntegrationFailed => ActivitySeverityNames.Warning,
             ActivityEventType.OnlineOrderConfirmed => ActivitySeverityNames.Warning,
             ActivityEventType.DigitalServiceRequested => ActivitySeverityNames.Info,
             ActivityEventType.CashRegisterOpenRequested => ActivitySeverityNames.Warning,
