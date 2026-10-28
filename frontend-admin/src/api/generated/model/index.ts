@@ -1981,6 +1981,7 @@ export * from './updateUsernameRequest';
 export * from './updateVerticalProfileFeaturesRequest';
 export * from './upgradeLicenseRequestBody';
 export * from './upsertHairSalonCampaignRequest';
+export * from './upsertOnlineOrderIntegrationLocationRequest';
 export * from './upsertPermissionPackageRequest';
 export * from './upsertTaxGroupRequest';
 export * from './upsertTenantCustomizationRequestDto';

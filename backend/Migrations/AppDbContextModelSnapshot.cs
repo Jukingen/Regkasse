@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -5890,10 +5890,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique()
-                        .HasDatabaseName("ix_invoices_invoice_number_trgm");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("InvoiceNumber"), "GIN");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("InvoiceNumber"), new[] { "gin_trgm_ops" });
+                        .HasDatabaseName("ix_invoices_invoice_number");
 
                     b.HasIndex("SourcePaymentId")
                         .IsUnique()
@@ -5906,6 +5903,11 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Status", "InvoiceDate")
                         .IsDescending(false, true);
+
+                    b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("invoices");
                 });
@@ -7859,6 +7861,190 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("online_orders", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalChannel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("external_channel");
+
+                    b.Property<string>("ExternalLocationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<string>("ExternalOrderId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_order_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid?>("OnlineOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("online_order_id");
+
+                    b.Property<string>("PayloadSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("payload_sha256");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("text")
+                        .HasColumnName("raw_payload");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("received")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OnlineOrderId")
+                        .HasDatabaseName("idx_online_order_integrations_online_order_id");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("idx_online_order_integrations_status_next_attempt");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integrations_tenant_provider_external");
+
+                    b.HasIndex("TenantId", "Status", "ReceivedAt")
+                        .HasDatabaseName("idx_online_order_integrations_tenant_status_received");
+
+                    b.ToTable("online_order_integrations");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClaimingUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("claiming_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DeliveryFeeProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("delivery_fee_product_id");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("ExternalLocationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid?>("ServiceFeeProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_fee_product_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimingUserId")
+                        .HasDatabaseName("idx_online_order_integration_locations_claiming_user");
+
+                    b.HasIndex("DeliveryFeeProductId")
+                        .HasDatabaseName("idx_online_order_integration_locations_delivery_product");
+
+                    b.HasIndex("ServiceFeeProductId")
+                        .HasDatabaseName("idx_online_order_integration_locations_service_product");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Provider", "ExternalLocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_locations_provider_location");
+
+                    b.ToTable("online_order_integration_locations");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8727,7 +8913,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("ReceiptNumber")
                         .IsUnique()
-                        .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
+                        .HasFilter("\"ReceiptNumber\" IS NOT NULL AND \"ReceiptNumber\" <> ''");
 
                     b.HasIndex("TseSignature");
 
@@ -11975,7 +12161,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("last_turnover_counter_cents");
 
                     b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c"))
                         .HasColumnName("tenant_id");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -18773,6 +18961,44 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegration", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.OnlineOrder", null)
+                        .WithMany()
+                        .HasForeignKey("OnlineOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationLocation", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ClaimingUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("DeliveryFeeProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceFeeProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>

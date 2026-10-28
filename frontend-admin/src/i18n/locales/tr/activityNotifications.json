@@ -79,6 +79,7 @@
     "OnlineOrderPushedToPos": "Online sipariş kasaya iletildi",
     "OnlineOrderPaid": "Online sipariş ödendi",
     "OnlineOrderStatusChanged": "Online sipariş durumu değişti",
+    "OnlineOrderIntegrationFailed": "Online sipariş entegrasyonu başarısız",
     "OnlineOrderConfirmed": "Online sipariş onaylandı",
     "DigitalServiceRequested": "Dijital hizmet talebi",
     "SupportTicketCreated": "Destek bileti oluşturuldu",

@@ -26,7 +26,12 @@ public class BackfillUserTenantMembershipsScriptTests
     {
         var repoRoot = FindRepoRoot();
         var migrationsDir = Path.Combine(repoRoot, "backend", "Migrations");
-        var files = Directory.GetFiles(migrationsDir, "*BackfillUserTenantMembershipsData.cs");
+        var archiveDir = Path.Combine(migrationsDir, "_archive");
+        var files = Directory.GetFiles(migrationsDir, "*BackfillUserTenantMembershipsData.cs", SearchOption.TopDirectoryOnly)
+            .Concat(Directory.Exists(archiveDir)
+                ? Directory.GetFiles(archiveDir, "*BackfillUserTenantMembershipsData.cs", SearchOption.AllDirectories)
+                : [])
+            .ToArray();
         Assert.Single(files);
         var text = File.ReadAllText(files[0]);
         Assert.Contains("user_tenant_memberships", text, StringComparison.Ordinal);

@@ -21,15 +21,22 @@ public sealed class CountryLayerBypassGateTests
         @"AddColumn<[^>]+>\(\s*name:\s*""(?<name>[^""]+)""\s*,\s*table:\s*""company_settings""",
         RegexOptions.Compiled);
 
+    private static readonly Regex CompanySettingsCreateTable = new(
+        @"CreateTable\(\s*name:\s*""company_settings""\s*,\s*columns:\s*table\s*=>\s*new\s*\{(?<body>.*?)\}\s*,\s*constraints:",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
+    private static readonly Regex TableColumnAssignment = new(
+        @"(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*table\.Column<",
+        RegexOptions.Compiled);
+
     /// <summary>
-    /// The operating column <c>country</c> predates the billing migration. It is the one country
-    /// field. Billing fields may appear only in <c>20260916110000_AddCompanySettingsCountryBilling</c>.
+    /// The operating column <c>country</c> is the one country field. Billing columns live in
+    /// <c>InitialCreate</c> after the 2026-10-28 chain rebuild.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string[]> AllowedCompanySettingsCountrySchema =
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
-            ["20260723190000_AddTenantSettingsHistory.cs"] = ["country"],
-            ["20260916110000_AddCompanySettingsCountryBilling.cs"] = ["billing_country", "vat_regime", "tax_exempt"],
+            ["InitialCreate.cs"] = ["country", "billing_country", "vat_regime", "tax_exempt"],
         };
 
     [Fact]
@@ -133,20 +140,17 @@ public sealed class CountryLayerBypassGateTests
         foreach (var path in migrations)
         {
             var up = UpBody(File.ReadAllText(path));
+            var file = Path.GetFileName(path);
+            if (file.EndsWith("InitialCreate.cs", StringComparison.Ordinal))
+                file = "InitialCreate.cs";
             foreach (Match match in CompanySettingsColumnAdd.Matches(up))
+                NoteCountrySchemaColumn(found, file, match.Groups["name"].Value);
+
+            var create = CompanySettingsCreateTable.Match(up);
+            if (create.Success)
             {
-                var name = match.Groups["name"].Value;
-                if (!IsCompanySettingsCountrySchema(name))
-                    continue;
-
-                var file = Path.GetFileName(path);
-                if (!found.TryGetValue(file, out var columns))
-                {
-                    columns = new SortedSet<string>(StringComparer.Ordinal);
-                    found[file] = columns;
-                }
-
-                columns.Add(name);
+                foreach (Match column in TableColumnAssignment.Matches(create.Groups["body"].Value))
+                    NoteCountrySchemaColumn(found, file, column.Groups["name"].Value);
             }
         }
 
@@ -174,7 +178,7 @@ public sealed class CountryLayerBypassGateTests
         Assert.True(
             offenders.Count == 0,
             "CompanySettings has one country column (`country`). "
-            + "Billing fields belong only in 20260916110000_AddCompanySettingsCountryBilling. "
+            + "Billing fields belong in InitialCreate. "
             + "A CountryCode column or another country-schema migration is forbidden. Offending files:"
             + Environment.NewLine
             + string.Join(Environment.NewLine, offenders));
@@ -313,6 +317,23 @@ public sealed class CountryLayerBypassGateTests
         Assert.Equal(member.ToString(), Enum.ToObject(typeof(TEnum), number).ToString());
     }
 
+    private static void NoteCountrySchemaColumn(
+        SortedDictionary<string, SortedSet<string>> found,
+        string file,
+        string name)
+    {
+        if (!IsCompanySettingsCountrySchema(name))
+            return;
+
+        if (!found.TryGetValue(file, out var columns))
+        {
+            columns = new SortedSet<string>(StringComparer.Ordinal);
+            found[file] = columns;
+        }
+
+        columns.Add(name);
+    }
+
     private static bool IsCompanySettingsCountrySchema(string columnName) =>
         columnName.Contains("country", StringComparison.OrdinalIgnoreCase)
         || columnName is "vat_regime" or "tax_exempt";
@@ -338,7 +359,8 @@ public sealed class CountryLayerBypassGateTests
         Directory.EnumerateFiles(backendRoot, "*.cs", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains("KasseAPI_Final.Tests", StringComparison.Ordinal));
+            .Where(path => !path.Contains("KasseAPI_Final.Tests", StringComparison.Ordinal))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}_archive{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 
     private static string Relative(string root, string path) =>
         Path.GetRelativePath(root, path);

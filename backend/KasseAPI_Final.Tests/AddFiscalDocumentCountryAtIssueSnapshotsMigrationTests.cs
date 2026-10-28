@@ -1,7 +1,5 @@
 using System.Reflection;
-using KasseAPI_Final.Data;
 using KasseAPI_Final.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Xunit;
@@ -18,13 +16,12 @@ public sealed class AddFiscalDocumentCountryAtIssueSnapshotsMigrationTests
     [Fact]
     public void Migration_IsDiscoveredByEf()
     {
-        var migrationAttribute = typeof(AddFiscalDocumentCountryAtIssueSnapshots).GetCustomAttribute<MigrationAttribute>();
-        Assert.NotNull(migrationAttribute);
-        Assert.Equal("20260921180000_AddFiscalDocumentCountryAtIssueSnapshots", migrationAttribute!.Id);
-
-        var contextAttribute = typeof(AddFiscalDocumentCountryAtIssueSnapshots).GetCustomAttribute<DbContextAttribute>();
-        Assert.NotNull(contextAttribute);
-        Assert.Equal(typeof(AppDbContext), contextAttribute!.ContextType);
+        var designer = ArchivedDesigner("20260921180000_AddFiscalDocumentCountryAtIssueSnapshots.Designer.cs");
+        Assert.Contains(
+            "[Migration(\"20260921180000_AddFiscalDocumentCountryAtIssueSnapshots\")]",
+            designer,
+            StringComparison.Ordinal);
+        Assert.Contains("[DbContext(typeof(AppDbContext))]", designer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -92,5 +89,20 @@ public sealed class AddFiscalDocumentCountryAtIssueSnapshotsMigrationTests
             .GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(method);
         method!.Invoke(migration, [builder]);
+    }
+
+    private static string ArchivedDesigner(string fileName)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KasseAPI_Final.csproj")))
+            directory = directory.Parent;
+
+        Assert.NotNull(directory);
+        return File.ReadAllText(Path.Combine(
+            directory!.FullName,
+            "Migrations",
+            "_archive",
+            "2026-10-28",
+            fileName));
     }
 }

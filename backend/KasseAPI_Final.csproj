@@ -25,6 +25,8 @@
     <Compile Remove="_build_out\**" />
     <Compile Remove="_cov_out\**" />
     <Compile Remove="_maint_build_out\**" />
+    <!-- Historical chain. Not compiled, so EF discovers only the live InitialCreate. -->
+    <Compile Remove="Migrations\_archive\**" />
     <Content Remove="KasseAPI_Final.Tests\**" />
     <Content Remove="artifacts\**" />
     <Content Remove="artifacts-*\**" />

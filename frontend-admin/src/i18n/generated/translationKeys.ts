@@ -255,6 +255,7 @@ export const ADMIN_TRANSLATION_KEYS = [
   'activityNotifications.eventTypes.OfflineQueueApproachingLimit',
   'activityNotifications.eventTypes.OfflineQueueGrowing',
   'activityNotifications.eventTypes.OnlineOrderConfirmed',
+  'activityNotifications.eventTypes.OnlineOrderIntegrationFailed',
   'activityNotifications.eventTypes.OnlineOrderPaid',
   'activityNotifications.eventTypes.OnlineOrderPushedToPos',
   'activityNotifications.eventTypes.OnlineOrderStatusChanged',

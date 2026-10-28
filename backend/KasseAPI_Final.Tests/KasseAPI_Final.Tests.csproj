@@ -36,6 +36,14 @@
     <ProjectReference Include="..\KasseAPI_Final.csproj" />
   </ItemGroup>
 
+  <!-- Archived migrations are not in the EF assembly. These three Up/Down classes stay
+       compiled here so operation tests and Elmah EnsureSql still run. -->
+  <ItemGroup>
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260827170615_AddElmahUserColumn.cs" Link="ArchivedMigrations\20260827170615_AddElmahUserColumn.cs" />
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260916110000_AddCompanySettingsCountryBilling.cs" Link="ArchivedMigrations\20260916110000_AddCompanySettingsCountryBilling.cs" />
+    <Compile Include="..\Migrations\_archive\2026-10-28\20260921180000_AddFiscalDocumentCountryAtIssueSnapshots.cs" Link="ArchivedMigrations\20260921180000_AddFiscalDocumentCountryAtIssueSnapshots.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="Fixtures\monatsbeleg_sig.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

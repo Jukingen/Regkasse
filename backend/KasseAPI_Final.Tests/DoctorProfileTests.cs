@@ -71,12 +71,17 @@ public sealed class DoctorProfileTests
     [Fact]
     public void Migration_RenamesPetDataAndKeepsLegacyKeys()
     {
-        var path = Path.GetFullPath(Path.Combine(
+        var migrationsDir = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
             "..", "..", "..", "..",
-            "Migrations",
-            "20261012141037_AddDoctorClinicalData.cs"));
-        var text = File.ReadAllText(path);
+            "Migrations"));
+        var path = new[]
+        {
+            Path.Combine(migrationsDir, "20261012141037_AddDoctorClinicalData.cs"),
+            Path.Combine(migrationsDir, "_archive", "2026-10-28", "20261012141037_AddDoctorClinicalData.cs"),
+        }.FirstOrDefault(File.Exists);
+        Assert.True(path is not null, "AddDoctorClinicalData migration was not found in Migrations or the archive.");
+        var text = File.ReadAllText(path!);
         var up = text.Split("protected override void Down", StringSplitOptions.None)[0];
         Assert.Contains("RenameColumn", up, StringComparison.Ordinal);
         Assert.Contains("name: \"pet_data\"", up, StringComparison.Ordinal);

@@ -308,4 +308,10 @@ public enum ActivityEventType
     /// The raw message is stored on <c>demo_requests</c> only, never in the activity payload.
     /// </summary>
     DemoRequestReceived = 265,
+
+    /// <summary>
+    /// Marketplace integration row reached a terminal failure (total mismatch, missing fee product, or sixth attempt).
+    /// Metadata is ids and a short reason. The raw webhook body is not included.
+    /// </summary>
+    OnlineOrderIntegrationFailed = 266,
 }
