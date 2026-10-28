@@ -13,7 +13,7 @@ cd backend
 dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "Category=PostgreSql"
 ```
 
-`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute (they should **not** all skip).
+`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute. If that connection string is set and migrate fails, the fixture throws. The run fails. It does not skip the category and stay green. The workflow host is `127.0.0.1` with `SSL Mode=Disable` so the service port is reached without an IPv6 or TLS handshake failure.
 
 ## Local
 

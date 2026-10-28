@@ -34,6 +34,8 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         var envCs = Environment.GetEnvironmentVariable("REGKASSE_TEST_POSTGRES");
         if (!string.IsNullOrWhiteSpace(envCs))
         {
+            // CI and any explicit connection string opted in. A migrate failure must fail the
+            // run. Swallowing it makes Category=PostgreSql report green while every test skips.
             try
             {
                 await MigrateAsync(envCs.Trim());
@@ -41,7 +43,9 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
             }
             catch (Exception ex)
             {
-                _skipReason = $"REGKASSE_TEST_POSTGRES migrate failed: {ex.Message}";
+                throw new InvalidOperationException(
+                    "REGKASSE_TEST_POSTGRES migrate failed: " + ex.Message,
+                    ex);
             }
 
             return;
@@ -59,8 +63,14 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         }
         catch (Exception ex)
         {
-            _skipReason =
+            var message =
                 $"Docker/Testcontainers unavailable: {ex.Message}. Set REGKASSE_TEST_POSTGRES or start Docker.";
+            if (string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(message, ex);
+            }
+
+            _skipReason = message;
         }
     }
 
