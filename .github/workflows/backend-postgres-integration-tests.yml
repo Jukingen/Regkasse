@@ -28,7 +28,7 @@ env:
   # Ephemeral CI database only (matches services.postgres below).
   # 127.0.0.1 avoids the runner resolving localhost to ::1, where the service port is not published.
   # SSL Mode=Disable matches the non-TLS postgres service. Npgsql Prefer can fail that handshake.
-  REGKASSE_TEST_POSTGRES: 'Host=127.0.0.1;Port=5432;Database=regkasse_pg_integration;Username=postgres;Password=postgres;SSL Mode=Disable'
+  REGKASSE_TEST_POSTGRES: 'Host=127.0.0.1;Port=5432;Database=test;Username=postgres;Password=postgres;SSL Mode=Disable'
   # Ensure cold schema even if the integration DB name ever diverges from fixture defaults.
   REGKASSE_TEST_POSTGRES_RESET: '1'
 
@@ -44,11 +44,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: regkasse_pg_integration
+          POSTGRES_DB: test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d regkasse_pg_integration"
+          --health-cmd "pg_isready -U postgres -d test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

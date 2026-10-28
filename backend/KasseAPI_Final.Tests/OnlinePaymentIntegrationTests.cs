@@ -31,6 +31,8 @@ public sealed class OnlinePaymentIntegrationTests
         Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
 
         var tenantId = Guid.NewGuid();
+        await using var baseline = CreateContext(tenantId);
+        var paymentsBefore = await baseline.PaymentDetails.CountAsync();
         var registerId = Guid.NewGuid();
         var (sut, gateway, resolution, _) = CreateSut(tenantId);
         SetupRegisterOk(resolution, registerId);
@@ -69,7 +71,7 @@ public sealed class OnlinePaymentIntegrationTests
         Assert.Equal(CardPaymentTransactionStatuses.Succeeded, stored.Status);
         Assert.Null(stored.PaymentId);
         Assert.NotNull(stored.CompletedAt);
-        Assert.Equal(0, await verify.PaymentDetails.CountAsync());
+        Assert.Equal(paymentsBefore, await verify.PaymentDetails.CountAsync());
     }
 
     [SkippableFact]

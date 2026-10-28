@@ -1586,8 +1586,8 @@ namespace KasseAPI_Final.Data
                         v => string.IsNullOrEmpty(v) ? JsonDocument.Parse("{}") : JsonDocument.Parse(v));
 
                 // B-tree uniqueness and GIN trigram search must be separate indexes.
-                // Calling HasIndex(InvoiceNumber) twice without distinct database names merges into one
-                // UNIQUE GIN index, which PostgreSQL rejects (blocks greenfield / squashed baseline apply).
+                // A second fluent HasIndex(InvoiceNumber) merges into the first even with a different
+                // database name, which PostgreSQL rejects as a UNIQUE GIN index.
                 entity.HasIndex(e => e.InvoiceNumber)
                     .IsUnique()
                     .HasDatabaseName("ix_invoices_invoice_number");
@@ -1605,11 +1605,14 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }).IsDescending(false, true);
                 entity.HasIndex(e => new { e.Status, e.InvoiceDate }).IsDescending(false, true);
 
-                // GIN Indexes for ILIKE search (requires pg_trgm)
-                entity.HasIndex(e => e.InvoiceNumber)
-                    .HasMethod("GIN")
-                    .HasOperators("gin_trgm_ops")
-                    .HasDatabaseName("ix_invoices_invoice_number_trgm");
+                // GIN Indexes for ILIKE search (requires pg_trgm).
+                // Named AddIndex keeps this index distinct from the unique b-tree above.
+                var invoiceNumberTrgm = entity.Metadata.AddIndex(
+                    [entity.Property(e => e.InvoiceNumber).Metadata],
+                    "ix_invoices_invoice_number_trgm");
+                invoiceNumberTrgm.IsUnique = false;
+                invoiceNumberTrgm.SetMethod("GIN");
+                invoiceNumberTrgm.SetOperators(new[] { "gin_trgm_ops" });
                 entity.HasIndex(e => e.CustomerName)
                     .HasMethod("GIN")
                     .HasOperators("gin_trgm_ops")
@@ -2086,7 +2089,7 @@ namespace KasseAPI_Final.Data
                 // Unique over real receipt numbers only (ignore empty/draft values).
                 entity.HasIndex(e => e.ReceiptNumber)
                     .IsUnique()
-                    .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
+                    .HasFilter("\"ReceiptNumber\" IS NOT NULL AND \"ReceiptNumber\" <> ''");
                 entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
                 entity.HasOne(e => e.CashRegister)
                     .WithMany()
@@ -5751,7 +5754,11 @@ namespace KasseAPI_Final.Data
             builder.Entity<SignatureChainState>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                // Raw chain bootstrap inserts omit tenant_id. The live database defaults it to the platform tenant.
+                entity.Property(e => e.TenantId)
+                    .HasColumnName("tenant_id")
+                    .IsRequired()
+                    .HasDefaultValue(SystemTenantIds.Platform);
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)

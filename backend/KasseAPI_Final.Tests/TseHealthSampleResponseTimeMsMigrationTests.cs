@@ -1,8 +1,3 @@
-using System.Reflection;
-using KasseAPI_Final.Data;
-using KasseAPI_Final.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -12,12 +7,21 @@ public sealed class TseHealthSampleResponseTimeMsMigrationTests
     [Fact]
     public void AddTseHealthSampleResponseTimeMs_IsDiscoveredByEf()
     {
-        var attr = typeof(AddTseHealthSampleResponseTimeMs).GetCustomAttribute<MigrationAttribute>();
-        Assert.NotNull(attr);
-        Assert.Equal("20260723280000_AddTseHealthSampleResponseTimeMs", attr!.Id);
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KasseAPI_Final.csproj")))
+            directory = directory.Parent;
 
-        var ctxAttr = typeof(AddTseHealthSampleResponseTimeMs).GetCustomAttribute<DbContextAttribute>();
-        Assert.NotNull(ctxAttr);
-        Assert.Equal(typeof(AppDbContext), ctxAttr!.ContextType);
+        Assert.NotNull(directory);
+        var designer = File.ReadAllText(Path.Combine(
+            directory!.FullName,
+            "Migrations",
+            "_archive",
+            "2026-10-28",
+            "20260723280000_AddTseHealthSampleResponseTimeMs.Designer.cs"));
+        Assert.Contains(
+            "[Migration(\"20260723280000_AddTseHealthSampleResponseTimeMs\")]",
+            designer,
+            StringComparison.Ordinal);
+        Assert.Contains("[DbContext(typeof(AppDbContext))]", designer, StringComparison.Ordinal);
     }
 }

@@ -1,7 +1,5 @@
 using System.Reflection;
-using KasseAPI_Final.Data;
 using KasseAPI_Final.Migrations;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Xunit;
@@ -20,13 +18,12 @@ public sealed class AddCompanySettingsCountryBillingMigrationTests
     [Fact]
     public void Migration_IsDiscoveredByEf()
     {
-        var migrationAttribute = typeof(AddCompanySettingsCountryBilling).GetCustomAttribute<MigrationAttribute>();
-        Assert.NotNull(migrationAttribute);
-        Assert.Equal("20260916110000_AddCompanySettingsCountryBilling", migrationAttribute!.Id);
-
-        var contextAttribute = typeof(AddCompanySettingsCountryBilling).GetCustomAttribute<DbContextAttribute>();
-        Assert.NotNull(contextAttribute);
-        Assert.Equal(typeof(AppDbContext), contextAttribute!.ContextType);
+        var designer = ArchivedDesigner("20260916110000_AddCompanySettingsCountryBilling.Designer.cs");
+        Assert.Contains(
+            "[Migration(\"20260916110000_AddCompanySettingsCountryBilling\")]",
+            designer,
+            StringComparison.Ordinal);
+        Assert.Contains("[DbContext(typeof(AppDbContext))]", designer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,4 +123,19 @@ public sealed class AddCompanySettingsCountryBillingMigrationTests
 
     private static string Normalize(string sql) =>
         string.Join(' ', sql.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    private static string ArchivedDesigner(string fileName)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KasseAPI_Final.csproj")))
+            directory = directory.Parent;
+
+        Assert.NotNull(directory);
+        return File.ReadAllText(Path.Combine(
+            directory!.FullName,
+            "Migrations",
+            "_archive",
+            "2026-10-28",
+            fileName));
+    }
 }

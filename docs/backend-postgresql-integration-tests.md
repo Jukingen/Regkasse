@@ -13,7 +13,9 @@ cd backend
 dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "Category=PostgreSql"
 ```
 
-`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute. If that connection string is set and migrate fails, the fixture throws. The run fails. It does not skip the category and stay green. The workflow host is `127.0.0.1` with `SSL Mode=Disable`. Two product migrations dated `20250115` sort before `InitialCreate` and assume `products` already exists; on an empty database the fixture records those two ids as applied so `InitialCreate` can create the table. Later migrations still rename the PascalCase columns.
+`PostgreSqlReplayFixture` sees `REGKASSE_TEST_POSTGRES`, runs migrations, and tests execute. If that connection string is set and migrate fails, the fixture throws. The run fails. It does not skip the category and stay green. The workflow host is `127.0.0.1`, the database name is `test`, and the connection string uses `SSL Mode=Disable`.
+
+On 2026-10-28 the migration chain was rebuilt as a single `InitialCreate`. The previous migrations are archived under `backend/Migrations/_archive/2026-10-28/` and are not compiled. A deployment that already has a migration history must apply an archive-to-`InitialCreate` history mapping before deploying this branch; applying `InitialCreate` on top of the old history would try to create tables that already exist. There is no production database to preserve.
 
 ## Local
 
