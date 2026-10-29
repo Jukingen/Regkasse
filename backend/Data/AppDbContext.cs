@@ -374,6 +374,8 @@ namespace KasseAPI_Final.Data
 
         public DbSet<OnlineOrderProductMapping> OnlineOrderProductMappings { get; set; }
 
+        public DbSet<OnlineOrderIntegrationOAuthToken> OnlineOrderIntegrationOAuthTokens { get; set; }
+
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
 
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
@@ -395,6 +397,7 @@ namespace KasseAPI_Final.Data
             builder.ApplyConfiguration(new OnlineOrderIntegrationEntityConfiguration());
             builder.ApplyConfiguration(new OnlineOrderIntegrationLocationEntityConfiguration());
             builder.ApplyConfiguration(new OnlineOrderProductMappingEntityConfiguration());
+            builder.ApplyConfiguration(new OnlineOrderIntegrationOAuthTokenEntityConfiguration());
 
             // Enable pg_trgm extension for GIN indexes
             builder.HasPostgresExtension("pg_trgm");

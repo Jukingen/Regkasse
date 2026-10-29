@@ -60,20 +60,21 @@ public sealed class OnlineOrderIntegrationProcessor : IOnlineOrderIntegrationPro
 
     public async Task ProcessAsync(Guid integrationId, CancellationToken ct = default)
     {
-        if (_environment.IsProduction() && !OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed)
-        {
-            _logger.LogInformation(
-                "Skipping online-order integration {IntegrationId}: signature scheme is not confirmed in Production.",
-                integrationId);
-            return;
-        }
-
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var row = await db.OnlineOrderIntegrations
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(r => r.Id == integrationId && r.IsActive, ct);
         if (row is null)
             return;
+
+        if (_environment.IsProduction() && !OnlineOrderIntegrationSignatureStatus.IsConfirmed(row.Provider))
+        {
+            _logger.LogInformation(
+                "Skipping online-order integration {IntegrationId} for provider {Provider}: signature scheme is not confirmed in Production.",
+                integrationId,
+                row.Provider);
+            return;
+        }
 
         if (row.Status is OnlineOrderIntegrationStatuses.Failed
             or OnlineOrderIntegrationStatuses.CartLinked

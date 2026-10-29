@@ -17,10 +17,14 @@ namespace KasseAPI_Final.Controllers;
 public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
 {
     private readonly IOnlineOrderIntegrationWebhookService _webhooks;
+    private readonly IWoltOrderNotificationService _wolt;
 
-    public OnlineOrderIntegrationWebhookController(IOnlineOrderIntegrationWebhookService webhooks)
+    public OnlineOrderIntegrationWebhookController(
+        IOnlineOrderIntegrationWebhookService webhooks,
+        IWoltOrderNotificationService wolt)
     {
         _webhooks = webhooks;
+        _wolt = wolt;
     }
 
     [HttpPost("{provider}")]
@@ -32,6 +36,16 @@ public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
         string raw;
         using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
             raw = await reader.ReadToEndAsync(ct);
+
+        if (OnlineOrderIntegrationSignatureStatus.IsWolt(provider))
+        {
+            var woltSignature = Request.Headers[OnlineOrderIntegrationSignatureStatus.WoltHeaderName].ToString();
+            var woltResult = await _wolt.AcceptAsync(raw, woltSignature, ct);
+            if (woltResult.Succeeded)
+                return woltResult.Id is Guid woltId ? Ok(new { id = woltId }) : Ok();
+
+            return StatusCode(woltResult.StatusCode, new { code = woltResult.Code, message = woltResult.Error });
+        }
 
         var signature = Request.Headers[OnlineOrderIntegrationSignatureStatus.HeaderName].ToString();
         var result = await _webhooks.AcceptAsync(provider, raw, signature, ct);

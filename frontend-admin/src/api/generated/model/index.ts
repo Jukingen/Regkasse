@@ -692,6 +692,7 @@ export * from './getApiAdminOfflinePayloadHashExportParams';
 export * from './getApiAdminOfflineTransactionsExportFailedParams';
 export * from './getApiAdminOfflineTransactionsParams';
 export * from './getApiAdminOnlineOrderIntegrationsProductMappingsParams';
+export * from './getApiAdminOnlineOrderIntegrationsWoltCallbackParams';
 export * from './getApiAdminOnlineOrdersAnalyticsParams';
 export * from './getApiAdminOnlineOrdersParams';
 export * from './getApiAdminOnlinePaymentsParams';

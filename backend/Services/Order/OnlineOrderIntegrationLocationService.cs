@@ -46,12 +46,15 @@ public sealed class OnlineOrderIntegrationLocationService : IOnlineOrderIntegrat
 
         if (request.Enabled
             && _environment.IsProduction()
-            && !OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed)
+            && !OnlineOrderIntegrationSignatureStatus.IsConfirmed(provider))
         {
+            var message = provider == "deliverect"
+                ? "Location cannot be enabled while the Deliverect signature scheme is unconfirmed."
+                : "Location cannot be enabled while the provider signature scheme is unconfirmed.";
             return OnlineOrderIntegrationCommandResult.Fail(
                 StatusCodes.Status409Conflict,
                 OnlineOrderIntegrationSignatureStatus.UnconfirmedCode,
-                "Location cannot be enabled while the Deliverect signature scheme is unconfirmed.");
+                message);
         }
 
         await using var db = await _dbFactory.CreateDbContextAsync(ct);

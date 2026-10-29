@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -10,7 +12,10 @@ using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Hosted;
 using KasseAPI_Final.Services.Order;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -301,6 +306,392 @@ public sealed class OnlineOrderIntegrationTests
         Assert.Equal(TimeSpan.Zero, OnlineOrderIntegrationProcessor.DelayAfterFailedAttempt(6));
     }
 
+    [Fact]
+    public async Task Wolt_enable_stays_blocked_in_production_until_the_test_hook_and_deliverect_stays_blocked()
+    {
+        var harness = await Harness.CreateAsync("Production");
+        try
+        {
+            var blocked = await harness.Locations.UpsertAsync(new UpsertOnlineOrderIntegrationLocationRequest
+            {
+                Provider = "wolt",
+                ExternalLocationId = "venue-1",
+                Enabled = true,
+            });
+
+            Assert.False(blocked.Succeeded);
+            Assert.Equal(409, blocked.StatusCode);
+            Assert.Equal(OnlineOrderIntegrationSignatureStatus.UnconfirmedCode, blocked.Code);
+            Assert.False(OnlineOrderIntegrationSignatureStatus.WoltConfirmed);
+            Assert.False(OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed);
+            Assert.DoesNotContain(
+                harness.Db.OnlineOrderIntegrationLocations.IgnoreQueryFilters(),
+                location => location.Provider == "wolt");
+
+            OnlineOrderIntegrationSignatureStatus.WoltConfirmedForTests = true;
+            var opened = await harness.Locations.UpsertAsync(new UpsertOnlineOrderIntegrationLocationRequest
+            {
+                Provider = "wolt",
+                ExternalLocationId = "venue-1",
+                Enabled = true,
+            });
+            var deliverect = await harness.Locations.UpsertAsync(new UpsertOnlineOrderIntegrationLocationRequest
+            {
+                Provider = "deliverect",
+                ExternalLocationId = "loc-1",
+                Enabled = true,
+            });
+
+            Assert.True(opened.Succeeded);
+            Assert.Equal(200, opened.StatusCode);
+            Assert.False(deliverect.Succeeded);
+            Assert.Equal(409, deliverect.StatusCode);
+            Assert.Equal(OnlineOrderIntegrationSignatureStatus.UnconfirmedCode, deliverect.Code);
+        }
+        finally
+        {
+            OnlineOrderIntegrationSignatureStatus.WoltConfirmedForTests = false;
+        }
+    }
+
+    [Fact]
+    public async Task Unconfirmed_wolt_row_is_skipped_in_production()
+    {
+        var harness = await Harness.CreateAsync("Production");
+        var row = new OnlineOrderIntegration
+        {
+            Id = Guid.NewGuid(),
+            TenantId = harness.Tenant.TenantId!.Value,
+            Provider = "wolt",
+            ExternalOrderId = "ord-wolt-skip",
+            ExternalLocationId = "venue-1",
+            Status = OnlineOrderIntegrationStatuses.Received,
+            RawPayload = "{}",
+            ReceivedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            AttemptCount = 0,
+            IsActive = true,
+        };
+        harness.Db.OnlineOrderIntegrations.Add(row);
+        await harness.Db.SaveChangesAsync();
+
+        await harness.Processor(harness.Audit().Object).ProcessAsync(row.Id);
+
+        harness.Db.ChangeTracker.Clear();
+        var stored = await harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters().SingleAsync();
+        Assert.Equal(OnlineOrderIntegrationStatuses.Received, stored.Status);
+        Assert.Equal(0, stored.AttemptCount);
+        Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+        Assert.False(OnlineOrderIntegrationSignatureStatus.WoltConfirmed);
+    }
+
+    [Fact]
+    public async Task Retry_worker_skips_unconfirmed_wolt_rows_and_still_selects_wolt_when_the_hook_is_set()
+    {
+        var harness = await Harness.CreateAsync("Production");
+        var wolt = IntegrationRow(harness, "wolt", "ord-wolt-retry");
+        var deliverect = IntegrationRow(harness, "deliverect", "ord-deliverect-retry");
+        harness.Db.OnlineOrderIntegrations.AddRange(wolt, deliverect);
+        await harness.Db.SaveChangesAsync();
+        var worker = harness.RetryWorker(harness.Processor(harness.Audit().Object));
+
+        await worker.PollAsync(CancellationToken.None);
+        harness.Db.ChangeTracker.Clear();
+        var afterClosed = await harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters().AsNoTracking().ToListAsync();
+        Assert.All(afterClosed, row => Assert.Equal(OnlineOrderIntegrationStatuses.Received, row.Status));
+        Assert.All(afterClosed, row => Assert.Null(row.NextAttemptAt));
+
+        try
+        {
+            OnlineOrderIntegrationSignatureStatus.WoltConfirmedForTests = true;
+            var due = await worker.ListDueIdsAsync(CancellationToken.None);
+            Assert.Equal(new[] { wolt.Id }, due);
+        }
+        finally
+        {
+            OnlineOrderIntegrationSignatureStatus.WoltConfirmedForTests = false;
+        }
+    }
+
+    [Fact]
+    public async Task Wolt_token_exchange_and_refresh_do_not_reuse_or_log_the_refresh_token()
+    {
+        const string oldRefresh = "refresh-VISIBLE-secret";
+        const string newRefresh = "refresh-rotated-secret";
+        var seen = new List<string>();
+        var logger = new ListLogger<WoltOAuthClient>();
+        var handler = new StubHandler(async (request, ct) =>
+        {
+            var form = await request.Content!.ReadAsStringAsync(ct);
+            var fields = ParseForm(form);
+            if (fields.TryGetValue("refresh_token", out var refresh))
+                seen.Add(refresh);
+            if (request.RequestUri!.AbsolutePath.EndsWith("/oauth2/token", StringComparison.Ordinal)
+                && fields.GetValueOrDefault("grant_type") == "authorization_code")
+            {
+                Assert.False(fields.ContainsKey("refresh_token"));
+                Assert.Equal("auth-code-1", fields["code"]);
+                return JsonResponse(HttpStatusCode.OK, TokenJson(FakeJwt("venue-9"), "refresh-from-code", 3600));
+            }
+
+            if (fields.GetValueOrDefault("grant_type") == "refresh_token" && refresh == oldRefresh)
+                return JsonResponse(HttpStatusCode.OK, TokenJson(FakeJwt("venue-9"), newRefresh, 0));
+            if (refresh == newRefresh)
+                return JsonResponse(HttpStatusCode.OK, TokenJson(FakeJwt("venue-9"), "refresh-third", 0));
+            return JsonResponse(HttpStatusCode.Unauthorized, "{\"error\":\"invalid_grant\"}");
+        });
+
+        var options = Options.Create(new OnlineOrderIntegrationOptions
+        {
+            Wolt = new WoltIntegrationOptions
+            {
+                ClientId = "wolt-client",
+                ClientSecret = "wolt-secret",
+                RedirectUri = "https://admin.example/callback",
+                TokenUrl = "https://wolt.test/oauth2/token",
+                OrderBaseUrl = "https://wolt.test",
+            },
+        });
+        var client = new WoltOAuthClient(HttpFactory(handler), options, TimeProvider.System, logger);
+        var exchanged = await client.ExchangeAuthorizationCodeAsync("auth-code-1");
+        Assert.True(exchanged.Succeeded);
+        Assert.Equal("venue-9", exchanged.VenueId);
+        Assert.DoesNotContain(logger.Lines, line => line.Contains("wolt-secret", StringComparison.Ordinal));
+
+        logger.Lines.Clear();
+        var rejected = await client.RefreshAsync(oldRefresh + "-missing");
+        Assert.False(rejected.Succeeded);
+        Assert.DoesNotContain(logger.Lines, line => line.Contains(oldRefresh, StringComparison.Ordinal));
+
+        var harness = await Harness.CreateAsync();
+        var protector = new OnlineOrderIntegrationTokenProtector(new EphemeralDataProtectionProvider());
+        harness.Db.OnlineOrderIntegrationOAuthTokens.Add(new OnlineOrderIntegrationOAuthToken
+        {
+            Id = Guid.NewGuid(),
+            TenantId = harness.Tenant.TenantId!.Value,
+            Provider = "wolt",
+            ExternalLocationId = "venue-9",
+            AccessToken = protector.Protect("access-old"),
+            RefreshToken = protector.Protect(oldRefresh),
+            AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(-5),
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await harness.Db.SaveChangesAsync();
+        var source = new WoltAccessTokenSource(
+            harness.Factory,
+            protector,
+            client,
+            TimeProvider.System,
+            NullLogger<WoltAccessTokenSource>.Instance);
+
+        var first = await source.GetAccessTokenAsync(harness.Tenant.TenantId!.Value, "venue-9");
+        var second = await source.GetAccessTokenAsync(harness.Tenant.TenantId!.Value, "venue-9");
+        Assert.False(string.IsNullOrWhiteSpace(first));
+        Assert.False(string.IsNullOrWhiteSpace(second));
+        Assert.Equal(new[] { oldRefresh, newRefresh }, seen.Where(value => value is oldRefresh or newRefresh).ToArray());
+        harness.Db.ChangeTracker.Clear();
+        var stored = await harness.Db.OnlineOrderIntegrationOAuthTokens.IgnoreQueryFilters().SingleAsync();
+        Assert.DoesNotContain(oldRefresh, stored.RefreshToken, StringComparison.Ordinal);
+        Assert.DoesNotContain(newRefresh, stored.RefreshToken, StringComparison.Ordinal);
+        Assert.DoesNotContain("access-old", stored.AccessToken, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Wolt_signature_accepts_hex_and_rejects_a_wrong_header_empty_secret_and_bad_hex()
+    {
+        const string secret = "example-hmac-sha256-wolt";
+        const string body = "{\"type\":\"order.notification\"}";
+        var hex = OnlineOrderIntegrationSignature.SignHex(body, secret);
+
+        Assert.Equal("WOLT-SIGNATURE", OnlineOrderIntegrationSignatureStatus.WoltHeaderName);
+        Assert.True(OnlineOrderIntegrationSignature.IsValid(body, secret, hex));
+        Assert.False(OnlineOrderIntegrationSignature.IsValid(body, secret, "sha256=" + hex + "ff"));
+        Assert.False(OnlineOrderIntegrationSignature.IsValid(body, "", hex));
+        Assert.False(OnlineOrderIntegrationSignature.IsValid(body, null, hex));
+        Assert.False(OnlineOrderIntegrationSignature.IsValid(body, secret, "not-hex"));
+        Assert.False(OnlineOrderIntegrationSignature.IsValid(body, secret, ""));
+    }
+
+    [Fact]
+    public async Task Wolt_webhook_rejects_a_bad_signature_before_location_lookup_and_writes_nothing()
+    {
+        var harness = await Harness.CreateAsync();
+        var calls = 0;
+        var wolt = harness.WoltNotifications(_ =>
+        {
+            calls++;
+            return JsonResponse(HttpStatusCode.OK, "{}");
+        });
+        var body = Notification("missing-venue", "CREATED");
+
+        var invalidJson = await wolt.AcceptAsync("{", wolt.Sign("{"), CancellationToken.None);
+        var wrongSignature = await wolt.AcceptAsync(body, "00", CancellationToken.None);
+
+        Assert.Equal(400, invalidJson.StatusCode);
+        Assert.Equal(400, wrongSignature.StatusCode);
+        Assert.Equal("SIGNATURE_INVALID", wrongSignature.Code);
+        Assert.NotEqual(404, wrongSignature.StatusCode);
+        Assert.Equal(0, calls);
+        Assert.Empty(harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Wolt_unknown_or_disabled_venue_returns_404_and_a_failed_fetch_writes_nothing()
+    {
+        var harness = await Harness.CreateAsync();
+        var calls = 0;
+        var wolt = harness.WoltNotifications(_ =>
+        {
+            calls++;
+            return JsonResponse(HttpStatusCode.InternalServerError, "{}");
+        });
+
+        var unknownBody = Notification("missing-venue", "CREATED");
+        var unknown = await wolt.AcceptAsync(unknownBody, wolt.Sign(unknownBody), CancellationToken.None);
+        Assert.Equal(404, unknown.StatusCode);
+        Assert.Equal(0, calls);
+
+        harness.AddWoltLocation(enabled: false);
+        await harness.Db.SaveChangesAsync();
+        var disabledBody = Notification("venue-1", "CREATED");
+        var disabled = await wolt.AcceptAsync(disabledBody, wolt.Sign(disabledBody), CancellationToken.None);
+        Assert.Equal(404, disabled.StatusCode);
+        Assert.Equal(0, calls);
+
+        harness.LocationForWolt!.Enabled = true;
+        harness.AddWoltToken();
+        await harness.Db.SaveChangesAsync();
+        var fetchBody = Notification("venue-1", "CREATED");
+        var fetch = await wolt.AcceptAsync(fetchBody, wolt.Sign(fetchBody), CancellationToken.None);
+        Assert.Equal(502, fetch.StatusCode);
+        Assert.Equal(1, calls);
+        Assert.Empty(harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters());
+        Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Wolt_created_and_first_production_open_a_cart_and_later_production_does_not_fetch_again()
+    {
+        var harness = await Harness.CreateAsync();
+        harness.AddWoltLocation(enabled: true);
+        harness.AddWoltMapping();
+        harness.AddWoltToken();
+        await harness.Db.SaveChangesAsync();
+        var gets = 0;
+        var wolt = harness.WoltNotifications(orderId =>
+        {
+            gets++;
+            return JsonResponse(HttpStatusCode.OK, OrderJson(orderId, 1000, "EUR", "plu-pizza", "+431234567"));
+        });
+
+        var createdBody = Notification("venue-1", "CREATED", "ord-created");
+        var created = await wolt.AcceptAsync(createdBody, wolt.Sign(createdBody), CancellationToken.None);
+        var productionBody = Notification("venue-1", "PRODUCTION", "ord-production");
+        var production = await wolt.AcceptAsync(productionBody, wolt.Sign(productionBody), CancellationToken.None);
+        var repeat = await wolt.AcceptAsync(productionBody, wolt.Sign(productionBody), CancellationToken.None);
+
+        Assert.True(created.Succeeded);
+        Assert.True(production.Succeeded);
+        Assert.Equal(production.Id, repeat.Id);
+        Assert.Equal(2, gets);
+        Assert.Equal(2, harness.Db.Carts.IgnoreQueryFilters().Count());
+        Assert.Empty(harness.Db.PaymentDetails.IgnoreQueryFilters());
+        Assert.Equal(2, harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters().Count(row => row.Status == OnlineOrderIntegrationStatuses.CartLinked));
+    }
+
+    [Fact]
+    public async Task Wolt_currency_total_product_and_phone_failures_do_not_open_a_cart()
+    {
+        var harness = await Harness.CreateAsync();
+        harness.AddWoltLocation(enabled: true);
+        harness.AddWoltMapping();
+        harness.AddWoltToken();
+        await harness.Db.SaveChangesAsync();
+        var wolt = harness.WoltNotifications(orderId =>
+        {
+            var json = orderId switch
+            {
+                "ord-usd" => OrderJson(orderId, 1000, "USD", "plu-pizza", "+431234567"),
+                "ord-mismatch" => OrderJson(orderId, 9999, "EUR", "plu-pizza", "+431234567"),
+                "ord-pos" => OrderJson(orderId, 1000, "EUR", "", "+431234567"),
+                _ => OrderJson(orderId, 1000, "EUR", "plu-pizza", ""),
+            };
+            return JsonResponse(HttpStatusCode.OK, json);
+        });
+
+        await wolt.AcceptAsync(Signed(wolt, "ord-usd"), wolt.Sign(Signed(wolt, "ord-usd")), CancellationToken.None);
+        await wolt.AcceptAsync(Signed(wolt, "ord-mismatch"), wolt.Sign(Signed(wolt, "ord-mismatch")), CancellationToken.None);
+        await wolt.AcceptAsync(Signed(wolt, "ord-pos"), wolt.Sign(Signed(wolt, "ord-pos")), CancellationToken.None);
+        await wolt.AcceptAsync(Signed(wolt, "ord-phone"), wolt.Sign(Signed(wolt, "ord-phone")), CancellationToken.None);
+
+        var rows = harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters().ToList();
+        Assert.Equal(4, rows.Count);
+        Assert.All(rows, row => Assert.Equal(OnlineOrderIntegrationStatuses.Failed, row.Status));
+        Assert.Contains(rows, row => row.ExternalOrderId == "ord-usd" && row.LastError == WoltOrderMapper.CurrencyError);
+        Assert.Contains(rows, row => row.ExternalOrderId == "ord-mismatch" && row.LastError != null && row.LastError.Contains("does not equal", StringComparison.Ordinal));
+        Assert.Contains(rows, row => row.ExternalOrderId == "ord-pos" && row.LastError == "One or more external products are not mapped.");
+        Assert.Contains(rows, row => row.ExternalOrderId == "ord-phone" && row.LastError == "Customer name or phone is invalid.");
+        Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+        Assert.Empty(harness.Db.OnlineOrders.IgnoreQueryFilters());
+        Assert.DoesNotContain(rows, row => (row.RawPayload ?? string.Empty).Contains("+430000", StringComparison.Ordinal));
+    }
+
+    private static OnlineOrderIntegration IntegrationRow(Harness harness, string provider, string externalOrderId) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            TenantId = harness.Tenant.TenantId!.Value,
+            Provider = provider,
+            ExternalOrderId = externalOrderId,
+            ExternalLocationId = "venue-1",
+            Status = OnlineOrderIntegrationStatuses.Received,
+            RawPayload = "{}",
+            ReceivedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            AttemptCount = 0,
+            IsActive = true,
+        };
+
+    private static string Notification(string venueId, string status, string orderId = "ord-w1") =>
+        "{\"id\":\"evt-1\",\"type\":\"order.notification\",\"order\":{\"id\":\"" + orderId + "\",\"venue_id\":\"" + venueId + "\",\"status\":\"" + status + "\"}}";
+
+    private static string Signed(WoltTestClient wolt, string orderId) =>
+        Notification("venue-1", "CREATED", orderId);
+
+    private static string OrderJson(string orderId, int basketCents, string currency, string posId, string phone) =>
+        "{\"id\":\"" + orderId + "\",\"venue\":{\"id\":\"venue-1\"},\"consumer_name\":\"Max Mustermann\",\"consumer_phone_number\":\"" + phone + "\",\"basket_price\":{\"total\":{\"amount\":" + basketCents.ToString() + ",\"currency\":\"" + currency + "\"}},\"items\":[{\"pos_id\":\"" + posId + "\",\"name\":\"Pizza\",\"count\":1,\"item_price\":{\"unit_price\":{\"amount\":1000,\"currency\":\"" + currency + "\"}}}]}";
+
+    private static string TokenJson(string accessToken, string refreshToken, int expiresIn) =>
+        "{\"access_token\":\"" + accessToken + "\",\"refresh_token\":\"" + refreshToken + "\",\"expires_in\":" + expiresIn.ToString() + ",\"token_type\":\"bearer\"}";
+
+    private static string FakeJwt(string venueId)
+    {
+        static string B64(string json) =>
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(json)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+        return B64("{\"alg\":\"none\"}") + "." + B64("{\"integration\":{\"venue_id\":\"" + venueId + "\"}}") + ".sig";
+    }
+
+    private static Dictionary<string, string> ParseForm(string form) =>
+        form.Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => pair.Split('=', 2))
+            .ToDictionary(
+                pair => Uri.UnescapeDataString(pair[0]),
+                pair => pair.Length == 2 ? Uri.UnescapeDataString(pair[1]) : string.Empty,
+                StringComparer.Ordinal);
+
+    private static HttpResponseMessage JsonResponse(HttpStatusCode status, string json) =>
+        new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
+
+    private static IHttpClientFactory HttpFactory(HttpMessageHandler handler)
+    {
+        var client = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(item => item.CreateClient(WoltOAuthClient.HttpClientName)).Returns(client);
+        return factory.Object;
+    }
+
     private static bool OnlineOrderIntegrationConfirmed =>
         OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed;
 
@@ -493,6 +884,136 @@ public sealed class OnlineOrderIntegrationTests
         public OnlineOrderIntegrationProductMappingService ProductMappings =>
             new(Factory, Tenant, TimeProvider.System);
 
+        public OnlineOrderIntegrationTokenProtector TokenProtector { get; } =
+            new(new EphemeralDataProtectionProvider());
+
+        public OnlineOrderIntegrationLocation? LocationForWolt { get; private set; }
+
+        public const string WoltSecret = "wolt-client-secret";
+
+        public void AddWoltLocation(bool enabled)
+        {
+            LocationForWolt = new OnlineOrderIntegrationLocation
+            {
+                Id = Guid.NewGuid(),
+                TenantId = Tenant.TenantId!.Value,
+                Provider = "wolt",
+                ExternalLocationId = "venue-1",
+                ClaimingUserId = User.Id,
+                Enabled = enabled,
+                DeliveryFeeProductId = DeliveryProduct.Id,
+                ServiceFeeProductId = ServiceProduct.Id,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            };
+            Db.OnlineOrderIntegrationLocations.Add(LocationForWolt);
+        }
+
+        public void AddWoltMapping()
+        {
+            Db.OnlineOrderProductMappings.Add(new OnlineOrderProductMapping
+            {
+                Id = Guid.NewGuid(),
+                TenantId = Tenant.TenantId!.Value,
+                Provider = "wolt",
+                ExternalProductId = "plu-pizza",
+                ProductId = Food.Id,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
+
+        public void AddWoltToken()
+        {
+            Db.OnlineOrderIntegrationOAuthTokens.Add(new OnlineOrderIntegrationOAuthToken
+            {
+                Id = Guid.NewGuid(),
+                TenantId = Tenant.TenantId!.Value,
+                Provider = "wolt",
+                ExternalLocationId = "venue-1",
+                AccessToken = TokenProtector.Protect("access-live"),
+                RefreshToken = TokenProtector.Protect("refresh-live"),
+                AccessTokenExpiresAt = DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            });
+        }
+
+        public OnlineOrderIntegrationProcessor Processor(IAuditLogService audit)
+        {
+            var notifications = new Mock<IOnlineOrderNotificationService>();
+            notifications
+                .Setup(n => n.SendOrderConfirmationAsync(It.IsAny<OnlineOrder>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            return new OnlineOrderIntegrationProcessor(
+                Factory,
+                Tenant,
+                new OrderIntegrationService(
+                    Factory,
+                    Tenant,
+                    notifications.Object,
+                    TimeProvider.System,
+                    NullLogger<OrderIntegrationService>.Instance),
+                audit,
+                new NoopActivity(),
+                TenantTestDoubles.HostEnvironmentReturning(EnvironmentName),
+                TimeProvider.System,
+                NullLogger<OnlineOrderIntegrationProcessor>.Instance);
+        }
+
+        public OnlineOrderIntegrationRetryHostedService RetryWorker(IOnlineOrderIntegrationProcessor processor)
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton(Factory);
+            services.AddSingleton(processor);
+            var provider = services.BuildServiceProvider();
+            return new OnlineOrderIntegrationRetryHostedService(
+                provider.GetRequiredService<IServiceScopeFactory>(),
+                TenantTestDoubles.HostEnvironmentReturning(EnvironmentName),
+                TimeProvider.System,
+                NullLogger<OnlineOrderIntegrationRetryHostedService>.Instance);
+        }
+
+        public WoltTestClient WoltNotifications(Func<string, HttpResponseMessage> onGet)
+        {
+            var handler = new StubHandler((request, _) =>
+            {
+                if (request.Method == HttpMethod.Get)
+                {
+                    var id = Uri.UnescapeDataString(request.RequestUri!.Segments[^1].Trim('/'));
+                    return Task.FromResult(onGet(id));
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                });
+            });
+            var options = Options.Create(new OnlineOrderIntegrationOptions
+            {
+                Wolt = new WoltIntegrationOptions
+                {
+                    ClientId = "wolt-client",
+                    ClientSecret = WoltSecret,
+                    TokenUrl = "https://wolt.test/oauth2/token",
+                    OrderBaseUrl = "https://wolt.test",
+                },
+            });
+            var oauth = new WoltOAuthClient(HttpFactory(handler), options, TimeProvider.System, NullLogger<WoltOAuthClient>.Instance);
+            var tokens = new WoltAccessTokenSource(Factory, TokenProtector, oauth, TimeProvider.System, NullLogger<WoltAccessTokenSource>.Instance);
+            var webhooks = Webhooks(Audit().Object, new NoopActivity());
+            var service = new WoltOrderNotificationService(
+                Factory,
+                Tenant,
+                options,
+                tokens,
+                oauth,
+                webhooks,
+                TimeProvider.System,
+                NullLogger<WoltOrderNotificationService>.Instance);
+            return new WoltTestClient(service, WoltSecret);
+        }
+
         public static Product Product(Guid tenantId, string name, decimal price) => new()
         {
             Id = Guid.NewGuid(),
@@ -520,5 +1041,53 @@ public sealed class OnlineOrderIntegrationTests
             ActivityEventPublishRequest request,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class WoltTestClient
+    {
+        private readonly WoltOrderNotificationService _service;
+        private readonly string _secret;
+
+        public WoltTestClient(WoltOrderNotificationService service, string secret)
+        {
+            _service = service;
+            _secret = secret;
+        }
+
+        public string Sign(string body) => OnlineOrderIntegrationSignature.SignHex(body, _secret);
+
+        public Task<OnlineOrderIntegrationCommandResult> AcceptAsync(string body, string signature, CancellationToken ct) =>
+            _service.AcceptAsync(body, signature, ct);
+    }
+
+    private sealed class StubHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;
+
+        public StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) => _send = send;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            _send(request, cancellationToken);
+    }
+
+    private sealed class ListLogger<T> : ILogger<T>
+    {
+        public List<string> Lines { get; } = new();
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Lines.Add(formatter(state, exception));
+
+        private sealed class NullScope : IDisposable
+        {
+            public static readonly NullScope Instance = new();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }
