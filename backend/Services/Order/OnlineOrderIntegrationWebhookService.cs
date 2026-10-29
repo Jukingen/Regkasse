@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -39,6 +40,7 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
     private readonly ICurrentTenantAccessor _tenant;
     private readonly IOptions<OnlineOrderIntegrationOptions> _options;
     private readonly IOnlineOrderIntegrationProcessor _processor;
+    private readonly IVerticalProfileGuard _profiles;
     private readonly TimeProvider _time;
     private readonly ILogger<OnlineOrderIntegrationWebhookService> _logger;
 
@@ -47,6 +49,7 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
         ICurrentTenantAccessor tenant,
         IOptions<OnlineOrderIntegrationOptions> options,
         IOnlineOrderIntegrationProcessor processor,
+        IVerticalProfileGuard profiles,
         TimeProvider time,
         ILogger<OnlineOrderIntegrationWebhookService> logger)
     {
@@ -54,6 +57,7 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
         _tenant = tenant;
         _options = options;
         _processor = processor;
+        _profiles = profiles;
         _time = time;
         _logger = logger;
     }
@@ -106,6 +110,9 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
         if (!OnlineOrderIntegrationSignature.IsValid(rawBody ?? string.Empty, secret, signatureHeader))
             return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "SIGNATURE_INVALID", "Signature is missing or invalid.");
 
+        if (!await MarketplaceTenantAllowedAsync(location.TenantId, ct))
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
+
         return await InsertAndProcessAsync(db, location, normalizedProvider, rawBody ?? string.Empty, body, externalOrderId, externalLocationId, ct);
     }
 
@@ -150,7 +157,16 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
             return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
         }
 
+        if (!await MarketplaceTenantAllowedAsync(location.TenantId, ct))
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
+
         return await InsertAndProcessAsync(db, location, normalizedProvider, normalizedBody ?? string.Empty, body, externalOrderId, externalLocationId, ct);
+    }
+
+    private async Task<bool> MarketplaceTenantAllowedAsync(Guid tenantId, CancellationToken ct)
+    {
+        _tenant.TenantId = tenantId;
+        return await _profiles.IsFeatureEnabledAsync(VerticalProfileGuard.MarketplaceOrdersFeature, ct);
     }
 
     private async Task<OnlineOrderIntegrationCommandResult> InsertAndProcessAsync(

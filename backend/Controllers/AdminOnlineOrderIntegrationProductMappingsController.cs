@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.VerticalProfiles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +15,14 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminOnlineOrderIntegrationProductMappingsController : ControllerBase
 {
     private readonly IOnlineOrderIntegrationProductMappingService _mappings;
+    private readonly IVerticalProfileGuard _profileGuard;
 
-    public AdminOnlineOrderIntegrationProductMappingsController(IOnlineOrderIntegrationProductMappingService mappings)
+    public AdminOnlineOrderIntegrationProductMappingsController(
+        IOnlineOrderIntegrationProductMappingService mappings,
+        IVerticalProfileGuard profileGuard)
     {
         _mappings = mappings;
+        _profileGuard = profileGuard;
     }
 
     [HttpGet]
@@ -25,8 +30,13 @@ public sealed class AdminOnlineOrderIntegrationProductMappingsController : Contr
     [ProducesResponseType(typeof(OnlineOrderProductMappingListDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List([FromQuery] string? provider, CancellationToken ct)
     {
+        var blocked = await MarketplaceProfileGate.RejectAsync(_profileGuard, ct);
+        if (blocked is not null)
+            return blocked;
+
         var result = await _mappings.ListAsync(provider, ct);
         if (result.Succeeded)
             return Ok(result.Body);
@@ -45,6 +55,10 @@ public sealed class AdminOnlineOrderIntegrationProductMappingsController : Contr
     {
         if (body is null)
             return BadRequest(new { code = "VALIDATION_ERROR", message = "Request body is required." });
+
+        var blocked = await MarketplaceProfileGate.RejectAsync(_profileGuard, ct);
+        if (blocked is not null)
+            return blocked;
 
         var result = await _mappings.UpsertAsync(body, ct);
         if (result.Succeeded)

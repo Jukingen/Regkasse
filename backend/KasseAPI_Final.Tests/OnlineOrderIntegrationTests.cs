@@ -4,14 +4,19 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Hosted;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -637,6 +642,112 @@ public sealed class OnlineOrderIntegrationTests
         Assert.DoesNotContain(rows, row => (row.RawPayload ?? string.Empty).Contains("+430000", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Gastronomy_marketplace_admin_endpoints_succeed_and_other_verticals_are_forbidden()
+    {
+        var harness = await Harness.CreateAsync();
+        harness.SetVerticalProfile(VerticalProfileIds.Gastronomy);
+        var guard = harness.ProfileGuard();
+        var locations = new AdminOnlineOrderIntegrationLocationsController(harness.Locations, guard);
+        var mappings = new AdminOnlineOrderIntegrationProductMappingsController(harness.ProductMappings, guard);
+        var connect = new Mock<IWoltIntegrationConnectService>();
+        connect.Setup(service => service.BeginAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WoltConnectStartResult.Ok("https://wolt.test/authorize"));
+        connect.Setup(service => service.CompleteAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OnlineOrderIntegrationCommandResult.Ok(StatusCodes.Status200OK, Guid.NewGuid()));
+        var wolt = new AdminWoltIntegrationController(connect.Object, guard)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+
+        var location = await locations.Upsert(new UpsertOnlineOrderIntegrationLocationRequest
+        {
+            Provider = "deliverect",
+            ExternalLocationId = "loc-gastro",
+            Enabled = true,
+        }, CancellationToken.None);
+        var mapping = await mappings.Upsert(new UpsertOnlineOrderProductMappingRequest
+        {
+            Provider = "deliverect",
+            ExternalProductId = "plu-gastro",
+            ProductId = harness.Food.Id,
+        }, CancellationToken.None);
+        var started = await wolt.Connect(CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(location);
+        Assert.IsType<OkObjectResult>(mapping);
+        Assert.IsType<OkObjectResult>(started);
+
+        harness.SetVerticalProfile(VerticalProfileIds.HairSalon);
+        var deniedLocation = await locations.Upsert(new UpsertOnlineOrderIntegrationLocationRequest
+        {
+            Provider = "deliverect",
+            ExternalLocationId = "loc-salon",
+            Enabled = true,
+        }, CancellationToken.None);
+        var deniedMapping = await mappings.Upsert(new UpsertOnlineOrderProductMappingRequest
+        {
+            Provider = "deliverect",
+            ExternalProductId = "plu-salon",
+            ProductId = harness.Food.Id,
+        }, CancellationToken.None);
+        var deniedConnect = await wolt.Connect(CancellationToken.None);
+        var deniedCallback = await wolt.Callback("code", "state", CancellationToken.None);
+
+        AssertProfileForbidden(deniedLocation);
+        AssertProfileForbidden(deniedMapping);
+        AssertProfileForbidden(deniedConnect);
+        AssertProfileForbidden(deniedCallback);
+        Assert.DoesNotContain(
+            harness.Db.OnlineOrderIntegrationLocations.IgnoreQueryFilters(),
+            row => row.ExternalLocationId == "loc-salon");
+        Assert.DoesNotContain(
+            harness.Db.OnlineOrderProductMappings.IgnoreQueryFilters(),
+            row => row.ExternalProductId == "plu-salon");
+        connect.Verify(
+            service => service.BeginAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Non_gastronomy_webhook_with_a_valid_signature_returns_404_and_writes_nothing()
+    {
+        var harness = await Harness.CreateAsync();
+        harness.SetVerticalProfile(VerticalProfileIds.HairSalon);
+        harness.AddWoltLocation(enabled: true);
+        await harness.Db.SaveChangesAsync();
+        var calls = 0;
+        var wolt = harness.WoltNotifications(_ =>
+        {
+            calls++;
+            return JsonResponse(HttpStatusCode.OK, "{}");
+        });
+        var body = Notification("venue-1", "CREATED", "ord-salon");
+        var result = await wolt.AcceptAsync(body, wolt.Sign(body), CancellationToken.None);
+
+        var deliverect = harness.Webhooks(harness.Audit().Object, new NoopActivity());
+        var deliverectBody = harness.Body("ord-salon-deliverect");
+        var invalid = await deliverect.AcceptAsync("deliverect", deliverectBody, "00", CancellationToken.None);
+        var valid = await deliverect.AcceptAsync("deliverect", deliverectBody, harness.Sign(deliverectBody), CancellationToken.None);
+
+        Assert.Equal(404, result.StatusCode);
+        Assert.Equal("LOCATION_NOT_FOUND", result.Code);
+        Assert.Equal(0, calls);
+        Assert.Equal(400, invalid.StatusCode);
+        Assert.Equal(404, valid.StatusCode);
+        Assert.Empty(harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters());
+        Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+    }
+
+    private static void AssertProfileForbidden(IActionResult result)
+    {
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        Assert.Equal(
+            ProfileEndpointDisabledException.Code,
+            forbidden.Value!.GetType().GetProperty("code")!.GetValue(forbidden.Value));
+    }
+
     private static OnlineOrderIntegration IntegrationRow(Harness harness, string provider, string externalOrderId) =>
         new()
         {
@@ -870,6 +981,7 @@ public sealed class OnlineOrderIntegrationTests
                     },
                 }),
                 processor,
+                ProfileGuard(),
                 TimeProvider.System,
                 NullLogger<OnlineOrderIntegrationWebhookService>.Instance);
         }
@@ -1009,9 +1121,47 @@ public sealed class OnlineOrderIntegrationTests
                 tokens,
                 oauth,
                 webhooks,
+                ProfileGuard(),
                 TimeProvider.System,
                 NullLogger<WoltOrderNotificationService>.Instance);
             return new WoltTestClient(service, WoltSecret);
+        }
+
+        public IVerticalProfileGuard ProfileGuard()
+        {
+            var cache = new Mock<ICacheService>();
+            var profiles = new VerticalProfileService(
+                Db,
+                Tenant,
+                Audit().Object,
+                NullLogger<VerticalProfileService>.Instance,
+                new VerticalProfileRegistry(Db),
+                cache.Object);
+            return new VerticalProfileGuard(profiles, NullLogger<VerticalProfileGuard>.Instance);
+        }
+
+        public void SetVerticalProfile(string? profileId)
+        {
+            var row = Db.CompanySettings.IgnoreQueryFilters().FirstOrDefault(s => s.TenantId == Tenant.TenantId);
+            if (row is null)
+            {
+                row = new CompanySettings
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = Tenant.TenantId!.Value,
+                    CompanyName = "Demo",
+                    CompanyAddress = "Wien",
+                    CompanyTaxNumber = "ATU12345678",
+                    Currency = "EUR",
+                    Country = "AT",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                };
+                Db.CompanySettings.Add(row);
+            }
+
+            row.VerticalProfileId = profileId;
+            Db.SaveChanges();
         }
 
         public static Product Product(Guid tenantId, string name, decimal price) => new()

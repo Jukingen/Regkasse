@@ -12,12 +12,22 @@ export type VerticalProfileMenuScope = {
   viewAllProfiles?: boolean;
 };
 
-export function hasVerticalProfileGate(
-  item: Pick<SidebarNavCatalogItem, 'requiredFeature' | 'onlyForProfiles' | 'hiddenForProfiles'>
-): boolean {
+type ProfileGatedItem = Pick<
+  SidebarNavCatalogItem,
+  'requiredFeature' | 'onlyForProfiles' | 'hiddenForProfiles' | 'enforceProfileInAllView'
+>;
+
+export function hasVerticalProfileGate(item: ProfileGatedItem): boolean {
   return Boolean(
     item.requiredFeature || item.onlyForProfiles?.length || item.hiddenForProfiles?.length
   );
+}
+
+function skipsProfileGate(item: ProfileGatedItem, scope: VerticalProfileMenuScope): boolean {
+  if (!scope.viewAllProfiles) {
+    return false;
+  }
+  return !(item.enforceProfileInAllView && item.onlyForProfiles?.length);
 }
 
 /**
@@ -25,10 +35,10 @@ export function hasVerticalProfileGate(
  * While the profile is loading, gated leaves stay hidden.
  */
 export function isCatalogItemVisibleForVerticalProfile(
-  item: Pick<SidebarNavCatalogItem, 'requiredFeature' | 'onlyForProfiles' | 'hiddenForProfiles'>,
+  item: ProfileGatedItem,
   scope: VerticalProfileMenuScope
 ): boolean {
-  if (scope.viewAllProfiles) {
+  if (skipsProfileGate(item, scope)) {
     return true;
   }
   if (!hasVerticalProfileGate(item)) {
@@ -93,10 +103,10 @@ export function resolveVerticalProfileRouteAccess(
   pathname: string,
   scope: VerticalProfileMenuScope
 ): 'allow' | 'deny' | 'pending' {
-  if (scope.viewAllProfiles) {
+  const item = findSidebarCatalogItemForPath(pathname);
+  if (item && skipsProfileGate(item, scope)) {
     return 'allow';
   }
-  const item = findSidebarCatalogItemForPath(pathname);
   if (!item || !hasVerticalProfileGate(item)) {
     return 'allow';
   }

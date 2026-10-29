@@ -7,6 +7,13 @@ public sealed class VerticalProfileGuard : IVerticalProfileGuard
     public const string TaxiFeature = "taxi";
     public const string MobileServicesFeature = "mobile-services";
 
+    /// <summary>
+    /// Marketplace admin and intake. Not a <c>posFeatures</c> flag: lodging also has
+    /// <c>kitchenDisplay</c>. Allowed profiles are gastronomy and gastronomy-tables.
+    /// A missing company-settings row stays allowed (unclassified tenants resolve as gastronomy).
+    /// </summary>
+    public const string MarketplaceOrdersFeature = "marketplace-orders";
+
     private readonly IVerticalProfileService _profiles;
     private readonly ILogger<VerticalProfileGuard> _logger;
 
@@ -21,7 +28,19 @@ public sealed class VerticalProfileGuard : IVerticalProfileGuard
     public async Task<bool> IsFeatureEnabledAsync(string feature, CancellationToken cancellationToken)
     {
         var profile = await CurrentAsync(cancellationToken).ConfigureAwait(false);
+        if (string.Equals(feature, MarketplaceOrdersFeature, StringComparison.Ordinal))
+            return AllowsMarketplaceOrders(profile);
+
         return profile?.HasPosFeature(feature) == true;
+    }
+
+    internal static bool AllowsMarketplaceOrders(EffectiveVerticalProfileDto? profile)
+    {
+        if (profile is null)
+            return true;
+
+        return string.Equals(profile.ProfileId, VerticalProfileIds.Gastronomy, StringComparison.Ordinal)
+            || string.Equals(profile.ProfileId, VerticalProfileIds.GastronomyTables, StringComparison.Ordinal);
     }
 
     public Task EnforceAsync(string feature, CancellationToken cancellationToken) =>
