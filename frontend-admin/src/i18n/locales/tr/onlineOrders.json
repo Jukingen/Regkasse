@@ -91,5 +91,22 @@
     "settingsSave": "Kaydet",
     "settingsSaved": "Ayarlar kaydedildi.",
     "settingsSaveFailed": "Ayarlar kaydedilemedi."
+  },
+  "productMappings": {
+    "pageTitle": "Pazar yeri ürün eşlemesi",
+    "pageSubtitle": "Harici pazar yeri ürün kimliğini katalog ürününe bağlar. Eşleme yoksa satır başarısız kalır ve POS sepeti açılmaz.",
+    "provider": "Sağlayıcı",
+    "externalProductId": "Harici ürün kimliği",
+    "product": "Katalog ürünü",
+    "save": "Eşlemeyi kaydet",
+    "saved": "Eşleme kaydedildi.",
+    "saveFailed": "Eşleme kaydedilemedi.",
+    "loadFailed": "Eşlemeler yüklenemedi.",
+    "empty": "Bu sağlayıcı için eşleme yok.",
+    "columns": {
+      "provider": "Sağlayıcı",
+      "externalProductId": "Harici ürün kimliği",
+      "product": "Katalog ürünü"
+    }
   }
 }

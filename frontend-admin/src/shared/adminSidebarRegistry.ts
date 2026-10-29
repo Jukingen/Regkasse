@@ -1239,6 +1239,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     icon: 'FileSearchOutlined',
     permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   },
+  onlineOrderProductMappings: {
+    id: 'onlineOrderProductMappings',
+    menuKey: '/admin/online-order-integrations',
+    href: '/admin/online-order-integrations',
+    labelKey: 'nav.onlineOrderProductMappings',
+    icon: 'SwapOutlined',
+    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  },
   adminFeedbackInbox: {
     id: 'adminFeedbackInbox',
     menuKey: '/admin/feedback',
@@ -2004,6 +2012,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
           'customerPortal',
           'digitalServicesManage',
           'digitalServiceRequests',
+          'onlineOrderProductMappings',
           'adminFeedbackInbox',
         ],
       },

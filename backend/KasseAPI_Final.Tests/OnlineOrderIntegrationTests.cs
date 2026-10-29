@@ -209,6 +209,88 @@ public sealed class OnlineOrderIntegrationTests
     }
 
     [Fact]
+    public async Task Unmapped_external_product_marks_the_row_failed_and_does_not_open_a_cart()
+    {
+        var harness = await Harness.CreateAsync();
+        var body = harness.Body("ord-unmapped", externalProductId: "missing-plu");
+
+        await harness.Webhooks(harness.Audit().Object, new NoopActivity())
+            .AcceptAsync("deliverect", body, harness.Sign(body), CancellationToken.None);
+
+        var row = Assert.Single(harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters());
+        Assert.Equal(OnlineOrderIntegrationStatuses.Failed, row.Status);
+        Assert.Contains("not mapped", row.LastError, StringComparison.Ordinal);
+        Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+        Assert.Empty(harness.Db.OnlineOrders.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Mapped_external_product_uses_the_catalog_product_on_the_order_line()
+    {
+        var harness = await Harness.CreateAsync();
+        var body = harness.Body("ord-mapped");
+
+        await harness.Webhooks(harness.Audit().Object, new NoopActivity())
+            .AcceptAsync("deliverect", body, harness.Sign(body), CancellationToken.None);
+
+        var order = Assert.Single(harness.Db.OnlineOrders.IgnoreQueryFilters().Include(o => o.Items));
+        var line = Assert.Single(order.Items);
+        Assert.Equal(harness.Food.Id, line.ProductId);
+        Assert.Empty(harness.Db.PaymentDetails.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Product_mapping_upsert_lists_the_ambient_tenant_only()
+    {
+        var harness = await Harness.CreateAsync();
+
+        var saved = await harness.ProductMappings.UpsertAsync(new UpsertOnlineOrderProductMappingRequest
+        {
+            Provider = "Deliverect",
+            ExternalProductId = " plu-extra ",
+            ProductId = harness.Food.Id,
+        });
+        var list = await harness.ProductMappings.ListAsync("deliverect");
+
+        Assert.True(saved.Succeeded);
+        Assert.True(list.Succeeded);
+        Assert.Contains(list.Body!.Items, item => item.ExternalProductId == "plu-extra" && item.ProductId == harness.Food.Id);
+        Assert.All(list.Body.Items, item => Assert.Equal("deliverect", item.Provider));
+    }
+
+    [Fact]
+    public async Task Product_mapping_rejects_a_product_outside_the_tenant()
+    {
+        var harness = await Harness.CreateAsync();
+        var other = Harness.Product(Guid.NewGuid(), "Other", 1m);
+        harness.Db.Products.Add(other);
+        await harness.Db.SaveChangesAsync();
+
+        harness.Food.IsActive = false;
+        await harness.Db.SaveChangesAsync();
+        var inactive = await harness.ProductMappings.UpsertAsync(new UpsertOnlineOrderProductMappingRequest
+        {
+            Provider = "deliverect",
+            ExternalProductId = "plu-off",
+            ProductId = harness.Food.Id,
+        });
+        var foreign = await harness.ProductMappings.UpsertAsync(new UpsertOnlineOrderProductMappingRequest
+        {
+            Provider = "deliverect",
+            ExternalProductId = "plu-foreign",
+            ProductId = other.Id,
+        });
+        harness.Tenant.TenantId = Guid.NewGuid();
+        var missingTenant = await harness.ProductMappings.ListAsync("deliverect");
+
+        Assert.Equal(400, inactive.StatusCode);
+        Assert.Equal("PRODUCTS_INVALID", inactive.Code);
+        Assert.Equal(400, foreign.StatusCode);
+        Assert.Equal(404, missingTenant.StatusCode);
+        Assert.Equal("TENANT_NOT_FOUND", missingTenant.Code);
+    }
+
+    [Fact]
     public void Retry_delays_are_one_two_four_eight_and_sixteen_minutes()
     {
         Assert.Equal(TimeSpan.FromMinutes(1), OnlineOrderIntegrationProcessor.DelayAfterFailedAttempt(1));
@@ -279,6 +361,16 @@ public sealed class OnlineOrderIntegrationTests
             db.Users.Add(user);
             db.Products.AddRange(food, delivery, service);
             db.OnlineOrderIntegrationLocations.Add(location);
+            db.OnlineOrderProductMappings.Add(new OnlineOrderProductMapping
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Provider = "deliverect",
+                ExternalProductId = "plu-pizza",
+                ProductId = food.Id,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
             await db.SaveChangesAsync();
             return new Harness
             {
@@ -299,7 +391,8 @@ public sealed class OnlineOrderIntegrationTests
             decimal channelTotal = 10m,
             decimal deliveryFee = 0m,
             decimal serviceFee = 0m,
-            string locationId = "loc-1")
+            string locationId = "loc-1",
+            string externalProductId = "plu-pizza")
         {
             var payload = new
             {
@@ -314,7 +407,7 @@ public sealed class OnlineOrderIntegrationTests
                 serviceFee,
                 items = new[]
                 {
-                    new { productId = Food.Id, quantity = 1, unitPrice = 10m, name = "Pizza" },
+                    new { externalProductId, quantity = 1, unitPrice = 10m, name = "Pizza" },
                 },
             };
             return JsonSerializer.Serialize(payload);
@@ -397,7 +490,10 @@ public sealed class OnlineOrderIntegrationTests
                 TenantTestDoubles.HostEnvironmentReturning(EnvironmentName),
                 TimeProvider.System);
 
-        private static Product Product(Guid tenantId, string name, decimal price) => new()
+        public OnlineOrderIntegrationProductMappingService ProductMappings =>
+            new(Factory, Tenant, TimeProvider.System);
+
+        public static Product Product(Guid tenantId, string name, decimal price) => new()
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,

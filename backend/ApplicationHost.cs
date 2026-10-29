@@ -1470,6 +1470,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderIntegrationProcessor, OnlineOrderIntegrationProcessor>();
         builder.Services.AddScoped<IOnlineOrderIntegrationWebhookService, OnlineOrderIntegrationWebhookService>();
         builder.Services.AddScoped<IOnlineOrderIntegrationLocationService, OnlineOrderIntegrationLocationService>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationProductMappingService, OnlineOrderIntegrationProductMappingService>();
         if (!OpenApiExportMode.IsEnabled)
             builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OnlineOrderIntegrationRetryHostedService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();

@@ -227,11 +227,14 @@ public sealed class OnlineOrderIntegrationProcessor : IOnlineOrderIntegrationPro
         CancellationToken ct)
     {
         var items = body.Items ?? new List<OnlineOrderIntegrationWebhookItem>();
-        if (items.Count == 0 || items.Any(i => i.ProductId == Guid.Empty || i.Quantity < 1))
+        if (items.Count == 0 || items.Any(i => i.Quantity < 1))
         {
             await MarkFailedAsync(db, row, "Payload items are invalid.", ct);
             return false;
         }
+
+        if (!await TryMapExternalProductsAsync(db, row, items, ct))
+            return false;
 
         var delivery = Money(body.DeliveryFee);
         var service = Money(body.ServiceFee);
@@ -366,6 +369,50 @@ public sealed class OnlineOrderIntegrationProcessor : IOnlineOrderIntegrationPro
             row.Status = OnlineOrderIntegrationStatuses.Mapped;
             row.UpdatedAt = now;
             await db.SaveChangesAsync(ct);
+        }
+
+        return true;
+    }
+
+    private async Task<bool> TryMapExternalProductsAsync(
+        AppDbContext db,
+        OnlineOrderIntegration row,
+        List<OnlineOrderIntegrationWebhookItem> items,
+        CancellationToken ct)
+    {
+        var externalIds = new List<string>(items.Count);
+        foreach (var item in items)
+        {
+            var externalId = item.ExternalProductId?.Trim() ?? string.Empty;
+            if (externalId.Length is < 1 or > 128)
+            {
+                await MarkFailedAsync(db, row, "One or more external products are not mapped.", ct);
+                return false;
+            }
+
+            externalIds.Add(externalId);
+        }
+
+        var maps = await db.OnlineOrderProductMappings.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(m => m.TenantId == row.TenantId
+                        && m.Provider == row.Provider
+                        && m.IsActive
+                        && externalIds.Contains(m.ExternalProductId))
+            .Select(m => new { m.ExternalProductId, m.ProductId })
+            .ToListAsync(ct);
+        var byExternal = maps.ToDictionary(m => m.ExternalProductId, m => m.ProductId, StringComparer.Ordinal);
+
+        foreach (var item in items)
+        {
+            var externalId = item.ExternalProductId!.Trim();
+            if (!byExternal.TryGetValue(externalId, out var productId))
+            {
+                await MarkFailedAsync(db, row, "One or more external products are not mapped.", ct);
+                return false;
+            }
+
+            item.ProductId = productId;
         }
 
         return true;

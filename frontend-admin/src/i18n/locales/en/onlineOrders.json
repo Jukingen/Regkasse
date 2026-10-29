@@ -91,5 +91,22 @@
     "settingsSave": "Save",
     "settingsSaved": "Settings saved.",
     "settingsSaveFailed": "Settings could not be saved."
+  },
+  "productMappings": {
+    "pageTitle": "Marketplace product mapping",
+    "pageSubtitle": "Link an external marketplace product id to a catalog product. An unmapped line stays failed and does not open a POS cart.",
+    "provider": "Provider",
+    "externalProductId": "External product id",
+    "product": "Catalog product",
+    "save": "Save mapping",
+    "saved": "Mapping saved.",
+    "saveFailed": "Mapping could not be saved.",
+    "loadFailed": "Mappings could not be loaded.",
+    "empty": "No mappings for this provider.",
+    "columns": {
+      "provider": "Provider",
+      "externalProductId": "External product id",
+      "product": "Catalog product"
+    }
   }
 }

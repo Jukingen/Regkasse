@@ -395,6 +395,7 @@ import type {
   GetApiAdminOfflinePayloadHashExportParams,
   GetApiAdminOfflineTransactionsExportFailedParams,
   GetApiAdminOfflineTransactionsParams,
+  GetApiAdminOnlineOrderIntegrationsProductMappingsParams,
   GetApiAdminOnlineOrdersAnalyticsParams,
   GetApiAdminOnlineOrdersParams,
   GetApiAdminOnlinePaymentsParams,
@@ -634,6 +635,7 @@ import type {
   OnlineOrderDto,
   OnlineOrderListResponseDto,
   OnlineOrderPaymentIntentResponseDto,
+  OnlineOrderProductMappingListDto,
   OnlineOrderStatusChangeDto,
   OpenCashRegisterModel,
   OperationLimitStatusDto,
@@ -1048,6 +1050,7 @@ import type {
   UpgradeLicenseRequestBody,
   UpsertHairSalonCampaignRequest,
   UpsertOnlineOrderIntegrationLocationRequest,
+  UpsertOnlineOrderProductMappingRequest,
   UpsertPermissionPackageRequest,
   UpsertTaxGroupRequest,
   UpsertTenantCustomizationRequestDto,
@@ -17946,6 +17949,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminOnlineOrderIntegrationsLocationsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlineOrderIntegrationsProductMappings = (
+    params?: GetApiAdminOnlineOrderIntegrationsProductMappingsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<OnlineOrderProductMappingListDto>(
+      {url: `/api/admin/online-order-integrations/product-mappings`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProductMappingsQueryKey = (params?: GetApiAdminOnlineOrderIntegrationsProductMappingsParams,) => {
+    return [`/api/admin/online-order-integrations/product-mappings`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProductMappingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>, TError = ProblemDetails>(params?: GetApiAdminOnlineOrderIntegrationsProductMappingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsProductMappingsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsProductMappings(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsProductMappingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>>
+export type GetApiAdminOnlineOrderIntegrationsProductMappingsQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsProductMappings = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>, TError = ProblemDetails>(
+ params?: GetApiAdminOnlineOrderIntegrationsProductMappingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProductMappings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsProductMappingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOnlineOrderIntegrationsProductMappings = (
+    upsertOnlineOrderProductMappingRequest: UpsertOnlineOrderProductMappingRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/product-mappings`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertOnlineOrderProductMappingRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsProductMappingsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>, TError,{data: UpsertOnlineOrderProductMappingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>, TError,{data: UpsertOnlineOrderProductMappingRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>, {data: UpsertOnlineOrderProductMappingRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsProductMappings(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsProductMappingsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>>
+    export type PutApiAdminOnlineOrderIntegrationsProductMappingsMutationBody = UpsertOnlineOrderProductMappingRequest
+    export type PutApiAdminOnlineOrderIntegrationsProductMappingsMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsProductMappings = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>, TError,{data: UpsertOnlineOrderProductMappingRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProductMappings>>,
+        TError,
+        {data: UpsertOnlineOrderProductMappingRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsProductMappingsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

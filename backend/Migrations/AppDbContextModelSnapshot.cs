@@ -8128,6 +8128,59 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("online_order_item_modifiers", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderProductMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalProductId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_product_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("idx_online_order_product_mappings_product");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalProductId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_product_mappings_tenant_provider_external");
+
+                    b.ToTable("online_order_product_mappings");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -19021,6 +19074,21 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("OnlineOrderItem");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderProductMapping", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderStatusChange", b =>

@@ -35,13 +35,47 @@ public sealed class OnlineOrderIntegrationWebhookBody
 
 public sealed class OnlineOrderIntegrationWebhookItem
 {
+    /// <summary>Filled by the processor after a product mapping hit. The webhook body is not the source.</summary>
     public Guid ProductId { get; set; }
+
+    public string? ExternalProductId { get; set; }
 
     public int Quantity { get; set; }
 
     public decimal UnitPrice { get; set; }
 
     public string? Name { get; set; }
+}
+
+public sealed class UpsertOnlineOrderProductMappingRequest
+{
+    public string? Provider { get; set; }
+
+    public string? ExternalProductId { get; set; }
+
+    public Guid ProductId { get; set; }
+}
+
+public sealed class OnlineOrderProductMappingDto
+{
+    public Guid Id { get; set; }
+
+    public string Provider { get; set; } = string.Empty;
+
+    public string ExternalProductId { get; set; } = string.Empty;
+
+    public Guid ProductId { get; set; }
+
+    public string ProductName { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public sealed class OnlineOrderProductMappingListDto
+{
+    public List<OnlineOrderProductMappingDto> Items { get; set; } = new();
 }
 
 public sealed class UpsertOnlineOrderIntegrationLocationRequest
