@@ -117,4 +117,28 @@ test.describe('Marketplace product mapping', () => {
     await expect(page.getByRole('table').getByText(EXTERNAL_ID)).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Pizza', exact: true })).toBeVisible();
   });
+
+  test('saves a wolt provider mapping', async ({ page }) => {
+    await preparePage(page);
+    await installProductMappingMocks(page);
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expectAuthenticatedShell(page);
+
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('textbox', { name: 'Anbieter' }).fill('wolt');
+    await page.getByRole('textbox', { name: 'Externe Produktnummer' }).fill('wolt-sku-1');
+    await page.getByRole('combobox', { name: 'Katalogprodukt' }).click();
+    await page.locator('.ant-select-item-option').filter({ hasText: 'Pizza' }).click();
+    await page.getByRole('button', { name: 'Zuordnung speichern' }).click();
+
+    await expect(page.getByRole('table').getByText('wolt-sku-1')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('cell', { name: 'wolt', exact: true })).toBeVisible();
+  });
 });

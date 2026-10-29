@@ -16,6 +16,15 @@ public interface IOnlineOrderIntegrationWebhookService
         string rawBody,
         string? signatureHeader,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Stores a body whose signature was already checked by the caller.
+    /// Deliverect still enters through <see cref="AcceptAsync"/>.
+    /// </summary>
+    Task<OnlineOrderIntegrationCommandResult> PersistVerifiedNormalizedAsync(
+        string provider,
+        string normalizedBody,
+        CancellationToken ct = default);
 }
 
 public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrationWebhookService
@@ -71,7 +80,7 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
 
         var externalOrderId = body?.ExternalOrderId?.Trim() ?? string.Empty;
         var externalLocationId = body?.ExternalLocationId?.Trim() ?? string.Empty;
-        if (externalOrderId.Length is < 1 or > 128 || externalLocationId.Length is < 1 or > 128)
+        if (body is null || externalOrderId.Length is < 1 or > 128 || externalLocationId.Length is < 1 or > 128)
             return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "External order id and location id are required.");
 
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -97,6 +106,63 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
         if (!OnlineOrderIntegrationSignature.IsValid(rawBody ?? string.Empty, secret, signatureHeader))
             return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "SIGNATURE_INVALID", "Signature is missing or invalid.");
 
+        return await InsertAndProcessAsync(db, location, normalizedProvider, rawBody ?? string.Empty, body, externalOrderId, externalLocationId, ct);
+    }
+
+    public async Task<OnlineOrderIntegrationCommandResult> PersistVerifiedNormalizedAsync(
+        string provider,
+        string normalizedBody,
+        CancellationToken ct = default)
+    {
+        var normalizedProvider = (provider ?? string.Empty).Trim().ToLowerInvariant();
+        if (normalizedProvider.Length is < 1 or > 32)
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Provider is invalid.");
+
+        OnlineOrderIntegrationWebhookBody? body;
+        try
+        {
+            body = JsonSerializer.Deserialize<OnlineOrderIntegrationWebhookBody>(normalizedBody ?? string.Empty, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload could not be read.");
+        }
+
+        var externalOrderId = body?.ExternalOrderId?.Trim() ?? string.Empty;
+        var externalLocationId = body?.ExternalLocationId?.Trim() ?? string.Empty;
+        if (body is null || externalOrderId.Length is < 1 or > 128 || externalLocationId.Length is < 1 or > 128)
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "External order id and location id are required.");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var location = await db.OnlineOrderIntegrationLocations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(
+                l => l.Provider == normalizedProvider
+                     && l.ExternalLocationId == externalLocationId
+                     && l.IsActive,
+                ct);
+        if (location is null || !location.Enabled)
+        {
+            _logger.LogInformation(
+                "Online-order webhook rejected for provider {Provider} location {LocationId}: unknown or disabled.",
+                normalizedProvider,
+                externalLocationId);
+            return OnlineOrderIntegrationCommandResult.Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
+        }
+
+        return await InsertAndProcessAsync(db, location, normalizedProvider, normalizedBody ?? string.Empty, body, externalOrderId, externalLocationId, ct);
+    }
+
+    private async Task<OnlineOrderIntegrationCommandResult> InsertAndProcessAsync(
+        AppDbContext db,
+        OnlineOrderIntegrationLocation location,
+        string normalizedProvider,
+        string rawBody,
+        OnlineOrderIntegrationWebhookBody body,
+        string externalOrderId,
+        string externalLocationId,
+        CancellationToken ct)
+    {
         _tenant.TenantId = location.TenantId;
 
         var existingId = await db.OnlineOrderIntegrations
@@ -117,11 +183,11 @@ public sealed class OnlineOrderIntegrationWebhookService : IOnlineOrderIntegrati
             TenantId = location.TenantId,
             Provider = normalizedProvider,
             ExternalOrderId = externalOrderId,
-            ExternalChannel = TrimTo(body?.ExternalChannel, 64),
+            ExternalChannel = TrimTo(body.ExternalChannel, 64),
             ExternalLocationId = externalLocationId,
             Status = OnlineOrderIntegrationStatuses.Received,
             RawPayload = rawBody,
-            PayloadSha256 = OnlineOrderIntegrationProcessor.PayloadSha256(rawBody ?? string.Empty),
+            PayloadSha256 = OnlineOrderIntegrationProcessor.PayloadSha256(rawBody),
             ReceivedAt = now,
             CreatedAt = now,
             AttemptCount = 0,

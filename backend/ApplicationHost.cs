@@ -1471,6 +1471,12 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderIntegrationWebhookService, OnlineOrderIntegrationWebhookService>();
         builder.Services.AddScoped<IOnlineOrderIntegrationLocationService, OnlineOrderIntegrationLocationService>();
         builder.Services.AddScoped<IOnlineOrderIntegrationProductMappingService, OnlineOrderIntegrationProductMappingService>();
+        builder.Services.AddHttpClient(WoltOAuthClient.HttpClientName);
+        builder.Services.AddSingleton<OnlineOrderIntegrationTokenProtector>();
+        builder.Services.AddScoped<IWoltOAuthClient, WoltOAuthClient>();
+        builder.Services.AddScoped<IWoltAccessTokenSource, WoltAccessTokenSource>();
+        builder.Services.AddScoped<IWoltOrderNotificationService, WoltOrderNotificationService>();
+        builder.Services.AddScoped<IWoltIntegrationConnectService, WoltIntegrationConnectService>();
         if (!OpenApiExportMode.IsEnabled)
             builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OnlineOrderIntegrationRetryHostedService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();

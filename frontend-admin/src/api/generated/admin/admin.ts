@@ -396,6 +396,7 @@ import type {
   GetApiAdminOfflineTransactionsExportFailedParams,
   GetApiAdminOfflineTransactionsParams,
   GetApiAdminOnlineOrderIntegrationsProductMappingsParams,
+  GetApiAdminOnlineOrderIntegrationsWoltCallbackParams,
   GetApiAdminOnlineOrdersAnalyticsParams,
   GetApiAdminOnlineOrdersParams,
   GetApiAdminOnlinePaymentsParams,
@@ -46879,7 +46880,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminAnalyticsCustomers = (
+    export const postApiAdminOnlineOrderIntegrationsWoltConnect = (
+
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/wolt/connect`, method: 'POST'
+    },
+      options);
+    }
+
+
+
+export const getPostApiAdminOnlineOrderIntegrationsWoltConnectMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>, void> = () => {
+
+
+          return  postApiAdminOnlineOrderIntegrationsWoltConnect(requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOnlineOrderIntegrationsWoltConnectMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>>
+
+    export type PostApiAdminOnlineOrderIntegrationsWoltConnectMutationError = ProblemDetails
+
+    export const usePostApiAdminOnlineOrderIntegrationsWoltConnect = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOnlineOrderIntegrationsWoltConnect>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOnlineOrderIntegrationsWoltConnectMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlineOrderIntegrationsWoltCallback = (
+    params?: GetApiAdminOnlineOrderIntegrationsWoltCallbackParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/wolt/callback`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsWoltCallbackQueryKey = (params?: GetApiAdminOnlineOrderIntegrationsWoltCallbackParams,) => {
+    return [`/api/admin/online-order-integrations/wolt/callback`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsWoltCallbackQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>, TError = ProblemDetails | void>(params?: GetApiAdminOnlineOrderIntegrationsWoltCallbackParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsWoltCallbackQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsWoltCallback(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsWoltCallbackQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>>
+export type GetApiAdminOnlineOrderIntegrationsWoltCallbackQueryError = ProblemDetails | void
+
+export const useGetApiAdminOnlineOrderIntegrationsWoltCallback = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>, TError = ProblemDetails | void>(
+ params?: GetApiAdminOnlineOrderIntegrationsWoltCallbackParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsWoltCallback>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsWoltCallbackQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminAnalyticsCustomers = (
 
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

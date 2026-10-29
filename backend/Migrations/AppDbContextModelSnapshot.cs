@@ -8045,6 +8045,66 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("online_order_integration_locations");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationOAuthToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("access_token");
+
+                    b.Property<DateTime>("AccessTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("access_token_expires_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalLocationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalLocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_oauth_tokens_tenant_provider_location");
+
+                    b.ToTable("online_order_integration_oauth_tokens");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -19047,6 +19107,15 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("ServiceFeeProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationOAuthToken", b =>
+                {
                     b.HasOne("KasseAPI_Final.Models.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")

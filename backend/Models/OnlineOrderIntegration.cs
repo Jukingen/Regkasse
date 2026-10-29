@@ -173,17 +173,47 @@ public static class OnlineOrderIntegrationStatuses
 }
 
 /// <summary>
-/// Placeholder verifier state. Config cannot set this to true.
-/// Production location enable stays blocked until the real Deliverect scheme replaces the placeholder.
+/// Per-provider signature confirmation. Config cannot set these constants to true.
+/// Production location enable stays blocked for a provider while its constant is false.
 /// </summary>
 public static class OnlineOrderIntegrationSignatureStatus
 {
     public const bool DeliverectConfirmed = false;
 
+    public const bool WoltConfirmed = false;
+
+    /// <summary>
+    /// Test assembly only (<c>InternalsVisibleTo</c>). Production code never sets this.
+    /// Callers reset it to <c>false</c> in a <c>finally</c> block.
+    /// </summary>
+    internal static bool WoltConfirmedForTests { get; set; }
+
     public const string HeaderName = "X-Regkasse-Integration-Signature";
+
+    /// <summary>Wolt marketplace webhook header. HMAC-SHA256 hex of the raw body.</summary>
+    public const string WoltHeaderName = "WOLT-SIGNATURE";
+
+    public const string WoltProvider = "wolt";
 
     public const string UnconfirmedCode = "INTEGRATION_SIGNATURE_UNCONFIRMED";
 
     /// <summary>Pending Deliverect confirmation. Not Deliverect's published header.</summary>
     public const string PendingConfirmationNote = "pending Deliverect confirmation";
+
+    public static bool IsWolt(string? provider) =>
+        string.Equals((provider ?? string.Empty).Trim(), WoltProvider, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Production gate. Deliverect reads <see cref="DeliverectConfirmed"/> only.
+    /// Wolt reads <see cref="WoltConfirmed"/> or the test hook. Every other provider stays closed.
+    /// </summary>
+    public static bool IsConfirmed(string? provider)
+    {
+        var normalized = (provider ?? string.Empty).Trim().ToLowerInvariant();
+        if (normalized == WoltProvider)
+            return WoltConfirmed || WoltConfirmedForTests;
+        if (normalized == "deliverect")
+            return DeliverectConfirmed;
+        return false;
+    }
 }

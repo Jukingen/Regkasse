@@ -7,8 +7,8 @@ namespace KasseAPI_Final.Services.Hosted;
 
 /// <summary>
 /// Retries stored marketplace rows. No separate feature flag: a location with
-/// <c>enabled = false</c> is not selected. In Production the unconfirmed signature
-/// constant skips the cycle entirely.
+/// <c>enabled = false</c> is not selected. In Production each row is skipped by its
+/// provider confirmation constant. The cycle itself still runs.
 /// </summary>
 public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
 {
@@ -37,8 +37,7 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
         {
             try
             {
-                if (!_environment.IsProduction() || OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed)
-                    await PollAsync(stoppingToken);
+                await PollAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -62,7 +61,8 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
 
     internal async Task PollAsync(CancellationToken ct)
     {
-        if (_environment.IsProduction() && !OnlineOrderIntegrationSignatureStatus.DeliverectConfirmed)
+        var dueIds = await ListDueIdsAsync(ct);
+        if (dueIds.Count == 0)
             return;
 
         using var scope = _scopes.CreateScope();
@@ -70,17 +70,6 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
         var processor = scope.ServiceProvider.GetRequiredService<IOnlineOrderIntegrationProcessor>();
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         var now = _time.GetUtcNow().UtcDateTime;
-        var dueIds = await db.OnlineOrderIntegrations
-            .IgnoreQueryFilters()
-            .Where(r => r.IsActive
-                        && r.AttemptCount < OnlineOrderIntegrationStatuses.MaxAttempts
-                        && (r.Status == OnlineOrderIntegrationStatuses.Received
-                            || r.Status == OnlineOrderIntegrationStatuses.Mapped)
-                        && (r.NextAttemptAt == null || r.NextAttemptAt <= now))
-            .OrderBy(r => r.NextAttemptAt)
-            .Select(r => r.Id)
-            .Take(20)
-            .ToListAsync(ct);
 
         foreach (var id in dueIds)
         {
@@ -100,5 +89,28 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
 
             await processor.ProcessAsync(id, ct);
         }
+    }
+
+    internal async Task<IReadOnlyList<Guid>> ListDueIdsAsync(CancellationToken ct)
+    {
+        using var scope = _scopes.CreateScope();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var now = _time.GetUtcNow().UtcDateTime;
+        var production = _environment.IsProduction();
+        var woltConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.WoltProvider);
+        var dueIds = await db.OnlineOrderIntegrations
+            .IgnoreQueryFilters()
+            .Where(r => r.IsActive
+                        && r.AttemptCount < OnlineOrderIntegrationStatuses.MaxAttempts
+                        && (r.Status == OnlineOrderIntegrationStatuses.Received
+                            || r.Status == OnlineOrderIntegrationStatuses.Mapped)
+                        && (r.NextAttemptAt == null || r.NextAttemptAt <= now)
+                        && (!production || (woltConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider)))
+            .OrderBy(r => r.NextAttemptAt)
+            .Select(r => r.Id)
+            .Take(20)
+            .ToListAsync(ct);
+        return dueIds;
     }
 }

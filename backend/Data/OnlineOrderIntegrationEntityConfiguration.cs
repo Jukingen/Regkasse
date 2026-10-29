@@ -103,3 +103,20 @@ internal sealed class OnlineOrderProductMappingEntityConfiguration : IEntityType
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class OnlineOrderIntegrationOAuthTokenEntityConfiguration : IEntityTypeConfiguration<OnlineOrderIntegrationOAuthToken>
+{
+    public void Configure(EntityTypeBuilder<OnlineOrderIntegrationOAuthToken> builder)
+    {
+        builder.Property(e => e.IsActive).HasDefaultValue(true);
+
+        builder.HasIndex(e => new { e.TenantId, e.Provider, e.ExternalLocationId })
+            .IsUnique()
+            .HasDatabaseName("ux_online_order_integration_oauth_tokens_tenant_provider_location");
+
+        builder.HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(e => e.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
