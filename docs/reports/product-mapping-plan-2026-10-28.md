@@ -57,3 +57,7 @@ Today the webhook provider is `deliverect`. Lieferando and Wolt are `external_ch
 Foodora is not a provider or channel value in this slice.
 
 The operator still chooses which marketplace to map first. That choice does not change the schema.
+
+## Test status
+
+PostgreSQL integration: Failed 0, Passed 57, Skipped 0, Total 57 (2026-10-29, Docker Desktop running).
