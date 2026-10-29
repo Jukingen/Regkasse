@@ -325,6 +325,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     '/digital/customer-portal',
     '/admin/digital',
     '/admin/digital/requests',
+    '/admin/online-order-integrations',
     '/admin/feedback',
   ],
   [ADMIN_SIDEBAR_GROUP_KEYS.backup]: [...BACKUP_AREA_ROUTE_PATHS],
@@ -788,6 +789,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     p.startsWith('/digital/customer-portal/') ||
     p === '/admin/digital' ||
     p.startsWith('/admin/digital/') ||
+    p === '/admin/online-order-integrations' ||
+    p.startsWith('/admin/online-order-integrations/') ||
     p === '/admin/feedback' ||
     p.startsWith('/admin/feedback/')
   ) {

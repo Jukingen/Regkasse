@@ -123,6 +123,43 @@ public class OnlineOrderIntegrationLocation : ITenantEntity
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>
+/// Maps one provider product id to one catalog product for a tenant.
+/// Inactive rows are ignored by marketplace intake.
+/// </summary>
+[Table("online_order_product_mappings")]
+public class OnlineOrderProductMapping : ITenantEntity
+{
+    [Key]
+    [Column("id")]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Column("tenant_id")]
+    public Guid TenantId { get; set; }
+
+    [Required]
+    [MaxLength(32)]
+    [Column("provider")]
+    public string Provider { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(128)]
+    [Column("external_product_id")]
+    public string ExternalProductId { get; set; } = string.Empty;
+
+    [Column("product_id")]
+    public Guid ProductId { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime? UpdatedAt { get; set; }
+
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
+}
+
 public static class OnlineOrderIntegrationStatuses
 {
     public const string Received = "received";

@@ -188,6 +188,7 @@ const HIDDEN_PREFIXES = [
   '/admin/tse',
   '/admin/rksv',
   '/admin/digital',
+  '/admin/online-order-integrations',
   '/rksv',
   '/settings/company',
   '/settings/receipt',

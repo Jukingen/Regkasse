@@ -91,5 +91,22 @@
     "settingsSave": "Speichern",
     "settingsSaved": "Einstellungen gespeichert.",
     "settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden."
+  },
+  "productMappings": {
+    "pageTitle": "Marktplatz-Produktzuordnung",
+    "pageSubtitle": "Eine externe Marktplatz-Produktnummer einem Katalogprodukt zuordnen. Ohne Zuordnung bleibt die Zeile fehlgeschlagen und es wird kein POS-Warenkorb geöffnet.",
+    "provider": "Anbieter",
+    "externalProductId": "Externe Produktnummer",
+    "product": "Katalogprodukt",
+    "save": "Zuordnung speichern",
+    "saved": "Zuordnung gespeichert.",
+    "saveFailed": "Zuordnung konnte nicht gespeichert werden.",
+    "loadFailed": "Zuordnungen konnten nicht geladen werden.",
+    "empty": "Keine Zuordnungen für diesen Anbieter.",
+    "columns": {
+      "provider": "Anbieter",
+      "externalProductId": "Externe Produktnummer",
+      "product": "Katalogprodukt"
+    }
   }
 }

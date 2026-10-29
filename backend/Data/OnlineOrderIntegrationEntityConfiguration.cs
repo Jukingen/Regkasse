@@ -78,3 +78,28 @@ internal sealed class OnlineOrderIntegrationLocationEntityConfiguration : IEntit
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class OnlineOrderProductMappingEntityConfiguration : IEntityTypeConfiguration<OnlineOrderProductMapping>
+{
+    public void Configure(EntityTypeBuilder<OnlineOrderProductMapping> builder)
+    {
+        builder.Property(e => e.IsActive).HasDefaultValue(true);
+
+        builder.HasIndex(e => new { e.TenantId, e.Provider, e.ExternalProductId })
+            .IsUnique()
+            .HasDatabaseName("ux_online_order_product_mappings_tenant_provider_external");
+
+        builder.HasIndex(e => e.ProductId)
+            .HasDatabaseName("idx_online_order_product_mappings_product");
+
+        builder.HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(e => e.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Product>()
+            .WithMany()
+            .HasForeignKey(e => e.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

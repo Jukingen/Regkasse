@@ -242,6 +242,7 @@ export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
   '/billing/digital',
   '/admin/digital',
   '/admin/digital/requests',
+  '/admin/online-order-integrations',
   '/admin/online-payments',
   '/admin/payments/gateway-console',
   '/admin/feedback',
