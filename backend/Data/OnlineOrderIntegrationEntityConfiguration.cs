@@ -127,9 +127,30 @@ internal sealed class OnlineOrderIntegrationProviderEntityConfiguration : IEntit
     {
         builder.Property(e => e.Enabled).HasDefaultValue(false);
         builder.Property(e => e.IsActive).HasDefaultValue(true);
+        builder.Property(e => e.CredentialOwner)
+            .HasMaxLength(16)
+            .HasDefaultValue(OnlineOrderIntegrationCredentialOwners.Deployment);
 
         builder.HasIndex(e => e.Provider)
             .IsUnique()
             .HasDatabaseName("ux_online_order_integration_providers_provider");
+    }
+}
+
+internal sealed class OnlineOrderIntegrationTenantCredentialEntityConfiguration
+    : IEntityTypeConfiguration<OnlineOrderIntegrationTenantCredential>
+{
+    public void Configure(EntityTypeBuilder<OnlineOrderIntegrationTenantCredential> builder)
+    {
+        builder.Property(e => e.IsActive).HasDefaultValue(true);
+
+        builder.HasIndex(e => new { e.TenantId, e.Provider })
+            .IsUnique()
+            .HasDatabaseName("ux_online_order_integration_tenant_credentials_tenant_provider");
+
+        builder.HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(e => e.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

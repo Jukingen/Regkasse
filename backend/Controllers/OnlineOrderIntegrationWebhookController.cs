@@ -18,13 +18,16 @@ public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
 {
     private readonly IOnlineOrderIntegrationWebhookService _webhooks;
     private readonly IWoltOrderNotificationService _wolt;
+    private readonly IFoodoraOrderNotificationService _foodora;
 
     public OnlineOrderIntegrationWebhookController(
         IOnlineOrderIntegrationWebhookService webhooks,
-        IWoltOrderNotificationService wolt)
+        IWoltOrderNotificationService wolt,
+        IFoodoraOrderNotificationService foodora)
     {
         _webhooks = webhooks;
         _wolt = wolt;
+        _foodora = foodora;
     }
 
     [HttpPost("{provider}")]
@@ -33,6 +36,16 @@ public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Accept(string provider, CancellationToken ct)
     {
+        if (OnlineOrderIntegrationSignatureStatus.IsFoodora(provider))
+        {
+            var authorization = Request.Headers.Authorization.ToString();
+            var foodoraResult = await _foodora.AcceptAsync(authorization, Request.Body, ct);
+            if (foodoraResult.Succeeded)
+                return foodoraResult.Id is Guid foodoraId ? Ok(new { id = foodoraId }) : Ok();
+
+            return StatusCode(foodoraResult.StatusCode, new { code = foodoraResult.Code, message = foodoraResult.Error });
+        }
+
         string raw;
         using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
             raw = await reader.ReadToEndAsync(ct);

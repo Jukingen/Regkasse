@@ -13,6 +13,8 @@ public sealed class OnlineOrderIntegrationOptions
         new(StringComparer.OrdinalIgnoreCase);
 
     public WoltIntegrationOptions Wolt { get; set; } = new();
+
+    public FoodoraIntegrationOptions Foodora { get; set; } = new();
 }
 
 /// <summary>
@@ -33,4 +35,14 @@ public sealed class WoltIntegrationOptions
         "https://integrations-authentication-service.wolt.com/oauth2/token";
 
     public string OrderBaseUrl { get; set; } = "https://pos-integration-service.wolt.com";
+}
+
+/// <summary>
+/// Foodora Partner API. Client id and secret are tenant credentials, not deployment settings.
+/// </summary>
+public sealed class FoodoraIntegrationOptions
+{
+    public string TokenUrl { get; set; } = "https://foodora.partner.deliveryhero.io/v2/oauth/token";
+
+    public string ApiBaseUrl { get; set; } = "https://foodora.partner.deliveryhero.io";
 }

@@ -8327,6 +8327,104 @@
         }
       }
     },
+    "/api/admin/online-order-integrations/foodora/credentials": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodoraTenantCredentialStatusDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertFoodoraTenantCredentialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/grace-periods/config": {
       "get": {
         "tags": [
@@ -75546,6 +75644,19 @@
         },
         "additionalProperties": false
       },
+      "FoodoraTenantCredentialStatusDto": {
+        "type": "object",
+        "properties": {
+          "providerEnabled": {
+            "type": "boolean"
+          },
+          "credentialStatus": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ForceCleanupRequest": {
         "type": "object",
         "properties": {
@@ -84371,6 +84482,9 @@
           "source": {
             "type": "string",
             "nullable": true
+          },
+          "marketplaceStatusActionsEnabled": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -112067,6 +112181,28 @@
         },
         "additionalProperties": false
       },
+      "UpsertFoodoraTenantCredentialRequest": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "chainId": {
+            "type": "string",
+            "nullable": true
+          },
+          "webhookToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpsertHairSalonCampaignRequest": {
         "type": "object",
         "properties": {
@@ -114387,6 +114523,9 @@
     },
     {
       "name": "AdminFiskaly"
+    },
+    {
+      "name": "AdminFoodoraCredentials"
     },
     {
       "name": "AdminGracePeriods"

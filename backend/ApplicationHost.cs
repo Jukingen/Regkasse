@@ -1462,7 +1462,9 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderLoyaltyService, OnlineOrderLoyaltyService>();
         builder.Services.AddScoped<IOnlineOrderTrackingService, OnlineOrderTrackingService>();
         builder.Services.AddScoped<WoltOrderStatusSync>();
-        builder.Services.AddScoped<IOnlineOrderStatusService, OnlineOrderStatusService>();
+        builder.Services.AddScoped<FoodoraOrderStatusSync>();
+        builder.Services.AddScoped<OnlineOrderStatusService>();
+        builder.Services.AddScoped<IOnlineOrderStatusService>(sp => sp.GetRequiredService<OnlineOrderStatusService>());
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
         builder.Services.AddScoped<IOnlinePaymentAdminService, OnlinePaymentAdminService>();
         builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
@@ -1473,10 +1475,16 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IOnlineOrderIntegrationLocationService, OnlineOrderIntegrationLocationService>();
         builder.Services.AddScoped<IOnlineOrderIntegrationProductMappingService, OnlineOrderIntegrationProductMappingService>();
         builder.Services.AddHttpClient(WoltOAuthClient.HttpClientName);
+        builder.Services.AddHttpClient(FoodoraAuthClient.HttpClientName);
         builder.Services.AddSingleton<OnlineOrderIntegrationTokenProtector>();
         builder.Services.AddScoped<IWoltOAuthClient, WoltOAuthClient>();
         builder.Services.AddScoped<IWoltAccessTokenSource, WoltAccessTokenSource>();
         builder.Services.AddScoped<IWoltOrderNotificationService, WoltOrderNotificationService>();
+        builder.Services.AddScoped<IFoodoraAuthClient, FoodoraAuthClient>();
+        builder.Services.AddScoped<IFoodoraAccessTokenSource, FoodoraAccessTokenSource>();
+        builder.Services.AddScoped<IFoodoraOrderNotificationService, FoodoraOrderNotificationService>();
+        builder.Services.AddScoped<IFoodoraTenantCredentialService, FoodoraTenantCredentialService>();
+        builder.Services.AddScoped<FoodoraAckDeadlineScanner>();
         builder.Services.AddScoped<IOnlineOrderIntegrationProviderService, OnlineOrderIntegrationProviderService>();
         builder.Services.AddScoped<IWoltIntegrationConnectService, WoltIntegrationConnectService>();
         if (!OpenApiExportMode.IsEnabled)

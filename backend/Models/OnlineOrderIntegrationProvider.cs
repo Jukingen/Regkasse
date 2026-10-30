@@ -40,4 +40,20 @@ public class OnlineOrderIntegrationProvider
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// <see cref="OnlineOrderIntegrationCredentialOwners.Deployment"/> keeps partner secrets on this row.
+    /// <see cref="OnlineOrderIntegrationCredentialOwners.Tenant"/> leaves them on the tenant credential table.
+    /// </summary>
+    [Required]
+    [MaxLength(16)]
+    [Column("credential_owner")]
+    public string CredentialOwner { get; set; } = OnlineOrderIntegrationCredentialOwners.Deployment;
+}
+
+public static class OnlineOrderIntegrationCredentialOwners
+{
+    public const string Deployment = "deployment";
+
+    public const string Tenant = "tenant";
 }

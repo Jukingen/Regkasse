@@ -61,6 +61,7 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
 
     internal async Task PollAsync(CancellationToken ct)
     {
+        await MarkFoodoraAckDeadlinesAsync(ct);
         var dueIds = await ListDueIdsAsync(ct);
         if (dueIds.Count == 0)
             return;
@@ -99,6 +100,7 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
         var now = _time.GetUtcNow().UtcDateTime;
         var production = _environment.IsProduction();
         var woltConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.WoltProvider);
+        var foodoraConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.FoodoraProvider);
         var dueIds = await db.OnlineOrderIntegrations
             .IgnoreQueryFilters()
             .Where(r => r.IsActive
@@ -106,11 +108,20 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
                         && (r.Status == OnlineOrderIntegrationStatuses.Received
                             || r.Status == OnlineOrderIntegrationStatuses.Mapped)
                         && (r.NextAttemptAt == null || r.NextAttemptAt <= now)
-                        && (!production || (woltConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider)))
+                        && (!production
+                            || (woltConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider)
+                            || (foodoraConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.FoodoraProvider)))
             .OrderBy(r => r.NextAttemptAt)
             .Select(r => r.Id)
             .Take(20)
             .ToListAsync(ct);
         return dueIds;
+    }
+
+    private async Task MarkFoodoraAckDeadlinesAsync(CancellationToken ct)
+    {
+        using var scope = _scopes.CreateScope();
+        var scanner = scope.ServiceProvider.GetRequiredService<FoodoraAckDeadlineScanner>();
+        await scanner.MarkExpiredAsync(ct);
     }
 }

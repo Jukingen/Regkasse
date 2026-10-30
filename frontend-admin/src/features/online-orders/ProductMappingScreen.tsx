@@ -17,6 +17,7 @@ import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { FoodoraCredentialsSection } from './FoodoraCredentialsSection';
 import { ProviderConnectSection } from './ProviderConnectSection';
 import { ProviderSettingsSection } from './ProviderSettingsSection';
 
@@ -75,6 +76,7 @@ export function ProductMappingScreen() {
       />
       <ProviderSettingsSection />
       <ProviderConnectSection />
+      <FoodoraCredentialsSection />
       <Form<MappingForm>
         form={form}
         layout="vertical"

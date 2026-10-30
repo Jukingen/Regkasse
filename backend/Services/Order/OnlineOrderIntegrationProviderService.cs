@@ -58,6 +58,9 @@ public sealed class OnlineOrderIntegrationProviderService : IOnlineOrderIntegrat
         if (provider is null)
             return Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Provider is invalid.");
 
+        if (OnlineOrderIntegrationSignatureStatus.IsFoodora(provider))
+            return await UpsertTenantOwnedAsync(provider, request.Enabled, ct);
+
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var row = await db.OnlineOrderIntegrationProviders
             .FirstOrDefaultAsync(p => p.Provider == provider, ct);
@@ -123,9 +126,31 @@ public sealed class OnlineOrderIntegrationProviderService : IOnlineOrderIntegrat
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var row = await db.OnlineOrderIntegrationProviders.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Provider == normalized && p.IsActive, ct);
-        var connected = await db.OnlineOrderIntegrationOAuthTokens.AsNoTracking()
-            .AnyAsync(t => t.TenantId == tenantId && t.Provider == normalized && t.IsActive, ct);
+        var connected = OnlineOrderIntegrationSignatureStatus.IsFoodora(normalized)
+            ? await db.OnlineOrderIntegrationTenantCredentials.AsNoTracking()
+                .AnyAsync(
+                    c => c.TenantId == tenantId
+                         && c.Provider == normalized
+                         && c.IsActive
+                         && c.ClientId != ""
+                         && c.ClientSecret != ""
+                         && c.WebhookToken != "",
+                    ct)
+            : await db.OnlineOrderIntegrationOAuthTokens.AsNoTracking()
+                .AnyAsync(t => t.TenantId == tenantId && t.Provider == normalized && t.IsActive, ct);
         var admin = ToAdmin(normalized, row);
+        if (OnlineOrderIntegrationSignatureStatus.IsFoodora(normalized))
+        {
+            return (OnlineOrderIntegrationCommandResult.Ok(StatusCodes.Status200OK), new OnlineOrderIntegrationProviderTenantDto
+            {
+                Provider = admin.Provider,
+                Enabled = admin.Enabled,
+                CredentialStatus = connected
+                    ? OnlineOrderIntegrationProviderStatuses.Configured
+                    : OnlineOrderIntegrationProviderStatuses.Missing,
+                Connected = connected,
+            });
+        }
         return (OnlineOrderIntegrationCommandResult.Ok(StatusCodes.Status200OK), new OnlineOrderIntegrationProviderTenantDto
         {
             Provider = admin.Provider,
@@ -169,8 +194,52 @@ public sealed class OnlineOrderIntegrationProviderService : IOnlineOrderIntegrat
         return required.Credentials?.ClientSecret;
     }
 
-    private static OnlineOrderIntegrationProviderAdminDto ToAdmin(string provider, OnlineOrderIntegrationProvider? row) =>
-        new()
+    private async Task<OnlineOrderIntegrationCommandResult> UpsertTenantOwnedAsync(
+        string provider,
+        bool enabled,
+        CancellationToken ct)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var row = await db.OnlineOrderIntegrationProviders
+            .FirstOrDefaultAsync(p => p.Provider == provider, ct);
+        var now = _time.GetUtcNow().UtcDateTime;
+        if (row is null)
+        {
+            row = new OnlineOrderIntegrationProvider
+            {
+                Id = Guid.NewGuid(),
+                Provider = provider,
+                ClientId = string.Empty,
+                ClientSecret = string.Empty,
+                CredentialOwner = OnlineOrderIntegrationCredentialOwners.Tenant,
+                CreatedAt = now,
+                IsActive = true,
+            };
+            db.OnlineOrderIntegrationProviders.Add(row);
+        }
+
+        row.CredentialOwner = OnlineOrderIntegrationCredentialOwners.Tenant;
+        row.Enabled = enabled;
+        row.UpdatedAt = now;
+        row.IsActive = true;
+        await db.SaveChangesAsync(ct);
+        return OnlineOrderIntegrationCommandResult.Ok(StatusCodes.Status200OK, row.Id);
+    }
+
+    private static OnlineOrderIntegrationProviderAdminDto ToAdmin(string provider, OnlineOrderIntegrationProvider? row)
+    {
+        if (OnlineOrderIntegrationSignatureStatus.IsFoodora(provider)
+            || string.Equals(row?.CredentialOwner, OnlineOrderIntegrationCredentialOwners.Tenant, StringComparison.Ordinal))
+        {
+            return new OnlineOrderIntegrationProviderAdminDto
+            {
+                Provider = provider,
+                Enabled = row?.Enabled == true,
+                CredentialStatus = OnlineOrderIntegrationCredentialOwners.Tenant,
+            };
+        }
+
+        return new OnlineOrderIntegrationProviderAdminDto
         {
             Provider = provider,
             Enabled = row?.Enabled == true,
@@ -178,6 +247,7 @@ public sealed class OnlineOrderIntegrationProviderService : IOnlineOrderIntegrat
                 ? OnlineOrderIntegrationProviderStatuses.Configured
                 : OnlineOrderIntegrationProviderStatuses.Missing,
         };
+    }
 
     private static bool HasSecrets(OnlineOrderIntegrationProvider row) =>
         !string.IsNullOrWhiteSpace(row.ClientId) && !string.IsNullOrWhiteSpace(row.ClientSecret);

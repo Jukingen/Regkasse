@@ -301,6 +301,7 @@ import type {
   FiskalySettingsDto,
   FiskalySetupStatusDto,
   FiskalyStatusDto,
+  FoodoraTenantCredentialStatusDto,
   ForceLogoutResultDto,
   GenerateLicenseRequestBody,
   GenerateLicenseResponse,
@@ -1053,6 +1054,7 @@ import type {
   UpdateUsernameRequest,
   UpdateVerticalProfileFeaturesRequest,
   UpgradeLicenseRequestBody,
+  UpsertFoodoraTenantCredentialRequest,
   UpsertHairSalonCampaignRequest,
   UpsertOnlineOrderIntegrationLocationRequest,
   UpsertOnlineOrderIntegrationProviderRequest,
@@ -11641,6 +11643,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminFiskalyCashRegisterIdInitializeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlineOrderIntegrationsFoodoraCredentials = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<FoodoraTenantCredentialStatusDto>(
+      {url: `/api/admin/online-order-integrations/foodora/credentials`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryKey = () => {
+    return [`/api/admin/online-order-integrations/foodora/credentials`] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsFoodoraCredentials(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>>
+export type GetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsFoodoraCredentials = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsFoodoraCredentialsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOnlineOrderIntegrationsFoodoraCredentials = (
+    upsertFoodoraTenantCredentialRequest: UpsertFoodoraTenantCredentialRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/foodora/credentials`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertFoodoraTenantCredentialRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError,{data: UpsertFoodoraTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError,{data: UpsertFoodoraTenantCredentialRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, {data: UpsertFoodoraTenantCredentialRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsFoodoraCredentials(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>>
+    export type PutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationBody = UpsertFoodoraTenantCredentialRequest
+    export type PutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsFoodoraCredentials = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>, TError,{data: UpsertFoodoraTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsFoodoraCredentials>>,
+        TError,
+        {data: UpsertFoodoraTenantCredentialRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
