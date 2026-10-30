@@ -95,7 +95,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
-  '/admin/online-order-integrations': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-order-integrations': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,

@@ -50,6 +50,7 @@ public sealed class WoltIntegrationConnectService : IWoltIntegrationConnectServi
     private readonly IOptions<OnlineOrderIntegrationOptions> _options;
     private readonly IMemoryCache _cache;
     private readonly IWoltOAuthClient _oauth;
+    private readonly IOnlineOrderIntegrationProviderService _providers;
     private readonly OnlineOrderIntegrationTokenProtector _protector;
     private readonly TimeProvider _time;
     private readonly ILogger<WoltIntegrationConnectService> _logger;
@@ -60,6 +61,7 @@ public sealed class WoltIntegrationConnectService : IWoltIntegrationConnectServi
         IOptions<OnlineOrderIntegrationOptions> options,
         IMemoryCache cache,
         IWoltOAuthClient oauth,
+        IOnlineOrderIntegrationProviderService providers,
         OnlineOrderIntegrationTokenProtector protector,
         TimeProvider time,
         ILogger<WoltIntegrationConnectService> logger)
@@ -69,24 +71,28 @@ public sealed class WoltIntegrationConnectService : IWoltIntegrationConnectServi
         _options = options;
         _cache = cache;
         _oauth = oauth;
+        _providers = providers;
         _protector = protector;
         _time = time;
         _logger = logger;
     }
 
-    public Task<WoltConnectStartResult> BeginAsync(string? userId, CancellationToken ct = default)
+    public async Task<WoltConnectStartResult> BeginAsync(string? userId, CancellationToken ct = default)
     {
         if (_tenant.TenantId is not Guid tenantId || tenantId == Guid.Empty)
-            return Task.FromResult(WoltConnectStartResult.Fail(StatusCodes.Status404NotFound, "TENANT_NOT_FOUND", "Tenant was not found."));
+            return WoltConnectStartResult.Fail(StatusCodes.Status404NotFound, "TENANT_NOT_FOUND", "Tenant was not found.");
         if (string.IsNullOrWhiteSpace(userId))
-            return Task.FromResult(WoltConnectStartResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "User is required."));
+            return WoltConnectStartResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "User is required.");
+
+        var partner = await _providers.RequireEnabledCredentialsAsync(OnlineOrderIntegrationSignatureStatus.WoltProvider, ct);
+        if (!partner.Result.Succeeded || partner.Credentials is null)
+            return WoltConnectStartResult.Fail(partner.Result.StatusCode, partner.Result.Code ?? OnlineOrderIntegrationProviderStatuses.DisabledCode, partner.Result.Error ?? "Provider is disabled.");
 
         var wolt = _options.Value.Wolt;
-        if (string.IsNullOrWhiteSpace(wolt.ClientId)
-            || string.IsNullOrWhiteSpace(wolt.RedirectUri)
+        if (string.IsNullOrWhiteSpace(wolt.RedirectUri)
             || string.IsNullOrWhiteSpace(wolt.AuthorizationEndpoint)
             || !wolt.AuthorizationEndpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            return Task.FromResult(WoltConnectStartResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Wolt OAuth is not configured."));
+            return WoltConnectStartResult.Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Wolt OAuth is not configured.");
 
         var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         _cache.Set(
@@ -96,13 +102,13 @@ public sealed class WoltIntegrationConnectService : IWoltIntegrationConnectServi
 
         var url = QueryHelpers.AddQueryString(wolt.AuthorizationEndpoint, new Dictionary<string, string?>
         {
-            ["client_id"] = wolt.ClientId,
+            ["client_id"] = partner.Credentials.ClientId,
             ["redirect_uri"] = wolt.RedirectUri,
             ["state"] = state,
             ["response_type"] = "code",
         });
         _logger.LogInformation("Wolt connect started for tenant {TenantId}.", tenantId);
-        return Task.FromResult(WoltConnectStartResult.Ok(url));
+        return WoltConnectStartResult.Ok(url);
     }
 
     public async Task<OnlineOrderIntegrationCommandResult> CompleteAsync(
@@ -125,7 +131,15 @@ public sealed class WoltIntegrationConnectService : IWoltIntegrationConnectServi
         if (!string.Equals(stored.UserId, userId.Trim(), StringComparison.Ordinal) || stored.TenantId != tenantId)
             return Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "OAuth state was not found.");
 
-        var exchanged = await _oauth.ExchangeAuthorizationCodeAsync(code.Trim(), ct);
+        var partner = await _providers.RequireEnabledCredentialsAsync(OnlineOrderIntegrationSignatureStatus.WoltProvider, ct);
+        if (!partner.Result.Succeeded || partner.Credentials is null)
+            return Fail(partner.Result.StatusCode, partner.Result.Code ?? OnlineOrderIntegrationProviderStatuses.DisabledCode, partner.Result.Error ?? "Provider is disabled.");
+
+        var exchanged = await _oauth.ExchangeAuthorizationCodeAsync(
+            code.Trim(),
+            partner.Credentials.ClientId,
+            partner.Credentials.ClientSecret,
+            ct);
         if (!exchanged.Succeeded
             || exchanged.AccessToken is null
             || exchanged.RefreshToken is null

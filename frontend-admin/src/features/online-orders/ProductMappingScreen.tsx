@@ -17,6 +17,9 @@ import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { ProviderConnectSection } from './ProviderConnectSection';
+import { ProviderSettingsSection } from './ProviderSettingsSection';
+
 type MappingForm = {
   provider: string;
   externalProductId: string;
@@ -70,6 +73,8 @@ export function ProductMappingScreen() {
           { title: t('onlineOrders.productMappings.pageTitle') },
         ]}
       />
+      <ProviderSettingsSection />
+      <ProviderConnectSection />
       <Form<MappingForm>
         form={form}
         layout="vertical"

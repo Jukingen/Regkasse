@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>Super Admin Wolt OAuth. Permission: <c>digital.manage</c>. No new permission.</summary>
+/// <summary>Wolt OAuth for the ambient tenant. Permission: <c>digital.orders.manage</c>.</summary>
 [Authorize]
 [ApiController]
 [Route("api/admin/online-order-integrations/wolt")]
@@ -26,7 +26,8 @@ public sealed class AdminWoltIntegrationController : ControllerBase
     }
 
     [HttpPost("connect")]
-    [HasPermission(AppPermissions.DigitalManage)]
+    [HasPermission(AppPermissions.DigitalOrdersManage)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -45,7 +46,7 @@ public sealed class AdminWoltIntegrationController : ControllerBase
     }
 
     [HttpGet("callback")]
-    [HasPermission(AppPermissions.DigitalManage)]
+    [HasPermission(AppPermissions.DigitalOrdersManage)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

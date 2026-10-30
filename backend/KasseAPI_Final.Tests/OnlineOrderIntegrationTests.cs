@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
@@ -487,6 +490,7 @@ public sealed class OnlineOrderIntegrationTests
             harness.Factory,
             protector,
             client,
+            new OnlineOrderIntegrationProviderService(harness.Factory, harness.Tenant, protector, TimeProvider.System),
             TimeProvider.System,
             NullLogger<WoltAccessTokenSource>.Instance);
 
@@ -643,6 +647,148 @@ public sealed class OnlineOrderIntegrationTests
     }
 
     [Fact]
+    public async Task Provider_configuration_hides_secrets_and_blocks_connect_until_enabled()
+    {
+        var harness = await Harness.CreateAsync();
+        harness.SetVerticalProfile(VerticalProfileIds.Gastronomy);
+        var providers = harness.ProviderService();
+        var guard = harness.ProfileGuard();
+        var admin = new AdminOnlineOrderIntegrationProvidersController(providers, guard);
+        var tenant = new TenantOnlineOrderIntegrationProvidersController(providers, guard);
+
+        var missing = await admin.Get("wolt", CancellationToken.None);
+        var missingBody = Assert.IsType<OkObjectResult>(missing).Value as OnlineOrderIntegrationProviderAdminDto;
+        Assert.NotNull(missingBody);
+        Assert.Equal(OnlineOrderIntegrationProviderStatuses.Missing, missingBody!.CredentialStatus);
+        Assert.False(missingBody.Enabled);
+
+        var saved = await admin.Upsert(new UpsertOnlineOrderIntegrationProviderRequest
+        {
+            Provider = "wolt",
+            Enabled = true,
+            ClientId = "partner-client",
+            ClientSecret = "partner-secret",
+        }, CancellationToken.None);
+        Assert.IsType<OkObjectResult>(saved);
+
+        var configured = await admin.Get("wolt", CancellationToken.None);
+        var configuredBody = Assert.IsType<OkObjectResult>(configured).Value as OnlineOrderIntegrationProviderAdminDto;
+        Assert.NotNull(configuredBody);
+        Assert.True(configuredBody!.Enabled);
+        Assert.Equal(OnlineOrderIntegrationProviderStatuses.Configured, configuredBody.CredentialStatus);
+        Assert.DoesNotContain("partner-secret", System.Text.Json.JsonSerializer.Serialize(configuredBody), StringComparison.Ordinal);
+
+        var stored = Assert.Single(harness.Db.OnlineOrderIntegrationProviders);
+        Assert.DoesNotContain("partner-secret", stored.ClientSecret, StringComparison.Ordinal);
+        Assert.DoesNotContain("partner-client", stored.ClientId, StringComparison.Ordinal);
+
+        var tenantView = await tenant.Get("wolt", CancellationToken.None);
+        var tenantBody = Assert.IsType<OkObjectResult>(tenantView).Value as OnlineOrderIntegrationProviderTenantDto;
+        Assert.NotNull(tenantBody);
+        Assert.True(tenantBody!.Enabled);
+        Assert.False(tenantBody.Connected);
+        Assert.DoesNotContain("partner-secret", System.Text.Json.JsonSerializer.Serialize(tenantBody), StringComparison.Ordinal);
+
+        harness.SetVerticalProfile(VerticalProfileIds.HairSalon);
+        AssertProfileForbidden(await admin.Get("wolt", CancellationToken.None));
+        AssertProfileForbidden(await tenant.Get("wolt", CancellationToken.None));
+        AssertProfileForbidden(await admin.Upsert(new UpsertOnlineOrderIntegrationProviderRequest
+        {
+            Provider = "wolt",
+            Enabled = false,
+            ClientId = "other",
+            ClientSecret = "other-secret",
+        }, CancellationToken.None));
+
+        var connect = new WoltIntegrationConnectService(
+            harness.Factory,
+            harness.Tenant,
+            Options.Create(new OnlineOrderIntegrationOptions
+            {
+                Wolt = new WoltIntegrationOptions
+                {
+                    RedirectUri = "https://admin.example/callback",
+                    AuthorizationEndpoint = "https://wolt.test/oauth/authorize",
+                    TokenUrl = "https://wolt.test/oauth2/token",
+                },
+            }),
+            new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()),
+            new Mock<IWoltOAuthClient>().Object,
+            providers,
+            harness.TokenProtector,
+            TimeProvider.System,
+            NullLogger<WoltIntegrationConnectService>.Instance);
+        harness.SetVerticalProfile(VerticalProfileIds.Gastronomy);
+        var open = await connect.BeginAsync("user-1", CancellationToken.None);
+        Assert.True(open.Succeeded);
+        Assert.Contains("client_id=partner-client", open.AuthorizationUrl, StringComparison.Ordinal);
+        Assert.DoesNotContain("partner-secret", open.AuthorizationUrl, StringComparison.Ordinal);
+
+        await providers.UpsertAsync(new UpsertOnlineOrderIntegrationProviderRequest
+        {
+            Provider = "wolt",
+            Enabled = false,
+        }, CancellationToken.None);
+        var blocked = await connect.BeginAsync("user-1", CancellationToken.None);
+        Assert.False(blocked.Succeeded);
+        Assert.Equal(409, blocked.StatusCode);
+        Assert.Equal(OnlineOrderIntegrationProviderStatuses.DisabledCode, blocked.Code);
+    }
+
+    [Fact]
+    public async Task Tenant_admin_and_super_admin_complete_wolt_callback_for_the_ambient_tenant()
+    {
+        var connectPermission = Assert.Single(typeof(AdminWoltIntegrationController)
+            .GetMethod(nameof(AdminWoltIntegrationController.Connect))!
+            .GetCustomAttributes<HasPermissionAttribute>());
+        var callbackPermission = Assert.Single(typeof(AdminWoltIntegrationController)
+            .GetMethod(nameof(AdminWoltIntegrationController.Callback))!
+            .GetCustomAttributes<HasPermissionAttribute>());
+        Assert.Equal(AppPermissions.DigitalOrdersManage, connectPermission.Permission);
+        Assert.Equal(AppPermissions.DigitalOrdersManage, callbackPermission.Permission);
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.DigitalOrdersManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.DigitalOrdersManage));
+
+        var harness = await Harness.CreateAsync();
+        harness.SetVerticalProfile(VerticalProfileIds.Gastronomy);
+        var tenantId = harness.Tenant.TenantId!.Value;
+        var venues = new Queue<string>(new[] { "venue-tenant", "venue-super" });
+        var connect = await WoltConnectAsync(harness, venues);
+        var controller = WoltController(harness, connect);
+
+        controller.HttpContext.User = Actor("tenant-admin");
+        var started = await controller.Connect(CancellationToken.None);
+        var startedBody = Assert.IsType<OkObjectResult>(started).Value;
+        var authorizationUrl = startedBody!.GetType().GetProperty("authorizationUrl")!.GetValue(startedBody) as string;
+        Assert.Contains("client_id=partner-client", authorizationUrl, StringComparison.Ordinal);
+        var completed = await controller.Callback("code-tenant", StateOf(authorizationUrl!), CancellationToken.None);
+        Assert.IsType<OkObjectResult>(completed);
+
+        var superTenantId = Guid.NewGuid();
+        harness.Tenant.TenantId = superTenantId;
+        harness.SetVerticalProfile(VerticalProfileIds.Gastronomy);
+        controller.HttpContext.User = Actor("super-admin");
+        var superStarted = await controller.Connect(CancellationToken.None);
+        var superBody = Assert.IsType<OkObjectResult>(superStarted).Value;
+        var superUrl = superBody!.GetType().GetProperty("authorizationUrl")!.GetValue(superBody) as string;
+        var superCompleted = await controller.Callback("code-super", StateOf(superUrl!), CancellationToken.None);
+        Assert.IsType<OkObjectResult>(superCompleted);
+
+        var tokens = await harness.Db.OnlineOrderIntegrationOAuthTokens.IgnoreQueryFilters().AsNoTracking().ToListAsync();
+        Assert.Equal(2, tokens.Count);
+        Assert.Contains(tokens, token => token.TenantId == tenantId && token.ExternalLocationId == "venue-tenant");
+        Assert.Contains(tokens, token => token.TenantId == superTenantId && token.ExternalLocationId == "venue-super");
+        Assert.All(tokens, token => Assert.NotEqual(Guid.Empty, token.TenantId));
+
+        harness.Tenant.TenantId = tenantId;
+        harness.SetVerticalProfile(VerticalProfileIds.HairSalon);
+        controller.HttpContext.User = Actor("tenant-admin");
+        AssertProfileForbidden(await controller.Connect(CancellationToken.None));
+        AssertProfileForbidden(await controller.Callback("code-salon", "state-salon", CancellationToken.None));
+        Assert.Equal(2, await harness.Db.OnlineOrderIntegrationOAuthTokens.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
     public async Task Gastronomy_marketplace_admin_endpoints_succeed_and_other_verticals_are_forbidden()
     {
         var harness = await Harness.CreateAsync();
@@ -737,6 +883,68 @@ public sealed class OnlineOrderIntegrationTests
         Assert.Equal(404, valid.StatusCode);
         Assert.Empty(harness.Db.OnlineOrderIntegrations.IgnoreQueryFilters());
         Assert.Empty(harness.Db.Carts.IgnoreQueryFilters());
+    }
+
+    private static async Task<WoltIntegrationConnectService> WoltConnectAsync(Harness harness, Queue<string> venues)
+    {
+        var saved = await harness.ProviderService().UpsertAsync(new UpsertOnlineOrderIntegrationProviderRequest
+        {
+            Provider = "wolt",
+            Enabled = true,
+            ClientId = "partner-client",
+            ClientSecret = "partner-secret",
+        }, CancellationToken.None);
+        if (!saved.Succeeded)
+            throw new InvalidOperationException(saved.Error);
+        var handler = new StubHandler((_, _) =>
+        {
+            var venue = venues.Dequeue();
+            return Task.FromResult(JsonResponse(HttpStatusCode.OK, TokenJson(FakeJwt(venue), "refresh-" + venue, 3600)));
+        });
+        var options = Options.Create(new OnlineOrderIntegrationOptions
+        {
+            Wolt = new WoltIntegrationOptions
+            {
+                RedirectUri = "https://admin.example/callback",
+                AuthorizationEndpoint = "https://wolt.test/oauth/authorize",
+                TokenUrl = "https://wolt.test/oauth2/token",
+            },
+        });
+        return new WoltIntegrationConnectService(
+            harness.Factory,
+            harness.Tenant,
+            options,
+            new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()),
+            new WoltOAuthClient(HttpFactory(handler), options, TimeProvider.System, NullLogger<WoltOAuthClient>.Instance),
+            harness.ProviderService(),
+            harness.TokenProtector,
+            TimeProvider.System,
+            NullLogger<WoltIntegrationConnectService>.Instance);
+    }
+
+    private static AdminWoltIntegrationController WoltController(Harness harness, IWoltIntegrationConnectService connect)
+    {
+        var http = new DefaultHttpContext();
+        return new AdminWoltIntegrationController(connect, harness.ProfileGuard())
+        {
+            ControllerContext = new ControllerContext { HttpContext = http },
+        };
+    }
+
+    private static ClaimsPrincipal Actor(string userId) =>
+        new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId) }, "test"));
+
+    private static string StateOf(string authorizationUrl)
+    {
+        var query = new Uri(authorizationUrl).Query.TrimStart('?');
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length == 2 && parts[0] == "state")
+                return Uri.UnescapeDataString(parts[1]);
+        }
+
+        throw new InvalidOperationException("OAuth state was missing.");
     }
 
     private static void AssertProfileForbidden(IActionResult result)
@@ -1112,20 +1320,39 @@ public sealed class OnlineOrderIntegrationTests
                 },
             });
             var oauth = new WoltOAuthClient(HttpFactory(handler), options, TimeProvider.System, NullLogger<WoltOAuthClient>.Instance);
-            var tokens = new WoltAccessTokenSource(Factory, TokenProtector, oauth, TimeProvider.System, NullLogger<WoltAccessTokenSource>.Instance);
+            var providers = ProviderService();
+            var tokens = new WoltAccessTokenSource(Factory, TokenProtector, oauth, providers, TimeProvider.System, NullLogger<WoltAccessTokenSource>.Instance);
             var webhooks = Webhooks(Audit().Object, new NoopActivity());
+            if (!Db.OnlineOrderIntegrationProviders.Any(p => p.Provider == "wolt"))
+            {
+                Db.OnlineOrderIntegrationProviders.Add(new OnlineOrderIntegrationProvider
+                {
+                    Id = Guid.NewGuid(),
+                    Provider = "wolt",
+                    Enabled = true,
+                    ClientId = TokenProtector.Protect("wolt-client"),
+                    ClientSecret = TokenProtector.Protect(WoltSecret),
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                });
+                Db.SaveChanges();
+            }
+
             var service = new WoltOrderNotificationService(
                 Factory,
                 Tenant,
-                options,
                 tokens,
                 oauth,
                 webhooks,
                 ProfileGuard(),
+                providers,
                 TimeProvider.System,
                 NullLogger<WoltOrderNotificationService>.Instance);
             return new WoltTestClient(service, WoltSecret);
         }
+
+        public OnlineOrderIntegrationProviderService ProviderService() =>
+            new(Factory, Tenant, TokenProtector, TimeProvider.System);
 
         public IVerticalProfileGuard ProfileGuard()
         {
