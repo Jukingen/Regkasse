@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,6 +32,7 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
     private readonly IWoltAccessTokenSource _tokens;
     private readonly IWoltOAuthClient _oauth;
     private readonly IOnlineOrderIntegrationWebhookService _webhooks;
+    private readonly IVerticalProfileGuard _profiles;
     private readonly TimeProvider _time;
     private readonly ILogger<WoltOrderNotificationService> _logger;
 
@@ -41,6 +43,7 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
         IWoltAccessTokenSource tokens,
         IWoltOAuthClient oauth,
         IOnlineOrderIntegrationWebhookService webhooks,
+        IVerticalProfileGuard profiles,
         TimeProvider time,
         ILogger<WoltOrderNotificationService> logger)
     {
@@ -50,6 +53,7 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
         _tokens = tokens;
         _oauth = oauth;
         _webhooks = webhooks;
+        _profiles = profiles;
         _time = time;
         _logger = logger;
     }
@@ -102,6 +106,10 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
             _logger.LogInformation("Wolt webhook rejected for venue {VenueId}: unknown or disabled.", venueId);
             return Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
         }
+
+        _tenant.TenantId = location.TenantId;
+        if (!await _profiles.IsFeatureEnabledAsync(VerticalProfileGuard.MarketplaceOrdersFeature, ct))
+            return Fail(StatusCodes.Status404NotFound, "LOCATION_NOT_FOUND", "Location was not found.");
 
         var existingId = await db.OnlineOrderIntegrations
             .IgnoreQueryFilters()

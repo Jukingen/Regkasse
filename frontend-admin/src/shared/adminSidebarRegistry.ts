@@ -132,6 +132,11 @@ export type SidebarNavCatalogItem = {
   onlyForProfiles?: string[];
   /** Hide when the ambient profile id is in this list. */
   hiddenForProfiles?: string[];
+  /**
+   * Super Admin "all profiles" skips profile gates. Set this when the leaf must
+   * still follow `onlyForProfiles` for the ambient tenant.
+   */
+  enforceProfileInAllView?: boolean;
 };
 
 /**
@@ -1246,6 +1251,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     labelKey: 'nav.onlineOrderProductMappings',
     icon: 'SwapOutlined',
     permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+    onlyForProfiles: ['gastronomy', 'gastronomy-tables'],
+    enforceProfileInAllView: true,
   },
   adminFeedbackInbox: {
     id: 'adminFeedbackInbox',

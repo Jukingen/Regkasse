@@ -74,6 +74,9 @@ describe('sidebar vertical profile filter', () => {
     expect(keys.includes(GATED.modifierGroups)).toBe(
       id === 'gastronomy' || id === 'gastronomy-tables'
     );
+    expect(keys.includes('/admin/online-order-integrations')).toBe(
+      id === 'gastronomy' || id === 'gastronomy-tables'
+    );
     expect(keys.includes(GATED.tables)).toBe(posFeatures.tables === true);
     expect(keys.includes(GATED.kitchen)).toBe(posFeatures.kitchenDisplay === true);
   });
@@ -96,6 +99,30 @@ describe('sidebar vertical profile filter', () => {
     ]) {
       expect(keys).not.toContain(gated);
     }
+  });
+
+  it('hides marketplace settings for a non-gastronomy tenant even in the all-profiles view', () => {
+    const salon = leafKeys({
+      profileId: 'hair-salon',
+      posFeatures: { appointment: true },
+      isLoading: false,
+      viewAllProfiles: true,
+    });
+    const gastro = leafKeys({
+      profileId: 'gastronomy',
+      posFeatures: { kitchenDisplay: true },
+      isLoading: false,
+      viewAllProfiles: true,
+    });
+    expect(salon).not.toContain('/admin/online-order-integrations');
+    expect(gastro).toContain('/admin/online-order-integrations');
+    expect(
+      resolveVerticalProfileRouteAccess('/admin/online-order-integrations', {
+        profileId: 'hair-salon',
+        posFeatures: {},
+        viewAllProfiles: true,
+      })
+    ).toBe('deny');
   });
 
   it('hides the patient menu when a vet tenant is shown as gastronomy', () => {

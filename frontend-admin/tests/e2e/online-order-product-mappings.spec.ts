@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectAuthenticatedShell, injectAdminSession, loginAsAdmin, preparePage } from './helpers/auth';
 import { isLiveE2E } from './helpers/env';
 
+const PROFILE_SIMULATION_KEY = 'regkasse.admin.profileSimulation';
+
 const MAPPINGS_PATH = '/api/admin/online-order-integrations/product-mappings';
 const PRODUCTS_PATH = '/api/admin/products';
 const PRODUCT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -86,9 +88,32 @@ async function installProductMappingMocks(page: Page) {
   });
 }
 
+async function pinVerticalProfile(page: Page, profileId: string) {
+  await page.addInitScript((key) => {
+    window.localStorage.setItem(key, 'actual');
+  }, PROFILE_SIMULATION_KEY);
+  await page.route('**/api/admin/vertical-profile', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        profileId,
+        name: profileId,
+        posLayout: profileId === 'hair-salon' ? 'appointment' : 'standard',
+        posFeatures: {},
+      }),
+    });
+  });
+}
+
 test.describe('Marketplace product mapping', () => {
   test('saves a mapping and shows it after reload', async ({ page }) => {
     await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
     await installProductMappingMocks(page);
     if (!isLiveE2E()) {
       await injectAdminSession(page);
@@ -120,6 +145,7 @@ test.describe('Marketplace product mapping', () => {
 
   test('saves a wolt provider mapping', async ({ page }) => {
     await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
     await installProductMappingMocks(page);
     if (!isLiveE2E()) {
       await injectAdminSession(page);
@@ -140,5 +166,26 @@ test.describe('Marketplace product mapping', () => {
 
     await expect(page.getByRole('table').getByText('wolt-sku-1')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('cell', { name: 'wolt', exact: true })).toBeVisible();
+  });
+
+  test('hides marketplace settings for a non-gastronomy tenant', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'hair-salon');
+    await installProductMappingMocks(page);
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await expectAuthenticatedShell(page);
+    await expect(page.locator('a[href="/admin/online-order-integrations"]')).toHaveCount(0);
+
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Zugriff verweigert')).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toHaveCount(0);
   });
 });
