@@ -75,6 +75,12 @@ public class OnlineOrderIntegration : ITenantEntity
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Wolt <c>delivery.self_delivery</c>. Null until intake or a delivered-time order fetch resolves it.
+    /// </summary>
+    [Column("wolt_self_delivery")]
+    public bool? WoltSelfDelivery { get; set; }
 }
 
 /// <summary>

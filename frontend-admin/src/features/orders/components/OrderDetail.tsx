@@ -96,7 +96,9 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
 
   const history = order.statusHistory ?? [];
   const next = getNextOnlineOrderStatus(order.orderStatus);
-  const canCancel = order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
+  const actionsEnabled = order.marketplaceStatusActionsEnabled !== false;
+  const canCancel =
+    actionsEnabled && order.orderStatus !== 'completed' && order.orderStatus !== 'cancelled';
 
   return (
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
@@ -144,7 +146,7 @@ export function OrderDetail({ order, onOrderUpdated }: OrderDetailProps) {
       </Descriptions>
 
       <Space wrap>
-        {next ? (
+        {actionsEnabled && next ? (
           <Button
             type="primary"
             loading={updateStatus.isPending && updateStatus.variables?.status === next}

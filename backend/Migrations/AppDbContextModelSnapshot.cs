@@ -7952,6 +7952,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<bool?>("WoltSelfDelivery")
+                        .HasColumnType("boolean")
+                        .HasColumnName("wolt_self_delivery");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OnlineOrderId")

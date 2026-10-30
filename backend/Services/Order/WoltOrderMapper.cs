@@ -50,6 +50,7 @@ public static class WoltOrderMapper
             var serviceCents = 0L;
             string? address = null;
             var orderType = "delivery";
+            bool? selfDelivery = null;
             if (root.TryGetProperty("delivery", out var delivery) && delivery.ValueKind == JsonValueKind.Object)
             {
                 deliveryCents = ReadMoney(delivery, "fee", currencies);
@@ -59,6 +60,7 @@ public static class WoltOrderMapper
                 var deliveryType = ReadString(delivery, "type");
                 if (string.Equals(deliveryType, "takeaway", StringComparison.OrdinalIgnoreCase))
                     orderType = "takeaway";
+                selfDelivery = ReadSelfDeliveryFlag(delivery);
             }
 
             var items = new List<OnlineOrderIntegrationWebhookItem>();
@@ -111,6 +113,7 @@ public static class WoltOrderMapper
                 CurrencyAccepted = currencyOk,
                 NormalizedJson = JsonSerializer.Serialize(body, JsonOptions),
                 Error = currencyOk ? null : CurrencyError,
+                SelfDelivery = selfDelivery,
             };
         }
     }
@@ -167,6 +170,37 @@ public static class WoltOrderMapper
 
     private static decimal Money(decimal value) =>
         Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    internal static bool? ReadSelfDeliveryFlag(JsonElement delivery)
+    {
+        if (!delivery.TryGetProperty("self_delivery", out var flag))
+            return null;
+        return flag.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => null,
+        };
+    }
+
+    internal static string? ReadStatus(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return null;
+            var status = ReadString(root, "status") ?? ReadString(root, "order_status");
+            return string.IsNullOrWhiteSpace(status) ? null : status.Trim();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }
 
 public sealed class WoltOrderMapResult
@@ -178,6 +212,9 @@ public sealed class WoltOrderMapResult
     public string? NormalizedJson { get; init; }
 
     public string? Error { get; init; }
+
+    /// <summary>True, false, or null when <c>delivery.self_delivery</c> is absent.</summary>
+    public bool? SelfDelivery { get; init; }
 
     public static WoltOrderMapResult Unreadable() => new() { Parsed = false };
 }

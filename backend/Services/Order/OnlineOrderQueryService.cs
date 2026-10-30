@@ -51,6 +51,7 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
             .OrderByDescending(o => o.CreatedAt)
             .Take(take)
             .ToListAsync(ct);
+        var actions = await MarketplaceActionsAsync(db, orders.Select(o => o.Id).ToArray(), ct);
 
         return new OnlineOrderListResponseDto
         {
@@ -59,7 +60,7 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
             Preparing = preparing,
             Ready = ready,
             Completed = completed,
-            Orders = orders.Select(o => Map(o)).ToList()
+            Orders = orders.Select(o => Map(o, actionsEnabled: actions.GetValueOrDefault(o.Id, true))).ToList()
         };
     }
 
@@ -74,7 +75,8 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
             return null;
 
         var history = await LoadHistoryAsync(db, order.Id, ct);
-        return Map(order, history);
+        var actions = await MarketplaceActionsAsync(db, new[] { order.Id }, ct);
+        return Map(order, history, actions.GetValueOrDefault(order.Id, true));
     }
 
     public async Task<OnlineOrderAnalyticsDto> GetAnalyticsAsync(
@@ -257,9 +259,56 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
         return $"{parts[0]} {lastInitial}".Trim();
     }
 
+    private static async Task<Dictionary<Guid, bool>> MarketplaceActionsAsync(
+        AppDbContext db,
+        IReadOnlyCollection<Guid> orderIds,
+        CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, bool>();
+        if (orderIds.Count == 0)
+            return result;
+
+        var links = await db.OnlineOrderIntegrations.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(r => r.OnlineOrderId != null
+                        && orderIds.Contains(r.OnlineOrderId.Value)
+                        && r.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider
+                        && r.IsActive)
+            .Select(r => new { OrderId = r.OnlineOrderId!.Value, r.TenantId, r.ExternalLocationId })
+            .ToListAsync(ct);
+        if (links.Count == 0)
+            return result;
+
+        var providerEnabled = await db.OnlineOrderIntegrationProviders.AsNoTracking()
+            .AnyAsync(p => p.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider && p.Enabled && p.IsActive, ct);
+        var venues = links
+            .Select(l => l.ExternalLocationId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToArray();
+        var tokens = await db.OnlineOrderIntegrationOAuthTokens.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(t => t.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider
+                        && t.IsActive
+                        && venues.Contains(t.ExternalLocationId))
+            .Select(t => new { t.TenantId, t.ExternalLocationId })
+            .ToListAsync(ct);
+
+        foreach (var link in links)
+        {
+            var connected = providerEnabled
+                            && !string.IsNullOrWhiteSpace(link.ExternalLocationId)
+                            && tokens.Any(t => t.TenantId == link.TenantId && t.ExternalLocationId == link.ExternalLocationId);
+            result[link.OrderId] = connected;
+        }
+
+        return result;
+    }
+
     internal static OnlineOrderDto Map(
         OnlineOrder order,
-        IReadOnlyList<OnlineOrderStatusChangeDto>? history = null) =>
+        IReadOnlyList<OnlineOrderStatusChangeDto>? history = null,
+        bool actionsEnabled = true) =>
         new()
         {
             Id = order.Id,
@@ -279,6 +328,7 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
             StripePaymentIntentId = order.StripePaymentIntentId,
             OrderStatus = order.OrderStatus,
             Source = order.Source,
+            MarketplaceStatusActionsEnabled = actionsEnabled,
             CreatedAt = order.CreatedAt,
             AcceptedAt = order.AcceptedAt,
             ReadyAt = order.ReadyAt,

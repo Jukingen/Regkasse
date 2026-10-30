@@ -1461,6 +1461,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
         builder.Services.AddScoped<IOnlineOrderLoyaltyService, OnlineOrderLoyaltyService>();
         builder.Services.AddScoped<IOnlineOrderTrackingService, OnlineOrderTrackingService>();
+        builder.Services.AddScoped<WoltOrderStatusSync>();
         builder.Services.AddScoped<IOnlineOrderStatusService, OnlineOrderStatusService>();
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
         builder.Services.AddScoped<IOnlinePaymentAdminService, OnlinePaymentAdminService>();
