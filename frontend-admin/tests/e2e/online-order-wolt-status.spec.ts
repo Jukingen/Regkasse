@@ -53,7 +53,8 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
   });
 
   await page.route('**/api/admin/online-orders**', async (route) => {
-    const url = new URL(route.request().url());
+    const request = route.request();
+    const url = new URL(request.url());
     if (url.pathname.endsWith('/analytics')) {
       await route.fulfill({
         status: 200,
@@ -69,13 +70,24 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
       return;
     }
 
-    if (route.request().method() === 'PATCH' && url.pathname.endsWith('/status')) {
-      const body = route.request().postDataJSON() as { status?: string };
+    if (request.method() === 'PATCH' && url.pathname.endsWith('/status')) {
+      const raw = request.postData() ?? '{}';
+      const body = JSON.parse(raw) as { status?: string };
       status = body.status ?? status;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ succeeded: true, order: order() }),
+      });
+      return;
+    }
+
+    // The dialog refetches GET /online-orders/{id}. The list envelope is not an order.
+    if (request.method() === 'GET' && url.pathname.endsWith(`/${ORDER_ID}`)) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(order()),
       });
       return;
     }
@@ -95,6 +107,28 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
   });
 }
 
+async function clickDialogAction(page: Page, label: string, nextLabel?: string) {
+  const dialog = page.getByRole('dialog');
+  const button = dialog.getByRole('button', { name: label, exact: true });
+  await expect(button).toBeVisible({ timeout: 15_000 });
+  await expect(button).toBeEnabled();
+  const updated = page.waitForResponse(
+    (response) =>
+      response.url().includes('/status') &&
+      response.request().method() === 'PATCH' &&
+      response.status() === 200
+  );
+  await button.click();
+  await updated;
+  if (!nextLabel) {
+    await expect(button).toBeHidden({ timeout: 15_000 });
+    return;
+  }
+  const next = dialog.getByRole('button', { name: nextLabel, exact: true });
+  await expect(next).toBeVisible({ timeout: 15_000 });
+  await expect(next).toBeEnabled();
+}
+
 test.describe('Wolt kitchen status buttons', () => {
   test('advances accept, prepare, ready, and complete when the venue is connected', async ({ page }) => {
     await preparePage(page);
@@ -103,13 +137,26 @@ test.describe('Wolt kitchen status buttons', () => {
     await injectAdminSession(page);
     await page.goto('/orders/online', { waitUntil: 'domcontentloaded' });
     const row = page.getByRole('row', { name: /Max Mustermann/ }).last();
+    const accepted = page.waitForResponse(
+      (response) =>
+        response.url().includes('/status') &&
+        response.request().method() === 'PATCH' &&
+        response.status() === 200
+    );
+    const opened = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/online-orders/${ORDER_ID}`) &&
+        !response.url().includes('/status') &&
+        response.request().method() === 'GET' &&
+        response.status() === 200
+    );
     await row.getByRole('button', { name: 'Annehmen', exact: true }).click();
+    await accepted;
+    await opened;
 
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Zubereiten', exact: true }).click();
-    await dialog.getByRole('button', { name: 'Bereit', exact: true }).click();
-    await dialog.getByRole('button', { name: 'Abschließen', exact: true }).click();
-    await expect(dialog.getByRole('button', { name: 'Abschließen' })).toHaveCount(0);
+    await clickDialogAction(page, 'Zubereiten', 'Bereit');
+    await clickDialogAction(page, 'Bereit', 'Abschließen');
+    await clickDialogAction(page, 'Abschließen');
   });
 
   test('hides status buttons when the Wolt venue is not connected', async ({ page }) => {
