@@ -107,26 +107,53 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
   });
 }
 
+function isStatusPatch(response: { url(): string; status(): number; request(): { method(): string } }) {
+  return (
+    response.url().includes('/status') &&
+    response.request().method() === 'PATCH' &&
+    response.status() === 200
+  );
+}
+
+function isOrderReloadRequest(request: { url(): string; method(): string }) {
+  return (
+    request.url().includes(`/online-orders/${ORDER_ID}`) &&
+    !request.url().includes('/status') &&
+    request.method() === 'GET'
+  );
+}
+
 async function clickDialogAction(page: Page, label: string, nextLabel?: string) {
   const dialog = page.getByRole('dialog');
-  const button = dialog.getByRole('button', { name: label, exact: true });
-  await expect(button).toBeVisible({ timeout: 15_000 });
-  await expect(button).toBeEnabled();
-  const updated = page.waitForResponse(
-    (response) =>
-      response.url().includes('/status') &&
-      response.request().method() === 'PATCH' &&
-      response.status() === 200
-  );
-  await button.click();
+  const button = dialog.locator('button.ant-btn-primary', { hasText: new RegExp(`^${label}$`) });
+  await expect(button).toBeVisible({ timeout: 30_000 });
+  await expect(button).toBeEnabled({ timeout: 30_000 });
+  await expect(button).not.toHaveClass(/ant-btn-loading/, { timeout: 30_000 });
+
+  const updated = page.waitForResponse(isStatusPatch);
+  const reloaded = page.waitForRequest(isOrderReloadRequest).then(async (request) => {
+    const response = await request.response();
+    if (!response || response.status() !== 200) {
+      throw new Error('Order dialog reload did not return HTTP 200.');
+    }
+  });
+  // One DOM click. Playwright's locator click retries onto the button that
+  // replaces this one while the dialog re-renders, which skips a status.
+  await button.evaluate((element: HTMLButtonElement) => element.click());
   await updated;
+  await reloaded;
+
   if (!nextLabel) {
-    await expect(button).toBeHidden({ timeout: 15_000 });
+    await expect(button).toBeHidden({ timeout: 30_000 });
     return;
   }
-  const next = dialog.getByRole('button', { name: nextLabel, exact: true });
-  await expect(next).toBeVisible({ timeout: 15_000 });
-  await expect(next).toBeEnabled();
+
+  // Ant Design's accessible name is "loading Bereit" while the spinner is mounted.
+  // The visible label is still the button text, so wait on that and on enabled.
+  const next = dialog.locator('button.ant-btn-primary', { hasText: new RegExp(`^${nextLabel}$`) });
+  await expect(next).toBeVisible({ timeout: 30_000 });
+  await expect(next).toBeEnabled({ timeout: 30_000 });
+  await expect(next).not.toHaveClass(/ant-btn-loading/, { timeout: 30_000 });
 }
 
 test.describe('Wolt kitchen status buttons', () => {
@@ -137,22 +164,25 @@ test.describe('Wolt kitchen status buttons', () => {
     await injectAdminSession(page);
     await page.goto('/orders/online', { waitUntil: 'domcontentloaded' });
     const row = page.getByRole('row', { name: /Max Mustermann/ }).last();
-    const accepted = page.waitForResponse(
-      (response) =>
-        response.url().includes('/status') &&
-        response.request().method() === 'PATCH' &&
-        response.status() === 200
-    );
-    const opened = page.waitForResponse(
-      (response) =>
-        response.url().includes(`/online-orders/${ORDER_ID}`) &&
-        !response.url().includes('/status') &&
-        response.request().method() === 'GET' &&
-        response.status() === 200
-    );
-    await row.getByRole('button', { name: 'Annehmen', exact: true }).click();
+    const accept = row.getByRole('button', { name: 'Annehmen', exact: true });
+    await expect(accept).toBeVisible({ timeout: 30_000 });
+    await expect(accept).toBeEnabled({ timeout: 30_000 });
+    const accepted = page.waitForResponse(isStatusPatch);
+    const opened = page.waitForRequest(isOrderReloadRequest).then(async (request) => {
+      const response = await request.response();
+      if (!response || response.status() !== 200) {
+        throw new Error('Order dialog reload did not return HTTP 200.');
+      }
+    });
+    await accept.evaluate((element: HTMLButtonElement) => element.click());
     await accepted;
     await opened;
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Zubereiten', exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Zubereiten', exact: true })).toBeEnabled({
+      timeout: 30_000,
+    });
 
     await clickDialogAction(page, 'Zubereiten', 'Bereit');
     await clickDialogAction(page, 'Bereit', 'Abschließen');
