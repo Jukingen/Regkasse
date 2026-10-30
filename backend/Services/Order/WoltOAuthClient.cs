@@ -30,6 +30,12 @@ public interface IWoltOAuthClient
         CancellationToken ct = default);
 
     Task<WoltOrderFetchResult> GetOrderAsync(string accessToken, string orderId, CancellationToken ct = default);
+
+    Task<WoltOrderFetchResult> PutOrderActionAsync(
+        string accessToken,
+        string orderId,
+        string action,
+        CancellationToken ct = default);
 }
 
 public interface IWoltAccessTokenSource
@@ -173,6 +179,41 @@ public sealed class WoltOAuthClient : IWoltOAuthClient
         catch (HttpRequestException)
         {
             _logger.LogWarning("Wolt order fetch failed.");
+            return WoltOrderFetchResult.Fail(StatusCodes.Status503ServiceUnavailable);
+        }
+    }
+
+    public async Task<WoltOrderFetchResult> PutOrderActionAsync(
+        string accessToken,
+        string orderId,
+        string action,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken)
+            || string.IsNullOrWhiteSpace(orderId)
+            || action is not ("accept" or "ready" or "delivered"))
+            return WoltOrderFetchResult.Fail(StatusCodes.Status502BadGateway);
+
+        var baseUrl = (_options.Value.Wolt.OrderBaseUrl ?? string.Empty).TrimEnd('/');
+        if (!baseUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return WoltOrderFetchResult.Fail(StatusCodes.Status502BadGateway);
+
+        var url = baseUrl + "/orders/" + Uri.EscapeDataString(orderId.Trim()) + "/" + action;
+        using var request = new HttpRequestMessage(HttpMethod.Put, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        try
+        {
+            using var response = await _http.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode)
+                return WoltOrderFetchResult.Ok(string.Empty);
+
+            _logger.LogWarning("Wolt order {Action} returned {StatusCode}.", action, (int)response.StatusCode);
+            return WoltOrderFetchResult.Fail((int)response.StatusCode);
+        }
+        catch (HttpRequestException)
+        {
+            _logger.LogWarning("Wolt order {Action} failed.", action);
             return WoltOrderFetchResult.Fail(StatusCodes.Status503ServiceUnavailable);
         }
     }

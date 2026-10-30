@@ -48,19 +48,22 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
     private readonly IOnlineOrderNotificationService _notifications;
     private readonly IOnlineOrderLoyaltyService _loyalty;
     private readonly TimeProvider _time;
+    private readonly WoltOrderStatusSync? _wolt;
 
     public OnlineOrderStatusService(
         IDbContextFactory<AppDbContext> dbFactory,
         ICurrentTenantAccessor tenantAccessor,
         IOnlineOrderNotificationService notifications,
         IOnlineOrderLoyaltyService loyalty,
-        TimeProvider time)
+        TimeProvider time,
+        WoltOrderStatusSync? wolt = null)
     {
         _dbFactory = dbFactory;
         _tenantAccessor = tenantAccessor;
         _notifications = notifications;
         _loyalty = loyalty;
         _time = time;
+        _wolt = wolt;
     }
 
     /// <summary>Next forward step in the kitchen lifecycle, or null when terminal / unknown.</summary>
@@ -116,6 +119,13 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
 
         if (string.Equals(order.OrderStatus, status, StringComparison.OrdinalIgnoreCase))
             return OnlineOrderStatusUpdateResult.Success(order);
+
+        if (_wolt is not null)
+        {
+            var wolt = await _wolt.ApplyAsync(db, order, status, ct);
+            if (wolt is not null)
+                return wolt;
+        }
 
         if (!IsTransitionAllowed(order.OrderStatus, status))
         {

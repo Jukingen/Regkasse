@@ -169,6 +169,19 @@ export function OrderManagement() {
       key: 'action',
       render: (_, record) => {
         const next = getNextOnlineOrderStatus(record.orderStatus);
+        if (record.marketplaceStatusActionsEnabled === false) {
+          return (
+            <Button
+              size="small"
+              onClick={() => {
+                setSelectedId(record.id);
+                setSelectedOrder(record);
+              }}
+            >
+              {t('onlineOrders.actions.detail')}
+            </Button>
+          );
+        }
         return (
           <Space wrap>
             <Button

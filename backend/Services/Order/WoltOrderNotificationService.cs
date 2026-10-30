@@ -148,12 +148,15 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
             return Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Wolt order did not match the notification.");
 
         if (!mapped.CurrencyAccepted)
-            return await StoreFailedAsync(location, orderId, venueId, mapped.NormalizedJson, mapped.Error ?? WoltOrderMapper.CurrencyError, ct);
+            return await StoreFailedAsync(location, orderId, venueId, mapped.NormalizedJson, mapped.Error ?? WoltOrderMapper.CurrencyError, mapped.SelfDelivery, ct);
 
-        return await _webhooks.PersistVerifiedNormalizedAsync(
+        var persisted = await _webhooks.PersistVerifiedNormalizedAsync(
             OnlineOrderIntegrationSignatureStatus.WoltProvider,
             mapped.NormalizedJson,
             ct);
+        if (persisted.Succeeded && persisted.Id is Guid persistedId && mapped.SelfDelivery is bool selfDelivery)
+            await RememberSelfDeliveryAsync(persistedId, selfDelivery, ct);
+        return persisted;
     }
 
     private async Task<OnlineOrderIntegrationCommandResult> StoreFailedAsync(
@@ -162,6 +165,7 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
         string venueId,
         string normalizedJson,
         string error,
+        bool? selfDelivery,
         CancellationToken ct)
     {
         _tenant.TenantId = location.TenantId;
@@ -184,10 +188,24 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
             UpdatedAt = now,
             AttemptCount = 1,
             IsActive = true,
+            WoltSelfDelivery = selfDelivery,
         };
         db.OnlineOrderIntegrations.Add(row);
         await db.SaveChangesAsync(ct);
         return OnlineOrderIntegrationCommandResult.Ok(StatusCodes.Status200OK, row.Id);
+    }
+
+    private async Task RememberSelfDeliveryAsync(Guid integrationId, bool selfDelivery, CancellationToken ct)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var row = await db.OnlineOrderIntegrations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Id == integrationId, ct);
+        if (row is null || row.WoltSelfDelivery == selfDelivery)
+            return;
+        row.WoltSelfDelivery = selfDelivery;
+        row.UpdatedAt = _time.GetUtcNow().UtcDateTime;
+        await db.SaveChangesAsync(ct);
     }
 
     private static OnlineOrderIntegrationCommandResult Fail(int statusCode, string code, string error) =>

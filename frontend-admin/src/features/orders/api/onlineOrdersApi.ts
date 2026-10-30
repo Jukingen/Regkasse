@@ -41,6 +41,7 @@ export type OnlineOrder = {
   paymentStatus: string;
   orderStatus: string;
   source: string;
+  marketplaceStatusActionsEnabled: boolean;
   createdAt: string;
   acceptedAt?: string | null;
   readyAt?: string | null;
@@ -146,6 +147,8 @@ type OrderApi = {
   OrderStatus?: string;
   source?: string;
   Source?: string;
+  marketplaceStatusActionsEnabled?: boolean;
+  MarketplaceStatusActionsEnabled?: boolean;
   createdAt?: string;
   CreatedAt?: string;
   acceptedAt?: string | null;
@@ -258,6 +261,8 @@ function mapOrder(dto: OrderApi): OnlineOrder {
     paymentStatus: dto.paymentStatus ?? dto.PaymentStatus ?? '',
     orderStatus: dto.orderStatus ?? dto.OrderStatus ?? '',
     source: dto.source ?? dto.Source ?? '',
+    marketplaceStatusActionsEnabled:
+      dto.marketplaceStatusActionsEnabled ?? dto.MarketplaceStatusActionsEnabled ?? true,
     createdAt: dto.createdAt ?? dto.CreatedAt ?? '',
     acceptedAt: dto.acceptedAt ?? dto.AcceptedAt,
     readyAt: dto.readyAt ?? dto.ReadyAt,

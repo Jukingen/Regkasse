@@ -29,6 +29,12 @@ public sealed class OnlineOrderDto
     public string? StripePaymentIntentId { get; init; }
     public string OrderStatus { get; init; } = string.Empty;
     public string Source { get; init; } = string.Empty;
+
+    /// <summary>
+    /// False only for a Wolt order whose provider is disabled or whose venue has no OAuth token.
+    /// Website and other orders stay true.
+    /// </summary>
+    public bool MarketplaceStatusActionsEnabled { get; init; } = true;
     public DateTime CreatedAt { get; init; }
     public DateTime? AcceptedAt { get; init; }
     public DateTime? ReadyAt { get; init; }
