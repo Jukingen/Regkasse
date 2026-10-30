@@ -27,6 +27,7 @@ export interface OnlineOrderDto {
   id?: string;
   /** @nullable */
   items?: OnlineOrderItemDto[] | null;
+  marketplaceStatusActionsEnabled?: boolean;
   /** @nullable */
   notes?: string | null;
   /** @nullable */
