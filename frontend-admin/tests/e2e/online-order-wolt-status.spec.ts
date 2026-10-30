@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 
 import { injectAdminSession, preparePage } from './helpers/auth';
 
@@ -52,20 +52,33 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
     statusHistory: [],
   });
 
+  const fulfill = async (handled: Route, body: unknown) => {
+    // An aborted list refetch can leave fulfill unresolved and stall every later
+    // status PATCH. Release the route handler if that happens.
+    await Promise.race([
+      handled
+        .fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(body),
+        })
+        .catch(() => undefined),
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 1_000);
+      }),
+    ]);
+  };
+
   await page.route('**/api/admin/online-orders**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname.endsWith('/analytics')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          totalOrders: 1,
-          pending: status === 'pending' ? 1 : 0,
-          completed: status === 'completed' ? 1 : 0,
-          cancelled: 0,
-          revenue: 0,
-        }),
+      await fulfill(route, {
+        totalOrders: 1,
+        pending: status === 'pending' ? 1 : 0,
+        completed: status === 'completed' ? 1 : 0,
+        cancelled: 0,
+        revenue: 0,
       });
       return;
     }
@@ -74,35 +87,23 @@ async function mockOrders(page: Page, actionsEnabled: boolean) {
       const raw = request.postData() ?? '{}';
       const body = JSON.parse(raw) as { status?: string };
       status = body.status ?? status;
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ succeeded: true, order: order() }),
-      });
+      await fulfill(route, { succeeded: true, order: order() });
       return;
     }
 
     // The dialog refetches GET /online-orders/{id}. The list envelope is not an order.
     if (request.method() === 'GET' && url.pathname.endsWith(`/${ORDER_ID}`)) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(order()),
-      });
+      await fulfill(route, order());
       return;
     }
 
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        pending: status === 'pending' ? 1 : 0,
-        accepted: status === 'accepted' ? 1 : 0,
-        preparing: status === 'preparing' ? 1 : 0,
-        ready: status === 'ready' ? 1 : 0,
-        completed: status === 'completed' ? 1 : 0,
-        orders: [order()],
-      }),
+    await fulfill(route, {
+      pending: status === 'pending' ? 1 : 0,
+      accepted: status === 'accepted' ? 1 : 0,
+      preparing: status === 'preparing' ? 1 : 0,
+      ready: status === 'ready' ? 1 : 0,
+      completed: status === 'completed' ? 1 : 0,
+      orders: [order()],
     });
   });
 }
@@ -123,24 +124,35 @@ function isOrderReloadRequest(request: { url(): string; method(): string }) {
   );
 }
 
-async function clickDialogAction(page: Page, label: string, nextLabel?: string) {
+async function clickOnce(button: Locator) {
+  const handle = await button.elementHandle();
+  if (!handle) {
+    throw new Error('Status button was not found.');
+  }
+  try {
+    // elementHandle does not retry. locator.click() repeats onto the button
+    // React just replaced, which submits the next kitchen status.
+    await handle.evaluate((element: HTMLButtonElement) => {
+      element.click();
+    });
+  } finally {
+    await handle.dispose();
+  }
+}
+
+async function clickDialogAction(page: Page, actionLabel: string, nextLabel?: string) {
   const dialog = page.getByRole('dialog');
-  const button = dialog.locator('button.ant-btn-primary', { hasText: new RegExp(`^${label}$`) });
+  const button = dialog.getByRole('button', { name: new RegExp(`^(?:loading\\s+)?${actionLabel}$`) });
   await expect(button).toBeVisible({ timeout: 30_000 });
   await expect(button).toBeEnabled({ timeout: 30_000 });
-  await expect(button).not.toHaveClass(/ant-btn-loading/, { timeout: 30_000 });
 
-  const updated = page.waitForResponse(isStatusPatch);
   const reloaded = page.waitForRequest(isOrderReloadRequest).then(async (request) => {
     const response = await request.response();
     if (!response || response.status() !== 200) {
       throw new Error('Order dialog reload did not return HTTP 200.');
     }
   });
-  // One DOM click. Playwright's locator click retries onto the button that
-  // replaces this one while the dialog re-renders, which skips a status.
-  await button.evaluate((element: HTMLButtonElement) => element.click());
-  await updated;
+  await Promise.all([page.waitForResponse(isStatusPatch), clickOnce(button)]);
   await reloaded;
 
   if (!nextLabel) {
@@ -148,12 +160,11 @@ async function clickDialogAction(page: Page, label: string, nextLabel?: string) 
     return;
   }
 
-  // Ant Design's accessible name is "loading Bereit" while the spinner is mounted.
-  // The visible label is still the button text, so wait on that and on enabled.
-  const next = dialog.locator('button.ant-btn-primary', { hasText: new RegExp(`^${nextLabel}$`) });
+  // Ant Design keeps aria-label "loading" on the icon after the button is enabled,
+  // so the accessible name stays "loading Bereit". Wait until the control is enabled.
+  const next = dialog.getByRole('button', { name: new RegExp(`^(?:loading\\s+)?${nextLabel}$`) });
   await expect(next).toBeVisible({ timeout: 30_000 });
   await expect(next).toBeEnabled({ timeout: 30_000 });
-  await expect(next).not.toHaveClass(/ant-btn-loading/, { timeout: 30_000 });
 }
 
 test.describe('Wolt kitchen status buttons', () => {
@@ -174,15 +185,10 @@ test.describe('Wolt kitchen status buttons', () => {
         throw new Error('Order dialog reload did not return HTTP 200.');
       }
     });
-    await accept.evaluate((element: HTMLButtonElement) => element.click());
-    await accepted;
-    await opened;
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Zubereiten', exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Zubereiten', exact: true })).toBeEnabled({
-      timeout: 30_000,
-    });
+    await Promise.all([accepted, opened, clickOnce(accept)]);
+    const prepare = page.getByRole('dialog').getByRole('button', { name: /^(?:loading\s+)?Zubereiten$/ });
+    await expect(prepare).toBeVisible({ timeout: 30_000 });
+    await expect(prepare).toBeEnabled({ timeout: 30_000 });
 
     await clickDialogAction(page, 'Zubereiten', 'Bereit');
     await clickDialogAction(page, 'Bereit', 'Abschließen');
