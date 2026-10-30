@@ -108,5 +108,23 @@
       "externalProductId": "Externe Produktnummer",
       "product": "Katalogprodukt"
     }
+  },
+  "providers": {
+    "adminTitle": "Marktplatz-Anbieter",
+    "adminSubtitle": "Partnerzugang für die Bereitstellung. Verbindungsstatus:",
+    "tenantTitle": "Wolt-Konto",
+    "enabled": "Anbieter aktiv",
+    "clientId": "Client-ID",
+    "clientSecret": "Client-Secret",
+    "save": "Anbieter speichern",
+    "saved": "Anbieter gespeichert.",
+    "saveFailed": "Anbieter konnte nicht gespeichert werden.",
+    "statusConfigured": "Zugangsdaten hinterlegt",
+    "statusMissing": "Zugangsdaten fehlen",
+    "disabled": "Vom Super-Admin deaktiviert",
+    "connected": "Konto verbunden",
+    "notConnected": "Konto nicht verbunden",
+    "connect": "Eigenes Konto verbinden",
+    "connectFailed": "Verbindung konnte nicht gestartet werden."
   }
 }

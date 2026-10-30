@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,19 @@ public interface IWoltOAuthClient
 {
     Task<WoltTokenResult> ExchangeAuthorizationCodeAsync(string code, CancellationToken ct = default);
 
+    Task<WoltTokenResult> ExchangeAuthorizationCodeAsync(
+        string code,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct = default);
+
     Task<WoltTokenResult> RefreshAsync(string refreshToken, CancellationToken ct = default);
+
+    Task<WoltTokenResult> RefreshAsync(
+        string refreshToken,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct = default);
 
     Task<WoltOrderFetchResult> GetOrderAsync(string accessToken, string orderId, CancellationToken ct = default);
 }
@@ -94,23 +107,43 @@ public sealed class WoltOAuthClient : IWoltOAuthClient
     public Task<WoltTokenResult> ExchangeAuthorizationCodeAsync(string code, CancellationToken ct = default)
     {
         var wolt = _options.Value.Wolt;
+        return ExchangeAuthorizationCodeAsync(code, wolt.ClientId ?? string.Empty, wolt.ClientSecret ?? string.Empty, ct);
+    }
+
+    public Task<WoltTokenResult> ExchangeAuthorizationCodeAsync(
+        string code,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct = default)
+    {
+        var wolt = _options.Value.Wolt;
         var fields = new Dictionary<string, string>
         {
             ["grant_type"] = "authorization_code",
             ["code"] = code,
             ["redirect_uri"] = wolt.RedirectUri ?? string.Empty,
         };
-        return RequestTokenAsync(fields, ct);
+        return RequestTokenAsync(fields, clientId, clientSecret, ct);
     }
 
     public Task<WoltTokenResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var wolt = _options.Value.Wolt;
+        return RefreshAsync(refreshToken, wolt.ClientId ?? string.Empty, wolt.ClientSecret ?? string.Empty, ct);
+    }
+
+    public Task<WoltTokenResult> RefreshAsync(
+        string refreshToken,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct = default)
     {
         var fields = new Dictionary<string, string>
         {
             ["grant_type"] = "refresh_token",
             ["refresh_token"] = refreshToken,
         };
-        return RequestTokenAsync(fields, ct);
+        return RequestTokenAsync(fields, clientId, clientSecret, ct);
     }
 
     public async Task<WoltOrderFetchResult> GetOrderAsync(string accessToken, string orderId, CancellationToken ct = default)
@@ -174,18 +207,21 @@ public sealed class WoltOAuthClient : IWoltOAuthClient
         return null;
     }
 
-    private async Task<WoltTokenResult> RequestTokenAsync(Dictionary<string, string> fields, CancellationToken ct)
+    private async Task<WoltTokenResult> RequestTokenAsync(
+        Dictionary<string, string> fields,
+        string clientId,
+        string clientSecret,
+        CancellationToken ct)
     {
-        var wolt = _options.Value.Wolt;
-        if (string.IsNullOrWhiteSpace(wolt.ClientId) || string.IsNullOrWhiteSpace(wolt.ClientSecret))
+        if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
             return WoltTokenResult.Fail(StatusCodes.Status400BadRequest);
 
-        var tokenUrl = wolt.TokenUrl ?? string.Empty;
+        var tokenUrl = _options.Value.Wolt.TokenUrl ?? string.Empty;
         if (!tokenUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             return WoltTokenResult.Fail(StatusCodes.Status502BadGateway);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
-        var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes(wolt.ClientId + ":" + wolt.ClientSecret));
+        var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes(clientId + ":" + clientSecret));
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
         request.Content = new FormUrlEncodedContent(fields);
 
@@ -260,6 +296,7 @@ public sealed class WoltAccessTokenSource : IWoltAccessTokenSource
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly OnlineOrderIntegrationTokenProtector _protector;
     private readonly IWoltOAuthClient _oauth;
+    private readonly IOnlineOrderIntegrationProviderService _providers;
     private readonly TimeProvider _time;
     private readonly ILogger<WoltAccessTokenSource> _logger;
 
@@ -267,12 +304,14 @@ public sealed class WoltAccessTokenSource : IWoltAccessTokenSource
         IDbContextFactory<AppDbContext> dbFactory,
         OnlineOrderIntegrationTokenProtector protector,
         IWoltOAuthClient oauth,
+        IOnlineOrderIntegrationProviderService providers,
         TimeProvider time,
         ILogger<WoltAccessTokenSource> logger)
     {
         _dbFactory = dbFactory;
         _protector = protector;
         _oauth = oauth;
+        _providers = providers;
         _time = time;
         _logger = logger;
     }
@@ -305,7 +344,7 @@ public sealed class WoltAccessTokenSource : IWoltAccessTokenSource
             if (row.AccessTokenExpiresAt > skew)
                 return access;
 
-            var refreshed = await _oauth.RefreshAsync(refresh, ct);
+            var refreshed = await RefreshWithProviderPolicyAsync(refresh, ct);
             if (!refreshed.Succeeded || refreshed.AccessToken is null || refreshed.RefreshToken is null)
                 return null;
 
@@ -321,6 +360,27 @@ public sealed class WoltAccessTokenSource : IWoltAccessTokenSource
         {
             gate.Release();
         }
+    }
+
+    private async Task<WoltTokenResult> RefreshWithProviderPolicyAsync(string refresh, CancellationToken ct)
+    {
+        var admin = await _providers.GetAdminAsync(OnlineOrderIntegrationSignatureStatus.WoltProvider, ct);
+        var body = admin.Body;
+        if (body is null)
+            return WoltTokenResult.Fail(StatusCodes.Status409Conflict);
+
+        var missing = body.CredentialStatus == OnlineOrderIntegrationProviderStatuses.Missing;
+        if (!body.Enabled && missing)
+            return await _oauth.RefreshAsync(refresh, ct);
+
+        if (!body.Enabled)
+            return WoltTokenResult.Fail(StatusCodes.Status409Conflict);
+
+        var partner = await _providers.RequireEnabledCredentialsAsync(OnlineOrderIntegrationSignatureStatus.WoltProvider, ct);
+        if (!partner.Result.Succeeded || partner.Credentials is null)
+            return WoltTokenResult.Fail(StatusCodes.Status409Conflict);
+
+        return await _oauth.RefreshAsync(refresh, partner.Credentials.ClientId, partner.Credentials.ClientSecret, ct);
     }
 
     private static Task<OnlineOrderIntegrationOAuthToken?> FindAsync(

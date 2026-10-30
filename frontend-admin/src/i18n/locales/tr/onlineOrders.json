@@ -108,5 +108,23 @@
       "externalProductId": "Harici ürün kimliği",
       "product": "Katalog ürünü"
     }
+  },
+  "providers": {
+    "adminTitle": "Pazar yeri sağlayıcıları",
+    "adminSubtitle": "Bu kurulum için partner kimlik bilgileri. Bağlantı durumu:",
+    "tenantTitle": "Wolt hesabı",
+    "enabled": "Sağlayıcı açık",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "save": "Sağlayıcıyı kaydet",
+    "saved": "Sağlayıcı kaydedildi.",
+    "saveFailed": "Sağlayıcı kaydedilemedi.",
+    "statusConfigured": "Kimlik bilgileri kayıtlı",
+    "statusMissing": "Kimlik bilgileri eksik",
+    "disabled": "Super Admin tarafından kapalı",
+    "connected": "Hesap bağlı",
+    "notConnected": "Hesap bağlı değil",
+    "connect": "Kendi hesabını bağla",
+    "connectFailed": "Bağlantı başlatılamadı."
   }
 }

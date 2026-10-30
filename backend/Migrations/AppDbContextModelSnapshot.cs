@@ -8105,6 +8105,58 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("online_order_integration_oauth_tokens");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_secret");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("enabled");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_providers_provider");
+
+                    b.ToTable("online_order_integration_providers");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
                 {
                     b.Property<Guid>("Id")

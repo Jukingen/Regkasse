@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { expectAuthenticatedShell, injectAdminSession, loginAsAdmin, preparePage } from './helpers/auth';
 import { isLiveE2E } from './helpers/env';
+import { makeE2eJwt } from './helpers/jwt';
 
 const PROFILE_SIMULATION_KEY = 'regkasse.admin.profileSimulation';
 
@@ -187,5 +188,72 @@ test.describe('Marketplace product mapping', () => {
     await expect(
       page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
     ).toHaveCount(0);
+  });
+
+  test('gastronomy super admin sees partner credentials and tenant admin does not', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
+    await installProductMappingMocks(page);
+    await page.route('**/api/admin/online-order-integrations/providers**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith('/status')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            provider: 'wolt',
+            enabled: true,
+            credentialStatus: 'configured',
+            connected: false,
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          provider: 'wolt',
+          enabled: true,
+          credentialStatus: 'configured',
+        }),
+      });
+    });
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByLabel('Client-Secret')).toBeVisible({ timeout: 20_000 });
+
+    await page.route('**/api/Auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '33333333-3333-4333-8333-333333333333',
+          userName: 'manager1',
+          email: 'manager@example.test',
+          firstName: 'Mandant',
+          lastName: 'Admin',
+          role: 'Manager',
+          roles: ['Manager'],
+          permissions: ['digital.orders.manage', 'user.view', 'settings.view'],
+          isActive: true,
+          mustChangePasswordOnNextLogin: false,
+          tenantId: '22222222-2222-4222-8222-222222222222',
+          tenantSlug: 'dev',
+          tenantDisplayName: 'Dev Tenant',
+          appContext: 'admin',
+        }),
+      });
+    });
+    await injectAdminSession(page, makeE2eJwt({ role: 'Manager', sub: 'e2e-manager' }));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: 'Eigenes Konto verbinden' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByLabel('Client-Secret')).toHaveCount(0);
   });
 });

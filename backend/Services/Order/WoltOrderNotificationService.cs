@@ -1,12 +1,10 @@
 using System.Text.Json;
-using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Order;
 
@@ -28,32 +26,32 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
 
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly ICurrentTenantAccessor _tenant;
-    private readonly IOptions<OnlineOrderIntegrationOptions> _options;
     private readonly IWoltAccessTokenSource _tokens;
     private readonly IWoltOAuthClient _oauth;
     private readonly IOnlineOrderIntegrationWebhookService _webhooks;
     private readonly IVerticalProfileGuard _profiles;
+    private readonly IOnlineOrderIntegrationProviderService _providers;
     private readonly TimeProvider _time;
     private readonly ILogger<WoltOrderNotificationService> _logger;
 
     public WoltOrderNotificationService(
         IDbContextFactory<AppDbContext> dbFactory,
         ICurrentTenantAccessor tenant,
-        IOptions<OnlineOrderIntegrationOptions> options,
         IWoltAccessTokenSource tokens,
         IWoltOAuthClient oauth,
         IOnlineOrderIntegrationWebhookService webhooks,
         IVerticalProfileGuard profiles,
+        IOnlineOrderIntegrationProviderService providers,
         TimeProvider time,
         ILogger<WoltOrderNotificationService> logger)
     {
         _dbFactory = dbFactory;
         _tenant = tenant;
-        _options = options;
         _tokens = tokens;
         _oauth = oauth;
         _webhooks = webhooks;
         _profiles = profiles;
+        _providers = providers;
         _time = time;
         _logger = logger;
     }
@@ -63,7 +61,7 @@ public sealed class WoltOrderNotificationService : IWoltOrderNotificationService
         string? signatureHeader,
         CancellationToken ct = default)
     {
-        var secret = _options.Value.Wolt.ClientSecret;
+        var secret = await _providers.GetEnabledClientSecretAsync(OnlineOrderIntegrationSignatureStatus.WoltProvider, ct);
         if (!OnlineOrderIntegrationSignature.IsValid(rawBody ?? string.Empty, secret, signatureHeader))
             return Fail(StatusCodes.Status400BadRequest, "SIGNATURE_INVALID", "Signature is missing or invalid.");
 

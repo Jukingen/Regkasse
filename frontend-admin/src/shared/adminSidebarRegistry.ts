@@ -1250,7 +1250,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     href: '/admin/online-order-integrations',
     labelKey: 'nav.onlineOrderProductMappings',
     icon: 'SwapOutlined',
-    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+    permission: [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
     onlyForProfiles: ['gastronomy', 'gastronomy-tables'],
     enforceProfileInAllView: true,
   },

@@ -120,3 +120,16 @@ internal sealed class OnlineOrderIntegrationOAuthTokenEntityConfiguration : IEnt
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class OnlineOrderIntegrationProviderEntityConfiguration : IEntityTypeConfiguration<OnlineOrderIntegrationProvider>
+{
+    public void Configure(EntityTypeBuilder<OnlineOrderIntegrationProvider> builder)
+    {
+        builder.Property(e => e.Enabled).HasDefaultValue(false);
+        builder.Property(e => e.IsActive).HasDefaultValue(true);
+
+        builder.HasIndex(e => e.Provider)
+            .IsUnique()
+            .HasDatabaseName("ux_online_order_integration_providers_provider");
+    }
+}

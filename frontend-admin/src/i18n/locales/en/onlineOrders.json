@@ -108,5 +108,23 @@
       "externalProductId": "External product id",
       "product": "Catalog product"
     }
+  },
+  "providers": {
+    "adminTitle": "Marketplace providers",
+    "adminSubtitle": "Partner credentials for this deployment. Connection status:",
+    "tenantTitle": "Wolt account",
+    "enabled": "Provider enabled",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "save": "Save provider",
+    "saved": "Provider saved.",
+    "saveFailed": "Provider could not be saved.",
+    "statusConfigured": "Credentials stored",
+    "statusMissing": "Credentials missing",
+    "disabled": "Disabled by Super Admin",
+    "connected": "Account connected",
+    "notConnected": "Account not connected",
+    "connect": "Connect your own account",
+    "connectFailed": "Connection could not be started."
   }
 }

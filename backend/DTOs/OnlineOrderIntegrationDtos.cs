@@ -111,3 +111,48 @@ public sealed class OnlineOrderIntegrationCommandResult
     public static OnlineOrderIntegrationCommandResult Fail(int statusCode, string code, string error) =>
         new() { Succeeded = false, StatusCode = statusCode, Code = code, Error = error };
 }
+
+public static class OnlineOrderIntegrationProviderStatuses
+{
+    public const string Configured = "configured";
+    public const string Missing = "missing";
+    public const string DisabledCode = "PROVIDER_DISABLED";
+}
+
+public sealed class UpsertOnlineOrderIntegrationProviderRequest
+{
+    public string? Provider { get; set; }
+
+    public bool Enabled { get; set; }
+
+    public string? ClientId { get; set; }
+
+    public string? ClientSecret { get; set; }
+}
+
+public sealed class OnlineOrderIntegrationProviderAdminDto
+{
+    public string Provider { get; set; } = string.Empty;
+
+    public bool Enabled { get; set; }
+
+    public string CredentialStatus { get; set; } = OnlineOrderIntegrationProviderStatuses.Missing;
+}
+
+public sealed class OnlineOrderIntegrationProviderTenantDto
+{
+    public string Provider { get; set; } = string.Empty;
+
+    public bool Enabled { get; set; }
+
+    public string CredentialStatus { get; set; } = OnlineOrderIntegrationProviderStatuses.Missing;
+
+    public bool Connected { get; set; }
+}
+
+public sealed class OnlineOrderIntegrationProviderCredentials
+{
+    public string ClientId { get; init; } = string.Empty;
+
+    public string ClientSecret { get; init; } = string.Empty;
+}

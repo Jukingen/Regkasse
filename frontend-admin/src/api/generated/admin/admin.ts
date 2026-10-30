@@ -396,6 +396,8 @@ import type {
   GetApiAdminOfflineTransactionsExportFailedParams,
   GetApiAdminOfflineTransactionsParams,
   GetApiAdminOnlineOrderIntegrationsProductMappingsParams,
+  GetApiAdminOnlineOrderIntegrationsProvidersParams,
+  GetApiAdminOnlineOrderIntegrationsProvidersStatusParams,
   GetApiAdminOnlineOrderIntegrationsWoltCallbackParams,
   GetApiAdminOnlineOrdersAnalyticsParams,
   GetApiAdminOnlineOrdersParams,
@@ -634,6 +636,8 @@ import type {
   OfflineTransactionStats,
   OnlineOrderAnalyticsDto,
   OnlineOrderDto,
+  OnlineOrderIntegrationProviderAdminDto,
+  OnlineOrderIntegrationProviderTenantDto,
   OnlineOrderListResponseDto,
   OnlineOrderPaymentIntentResponseDto,
   OnlineOrderProductMappingListDto,
@@ -1051,6 +1055,7 @@ import type {
   UpgradeLicenseRequestBody,
   UpsertHairSalonCampaignRequest,
   UpsertOnlineOrderIntegrationLocationRequest,
+  UpsertOnlineOrderIntegrationProviderRequest,
   UpsertOnlineOrderProductMappingRequest,
   UpsertPermissionPackageRequest,
   UpsertTaxGroupRequest,
@@ -18057,6 +18062,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminOnlineOrderIntegrationsProductMappingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlineOrderIntegrationsProviders = (
+    params?: GetApiAdminOnlineOrderIntegrationsProvidersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<OnlineOrderIntegrationProviderAdminDto>(
+      {url: `/api/admin/online-order-integrations/providers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProvidersQueryKey = (params?: GetApiAdminOnlineOrderIntegrationsProvidersParams,) => {
+    return [`/api/admin/online-order-integrations/providers`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProvidersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>, TError = ProblemDetails>(params?: GetApiAdminOnlineOrderIntegrationsProvidersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsProvidersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsProviders(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>>
+export type GetApiAdminOnlineOrderIntegrationsProvidersQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsProviders = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>, TError = ProblemDetails>(
+ params?: GetApiAdminOnlineOrderIntegrationsProvidersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProviders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsProvidersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOnlineOrderIntegrationsProviders = (
+    upsertOnlineOrderIntegrationProviderRequest: UpsertOnlineOrderIntegrationProviderRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/providers`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertOnlineOrderIntegrationProviderRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsProvidersMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>, TError,{data: UpsertOnlineOrderIntegrationProviderRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>, TError,{data: UpsertOnlineOrderIntegrationProviderRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>, {data: UpsertOnlineOrderIntegrationProviderRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsProviders(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsProvidersMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>>
+    export type PutApiAdminOnlineOrderIntegrationsProvidersMutationBody = UpsertOnlineOrderIntegrationProviderRequest
+    export type PutApiAdminOnlineOrderIntegrationsProvidersMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsProviders = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>, TError,{data: UpsertOnlineOrderIntegrationProviderRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsProviders>>,
+        TError,
+        {data: UpsertOnlineOrderIntegrationProviderRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsProvidersMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -51081,6 +51193,62 @@ export const useGetApiAdminReportPdfsDownloadReportTypeReportId = <TData = Await
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminReportPdfsDownloadReportTypeReportIdQueryOptions(reportType,reportId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOnlineOrderIntegrationsProvidersStatus = (
+    params?: GetApiAdminOnlineOrderIntegrationsProvidersStatusParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<OnlineOrderIntegrationProviderTenantDto>(
+      {url: `/api/admin/online-order-integrations/providers/status`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProvidersStatusQueryKey = (params?: GetApiAdminOnlineOrderIntegrationsProvidersStatusParams,) => {
+    return [`/api/admin/online-order-integrations/providers/status`, ...(params ? [params]: [])] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsProvidersStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>, TError = ProblemDetails>(params?: GetApiAdminOnlineOrderIntegrationsProvidersStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsProvidersStatusQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsProvidersStatus(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsProvidersStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>>
+export type GetApiAdminOnlineOrderIntegrationsProvidersStatusQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsProvidersStatus = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>, TError = ProblemDetails>(
+ params?: GetApiAdminOnlineOrderIntegrationsProvidersStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsProvidersStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsProvidersStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
