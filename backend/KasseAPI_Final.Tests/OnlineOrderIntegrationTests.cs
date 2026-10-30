@@ -1286,6 +1286,8 @@ public sealed class OnlineOrderIntegrationTests
             var services = new ServiceCollection();
             services.AddSingleton(Factory);
             services.AddSingleton(processor);
+            services.AddSingleton(TimeProvider.System);
+            services.AddScoped<FoodoraAckDeadlineScanner>();
             var provider = services.BuildServiceProvider();
             return new OnlineOrderIntegrationRetryHostedService(
                 provider.GetRequiredService<IServiceScopeFactory>(),

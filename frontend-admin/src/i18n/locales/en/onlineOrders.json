@@ -125,6 +125,16 @@
     "connected": "Account connected",
     "notConnected": "Account not connected",
     "connect": "Connect your own account",
-    "connectFailed": "Connection could not be started."
+    "connectFailed": "Connection could not be started.",
+    "foodoraTitle": "Foodora",
+    "foodoraTenantTitle": "Foodora credentials",
+    "foodoraEnabled": "Foodora enabled",
+    "foodoraClientId": "Foodora client ID",
+    "foodoraClientSecret": "Foodora client secret",
+    "foodoraChainId": "Chain ID",
+    "foodoraWebhookToken": "Webhook token",
+    "foodoraSave": "Save Foodora",
+    "foodoraSaved": "Foodora credentials saved.",
+    "foodoraSaveFailed": "Foodora credentials could not be saved."
   }
 }

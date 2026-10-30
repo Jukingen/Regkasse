@@ -156,3 +156,21 @@ public sealed class OnlineOrderIntegrationProviderCredentials
 
     public string ClientSecret { get; init; } = string.Empty;
 }
+
+public sealed class UpsertFoodoraTenantCredentialRequest
+{
+    public string? ClientId { get; set; }
+
+    public string? ClientSecret { get; set; }
+
+    public string? ChainId { get; set; }
+
+    public string? WebhookToken { get; set; }
+}
+
+public sealed class FoodoraTenantCredentialStatusDto
+{
+    public bool ProviderEnabled { get; set; }
+
+    public string CredentialStatus { get; set; } = OnlineOrderIntegrationProviderStatuses.Missing;
+}

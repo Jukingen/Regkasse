@@ -125,6 +125,16 @@
     "connected": "Hesap bağlı",
     "notConnected": "Hesap bağlı değil",
     "connect": "Kendi hesabını bağla",
-    "connectFailed": "Bağlantı başlatılamadı."
+    "connectFailed": "Bağlantı başlatılamadı.",
+    "foodoraTitle": "Foodora",
+    "foodoraTenantTitle": "Foodora erişimi",
+    "foodoraEnabled": "Foodora açık",
+    "foodoraClientId": "Foodora client ID",
+    "foodoraClientSecret": "Foodora client secret",
+    "foodoraChainId": "Chain ID",
+    "foodoraWebhookToken": "Webhook token",
+    "foodoraSave": "Foodora kaydet",
+    "foodoraSaved": "Foodora erişimi kaydedildi.",
+    "foodoraSaveFailed": "Foodora erişimi kaydedilemedi."
   }
 }

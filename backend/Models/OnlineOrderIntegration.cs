@@ -81,6 +81,14 @@ public class OnlineOrderIntegration : ITenantEntity
     /// </summary>
     [Column("wolt_self_delivery")]
     public bool? WoltSelfDelivery { get; set; }
+
+    /// <summary>
+    /// Foodora <c>transport_type</c> (<c>LOGISTICS_DELIVERY</c> or <c>VENDOR_DELIVERY</c>).
+    /// Null until intake. Kept off <see cref="RawPayload"/> so write-back survives payload retention.
+    /// </summary>
+    [MaxLength(32)]
+    [Column("foodora_transport_type")]
+    public string? FoodoraTransportType { get; set; }
 }
 
 /// <summary>
@@ -188,11 +196,19 @@ public static class OnlineOrderIntegrationSignatureStatus
 
     public const bool WoltConfirmed = false;
 
+    public const bool FoodoraConfirmed = false;
+
     /// <summary>
     /// Test assembly only (<c>InternalsVisibleTo</c>). Production code never sets this.
     /// Callers reset it to <c>false</c> in a <c>finally</c> block.
     /// </summary>
     internal static bool WoltConfirmedForTests { get; set; }
+
+    /// <summary>
+    /// Test assembly only (<c>InternalsVisibleTo</c>). Production code never sets this.
+    /// Callers reset it to <c>false</c> in a <c>finally</c> block.
+    /// </summary>
+    internal static bool FoodoraConfirmedForTests { get; set; }
 
     public const string HeaderName = "X-Regkasse-Integration-Signature";
 
@@ -200,6 +216,8 @@ public static class OnlineOrderIntegrationSignatureStatus
     public const string WoltHeaderName = "WOLT-SIGNATURE";
 
     public const string WoltProvider = "wolt";
+
+    public const string FoodoraProvider = "foodora";
 
     public const string UnconfirmedCode = "INTEGRATION_SIGNATURE_UNCONFIRMED";
 
@@ -209,15 +227,21 @@ public static class OnlineOrderIntegrationSignatureStatus
     public static bool IsWolt(string? provider) =>
         string.Equals((provider ?? string.Empty).Trim(), WoltProvider, StringComparison.OrdinalIgnoreCase);
 
+    public static bool IsFoodora(string? provider) =>
+        string.Equals((provider ?? string.Empty).Trim(), FoodoraProvider, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// Production gate. Deliverect reads <see cref="DeliverectConfirmed"/> only.
-    /// Wolt reads <see cref="WoltConfirmed"/> or the test hook. Every other provider stays closed.
+    /// Wolt reads <see cref="WoltConfirmed"/> or the test hook.
+    /// Foodora reads <see cref="FoodoraConfirmed"/> or the test hook. Every other provider stays closed.
     /// </summary>
     public static bool IsConfirmed(string? provider)
     {
         var normalized = (provider ?? string.Empty).Trim().ToLowerInvariant();
         if (normalized == WoltProvider)
             return WoltConfirmed || WoltConfirmedForTests;
+        if (normalized == FoodoraProvider)
+            return FoodoraConfirmed || FoodoraConfirmedForTests;
         if (normalized == "deliverect")
             return DeliverectConfirmed;
         return false;

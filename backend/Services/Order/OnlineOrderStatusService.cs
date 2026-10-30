@@ -49,6 +49,7 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
     private readonly IOnlineOrderLoyaltyService _loyalty;
     private readonly TimeProvider _time;
     private readonly WoltOrderStatusSync? _wolt;
+    private readonly FoodoraOrderStatusSync? _foodora;
 
     public OnlineOrderStatusService(
         IDbContextFactory<AppDbContext> dbFactory,
@@ -56,7 +57,8 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
         IOnlineOrderNotificationService notifications,
         IOnlineOrderLoyaltyService loyalty,
         TimeProvider time,
-        WoltOrderStatusSync? wolt = null)
+        WoltOrderStatusSync? wolt = null,
+        FoodoraOrderStatusSync? foodora = null)
     {
         _dbFactory = dbFactory;
         _tenantAccessor = tenantAccessor;
@@ -64,6 +66,7 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
         _loyalty = loyalty;
         _time = time;
         _wolt = wolt;
+        _foodora = foodora;
     }
 
     /// <summary>Next forward step in the kitchen lifecycle, or null when terminal / unknown.</summary>
@@ -91,11 +94,30 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
         return allowed.Contains(to);
     }
 
-    public async Task<OnlineOrderStatusUpdateResult> UpdateStatusAsync(
+    public Task<OnlineOrderStatusUpdateResult> UpdateStatusAsync(
         Guid onlineOrderId,
         string newStatus,
         string? actorUserId = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default) =>
+        UpdateCoreAsync(onlineOrderId, newStatus, actorUserId, marketplaceWriteback: true, allowPlatformJump: false, ct);
+
+    /// <summary>
+    /// Applies a Foodora webhook status without calling Foodora again.
+    /// A later platform status may skip kitchen steps. A backward status is ignored.
+    /// </summary>
+    public Task<OnlineOrderStatusUpdateResult> ApplyFoodoraInboundAsync(
+        Guid onlineOrderId,
+        string newStatus,
+        CancellationToken ct = default) =>
+        UpdateCoreAsync(onlineOrderId, newStatus, "foodora", marketplaceWriteback: false, allowPlatformJump: true, ct);
+
+    private async Task<OnlineOrderStatusUpdateResult> UpdateCoreAsync(
+        Guid onlineOrderId,
+        string newStatus,
+        string? actorUserId,
+        bool marketplaceWriteback,
+        bool allowPlatformJump,
+        CancellationToken ct)
     {
         var status = (newStatus ?? string.Empty).Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(status) || !OnlineOrderStatuses.All.Contains(status))
@@ -120,15 +142,27 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
         if (string.Equals(order.OrderStatus, status, StringComparison.OrdinalIgnoreCase))
             return OnlineOrderStatusUpdateResult.Success(order);
 
-        if (_wolt is not null)
+        if (marketplaceWriteback && _wolt is not null)
         {
             var wolt = await _wolt.ApplyAsync(db, order, status, ct);
             if (wolt is not null)
                 return wolt;
         }
 
-        if (!IsTransitionAllowed(order.OrderStatus, status))
+        if (marketplaceWriteback && _foodora is not null)
         {
+            var foodora = await _foodora.ApplyAsync(db, order, status, ct);
+            if (foodora is not null)
+                return foodora;
+        }
+
+        var allowed = IsTransitionAllowed(order.OrderStatus, status);
+        var platformJump = allowPlatformJump && IsPlatformForward(order.OrderStatus, status);
+        if (!allowed && !platformJump)
+        {
+            if (allowPlatformJump)
+                return OnlineOrderStatusUpdateResult.Success(order);
+
             return OnlineOrderStatusUpdateResult.Fail(
                 InvalidTransitionCode,
                 $"Cannot change status from '{order.OrderStatus}' to '{status}'.");
@@ -173,5 +207,28 @@ public sealed class OnlineOrderStatusService : IOnlineOrderStatusService
         }
 
         return OnlineOrderStatusUpdateResult.Success(order);
+    }
+
+    private static bool IsPlatformForward(string fromStatus, string toStatus)
+    {
+        if (toStatus == OnlineOrderStatuses.Cancelled)
+        {
+            return fromStatus is OnlineOrderStatuses.Pending
+                or OnlineOrderStatuses.Accepted
+                or OnlineOrderStatuses.Preparing
+                or OnlineOrderStatuses.Ready;
+        }
+
+        var rank = new[]
+        {
+            OnlineOrderStatuses.Pending,
+            OnlineOrderStatuses.Accepted,
+            OnlineOrderStatuses.Preparing,
+            OnlineOrderStatuses.Ready,
+            OnlineOrderStatuses.Completed,
+        };
+        var fromRank = Array.IndexOf(rank, fromStatus);
+        var toRank = Array.IndexOf(rank, toStatus);
+        return fromRank >= 0 && toRank > fromRank;
     }
 }

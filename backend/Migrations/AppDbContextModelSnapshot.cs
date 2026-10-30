@@ -7894,6 +7894,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(128)")
                         .HasColumnName("external_order_id");
 
+                    b.Property<string>("FoodoraTransportType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("foodora_transport_type");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -8130,6 +8135,14 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CredentialOwner")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("deployment")
+                        .HasColumnName("credential_owner");
+
                     b.Property<bool>("Enabled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -8159,6 +8172,75 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ux_online_order_integration_providers_provider");
 
                     b.ToTable("online_order_integration_providers");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationTenantCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccessToken")
+                        .HasColumnType("text")
+                        .HasColumnName("access_token");
+
+                    b.Property<DateTime?>("AccessTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("access_token_expires_at");
+
+                    b.Property<string>("ChainId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("chain_id");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_secret");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("WebhookToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("webhook_token");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_tenant_credentials_tenant_provider");
+
+                    b.ToTable("online_order_integration_tenant_credentials");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
@@ -19171,6 +19253,15 @@ namespace KasseAPI_Final.Migrations
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationOAuthToken", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationTenantCredential", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", null)
                         .WithMany()
