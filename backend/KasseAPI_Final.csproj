@@ -75,10 +75,10 @@
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
     <!-- 2026.9+ throws when Arial is missing. Linux CI and the slim image have no Arial. -->
-    <PackageReference Include="QuestPDF" Version="2026.7.1" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="QRCoder" Version="1.8.1" />
-    <PackageReference Include="StackExchange.Redis" Version="3.4.20" />
+    <PackageReference Include="StackExchange.Redis" Version="3.4.29" />
     <PackageReference Include="Stripe.net" Version="52.4.2" />
     <!-- 10.2.3+ pulls Microsoft.OpenApi >= 2.7.5 (fixes GHSA-v5pm-xwqc-g5wc). -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
