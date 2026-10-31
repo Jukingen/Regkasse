@@ -52,7 +52,7 @@ jobs:
       soak_hours: ${{ steps.out.outputs.soak_hours }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.git_ref || github.sha }}
 
@@ -91,7 +91,7 @@ jobs:
 
       - name: Setup .NET
         if: steps.out.outputs.build == 'true'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -107,11 +107,11 @@ jobs:
 
       - name: Build and push image
         if: steps.out.outputs.build == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login GHCR
         if: steps.out.outputs.build == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -119,7 +119,7 @@ jobs:
 
       - name: Push
         if: steps.out.outputs.build == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
