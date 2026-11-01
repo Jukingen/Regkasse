@@ -10,15 +10,70 @@ namespace KasseAPI_Final.Tests;
 
 internal static class DemoVerticalSeedAssertions
 {
-    public static async Task AssertAsync(AppDbContext db, Guid tenantId)
+    public static async Task AssertProfileAsync(AppDbContext db, Guid tenantId, string profileId)
     {
-        await AssertBeherbergungAsync(db, tenantId);
-        await AssertTicketSalesAsync(db, tenantId);
-        await AssertHandyShopAsync(db, tenantId);
-        await AssertClinicalAsync(db, tenantId);
-        await AssertHairSalonAsync(db, tenantId);
-        await AssertTaxiAsync(db, tenantId);
-        await AssertMobileServicesAsync(db, tenantId);
+        switch (profileId)
+        {
+            case VerticalProfileIds.Beherbergung:
+                await AssertBeherbergungAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.TicketSales:
+                await AssertTicketSalesAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.HandyShop:
+                await AssertHandyShopAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.Vet:
+                await AssertVetClinicalAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.Doctor:
+                await AssertDoctorClinicalAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.HairSalon:
+                await AssertHairSalonAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.Taxi:
+                await AssertTaxiAsync(db, tenantId);
+                break;
+            case VerticalProfileIds.MobileServices:
+                await AssertMobileServicesAsync(db, tenantId);
+                break;
+        }
+
+        if (profileId != VerticalProfileIds.Beherbergung)
+            Assert.Equal(0, await db.Rooms.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
+        if (profileId != VerticalProfileIds.TicketSales)
+            Assert.Equal(0, await db.TicketEvents.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
+        if (profileId != VerticalProfileIds.HandyShop)
+            Assert.Equal(0, await db.ProductImeis.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
+        if (profileId != VerticalProfileIds.HairSalon)
+        {
+            var waiterNames = new[]
+            {
+                TenantDemoSeeder.HairWaiterUserName(tenantId, 1),
+                TenantDemoSeeder.HairWaiterUserName(tenantId, 2),
+            };
+            Assert.Equal(0, await db.Users.CountAsync(row => waiterNames.Contains(row.UserName)));
+            Assert.Equal(0, await db.Products.IgnoreQueryFilters().CountAsync(row =>
+                row.TenantId == tenantId && row.Barcode == TenantDemoSeeder.HaircutBarcode));
+        }
+
+        if (profileId != VerticalProfileIds.Vet)
+            Assert.Equal(0, await db.Customers.IgnoreQueryFilters().CountAsync(row =>
+                row.TenantId == tenantId
+                && row.CustomerNumber == DevTenantSeeder.CustomerNumber(VerticalProfileIds.Vet, 1)));
+        if (profileId != VerticalProfileIds.Doctor)
+            Assert.Equal(0, await db.Customers.IgnoreQueryFilters().CountAsync(row =>
+                row.TenantId == tenantId
+                && row.CustomerNumber == DevTenantSeeder.CustomerNumber(VerticalProfileIds.Doctor, 1)));
+        if (profileId != VerticalProfileIds.Taxi)
+            Assert.Equal(0, await db.Products.IgnoreQueryFilters().CountAsync(row =>
+                row.TenantId == tenantId && row.Barcode == DevTenantSeeder.Barcode(VerticalProfileIds.Taxi, 1)));
+        if (profileId != VerticalProfileIds.MobileServices)
+            Assert.Equal(0, await db.Customers.IgnoreQueryFilters().CountAsync(row =>
+                row.TenantId == tenantId
+                && row.CustomerNumber == DevTenantSeeder.CustomerNumber(VerticalProfileIds.MobileServices, 1)));
+
         Assert.Equal(0, await db.TableOrders.IgnoreQueryFilters().CountAsync());
         Assert.Equal(0, await db.PaymentDetails.IgnoreQueryFilters().CountAsync());
         Assert.Equal(0, await db.Receipts.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
@@ -91,22 +146,23 @@ internal static class DemoVerticalSeedAssertions
         Assert.All(imeis, row => Assert.Null(row.SoldPaymentId));
     }
 
-    private static async Task AssertClinicalAsync(AppDbContext db, Guid tenantId)
+    private static async Task AssertVetClinicalAsync(AppDbContext db, Guid tenantId)
     {
         var vet = await db.Customers.IgnoreQueryFilters().SingleAsync(row =>
             row.TenantId == tenantId && row.CustomerNumber == DevTenantSeeder.CustomerNumber(VerticalProfileIds.Vet, 1));
         var vetJson = CustomerClinicalDataJson.Serialize(vet.PetData);
         Assert.NotNull(vetJson);
-        using (var vetDoc = JsonDocument.Parse(vetJson))
-        {
-            Assert.Equal("Hund", vetDoc.RootElement.GetProperty("Species").GetString());
-            Assert.Equal("Labrador", vetDoc.RootElement.GetProperty("Breed").GetString());
-            Assert.Equal("2020-05-15", vetDoc.RootElement.GetProperty("BirthDate").GetString());
-            var vaccines = vetDoc.RootElement.GetProperty("Vaccines").GetString();
-            Assert.Contains("Tollwut", vaccines);
-            Assert.Contains("Parvovirose", vaccines);
-        }
+        using var vetDoc = JsonDocument.Parse(vetJson);
+        Assert.Equal("Hund", vetDoc.RootElement.GetProperty("Species").GetString());
+        Assert.Equal("Labrador", vetDoc.RootElement.GetProperty("Breed").GetString());
+        Assert.Equal("2020-05-15", vetDoc.RootElement.GetProperty("BirthDate").GetString());
+        var vaccines = vetDoc.RootElement.GetProperty("Vaccines").GetString();
+        Assert.Contains("Tollwut", vaccines);
+        Assert.Contains("Parvovirose", vaccines);
+    }
 
+    private static async Task AssertDoctorClinicalAsync(AppDbContext db, Guid tenantId)
+    {
         var doctor = await db.Customers.IgnoreQueryFilters().SingleAsync(row =>
             row.TenantId == tenantId && row.CustomerNumber == DevTenantSeeder.CustomerNumber(VerticalProfileIds.Doctor, 1));
         var doctorJson = CustomerClinicalDataJson.Serialize(doctor.PetData);

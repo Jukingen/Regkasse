@@ -92,7 +92,15 @@ namespace KasseAPI_Final
                 await CashRegisterBootstrapSeed.EnsureMinimalOperationalCashRegisterWhenTableEmptyAsync(
                     context,
                     cashRegisterLogger);
-                await DevTenantSeeder.SeedAsync(context);
+                var devCatalog = await DevTenantSeeder.SeedAsync(context);
+                startupLogger.LogInformation(
+                    "Dev tenant catalog isolation: removed {ForeignCategories} categories and {ForeignProducts} products on dev; generic categories {GenericCategories}, products {GenericProducts}; payment-protected products {Protected}; seeded {Tenants} tenants.",
+                    devCatalog.ForeignCategoriesRemoved,
+                    devCatalog.ForeignProductsRemoved,
+                    devCatalog.GenericCategoriesRemoved,
+                    devCatalog.GenericProductsRemoved,
+                    devCatalog.PaymentProtectedProducts,
+                    devCatalog.TenantsSeeded);
             }
 
             Console.WriteLine("Database seeding completed successfully");

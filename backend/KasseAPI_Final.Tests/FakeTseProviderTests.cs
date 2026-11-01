@@ -1,3 +1,4 @@
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tse;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -41,6 +42,10 @@ public sealed class FakeTseProviderTests
         var parts = a.CompactJws.Split('.');
         Assert.Equal(3, parts.Length);
         Assert.True(a.CompactJws.Length > 500, "Fake JWS should exceed legacy varchar(500) to validate DB text columns.");
+        Assert.True(SignaturePipeline.TryGetMachineCodeFromCompactJws(a.CompactJws, out var machineCode));
+        Assert.StartsWith("_R1-AT1_", machineCode, StringComparison.Ordinal);
+        Assert.True(RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(a.CompactJws, out var qr));
+        Assert.StartsWith("_R1-AT1_", qr, StringComparison.Ordinal);
     }
 
     [Fact]

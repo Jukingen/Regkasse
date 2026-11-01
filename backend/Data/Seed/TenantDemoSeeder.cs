@@ -14,6 +14,11 @@ namespace KasseAPI_Final.Data.Seed;
 public interface ITenantDemoSeeder
 {
     Task<TenantDemoSeedResult> SeedAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    /// <summary>Reads <c>company_settings.vertical_profile_id</c>. Unknown or missing values fall back to gastronomy.</summary>
+    Task<string> ResolveVerticalProfileIdAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    Task<TenantDemoSeedResult> SeedAsync(Guid tenantId, string verticalProfileId, CancellationToken cancellationToken = default);
 }
 
 public sealed record TenantDemoSeedResult(
@@ -23,7 +28,7 @@ public sealed record TenantDemoSeedResult(
     string? FailedProfile = null);
 
 /// <summary>
-/// Vertical demo catalog for one tenant. Matches existing rows by category key, barcode,
+/// Demo catalog for one tenant and one vertical profile. Matches existing rows by category key, barcode,
 /// customer number, room number, event name, and IMEI. Does not write receipts, TSE signatures, or payments.
 /// A helper failure rolls the seed back and records <see cref="AuditEventType.TenantDemoSeedPartial"/>.
 /// </summary>
@@ -53,18 +58,35 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
     public static string HairWaiterUserName(Guid tenantId, int index) =>
         $"hs-waiter-{index}-{tenantId:N}";
 
+    public Task<string> ResolveVerticalProfileIdAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
+        ResolveVerticalProfileIdAsync(_db, tenantId, explicitProfileId: null, cancellationToken);
+
     public Task<TenantDemoSeedResult> SeedAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
-        SeedTenantAsync(_db, tenantId, _logger, cancellationToken);
+        SeedTenantAsync(_db, tenantId, explicitProfileId: null, _logger, cancellationToken);
+
+    public Task<TenantDemoSeedResult> SeedAsync(
+        Guid tenantId,
+        string verticalProfileId,
+        CancellationToken cancellationToken = default) =>
+        SeedTenantAsync(_db, tenantId, verticalProfileId, _logger, cancellationToken);
 
     public static Task<TenantDemoSeedResult> SeedTenantAsync(
         AppDbContext db,
         Guid tenantId,
         CancellationToken cancellationToken = default) =>
-        SeedTenantAsync(db, tenantId, NullLogger.Instance, cancellationToken);
+        SeedTenantAsync(db, tenantId, explicitProfileId: null, NullLogger.Instance, cancellationToken);
+
+    public static Task<TenantDemoSeedResult> SeedTenantAsync(
+        AppDbContext db,
+        Guid tenantId,
+        string verticalProfileId,
+        CancellationToken cancellationToken = default) =>
+        SeedTenantAsync(db, tenantId, verticalProfileId, NullLogger.Instance, cancellationToken);
 
     private static async Task<TenantDemoSeedResult> SeedTenantAsync(
         AppDbContext db,
         Guid tenantId,
+        string? explicitProfileId,
         ILogger logger,
         CancellationToken cancellationToken)
     {
@@ -77,6 +99,9 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         if (tenant is null)
             return new TenantDemoSeedResult(0, 0, null);
 
+        var profileId = await ResolveVerticalProfileIdAsync(db, tenant.Id, explicitProfileId, cancellationToken)
+            .ConfigureAwait(false);
+
         try
         {
             if (db.Database.IsRelational())
@@ -85,7 +110,7 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
                     .ConfigureAwait(false);
                 try
                 {
-                    var result = await SeedCoreAsync(db, tenant.Id, cancellationToken).ConfigureAwait(false);
+                    var result = await SeedCoreAsync(db, tenant.Id, profileId, cancellationToken).ConfigureAwait(false);
                     await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                     return result;
                 }
@@ -96,7 +121,7 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
                 }
             }
 
-            return await SeedCoreAsync(db, tenant.Id, cancellationToken).ConfigureAwait(false);
+            return await SeedCoreAsync(db, tenant.Id, profileId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -104,11 +129,35 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         }
     }
 
+    internal static async Task<string> ResolveVerticalProfileIdAsync(
+        AppDbContext db,
+        Guid tenantId,
+        string? explicitProfileId,
+        CancellationToken cancellationToken)
+    {
+        if (IsCatalogProfile(explicitProfileId))
+            return explicitProfileId!;
+
+        var stored = await db.CompanySettings
+            .IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .Select(row => row.VerticalProfileId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return IsCatalogProfile(stored) ? stored! : VerticalProfileIds.Gastronomy;
+    }
+
+    private static bool IsCatalogProfile(string? profileId) =>
+        !string.IsNullOrWhiteSpace(profileId)
+        && DevTenantSeeder.Catalog.Any(row => row.ProfileId == profileId);
+
     private static async Task<TenantDemoSeedResult> SeedCoreAsync(
         AppDbContext db,
         Guid tenantId,
+        string profileId,
         CancellationToken cancellationToken)
     {
+        var profile = DevTenantSeeder.Catalog.First(row => row.ProfileId == profileId);
         var now = DateTime.UtcNow;
         await RunProfileAsync("catalog", () => EnsureTaxGroupAsync(db, tenantId, cancellationToken)).ConfigureAwait(false);
         var taxGroupId = await db.TaxGroups
@@ -119,32 +168,22 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
             .FirstAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var categories = await EnsureCategoriesAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
-        var productsAdded = await EnsureProductsAsync(db, tenantId, taxGroupId, categories, now, cancellationToken)
+        var categories = await EnsureCategoriesAsync(db, tenantId, profile, now, cancellationToken).ConfigureAwait(false);
+        var productsAdded = await EnsureProductsAsync(db, tenantId, taxGroupId, categories, profile, now, cancellationToken)
             .ConfigureAwait(false);
-        var customersAdded = await EnsureCustomersAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
-        var cashRegisterId = await EnsureOpenRegisterAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+        var customersAdded = await EnsureCustomersAsync(db, tenantId, profile, now, cancellationToken).ConfigureAwait(false);
+        var cashRegisterId = await EnsureClosedRegisterAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
 
         var verticalProducts = 0;
-        await RunProfileAsync(VerticalProfileIds.Beherbergung, () => SeedBeherbergungAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.TicketSales, () => SeedTicketSalesAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.HandyShop, async () =>
-        {
-            verticalProducts += await SeedHandyShopAsync(db, tenantId, taxGroupId, categories, now, cancellationToken)
-                .ConfigureAwait(false);
-        }).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.Vet, () => SeedVetAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.Doctor, () => SeedDoctorAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.HairSalon, async () =>
-        {
-            verticalProducts += await SeedHairSalonAsync(db, tenantId, taxGroupId, categories, now, cancellationToken)
-                .ConfigureAwait(false);
-        }).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.GastronomyTables, () => SeedGastronomyTablesAsync(db, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.Taxi, () => SeedTaxiAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.MobileServices, () => SeedMobileServicesAsync(db, tenantId, now, cancellationToken)).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.Gastronomy, () => SeedGastronomyAsync()).ConfigureAwait(false);
-        await RunProfileAsync(VerticalProfileIds.Retail, () => SeedRetailAsync()).ConfigureAwait(false);
+        await RunProfileAsync(profile.ProfileId, () => SeedProfileExtrasAsync(
+            db,
+            tenantId,
+            taxGroupId,
+            categories,
+            profile.ProfileId,
+            now,
+            added => verticalProducts += added,
+            cancellationToken)).ConfigureAwait(false);
 
         return new TenantDemoSeedResult(productsAdded + verticalProducts, customersAdded, cashRegisterId);
     }
@@ -158,9 +197,60 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private static async Task SeedProfileExtrasAsync(
+        AppDbContext db,
+        Guid tenantId,
+        Guid taxGroupId,
+        IReadOnlyDictionary<string, Category> categories,
+        string profileId,
+        DateTime now,
+        Action<int> addProducts,
+        CancellationToken cancellationToken)
+    {
+        switch (profileId)
+        {
+            case VerticalProfileIds.Beherbergung:
+                await SeedBeherbergungAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.TicketSales:
+                await SeedTicketSalesAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.HandyShop:
+                addProducts(await SeedHandyShopAsync(db, tenantId, taxGroupId, categories, now, cancellationToken)
+                    .ConfigureAwait(false));
+                break;
+            case VerticalProfileIds.Vet:
+                await SeedVetAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.Doctor:
+                await SeedDoctorAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.HairSalon:
+                addProducts(await SeedHairSalonAsync(db, tenantId, taxGroupId, categories, now, cancellationToken)
+                    .ConfigureAwait(false));
+                break;
+            case VerticalProfileIds.GastronomyTables:
+                await SeedGastronomyTablesAsync(db, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.Taxi:
+                await SeedTaxiAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.MobileServices:
+                await SeedMobileServicesAsync(db, tenantId, now, cancellationToken).ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.Gastronomy:
+                await SeedGastronomyAsync().ConfigureAwait(false);
+                break;
+            case VerticalProfileIds.Retail:
+                await SeedRetailAsync().ConfigureAwait(false);
+                break;
+        }
+    }
+
     private static async Task<Dictionary<string, Category>> EnsureCategoriesAsync(
         AppDbContext db,
         Guid tenantId,
+        DevTenantProfileCatalog profile,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -171,11 +261,8 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
             .ConfigureAwait(false);
         var byKey = existing.ToDictionary(row => row.Key, StringComparer.Ordinal);
 
-        foreach (var profile in DevTenantSeeder.Catalog)
+        if (!byKey.ContainsKey(profile.ProfileId))
         {
-            if (byKey.ContainsKey(profile.ProfileId))
-                continue;
-
             var category = new Category
             {
                 TenantId = tenantId,
@@ -204,6 +291,7 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         Guid tenantId,
         Guid taxGroupId,
         IReadOnlyDictionary<string, Category> categories,
+        DevTenantProfileCatalog profile,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -216,43 +304,40 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         var known = barcodes.ToHashSet(StringComparer.Ordinal);
         var added = 0;
 
-        foreach (var profile in DevTenantSeeder.Catalog)
+        var category = categories[profile.ProfileId];
+        for (var index = 0; index < profile.ProductNames.Count; index++)
         {
-            var category = categories[profile.ProfileId];
-            for (var index = 0; index < profile.ProductNames.Count; index++)
-            {
-                var barcode = DevTenantSeeder.Barcode(profile.ProfileId, index + 1);
-                if (!known.Add(barcode))
-                    continue;
+            var barcode = DevTenantSeeder.Barcode(profile.ProfileId, index + 1);
+            if (!known.Add(barcode))
+                continue;
 
-                db.Products.Add(new Product
-                {
-                    TenantId = tenantId,
-                    Name = profile.ProductNames[index],
-                    Description = profile.CategoryName,
-                    Price = 9.90m + index,
-                    TaxType = (int)TaxType.Standard,
-                    TaxRate = 20m,
-                    Category = category.Name,
-                    CategoryId = category.Id,
-                    TaxGroupId = taxGroupId,
-                    Barcode = barcode,
-                    IsActive = true,
-                    StockQuantity = 50,
-                    MinStockLevel = 0,
-                    Unit = "Stk",
-                    Cost = 0,
-                    IsFiscalCompliant = true,
-                    IsTaxable = true,
-                    RksvProductType = RksvProductTypes.Standard,
-                    IsSellableAddOn = false,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = DevTenantSeeder.CreatedBy,
-                    UpdatedBy = DevTenantSeeder.CreatedBy,
-                });
-                added++;
-            }
+            db.Products.Add(new Product
+            {
+                TenantId = tenantId,
+                Name = profile.ProductNames[index],
+                Description = profile.CategoryName,
+                Price = 9.90m + index,
+                TaxType = (int)TaxType.Standard,
+                TaxRate = 20m,
+                Category = category.Name,
+                CategoryId = category.Id,
+                TaxGroupId = taxGroupId,
+                Barcode = barcode,
+                IsActive = true,
+                StockQuantity = 50,
+                MinStockLevel = 0,
+                Unit = "Stk",
+                Cost = 0,
+                IsFiscalCompliant = true,
+                IsTaxable = true,
+                RksvProductType = RksvProductTypes.Standard,
+                IsSellableAddOn = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = DevTenantSeeder.CreatedBy,
+                UpdatedBy = DevTenantSeeder.CreatedBy,
+            });
+            added++;
         }
 
         if (added > 0)
@@ -263,6 +348,7 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
     private static async Task<int> EnsureCustomersAsync(
         AppDbContext db,
         Guid tenantId,
+        DevTenantProfileCatalog profile,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -275,31 +361,28 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         var known = numbers.ToHashSet(StringComparer.Ordinal);
         var added = 0;
 
-        foreach (var profile in DevTenantSeeder.Catalog)
+        for (var index = 0; index < profile.CustomerNames.Count; index++)
         {
-            for (var index = 0; index < profile.CustomerNames.Count; index++)
-            {
-                var number = DevTenantSeeder.CustomerNumber(profile.ProfileId, index + 1);
-                if (!known.Add(number))
-                    continue;
+            var number = DevTenantSeeder.CustomerNumber(profile.ProfileId, index + 1);
+            if (!known.Add(number))
+                continue;
 
-                db.Customers.Add(new Customer
-                {
-                    TenantId = tenantId,
-                    Name = profile.CustomerNames[index],
-                    CustomerNumber = number,
-                    Email = "",
-                    Phone = "",
-                    Address = "",
-                    TaxNumber = "",
-                    Notes = "",
-                    IsActive = true,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = DevTenantSeeder.CreatedBy,
-                });
-                added++;
-            }
+            db.Customers.Add(new Customer
+            {
+                TenantId = tenantId,
+                Name = profile.CustomerNames[index],
+                CustomerNumber = number,
+                Email = "",
+                Phone = "",
+                Address = "",
+                TaxNumber = "",
+                Notes = "",
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = DevTenantSeeder.CreatedBy,
+            });
+            added++;
         }
 
         if (added > 0)
@@ -307,7 +390,13 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
         return added;
     }
 
-    private static async Task<Guid> EnsureOpenRegisterAsync(
+    /// <summary>
+    /// Leaves one operational register <see cref="RegisterStatus.Closed"/> and does not open a shift.
+    /// POS <c>POST /api/pos/shift/auto-open</c> opens it for the signed-in cashier.
+    /// A previous seed that forced <see cref="RegisterStatus.Open"/> with no operator is closed again.
+    /// A register already held by a cashier (<c>CurrentUserId</c> or a non-seed active shift) is left alone.
+    /// </summary>
+    private static async Task<Guid> EnsureClosedRegisterAsync(
         AppDbContext db,
         Guid tenantId,
         DateTime now,
@@ -319,39 +408,48 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var register = registers.FirstOrDefault(row => row.Status == RegisterStatus.Open);
+        var register = registers.FirstOrDefault(row => row.IsDefaultForTenant)
+            ?? registers.FirstOrDefault(row => row.Status == RegisterStatus.Closed)
+            ?? registers.FirstOrDefault();
         if (register is null)
         {
-            register = registers.FirstOrDefault(row => row.IsDefaultForTenant)
-                ?? registers.FirstOrDefault(row => row.Status == RegisterStatus.Closed);
-            if (register is null)
+            var slug = await db.Tenants
+                .IgnoreQueryFilters()
+                .Where(row => row.Id == tenantId)
+                .Select(row => row.Slug)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            register = new CashRegister
             {
-                var slug = await db.Tenants
-                    .IgnoreQueryFilters()
-                    .Where(row => row.Id == tenantId)
-                    .Select(row => row.Slug)
-                    .FirstOrDefaultAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                register = new CashRegister
-                {
-                    TenantId = tenantId,
-                    RegisterNumber = CashRegisterNumbers.ForTenant(tenantId, slug),
-                    Location = "Hauptkasse",
-                    StartingBalance = 0,
-                    CurrentBalance = 0,
-                    LastBalanceUpdate = now,
-                    Status = RegisterStatus.Open,
-                    IsDefaultForTenant = true,
-                    IsActive = true,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = DevTenantSeeder.CreatedBy,
-                };
-                db.CashRegisters.Add(register);
-            }
-            else if (register.Status != RegisterStatus.Decommissioned)
+                TenantId = tenantId,
+                RegisterNumber = CashRegisterNumbers.ForTenant(tenantId, slug),
+                Location = "Hauptkasse",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                IsDefaultForTenant = true,
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = DevTenantSeeder.CreatedBy,
+            };
+            db.CashRegisters.Add(register);
+        }
+        else if (register.Status == RegisterStatus.Open && string.IsNullOrEmpty(register.CurrentUserId))
+        {
+            var heldByCashier = await db.CashierShifts
+                .IgnoreQueryFilters()
+                .AnyAsync(
+                    row => row.CashRegisterId == register.Id
+                        && row.Status == CashierShiftStatuses.Active
+                        && row.EndedAt == null
+                        && row.CashierId != DemoTenantAdminUserIds.Dev,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!heldByCashier)
             {
-                register.Status = RegisterStatus.Open;
+                register.Status = RegisterStatus.Closed;
                 register.LastBalanceUpdate = now;
                 register.UpdatedAt = now;
                 register.UpdatedBy = DevTenantSeeder.CreatedBy;
@@ -360,30 +458,24 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var hasOpenShift = await db.CashierShifts
+        var seedShifts = await db.CashierShifts
             .IgnoreQueryFilters()
-            .AnyAsync(
-                row => row.CashRegisterId == register.Id
-                    && row.Status == CashierShiftStatuses.Active
-                    && row.EndedAt == null,
-                cancellationToken)
+            .Where(row => row.CashRegisterId == register.Id
+                && row.CashierId == DemoTenantAdminUserIds.Dev
+                && row.Status == CashierShiftStatuses.Active
+                && row.EndedAt == null)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (!hasOpenShift)
+        if (seedShifts.Count > 0)
         {
-            db.CashierShifts.Add(new CashierShift
+            foreach (var shift in seedShifts)
             {
-                TenantId = tenantId,
-                CashRegisterId = register.Id,
-                CashierId = DemoTenantAdminUserIds.Dev,
-                CashierName = "Demo Kasse",
-                StartBalance = register.CurrentBalance,
-                StartedAt = now,
-                Status = CashierShiftStatuses.Active,
-                IsActive = true,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = DevTenantSeeder.CreatedBy,
-            });
+                shift.Status = CashierShiftStatuses.Completed;
+                shift.EndedAt = now;
+                shift.UpdatedAt = now;
+                shift.UpdatedBy = DevTenantSeeder.CreatedBy;
+            }
+
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 

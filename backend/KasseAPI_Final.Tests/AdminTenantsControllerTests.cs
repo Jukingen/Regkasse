@@ -2956,7 +2956,10 @@ public sealed class AdminTenantsControllerTests
 
         var seeder = new Mock<ITenantDemoSeeder>();
         seeder
-            .Setup(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()))
+            .Setup(s => s.ResolveVerticalProfileIdAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(VerticalProfileIds.Doctor);
+        seeder
+            .Setup(s => s.SeedAsync(tenantId, VerticalProfileIds.Doctor, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TenantDemoSeedResult(44, 22, registerId));
 
         var audit = new Mock<IAuditLogService>();
@@ -2993,7 +2996,9 @@ public sealed class AdminTenantsControllerTests
         });
 
         Assert.IsType<CreatedAtActionResult>(result.Result);
-        seeder.Verify(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()), Times.Once);
+        seeder.Verify(s => s.ResolveVerticalProfileIdAsync(tenantId, It.IsAny<CancellationToken>()), Times.Once);
+        seeder.Verify(s => s.SeedAsync(tenantId, VerticalProfileIds.Doctor, It.IsAny<CancellationToken>()), Times.Once);
+        seeder.Verify(s => s.SeedAsync(tenantId, It.IsAny<CancellationToken>()), Times.Never);
         audit.Verify(a => a.LogSystemOperationAsync(
             "TENANT_DEMO_SEEDED",
             "Tenant",
@@ -3039,6 +3044,7 @@ public sealed class AdminTenantsControllerTests
 
         Assert.IsType<CreatedAtActionResult>(result.Result);
         seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -3072,6 +3078,7 @@ public sealed class AdminTenantsControllerTests
                 It.IsAny<CancellationToken>()),
             Times.Never);
         seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        seeder.Verify(s => s.SeedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static AdminTenantDetailDto CreatedTenant(Guid id) => new(
@@ -3097,6 +3104,7 @@ public sealed class AdminTenantsControllerTests
         return type.GetProperty("password") is null
             && type.GetProperty("productNames") is null
             && (Guid)type.GetProperty("tenantId")!.GetValue(values)! == tenantId
+            && (string)type.GetProperty("verticalProfileId")!.GetValue(values)! == VerticalProfileIds.Doctor
             && (int)type.GetProperty("productsAdded")!.GetValue(values)! == 44
             && (int)type.GetProperty("customersAdded")!.GetValue(values)! == 22
             && (Guid)type.GetProperty("cashRegisterId")!.GetValue(values)! == registerId;

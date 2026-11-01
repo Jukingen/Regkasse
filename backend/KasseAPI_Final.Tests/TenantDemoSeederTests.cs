@@ -20,7 +20,7 @@ public sealed class TenantDemoSeederTests
     }
 
     [Fact]
-    public async Task SeedAsync_AddsFourProductsAndTwoCustomersPerProfile_AndIsIdempotent()
+    public async Task SeedAsync_WithoutProfile_SeedsGastronomyOnly_AndIsIdempotent()
     {
         await using var db = CreateDb();
         var tenantId = Guid.NewGuid();
@@ -38,41 +38,40 @@ public sealed class TenantDemoSeederTests
         var seeder = new TenantDemoSeeder(db);
         var first = await seeder.SeedAsync(tenantId);
 
-        Assert.Equal(DevTenantSeeder.Catalog.Count * 4 + 2, first.ProductsAdded);
-        Assert.Equal(DevTenantSeeder.Catalog.Count * 2, first.CustomersAdded);
+        Assert.Equal(4, first.ProductsAdded);
+        Assert.Equal(2, first.CustomersAdded);
         Assert.NotNull(first.CashRegisterId);
-
-        foreach (var profile in DevTenantSeeder.Catalog)
-        {
-            var categoryId = await db.Categories.IgnoreQueryFilters()
-                .Where(row => row.TenantId == tenantId && row.Key == profile.ProfileId)
-                .Select(row => row.Id)
-                .SingleAsync();
-            var productCount = await db.Products.IgnoreQueryFilters()
-                .CountAsync(row => row.TenantId == tenantId && row.CategoryId == categoryId && row.IsActive);
-            var customerCount = await db.Customers.IgnoreQueryFilters()
-                .CountAsync(row =>
-                    row.TenantId == tenantId
-                    && row.CustomerNumber.StartsWith("D-")
-                    && row.IsActive
-                    && profile.CustomerNames.Contains(row.Name));
-
-            var expectedProducts = profile.ProductNames.Count
-                + (profile.ProfileId is VerticalProfileIds.HandyShop or VerticalProfileIds.HairSalon ? 1 : 0);
-            Assert.Equal(expectedProducts, productCount);
-            Assert.Equal(2, customerCount);
-        }
-
         Assert.Null(first.FailedProfile);
-        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
+        Assert.Equal(VerticalProfileIds.Gastronomy, await seeder.ResolveVerticalProfileIdAsync(tenantId));
+
+        var keys = await db.Categories.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .Select(row => row.Key)
+            .ToListAsync();
+        Assert.Equal(new[] { VerticalProfileIds.Gastronomy }, keys);
+        Assert.DoesNotContain(VerticalProfileIds.Vet, keys);
+        Assert.DoesNotContain(VerticalProfileIds.Doctor, keys);
+        Assert.DoesNotContain(VerticalProfileIds.HairSalon, keys);
+
+        var productNames = await db.Products.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId && row.IsActive)
+            .Select(row => row.Name)
+            .ToListAsync();
+        Assert.Equal(4, productNames.Count);
+        Assert.Contains("Wiener Schnitzel", productNames);
+        Assert.DoesNotContain("Ordination", productNames);
+        Assert.DoesNotContain("Impfung", productNames);
+        Assert.Equal(2, await db.Customers.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId && row.IsActive));
+
+        await DemoVerticalSeedAssertions.AssertProfileAsync(db, tenantId, VerticalProfileIds.Gastronomy);
 
         var register = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.TenantId == tenantId);
         Assert.Equal(first.CashRegisterId, register.Id);
         Assert.Equal(CashRegisterNumbers.ForTenant(tenantId, "demo-test"), register.RegisterNumber);
         Assert.NotEqual(DevTenantSeeder.RegisterNumber, register.RegisterNumber);
-        Assert.Equal(RegisterStatus.Open, register.Status);
+        Assert.Equal(RegisterStatus.Closed, register.Status);
         Assert.Equal(
-            1,
+            0,
             await db.CashierShifts.IgnoreQueryFilters().CountAsync(row =>
                 row.CashRegisterId == register.Id && row.Status == CashierShiftStatuses.Active && row.EndedAt == null));
 
@@ -84,7 +83,68 @@ public sealed class TenantDemoSeederTests
         Assert.Equal(first.CustomersAdded, await db.Customers.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Equal(1, await db.CashRegisters.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Null(second.FailedProfile);
-        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
+        await DemoVerticalSeedAssertions.AssertProfileAsync(db, tenantId, VerticalProfileIds.Gastronomy);
+    }
+
+    [Fact]
+    public async Task SeedAsync_UsesCompanySettingsVerticalProfile()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Arzt",
+            Slug = "praxis",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CompanySettings.Add(new CompanySettings
+        {
+            TenantId = tenantId,
+            VerticalProfileId = VerticalProfileIds.Doctor,
+            CompanyName = "Arztpraxis",
+            CompanyAddress = "Wien 1",
+            CompanyTaxNumber = "ATU12345678",
+            BusinessHours = new Dictionary<string, string>(),
+            Currency = "EUR",
+            Country = "AT",
+            Language = "de-DE",
+            TimeZone = "Europe/Vienna",
+            DateFormat = "dd.MM.yyyy",
+            TimeFormat = "HH:mm",
+            TaxCalculationMethod = "Standard",
+            InvoiceNumbering = "Sequential",
+            ReceiptNumbering = "Sequential",
+            DefaultPaymentMethod = "Cash",
+        });
+        await db.SaveChangesAsync();
+
+        var seeder = new TenantDemoSeeder(db);
+        var seeded = await seeder.SeedAsync(tenantId);
+
+        Assert.Equal(VerticalProfileIds.Doctor, await seeder.ResolveVerticalProfileIdAsync(tenantId));
+        Assert.Equal(4, seeded.ProductsAdded);
+        Assert.Equal(2, seeded.CustomersAdded);
+        Assert.Null(seeded.FailedProfile);
+
+        var keys = await db.Categories.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId && row.IsActive)
+            .Select(row => row.Key)
+            .ToListAsync();
+        Assert.Equal(new[] { VerticalProfileIds.Doctor }, keys);
+
+        var names = await db.Products.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId && row.IsActive)
+            .Select(row => row.Name)
+            .ToListAsync();
+        Assert.Contains("Ordination", names);
+        Assert.Contains("Blutabnahme", names);
+        Assert.DoesNotContain("Impfung", names);
+        Assert.DoesNotContain("Haarschnitt", names);
+        Assert.DoesNotContain("Wiener Schnitzel", names);
+        await DemoVerticalSeedAssertions.AssertProfileAsync(db, tenantId, VerticalProfileIds.Doctor);
     }
 
     [Fact]
@@ -115,6 +175,10 @@ public sealed class TenantDemoSeederTests
         Assert.Equal(productsBefore, await db.Products.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Equal(customersBefore, await db.Customers.IgnoreQueryFilters().CountAsync(row => row.TenantId == tenantId));
         Assert.Null(again.FailedProfile);
-        await DemoVerticalSeedAssertions.AssertAsync(db, tenantId);
+        Assert.Equal(new[] { VerticalProfileIds.Gastronomy }, await db.Categories.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .Select(row => row.Key)
+            .ToListAsync());
+        await DemoVerticalSeedAssertions.AssertProfileAsync(db, tenantId, VerticalProfileIds.Gastronomy);
     }
 }
