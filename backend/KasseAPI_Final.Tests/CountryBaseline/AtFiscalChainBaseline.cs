@@ -331,9 +331,13 @@ internal static class AtFiscalChainBaseline
         return result;
     }
 
-    /// <summary>RKSV BelegNr grammar: <c>AT-{register}-{yyyyMMdd}-{sequence}</c>.</summary>
+    /// <summary>
+    /// Live RKSV BelegNr: <c>AT-{register}-{tenantId:N}-{yyyyMMdd}-{sequence}</c>.
+    /// The tenant id keeps the same register number unique across mandants.
+    /// </summary>
     private static JsonArray BuildFiscalNumbering()
     {
+        var tenantId = Guid.Parse("b0000001-0001-4001-8001-000000000001");
         var cases = new (string Register, DateTime Date, int Sequence)[]
         {
             (RegisterNumber, BusinessDay, 1),
@@ -351,7 +355,8 @@ internal static class AtFiscalChainBaseline
                 ["registerNumber"] = register,
                 ["sequenceDate"] = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 ["sequence"] = sequence,
-                ["belegNr"] = SequenceReservationService.FormatBelegNr(register, date, sequence),
+                ["tenantId"] = tenantId.ToString("D"),
+                ["belegNr"] = AustrianBelegNumber.Format(register, tenantId, date, sequence),
             });
         }
 

@@ -7,11 +7,16 @@ namespace KasseAPI_Final.Models
     [Table("invoices")]
     public class Invoice : BaseTenantEntity
     {
+        /// <summary>
+        /// Room for <c>AT-{register}-{tenantId:N}-{yyyyMMdd}-{sequence}</c> (worst case 76).
+        /// </summary>
+        public const int InvoiceNumberMaxLength = 80;
+
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }
 
         [Required]
-        [StringLength(50)]
+        [StringLength(InvoiceNumberMaxLength)]
         public string InvoiceNumber { get; set; } = string.Empty;
 
         [Required]

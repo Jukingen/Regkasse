@@ -1,5 +1,6 @@
 using System.Data;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Offline;
@@ -102,15 +103,15 @@ public sealed class SequenceReservationService : ISequenceReservationService
         var register = await _context.CashRegisters
             .AsNoTracking()
             .Where(r => r.Id == cashRegisterId && r.IsActive)
-            .Select(r => new { r.RegisterNumber })
+            .Select(r => new { r.RegisterNumber, r.TenantId })
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        if (register == null || string.IsNullOrWhiteSpace(register.RegisterNumber))
+        if (register == null || string.IsNullOrWhiteSpace(register.RegisterNumber) || register.TenantId == Guid.Empty)
             return false;
 
         var dateOnly = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
-        var belegNr = FormatBelegNr(register.RegisterNumber, dateOnly, sequenceNumber);
+        var belegNr = AustrianBelegNumber.Format(register.RegisterNumber, register.TenantId, dateOnly, sequenceNumber);
 
         var taken = await _context.PaymentDetails
             .AsNoTracking()
@@ -128,8 +129,8 @@ public sealed class SequenceReservationService : ISequenceReservationService
         if (sequenceNumber < 1)
             throw new ArgumentOutOfRangeException(nameof(sequenceNumber), "Sequence must be at least 1.");
 
-        var registerNumber = await GetRegisterNumberAsync(cashRegisterId, ct).ConfigureAwait(false);
-        return FormatBelegNr(registerNumber, DateTime.UtcNow.Date, sequenceNumber);
+        var register = await GetRegisterIdentityAsync(cashRegisterId, ct).ConfigureAwait(false);
+        return AustrianBelegNumber.Format(register.RegisterNumber, register.TenantId, DateTime.UtcNow.Date, sequenceNumber);
     }
 
     public async Task<string> ReserveNextReceiptNumberAsync(
@@ -190,6 +191,10 @@ public sealed class SequenceReservationService : ISequenceReservationService
             lastError);
     }
 
+    /// <summary>
+    /// Register-only grammar <c>AT-{register}-{yyyyMMdd}-{sequence}</c>.
+    /// Live allocation uses <see cref="AustrianBelegNumber.Format"/> so the tenant id is included.
+    /// </summary>
     internal static string FormatBelegNr(string registerNumber, DateTime sequenceDate, int sequenceNumber) =>
         $"AT-{registerNumber}-{sequenceDate:yyyyMMdd}-{sequenceNumber}";
 
@@ -254,18 +259,20 @@ public sealed class SequenceReservationService : ISequenceReservationService
             throw new KeyNotFoundException($"Active cash register '{cashRegisterId}' was not found.");
     }
 
-    private async Task<string> GetRegisterNumberAsync(Guid cashRegisterId, CancellationToken ct)
+    private async Task<(string RegisterNumber, Guid TenantId)> GetRegisterIdentityAsync(
+        Guid cashRegisterId,
+        CancellationToken ct)
     {
         var register = await _context.CashRegisters
             .AsNoTracking()
             .Where(r => r.Id == cashRegisterId && r.IsActive)
-            .Select(r => r.RegisterNumber)
+            .Select(r => new { r.RegisterNumber, r.TenantId })
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(register))
+        if (register == null || string.IsNullOrWhiteSpace(register.RegisterNumber) || register.TenantId == Guid.Empty)
             throw new KeyNotFoundException($"Active cash register '{cashRegisterId}' was not found.");
 
-        return register;
+        return (register.RegisterNumber, register.TenantId);
     }
 }

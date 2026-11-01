@@ -329,31 +329,36 @@
       "registerNumber": "KASSE-BASELINE-01",
       "sequenceDate": "2026-01-12",
       "sequence": 1,
-      "belegNr": "AT-KASSE-BASELINE-01-20260112-1"
+      "tenantId": "b0000001-0001-4001-8001-000000000001",
+      "belegNr": "AT-KASSE-BASELINE-01-b0000001000140018001000000000001-20260112-1"
     },
     {
       "registerNumber": "KASSE-BASELINE-01",
       "sequenceDate": "2026-01-12",
       "sequence": 42,
-      "belegNr": "AT-KASSE-BASELINE-01-20260112-42"
+      "tenantId": "b0000001-0001-4001-8001-000000000001",
+      "belegNr": "AT-KASSE-BASELINE-01-b0000001000140018001000000000001-20260112-42"
     },
     {
       "registerNumber": "KASSE-BASELINE-01",
       "sequenceDate": "2026-01-12",
       "sequence": 9999,
-      "belegNr": "AT-KASSE-BASELINE-01-20260112-9999"
+      "tenantId": "b0000001-0001-4001-8001-000000000001",
+      "belegNr": "AT-KASSE-BASELINE-01-b0000001000140018001000000000001-20260112-9999"
     },
     {
       "registerNumber": "KASSE-01",
       "sequenceDate": "2026-12-31",
       "sequence": 1,
-      "belegNr": "AT-KASSE-01-20261231-1"
+      "tenantId": "b0000001-0001-4001-8001-000000000001",
+      "belegNr": "AT-KASSE-01-b0000001000140018001000000000001-20261231-1"
     },
     {
       "registerNumber": "KASSE-01",
       "sequenceDate": "2027-01-01",
       "sequence": 1,
-      "belegNr": "AT-KASSE-01-20270101-1"
+      "tenantId": "b0000001-0001-4001-8001-000000000001",
+      "belegNr": "AT-KASSE-01-b0000001000140018001000000000001-20270101-1"
     }
   ],
   "billingNumbering": [
