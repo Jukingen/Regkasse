@@ -115,15 +115,18 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
     private readonly AppDbContext _db;
     private readonly ILogger<DownloadHistoryService> _logger;
     private readonly IAuditLogService _audit;
+    private readonly TimeProvider _time;
 
     public DownloadHistoryService(
         AppDbContext db,
         ILogger<DownloadHistoryService> logger,
-        IAuditLogService audit)
+        IAuditLogService audit,
+        TimeProvider? time = null)
     {
         _db = db;
         _logger = logger;
         _audit = audit;
+        _time = time ?? TimeProvider.System;
     }
 
     public async Task<DownloadHistory> RecordAsync(
@@ -271,7 +274,7 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
         CancellationToken cancellationToken = default)
     {
         retentionDays = Math.Clamp(retentionDays, 1, 365);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var dailyFrom = todayStart.AddDays(-29);

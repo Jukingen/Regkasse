@@ -1557,7 +1557,7 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => e.TenantId);
-                entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(Invoice.InvoiceNumberMaxLength);
                 entity.Property(e => e.CustomerName).HasMaxLength(100);
                 entity.Property(e => e.CustomerEmail).HasMaxLength(100);
                 entity.Property(e => e.CustomerPhone).HasMaxLength(20);

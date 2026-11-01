@@ -27,6 +27,11 @@ public sealed class DownloadHistoryServiceTests
         public string? TenantSlug { get; set; } = "cafe";
     }
 
+    private sealed class FixedTimeProvider(DateTime utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(utcNow, TimeSpan.Zero);
+    }
+
     private static void EnsureTenant(AppDbContext db, Guid tenantId, string slug)
     {
         if (!db.Tenants.Any(t => t.Id == tenantId))
@@ -237,7 +242,12 @@ public sealed class DownloadHistoryServiceTests
         var tenantId = Guid.NewGuid();
         await using var db = CreateDb(tenantId);
         EnsureTenant(db, tenantId, "cafe");
-        var svc = new DownloadHistoryService(db, NullLogger<DownloadHistoryService>.Instance, Mock.Of<IAuditLogService>());
+        var now = new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+        var svc = new DownloadHistoryService(
+            db,
+            NullLogger<DownloadHistoryService>.Instance,
+            Mock.Of<IAuditLogService>(),
+            new FixedTimeProvider(now));
         var userA = Guid.NewGuid().ToString("D");
         var userB = Guid.NewGuid().ToString("D");
 
@@ -250,7 +260,7 @@ public sealed class DownloadHistoryServiceTests
             FileSize = 1000,
             SourceKind = "invoice",
             DurationMs = 5000,
-            DownloadedAtUtc = DateTime.UtcNow,
+            DownloadedAtUtc = now,
         });
         await svc.RecordAsync(new DownloadHistoryRecordRequest
         {
@@ -260,7 +270,7 @@ public sealed class DownloadHistoryServiceTests
             FileType = "json",
             FileSize = 2000,
             SourceKind = "dep-export",
-            DownloadedAtUtc = DateTime.UtcNow,
+            DownloadedAtUtc = now,
         });
         await svc.RecordAsync(new DownloadHistoryRecordRequest
         {
@@ -270,13 +280,13 @@ public sealed class DownloadHistoryServiceTests
             FileType = "zip",
             FileSize = 9_000_000,
             SourceKind = "backup",
-            DownloadedAtUtc = DateTime.UtcNow.AddDays(-2),
+            DownloadedAtUtc = now.AddDays(-2),
         });
 
         var analytics = await svc.GetAnalyticsAsync(tenantId, includePlatformTenants: false);
 
         Assert.Equal(3, analytics.TotalCount);
-        Assert.True(analytics.TodayCount >= 2);
+        Assert.Equal(2, analytics.TodayCount);
         Assert.Equal(3, analytics.MonthCount);
         Assert.NotEmpty(analytics.TopKinds);
         Assert.Contains(analytics.TopKinds, k => k.Label.Contains("Invoice", StringComparison.OrdinalIgnoreCase));

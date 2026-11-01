@@ -84,7 +84,7 @@ public static class CashRegisterBootstrapSeed
             {
                 Id = Guid.NewGuid(),
                 TenantId = t.Id,
-                RegisterNumber = "KASSE-001",
+                RegisterNumber = CashRegisterNumbers.ForTenant(t.Id, t.Slug),
                 Location = "Hauptkasse",
                 StartingBalance = 0,
                 CurrentBalance = 0,

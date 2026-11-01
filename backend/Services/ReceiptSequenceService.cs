@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace KasseAPI_Final.Services
 {
     /// <summary>
-    /// Centralized BelegNr allocation per cash register (UUID) per day; human-readable segment from RegisterNumber.
+    /// Centralized BelegNr allocation per cash register (UUID) per day.
+    /// The number includes the tenant id so the same RegisterNumber on another mandant cannot collide.
     /// </summary>
     public class ReceiptSequenceService : IReceiptSequenceService
     {
@@ -28,6 +29,7 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("RegisterNumber is required for BelegNr.", nameof(registerNumber));
 
             var dateOnly = sequenceDate.Date;
+            var tenantId = await ResolveTenantIdAsync(cashRegisterId).ConfigureAwait(false);
             var conn = _context.Database.GetDbConnection();
             if (conn.State != ConnectionState.Open)
                 await conn.OpenAsync();
@@ -36,7 +38,7 @@ namespace KasseAPI_Final.Services
             SetAllocateCommand(cmd, cashRegisterId, dateOnly);
 
             var result = await cmd.ExecuteScalarAsync();
-            return ParseAllocatedResult(result, registerNumber, dateOnly, cashRegisterId);
+            return ParseAllocatedResult(result, registerNumber, tenantId, dateOnly, cashRegisterId);
         }
 
         /// <inheritdoc />
@@ -50,6 +52,7 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("RegisterNumber is required for BelegNr.", nameof(registerNumber));
 
             var dateOnly = sequenceDate.Date;
+            var tenantId = await ResolveTenantIdAsync(cashRegisterId).ConfigureAwait(false);
             var conn = _context.Database.GetDbConnection();
             if (conn.State != ConnectionState.Open)
                 await conn.OpenAsync();
@@ -59,7 +62,7 @@ namespace KasseAPI_Final.Services
             SetAllocateCommand(cmd, cashRegisterId, dateOnly);
 
             var result = await cmd.ExecuteScalarAsync();
-            return ParseAllocatedResult(result, registerNumber, dateOnly, cashRegisterId);
+            return ParseAllocatedResult(result, registerNumber, tenantId, dateOnly, cashRegisterId);
         }
 
         private static void SetAllocateCommand(System.Data.Common.DbCommand cmd, Guid cashRegisterId, DateTime dateOnly)
@@ -83,7 +86,12 @@ namespace KasseAPI_Final.Services
             cmd.Parameters.Add(p1);
         }
 
-        private string ParseAllocatedResult(object? result, string registerNumber, DateTime dateOnly, Guid cashRegisterId)
+        private string ParseAllocatedResult(
+            object? result,
+            string registerNumber,
+            Guid tenantId,
+            DateTime dateOnly,
+            Guid cashRegisterId)
         {
             var allocated = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
             if (allocated < 1)
@@ -91,9 +99,28 @@ namespace KasseAPI_Final.Services
                 _logger.LogError("Receipt sequence allocation returned invalid value for CashRegisterId={Id} Date={Date}", cashRegisterId, dateOnly);
                 throw new InvalidOperationException($"Receipt sequence allocation failed for CashRegisterId={cashRegisterId} Date={dateOnly:yyyyMMdd}.");
             }
-            var belegNr = $"AT-{registerNumber}-{dateOnly:yyyyMMdd}-{allocated}";
+
+            var belegNr = AustrianBelegNumber.Format(registerNumber, tenantId, dateOnly, allocated);
             _logger.LogDebug("Allocated BelegNr {BelegNr} for CashRegisterId={Id} Date={Date}", belegNr, cashRegisterId, dateOnly);
             return belegNr;
+        }
+
+        private async Task<Guid> ResolveTenantIdAsync(Guid cashRegisterId)
+        {
+            var tenantId = await _context.CashRegisters
+                .AsNoTracking()
+                .Where(r => r.Id == cashRegisterId)
+                .Select(r => (Guid?)r.TenantId)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+
+            if (tenantId is null || tenantId == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    $"Cash register '{cashRegisterId}' was not found for the current tenant; BelegNr cannot be allocated.");
+            }
+
+            return tenantId.Value;
         }
     }
 }

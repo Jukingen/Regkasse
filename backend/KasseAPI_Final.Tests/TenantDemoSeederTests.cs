@@ -68,7 +68,8 @@ public sealed class TenantDemoSeederTests
 
         var register = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.TenantId == tenantId);
         Assert.Equal(first.CashRegisterId, register.Id);
-        Assert.Equal(DevTenantSeeder.RegisterNumber, register.RegisterNumber);
+        Assert.Equal(CashRegisterNumbers.ForTenant(tenantId, "demo-test"), register.RegisterNumber);
+        Assert.NotEqual(DevTenantSeeder.RegisterNumber, register.RegisterNumber);
         Assert.Equal(RegisterStatus.Open, register.Status);
         Assert.Equal(
             1,

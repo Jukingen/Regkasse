@@ -73,12 +73,16 @@ public class CashRegisterBootstrapSeedTests
         Assert.All(registers, r =>
         {
             Assert.Equal(RegisterStatus.Closed, r.Status);
-            Assert.Equal("KASSE-001", r.RegisterNumber);
             Assert.Equal("Hauptkasse", r.Location);
             Assert.Null(r.CurrentUserId);
             Assert.True(r.IsActive);
             Assert.True(r.IsDefaultForTenant);
         });
+        Assert.Equal("K-TENANT-A", registers.Single(r => r.TenantId == TenantAId).RegisterNumber);
+        Assert.Equal("K-TENANT-B", registers.Single(r => r.TenantId == TenantBId).RegisterNumber);
+        Assert.NotEqual(
+            registers.Single(r => r.TenantId == TenantAId).RegisterNumber,
+            registers.Single(r => r.TenantId == TenantBId).RegisterNumber);
         Assert.DoesNotContain(registers, r => r.TenantId == SuspendedTenantId);
     }
 
@@ -114,7 +118,7 @@ public class CashRegisterBootstrapSeedTests
         Assert.Contains(registers, r => r.TenantId == TenantAId && r.RegisterNumber == "X1");
         Assert.Contains(registers, r =>
             r.TenantId == TenantBId
-            && r.RegisterNumber == "KASSE-001"
+            && r.RegisterNumber == "K-TENANT-B"
             && r.Status == RegisterStatus.Closed);
     }
 

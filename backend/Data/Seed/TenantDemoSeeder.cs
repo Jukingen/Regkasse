@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -325,10 +326,16 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
                 ?? registers.FirstOrDefault(row => row.Status == RegisterStatus.Closed);
             if (register is null)
             {
+                var slug = await db.Tenants
+                    .IgnoreQueryFilters()
+                    .Where(row => row.Id == tenantId)
+                    .Select(row => row.Slug)
+                    .FirstOrDefaultAsync(cancellationToken)
+                    .ConfigureAwait(false);
                 register = new CashRegister
                 {
                     TenantId = tenantId,
-                    RegisterNumber = DevTenantSeeder.RegisterNumber,
+                    RegisterNumber = CashRegisterNumbers.ForTenant(tenantId, slug),
                     Location = "Hauptkasse",
                     StartingBalance = 0,
                     CurrentBalance = 0,
