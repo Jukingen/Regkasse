@@ -301,7 +301,12 @@ public sealed class AdminTenantsController : ControllerBase
 
             if (request.SeedDemo)
             {
-                var seeded = await _demoSeeder.SeedAsync(result!.Id, cancellationToken).ConfigureAwait(false);
+                var profileId = await _demoSeeder
+                    .ResolveVerticalProfileIdAsync(result!.Id, cancellationToken)
+                    .ConfigureAwait(false);
+                var seeded = await _demoSeeder
+                    .SeedAsync(result.Id, profileId, cancellationToken)
+                    .ConfigureAwait(false);
                 if (seeded.FailedProfile is null)
                 {
                     await _auditLogService.LogSystemOperationAsync(
@@ -316,6 +321,7 @@ public sealed class AdminTenantsController : ControllerBase
                         newValues: new
                         {
                             tenantId = result.Id,
+                            verticalProfileId = profileId,
                             productsAdded = seeded.ProductsAdded,
                             customersAdded = seeded.CustomersAdded,
                             cashRegisterId = seeded.CashRegisterId,
