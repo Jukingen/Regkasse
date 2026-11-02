@@ -37,7 +37,8 @@
       "clearAll": "Alle leeren",
       "a11ySelect": "Tisch {{number}} wählen",
       "a11ySelected": "Tisch {{number}}, ausgewählt",
-      "a11yClearAll": "Alle Tische leeren"
+      "a11yClearAll": "Alle Tische leeren",
+      "loadFailed": "Die Tische konnten nicht geladen werden. Die Auswahl bleibt verfügbar."
     },
     "summaryStrip": "Tisch {{table}} · {{itemCount}} Artikel · GESAMT {{total}}",
     "personal": {

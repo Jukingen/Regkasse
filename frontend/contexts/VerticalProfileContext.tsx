@@ -171,12 +171,21 @@ export function VerticalProfileProvider({ children }: { children: React.ReactNod
     setError(null);
     setIsLoading(true);
 
-    const tenantScope = firstNonBlank(
-      userTenantId,
-      await tenantStorage.getTenantId(),
-      userTenantSlug,
-      await tenantStorage.getTenantSlug()
-    );
+    let tenantScope: string | null;
+    try {
+      tenantScope = firstNonBlank(
+        userTenantId,
+        await tenantStorage.getTenantId(),
+        userTenantSlug,
+        await tenantStorage.getTenantSlug()
+      );
+    } catch {
+      if (generation === loadGenerationRef.current) {
+        setError('VERTICAL_PROFILE_LOAD_FAILED');
+        setIsLoading(false);
+      }
+      return;
+    }
     if (generation !== loadGenerationRef.current) return;
     if (!tenantScope) {
       setProfile(DEFAULT_PROFILE);

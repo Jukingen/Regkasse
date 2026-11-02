@@ -13,7 +13,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,9 +75,20 @@ import {
   type ProductVariantDto,
 } from '../../services/api/variantService';
 import { createKitchenOrder } from '../../services/api/kitchenOrderService';
+import { autoOpenShiftApi } from '../../services/api/shiftService';
+import {
+  clearShiftAutoOpenFailure,
+  getShiftAutoOpenFailureCode,
+  publishShiftAutoOpenFailure,
+  subscribeShiftAutoOpenFailure,
+} from '../../services/shift/shiftAutoOpenNotice';
 import { formatPrice } from '../../utils/formatPrice';
 import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
-import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
+import { isValidPosCashRegisterId, resolveAutoOpenShiftRegisterId } from '../../utils/posCashRegister';
+import {
+  parseShiftAutoOpenError,
+  resolveRegisterSelectAutoOpenUx,
+} from '../../utils/shiftAutoOpenError';
 import { hasPermission } from '../../utils/posPermissions';
 import {
   isReadinessRegisterDecommissioned,
@@ -395,8 +406,17 @@ export default function CashRegisterScreen() {
   const {
     recoveryData,
     isLoading: recoveryLoading,
+    error: recoveryError,
     provisioningMessage: recoveryProvisioningMessage,
+    refreshTableOrders,
   } = useTableOrdersRecoveryOptimized();
+  const shiftFailureCode = useSyncExternalStore(
+    subscribeShiftAutoOpenFailure,
+    getShiftAutoOpenFailureCode,
+    getShiftAutoOpenFailureCode
+  );
+  const [shiftRetrying, setShiftRetrying] = useState(false);
+  const shiftOpenUx = shiftFailureCode ? resolveRegisterSelectAutoOpenUx(shiftFailureCode) : null;
   const {
     activeTableId,
     currentCart,
@@ -423,6 +443,17 @@ export default function CashRegisterScreen() {
 
   const posReadiness = usePosRegisterReadiness();
   const { user } = useAuth();
+  const retryShiftOpen = useCallback(async () => {
+    setShiftRetrying(true);
+    try {
+      await autoOpenShiftApi(resolveAutoOpenShiftRegisterId(user?.currentCashRegisterId));
+      clearShiftAutoOpenFailure();
+    } catch (err: unknown) {
+      publishShiftAutoOpenFailure(parseShiftAutoOpenError(err).code);
+    } finally {
+      setShiftRetrying(false);
+    }
+  }, [user?.currentCashRegisterId]);
   const { canTakeOrders } = usePosPermissions();
   const canOpenReceiptList = hasPermission(user, 'sale.view');
 
@@ -1053,6 +1084,37 @@ export default function CashRegisterScreen() {
             ) : null}
 
             <IfVerticalFeature feature="tables">
+              {shiftOpenUx ? (
+                <View style={styles.tableNotice}>
+                  <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={shiftRetrying}
+                    onPress={() => {
+                      void retryShiftOpen();
+                    }}
+                    style={styles.tableNoticeButton}>
+                    <Text style={styles.tableNoticeButtonText}>
+                      {shiftRetrying ? t('common:loading') : t('common:retry')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {recoveryError && !recoveryLoading ? (
+                <View style={styles.tableNotice}>
+                  <Text style={styles.tableNoticeText}>
+                    {t('checkout:posFlow.tableSelector.loadFailed')}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      void refreshTableOrders();
+                    }}
+                    style={styles.tableNoticeButton}>
+                    <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
               <TableSelector
                 selectedTable={activeTableId}
                 onTableSelect={handleTableSelect}
@@ -1189,6 +1251,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: SoftColors.accent,
+  },
+  tableNotice: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    gap: SoftSpacing.sm,
+  },
+  tableNoticeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: SoftColors.textPrimary,
+  },
+  tableNoticeButton: {
+    alignSelf: 'flex-start',
+    minHeight: 36,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableNoticeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   categoryHeaderRow: {
     flexDirection: 'row',

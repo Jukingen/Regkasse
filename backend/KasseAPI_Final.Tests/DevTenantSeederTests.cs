@@ -237,6 +237,109 @@ public sealed class DevTenantSeederTests
     }
 
     [Fact]
+    public async Task SeedAsync_ClosesDemoAdminShiftOnNonDefaultRegister_AndKeepsCashierRegister()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var closedDefault = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = DemoTenantIds.Dev,
+            RegisterNumber = "KASSE-003",
+            Location = "Nebenkasse",
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = true,
+            IsActive = true,
+            LastBalanceUpdate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = DevTenantSeeder.CreatedBy,
+        };
+        var seedOpened = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = DemoTenantIds.Dev,
+            RegisterNumber = "KASSE-002",
+            Location = "Saal",
+            Status = RegisterStatus.Open,
+            CurrentUserId = null,
+            IsDefaultForTenant = false,
+            IsActive = true,
+            LastBalanceUpdate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = DevTenantSeeder.CreatedBy,
+        };
+        var cashierRegister = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = DemoTenantIds.Dev,
+            RegisterNumber = "KASSE-004",
+            Location = "Theke",
+            Status = RegisterStatus.Open,
+            CurrentUserId = "cashier1",
+            IsDefaultForTenant = false,
+            IsActive = true,
+            LastBalanceUpdate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = DevTenantSeeder.CreatedBy,
+        };
+        db.CashRegisters.AddRange(closedDefault, seedOpened, cashierRegister);
+        db.CashierShifts.AddRange(
+            new CashierShift
+            {
+                TenantId = DemoTenantIds.Dev,
+                CashRegisterId = seedOpened.Id,
+                CashierId = DemoTenantAdminUserIds.Dev,
+                CashierName = "Demo Kasse",
+                Status = CashierShiftStatuses.Active,
+                IsActive = true,
+                StartedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = DevTenantSeeder.CreatedBy,
+            },
+            new CashierShift
+            {
+                TenantId = DemoTenantIds.Dev,
+                CashRegisterId = cashierRegister.Id,
+                CashierId = "cashier1",
+                CashierName = "Cashier",
+                Status = CashierShiftStatuses.Active,
+                IsActive = true,
+                StartedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = DevTenantSeeder.CreatedBy,
+            });
+        await db.SaveChangesAsync();
+
+        await DevTenantSeeder.SeedAsync(db);
+
+        var released = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.Id == seedOpened.Id);
+        Assert.Equal(RegisterStatus.Closed, released.Status);
+        Assert.Null(released.CurrentUserId);
+        var seedShift = await db.CashierShifts.IgnoreQueryFilters().SingleAsync(row => row.CashRegisterId == seedOpened.Id);
+        Assert.Equal(CashierShiftStatuses.Completed, seedShift.Status);
+        Assert.NotNull(seedShift.EndedAt);
+
+        var kept = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.Id == cashierRegister.Id);
+        Assert.Equal(RegisterStatus.Open, kept.Status);
+        Assert.Equal("cashier1", kept.CurrentUserId);
+        Assert.Equal(
+            CashierShiftStatuses.Active,
+            await db.CashierShifts.IgnoreQueryFilters()
+                .Where(row => row.CashRegisterId == cashierRegister.Id)
+                .Select(row => row.Status)
+                .SingleAsync());
+    }
+
+    [Fact]
     public async Task SeedAsync_KeepsPaymentReferencedDemoProduct_AndDoesNotChangeThePayment()
     {
         await using var db = CreateDb();

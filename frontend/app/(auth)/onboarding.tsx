@@ -21,7 +21,8 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { t } = useTranslation('verticalProfiles');
   const { t: tAuth } = useTranslation('auth');
-  const { profileId, isLoading, source, error } = useVerticalProfileContext();
+  const { t: tCommon } = useTranslation('common');
+  const { profileId, isLoading, source, error, refresh } = useVerticalProfileContext();
   const [settled, setSettled] = useState(source === 'cache' || source === 'network' || error != null);
   const [index, setIndex] = useState(0);
   const slides = useMemo(() => buildOnboardingSlides(profileId), [profileId]);
@@ -60,6 +61,27 @@ export default function OnboardingScreen() {
         <StatusBar style="dark" />
         <WaveLoader size={32} color="#007AFF" />
       </View>
+    );
+  }
+
+  if (error && source === 'default') {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar style="dark" />
+        <View style={styles.body}>
+          <Text style={styles.title}>{tAuth('onboarding.loadFailed')}</Text>
+        </View>
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void refresh();
+            }}
+            style={styles.primary}>
+            <Text style={styles.primaryText}>{tCommon('retry')}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
