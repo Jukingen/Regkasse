@@ -22,6 +22,10 @@ import {
   type TenantSessionPolicy,
 } from '../services/api/sessionPolicyService';
 import { autoCloseShiftApi, autoOpenShiftApi } from '../services/api/shiftService';
+import {
+  clearShiftAutoOpenFailure,
+  publishShiftAutoOpenFailure,
+} from '../services/shift/shiftAutoOpenNotice';
 import { getUserSettings, getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { sessionManager, type StoredSessionUser } from '../services/session/sessionManager';
 import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
@@ -902,6 +906,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const shift = await autoOpenShiftApi(currentCashRegisterId);
               currentCashRegisterId =
                 readValidPosCashRegisterId(shift.cashRegisterId) ?? currentCashRegisterId;
+              clearShiftAutoOpenFailure();
               authDevLog('Auto-open shift completed for register:', currentCashRegisterId);
             } catch (autoOpenErr) {
               const parsed = parseShiftAutoOpenError(autoOpenErr);
@@ -909,7 +914,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (shouldClearPosRegisterAssignment(parsed.code)) {
                 currentCashRegisterId = null;
               }
-              if (parsed.code !== SHIFT_AUTO_OPEN_CODES.NEED_REGISTER_SELECTION) {
+              if (parsed.code === SHIFT_AUTO_OPEN_CODES.NEED_REGISTER_SELECTION) {
+                clearShiftAutoOpenFailure();
+              } else {
+                publishShiftAutoOpenFailure(parsed.code);
                 const keys = shiftAutoOpenAlertI18nKeys(parsed.code);
                 Alert.alert(i18n.t(keys.titleKey), i18n.t(keys.messageKey));
               }

@@ -37,7 +37,8 @@
       "clearAll": "Clear all",
       "a11ySelect": "Select table {{number}}",
       "a11ySelected": "Table {{number}}, selected",
-      "a11yClearAll": "Clear all tables"
+      "a11yClearAll": "Clear all tables",
+      "loadFailed": "Tables could not be loaded. You can still choose a table."
     },
     "summaryStrip": "Table {{table}} · {{itemCount}} items · TOTAL {{total}}",
     "personal": {

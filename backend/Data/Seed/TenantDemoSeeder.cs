@@ -436,38 +436,66 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
             };
             db.CashRegisters.Add(register);
         }
-        else if (register.Status == RegisterStatus.Open && string.IsNullOrEmpty(register.CurrentUserId))
+        else
         {
-            var heldByCashier = await db.CashierShifts
-                .IgnoreQueryFilters()
-                .AnyAsync(
-                    row => row.CashRegisterId == register.Id
-                        && row.Status == CashierShiftStatuses.Active
-                        && row.EndedAt == null
-                        && row.CashierId != DemoTenantAdminUserIds.Dev,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (!heldByCashier)
-            {
-                register.Status = RegisterStatus.Closed;
-                register.LastBalanceUpdate = now;
-                register.UpdatedAt = now;
-                register.UpdatedBy = DevTenantSeeder.CreatedBy;
-            }
+            await ReleaseSeedHeldRegistersAsync(db, registers, now, cancellationToken).ConfigureAwait(false);
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return register.Id;
+    }
 
-        var seedShifts = await db.CashierShifts
+    /// <summary>
+    /// Closes every operational register the demo seed left on <see cref="DemoTenantAdminUserIds.Dev"/>.
+    /// The signed-in cashier then opens the shift with <c>POST /api/pos/shift/auto-open</c>.
+    /// A register whose <c>CurrentUserId</c> or active shift belongs to anyone else is left unchanged.
+    /// Decommissioned registers stay decommissioned.
+    /// </summary>
+    private static async Task ReleaseSeedHeldRegistersAsync(
+        AppDbContext db,
+        List<CashRegister> registers,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        if (registers.Count == 0)
+            return;
+
+        var registerIds = registers.Select(row => row.Id).ToList();
+        var activeShifts = await db.CashierShifts
             .IgnoreQueryFilters()
-            .Where(row => row.CashRegisterId == register.Id
-                && row.CashierId == DemoTenantAdminUserIds.Dev
+            .Where(row => registerIds.Contains(row.CashRegisterId)
                 && row.Status == CashierShiftStatuses.Active
                 && row.EndedAt == null)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (seedShifts.Count > 0)
+
+        foreach (var register in registers)
         {
+            if (register.Status == RegisterStatus.Decommissioned)
+                continue;
+
+            var shifts = activeShifts.Where(row => row.CashRegisterId == register.Id).ToList();
+            var heldByOtherCashier = shifts.Exists(row => row.CashierId != DemoTenantAdminUserIds.Dev);
+            var ownedByOtherUser = !string.IsNullOrEmpty(register.CurrentUserId)
+                && register.CurrentUserId != DemoTenantAdminUserIds.Dev;
+            if (heldByOtherCashier || ownedByOtherUser)
+                continue;
+
+            var seedShifts = shifts.Where(row => row.CashierId == DemoTenantAdminUserIds.Dev).ToList();
+            var heldBySeed = register.Status == RegisterStatus.Open
+                || register.CurrentUserId == DemoTenantAdminUserIds.Dev
+                || seedShifts.Count > 0;
+            if (!heldBySeed)
+                continue;
+
+            if (register.Status == RegisterStatus.Open)
+                register.Status = RegisterStatus.Closed;
+            if (register.CurrentUserId == DemoTenantAdminUserIds.Dev)
+                register.CurrentUserId = null;
+            register.LastBalanceUpdate = now;
+            register.UpdatedAt = now;
+            register.UpdatedBy = DevTenantSeeder.CreatedBy;
+
             foreach (var shift in seedShifts)
             {
                 shift.Status = CashierShiftStatuses.Completed;
@@ -475,11 +503,7 @@ public sealed class TenantDemoSeeder : ITenantDemoSeeder
                 shift.UpdatedAt = now;
                 shift.UpdatedBy = DevTenantSeeder.CreatedBy;
             }
-
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
-
-        return register.Id;
     }
 
     private static async Task SeedBeherbergungAsync(
