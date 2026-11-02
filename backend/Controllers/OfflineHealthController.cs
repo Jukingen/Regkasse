@@ -108,17 +108,33 @@ public class OfflineHealthController : BaseController
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogDebug(ex, "POS offline-limit: tenant limit usage unavailable");
-            pendingIntents = await _db.OfflineTransactions
-                .AsNoTracking()
-                .CountAsync(
-                    o => o.Status == OfflineTransactionStatus.Pending
-                         || o.Status == OfflineTransactionStatus.NonFiscalPending,
-                    cancellationToken);
+            try
+            {
+                pendingIntents = await _db.OfflineTransactions
+                    .AsNoTracking()
+                    .CountAsync(
+                        o => o.Status == OfflineTransactionStatus.Pending
+                             || o.Status == OfflineTransactionStatus.NonFiscalPending,
+                        cancellationToken);
+            }
+            catch (Exception fallbackEx) when (fallbackEx is not OperationCanceledException)
+            {
+                _logger.LogDebug(fallbackEx, "POS offline-limit: pending intent count unavailable");
+                pendingIntents = 0;
+            }
         }
 
-        var pendingOrders = await _db.OfflineOrders
-            .AsNoTracking()
-            .CountAsync(o => o.Status == OfflineOrderStatuses.Pending, cancellationToken);
+        var pendingOrders = 0;
+        try
+        {
+            pendingOrders = await _db.OfflineOrders
+                .AsNoTracking()
+                .CountAsync(o => o.Status == OfflineOrderStatuses.Pending, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "POS offline-limit: pending order count unavailable");
+        }
 
         var current = pendingIntents + pendingOrders;
         var dto = new PosOfflineLimitDto

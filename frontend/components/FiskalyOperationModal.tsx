@@ -21,7 +21,15 @@ import {
   postCreateStartbeleg,
 } from '../services/api/rksvSpecialReceiptsService';
 import { getViennaYearMonth } from '../utils/resolvePosMonatsbelegTarget';
-import { readPosApiErrorMessage } from '../utils/readPosApiErrorMessage';
+import {
+  isMonatsbelegForceRequired,
+  readPosApiErrorMessage,
+  readPosApiWarningMessage,
+} from '../utils/readPosApiErrorMessage';
+
+/** Same text as the server month-diff=1 warning when the 400 body has no warningMessage. */
+const PAST_MONTH_MONATSBELEG_WARNING_DE =
+  'Monatsbeleg für den Vormonat wird erstellt. Dies ist zulässig.';
 
 export type PosFiskalyOperation =
   | 'startbeleg'
@@ -57,6 +65,44 @@ export function FiskalyOperationModal({
   const [paymentId, setPaymentId] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const submitMonatsbeleg = async (force: boolean) => {
+    const result = await postCreateMonatsbeleg({
+      cashRegisterId,
+      year: prev.year,
+      month: prev.month,
+      reason: reason.trim() || 'POS Monatsbeleg',
+      force,
+    });
+    Alert.alert(t('common:success'), `${t('receipts:fiskalyOps.success')}\n${result.receiptNumber}`);
+    onSuccess?.();
+    onClose();
+  };
+
+  const confirmPastMonthMonatsbeleg = (err: unknown) => {
+    const warning = readPosApiWarningMessage(err) || PAST_MONTH_MONATSBELEG_WARNING_DE;
+    Alert.alert(t('receipts:fiskalyOps.monatsbeleg'), warning, [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('receipts:fiskalyOps.execute'),
+        onPress: () => {
+          void (async () => {
+            setBusy(true);
+            try {
+              await submitMonatsbeleg(true);
+            } catch (forceErr) {
+              Alert.alert(
+                t('common:error'),
+                readPosApiErrorMessage(forceErr, t('receipts:fiskalyOps.failed'))
+              );
+            } finally {
+              setBusy(false);
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
   const operations: Array<{ id: PosFiskalyOperation; label: string }> = [
     { id: 'startbeleg', label: t('receipts:fiskalyOps.startbeleg') },
     { id: 'nullbeleg', label: t('receipts:fiskalyOps.nullbeleg') },
@@ -85,13 +131,16 @@ export function FiskalyOperationModal({
         });
         Alert.alert(t('common:success'), `${t('receipts:fiskalyOps.success')}\n${result.receiptNumber}`);
       } else if (operation === 'monatsbeleg') {
-        const result = await postCreateMonatsbeleg({
-          cashRegisterId,
-          year: prev.year,
-          month: prev.month,
-          reason: trimmedReason || 'POS Monatsbeleg',
-        });
-        Alert.alert(t('common:success'), `${t('receipts:fiskalyOps.success')}\n${result.receiptNumber}`);
+        try {
+          await submitMonatsbeleg(false);
+        } catch (err) {
+          if (isMonatsbelegForceRequired(err)) {
+            confirmPastMonthMonatsbeleg(err);
+            return;
+          }
+          throw err;
+        }
+        return;
       } else if (operation === 'jahresbeleg') {
         const result = await postCreateJahresbeleg({
           cashRegisterId,
