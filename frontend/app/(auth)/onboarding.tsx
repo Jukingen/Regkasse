@@ -17,6 +17,8 @@ import {
   markPosOnboardingSeen,
 } from '../../services/verticalProfiles/posOnboarding';
 
+const ONBOARDING_TABLE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 export default function OnboardingScreen() {
   const router = useRouter();
   const { t } = useTranslation('verticalProfiles');
@@ -50,10 +52,23 @@ export default function OnboardingScreen() {
   }, [router, settled]);
 
   const finish = useCallback(() => {
-    void markPosOnboardingSeen().finally(() => {
+    // Leave even if SecureStore is slow. The flag write still runs.
+    const marked = markPosOnboardingSeen().catch(() => undefined);
+    const giveUpWaiting = new Promise<void>((resolve) => {
+      setTimeout(resolve, 800);
+    });
+    void Promise.race([marked, giveUpWaiting]).finally(() => {
       router.replace('/(tabs)/cash-register');
     });
   }, [router]);
+
+  const goNext = useCallback(() => {
+    if (index >= slides.length - 1) {
+      finish();
+      return;
+    }
+    setIndex(index + 1);
+  }, [finish, index, slides.length]);
 
   if (!settled || isLoading) {
     return (
@@ -94,37 +109,38 @@ export default function OnboardingScreen() {
         </Text>
         <Text style={styles.title}>{t(slide.titleKey)}</Text>
         <Text style={styles.copy}>{t(slide.bodyKey)}</Text>
-        <View
-          style={styles.preview}
-          accessibilityRole="image"
-          accessibilityLabel={t(slide.previewKey)}>
-          <View style={styles.previewBar} />
-          <Text style={styles.previewLabel}>{t(slide.previewKey)}</Text>
-          <View style={styles.previewRow} />
-          <View style={styles.previewRowShort} />
-        </View>
+        {slide.id === 'tables' ? (
+          <View
+            style={styles.tableGrid}
+            accessibilityRole="image"
+            accessibilityLabel={t(slide.previewKey)}>
+            {ONBOARDING_TABLE_NUMBERS.map((tableNumber) => (
+              <View key={tableNumber} style={styles.tableChip}>
+                <Text style={styles.tableChipText}>{tableNumber}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View
+            style={styles.preview}
+            accessibilityRole="image"
+            accessibilityLabel={t(slide.previewKey)}>
+            <View style={styles.previewBar} />
+            <Text style={styles.previewLabel}>{t(slide.previewKey)}</Text>
+            <View style={styles.previewRow} />
+            <View style={styles.previewRowShort} />
+          </View>
+        )}
       </View>
       <View style={styles.actions}>
-        {isLast ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={finish}
-            style={styles.primary}>
-            <Text style={styles.primaryText}>{tAuth('onboarding.done')}</Text>
-          </Pressable>
-        ) : (
-          <>
-            <Pressable accessibilityRole="button" onPress={finish} style={styles.secondary}>
-              <Text style={styles.secondaryText}>{tAuth('onboarding.skip')}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setIndex((current) => Math.min(current + 1, slides.length - 1))}
-              style={styles.primary}>
-              <Text style={styles.primaryText}>{tAuth('onboarding.next')}</Text>
-            </Pressable>
-          </>
-        )}
+        <Pressable accessibilityRole="button" onPress={finish} style={styles.secondary}>
+          <Text style={styles.secondaryText}>{tAuth('onboarding.skip')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={goNext} style={styles.primary}>
+          <Text style={styles.primaryText}>
+            {isLast ? tAuth('onboarding.done') : tAuth('onboarding.next')}
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -195,6 +211,26 @@ const styles = StyleSheet.create({
     width: '62%',
     borderRadius: 6,
     backgroundColor: '#F2F2F7',
+  },
+  tableGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tableChip: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableChipText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1C1C1E',
   },
   actions: {
     flexDirection: 'row',

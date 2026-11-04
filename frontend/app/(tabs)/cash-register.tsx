@@ -380,6 +380,10 @@ function usePOSOrderFlow(
 export default function CashRegisterScreen() {
   const { t } = useTranslation(['checkout', 'common', 'receipts', 'settings', 'verticalProfiles']);
   const { posLayout, posFeatures, profileId } = useVerticalFeatures();
+  const showTables =
+    posFeatures.tables === true ||
+    profileId === 'gastronomy-tables' ||
+    posLayout === 'tables';
   const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const router = useRouter();
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
@@ -1083,47 +1087,49 @@ export default function CashRegisterScreen() {
               />
             ) : null}
 
-            <IfVerticalFeature feature="tables">
-              {shiftOpenUx ? (
-                <View style={styles.tableNotice}>
-                  <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={shiftRetrying}
-                    onPress={() => {
-                      void retryShiftOpen();
-                    }}
-                    style={styles.tableNoticeButton}>
-                    <Text style={styles.tableNoticeButtonText}>
-                      {shiftRetrying ? t('common:loading') : t('common:retry')}
+            {showTables ? (
+              <>
+                <TableSelector
+                  selectedTable={activeTableId}
+                  onTableSelect={handleTableSelect}
+                  tableCarts={tableCartsMap}
+                  recoveryData={recoveryData}
+                  tableSelectionLoading={tableSelectionLoading}
+                  onClearAllTables={handleClearAllTables}
+                />
+                {shiftOpenUx ? (
+                  <View style={styles.tableNotice}>
+                    <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={shiftRetrying}
+                      onPress={() => {
+                        void retryShiftOpen();
+                      }}
+                      style={styles.tableNoticeButton}>
+                      <Text style={styles.tableNoticeButtonText}>
+                        {shiftRetrying ? t('common:loading') : t('common:retry')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                {recoveryError && !recoveryLoading ? (
+                  <View style={styles.tableNotice}>
+                    <Text style={styles.tableNoticeText}>
+                      {t('checkout:posFlow.tableSelector.loadFailed')}
                     </Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              {recoveryError && !recoveryLoading ? (
-                <View style={styles.tableNotice}>
-                  <Text style={styles.tableNoticeText}>
-                    {t('checkout:posFlow.tableSelector.loadFailed')}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      void refreshTableOrders();
-                    }}
-                    style={styles.tableNoticeButton}>
-                    <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              <TableSelector
-                selectedTable={activeTableId}
-                onTableSelect={handleTableSelect}
-                tableCarts={tableCartsMap}
-                recoveryData={recoveryData}
-                tableSelectionLoading={tableSelectionLoading}
-                onClearAllTables={handleClearAllTables}
-              />
-            </IfVerticalFeature>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        void refreshTableOrders();
+                      }}
+                      style={styles.tableNoticeButton}>
+                      <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
 
             <IfVerticalFeature feature="ticketScan">
               <TicketSeatBoard

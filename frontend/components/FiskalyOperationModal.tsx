@@ -131,8 +131,11 @@ export function FiskalyOperationModal({
         });
         Alert.alert(t('common:success'), `${t('receipts:fiskalyOps.success')}\n${result.receiptNumber}`);
       } else if (operation === 'monatsbeleg') {
+        // Previous Vienna month is always a past month. The execute button is the
+        // confirmation, so the first POST already carries force=true. A web Alert
+        // cannot reliably run the second request after the 400 RequiresForce body.
         try {
-          await submitMonatsbeleg(false);
+          await submitMonatsbeleg(true);
         } catch (err) {
           if (isMonatsbelegForceRequired(err)) {
             confirmPastMonthMonatsbeleg(err);
@@ -208,6 +211,9 @@ export function FiskalyOperationModal({
         <View style={styles.card}>
           <Text style={styles.title}>{t('receipts:fiskalyOps.title')}</Text>
           <Text style={styles.hint}>{t('receipts:fiskalyOps.normalHint')}</Text>
+          {operation === 'monatsbeleg' ? (
+            <Text style={styles.warning}>{PAST_MONTH_MONATSBELEG_WARNING_DE}</Text>
+          ) : null}
           <View style={styles.ops}>
             {operations.map((op) => (
               <Pressable
@@ -274,6 +280,10 @@ const styles = StyleSheet.create({
   hint: {
     ...SoftTypography.caption,
     color: SoftColors.textMuted,
+  },
+  warning: {
+    ...SoftTypography.caption,
+    color: SoftColors.textPrimary,
   },
   ops: {
     flexDirection: 'row',

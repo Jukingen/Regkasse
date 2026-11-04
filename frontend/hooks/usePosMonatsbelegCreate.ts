@@ -8,8 +8,10 @@ import {
   alertPosMonatsbelegCreateSuccess,
   createPosMonatsbelegAndPrint,
   requestPosMonatsbelegCreate,
+  type CreatePosMonatsbelegResult,
 } from '../utils/createPosMonatsbeleg';
 import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
+import { isMonatsbelegForceRequired } from '../utils/readPosApiErrorMessage';
 
 export type PosMonatsbelegCreateArgs = {
   cashRegisterId: string;
@@ -45,12 +47,25 @@ export function usePosMonatsbelegCreate() {
 
       setBusy(true);
       try {
-        const result = await createPosMonatsbelegAndPrint({
-          cashRegisterId: registerId,
-          year: args.year,
-          month: args.month,
-          force: args.force,
-        });
+        let result: CreatePosMonatsbelegResult;
+        try {
+          result = await createPosMonatsbelegAndPrint({
+            cashRegisterId: registerId,
+            year: args.year,
+            month: args.month,
+            force: args.force,
+          });
+        } catch (firstError: unknown) {
+          if (args.force === true || !isMonatsbelegForceRequired(firstError)) {
+            throw firstError;
+          }
+          result = await createPosMonatsbelegAndPrint({
+            cashRegisterId: registerId,
+            year: args.year,
+            month: args.month,
+            force: true,
+          });
+        }
         await refreshAsync();
         await args.onAfterSuccess?.();
         alertPosMonatsbelegCreateSuccess(result);

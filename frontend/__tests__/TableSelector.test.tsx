@@ -15,13 +15,17 @@ jest.mock('../components/TableSelectorTile', () => {
   };
 });
 
-const mockTableFeatures = { tables: true };
+const mockTableProfile = {
+  profileId: 'gastronomy-tables',
+  posLayout: 'tables',
+  tables: true,
+};
 
 jest.mock('../contexts/VerticalProfileContext', () => ({
   useVerticalFeatures: () => ({
-    profileId: 'gastronomy-tables',
-    posLayout: 'tables',
-    posFeatures: mockTableFeatures,
+    profileId: mockTableProfile.profileId,
+    posLayout: mockTableProfile.posLayout,
+    posFeatures: { tables: mockTableProfile.tables },
     requiredFields: { customer: [], product: [] },
     optionalFields: { customer: [], product: [] },
   }),
@@ -47,17 +51,29 @@ function renderSelector() {
 describe('TableSelector', () => {
   beforeEach(async () => {
     await changeLanguage('de');
-    mockTableFeatures.tables = true;
+    mockTableProfile.profileId = 'gastronomy-tables';
+    mockTableProfile.posLayout = 'tables';
+    mockTableProfile.tables = true;
   });
 
   it('shows the table row when tables is on', async () => {
     await renderSelector();
     expect(await screen.findByText('Tisch wählen')).toBeTruthy();
     expect(screen.getByText('tile-1')).toBeTruthy();
+    expect(screen.getByText('tile-10')).toBeTruthy();
   });
 
-  it('hides the table row when tables is off', async () => {
-    mockTableFeatures.tables = false;
+  it('keeps tables 1-10 for gastronomy-tables even when the feature flag is off', async () => {
+    mockTableProfile.tables = false;
+    await renderSelector();
+    expect(await screen.findByText('tile-1')).toBeTruthy();
+    expect(screen.getByText('tile-10')).toBeTruthy();
+  });
+
+  it('hides the table row when tables is off on a non-table profile', async () => {
+    mockTableProfile.profileId = 'default';
+    mockTableProfile.posLayout = 'standard';
+    mockTableProfile.tables = false;
     await renderSelector();
     expect(screen.queryByText('Tisch wählen')).toBeNull();
     expect(screen.queryByText('tile-1')).toBeNull();

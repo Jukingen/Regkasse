@@ -204,6 +204,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
                 AppPermissions.TseSign,
+                AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
                 AppPermissions.RksvMonatsbelegView,

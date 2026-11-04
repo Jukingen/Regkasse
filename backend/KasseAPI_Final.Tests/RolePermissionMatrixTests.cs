@@ -151,6 +151,12 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Cashier_Has_RksvNullbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvNullbelegCreate));
+    }
+
+    [Fact]
     public void RoleHasPermission_Cashier_Has_RksvStartbelegCreate()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvStartbelegCreate));
