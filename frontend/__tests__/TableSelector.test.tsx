@@ -78,4 +78,22 @@ describe('TableSelector', () => {
     expect(screen.queryByText('Tisch wählen')).toBeNull();
     expect(screen.queryByText('tile-1')).toBeNull();
   });
+
+  it('wraps tiles in the wide order column without dropping a table', async () => {
+    await render(
+      <TableSelector
+        selectedTable={5}
+        onTableSelect={() => undefined}
+        tableCarts={new Map()}
+        recoveryData={null}
+        tableSelectionLoading={null}
+        onClearAllTables={() => undefined}
+        layout="wrap"
+      />
+    );
+    expect(await screen.findByText('Tisch wählen')).toBeTruthy();
+    expect(screen.getByText('tile-1')).toBeTruthy();
+    expect(screen.getByText('tile-10')).toBeTruthy();
+    expect(screen.queryByText('tile-11')).toBeNull();
+  });
 });

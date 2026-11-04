@@ -95,7 +95,7 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const getGridColumns = () => (isTablet ? 3 : 2);
 

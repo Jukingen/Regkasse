@@ -15,13 +15,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState, useMemo, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert, Switch } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextStyle,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
-import { CashRegisterHeader } from '../../components/CashRegisterHeader';
+import { CashRegisterHeader, CashRegisterTableBadge } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import { DynamicField } from '../../components/DynamicField';
@@ -54,7 +65,7 @@ import {
   SoftTypography,
   Space8,
 } from '../../constants/SoftTheme';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { isPosSplitLayout, TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { useImeiSelections } from '../../contexts/ImeiSelectionContext';
@@ -152,6 +163,7 @@ function POSSummaryBlock({
   onOpenSplitSheet,
   onOpenMergeSheet,
   benefitSummaryCount,
+  pinCheckout = false,
   t,
 }: {
   activeTableId: number;
@@ -176,8 +188,11 @@ function POSSummaryBlock({
   onOpenMergeSheet?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
+  /** Wide layout: receipt scrolls, pay stays at the bottom of the order column. */
+  pinCheckout?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }) {
+  const [dockHeight, setDockHeight] = useState(0);
   const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
   const benefitBadgeText =
     (benefitSummaryCount ?? 0) === 1
@@ -185,14 +200,15 @@ function POSSummaryBlock({
       : (benefitSummaryCount ?? 0) > 1
         ? t('checkout:posFlow.personal.benefitMultiple', { count: benefitSummaryCount ?? 0 })
         : '';
-  return (
-    <View style={[styles.summaryBlock, { paddingBottom }]}>
-      <SectionHeader
-        step="4"
-        title={t('checkout:posFlow.section.summary')}
-        rowStyle={styles.summaryBlockHeader}
-        titleStyle={styles.summaryBlockTitle}
-      />
+  const receiptBody = (
+    <>
+      <View style={styles.summaryBlockHeader}>
+        <Text style={styles.stepLabel}>4</Text>
+        <Text style={styles.summaryBlockTitle} accessibilityRole="header">
+          {t('checkout:posFlow.section.summary')}
+        </Text>
+        <CashRegisterTableBadge tableNumber={activeTableId} tone="onCard" />
+      </View>
       {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
           <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
@@ -274,7 +290,47 @@ function POSSummaryBlock({
           </Text>
         </Pressable>
       ) : null}
-      <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
+    </>
+  );
+  const checkoutDock = (
+    <CartSummary cart={cart} loading={cartLoading} error={cartError} onPayment={onPayment} />
+  );
+
+  if (pinCheckout) {
+    return (
+      <View
+        testID="pos-order-panel"
+        style={[styles.summaryBlock, styles.summaryBlockPinned]}>
+        <View style={styles.summaryScrollClip}>
+          <ScrollView
+            testID="pos-order-scroll"
+            style={styles.summaryScroll}
+            contentContainerStyle={[
+              styles.summaryScrollContent,
+              { paddingBottom: dockHeight + SoftSpacing.sm },
+            ]}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled">
+            {receiptBody}
+          </ScrollView>
+        </View>
+        <View
+          testID="pos-checkout-dock"
+          style={[styles.checkoutDock, styles.checkoutDockPinned]}
+          onLayout={(event) => {
+            const next = Math.ceil(event.nativeEvent.layout.height);
+            setDockHeight((prev) => (prev === next ? prev : next));
+          }}>
+          {checkoutDock}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.summaryBlock, { paddingBottom }]}>
+      {receiptBody}
+      {checkoutDock}
     </View>
   );
 }
@@ -554,6 +610,8 @@ export default function CashRegisterScreen() {
   // Use context's currentCart so summary/checkout always follow active table (no stale table cart)
   const cart = currentCart;
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const splitLayout = posLayout !== 'taxi' && isPosSplitLayout(windowWidth);
   const footerBottomPadding = TAB_BAR_HEIGHT + insets.bottom;
 
   // ——— Derived UI state (from cart / tables) ———
@@ -916,6 +974,91 @@ export default function CashRegisterScreen() {
     t,
   ]);
 
+  const tablePane = showTables ? (
+    <>
+      <TableSelector
+        selectedTable={activeTableId}
+        onTableSelect={handleTableSelect}
+        tableCarts={tableCartsMap}
+        recoveryData={recoveryData}
+        tableSelectionLoading={tableSelectionLoading}
+        onClearAllTables={handleClearAllTables}
+        layout={splitLayout ? 'wrap' : 'scroll'}
+      />
+      {shiftOpenUx ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={shiftRetrying}
+            onPress={() => {
+              void retryShiftOpen();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>
+              {shiftRetrying ? t('common:loading') : t('common:retry')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {recoveryError && !recoveryLoading ? (
+        <View style={styles.tableNotice}>
+          <Text style={styles.tableNoticeText}>
+            {t('checkout:posFlow.tableSelector.loadFailed')}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              void refreshTableOrders();
+            }}
+            style={styles.tableNoticeButton}>
+            <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </>
+  ) : null;
+
+  const orderPane = (
+    <POSSummaryBlock
+      activeTableId={activeTableId}
+      summaryTotals={summaryTotals}
+      cart={cart}
+      cartLoading={cartLoading}
+      cartError={cartError}
+      onQuantityUpdate={handleQuantityUpdate}
+      onItemRemove={handleItemRemove}
+      onClearCart={handleClearCart}
+      onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
+      incrementModifier={incrementModifier}
+      decrementModifier={decrementModifier}
+      onPayment={handlePayment}
+      onSendToKitchen={posFeatures.kitchenDisplay ? handleSendToKitchen : undefined}
+      sendingToKitchen={sendingToKitchen}
+      paddingBottom={footerBottomPadding}
+      saleCustomer={saleCustomer}
+      onOpenCustomerSheet={() => {
+        setCustomerSheetVisible(true);
+      }}
+      onClearCustomer={() => {
+        setSaleCustomer(null);
+      }}
+      onOpenSplitSheet={() => {
+        router.push({
+          pathname: '/(screens)/SplitScreen',
+          params: { tableNumber: String(activeTableId) },
+        });
+      }}
+      onOpenMergeSheet={() => {
+        setSplitMergeMode('merge');
+        setSplitMergeVisible(true);
+      }}
+      benefitSummaryCount={benefitSummaryCount}
+      pinCheckout={splitLayout}
+      t={t}
+    />
+  );
+
   // Top inset is applied once in (tabs)/_layout (licenseStatusBar); bottom by tab bar + footerBottomPadding.
   return (
     <View style={styles.container}>
@@ -1012,6 +1155,23 @@ export default function CashRegisterScreen() {
           canPay={canTakeOrders && (cart?.items?.length ?? 0) > 0}
         />
       ) : (
+      <View
+        testID={splitLayout ? 'pos-split-layout' : 'pos-stack-layout'}
+        style={splitLayout ? styles.splitRow : styles.stackFill}>
+        {splitLayout ? (
+          <View style={styles.splitCartColumn}>
+            {tablePane ? (
+              <ScrollView
+                style={styles.splitTablesPane}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled">
+                {tablePane}
+              </ScrollView>
+            ) : null}
+            <View style={styles.splitOrderPane}>{orderPane}</View>
+          </View>
+        ) : null}
+        <View style={splitLayout ? styles.splitCatalogColumn : styles.stackFill}>
       <ProductList
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
@@ -1087,49 +1247,7 @@ export default function CashRegisterScreen() {
               />
             ) : null}
 
-            {showTables ? (
-              <>
-                <TableSelector
-                  selectedTable={activeTableId}
-                  onTableSelect={handleTableSelect}
-                  tableCarts={tableCartsMap}
-                  recoveryData={recoveryData}
-                  tableSelectionLoading={tableSelectionLoading}
-                  onClearAllTables={handleClearAllTables}
-                />
-                {shiftOpenUx ? (
-                  <View style={styles.tableNotice}>
-                    <Text style={styles.tableNoticeText}>{t(shiftOpenUx.messageKey)}</Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      disabled={shiftRetrying}
-                      onPress={() => {
-                        void retryShiftOpen();
-                      }}
-                      style={styles.tableNoticeButton}>
-                      <Text style={styles.tableNoticeButtonText}>
-                        {shiftRetrying ? t('common:loading') : t('common:retry')}
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-                {recoveryError && !recoveryLoading ? (
-                  <View style={styles.tableNotice}>
-                    <Text style={styles.tableNoticeText}>
-                      {t('checkout:posFlow.tableSelector.loadFailed')}
-                    </Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => {
-                        void refreshTableOrders();
-                      }}
-                      style={styles.tableNoticeButton}>
-                      <Text style={styles.tableNoticeButtonText}>{t('common:retry')}</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-              </>
-            ) : null}
+            {splitLayout ? null : tablePane}
 
             <IfVerticalFeature feature="ticketScan">
               <TicketSeatBoard
@@ -1187,44 +1305,11 @@ export default function CashRegisterScreen() {
           </>
         }
         ListFooterComponent={
-          <POSSummaryBlock
-            activeTableId={activeTableId}
-            summaryTotals={summaryTotals}
-            cart={cart}
-            cartLoading={cartLoading}
-            cartError={cartError}
-            onQuantityUpdate={handleQuantityUpdate}
-            onItemRemove={handleItemRemove}
-            onClearCart={handleClearCart}
-            onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
-            incrementModifier={incrementModifier}
-            decrementModifier={decrementModifier}
-            onPayment={handlePayment}
-            onSendToKitchen={posFeatures.kitchenDisplay ? handleSendToKitchen : undefined}
-            sendingToKitchen={sendingToKitchen}
-            paddingBottom={footerBottomPadding}
-            saleCustomer={saleCustomer}
-            onOpenCustomerSheet={() => {
-              setCustomerSheetVisible(true);
-            }}
-            onClearCustomer={() => {
-              setSaleCustomer(null);
-            }}
-            onOpenSplitSheet={() => {
-              router.push({
-                pathname: '/(screens)/SplitScreen',
-                params: { tableNumber: String(activeTableId) },
-              });
-            }}
-            onOpenMergeSheet={() => {
-              setSplitMergeMode('merge');
-              setSplitMergeVisible(true);
-            }}
-            benefitSummaryCount={benefitSummaryCount}
-            t={t}
-          />
+          splitLayout ? <View style={{ height: footerBottomPadding }} /> : orderPane
         }
       />
+        </View>
+      </View>
       )}
     </View>
   );
@@ -1234,6 +1319,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
+  },
+  stackFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+  splitRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 0,
+  },
+  splitCartColumn: {
+    width: 380,
+    maxWidth: '40%',
+    minWidth: 280,
+    minHeight: 0,
+    flexDirection: 'column',
+    borderRightWidth: 1,
+    borderRightColor: SoftColors.borderLight,
+    backgroundColor: SoftColors.bgCard,
+  },
+  splitTablesPane: {
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: 128,
+  },
+  splitOrderPane: {
+    flex: 1,
+    minHeight: 240,
+    minWidth: 0,
+  },
+  splitCatalogColumn: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+  },
+  summaryBlockPinned: {
+    flex: 1,
+    flexDirection: 'column',
+    minHeight: 0,
+    marginTop: 0,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  summaryScrollClip: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  summaryScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  summaryScrollContent: {
+    flexGrow: 1,
+  },
+  checkoutDock: {
+    marginTop: 'auto',
+    flexShrink: 0,
+    zIndex: 2,
+    backgroundColor: SoftColors.bgCard,
+  },
+  checkoutDockPinned: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   tableOpsRow: {
@@ -1347,7 +1505,7 @@ const styles = StyleSheet.create({
   },
   summaryBlockHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: SoftSpacing.xs,
     paddingHorizontal: SoftSpacing.md,
     paddingTop: SoftSpacing.md,

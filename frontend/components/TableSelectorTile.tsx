@@ -26,6 +26,8 @@ export interface TableSelectorTileProps {
   isSelected: boolean;
   isLoading: boolean;
   onPress: () => void;
+  /** Smaller tile for the desktop order column. */
+  compact?: boolean;
 }
 
 export function TableSelectorTile({
@@ -34,6 +36,7 @@ export function TableSelectorTile({
   isSelected,
   isLoading,
   onPress,
+  compact = false,
 }: TableSelectorTileProps) {
   const { t } = useTranslation(['checkout']);
   const hasItems = itemCount > 0;
@@ -49,6 +52,7 @@ export function TableSelectorTile({
     <Pressable
       style={(state) => [
         styles.tile,
+        compact && styles.tileCompact,
         webTablePressableOutlineOff,
         !isSelected && !hasItems && styles.tileFree,
         !isSelected && hasItems && styles.tileOccupied,
@@ -65,10 +69,11 @@ export function TableSelectorTile({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected, disabled: isLoading }}>
-      <View style={styles.inner} pointerEvents="none">
+      <View style={[styles.inner, compact && styles.innerCompact]} pointerEvents="none">
         <Text
           style={[
             styles.number,
+            compact && styles.numberCompact,
             !isSelected && !hasItems && styles.numberFree,
             !isSelected && hasItems && styles.numberOccupied,
             isSelected && styles.numberSelected,
@@ -117,6 +122,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...SoftShadows.sm,
   },
+  tileCompact: {
+    width: 64,
+    minHeight: 56,
+    marginRight: 0,
+  },
   tileFree: {
     backgroundColor: SoftColors.bgCard,
     borderWidth: 1,
@@ -158,11 +168,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     minHeight: TILE_H - 4,
   },
+  innerCompact: {
+    minHeight: 52,
+    paddingVertical: 4,
+  },
   number: {
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
     lineHeight: 28,
+  },
+  numberCompact: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   numberFree: {
     color: SoftColors.textPrimary,
