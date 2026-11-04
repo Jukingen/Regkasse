@@ -15,6 +15,22 @@ export const DEV_TENANT_ENV_KEY = 'EXPO_PUBLIC_DEV_TENANT_ID';
 
 const isDev = __DEV__;
 
+const devTenantSlugListeners = new Set<() => void>();
+
+/** Fired when the development tenant override changes so catalog caches can refetch. */
+export function subscribeDevTenantSlug(listener: () => void): () => void {
+  devTenantSlugListeners.add(listener);
+  return () => {
+    devTenantSlugListeners.delete(listener);
+  };
+}
+
+function notifyDevTenantSlugListeners(): void {
+  devTenantSlugListeners.forEach((listener) => {
+    listener();
+  });
+}
+
 function normalizeSlug(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
@@ -56,6 +72,7 @@ export async function setDevTenantSlugOverride(slug: string | null): Promise<voi
     await secureStorage.removeItem(DEV_TENANT_LOCAL_STORAGE_KEY);
     await secureStorage.removeItem(LEGACY_DEV_TENANT_SLUG_STORAGE_KEY);
   }
+  notifyDevTenantSlugListeners();
 }
 
 /** Persists slug and updates API base URL query (caller should reload the app). */
