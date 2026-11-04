@@ -77,6 +77,7 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
             itemCount={itemCount}
             isSelected={isSelected}
             isLoading={isLoading}
+            compact={layout === 'wrap'}
             onPress={() => {
               handleTablePress(tableNumber);
             }}
@@ -103,7 +104,7 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
 
   return (
     <View
-      style={styles.tableSection}
+      style={[styles.tableSection, layout === 'wrap' && styles.tableSectionCompact]}
       pointerEvents="box-none"
       accessibilityRole="none"
       collapsable={false}>
@@ -141,6 +142,10 @@ const styles = StyleSheet.create({
     borderBottomColor: SoftColors.borderLight,
     zIndex: 1,
     elevation: 1,
+  },
+  tableSectionCompact: {
+    paddingVertical: SoftSpacing.sm,
+    marginBottom: 0,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -189,6 +194,9 @@ const styles = StyleSheet.create({
   },
   clearAllButtonWrap: {
     marginLeft: 0,
+    minHeight: 56,
+    minWidth: 56,
+    paddingHorizontal: SoftSpacing.xs,
   },
   clearAllButtonPressed: SoftState.pressed,
   clearAllEmoji: {

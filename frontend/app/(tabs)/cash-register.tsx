@@ -192,6 +192,7 @@ function POSSummaryBlock({
   pinCheckout?: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
 }) {
+  const [dockHeight, setDockHeight] = useState(0);
   const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
   const benefitBadgeText =
     (benefitSummaryCount ?? 0) === 1
@@ -299,18 +300,27 @@ function POSSummaryBlock({
     return (
       <View
         testID="pos-order-panel"
-        style={[styles.summaryBlock, styles.summaryBlockPinned, { paddingBottom: SoftSpacing.sm }]}>
+        style={[styles.summaryBlock, styles.summaryBlockPinned]}>
         <View style={styles.summaryScrollClip}>
           <ScrollView
             testID="pos-order-scroll"
             style={styles.summaryScroll}
-            contentContainerStyle={styles.summaryScrollContent}
+            contentContainerStyle={[
+              styles.summaryScrollContent,
+              { paddingBottom: dockHeight + SoftSpacing.sm },
+            ]}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled">
             {receiptBody}
           </ScrollView>
         </View>
-        <View testID="pos-checkout-dock" style={styles.checkoutDock}>
+        <View
+          testID="pos-checkout-dock"
+          style={[styles.checkoutDock, styles.checkoutDockPinned]}
+          onLayout={(event) => {
+            const next = Math.ceil(event.nativeEvent.layout.height);
+            setDockHeight((prev) => (prev === next ? prev : next));
+          }}>
           {checkoutDock}
         </View>
       </View>
@@ -1333,7 +1343,7 @@ const styles = StyleSheet.create({
   splitTablesPane: {
     flexGrow: 0,
     flexShrink: 1,
-    maxHeight: 160,
+    maxHeight: 128,
   },
   splitOrderPane: {
     flex: 1,
@@ -1376,6 +1386,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     zIndex: 2,
     backgroundColor: SoftColors.bgCard,
+  },
+  checkoutDockPinned: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   tableOpsRow: {
