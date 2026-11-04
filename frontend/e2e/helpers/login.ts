@@ -104,7 +104,7 @@ function isCashRegisterPath(url: string): boolean {
   return /\/cash-register(?:\/)?(?:\?|#|$)/.test(url);
 }
 
-/** Profile layouts may open orders, appointments, or rooms. The sale screen is still Kassa. */
+/** Profile layouts may open appointments or rooms. The sale screen is still Kassa. */
 export async function openCashRegister(page: Page): Promise<void> {
   if (page.url().includes('cash-register-select')) {
     await enterShellFromRegisterPicker(page);

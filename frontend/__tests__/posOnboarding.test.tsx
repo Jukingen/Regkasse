@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import OnboardingScreen from '../app/(auth)/onboarding';
@@ -76,6 +76,22 @@ describe('POS onboarding', () => {
     await renderOnboarding('hair-salon');
     expect(screen.getByText('Ihr Friseursalon')).toBeTruthy();
     expect(screen.getByText('Terminkalender')).toBeTruthy();
+  });
+
+  it('advances the gastronomy table slide without a table selection', async () => {
+    await renderOnboarding('gastronomy-tables');
+    expect(screen.getByText('Ihre Gastronomie')).toBeTruthy();
+    expect(screen.getByText('1 / 2')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Weiter' }));
+    expect(screen.getByText('2 / 2')).toBeTruthy();
+    expect(
+      screen.getByText('Die Tische 1–10 stehen auf der Kasse. Hier ist keine Auswahl nötig.')
+    ).toBeTruthy();
+    expect(screen.getByText('10')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Loslegen' }));
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)/cash-register');
+    });
   });
 
   it('shows the taxi slides', async () => {

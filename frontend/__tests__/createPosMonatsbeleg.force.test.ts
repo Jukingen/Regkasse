@@ -45,12 +45,16 @@ describe('postCreateMonatsbeleg force query', () => {
       force: true,
     });
 
-    expect(apiClient.post).toHaveBeenCalledWith('/rksv/special-receipts/monatsbeleg?force=true', {
-      cashRegisterId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      year: 2026,
-      month: 8,
-      reason: 'POS Monatsbeleg',
-    });
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/rksv/special-receipts/monatsbeleg?force=true',
+      {
+        cashRegisterId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        year: 2026,
+        month: 8,
+        reason: 'POS Monatsbeleg',
+      },
+      { params: { force: true } }
+    );
   });
 
   it('keeps the path without query when force is omitted', async () => {
@@ -97,7 +101,8 @@ describe('postCreateMonatsbeleg force query', () => {
         cashRegisterId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         year: 2026,
         month: 8,
-      })
+      }),
+      { params: { force: true } }
     );
   });
 

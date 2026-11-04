@@ -33,10 +33,13 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   onClearAllTables,
 }) => {
   const { t } = useTranslation(['checkout']);
-  const { posFeatures } = useVerticalFeatures();
+  const { posFeatures, profileId, posLayout } = useVerticalFeatures();
   const insets = useSafeAreaInsets();
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  const tablesEnabled = posFeatures.tables === true;
+  const tablesEnabled =
+    posFeatures.tables === true ||
+    profileId === 'gastronomy-tables' ||
+    posLayout === 'tables';
 
   const handleTablePress = (tableNumber: number) => {
     if (selectedTable === tableNumber) return;
@@ -143,6 +146,7 @@ const styles = StyleSheet.create({
   },
   tableScroll: {
     flexDirection: 'row',
+    minHeight: 100,
   },
   tableScrollContent: {
     alignItems: 'flex-end',

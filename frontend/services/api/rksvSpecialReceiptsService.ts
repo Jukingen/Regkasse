@@ -46,11 +46,17 @@ export async function postCreateMonatsbeleg(
   body: CreateMonatsbelegRequest
 ): Promise<CreateMonatsbelegResponse> {
   const { force, ...payload } = body;
-  const path =
-    force === true
-      ? '/rksv/special-receipts/monatsbeleg?force=true'
-      : '/rksv/special-receipts/monatsbeleg';
-  return await apiClient.post<CreateMonatsbelegResponse>(path, payload);
+  if (force === true) {
+    return await apiClient.post<CreateMonatsbelegResponse>(
+      '/rksv/special-receipts/monatsbeleg?force=true',
+      payload,
+      { params: { force: true } }
+    );
+  }
+  return await apiClient.post<CreateMonatsbelegResponse>(
+    '/rksv/special-receipts/monatsbeleg',
+    payload
+  );
 }
 
 /** POST /api/rksv/special-receipts/jahresbeleg */
