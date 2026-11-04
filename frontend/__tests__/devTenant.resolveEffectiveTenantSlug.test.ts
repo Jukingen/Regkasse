@@ -87,3 +87,19 @@ describe('applyDevTenantAxiosParams', () => {
     expect((next as URLSearchParams).get('tenant')).toBe('dev');
   });
 });
+
+describe('subscribeDevTenantSlug', () => {
+  it('notifies listeners when the development override changes', async () => {
+    const { setDevTenantSlugOverride, subscribeDevTenantSlug } =
+      require('../services/tenant/devTenant') as typeof import('../services/tenant/devTenant');
+    const listener = jest.fn();
+    const unsubscribe = subscribeDevTenantSlug(listener);
+
+    await setDevTenantSlugOverride('dev-gastronomy-tables');
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    await setDevTenantSlugOverride('dev');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});

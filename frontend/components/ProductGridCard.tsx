@@ -167,10 +167,11 @@ function ProductGridCardInner({
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.xl,
-    margin: SoftSpacing.xs,
+    marginBottom: SoftSpacing.xs,
     overflow: 'hidden',
     ...SoftShadows.sm,
   },

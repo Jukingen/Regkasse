@@ -11,6 +11,7 @@ import {
   RefreshControl,
   useWindowDimensions,
   Platform,
+  type DimensionValue,
 } from 'react-native';
 
 import { ProductGridCard } from './ProductGridCard';
@@ -35,6 +36,40 @@ import {
 
 /** Breakpoint: tablet = 768+ for grid columns. */
 const TABLET_MIN_WIDTH = 768;
+
+/**
+ * Pixel width of one grid cell. Percentage fallbacks collapse inside a flex row;
+ * an explicit width keeps cards side by side in the catalog column.
+ */
+export function catalogGridItemWidth(
+  paneWidth: number,
+  columns: number,
+  horizontalPadding: number
+): number {
+  if (paneWidth <= 0 || columns <= 0) return 0;
+  const inner = paneWidth - horizontalPadding * 2;
+  if (inner <= 0) return 0;
+  return Math.floor(inner / columns);
+}
+
+function gridCellLayout(paneWidth: number, columns: number, horizontalPadding: number) {
+  const measured = catalogGridItemWidth(paneWidth, columns, horizontalPadding);
+  if (measured > 0) {
+    return {
+      width: measured,
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: measured,
+    };
+  }
+  const share = `${100 / columns}%` as DimensionValue;
+  return {
+    width: share,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: share,
+  };
+}
 
 /** Ürün satırına tıklanınca (eski modal akışı – artık kullanılmıyor, onAddProduct tercih edilir) */
 export type OnProductSelect = (product: Product) => void;
@@ -96,8 +131,11 @@ export const ProductList: React.FC<ProductListProps> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [paneWidth, setPaneWidth] = useState(0);
 
   const getGridColumns = () => (isTablet ? 3 : 2);
+  const gridColumns = getGridColumns();
+  const gridCellStyle = gridCellLayout(paneWidth, gridColumns, contentPaddingH);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -149,17 +187,18 @@ export const ProductList: React.FC<ProductListProps> = ({
   ]);
 
   useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts();
-  }, [cachedProducts.length, loadProducts]);
-
-  useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts();
-  }, [categoryFilterId, categoryFilter, cachedProducts.length, loadProducts]);
+    loadProducts().catch((err: unknown) => {
+      console.error('Error loading products:', err);
+    });
+  }, [cachedProducts, loadProducts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshData();
-    setRefreshing(false);
+    try {
+      await refreshData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshData]);
 
   const handleProductSelect = (product: Product) => {
@@ -175,8 +214,8 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   // Grid product card: inline Extras + Add veya eski tek tıkla seçim
   const renderGridProduct = ({ item }: { item: Product }) => {
-    if (useInlineExtras && onAddProduct) {
-      return (
+    const card =
+      useInlineExtras && onAddProduct ? (
         <ProductGridCard
           product={item}
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
@@ -184,9 +223,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
         />
-      );
-    }
-    return (
+      ) : (
       <Pressable
         style={({ pressed }) => [styles.gridCard, pressed && styles.cardPressed]}
         onPress={() => {
@@ -217,7 +254,8 @@ export const ProductList: React.FC<ProductListProps> = ({
           </View>
         </View>
       </Pressable>
-    );
+      );
+    return <View style={[styles.gridCell, gridCellStyle]}>{card}</View>;
   };
 
   // List product card: inline Extras (Zutaten) + Add butonu veya eski tek tıkla seçim
@@ -320,27 +358,40 @@ export const ProductList: React.FC<ProductListProps> = ({
     );
   };
 
-  if (cacheError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{cacheError}</Text>
-        <Pressable style={styles.retryButton} onPress={() => refreshData()}>
-          <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const listNumColumns = viewMode === 'grid' ? gridColumns : 1;
 
-  const listNumColumns = viewMode === 'grid' ? getGridColumns() : 1;
+  const catalogError = cacheError ? (
+    <View style={styles.errorBanner} testID="pos-catalog-error">
+      <Text style={styles.errorText}>{cacheError}</Text>
+      <Pressable
+        style={styles.retryButton}
+        onPress={() => {
+          refreshData().catch((err: unknown) => {
+            console.error('Error refreshing products:', err);
+          });
+        }}
+        testID="pos-catalog-retry"
+        accessibilityRole="button">
+        <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+      </Pressable>
+    </View>
+  ) : null;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(event) => {
+        const next = Math.round(event.nativeEvent.layout.width);
+        setPaneWidth((prev) => (prev === next ? prev : next));
+      }}>
       <FlatList
+        style={styles.list}
         data={products}
         renderItem={viewMode === 'grid' ? renderGridProduct : renderListProduct}
         keyExtractor={(item) => item.id || Math.random().toString()}
         numColumns={listNumColumns}
         key={`products-${viewMode}-${listNumColumns}`}
+        columnWrapperStyle={listNumColumns > 1 ? styles.gridRow : undefined}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
         contentContainerStyle={[
@@ -364,6 +415,7 @@ export const ProductList: React.FC<ProductListProps> = ({
             {typeof ListHeaderComponent === 'function'
               ? React.createElement(ListHeaderComponent)
               : ListHeaderComponent}
+            {catalogError}
             <View style={styles.productsSectionHeader}>
               <Text style={styles.stepLabel}>3</Text>
               <Text style={styles.productsSectionTitle} accessibilityRole="header">
@@ -380,7 +432,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           </>
         }
         ListEmptyComponent={
-          !cacheLoading ? (
+          !cacheLoading && !cacheError ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {searchQuery ? t('noSearchResults') : t('noProductsFound')}
@@ -399,6 +451,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
   },
+  list: {
+    flex: 1,
+  },
   listHeaderWrap: {
     zIndex: 1,
     elevation: 1,
@@ -410,12 +465,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SoftSpacing.sm,
   },
 
+  gridRow: {
+    width: '100%',
+    alignItems: 'stretch',
+  },
+  gridCell: {
+    paddingHorizontal: SoftSpacing.xs,
+    paddingBottom: SoftSpacing.xs,
+  },
   // Grid Card
   gridCard: {
-    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.xl,
-    margin: SoftSpacing.xs,
     overflow: 'hidden',
     ...SoftShadows.sm,
   },
@@ -587,12 +650,10 @@ const styles = StyleSheet.create({
     marginLeft: SoftSpacing.sm,
     color: SoftColors.textMuted,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  errorBanner: {
     alignItems: 'center',
-    padding: SoftSpacing.xxl,
-    backgroundColor: SoftColors.bgPrimary,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
   },
   errorText: {
     ...SoftTypography.body,

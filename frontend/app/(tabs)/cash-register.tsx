@@ -1352,7 +1352,7 @@ const styles = StyleSheet.create({
   },
   splitCatalogColumn: {
     flex: 1,
-    minWidth: 0,
+    minWidth: 300,
     minHeight: 0,
   },
   summaryBlockPinned: {

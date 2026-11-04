@@ -3,6 +3,7 @@ import { handleAPIError, ErrorMessages } from '../errorService'; // ✅ YENİ: S
 import { API_PATHS } from './apiPaths'; // ✅ Centralized swagger-accurate paths
 import type { ModifierGroupDto } from './productModifiersService';
 import { safeLog } from '../../utils/loggingUtils';
+import { sessionManager } from '../session/sessionManager';
 
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
@@ -303,11 +304,24 @@ export const getAllCategories = async (): Promise<ProductCategory[]> => {
   }
 };
 
+/** Thrown when `/pos/catalog` must not be sent because the POS session has no access token. */
+export class CatalogAuthRequiredError extends Error {
+  constructor() {
+    super('CATALOG_AUTH_REQUIRED');
+    this.name = 'CatalogAuthRequiredError';
+  }
+}
+
 // Katalog endpoint'i: kategorileri ID'lerle ve ürünleri categoryId ile döndürür
 export const getProductCatalog = async (): Promise<{
   categories: ProductCategory[];
   products: (Product & { categoryId?: string })[];
 }> => {
+  const token = await sessionManager.getAccessToken();
+  if (!token) {
+    throw new CatalogAuthRequiredError();
+  }
+
   try {
     safeLog('🔄 Fetching product catalog...');
     const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATALOG);
