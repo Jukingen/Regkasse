@@ -130,8 +130,7 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [paneWidth, setPaneWidth] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const getGridColumns = () => (isTablet ? 3 : 2);
   const gridColumns = getGridColumns();
