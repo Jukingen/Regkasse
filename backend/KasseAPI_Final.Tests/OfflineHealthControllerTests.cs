@@ -269,10 +269,33 @@ public sealed class OfflineHealthControllerTests
         return dataProp?.GetValue(payload) as PosOfflineLimitDto;
     }
 
+    [Fact]
+    public async Task GetOfflineLimit_WhenUsageUnavailable_ReturnsOkWithDefaultLimit()
+    {
+        await using var db = CreateContext(TenantId);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new OfflineAlertRules { MaxPendingOrders = 50 },
+            usageException: new InvalidOperationException("tenant limits unavailable"));
+
+        var result = await controller.GetOfflineLimit(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var data = GetLimitResponseData(ok.Value);
+        Assert.NotNull(data);
+        Assert.Equal(TenantLimits.DefaultMaxOfflineTransactions, data!.MaxOfflineTransactions);
+        Assert.Equal(0, data.CurrentOfflineTransactions);
+        Assert.False(data.LimitReached);
+    }
+
     private static OfflineHealthController CreateController(
         AppDbContext db,
         OfflineAlertRules alertRules,
-        TenantLimitUsageDto? usage = null)
+        TenantLimitUsageDto? usage = null,
+        Exception? usageException = null)
     {
         var alertRulesMonitor = new Mock<IOptionsMonitor<OfflineAlertRules>>();
         alertRulesMonitor.Setup(o => o.CurrentValue).Returns(alertRules);
@@ -283,7 +306,16 @@ public sealed class OfflineHealthControllerTests
             Limits = TenantLimitsDto.FromEntity(TenantLimits.CreateDefault(TenantId)),
             CurrentOfflineTransactions = 0,
         };
-        guard.Setup(g => g.GetUsageAsync(TenantId, It.IsAny<CancellationToken>())).ReturnsAsync(snapshot);
+        if (usageException != null)
+        {
+            guard
+                .Setup(g => g.GetUsageAsync(TenantId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(usageException);
+        }
+        else
+        {
+            guard.Setup(g => g.GetUsageAsync(TenantId, It.IsAny<CancellationToken>())).ReturnsAsync(snapshot);
+        }
         var accessor = TenantTestDoubles.TenantAccessorReturning(TenantId);
         return new OfflineHealthController(
             db,

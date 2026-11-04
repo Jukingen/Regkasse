@@ -28,4 +28,14 @@ describe('readPosApiErrorMessage', () => {
       readPosApiErrorMessage({ response: { data: { message: 'Nope' } } }, 'fallback')
     ).toBe('Nope');
   });
+
+  it('reads Monatsbeleg warningMessage from the unwrapped POS client body', () => {
+    const warning = 'Monatsbeleg für den Vormonat wird erstellt. Dies ist zulässig.';
+    expect(
+      readPosApiErrorMessage(
+        { status: 400, data: { requiresForce: true, warningMessage: warning } },
+        'fallback'
+      )
+    ).toBe(warning);
+  });
 });
