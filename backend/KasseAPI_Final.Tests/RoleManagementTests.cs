@@ -360,6 +360,7 @@ public class RoleManagementTests
     public void ClientAppPolicy_CanLoginToPos_Cashier_ReturnsTrue()
     {
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Cashier));
+        Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Kitchen));
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.SuperAdmin));
         Assert.False(ClientAppPolicy.CanLoginToPos(Roles.Manager));
     }

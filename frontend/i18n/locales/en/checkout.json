@@ -77,6 +77,11 @@
       "tableClearFailed": "Could not clear table {{table}}",
       "tableCleared": "Table {{table}} cleared",
       "tableClearGenericFailed": "Could not clear table",
+      "noOpenTables": "No open tables.",
+      "clearAllConfirmTitle": "Clear all tables?",
+      "clearAllConfirmMessage": "{{count}} open tables will be cleared.",
+      "tablesCleared": "{{count}} tables cleared",
+      "tablesClearedPartial": "{{cleared}} of {{total}} tables cleared",
       "emptyCart": "Cart is empty. Please add items first.",
       "noOrderPermission": "No permission to take orders"
     },

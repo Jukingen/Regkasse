@@ -12,6 +12,7 @@ import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type ResetPasswordModalProps = {
   open: boolean;
+  tenantId: string;
   user: UserInfo | null;
   onClose: () => void;
   onSuccess?: () => void;
@@ -24,7 +25,13 @@ function displayName(user: UserInfo): string {
   return name || user.userName || user.email || '—';
 }
 
-export function ResetPasswordModal({ open, user, onClose, onSuccess }: ResetPasswordModalProps) {
+export function ResetPasswordModal({
+  open,
+  tenantId,
+  user,
+  onClose,
+  onSuccess,
+}: ResetPasswordModalProps) {
   const { t } = useI18n();
   const { message } = useAntdApp();
   const mutation = useResetUserPassword();
@@ -41,7 +48,7 @@ export function ResetPasswordModal({ open, user, onClose, onSuccess }: ResetPass
   const handleReset = async () => {
     if (!user?.id) return;
     try {
-      const result = await mutation.mutateAsync(user.id);
+      const result = await mutation.mutateAsync({ tenantId, userId: user.id });
       setGeneratedPassword(result.generatedPassword);
       message.success(t('users.messages.successResetPassword'));
       onSuccess?.();

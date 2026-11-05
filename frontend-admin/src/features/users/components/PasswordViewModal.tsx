@@ -15,12 +15,19 @@ import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 
 export type PasswordViewModalProps = {
   open: boolean;
+  tenantId: string;
   userId: string;
   userEmail: string;
   onClose: () => void;
 };
 
-export function PasswordViewModal({ open, userId, userEmail, onClose }: PasswordViewModalProps) {
+export function PasswordViewModal({
+  open,
+  tenantId,
+  userId,
+  userEmail,
+  onClose,
+}: PasswordViewModalProps) {
   const { message } = useAntdApp();
 
   const { t } = useI18n();
@@ -40,8 +47,8 @@ export function PasswordViewModal({ open, userId, userEmail, onClose }: Password
     setLoading(true);
     try {
       const result = policy.useGeneratedPasswordReset
-        ? await resetUserPasswordWithGeneration(userId)
-        : await generateTemporaryPasswordMutation.mutateAsync(userId);
+        ? await resetUserPasswordWithGeneration(tenantId, userId)
+        : await generateTemporaryPasswordMutation.mutateAsync({ tenantId, userId });
       setPassword(result.generatedPassword ?? '');
       message.success(t('tenants.users.messages.passwordReset'));
     } catch {

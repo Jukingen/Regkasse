@@ -30,6 +30,7 @@ public static class PermissionCatalogMetadata
         ["invoice"] = "Bestellung & Verkauf",
         ["creditnote"] = "Bestellung & Verkauf",
         ["kitchen"] = "Bestellung & Verkauf",
+        ["offline"] = "Bestellung & Verkauf",
         ["room"] = "Bestellung & Verkauf",
         ["ticket"] = "Bestellung & Verkauf",
         ["appointment"] = "Bestellung & Verkauf",
@@ -225,6 +226,7 @@ public static class PermissionCatalogMetadata
             AppPermissions.ImeiManage => "IMEI verwalten",
             AppPermissions.TaxiTripView => "Fahrten anzeigen",
             AppPermissions.TaxiTripManage => "Fahrten verwalten",
+            AppPermissions.OfflineRead => "Offline-Warteschlange anzeigen",
             _ => null,
         };
     }

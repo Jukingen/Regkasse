@@ -77,6 +77,11 @@
       "tableClearFailed": "Tisch {{table}} konnte nicht geleert werden",
       "tableCleared": "Tisch {{table}} geleert",
       "tableClearGenericFailed": "Tisch konnte nicht geleert werden",
+      "noOpenTables": "Keine offenen Tische.",
+      "clearAllConfirmTitle": "Alle Tische leeren?",
+      "clearAllConfirmMessage": "{{count}} offene Tische werden geleert.",
+      "tablesCleared": "{{count}} Tische geleert",
+      "tablesClearedPartial": "{{cleared}} von {{total}} Tischen geleert",
       "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.",
       "noOrderPermission": "Keine Berechtigung für Bestellungen"
     },

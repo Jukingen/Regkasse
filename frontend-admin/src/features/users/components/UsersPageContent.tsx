@@ -716,6 +716,7 @@ export default function UsersPage() {
         policy.useGeneratedPasswordReset ? (
           <ResetPasswordModal
             open
+            tenantId={currentTenantId ?? ''}
             user={resetPasswordUser}
             onClose={() => setResetPasswordUser(null)}
             onSuccess={() => {

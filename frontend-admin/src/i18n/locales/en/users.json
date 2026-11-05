@@ -755,6 +755,7 @@
       "finanzonline_submit": "Submit to FinanzOnline",
       "kitchen_view": "View kitchen display",
       "kitchen_update": "Update kitchen status",
+      "offline_read": "View offline queue",
       "tse_sign": "Sign receipts (TSE / RKSV)",
       "tse_diagnostics": "TSE diagnostics",
       "system_critical": "System-critical actions",

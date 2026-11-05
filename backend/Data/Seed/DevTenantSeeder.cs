@@ -1,6 +1,8 @@
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data.Seed;
@@ -14,6 +16,9 @@ public static class DevTenantSeeder
 {
     public const string RegisterNumber = "KASSE-001";
     public const string CreatedBy = "dev-tenant-seed";
+    public const string KitchenUserName = "chef1";
+    public const string KitchenPassword = "DevCashier1!";
+    public const string KitchenUserId = "demo-chef-dev";
 
     public static IReadOnlyList<DevTenantProfileCatalog> Catalog { get; } =
     [
@@ -427,6 +432,113 @@ public static class DevTenantSeeder
         settings.VerticalProfileId = profileId;
         settings.UpdatedAt = DateTime.UtcNow;
         settings.UpdatedBy = CreatedBy;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Development cashier for the kitchen display on tenant slug <c>dev</c>.
+    /// Username <c>chef1</c>, password <c>DevCashier1!</c>, role <see cref="Roles.Kitchen"/>.
+    /// </summary>
+    public static async Task SeedKitchenDemoUserAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserTenantMembershipProvisioner membershipProvisioner,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(row => row.Slug == "dev" && row.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return;
+
+        var now = DateTime.UtcNow;
+        var user = await userManager.FindByNameAsync(KitchenUserName).ConfigureAwait(false);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                Id = KitchenUserId,
+                UserName = KitchenUserName,
+                Email = "chef1@dev.regkasse.at",
+                FirstName = "Küche",
+                LastName = "Dev",
+                EmployeeNumber = "DEMO-CHEF-001",
+                Role = Roles.Kitchen,
+                Notes = "Development kitchen display user for tenant dev",
+                IsActive = true,
+                EmailConfirmed = true,
+                AccountType = "Staff",
+                IsDemo = false,
+                MustChangePasswordOnNextLogin = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            var created = await userManager.CreateAsync(user, KitchenPassword).ConfigureAwait(false);
+            if (!created.Succeeded)
+            {
+                Console.WriteLine(
+                    "dev kitchen user create failed: {0}",
+                    string.Join("; ", created.Errors.Select(error => error.Description)));
+                return;
+            }
+        }
+
+        if (!string.Equals(user.Role, Roles.Kitchen, StringComparison.Ordinal))
+        {
+            user.Role = Roles.Kitchen;
+            user.IsActive = true;
+            user.MustChangePasswordOnNextLogin = false;
+            user.UpdatedAt = now;
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, Roles.Kitchen).ConfigureAwait(false))
+            await userManager.AddToRoleAsync(user, Roles.Kitchen).ConfigureAwait(false);
+
+        await membershipProvisioner
+            .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: false, cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerId = await db.CashRegisters
+            .IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenant.Id && row.IsActive)
+            .OrderByDescending(row => row.IsDefaultForTenant)
+            .Select(row => (Guid?)row.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (registerId is not Guid assignedRegister || assignedRegister == Guid.Empty)
+            return;
+
+        var registerText = assignedRegister.ToString();
+        var settings = await db.UserSettings
+            .FirstOrDefaultAsync(row => row.UserId == user.Id, cancellationToken)
+            .ConfigureAwait(false);
+        if (settings is null)
+        {
+            db.UserSettings.Add(new UserSettings
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CashRegisterId = registerText,
+                Language = "de-DE",
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+        }
+        else if (string.IsNullOrWhiteSpace(settings.CashRegisterId))
+        {
+            settings.CashRegisterId = registerText;
+            settings.UpdatedAt = now;
+        }
+
+        if (user.CashRegisterId != assignedRegister)
+        {
+            user.CashRegisterId = assignedRegister;
+            user.UpdatedAt = now;
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
+        }
+
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

@@ -10,7 +10,8 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/pos/vertical-profile")]
 [Produces("application/json")]
-[HasPermission(AppPermissions.CartView)]
+// Kitchen has product.view and kitchen.* but not cart.view. The profile decides whether the Küche tab is shown.
+[HasPermission(AppPermissions.ProductView)]
 public sealed class PosVerticalProfileController : ControllerBase
 {
     private readonly IVerticalProfileService _profiles;

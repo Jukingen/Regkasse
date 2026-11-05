@@ -77,6 +77,11 @@
       "tableClearFailed": "{{table}} numaralı masa temizlenemedi",
       "tableCleared": "{{table}} numaralı masa temizlendi",
       "tableClearGenericFailed": "Masa temizlenemedi",
+      "noOpenTables": "Açık masa yok.",
+      "clearAllConfirmTitle": "Tüm masalar temizlensin mi?",
+      "clearAllConfirmMessage": "{{count}} açık masa temizlenecek.",
+      "tablesCleared": "{{count}} masa temizlendi",
+      "tablesClearedPartial": "{{total}} masadan {{cleared}} tanesi temizlendi",
       "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin.",
       "noOrderPermission": "Sipariş alma yetkiniz yok"
     },

@@ -110,6 +110,7 @@ import {
   buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { collectOpenTableNumbers } from '../../utils/openTableNumbers';
 import { resolveProductDisplayName } from '../../utils/productLocalization';
 import type { ProductTextLocale } from '../../utils/productLocalization';
 
@@ -884,29 +885,61 @@ export default function CashRegisterScreen() {
     }
   }, [activeTableId, addToast, clearCart, currentCart, posReadiness.data?.effectiveRegisterId, t]);
 
-  const handleClearAllTables = useCallback(async () => {
-    try {
-      if (!activeTableId) {
-        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
-        return;
-      }
-
-      // Capture active table explicitly to avoid race conditions
-      const targetTableId = activeTableId;
-
-      // Call clearCart directly for the active table
-      // Note: We use clearCart from context, which handles the API call and local state update
-      await clearCart(targetTableId);
-
-      // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
-      // ✅ Behavior: UI stays on the same table (targetTableId)
-
-      addToast('success', t('checkout:posFlow.toast.tableCleared', { table: targetTableId }), 3000);
-    } catch (err: any) {
-      console.error('❌ Error clearing table:', err);
-      addToast('error', err?.message ?? t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+  const handleClearAllTables = useCallback(() => {
+    const openTables = collectOpenTableNumbers(cartsByTable, recoveryData);
+    if (openTables.length === 0) {
+      addToast('info', t('checkout:posFlow.toast.noOpenTables'), 2500);
+      return;
     }
-  }, [activeTableId, clearCart, addToast]);
+
+    Alert.alert(
+      t('checkout:posFlow.toast.clearAllConfirmTitle'),
+      t('checkout:posFlow.toast.clearAllConfirmMessage', { count: openTables.length }),
+      [
+        { text: t('common:cancel'), style: 'cancel' },
+        {
+          text: t('checkout:posFlow.tableSelector.clearAll'),
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              let cleared = 0;
+              for (const tableId of openTables) {
+                try {
+                  await clearCart(tableId);
+                  cleared += 1;
+                } catch (err) {
+                  console.error(`Error clearing table ${tableId}:`, err);
+                }
+              }
+
+              if (cleared === 0) {
+                addToast('error', t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
+                return;
+              }
+
+              if (cleared < openTables.length) {
+                addToast(
+                  'warning',
+                  t('checkout:posFlow.toast.tablesClearedPartial', {
+                    cleared,
+                    total: openTables.length,
+                  }),
+                  3500
+                );
+                return;
+              }
+
+              addToast(
+                'success',
+                t('checkout:posFlow.toast.tablesCleared', { count: cleared }),
+                3000
+              );
+            })();
+          },
+        },
+      ]
+    );
+  }, [addToast, cartsByTable, clearCart, recoveryData, t]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {

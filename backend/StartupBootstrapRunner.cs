@@ -93,6 +93,10 @@ namespace KasseAPI_Final
                     context,
                     cashRegisterLogger);
                 var devCatalog = await DevTenantSeeder.SeedAsync(context);
+                await DevTenantSeeder.SeedKitchenDemoUserAsync(
+                    context,
+                    userManager,
+                    tenantMembershipProvisioner);
                 startupLogger.LogInformation(
                     "Dev tenant catalog isolation: removed {ForeignCategories} categories and {ForeignProducts} products on dev; generic categories {GenericCategories}, products {GenericProducts}; payment-protected products {Protected}; seeded {Tenants} tenants.",
                     devCatalog.ForeignCategoriesRemoved,

@@ -1,9 +1,10 @@
-import { apiClient } from '@/services/api/config';
+import { apiClient, isForbiddenApiError } from '@/services/api/config';
 import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 import { mergeOfflineTenantLimit, offlineLimitPercent, isOfflineQueueAtCap } from '@/utils/offlineQueueLimit';
 import type { OfflineTenantLimitUsage } from '@/utils/offlineQueueLimit';
 
 let cached: OfflineTenantLimitUsage | null = null;
+let limitForbidden = false;
 
 function asNumber(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : Number(value);
@@ -56,6 +57,7 @@ export function getCachedOfflineTenantLimit(): OfflineTenantLimitUsage | null {
 }
 
 export async function fetchOfflineTenantLimitUsage(): Promise<OfflineTenantLimitUsage | null> {
+  if (limitForbidden) return cached;
   try {
     const path = OFFLINE_CONFIG.SYNC_ENDPOINTS.LIMIT.replace(/^\/api/, '');
     const raw = await apiClient.get<unknown>(path);
@@ -64,7 +66,10 @@ export async function fetchOfflineTenantLimitUsage(): Promise<OfflineTenantLimit
     );
     if (usage) cached = usage;
     return cached;
-  } catch {
+  } catch (error) {
+    if (isForbiddenApiError(error)) {
+      limitForbidden = true;
+    }
     return cached;
   }
 }

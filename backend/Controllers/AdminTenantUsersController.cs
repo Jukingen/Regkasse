@@ -304,9 +304,14 @@ public sealed class AdminTenantUsersController : ControllerBase
 
 
 
-    /// <summary>Generate a new password for a tenant user (shown once in the response).</summary>
+    /// <summary>
+    /// Generate a new password for a tenant user (shown once in the response).
+    /// Both routes return the same payload; FA calls either reset-password or generate-temporary-password.
+    /// </summary>
 
     [HttpPost("{userId}/reset-password")]
+
+    [HttpPost("{userId}/generate-temporary-password")]
 
     [ProducesResponseType(typeof(TenantUserPasswordResetResultDto), StatusCodes.Status200OK)]
 

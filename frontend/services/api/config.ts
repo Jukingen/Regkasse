@@ -493,6 +493,11 @@ function getApiErrorStatus(error: unknown): number | undefined {
   return candidate.response?.status ?? candidate.status;
 }
 
+/** True when the API rejected the call for missing permission (POS must keep working). */
+export function isForbiddenApiError(error: unknown): boolean {
+  return getApiErrorStatus(error) === 403;
+}
+
 function logApiClientError(method: string, error: unknown): void {
   if (!isDev) return;
   // 401 is common on login/bootstrap; response interceptor already handles refresh/logout.

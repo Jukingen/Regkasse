@@ -1299,6 +1299,7 @@ export function UnifiedAdminUsersView({
       {isSuperAdminActor ? (
         <PasswordViewModal
           open={!!passwordRow}
+          tenantId={passwordRow?.tenantId ?? ''}
           userId={passwordRow?.userId ?? ''}
           userEmail={passwordRow?.email ?? ''}
           onClose={() => setPasswordRow(null)}

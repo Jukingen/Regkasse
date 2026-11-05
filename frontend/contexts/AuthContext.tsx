@@ -795,7 +795,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Invalid login response');
         }
 
-        // POS rol kontrolü: Cashier, Waiter ve SuperAdmin girebilir
+        // POS rol kontrolü: Cashier, Waiter, Kitchen ve SuperAdmin girebilir
         if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
           authDevWarn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
           setJustLoggedIn(false);
