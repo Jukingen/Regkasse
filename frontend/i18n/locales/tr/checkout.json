@@ -159,7 +159,7 @@
       "cash": {
         "receivedLabel": "Alinan tutar",
         "receivedA11y": "Euro cinsinden alinan tutar",
-        "changeLabel": "Para ustu",
+        "changeLabel": "Para üstü:",
         "placeholder": "0,00",
         "optionalHint": "Istege bagli — tam tutar icin bos birakin",
         "belowTotalTitle": "Tutar yetersiz",
