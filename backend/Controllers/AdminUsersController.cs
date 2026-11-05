@@ -359,7 +359,7 @@ public partial class AdminUsersController : ControllerBase
                         return false;
                     if (isActive.HasValue && user.IsActive != isActive.Value)
                         return false;
-                    if (!string.IsNullOrWhiteSpace(role) && user.Role != role)
+                    if (!RoleMatches(user.Role, role))
                         return false;
                     return MatchesTenantUserSearch(search, dto.Name, dto.UserName, dto.Email, tenant.Name, tenant.Slug);
                 })
@@ -372,7 +372,9 @@ public partial class AdminUsersController : ControllerBase
                         UserName = !string.IsNullOrEmpty(dto.UserName) ? dto.UserName : user?.UserName ?? string.Empty,
                         Email = dto.Email,
                         Name = dto.Name,
-                        Role = dto.Role,
+                        Role = string.IsNullOrWhiteSpace(dto.Role)
+                            ? dto.Role
+                            : RoleCanonicalization.GetCanonicalRole(dto.Role),
                         IsOwner = dto.IsOwner,
                         IsActive = user?.IsActive ?? true,
                         TenantId = tenant.Id,
@@ -406,7 +408,7 @@ public partial class AdminUsersController : ControllerBase
         if (isActive.HasValue)
             filtered = filtered.Where(x => x.User.IsActive == isActive.Value);
         if (!string.IsNullOrWhiteSpace(role))
-            filtered = filtered.Where(x => x.User.Role == role);
+            filtered = filtered.Where(x => RoleMatches(x.User.Role, role));
         if (!string.IsNullOrWhiteSpace(search))
         {
             filtered = filtered.Where(x =>
@@ -430,7 +432,9 @@ public partial class AdminUsersController : ControllerBase
                 UserName = x.User.UserName ?? string.Empty,
                 Email = x.User.Email ?? x.User.UserName ?? string.Empty,
                 Name = FormatTenantUserName(x.User),
-                Role = x.User.Role ?? Roles.FallbackUnknown,
+                Role = string.IsNullOrWhiteSpace(x.User.Role)
+                    ? Roles.FallbackUnknown
+                    : RoleCanonicalization.GetCanonicalRole(x.User.Role),
                 IsOwner = x.Membership.IsOwner,
                 IsActive = x.User.IsActive,
                 TenantId = x.Tenant.Id,
@@ -448,15 +452,28 @@ public partial class AdminUsersController : ControllerBase
         return string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
     }
 
+    private static bool RoleMatches(string? userRole, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return true;
+
+        return string.Equals(
+            RoleCanonicalization.GetCanonicalRole(userRole),
+            RoleCanonicalization.GetCanonicalRole(filter),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private IQueryable<UserTenantMembership> MembershipsQuery() =>
-        _tenantAccessor.TenantId is Guid
-            ? _context.UserTenantMemberships.AsNoTracking()
-            : _context.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters();
+        IsActorSuperAdmin() || _tenantAccessor.TenantId is not Guid
+            ? _context.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters()
+            : _context.UserTenantMemberships.AsNoTracking();
 
     private IQueryable<ApplicationUser> UsersWithMembershipsQuery()
     {
         var query = _context.Users.AsNoTracking();
-        if (_tenantAccessor.TenantId is not Guid)
+        // Super Admin user admin is cross-tenant. The FA header tenant (often dev / Development)
+        // must not hide other memberships or stamp every row with that mandant.
+        if (IsActorSuperAdmin() || _tenantAccessor.TenantId is not Guid)
             query = query.IgnoreQueryFilters();
 
         query = query
@@ -507,7 +524,7 @@ public partial class AdminUsersController : ControllerBase
             FirstName = u.FirstName,
             LastName = u.LastName,
             EmployeeNumber = u.EmployeeNumber,
-            Role = u.Role,
+            Role = string.IsNullOrWhiteSpace(u.Role) ? u.Role : RoleCanonicalization.GetCanonicalRole(u.Role),
             TaxNumber = u.TaxNumber,
             Notes = u.Notes,
             IsActive = u.IsActive,
@@ -595,7 +612,10 @@ public partial class AdminUsersController : ControllerBase
         if (isActive == true)
             query = query.Where(u => u.IsActive);
         if (!string.IsNullOrWhiteSpace(role))
-            query = query.Where(u => u.Role == role);
+        {
+            var wanted = RoleCanonicalization.GetCanonicalRole(role).ToLowerInvariant();
+            query = query.Where(u => u.Role != null && u.Role.ToLower() == wanted);
+        }
         query = ApplyUserSearchFilter(query, search);
 
         var users = await query

@@ -170,6 +170,7 @@ public static class RolePermissionMatrix
                 AppPermissions.DigitalOrdersManage,
                 AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                AppPermissions.OfflineRead,
                 AppPermissions.RoomView, AppPermissions.RoomManage,
                 AppPermissions.TicketView, AppPermissions.TicketManage,
                 AppPermissions.AppointmentView, AppPermissions.AppointmentManage,
@@ -203,6 +204,7 @@ public static class RolePermissionMatrix
                 AppPermissions.LicenseView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
                 AppPermissions.TseSign,
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
@@ -226,6 +228,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ShiftView, AppPermissions.ShiftClose,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.KitchenView,
+                AppPermissions.OfflineRead,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Kitchen] = new[]
@@ -233,6 +236,10 @@ public static class RolePermissionMatrix
                 AppPermissions.OrderView, AppPermissions.OrderUpdate,
                 AppPermissions.ProductView, AppPermissions.CategoryView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                // POS shell polls offline health/limit on every login, including KDS.
+                AppPermissions.OfflineRead,
+                // POS login calls GET /api/license/status before the shell opens.
+                AppPermissions.LicenseView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.ReportViewer] = new[]

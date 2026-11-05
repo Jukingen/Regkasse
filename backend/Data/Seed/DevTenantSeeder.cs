@@ -1,6 +1,9 @@
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data.Seed;
@@ -14,6 +17,9 @@ public static class DevTenantSeeder
 {
     public const string RegisterNumber = "KASSE-001";
     public const string CreatedBy = "dev-tenant-seed";
+    public const string KitchenUserName = "chef1";
+    public const string KitchenPassword = "DevCashier1!";
+    public const string KitchenUserId = "demo-chef-dev";
 
     public static IReadOnlyList<DevTenantProfileCatalog> Catalog { get; } =
     [
@@ -428,6 +434,318 @@ public static class DevTenantSeeder
         settings.UpdatedAt = DateTime.UtcNow;
         settings.UpdatedBy = CreatedBy;
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Development cashier for the kitchen display on tenant slug <c>dev</c>.
+    /// Username <c>chef1</c>, password <c>DevCashier1!</c>, role <see cref="Roles.Kitchen"/>.
+    /// </summary>
+    public static async Task SeedKitchenDemoUserAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserTenantMembershipProvisioner membershipProvisioner,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(row => row.Slug == "dev" && row.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return;
+
+        var now = DateTime.UtcNow;
+        var user = await userManager.FindByNameAsync(KitchenUserName).ConfigureAwait(false);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                Id = KitchenUserId,
+                UserName = KitchenUserName,
+                Email = "chef1@dev.regkasse.at",
+                FirstName = "Küche",
+                LastName = "Dev",
+                EmployeeNumber = "DEMO-CHEF-001",
+                Role = Roles.Kitchen,
+                Notes = "Development kitchen display user for tenant dev",
+                IsActive = true,
+                EmailConfirmed = true,
+                AccountType = "Staff",
+                IsDemo = false,
+                MustChangePasswordOnNextLogin = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            var created = await userManager.CreateAsync(user, KitchenPassword).ConfigureAwait(false);
+            if (!created.Succeeded)
+            {
+                Console.WriteLine(
+                    "dev kitchen user create failed: {0}",
+                    string.Join("; ", created.Errors.Select(error => error.Description)));
+                return;
+            }
+        }
+
+        if (!string.Equals(user.Role, Roles.Kitchen, StringComparison.Ordinal))
+        {
+            user.Role = Roles.Kitchen;
+            user.IsActive = true;
+            user.MustChangePasswordOnNextLogin = false;
+            user.UpdatedAt = now;
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, Roles.Kitchen).ConfigureAwait(false))
+            await userManager.AddToRoleAsync(user, Roles.Kitchen).ConfigureAwait(false);
+
+        await membershipProvisioner
+            .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: false, cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerId = await db.CashRegisters
+            .IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenant.Id && row.IsActive)
+            .OrderByDescending(row => row.IsDefaultForTenant)
+            .Select(row => (Guid?)row.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (registerId is not Guid assignedRegister || assignedRegister == Guid.Empty)
+            return;
+
+        var registerText = assignedRegister.ToString();
+        var settings = await db.UserSettings
+            .FirstOrDefaultAsync(row => row.UserId == user.Id, cancellationToken)
+            .ConfigureAwait(false);
+        if (settings is null)
+        {
+            db.UserSettings.Add(new UserSettings
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CashRegisterId = registerText,
+                Language = "de-DE",
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+        }
+        else if (string.IsNullOrWhiteSpace(settings.CashRegisterId))
+        {
+            settings.CashRegisterId = registerText;
+            settings.UpdatedAt = now;
+        }
+
+        if (user.CashRegisterId != assignedRegister)
+        {
+            user.CashRegisterId = assignedRegister;
+            user.UpdatedAt = now;
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Demo POS staff with a stable username, matching email, and the mandant they belong to.
+    /// <c>cashier1</c> is Cashier on <c>dev</c>. <c>manager1</c> is Manager on <c>prod</c>.
+    /// </summary>
+    public static async Task SeedPosDemoStaffAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserTenantMembershipProvisioner membershipProvisioner,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureDemoStaffUserAsync(
+            db,
+            userManager,
+            membershipProvisioner,
+            userName: "cashier1",
+            userId: "demo-cashier-dev",
+            tenantSlug: "dev",
+            role: Roles.Cashier,
+            firstName: "Kasse",
+            lastName: "Dev",
+            employeeNumber: "DEMO-CASHIER-001",
+            cancellationToken).ConfigureAwait(false);
+
+        await EnsureDemoStaffUserAsync(
+            db,
+            userManager,
+            membershipProvisioner,
+            userName: "manager1",
+            userId: "demo-manager-prod",
+            tenantSlug: "prod",
+            role: Roles.Manager,
+            firstName: "Leitung",
+            lastName: "Prod",
+            employeeNumber: "DEMO-MANAGER-001",
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns <c>username@slug.regkasse.at</c> when the stored address is empty or is another
+    /// <c>*.regkasse.at</c> address that does not match the username and primary mandant.
+    /// Usernames that are already email addresses, and addresses on other hosts, are left alone.
+    /// </summary>
+    public static string? CorrectedDemoUserEmail(string? userName, string? email, string? tenantSlug)
+    {
+        var name = userName?.Trim();
+        var slug = tenantSlug?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(name) || name.Contains('@') || string.IsNullOrEmpty(slug))
+            return null;
+
+        var expected = $"{name}@{slug}.regkasse.at";
+        if (string.IsNullOrWhiteSpace(email))
+            return expected;
+
+        var at = email.IndexOf('@');
+        if (at <= 0)
+            return expected;
+
+        if (email.Equals(expected, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var host = email[(at + 1)..];
+        if (host.Equals("regkasse.at", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".regkasse.at", StringComparison.OrdinalIgnoreCase))
+            return expected;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Rewrites demo emails whose local part does not match the username on the user's primary mandant.
+    /// </summary>
+    public static async Task AlignDemoUserEmailsAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        CancellationToken cancellationToken = default)
+    {
+        var memberships = await db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(row => row.IsActive)
+            .Join(
+                db.Tenants.IgnoreQueryFilters().AsNoTracking().Where(tenant =>
+                    tenant.IsActive && tenant.Slug != SystemTenantIds.PlatformSlug),
+                row => row.TenantId,
+                tenant => tenant.Id,
+                (row, tenant) => new
+                {
+                    row.UserId,
+                    row.IsOwner,
+                    row.CreatedAtUtc,
+                    tenant.Slug,
+                })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var primaryByUser = memberships
+            .GroupBy(row => row.UserId)
+            .Select(group => group
+                .OrderByDescending(row => row.IsOwner)
+                .ThenBy(row => row.CreatedAtUtc)
+                .First());
+
+        foreach (var membership in primaryByUser)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var user = await userManager.FindByIdAsync(membership.UserId).ConfigureAwait(false);
+            if (user is null)
+                continue;
+
+            var corrected = CorrectedDemoUserEmail(user.UserName, user.Email, membership.Slug);
+            if (corrected is null || string.Equals(user.Email, corrected, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var taken = await userManager.FindByEmailAsync(corrected).ConfigureAwait(false);
+            if (taken != null && taken.Id != user.Id)
+                continue;
+
+            var result = await userManager.SetEmailAsync(user, corrected).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                Console.WriteLine(
+                    "demo user email align failed for {0}: {1}",
+                    user.UserName,
+                    string.Join("; ", result.Errors.Select(error => error.Description)));
+            }
+        }
+    }
+
+    private static async Task EnsureDemoStaffUserAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserTenantMembershipProvisioner membershipProvisioner,
+        string userName,
+        string userId,
+        string tenantSlug,
+        string role,
+        string firstName,
+        string lastName,
+        string employeeNumber,
+        CancellationToken cancellationToken)
+    {
+        var tenant = await db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(row => row.Slug == tenantSlug && row.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant is null)
+            return;
+
+        var email = $"{userName}@{tenantSlug}.regkasse.at";
+        var now = DateTime.UtcNow;
+        var user = await userManager.FindByNameAsync(userName).ConfigureAwait(false);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                Id = userId,
+                UserName = userName,
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName,
+                EmployeeNumber = employeeNumber,
+                Role = role,
+                Notes = $"Development {role} user for tenant {tenantSlug}",
+                IsActive = true,
+                EmailConfirmed = true,
+                AccountType = "Staff",
+                IsDemo = false,
+                MustChangePasswordOnNextLogin = false,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            var created = await userManager.CreateAsync(user, KitchenPassword).ConfigureAwait(false);
+            if (!created.Succeeded)
+            {
+                Console.WriteLine(
+                    "demo staff user create failed for {0}: {1}",
+                    userName,
+                    string.Join("; ", created.Errors.Select(error => error.Description)));
+                return;
+            }
+        }
+
+        var corrected = CorrectedDemoUserEmail(user.UserName, user.Email, tenantSlug);
+        if (corrected != null)
+        {
+            var taken = await userManager.FindByEmailAsync(corrected).ConfigureAwait(false);
+            if (taken == null || taken.Id == user.Id)
+                await userManager.SetEmailAsync(user, corrected).ConfigureAwait(false);
+        }
+
+        if (string.IsNullOrWhiteSpace(user.Role))
+        {
+            user.Role = role;
+            user.UpdatedAt = now;
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, user.Role ?? role).ConfigureAwait(false))
+            await userManager.AddToRoleAsync(user, user.Role ?? role).ConfigureAwait(false);
+
+        await membershipProvisioner
+            .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: false, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static async Task<string?> ResolveDevTenantProfileAsync(

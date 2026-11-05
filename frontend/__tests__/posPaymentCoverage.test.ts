@@ -1,9 +1,22 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  cashChangeDue,
   computeVoucherPlusCashCoversTotal,
   resolveOptionalCashTender,
 } from '../utils/posPaymentCoverage';
+
+describe('cashChangeDue', () => {
+  it('returns the change when the tender is above the total', () => {
+    expect(cashChangeDue(50, 20)).toBe(30);
+  });
+
+  it('hides change for an exact or short tender', () => {
+    expect(cashChangeDue(20, 20)).toBeNull();
+    expect(cashChangeDue(10, 20)).toBeNull();
+    expect(cashChangeDue(Number.NaN, 20)).toBeNull();
+  });
+});
 
 describe('resolveOptionalCashTender', () => {
   it('treats empty field as exact settlement', () => {

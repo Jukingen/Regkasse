@@ -343,7 +343,10 @@ describe('UnifiedAdminUsersView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Temporäres Passwort generieren' }));
 
     await waitFor(() => {
-      expect(mockGenerateTemporaryPassword).toHaveBeenCalledWith('tenant-user-3');
+      expect(mockGenerateTemporaryPassword).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        userId: 'tenant-user-3',
+      });
     });
     expect(await screen.findByDisplayValue('Temp#Pass123')).toBeInTheDocument();
   }, 30_000);

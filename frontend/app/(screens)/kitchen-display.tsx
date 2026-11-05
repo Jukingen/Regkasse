@@ -200,8 +200,14 @@ export default function KitchenDisplayScreen() {
           transparent
           animationType="fade"
           onRequestClose={() => setSelectedId(null)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setSelectedId(null)}>
-            <Pressable style={styles.modalCard} onPress={() => undefined}>
+          <View style={styles.modalBackdrop}>
+            <Pressable
+              style={styles.modalDismiss}
+              onPress={() => setSelectedId(null)}
+              accessibilityRole="button"
+              accessibilityLabel={t('screens.kitchen.close')}
+            />
+            <View style={styles.modalCard}>
               {selected ? (
                 <>
                   <Text style={styles.modalTitle}>{tableLabel(t, selected)}</Text>
@@ -258,8 +264,8 @@ export default function KitchenDisplayScreen() {
                   </Pressable>
                 </>
               ) : null}
-            </Pressable>
-          </Pressable>
+            </View>
+          </View>
         </Modal>
       </SafeAreaView>
     </IfVerticalFeature>
@@ -284,15 +290,15 @@ function KitchenOrderCard({
   t: (key: string, options?: Record<string, string>) => string;
 }) {
   return (
-    <Pressable
-      testID={`kds-card-${order.id}`}
-      style={styles.card}
-      onPress={onOpen}
-      accessibilityRole="button"
-      accessibilityLabel={tableLabel(t, order)}>
-      <Text style={styles.cardTitle}>{tableLabel(t, order)}</Text>
-      <OrderAge createdAtUtc={order.createdAtUtc} nowMs={nowMs} t={t} />
-      {order.notes ? <Text style={styles.notes}>{order.notes}</Text> : null}
+    <View testID={`kds-card-${order.id}`} style={styles.card}>
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={tableLabel(t, order)}>
+        <Text style={styles.cardTitle}>{tableLabel(t, order)}</Text>
+        <OrderAge createdAtUtc={order.createdAtUtc} nowMs={nowMs} t={t} />
+        {order.notes ? <Text style={styles.notes}>{order.notes}</Text> : null}
+      </Pressable>
       {order.items.map((item) => (
         <Pressable
           key={item.id}
@@ -309,7 +315,7 @@ function KitchenOrderCard({
           {item.notes ? <Text style={styles.itemNotes}>{item.notes}</Text> : null}
         </Pressable>
       ))}
-    </Pressable>
+    </View>
   );
 }
 
@@ -509,11 +515,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: SoftSpacing.lg,
   },
+  modalDismiss: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   modalCard: {
     backgroundColor: SoftColors.bgCard,
     borderRadius: SoftRadius.lg,
     padding: SoftSpacing.lg,
     gap: SoftSpacing.sm,
+    zIndex: 1,
   },
   modalTitle: {
     fontSize: 20,

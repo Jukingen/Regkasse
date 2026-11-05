@@ -1141,6 +1141,96 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task List_SuperAdmin_UsesEachUsersTenant_WhenAmbientTenantIsSet()
+    {
+        var cafeTenantId = Guid.NewGuid();
+        var barTenantId = Guid.NewGuid();
+        var accessor = TenantTestDoubles.TenantAccessorReturning(cafeTenantId);
+        await using var db = CreateEphemeralContext(accessor);
+
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = cafeTenantId,
+                Name = "Development",
+                Slug = "dev",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = barTenantId,
+                Name = "Production",
+                Slug = "prod",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "cashier-dev",
+                UserName = "cashier1",
+                Email = "cashier1@dev.regkasse.at",
+                FirstName = "Kasse",
+                LastName = "Dev",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new ApplicationUser
+            {
+                Id = "manager-prod",
+                UserName = "manager1",
+                Email = "manager1@prod.regkasse.at",
+                FirstName = "Leitung",
+                LastName = "Prod",
+                Role = "manager",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+        db.UserTenantMemberships.AddRange(
+            new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = "cashier-dev",
+                TenantId = cafeTenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            },
+            new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = "manager-prod",
+                TenantId = barTenantId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            tenantAccessor: accessor);
+
+        var result = await controller.List(role: "Manager");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dtos = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(ok.Value).ToList();
+
+        var manager = Assert.Single(dtos);
+        Assert.Equal("manager1", manager.UserName);
+        Assert.Equal("manager1@prod.regkasse.at", manager.Email);
+        Assert.Equal("Production", manager.TenantName);
+        Assert.Equal("manager", manager.Role);
+    }
+
+    [Fact]
     public async Task AdminUsersController_List_ExcludesPlatformTenant()
     {
         await using var db = CreateEphemeralContext();

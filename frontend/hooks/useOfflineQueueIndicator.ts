@@ -58,50 +58,54 @@ export function useOfflineQueueIndicator(): OfflineQueueIndicatorState & {
 
   const refresh = useCallback(() => {
     void (async () => {
-      const isOnline = await fetchIsNetworkOnline();
-      const syncStatus = OfflineSyncService.getInstance().getSyncStatus();
-      const [orders, payments, history, serverLimit, localPending] = await Promise.all([
-        getOfflineOrderManager()
-          .listAllOrders()
-          .catch(() => []),
-        getAllQueueEntries().catch(() => []),
-        OfflineSyncHistory.getInstance().getHistory(50).catch(() => []),
-        fetchOfflineTenantLimitUsage(),
-        getPendingPaymentQueue().catch(() => []),
-      ]);
+      try {
+        const isOnline = await fetchIsNetworkOnline();
+        const syncStatus = OfflineSyncService.getInstance().getSyncStatus();
+        const [orders, payments, history, serverLimit, localPending] = await Promise.all([
+          getOfflineOrderManager()
+            .listAllOrders()
+            .catch(() => []),
+          getAllQueueEntries().catch(() => []),
+          OfflineSyncHistory.getInstance().getHistory(50).catch(() => []),
+          fetchOfflineTenantLimitUsage(),
+          getPendingPaymentQueue().catch(() => []),
+        ]);
 
-      const items = mergeOfflineQueueItems(orders, payments);
-      const { pendingCount, failedCount } = countOfflineQueueByStatus(items);
-      const lastSuccess = history.find((row) => row.status === 'success');
-      const lastSuccessfulSyncAt = lastSuccess?.timestamp ?? syncStatus.lastSyncAt;
-      const nextRetryAt =
-        !isOnline || (pendingCount === 0 && failedCount === 0)
-          ? null
-          : (syncStatus.nextSyncAt ??
-            new Date(Date.now() + OFFLINE_CONFIG.SYNC_INTERVAL_SECONDS * 1000));
+        const items = mergeOfflineQueueItems(orders, payments);
+        const { pendingCount, failedCount } = countOfflineQueueByStatus(items);
+        const lastSuccess = history.find((row) => row.status === 'success');
+        const lastSuccessfulSyncAt = lastSuccess?.timestamp ?? syncStatus.lastSyncAt;
+        const nextRetryAt =
+          !isOnline || (pendingCount === 0 && failedCount === 0)
+            ? null
+            : (syncStatus.nextSyncAt ??
+              new Date(Date.now() + OFFLINE_CONFIG.SYNC_INTERVAL_SECONDS * 1000));
 
-      const color = resolveOfflineQueueDot({
-        isOnline,
-        pendingCount,
-        failedCount,
-        isSyncing: syncStatus.isSyncing,
-      });
-      const tenantLimit = mergeOfflineTenantLimit(serverLimit, localPending.length);
-      const atCap = isOfflineQueueAtCap(tenantLimit.current, tenantLimit.limit);
+        const color = resolveOfflineQueueDot({
+          isOnline,
+          pendingCount,
+          failedCount,
+          isSyncing: syncStatus.isSyncing,
+        });
+        const tenantLimit = mergeOfflineTenantLimit(serverLimit, localPending.length);
+        const atCap = isOfflineQueueAtCap(tenantLimit.current, tenantLimit.limit);
 
-      setState({
-        isOnline,
-        isSyncing: syncStatus.isSyncing,
-        pendingCount,
-        failedCount,
-        count: offlineQueueActionableCount(pendingCount, failedCount),
-        color,
-        items,
-        lastSuccessfulSyncAt,
-        nextRetryAt,
-        tenantLimit,
-        atCap,
-      });
+        setState({
+          isOnline,
+          isSyncing: syncStatus.isSyncing,
+          pendingCount,
+          failedCount,
+          count: offlineQueueActionableCount(pendingCount, failedCount),
+          color,
+          items,
+          lastSuccessfulSyncAt,
+          nextRetryAt,
+          tenantLimit,
+          atCap,
+        });
+      } catch {
+        // A 403 from offline health/limit must not reject the indicator refresh.
+      }
     })();
   }, []);
 

@@ -612,4 +612,16 @@ public class RolePermissionMatrixTests
             Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, key));
         }
     }
+
+    [Fact]
+    public void RoleHasPermission_Kitchen_CanReadOfflineQueue_WithoutPaymentTake()
+    {
+        Assert.Contains(AppPermissions.OfflineRead, PermissionCatalog.All);
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Kitchen, AppPermissions.OfflineRead));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.OfflineRead));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Waiter, AppPermissions.OfflineRead));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.OfflineRead));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Kitchen, AppPermissions.PaymentTake));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.ReportViewer, AppPermissions.OfflineRead));
+    }
 }

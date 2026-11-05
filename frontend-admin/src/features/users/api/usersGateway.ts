@@ -130,21 +130,39 @@ export interface TemporaryPasswordResponse {
   forcePasswordChangeOnNextLogin: boolean;
 }
 
+function tenantUserPasswordUrl(
+  tenantId: string,
+  userId: string,
+  action: 'reset-password' | 'generate-temporary-password'
+): string {
+  const user = userId.trim();
+  if (!user) {
+    throw new Error('userId is required');
+  }
+  const tenant = tenantId.trim();
+  if (!tenant) {
+    return `/api/admin/users/${encodeURIComponent(user)}/${action}`;
+  }
+  return `/api/admin/tenants/${encodeURIComponent(tenant)}/users/${encodeURIComponent(user)}/${action}`;
+}
+
 export async function generateTemporaryPassword(
+  tenantId: string,
   userId: string
 ): Promise<TemporaryPasswordResponse> {
   return customInstance<TemporaryPasswordResponse>({
-    url: `/api/admin/users/${userId}/generate-temporary-password`,
+    url: tenantUserPasswordUrl(tenantId, userId, 'generate-temporary-password'),
     method: 'POST',
   });
 }
 
 /** Manager tenant-scoped password reset — generates password once; user must change on next login. */
 export async function resetUserPasswordWithGeneration(
+  tenantId: string,
   userId: string
 ): Promise<TemporaryPasswordResponse> {
   return customInstance<TemporaryPasswordResponse>({
-    url: `/api/admin/users/${userId}/reset-password`,
+    url: tenantUserPasswordUrl(tenantId, userId, 'reset-password'),
     method: 'POST',
   });
 }
@@ -153,7 +171,8 @@ export function useGenerateTemporaryPasswordMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: generateTemporaryPassword,
+    mutationFn: ({ tenantId, userId }: { tenantId: string; userId: string }) =>
+      generateTemporaryPassword(tenantId, userId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       void queryClient.invalidateQueries({ queryKey: listQueryKey });

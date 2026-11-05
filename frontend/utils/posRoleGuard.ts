@@ -1,8 +1,8 @@
 /**
  * POS uygulamasına giriş yetkisi olan roller.
- * Cashier, Waiter ve SuperAdmin POS'a erişebilir.
+ * Cashier, Waiter, Kitchen ve SuperAdmin POS'a erişebilir.
  */
-const POS_ALLOWED_ROLES: ReadonlySet<string> = new Set(['cashier', 'waiter', 'superadmin']);
+const POS_ALLOWED_ROLES: ReadonlySet<string> = new Set(['cashier', 'waiter', 'kitchen', 'superadmin']);
 
 function canonicalRole(role: string | null | undefined): string {
   return (role ?? '').trim().toLowerCase();

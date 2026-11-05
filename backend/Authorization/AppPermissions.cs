@@ -255,6 +255,12 @@ public static class AppPermissions
     public const string KitchenView = "kitchen.view";
     public const string KitchenUpdate = "kitchen.update";
 
+    /// <summary>
+    /// Read POS offline queue health and capacity (<c>GET /api/pos/offline/health</c>,
+    /// <c>GET /api/pos/offline-limit</c>). Does not grant payment or sync writes.
+    /// </summary>
+    public const string OfflineRead = "offline.read";
+
     // --- TSE (fiscal signing) ---
     public const string TseSign = "tse.sign";
 

@@ -99,6 +99,9 @@ public static class DemoTenantAdminSeed
             }
 
             var user = await userManager.FindByEmailAsync(spec.Email).ConfigureAwait(false);
+            // Username alignment may have rewritten admin@slug to {username}@slug. The stable id still owns the row.
+            if (user == null)
+                user = await userManager.FindByIdAsync(spec.UserId).ConfigureAwait(false);
             if (user == null)
             {
                 user = new ApplicationUser

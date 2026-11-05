@@ -36,7 +36,7 @@ public class OfflineHealthController : BaseController
     }
 
     [HttpGet("health")]
-    [HasPermission(AppPermissions.PaymentTake)]
+    [HasPermission(AppPermissions.OfflineRead)]
     public async Task<IActionResult> GetSyncHealth(CancellationToken cancellationToken)
     {
         var maxPending = Math.Max(1, _alertRules.CurrentValue.MaxPendingOrders);
@@ -89,7 +89,7 @@ public class OfflineHealthController : BaseController
     /// Count is pending <c>offline_transactions</c> plus pending <c>offline_orders</c>.
     /// </summary>
     [HttpGet("~/api/pos/offline-limit")]
-    [HasPermission(AppPermissions.PaymentTake)]
+    [HasPermission(AppPermissions.OfflineRead)]
     public async Task<IActionResult> GetOfflineLimit(CancellationToken cancellationToken)
     {
         if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)

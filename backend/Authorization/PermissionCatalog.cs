@@ -153,6 +153,7 @@ public static class PermissionCatalog
         // Kitchen
         AppPermissions.KitchenView,
         AppPermissions.KitchenUpdate,
+        AppPermissions.OfflineRead,
         // Vertical profile actions
         AppPermissions.RoomView,
         AppPermissions.RoomManage,

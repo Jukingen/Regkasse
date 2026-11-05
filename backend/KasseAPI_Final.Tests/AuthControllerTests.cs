@@ -692,6 +692,7 @@ public class AuthControllerTests
     [Theory]
     [InlineData("Cashier")]
     [InlineData("SuperAdmin")]
+    [InlineData("Kitchen")]
     public async Task Login_Pos_AllowedRoles_Succeeds(string role)
     {
         var controller = CreateController(ActiveUser(role), roles: new List<string> { role }, allowLegacy: false);
@@ -706,7 +707,6 @@ public class AuthControllerTests
     [InlineData("Accountant")]
     [InlineData("ReportViewer")]
     [InlineData("Waiter")]
-    [InlineData("Kitchen")]
     public async Task Login_Pos_DeniedRoles_Returns403(string role)
     {
         var controller = CreateController(ActiveUser(role), roles: new List<string> { role }, allowLegacy: false);
@@ -1411,8 +1411,9 @@ public class ClientAppPolicyTests
     }
 
     [Theory]
-    [InlineData("pos", "Cashier", true)]
-    [InlineData("pos", "SuperAdmin", true)]
+        [InlineData("pos", "Cashier", true)]
+        [InlineData("pos", "Kitchen", true)]
+        [InlineData("pos", "SuperAdmin", true)]
     [InlineData("pos", "Admin", false)]
     [InlineData("pos", "Manager", false)]
     [InlineData("pos", "ReportViewer", false)]

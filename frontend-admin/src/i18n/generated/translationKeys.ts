@@ -15494,6 +15494,7 @@ export const ADMIN_TRANSLATION_KEYS = [
   'users.roleDrawer.permissionLabels.localization_view',
   'users.roleDrawer.permissionLabels.modifier_manage',
   'users.roleDrawer.permissionLabels.modifier_view',
+  'users.roleDrawer.permissionLabels.offline_read',
   'users.roleDrawer.permissionLabels.online_payments_manage',
   'users.roleDrawer.permissionLabels.order_cancel',
   'users.roleDrawer.permissionLabels.order_create',
