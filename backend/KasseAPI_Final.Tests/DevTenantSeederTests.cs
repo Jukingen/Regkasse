@@ -21,6 +21,23 @@ public sealed class DevTenantSeederTests
     }
 
     [Fact]
+    public void CorrectedDemoUserEmail_RewritesMismatchedTenantHost_AndKeepsMatchingAddresses()
+    {
+        Assert.Equal(
+            "cashier1@dev.regkasse.at",
+            DevTenantSeeder.CorrectedDemoUserEmail("cashier1", "pos@dev.regkasse.at", "dev"));
+        Assert.Equal(
+            "chef1@dev.regkasse.at",
+            DevTenantSeeder.CorrectedDemoUserEmail("chef1", null, "dev"));
+        Assert.Null(DevTenantSeeder.CorrectedDemoUserEmail("chef1", "chef1@dev.regkasse.at", "dev"));
+        Assert.Equal(
+            "manager1@dev.regkasse.at",
+            DevTenantSeeder.CorrectedDemoUserEmail("manager1", "pos@dev2.regkasse.at", "dev"));
+        Assert.Null(DevTenantSeeder.CorrectedDemoUserEmail("demo@demo.com", "demo@demo.com", "dev"));
+        Assert.Null(DevTenantSeeder.CorrectedDemoUserEmail("manager1", "manager1@example.com", "prod"));
+    }
+
+    [Fact]
     public async Task SeedAsync_GivesEachDevTenantOnlyItsOwnVertical_AndLeavesTheCashRegisterClosed()
     {
         await using var db = CreateDb();

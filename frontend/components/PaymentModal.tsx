@@ -42,6 +42,7 @@ import { showAlert } from '../utils/alert';
 import { validateAmount } from '../utils/validation';
 import {
   PAYMENT_COVERAGE_TOLERANCE_EUR,
+  cashChangeDue,
   computeVoucherPlusCashCoversTotal,
   resolveOptionalCashTender,
 } from '../utils/posPaymentCoverage';
@@ -483,7 +484,12 @@ export default function PaymentModal({
     if (tseServerOffline) {
       list = list.filter((m) => m.type === 'cash');
     }
-    return list;
+    // Bar stays the first chip so the cash default is visible next to Kreditkarte.
+    return [...list].sort((a, b) => {
+      if (a.type === DEFAULT_POS_PAYMENT_METHOD) return -1;
+      if (b.type === DEFAULT_POS_PAYMENT_METHOD) return 1;
+      return 0;
+    });
   }, [paymentMethods, tseServerOffline]);
 
   const selectedSettlementMethod = useMemo(
@@ -596,8 +602,10 @@ export default function PaymentModal({
   });
   const shouldCollectCashAmount = requiresCashAmount && settlementAmountDue > 0;
   const cashTender = resolveOptionalCashTender(amountReceived, settlementAmountDue);
-  const changeAmount = cashTender.fieldEmpty ? null : cashTender.parsed - settlementAmountDue;
-  const showCashChange = changeAmount != null && Number.isFinite(changeAmount) && changeAmount >= 0;
+  const changeAmount = cashTender.fieldEmpty
+    ? null
+    : cashChangeDue(cashTender.parsed, settlementAmountDue);
+  const showCashChange = changeAmount != null;
 
   useEffect(() => {
     if (!requiresCashAmount) {
@@ -811,25 +819,49 @@ export default function PaymentModal({
       });
   }, [visible, cashRegisterId, getPaymentMethods]);
 
-  useEffect(() => {
-    if (!visible) {
-      resetCheckoutPaymentUi();
-      setVoucherEnabled(false);
-    }
-  }, [visible, resetCheckoutPaymentUi]);
+  const openedWithCashDefaultRef = useRef(false);
 
   useEffect(() => {
-    if (!visible || settlementPaymentMethods.length === 0) return;
+    if (!visible) {
+      openedWithCashDefaultRef.current = false;
+      resetCheckoutPaymentUi();
+      setVoucherEnabled(false);
+      setAmountReceived('');
+      return;
+    }
+    if (settlementPaymentMethods.length === 0) return;
+
+    const cash = settlementPaymentMethods.find((m) => m.type === DEFAULT_POS_PAYMENT_METHOD);
+    // Hosted Kreditkarte/PayPal chips exist before the catalog returns. Do not lock
+    // the default until Bar can be chosen, otherwise Kreditkarte stays selected.
+    if (!openedWithCashDefaultRef.current) {
+      if (!cash && (methodsLoading || paymentMethods.length === 0)) return;
+      openedWithCashDefaultRef.current = true;
+      if (cash && selectedPaymentMethod !== cash.type) {
+        setSelectedPaymentMethodType(cash.type);
+      }
+      return;
+    }
+
     const selectedIsAvailable =
       !!selectedPaymentMethod &&
       settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod);
     if (selectedIsAvailable) return;
-    const cash = settlementPaymentMethods.find((m) => m.type === DEFAULT_POS_PAYMENT_METHOD);
-    const catalogDefault = settlementPaymentMethods.find((m) => m.isDefault);
+    const catalogDefault = settlementPaymentMethods.find(
+      (m) => m.isDefault && m.type !== 'credit_card'
+    );
     setSelectedPaymentMethodType(
       cash?.type ?? catalogDefault?.type ?? settlementPaymentMethods[0].type
     );
-  }, [visible, settlementPaymentMethods, selectedPaymentMethod, setSelectedPaymentMethodType]);
+  }, [
+    visible,
+    settlementPaymentMethods,
+    selectedPaymentMethod,
+    methodsLoading,
+    paymentMethods.length,
+    setSelectedPaymentMethodType,
+    resetCheckoutPaymentUi,
+  ]);
 
   useEffect(() => {
     if (selectedPaymentMethod === 'voucher') {
@@ -2062,10 +2094,12 @@ export default function PaymentModal({
                   ) : null}
                   {showCashChange && changeAmount != null ? (
                     <View style={styles.changeRow}>
-                      <Text style={styles.changeLabel}>
-                        {t('checkout:posFlow.payment.cash.changeLabel')}
+                      <Text
+                        style={styles.changeAmount}
+                        testID="payment-wechselgeld"
+                        accessibilityRole="text">
+                        {`${t('checkout:posFlow.payment.cash.changeLabel')} ${formatPrice(changeAmount)}`}
                       </Text>
-                      <Text style={styles.changeAmount}>{formatPrice(changeAmount)}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -3086,10 +3120,6 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.xs,
     borderTopWidth: 1,
     borderTopColor: SoftColors.borderLight,
-  },
-  changeLabel: {
-    ...SoftTypography.label,
-    color: SoftColors.textPrimary,
   },
   changeAmount: {
     ...SoftTypography.priceTotal,

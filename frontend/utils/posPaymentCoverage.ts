@@ -15,6 +15,16 @@ export type OptionalCashTender = {
   isInsufficient: boolean;
 };
 
+/**
+ * Change to hand back for a cash tender.
+ * Returns null when the amount is missing, short, or exact (nothing to return).
+ */
+export function cashChangeDue(cashGiven: number, totalAmount: number): number | null {
+  if (!Number.isFinite(cashGiven) || !Number.isFinite(totalAmount)) return null;
+  const change = Math.round((cashGiven - totalAmount) * 100) / 100;
+  return change > 0 ? change : null;
+}
+
 /** Optional Bar tender: empty means exact payment; a typed value must cover the rest. */
 export function resolveOptionalCashTender(
   amountReceivedStr: string,

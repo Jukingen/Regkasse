@@ -83,6 +83,11 @@ import {
   tenantFilterFromUiValue,
   tenantFilterToUiValue,
 } from '@/features/users/utils/adminUsersPageUrl';
+import {
+  adminUserDisplayEmail,
+  sameRole,
+  sameTenantId,
+} from '@/features/users/utils/adminUserRowDisplay';
 import { getColorFromEmail } from '@/features/users/utils/avatarColor';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -177,7 +182,7 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
     userType,
     userId,
     name: platformDisplayName(user),
-    email: dto.email ?? dto.userName ?? '—',
+    email: adminUserDisplayEmail(dto.email, dto.userName, dto.tenantSlug),
     role: dto.role ?? '—',
     isActive: dto.isActive ?? false,
     lastLoginAt: dto.lastLoginAt ?? null,
@@ -255,6 +260,7 @@ export function UnifiedAdminUsersView({
   );
   const tenantFilter = isTenantScoped ? tenantScopeId! : tenantFilterFromUiValue(selectedTenant);
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
+  const [roleOptions, setRoleOptions] = useState<string[]>([...TENANT_ROLE_FILTER_VALUES]);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
@@ -363,6 +369,7 @@ export function UnifiedAdminUsersView({
     select: (data) =>
       data.map((row): UnifiedAdminUserRow => {
         const tenantUser = tenantRowToTenantUser(row);
+        const email = adminUserDisplayEmail(row.email, row.userName, row.tenantSlug);
         return {
           kind: 'tenant',
           key: `tenant:${row.tenantId}:${row.userId}`,
@@ -372,7 +379,7 @@ export function UnifiedAdminUsersView({
           tenantId: row.tenantId,
           userId: row.userId,
           name: row.name,
-          email: row.email,
+          email,
           role: row.role,
           isActive: row.isActive,
           isOwner: row.isOwner,
@@ -382,7 +389,7 @@ export function UnifiedAdminUsersView({
           user: {
             id: row.userId,
             userName: row.userName || undefined,
-            email: row.email,
+            email,
             firstName: row.name.split(' ')[0] ?? '',
             lastName: row.name.split(' ').slice(1).join(' '),
             role: row.role,
@@ -407,6 +414,17 @@ export function UnifiedAdminUsersView({
     return tenantUsersQuery.data ?? [];
   }, [allUsersQuery.data, platformQuery.data, tenantUsersQuery.data, tenantFilter]);
 
+  useEffect(() => {
+    if (roleFilter) return;
+    const found = new Set<string>(TENANT_ROLE_FILTER_VALUES);
+    for (const row of unifiedRows) {
+      const role = row.role?.trim();
+      if (role && role !== '—') found.add(role);
+    }
+    const next = [...found].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    setRoleOptions((prev) => (prev.join('\n') === next.join('\n') ? prev : next));
+  }, [unifiedRows, roleFilter]);
+
   const filteredRows = useMemo(() => {
     let rows = unifiedRows;
     if (isTenantScoped || !isSuperAdminActor) {
@@ -415,10 +433,10 @@ export function UnifiedAdminUsersView({
     if (tenantFilter === FILTER_PLATFORM) {
       rows = rows.filter((row) => row.userType === 'Platform');
     } else if (tenantApiTenantId) {
-      rows = rows.filter((row) => row.tenantId === tenantApiTenantId);
+      rows = rows.filter((row) => sameTenantId(row.tenantId, tenantApiTenantId));
     }
     if (roleFilter) {
-      rows = rows.filter((row) => row.role === roleFilter);
+      rows = rows.filter((row) => sameRole(row.role, roleFilter));
     }
     return rows;
   }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId, isTenantScoped, isSuperAdminActor]);
@@ -1134,7 +1152,7 @@ export function UnifiedAdminUsersView({
               style={{ width: 150 }}
               value={roleFilter}
               onChange={setRoleFilter}
-              options={TENANT_ROLE_FILTER_VALUES.map((role) => ({
+              options={roleOptions.map((role) => ({
                 value: role,
                 label: roleDisplayLabel(role),
               }))}

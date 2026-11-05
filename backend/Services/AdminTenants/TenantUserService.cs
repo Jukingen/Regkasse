@@ -7,6 +7,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -415,7 +416,7 @@ public sealed class TenantUserService : ITenantUserService
 
     private string ResolveActorRole()
     {
-        var role = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var role = _httpContextAccessor.HttpContext?.User?.GetActorRole();
         return string.IsNullOrWhiteSpace(role) ? Roles.FallbackUnknown : role.Trim();
     }
 
