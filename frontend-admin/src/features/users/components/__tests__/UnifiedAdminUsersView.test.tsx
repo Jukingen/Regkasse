@@ -201,7 +201,7 @@ describe('UnifiedAdminUsersView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Inactive Tenant')).toBeInTheDocument();
+      expect(screen.getByText('Inactive Tenant (inactive@tenant.test)')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Reaktivieren/i }));
@@ -265,7 +265,7 @@ describe('UnifiedAdminUsersView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Active Tenant')).toBeInTheDocument();
+      expect(screen.getByText('Active Tenant (active@tenant.test)')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Konto deaktivieren/i }));
@@ -332,7 +332,7 @@ describe('UnifiedAdminUsersView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Password Tenant')).toBeInTheDocument();
+      expect(screen.getByText('Password Tenant (password@tenant.test)')).toBeInTheDocument();
     });
 
     expect(screen.getByText('***')).toBeInTheDocument();
@@ -404,7 +404,7 @@ describe('UnifiedAdminUsersView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Scoped Manager')).toBeInTheDocument();
+      expect(screen.getByText('Scoped Manager (manager@tenant.test)')).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId('tenant-filter')).not.toBeInTheDocument();
@@ -419,5 +419,85 @@ describe('UnifiedAdminUsersView', () => {
     expect(mockListTenantUsers).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant-1' })
     );
+  });
+
+  it('filters the tenant group by username and shows name with email', async () => {
+    mockListTenantUsers.mockResolvedValue([
+      {
+        userId: 'cashier-user',
+        userName: 'cashier1',
+        email: 'cashier1@dev.regkasse.at',
+        name: 'Cashier 1',
+        role: 'Cashier',
+        isOwner: false,
+        joinedAtUtc: '2025-01-01T00:00:00Z',
+        tenantId: 'tenant-1',
+        tenantSlug: 'dev',
+        tenantName: 'Development',
+        isActive: true,
+        lastLoginAt: null,
+      },
+      {
+        userId: 'waiter-user',
+        userName: 'hs-waiter-1',
+        email: 'hs-waiter-1@demo.regkasse.invalid',
+        name: 'Mira Schnitt',
+        role: 'Waiter',
+        isOwner: false,
+        joinedAtUtc: '2025-01-01T00:00:00Z',
+        tenantId: 'tenant-1',
+        tenantSlug: 'dev',
+        tenantName: 'Development',
+        isActive: true,
+        lastLoginAt: null,
+      },
+    ]);
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <UnifiedAdminUsersView
+            policy={{
+              canView: true,
+              canCreate: false,
+              canEdit: false,
+              canDeactivate: false,
+              canReactivate: false,
+              canCreateRole: false,
+              canDeleteRole: false,
+              canEditRolePermissions: false,
+              canResetPassword: () => false,
+              canProvisionTenantCredentials: false,
+            }}
+            roleDisplayLabel={(role) => (role === 'Waiter' ? 'Kellner' : role)}
+            currentUserId="current-user-id"
+            onView={vi.fn()}
+            onEdit={vi.fn()}
+            onDeactivate={vi.fn()}
+            onReactivate={vi.fn()}
+            onResetPassword={vi.fn()}
+            onCreatePlatformUser={vi.fn()}
+          />
+        </I18nProvider>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByText('Cashier 1 (cashier1@dev.regkasse.at)')).toBeInTheDocument();
+    expect(screen.getByText('Mira Schnitt (hs-waiter-1@demo.regkasse.invalid)')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /Benutzername oder E-Mail/i }), {
+      target: { value: 'cashier1' },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Mira Schnitt (hs-waiter-1@demo.regkasse.invalid)')
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Cashier 1 (cashier1@dev.regkasse.at)')).toBeInTheDocument();
   });
 });

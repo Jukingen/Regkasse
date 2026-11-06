@@ -919,7 +919,7 @@
       "actions": "İşlemler"
     },
     "filters": {
-      "searchPlaceholder": "Kullanıcı ara…",
+      "searchPlaceholder": "Kullanıcı adı veya e-posta",
       "tenantFilter": "Mandant filtrele",
       "roleFilter": "Rol filtrele",
       "statusFilter": "Durum filtrele",

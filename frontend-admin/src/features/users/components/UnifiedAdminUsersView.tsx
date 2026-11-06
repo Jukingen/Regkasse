@@ -136,6 +136,23 @@ function avatarLabel(row: UnifiedAdminUserRow): string {
   return row.name?.trim() || '—';
 }
 
+function benutzerLabel(row: UnifiedAdminUserRow): string {
+  const name = avatarLabel(row);
+  const userName = row.user.userName?.trim();
+  const title = name !== '—' ? name : userName || '—';
+  const email = row.email?.trim();
+  if (!email || email === '—' || title.toLowerCase() === email.toLowerCase()) return title;
+  return `${title} (${email})`;
+}
+
+function rowMatchesSearch(row: UnifiedAdminUserRow, query: string): boolean {
+  const haystack = [row.user.userName, row.email, row.name, benutzerLabel(row)]
+    .filter((value): value is string => Boolean(value && value !== '—'))
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
 function avatarCharacter(row: UnifiedAdminUserRow): string {
   const displayName = avatarLabel(row);
   if (displayName !== '—') {
@@ -328,23 +345,20 @@ export function UnifiedAdminUsersView({
   const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
 
   const allUsersQuery = useQuery({
-    queryKey: adminUsersQueryKeys.all(statusFilter, roleFilter, searchParam),
+    queryKey: adminUsersQueryKeys.all(statusFilter),
     queryFn: () =>
       listAllAdminUsers({
         ...(statusFilter != null ? { isActive: statusFilter } : {}),
-        ...(roleFilter ? { role: roleFilter } : {}),
-        ...(searchParam ? { search: searchParam } : {}),
       }),
     enabled: !isTenantScoped && tenantFilter === FILTER_ALL,
     select: (data) => data.map(rowFromAdminDto),
   });
 
   const platformQuery = useQuery({
-    queryKey: adminUsersQueryKeys.platform(statusFilter, searchParam),
+    queryKey: adminUsersQueryKeys.platform(statusFilter),
     queryFn: () =>
       listPlatformUsers({
         ...(statusFilter != null ? { isActive: statusFilter } : {}),
-        ...(searchParam ? { search: searchParam } : {}),
       }),
     enabled: isSuperAdminActor && !isTenantScoped && tenantFilter === FILTER_PLATFORM,
     select: (data) => data.map(rowFromAdminDto),
@@ -357,13 +371,11 @@ export function UnifiedAdminUsersView({
       : undefined;
 
   const tenantUsersQuery = useQuery({
-    queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, roleFilter, searchParam),
+    queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, undefined, undefined),
     queryFn: () =>
       listTenantUsers({
         tenantId: tenantApiTenantId,
-        role: roleFilter || undefined,
         isActive: statusFilter,
-        ...(searchParam ? { search: searchParam } : {}),
       }),
     enabled: isTenantScoped || (tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM),
     select: (data) =>
@@ -438,8 +450,20 @@ export function UnifiedAdminUsersView({
     if (roleFilter) {
       rows = rows.filter((row) => sameRole(row.role, roleFilter));
     }
+    const query = searchParam?.trim().toLowerCase();
+    if (query) {
+      rows = rows.filter((row) => rowMatchesSearch(row, query));
+    }
     return rows;
-  }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId, isTenantScoped, isSuperAdminActor]);
+  }, [
+    unifiedRows,
+    roleFilter,
+    searchParam,
+    tenantFilter,
+    tenantApiTenantId,
+    isTenantScoped,
+    isSuperAdminActor,
+  ]);
 
   const hasCustomFilters =
     (!isTenantScoped && tenantFilter !== FILTER_ALL) ||
@@ -993,11 +1017,14 @@ export function UnifiedAdminUsersView({
             </Avatar>
             <Flex vertical gap={0} style={{ minWidth: 0, flex: 1 }}>
               <Typography.Text strong ellipsis>
-                {avatarLabel(row)}
+                {benutzerLabel(row)}
               </Typography.Text>
-              <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
-                {row.email}
-              </Typography.Text>
+              {row.user.userName?.trim() &&
+              row.user.userName.trim().toLowerCase() !== avatarLabel(row).toLowerCase() ? (
+                <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+                  {row.user.userName.trim()}
+                </Typography.Text>
+              ) : null}
             </Flex>
           </Flex>
         ),
@@ -1132,8 +1159,9 @@ export function UnifiedAdminUsersView({
           <Space wrap size={[12, 12]}>
             <Input.Search
               allowClear
+              aria-label={t('users.unified.filters.searchPlaceholder')}
               placeholder={t('users.unified.filters.searchPlaceholder')}
-              style={{ width: 250 }}
+              style={{ width: 280 }}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onSearch={handleSearch}
@@ -1148,8 +1176,9 @@ export function UnifiedAdminUsersView({
             ) : null}
             <Select
               allowClear
+              aria-label={t('users.unified.columns.role')}
               placeholder={t('users.unified.filters.roleFilter')}
-              style={{ width: 150 }}
+              style={{ width: 160 }}
               value={roleFilter}
               onChange={setRoleFilter}
               options={roleOptions.map((role) => ({

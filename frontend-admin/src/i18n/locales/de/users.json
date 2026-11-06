@@ -919,7 +919,7 @@
       "actions": "Aktionen"
     },
     "filters": {
-      "searchPlaceholder": "Benutzer suchen…",
+      "searchPlaceholder": "Benutzername oder E-Mail",
       "tenantFilter": "Mandant filtern",
       "roleFilter": "Rolle filtern",
       "statusFilter": "Status filtern",
