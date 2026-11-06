@@ -71,6 +71,12 @@ describe('posSelectableRegisterFilter', () => {
     expect(resolvePosPickerRowKind(closed, true)).toBe('opensOnSelect');
     expect(resolvePosPickerRowKind(closed, false)).toBe('requestOpen');
     expect(resolvePosPickerRowKind(maintenance, true)).toBe('unavailable');
+    expect(
+      resolvePosPickerRowKind(
+        { id: '4', registerNumber: 'D', status: 'Open', isSelectable: false },
+        true
+      )
+    ).toBe('inUse');
   });
 
   it('sorts Open before Closed', () => {

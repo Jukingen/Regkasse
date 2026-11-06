@@ -13,7 +13,10 @@ import { Button, Dropdown, Tooltip } from 'antd';
 
 import type { CashRegister } from '@/api/generated/model';
 import { closeCashRegister, openCashRegister } from '@/features/cash-registers/api/cashRegisters';
-import { confirmForceCloseHeldByOther } from '@/features/cash-registers/utils/confirmForceCloseHeldByOther';
+import {
+  confirmForceCloseHeldByOther,
+  confirmTakeActiveShift,
+} from '@/features/cash-registers/utils/confirmForceCloseHeldByOther';
 import {
   REGISTER_STATUS,
   canDecommissionRegister,
@@ -155,7 +158,7 @@ export function CashRegisterQuickActions({
         label: t('cashRegisters.actions.openRegister'),
         icon: <UnlockOutlined />,
         disabled: !isClosed || openMutation.isPending,
-        onClick: () => openMutation.mutate(),
+        onClick: () => confirmTakeActiveShift(modal, t, () => openMutation.mutate()),
       },
       {
         key: 'close',

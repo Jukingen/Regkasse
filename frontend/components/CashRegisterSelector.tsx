@@ -87,7 +87,25 @@ export function CashRegisterSelector() {
         <View style={styles.optionList}>
           {registers.map((register) => {
             const selected = register.id === effectiveRegisterId;
-            const disabled = Boolean(savingRegisterId);
+            const inUse = register.isSelectable === false;
+            const disabled = Boolean(savingRegisterId) || inUse;
+            const inUseLabel = register.statusText?.trim() || t('settings:registerSelect.inUse');
+            if (inUse) {
+              return (
+                <View
+                  key={register.id}
+                  style={[styles.optionRow, styles.optionRowDisabled]}
+                  accessibilityRole="text"
+                  accessibilityLabel={inUseLabel}
+                  accessibilityHint={t('settings:registerSelect.inUseHint')}>
+                  <Text style={styles.optionTextMuted}>
+                    {formatRegisterLabel(register.registerNumber, register.location)}
+                  </Text>
+                  <Text style={styles.optionHint}>{inUseLabel}</Text>
+                  <Text style={styles.optionHint}>{t('settings:registerSelect.inUseHint')}</Text>
+                </View>
+              );
+            }
             return (
               <Pressable
                 key={register.id}
@@ -181,6 +199,16 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: '#007AFF',
     fontWeight: '700',
+  },
+  optionTextMuted: {
+    fontSize: 15,
+    color: '#888',
+    fontWeight: '500',
+  },
+  optionHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   empty: {
     fontSize: 14,

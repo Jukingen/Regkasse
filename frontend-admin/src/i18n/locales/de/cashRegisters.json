@@ -53,7 +53,9 @@
     "closeHeldByOther": "Diese Kasse ist in einer anderen Schicht geöffnet. Nur der Schichtinhaber kann sie schließen.",
     "unknownHolder": "Ein anderer Benutzer",
     "forceCloseTitle": "Kasse trotzdem schließen?",
-    "forceCloseContent": "{{holder}} hat die aktuelle Schicht. Die Kasse wird geschlossen; der Kassierer kann danach nicht mehr verkaufen."
+    "forceCloseContent": "{{holder}} hat die aktuelle Schicht. Die Kasse wird geschlossen; der Kassierer kann danach nicht mehr verkaufen.",
+    "takeShiftTitle": "Schicht übernehmen",
+    "takeShiftContent": "Sie übernehmen die aktive Schicht. Die zugewiesene Kassiererin kann die Kasse erst nach dem Schließen auswählen."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Schicht & RKSV: Hinweise zum Kassenstatus",

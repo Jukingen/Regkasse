@@ -228,6 +228,8 @@
     "emptyNoneOpen": "All registers are closed. Select a register — the shift opens automatically.",
     "emptyNoneAssigned": "You have no cash register assigned. Please contact your administrator.",
     "emptyNoneSelectable": "No register is available for you. Please contact your Mandanten-Admin.",
+    "inUse": "In use",
+    "inUseHint": "Please ask the administrator to close the cash register.",
     "registerMaintenance": "The cash register is in maintenance mode. Please contact the administrator.",
     "registerDisabled": "The cash register is disabled. Please contact the administrator.",
     "registerInactive": "The cash register is inactive. Please contact the administrator.",
