@@ -919,7 +919,7 @@
       "actions": "Actions"
     },
     "filters": {
-      "searchPlaceholder": "Search users…",
+      "searchPlaceholder": "Username or email",
       "tenantFilter": "Filter tenant",
       "roleFilter": "Filter role",
       "statusFilter": "Filter status",

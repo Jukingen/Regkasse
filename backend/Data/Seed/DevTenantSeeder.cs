@@ -578,6 +578,121 @@ public static class DevTenantSeeder
             lastName: "Prod",
             employeeNumber: "DEMO-MANAGER-001",
             cancellationToken).ConfigureAwait(false);
+
+        await EnsureDemoStaffUserAsync(
+            db,
+            userManager,
+            membershipProvisioner,
+            userName: "cashier-gastro",
+            userId: "demo-cashier-gastro",
+            tenantSlug: "dev",
+            role: Roles.Cashier,
+            firstName: "Cashier",
+            lastName: "Gastro",
+            employeeNumber: "DEMO-GASTRO-001",
+            cancellationToken).ConfigureAwait(false);
+
+        await EnsureDemoStaffUserAsync(
+            db,
+            userManager,
+            membershipProvisioner,
+            userName: "cashier-tables",
+            userId: "demo-cashier-tables",
+            tenantSlug: "dev-gastronomy-tables",
+            role: Roles.Cashier,
+            firstName: "Cashier",
+            lastName: "Tables",
+            employeeNumber: "DEMO-TABLES-001",
+            cancellationToken).ConfigureAwait(false);
+
+        await EnsureDemoStaffUserAsync(
+            db,
+            userManager,
+            membershipProvisioner,
+            userName: "admin1",
+            userId: "demo-admin1-dev",
+            tenantSlug: "dev",
+            role: Roles.Manager,
+            firstName: "Admin",
+            lastName: "Dev",
+            employeeNumber: "DEMO-ADMIN-001",
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Usernames that stay active on the Development tenant. Other demo memberships there are deactivated.
+    /// </summary>
+    public static readonly string[] KeptDevelopmentUserNames =
+    [
+        "cashier1",
+        "chef1",
+        "manager1",
+        "admin1",
+        "cashier-gastro",
+        "cashier-tables",
+    ];
+
+    /// <summary>
+    /// Deactivates Development memberships that are not in <see cref="KeptDevelopmentUserNames"/>.
+    /// Super Admin accounts are left active. Users with no other mandant are marked inactive.
+    /// </summary>
+    public static async Task PruneDevelopmentDemoUsersAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        CancellationToken cancellationToken = default)
+    {
+        var dev = await db.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(row => row.Slug == "dev" && row.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (dev is null)
+            return;
+
+        var keep = new HashSet<string>(KeptDevelopmentUserNames, StringComparer.OrdinalIgnoreCase);
+        var memberships = await db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .Where(row => row.TenantId == dev.Id && row.IsActive)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var membership in memberships)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var user = await userManager.FindByIdAsync(membership.UserId).ConfigureAwait(false);
+            if (user is null)
+                continue;
+
+            var userName = user.UserName?.Trim() ?? string.Empty;
+            if (keep.Contains(userName)
+                || string.Equals(user.Id, "demo-tenant-admin-dev", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!user.IsActive)
+                {
+                    user.IsActive = true;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await userManager.UpdateAsync(user).ConfigureAwait(false);
+                }
+
+                continue;
+            }
+
+            membership.IsActive = false;
+            var hasOtherTenant = await db.UserTenantMemberships
+                .IgnoreQueryFilters()
+                .AnyAsync(
+                    row => row.UserId == user.Id && row.IsActive && row.TenantId != dev.Id,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!hasOtherTenant && user.IsActive)
+            {
+                user.IsActive = false;
+                user.UpdatedAt = DateTime.UtcNow;
+                await userManager.UpdateAsync(user).ConfigureAwait(false);
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
