@@ -71,9 +71,10 @@ public interface ICashRegisterResolutionService
     /// <summary>
     /// Domain projection: operational registers (active, <see cref="RegisterStatus.Open"/> or <see cref="RegisterStatus.Closed"/>) the current
     /// user may select in the POS picker. Closed rows are included so a cashier can pick and open their own register; maintenance / disabled /
-    /// decommissioned / inactive rows are excluded. Non–Super Admin principals additionally see only registers that are unassigned or assigned
-    /// to them (<see cref="CashRegisterAssignment"/>). Registers held on another user&apos;s shift are excluded for every principal so the list
-    /// never shows payment-dead conflict rows; full inventory remains on separate admin endpoints.
+    /// decommissioned / inactive rows are excluded. Non–Super Admin principals see only registers assigned to them
+    /// (<see cref="CashRegister.AssignedUserId"/>). Unassigned registers are not offered in POS. An open register held on another
+    /// user&apos;s shift is excluded; a closed row stays listed even if <see cref="CashRegister.CurrentUserId"/> is stale.
+    /// Super Admin still sees every operational register. Full inventory remains on separate admin endpoints.
     /// </summary>
     /// <remarks>
     /// Admin or reporting UIs that need every row (any status) must use inventory APIs (e.g. <c>GET /api/CashRegister</c>), not this method.

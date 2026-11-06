@@ -781,6 +781,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -828,6 +829,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -841,6 +843,7 @@ public class CashRegisterResolutionServiceTests
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -899,6 +902,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -970,6 +974,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u2",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1040,6 +1045,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1069,6 +1075,7 @@ public class CashRegisterResolutionServiceTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1150,6 +1157,7 @@ public class CashRegisterResolutionServiceTests
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1194,6 +1202,7 @@ public class CashRegisterResolutionServiceTests
             CurrentBalance = 0,
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Closed,
+            AssignedUserId = "u1",
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
@@ -1226,6 +1235,7 @@ public class CashRegisterResolutionServiceTests
                 LastBalanceUpdate = DateTime.UtcNow,
                 Status = RegisterStatus.Open,
                 CurrentUserId = uid,
+                AssignedUserId = "u1",
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             });
@@ -1590,10 +1600,45 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(ctx);
         var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
 
-        Assert.Equal(2, list.Count);
+        Assert.Single(list);
         Assert.Contains(list, r => r.Id == mine);
-        Assert.Contains(list, r => r.Id == shared);
+        Assert.DoesNotContain(list, r => r.Id == shared);
         Assert.DoesNotContain(list, r => r.Id == theirs);
+    }
+
+    [Fact]
+    public async Task ListSelectableRegisters_UnassignedRegisters_AreHidden_EmptyReasonNoneAssigned()
+    {
+        await using var ctx = CreateContext();
+        AddRegister(ctx, Guid.NewGuid(), "K1", RegisterStatus.Closed);
+        AddRegister(ctx, Guid.NewGuid(), "K2", RegisterStatus.Open);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var result = await svc.ListSelectableForPosPickerAsync(
+            "u1",
+            PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.Empty(result.Registers);
+        Assert.Equal("none_assigned", result.EmptyReason);
+    }
+
+    [Fact]
+    public async Task ListSelectableRegisters_AssignedClosed_StaleCurrentUserId_IsStillListed()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        AddRegister(ctx, regId, "K1", RegisterStatus.Closed, assignedUserId: "u1", currentUserId: "someone-else");
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var list = await svc.ListSelectableRegistersAsync(
+            "u1",
+            PrincipalWithAppPermissions(AppPermissions.CartView));
+
+        Assert.Single(list);
+        Assert.Equal(regId, list[0].Id);
+        Assert.Equal(RegisterStatus.Closed, list[0].Status);
     }
 
     /// <summary>Only Super Admin bypasses the assignment filter; <c>cash_register.view</c> no longer does (Cashier and Waiter both hold it).</summary>

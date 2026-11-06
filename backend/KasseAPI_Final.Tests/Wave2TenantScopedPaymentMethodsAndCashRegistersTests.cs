@@ -42,6 +42,7 @@ public sealed class Wave2TenantScopedPaymentMethodsAndCashRegistersTests
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             CurrentUserId = "u1",
+            AssignedUserId = "u1",
         };
         ctx.CashRegisters.Add(reg);
         return reg;

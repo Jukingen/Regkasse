@@ -182,7 +182,12 @@ async function showFailure(code: string, httpStatus = 400) {
   }) as typeof apiClient.post);
 
   await render(<CashRegisterSelectScreen />);
-  await fireEvent.press(await screen.findByTestId('cash-register-select-option'));
+  await waitFor(() => {
+    const opened = jest
+      .mocked(apiClient.post)
+      .mock.calls.some((call) => call[0] === '/pos/shift/auto-open');
+    expect(opened).toBe(true);
+  });
 }
 
 function selectableGetCount(): number {
@@ -268,6 +273,25 @@ describe('cash register select auto-open UX', () => {
       expect.anything()
     );
     expect(apiClient.post).not.toHaveBeenCalledWith('/pos/shift/auto-close', expect.anything());
+  });
+
+  it('shows the administrator message when no register is assigned', async () => {
+    jest.mocked(apiClient.get).mockImplementation((async (path: string) => {
+      if (path === POS_SELECTABLE_REGISTERS_PATH) {
+        return { registers: [], emptyReason: 'none_assigned' };
+      }
+      return [];
+    }) as typeof apiClient.get);
+
+    await render(<CashRegisterSelectScreen />);
+
+    expect(
+      await screen.findByText(
+        'Sie haben keine Kasse zugewiesen. Bitte kontaktieren Sie Ihren Administrator.'
+      )
+    ).toBeTruthy();
+    expect(screen.queryByTestId('cash-register-select-option')).toBeNull();
+    expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it('REGISTER_INVALID_STATE reloads the list and does not post', async () => {

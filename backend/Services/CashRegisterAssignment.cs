@@ -7,12 +7,16 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 /// <remarks>
 /// <para><strong>Visibility only.</strong> Assignment decides which registers a POS user may see and pick
-/// (<see cref="CashRegisterResolutionService.ListSelectableRegistersAsync"/>) and store as their preference
-/// (<see cref="CashRegisterResolutionService.ValidateAssignmentChangeAsync"/>). It is deliberately absent from
+/// (<see cref="CashRegisterResolutionService.ListSelectableRegistersAsync"/> uses <see cref="IsAssignedTo"/>)
+/// and store as their preference
+/// (<see cref="CashRegisterResolutionService.ValidateAssignmentChangeAsync"/> uses <see cref="IsVisibleTo"/>).
+/// It is deliberately absent from
 /// payment authorization: <see cref="CashRegisterResolutionService.ValidatePaymentRegisterAsync"/> keeps using
 /// operational shift ownership (<see cref="CashRegisterShiftOccupancy"/>) as the only authority.</para>
-/// <para><strong>Null means shared.</strong> A register without an assignment stays selectable by every POS user of the
-/// tenant, so existing deployments keep working unchanged until an admin assigns someone.</para>
+/// <para><strong>POS lists assigned registers only.</strong> A non–Super Admin picker returns rows whose
+/// <see cref="CashRegister.AssignedUserId"/> is the caller. Unassigned registers stay in the admin inventory;
+/// POS does not offer them and does not create one. <see cref="IsVisibleTo"/> still treats a null assignee as
+/// shared for preference writes.</para>
 /// <para>Distinct from <c>UserSettings.CashRegisterId</c>, which is the user's own persisted preference rather than an
 /// admin decision, and from <see cref="CashRegister.CurrentUserId"/>, which is the open shift.</para>
 /// </remarks>

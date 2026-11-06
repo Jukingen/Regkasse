@@ -18,7 +18,7 @@ export interface CashRegisterSelectableRow {
   location?: string;
   /** RegisterStatus name, e.g. "Open" / "Closed". A closed row is opened when the user picks it (shift.open). */
   status?: string;
-  /** Admin assignment. Null/omitted = shared. Not used for payment authorization. */
+  /** Admin assignment (`cash_registers.assigned_user_id`). POS lists only rows assigned to the caller. */
   assignedUserId?: string | null;
 }
 

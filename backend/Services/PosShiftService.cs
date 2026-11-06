@@ -432,14 +432,83 @@ public sealed class PosShiftService : IPosShiftService
         return ShiftAutoOpenResult.Opened(MapToDto(shift));
     }
 
+    /// <summary>
+    /// Picks the register auto-open should claim. An explicit id wins when it is missing, not operational,
+    /// or already assigned (to the caller or to someone else — the caller then gets the specific error).
+    /// An operational register with no assignee is ignored so POS cannot open a till the admin did not assign.
+    /// When the caller has exactly one operable assigned register, that id is used even if settings still
+    /// point at a different till. Multiple assignments fall back to settings only when that id is one of them.
+    /// </summary>
     private async Task<Guid?> ResolveAutoOpenRegisterIdAsync(
         string cashierUserId,
         Guid? requestedRegisterId,
         CancellationToken cancellationToken)
     {
-        if (requestedRegisterId is { } requested && requested != Guid.Empty)
-            return requested;
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
+        if (requestedRegisterId is { } requested && requested != Guid.Empty)
+        {
+            var explicitRow = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    r => r.Id == requested && r.TenantId == tenantId,
+                    cancellationToken);
+
+            if (explicitRow == null
+                || !CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(explicitRow)
+                || CashRegisterAssignment.IsAssignedTo(cashierUserId, explicitRow.AssignedUserId)
+                || CashRegisterAssignment.IsAssignedToOtherUser(cashierUserId, explicitRow.AssignedUserId))
+            {
+                return requested;
+            }
+        }
+
+        var operableAssigned = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId && r.AssignedUserId == cashierUserId)
+            .WhereCountsTowardPosOperationalCardinality()
+            .Where(r => r.Status != RegisterStatus.Open
+                || r.CurrentUserId == null
+                || r.CurrentUserId == cashierUserId)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        if (operableAssigned.Count == 1)
+            return operableAssigned[0];
+
+        var settingsId = await ReadSettingsRegisterIdAsync(cashierUserId, cancellationToken);
+
+        if (operableAssigned.Count > 1)
+        {
+            if (settingsId is { } chosen && operableAssigned.Contains(chosen))
+                return chosen;
+            return null;
+        }
+
+        if (await CallerIsSuperAdminAsync(cashierUserId))
+        {
+            if (requestedRegisterId is { } superRequested && superRequested != Guid.Empty)
+                return superRequested;
+            return settingsId;
+        }
+
+        // No assignment: still surface a stale non-operational default so decommissioned / inactive errors can clear it.
+        if (settingsId is { } stale)
+        {
+            var staleRow = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == stale && r.TenantId == tenantId, cancellationToken);
+            if (staleRow != null
+                && !CashRegisterPosOperationalCardinality.CountsTowardPosOperationalCardinality(staleRow))
+            {
+                return stale;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<Guid?> ReadSettingsRegisterIdAsync(
+        string cashierUserId,
+        CancellationToken cancellationToken)
+    {
         var settings = await _context.UserSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == cashierUserId, cancellationToken);
         var raw = settings?.CashRegisterId?.Trim();
@@ -448,6 +517,14 @@ public sealed class PosShiftService : IPosShiftService
         if (!Guid.TryParse(raw, out var fromSettings) || fromSettings == Guid.Empty)
             return null;
         return fromSettings;
+    }
+
+    private async Task<bool> CallerIsSuperAdminAsync(string cashierUserId)
+    {
+        var user = await _userManager.FindByIdAsync(cashierUserId);
+        if (user == null)
+            return false;
+        return await _userManager.IsInRoleAsync(user, Roles.SuperAdmin);
     }
 
     private async Task ClearStaleDefaultRegisterAsync(
