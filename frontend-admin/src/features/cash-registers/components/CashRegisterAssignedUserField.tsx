@@ -26,6 +26,24 @@ export type CashRegisterAssignedUserFieldProps = {
 /** `null` is a real value here ("no assignment"), so the Select uses `undefined` for "nothing picked yet". */
 const UNASSIGNED = undefined;
 
+type AssigneeOptionSource = {
+  id?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  userName?: string | null;
+  email?: string | null;
+};
+
+/** `Anna Berger (anna@dev.regkasse.at)` so two cashiers with the same name stay distinct. */
+export function formatCashRegisterAssigneeLabel(user: AssigneeOptionSource): string {
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  const email = user.email?.trim() ?? '';
+  const fallback = user.userName?.trim() || email || user.id?.trim() || '';
+  const displayName = name || fallback;
+  if (displayName && email && displayName !== email) return `${displayName} (${email})`;
+  return displayName;
+}
+
 /**
  * Shows and edits `cash_registers.assigned_user_id` — the cashier a register is reserved for.
  * This only scopes who sees the register in the POS picker; payment rights stay tied to the open shift.
@@ -62,11 +80,7 @@ export function CashRegisterAssignedUserField({
       .filter((u) => Boolean(u.id))
       .map((u) => ({
         value: u.id as string,
-        label:
-          [u.firstName, u.lastName].filter(Boolean).join(' ').trim() ||
-          u.userName ||
-          u.email ||
-          (u.id as string),
+        label: formatCashRegisterAssigneeLabel(u),
       }));
 
     // The current assignee may sit outside the first page, or may no longer be a Cashier —

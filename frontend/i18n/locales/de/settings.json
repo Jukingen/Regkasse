@@ -226,7 +226,7 @@
     "openShiftErrorTitle": "Fehler beim Öffnen der Schicht",
     "openShiftError": "Bitte versuchen Sie es erneut oder kontaktieren Sie Ihren Mandanten-Admin.",
     "emptyNoneOpen": "Alle Kassen sind geschlossen. Wählen Sie eine Kasse — die Schicht wird beim Auswählen geöffnet.",
-    "emptyNoneAssigned": "Ihnen ist keine Kasse zugewiesen. Bitte Ihren Mandanten-Admin um eine Zuweisung bitten.",
+    "emptyNoneAssigned": "Sie haben keine Kasse zugewiesen. Bitte kontaktieren Sie Ihren Administrator.",
     "emptyNoneSelectable": "Keine Kasse ist für Sie freigegeben. Bitte kontaktieren Sie Ihren Mandanten-Admin.",
     "registerMaintenance": "Die Kasse ist im Wartungsmodus. Bitte kontaktieren Sie den Administrator.",
     "registerDisabled": "Die Kasse ist deaktiviert. Bitte kontaktieren Sie den Administrator.",

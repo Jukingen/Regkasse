@@ -378,14 +378,17 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     /// POS clients consume this via <see cref="ListSelectableForPosPickerAsync"/> (<c>GET /api/pos/cash-register/selectable</c>).
     /// Two filters apply, in this order:
     /// <list type="number">
-    /// <item>occupancy — a register held on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>) is omitted for every
-    /// principal, Super Admin included, so the picker never surfaces payment-dead options;</item>
-    /// <item>assignment — a non–Super Admin sees only unassigned registers and registers assigned to them
-    /// (<see cref="CashRegisterAssignment.IsVisibleTo"/>).</item>
+    /// <item>occupancy — an <see cref="RegisterStatus.Open"/> register held on another user&apos;s shift
+    /// (<see cref="CashRegister.CurrentUserId"/>) is omitted for every principal, Super Admin included.
+    /// A <see cref="RegisterStatus.Closed"/> row keeps its place even when <c>CurrentUserId</c> is stale, so the
+    /// assigned cashier can open it;</item>
+    /// <item>assignment — a non–Super Admin sees only registers whose <see cref="CashRegister.AssignedUserId"/> is
+    /// their user id (<see cref="CashRegisterAssignment.IsAssignedTo"/>). Unassigned registers stay on the admin
+    /// inventory; POS does not offer them and does not create one.</item>
     /// </list>
     /// <see cref="RegisterStatus.Closed"/> rows are listed: picking one triggers <c>POST /api/pos/shift/auto-open</c>, which opens it.
     /// <see cref="AppPermissions.CashRegisterView"/> no longer widens this list — Cashier and Waiter both hold it, so it could never
-    /// express the assignment rule. Full inventory listing stays on admin APIs.
+    /// express the assignment rule. Full inventory listing stays on admin APIs. Super Admin still sees every operational register.
     /// </remarks>
     public async Task<IReadOnlyList<CashRegisterSelectableRow>> ListSelectableRegistersAsync(
         string userId,
@@ -403,8 +406,9 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         var seesEveryAssignment = PermissionClaimHelper.IsSuperAdminPrincipal(principal);
 
         return operational
-            .Where(r => CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId))
-            .Where(r => seesEveryAssignment || CashRegisterAssignment.IsVisibleTo(userId, r.AssignedUserId))
+            .Where(r => r.Status != RegisterStatus.Open
+                || CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId))
+            .Where(r => seesEveryAssignment || CashRegisterAssignment.IsAssignedTo(userId, r.AssignedUserId))
             .Select(r => new CashRegisterSelectableRow
             {
                 Id = r.Id,
@@ -444,23 +448,29 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
 
         var operationalTotal = operationalRows.Count;
         var openRows = operationalRows.Count(r => r.Status == RegisterStatus.Open);
-        var visibleByAssignment = operationalRows
-            .Count(r => seesEveryAssignment || CashRegisterAssignment.IsVisibleTo(userId, r.AssignedUserId));
+        var assignedToCaller = operationalRows
+            .Count(r => CashRegisterAssignment.IsAssignedTo(userId, r.AssignedUserId));
+        var visibleByAssignment = seesEveryAssignment ? operationalTotal : assignedToCaller;
         var assignedToOtherUsers = operationalRows
             .Count(r => CashRegisterAssignment.IsAssignedToOtherUser(userId, r.AssignedUserId));
         var heldByOtherShift = operationalRows
-            .Count(r => CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, r.CurrentUserId));
+            .Count(r => r.Status == RegisterStatus.Open
+                && CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, r.CurrentUserId));
 
-        // Distinguishes the two ways the picker can come up empty while registers exist: everything belongs to another
-        // cashier (none_assigned) versus visible but currently on someone else's shift (none_selectable_for_user).
+        // Distinguishes the two ways the picker can come up empty while registers exist: nothing is assigned to this
+        // cashier (none_assigned) versus an assigned register is open on someone else's shift (none_selectable_for_user).
         string emptyReason;
         if (operationalTotal == 0)
         {
             emptyReason = "no_registers";
         }
+        else if (!seesEveryAssignment && assignedToCaller == 0)
+        {
+            emptyReason = "none_assigned";
+        }
         else
         {
-            emptyReason = visibleByAssignment == 0 ? "none_assigned" : "none_selectable_for_user";
+            emptyReason = "none_selectable_for_user";
         }
 
         _logger.LogInformation(
