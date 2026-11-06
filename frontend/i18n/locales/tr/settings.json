@@ -228,6 +228,8 @@
     "emptyNoneOpen": "Tüm kasalar kapalı. Bir kasa seçin — vardiya otomatik açılır.",
     "emptyNoneAssigned": "Size atanmış bir kasa yok. Lütfen yöneticinizle iletişime geçin.",
     "emptyNoneSelectable": "Sizin için kullanılabilir kasa yok. Lütfen Mandanten-Admin ile iletişime geçin.",
+    "inUse": "Kullanımda",
+    "inUseHint": "Lütfen yöneticiden kasayı kapatmasını isteyin.",
     "registerMaintenance": "Kasa bakım modunda. Lütfen yönetici ile iletişime geçin.",
     "registerDisabled": "Kasa devre dışı. Lütfen yönetici ile iletişime geçin.",
     "registerInactive": "Kasa etkin değil. Lütfen yönetici ile iletişime geçin.",

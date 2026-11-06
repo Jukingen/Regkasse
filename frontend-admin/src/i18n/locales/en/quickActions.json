@@ -16,7 +16,7 @@
   "modals": {
     "openShift": {
       "title": "Open shift",
-      "description": "Open shift for this register?",
+      "description": "You are taking the active shift. The assigned cashier can select this register only after it is closed.",
       "confirm": "Open"
     },
     "closeShift": {

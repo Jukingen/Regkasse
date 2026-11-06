@@ -53,7 +53,9 @@
     "closeHeldByOther": "This register is open on another shift. Only the shift holder can close it.",
     "unknownHolder": "Another user",
     "forceCloseTitle": "Close this register anyway?",
-    "forceCloseContent": "{{holder}} currently holds the shift. Closing it ends their till; they cannot sell afterwards."
+    "forceCloseContent": "{{holder}} currently holds the shift. Closing it ends their till; they cannot sell afterwards.",
+    "takeShiftTitle": "Take the shift",
+    "takeShiftContent": "You are taking the active shift. The assigned cashier can select this register only after it is closed."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Shift & RKSV: cash register status guide",

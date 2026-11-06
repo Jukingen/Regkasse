@@ -334,6 +334,17 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
                     "Target user is not an active member of this cash register's tenant.");
             }
 
+            if (register.Status == RegisterStatus.Open
+                && CashRegisterShiftOccupancy.IsHeldByOtherUser(targetUserId, register.CurrentUserId))
+            {
+                var holderName = await ResolvePersonNameAsync(register.CurrentUserId!, cancellationToken)
+                    .ConfigureAwait(false);
+                var cashierName = await ResolvePersonNameAsync(targetUserId, cancellationToken)
+                    .ConfigureAwait(false);
+                throw new CashRegisterAssignmentConflictException(
+                    $"This register is currently open by {holderName}. Please close it before assigning to {cashierName}.");
+            }
+
             await EnsureAssignmentWithinTenantLimitsAsync(
                     register,
                     targetUserId,
@@ -380,6 +391,26 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     /// Enforces <see cref="TenantLimitKeys.MaxActiveRegistersPerUser"/>. SuperAdmin may pass
     /// <paramref name="force"/> to skip the cap. Assignment is 1:1 on <see cref="CashRegister.AssignedUserId"/>.
     /// </summary>
+    private async Task<string> ResolvePersonNameAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new { u.FirstName, u.LastName, u.UserName })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (user == null)
+            return userId;
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        if (!string.IsNullOrEmpty(fullName))
+            return fullName;
+        if (!string.IsNullOrWhiteSpace(user.UserName))
+            return user.UserName;
+        return userId;
+    }
+
     private async Task EnsureAssignmentWithinTenantLimitsAsync(
         CashRegister register,
         string targetUserId,

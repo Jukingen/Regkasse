@@ -20,6 +20,10 @@ export interface CashRegisterSelectableRow {
   status?: string;
   /** Admin assignment (`cash_registers.assigned_user_id`). POS lists only rows assigned to the caller. */
   assignedUserId?: string | null;
+  /** False when the row is assigned to the caller but another user holds the open shift. */
+  isSelectable?: boolean;
+  /** German label from the API, e.g. "In Benutzung von Mia Hofer". */
+  statusText?: string | null;
 }
 
 /**
@@ -106,23 +110,34 @@ export async function fetchPosSelectableRegisters(): Promise<PosSelectableListPa
       assignedRaw != null && String(assignedRaw).trim() !== ''
         ? String(assignedRaw).trim()
         : null;
+    const selectableRaw = row.isSelectable ?? row.IsSelectable;
+    const isSelectable = selectableRaw === false ? false : undefined;
+    const statusTextRaw = row.statusText ?? row.StatusText;
+    const statusText =
+      statusTextRaw != null && String(statusTextRaw).trim() !== ''
+        ? String(statusTextRaw).trim()
+        : null;
     parsed.push({
       id,
       registerNumber,
       location: location || undefined,
       status,
       assignedUserId,
+      isSelectable,
+      statusText,
     });
   }
   const beforeFilterCount = parsed.length;
   const usable = filterPaymentUsableSelectableRows(parsed);
   const out: CashRegisterSelectableRow[] = usable.map(
-    ({ id, registerNumber, location, status, assignedUserId }) => ({
+    ({ id, registerNumber, location, status, assignedUserId, isSelectable, statusText }) => ({
       id,
       registerNumber,
       location,
       status,
       assignedUserId,
+      isSelectable,
+      statusText,
     })
   );
   let effectiveEmptyReason: PosSelectableEmptyReason;

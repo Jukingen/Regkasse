@@ -190,6 +190,73 @@ public sealed class AdminCashRegisterAssignTests
             Times.Once);
 
     [Fact]
+    public async Task Assign_OpenShiftHeldByOtherUser_Returns409_AndDoesNotChangeAssignee()
+    {
+        await using var db = CreateDb();
+        await SeedAsync(db);
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "manager-1",
+                UserName = "manager1",
+                Email = "manager1@test",
+                FirstName = "Mia",
+                LastName = "Hofer",
+            },
+            new ApplicationUser
+            {
+                Id = CashierInTenantA,
+                UserName = "cashier1",
+                Email = "cashier1@test",
+                FirstName = "Anna",
+                LastName = "Berger",
+            });
+        var register = (await db.CashRegisters.FindAsync(RegisterAId))!;
+        register.Status = RegisterStatus.Open;
+        register.CurrentUserId = "manager-1";
+        register.AssignedUserId = "previous-cashier";
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, TenantTestDoubles.SettingsResolverReturning(TenantAId));
+        var controller = CreateController(db, service, Roles.Manager);
+
+        var result = await controller.AssignUser(
+            RegisterAId,
+            new AssignCashRegisterUserRequest { UserId = CashierInTenantA },
+            CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        var body = conflict.Value!;
+        var message = body.GetType().GetProperty("message")!.GetValue(body) as string;
+        Assert.Equal(
+            "This register is currently open by Mia Hofer. Please close it before assigning to Anna Berger.",
+            message);
+        Assert.Equal("previous-cashier", (await db.CashRegisters.FindAsync(RegisterAId))!.AssignedUserId);
+    }
+
+    [Fact]
+    public async Task Assign_OpenShiftHeldByTargetUser_StillPersists()
+    {
+        await using var db = CreateDb();
+        await SeedAsync(db);
+        var register = (await db.CashRegisters.FindAsync(RegisterAId))!;
+        register.Status = RegisterStatus.Open;
+        register.CurrentUserId = CashierInTenantA;
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, TenantTestDoubles.SettingsResolverReturning(TenantAId));
+
+        var dto = await service.AssignUserAsync(
+            RegisterAId,
+            new AssignCashRegisterUserRequest { UserId = CashierInTenantA },
+            "actor-1",
+            Roles.Manager,
+            actorIsSuperAdmin: false);
+
+        Assert.Equal(CashierInTenantA, dto.AssignedUserId);
+    }
+
+    [Fact]
     public async Task Assign_UserFromAnotherTenant_IsRejected()
     {
         await using var db = CreateDb();
