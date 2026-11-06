@@ -226,7 +226,7 @@
     "openShiftErrorTitle": "Vardiya açılamadı",
     "openShiftError": "Lütfen tekrar deneyin veya Mandanten-Admin ile iletişime geçin.",
     "emptyNoneOpen": "Tüm kasalar kapalı. Bir kasa seçin — vardiya otomatik açılır.",
-    "emptyNoneAssigned": "Size atanmış bir kasa yok. Lütfen Mandanten-Admin’den kasa ataması isteyin.",
+    "emptyNoneAssigned": "Size atanmış bir kasa yok. Lütfen yöneticinizle iletişime geçin.",
     "emptyNoneSelectable": "Sizin için kullanılabilir kasa yok. Lütfen Mandanten-Admin ile iletişime geçin.",
     "registerMaintenance": "Kasa bakım modunda. Lütfen yönetici ile iletişime geçin.",
     "registerDisabled": "Kasa devre dışı. Lütfen yönetici ile iletişime geçin.",

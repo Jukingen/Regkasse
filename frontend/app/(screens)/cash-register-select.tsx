@@ -1,5 +1,5 @@
 import { Redirect, router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -66,6 +66,7 @@ export default function CashRegisterSelectScreen() {
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
   const [onlyMine, setOnlyMine] = useState(false);
+  const autoOpenedForId = useRef<string | null>(null);
 
   const loadRegisters = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) {
@@ -97,6 +98,7 @@ export default function CashRegisterSelectScreen() {
   }, [isAuthReady, isAuthenticated, loadRegisters, retryToken]);
 
   const canOpenShift = hasPermission(user, 'shift.open');
+
   const visibleRegisters = React.useMemo(() => {
     const sorted = sortSelectableRegisters(registers);
     if (!onlyMine) return sorted;
@@ -142,6 +144,16 @@ export default function CashRegisterSelectScreen() {
     },
     [savingId, setCurrentCashRegisterId, t]
   );
+
+  useEffect(() => {
+    if (loading || savingId || registers.length !== 1) return;
+    const only = registers[0];
+    const kind = resolvePosPickerRowKind(only, canOpenShift);
+    if (kind !== 'available' && kind !== 'opensOnSelect') return;
+    if (autoOpenedForId.current === only.id) return;
+    autoOpenedForId.current = only.id;
+    void handleSelect(only.id);
+  }, [canOpenShift, handleSelect, loading, registers, savingId]);
 
   const latestRequestByRegisterId = React.useMemo(() => {
     const map = new Map<string, CashRegisterOpenRequestRow>();
@@ -239,16 +251,25 @@ export default function CashRegisterSelectScreen() {
             ? t('settings:registerSelect.emptyNoneSelectable')
             : t('settings:cashRegister.noRegistersAvailable');
 
+  const noAssignment =
+    !loading && !listFailure && registers.length === 0 && emptyReason === 'none_assigned';
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>{t('settings:registerSelect.title')}</Text>
-      <Text style={styles.intro}>
-        {t(
-          canOpenShift
-            ? 'settings:registerSelect.intro'
-            : 'settings:registerSelect.introNoPermission'
-        )}
-      </Text>
+      {noAssignment ? (
+        <Text testID="register-select-no-assignment" style={styles.empty}>
+          {t('settings:registerSelect.emptyNoneAssigned')}
+        </Text>
+      ) : (
+        <Text style={styles.intro}>
+          {t(
+            canOpenShift
+              ? 'settings:registerSelect.intro'
+              : 'settings:registerSelect.introNoPermission'
+          )}
+        </Text>
+      )}
 
       {autoOpenBanner ? (
         <View
@@ -299,7 +320,7 @@ export default function CashRegisterSelectScreen() {
         <Text style={styles.openingHint}>{t('settings:registerSelect.openingShift')}</Text>
       ) : null}
 
-      {!loading ? (
+      {!loading && registers.length > 0 ? (
         <Pressable
           testID="register-select-only-mine"
           onPress={() => setOnlyMine((value) => !value)}
@@ -416,7 +437,7 @@ export default function CashRegisterSelectScreen() {
         </View>
       ) : null}
 
-      {!loading && visibleRegisters.length === 0 ? (
+      {!loading && visibleRegisters.length === 0 && !noAssignment ? (
         <Text style={styles.empty}>
           {listFailure
             ? t('settings:registerSelect.listLoadFailed')

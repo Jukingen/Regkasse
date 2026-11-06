@@ -226,7 +226,7 @@
     "openShiftErrorTitle": "Could not open the shift",
     "openShiftError": "Please try again or contact your Mandanten-Admin.",
     "emptyNoneOpen": "All registers are closed. Select a register — the shift opens automatically.",
-    "emptyNoneAssigned": "No cash register is assigned to you. Please ask your Mandanten-Admin to assign one.",
+    "emptyNoneAssigned": "You have no cash register assigned. Please contact your administrator.",
     "emptyNoneSelectable": "No register is available for you. Please contact your Mandanten-Admin.",
     "registerMaintenance": "The cash register is in maintenance mode. Please contact the administrator.",
     "registerDisabled": "The cash register is disabled. Please contact the administrator.",

@@ -127,6 +127,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
             LastBalanceUpdate = DateTime.UtcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = userId,
+            AssignedUserId = userId,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });

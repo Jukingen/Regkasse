@@ -22,8 +22,20 @@ vi.mock('@/features/users/hooks/useUsersList', () => ({
   useUsersList: () => ({
     data: {
       items: [
-        { id: 'cashier-1', firstName: 'Anna', lastName: 'Berger', userName: 'cashier1' },
-        { id: 'cashier-2', firstName: 'Bruno', lastName: 'Klein', userName: 'cashier2' },
+        {
+          id: 'cashier-1',
+          firstName: 'Anna',
+          lastName: 'Berger',
+          userName: 'cashier1',
+          email: 'anna.berger@dev.regkasse.at',
+        },
+        {
+          id: 'cashier-2',
+          firstName: 'Bruno',
+          lastName: 'Klein',
+          userName: 'cashier2',
+          email: 'bruno.klein@dev.regkasse.at',
+        },
       ],
     },
     isLoading: false,
@@ -103,7 +115,7 @@ describe('CashRegisterAssignedUserField', () => {
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled();
 
     await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(await screen.findByTitle('Bruno Klein'));
+    await userEvent.click(await screen.findByTitle('Bruno Klein (bruno.klein@dev.regkasse.at)'));
 
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeEnabled();
   });
@@ -112,7 +124,7 @@ describe('CashRegisterAssignedUserField', () => {
     renderField({});
 
     await userEvent.click(screen.getByRole('combobox'));
-    await userEvent.click(await screen.findByTitle('Anna Berger'));
+    await userEvent.click(await screen.findByTitle('Anna Berger (anna.berger@dev.regkasse.at)'));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
     await waitFor(() =>
