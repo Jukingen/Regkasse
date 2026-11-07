@@ -1801,6 +1801,10 @@ internal static class ApplicationHost
         }
 
         QuestPDF.Settings.License = LicenseType.Community;
+        // QuestPDF 2026.9 throws when a family or glyph is missing and no longer reads system fonts.
+        // Match the test fallback: missing faces render with the bundled Lato face.
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
+        QuestPDF.Settings.ThrowOnMissingTextGlyphs = false;
 
         // Swashbuckle CLI calls SwaggerHostFactory.CreateHost() and never runs RunAsync; without mapped endpoints
         // the API explorer yields an empty document. Only the tooling path registers the minimal endpoint graph.

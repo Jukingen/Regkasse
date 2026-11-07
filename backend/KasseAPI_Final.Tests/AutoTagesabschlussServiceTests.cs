@@ -78,6 +78,92 @@ public sealed class AutoTagesabschlussServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<string?>()),
             Times.Never);
+        harness.Shift.Verify(
+            s => s.TryForceCloseCashRegisterAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RunFallbackAsync_OpenFromPreviousDay_WithoutInvoices_ForceCloses()
+    {
+        var harness = await CreateHarnessAsync(
+            utcNow: AfterCutoffCest,
+            seedInvoice: false,
+            openedOnPreviousDay: true);
+        await using var _ = harness.Context;
+
+        var closed = await harness.Sut.RunFallbackAsync(AfterCutoffCest);
+
+        Assert.Equal(0, closed);
+        harness.Tagesabschluss.Verify(
+            t => t.PerformDailyClosingAsync(
+                It.IsAny<string>(),
+                It.IsAny<Guid>(),
+                It.IsAny<DailyClosingPerformOptions>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>()),
+            Times.Never);
+        harness.Shift.Verify(
+            s => s.TryForceCloseCashRegisterAsync(
+                It.IsAny<Guid>(),
+                AutoTagesabschlussService.SystemActorUserId,
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RunFallbackAsync_OpenFromPreviousDay_BlockPolicy_DoesNotForceClose()
+    {
+        var harness = await CreateHarnessAsync(
+            utcNow: AfterCutoffCest,
+            seedInvoice: false,
+            openedOnPreviousDay: true,
+            openOrdersPolicy: AutoTagesabschlussOpenOrdersPolicies.Block,
+            seedOpenTable: true);
+        await using var _ = harness.Context;
+
+        var closed = await harness.Sut.RunFallbackAsync(AfterCutoffCest);
+
+        Assert.Equal(0, closed);
+        harness.Shift.Verify(
+            s => s.TryForceCloseCashRegisterAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RunFallbackAsync_MissedInvoiceDays_CloseInOrder()
+    {
+        var days = new List<DateTime>();
+        var harness = await CreateHarnessAsync(
+            utcNow: AfterCutoffCest,
+            seedInvoice: true,
+            olderInvoiceDaysBeforeYesterday: 1,
+            onPerform: (_, _, _, closingDate, _) =>
+            {
+                if (closingDate.HasValue)
+                    days.Add(closingDate.Value);
+            });
+        await using var _ = harness.Context;
+
+        var closed = await harness.Sut.RunFallbackAsync(AfterCutoffCest);
+
+        Assert.Equal(2, closed);
+        Assert.Equal(2, days.Count);
+        Assert.True(days[0] < days[1]);
+        Assert.Equal(AutoTagesabschlussCutoff.GetYesterdayBusinessDay(AfterCutoffCest).AddDays(-1), days[0]);
+        Assert.Equal(AutoTagesabschlussCutoff.GetYesterdayBusinessDay(AfterCutoffCest), days[1]);
     }
 
     [Fact]
@@ -218,6 +304,7 @@ public sealed class AutoTagesabschlussServiceTests
         AppDbContext Context,
         AutoTagesabschlussService Sut,
         Mock<ITagesabschlussService> Tagesabschluss,
+        Mock<ICashRegisterShiftService> Shift,
         Mock<IActivityEventService> Activity,
         Mock<IMonatsbelegClosingService> Monatsbeleg,
         Mock<IJahresbelegClosingService> Jahresbeleg);
@@ -228,6 +315,8 @@ public sealed class AutoTagesabschlussServiceTests
         bool seedInvoice = false,
         bool alreadyClosed = false,
         bool seedOpenTable = false,
+        bool openedOnPreviousDay = false,
+        int olderInvoiceDaysBeforeYesterday = 0,
         string? openOrdersPolicy = null,
         Action<string, Guid, DailyClosingPerformOptions, DateTime?, string?>? onPerform = null)
     {
@@ -256,7 +345,7 @@ public sealed class AutoTagesabschlussServiceTests
             Location = "Haupt",
             StartingBalance = 0,
             CurrentBalance = 50,
-            LastBalanceUpdate = utcNow,
+            LastBalanceUpdate = openedOnPreviousDay ? utcNow.AddDays(-3) : utcNow,
             Status = RegisterStatus.Open,
             CurrentUserId = "cashier-1",
             CreatedAt = utcNow,
@@ -285,33 +374,16 @@ public sealed class AutoTagesabschlussServiceTests
         var (dayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(businessDay);
         var invoiceAt = dayStartUtc.AddHours(12);
 
+        if (olderInvoiceDaysBeforeYesterday > 0)
+        {
+            var olderDay = businessDay.AddDays(-olderInvoiceDaysBeforeYesterday);
+            var (olderStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(olderDay);
+            ctx.Invoices.Add(PaidInvoice(tenantId, registerId, olderStartUtc.AddHours(10), "INV-AUTO-OLDER"));
+        }
+
         if (seedInvoice)
         {
-            ctx.Invoices.Add(new Invoice
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CashRegisterId = registerId,
-                InvoiceNumber = "INV-AUTO",
-                InvoiceDate = invoiceAt,
-                DueDate = invoiceAt,
-                Subtotal = 10m,
-                TaxAmount = 2m,
-                TotalAmount = 12m,
-                PaidAmount = 12m,
-                RemainingAmount = 0m,
-                CompanyName = "Cafe Auto",
-                CompanyTaxNumber = "ATU12345678",
-                CompanyAddress = "Wien",
-                TseSignature = "sig",
-                KassenId = "K1",
-                TseTimestamp = invoiceAt,
-                TaxDetails = JsonDocument.Parse("{}"),
-                InvoiceItems = JsonDocument.Parse("[]"),
-                Status = InvoiceStatus.Paid,
-                CreatedAt = invoiceAt,
-                IsActive = true,
-            });
+            ctx.Invoices.Add(PaidInvoice(tenantId, registerId, invoiceAt, "INV-AUTO"));
         }
 
         if (alreadyClosed)
@@ -428,6 +500,33 @@ public sealed class AutoTagesabschlussServiceTests
             }),
             NullLogger<AutoTagesabschlussService>.Instance);
 
-        return new Harness(ctx, sut, tagesabschluss, activity, monatsbeleg, jahresbeleg);
+        return new Harness(ctx, sut, tagesabschluss, shift, activity, monatsbeleg, jahresbeleg);
     }
+
+    private static Invoice PaidInvoice(Guid tenantId, Guid registerId, DateTime at, string number) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            InvoiceNumber = number,
+            InvoiceDate = at,
+            DueDate = at,
+            Subtotal = 10m,
+            TaxAmount = 2m,
+            TotalAmount = 12m,
+            PaidAmount = 12m,
+            RemainingAmount = 0m,
+            CompanyName = "Cafe Auto",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Wien",
+            TseSignature = "sig",
+            KassenId = "K1",
+            TseTimestamp = at,
+            TaxDetails = JsonDocument.Parse("{}"),
+            InvoiceItems = JsonDocument.Parse("[]"),
+            Status = InvoiceStatus.Paid,
+            CreatedAt = at,
+            IsActive = true,
+        };
 }

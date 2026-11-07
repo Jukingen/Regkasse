@@ -16,6 +16,22 @@ public static class AutoTagesabschlussCutoff
         return nowMinutes >= cutoffMinutes;
     }
 
+    /// <summary>Europe/Vienna calendar day (Unspecified midnight) that contains <paramref name="utcNow"/>.</summary>
+    public static DateTime GetTodayBusinessDay(DateTime utcNow) =>
+        GetYesterdayBusinessDay(utcNow).AddDays(1);
+
+    /// <summary>
+    /// Latest Vienna business day the fallback may close.
+    /// Before the tenant cutoff, yesterday is still the cashier's day, so only older days are eligible.
+    /// </summary>
+    public static DateTime GetLatestEligibleBusinessDay(DateTime utcNow, int hourVienna, int minuteVienna)
+    {
+        var yesterday = GetYesterdayBusinessDay(utcNow);
+        return IsPastCutoff(utcNow, hourVienna, minuteVienna)
+            ? yesterday
+            : yesterday.AddDays(-1);
+    }
+
     /// <summary>Previous Europe/Vienna calendar day (Unspecified midnight) relative to <paramref name="utcNow"/>.</summary>
     public static DateTime GetYesterdayBusinessDay(DateTime utcNow)
     {
