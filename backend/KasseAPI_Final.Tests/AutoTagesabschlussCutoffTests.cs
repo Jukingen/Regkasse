@@ -34,6 +34,22 @@ public sealed class AutoTagesabschlussCutoffTests
     }
 
     [Fact]
+    public void GetLatestEligibleBusinessDay_BeforeCutoff_StopsAtDayBeforeYesterday()
+    {
+        var utc = new DateTime(2026, 9, 14, 0, 50, 0, DateTimeKind.Utc);
+        var day = AutoTagesabschlussCutoff.GetLatestEligibleBusinessDay(utc, 3, 0);
+        Assert.Equal(PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 9, 12), day);
+    }
+
+    [Fact]
+    public void GetLatestEligibleBusinessDay_AfterCutoff_IncludesYesterday()
+    {
+        var utc = new DateTime(2026, 9, 14, 1, 30, 0, DateTimeKind.Utc);
+        var day = AutoTagesabschlussCutoff.GetLatestEligibleBusinessDay(utc, 3, 0);
+        Assert.Equal(PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 9, 13), day);
+    }
+
+    [Fact]
     public void GetYesterdayBusinessDay_ReturnsPreviousViennaCalendarDay()
     {
         var utc = new DateTime(2026, 9, 14, 1, 30, 0, DateTimeKind.Utc);
