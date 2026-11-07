@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Services;
 ///   sole auto-assignment, ensure-ready, and payment validation.
 /// - <see cref="AppPermissions.CashRegisterView"/>: intentionally allows <see cref="ValidateAssignmentChangeAsync"/> to accept assigning
 ///   an <see cref="RegisterStatus.Open"/> register even when <see cref="CashRegister.CurrentUserId"/> is another user (multi-register or sole);
-///   the POS picker still omits those rows, and payment / ensure-ready still enforce shift ownership first (assignment never overrides occupancy).
+///   the POS picker still marks those rows as not selectable, and payment / ensure-ready still enforce shift ownership first (assignment never overrides occupancy).
 /// - Payment on register R is allowed when R exists, is Open, R is not shift-claimed by another user, and one of:
 ///   (a) R.CurrentUserId == user, (b) exactly one register exists in DB and R is that register, (c) settings assignment matches R
 ///   (assignment does not override another user&apos;s shift).
@@ -73,8 +73,10 @@ public interface ICashRegisterResolutionService
     /// user may select in the POS picker. Closed rows are included so a cashier can pick and open their own register; maintenance / disabled /
     /// decommissioned / inactive rows are excluded. Non–Super Admin principals see only registers assigned to them
     /// (<see cref="CashRegister.AssignedUserId"/>). Unassigned registers are not offered in POS. An open register held on another
-    /// user&apos;s shift is excluded; a closed row stays listed even if <see cref="CashRegister.CurrentUserId"/> is stale.
-    /// Super Admin still sees every operational register. Full inventory remains on separate admin endpoints.
+    /// user&apos;s shift stays in the list when it is assigned to the caller, with <see cref="CashRegisterSelectableRow.IsSelectable"/>
+    /// false and a German <see cref="CashRegisterSelectableRow.StatusText"/>. A closed row stays listed even if
+    /// <see cref="CashRegister.CurrentUserId"/> is stale. Super Admin still sees every operational register that is not held on
+    /// someone else&apos;s shift. Full inventory remains on separate admin endpoints.
     /// </summary>
     /// <remarks>
     /// Admin or reporting UIs that need every row (any status) must use inventory APIs (e.g. <c>GET /api/CashRegister</c>), not this method.
@@ -119,6 +121,18 @@ public sealed class CashRegisterSelectableRow
     /// picker labeling / client-side visibility; payment authorization does not read it.
     /// </summary>
     public string? AssignedUserId { get; init; }
+
+    /// <summary>
+    /// False when this row is assigned to the caller but the open shift belongs to someone else.
+    /// The row stays visible. Payment authorization still rejects that shift.
+    /// </summary>
+    public bool IsSelectable { get; init; } = true;
+
+    /// <summary>
+    /// German picker label when <see cref="IsSelectable"/> is false, for example
+    /// <c>In Benutzung von Anna Berger</c>. Null when the row can be picked.
+    /// </summary>
+    public string? StatusText { get; init; }
 }
 
 /// <summary>

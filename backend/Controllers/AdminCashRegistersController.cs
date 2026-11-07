@@ -559,6 +559,10 @@ public sealed class AdminCashRegistersController : ControllerBase
                 cancellationToken).ConfigureAwait(false);
             return Ok(dto);
         }
+        catch (CashRegisterAssignmentConflictException ex)
+        {
+            return Conflict(new { message = ex.Message, code = CashRegisterAssignmentConflictException.ErrorCode });
+        }
         catch (LimitExceededException ex)
         {
             return Conflict(ex.ToConflictBody());

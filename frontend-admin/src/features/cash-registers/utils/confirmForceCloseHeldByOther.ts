@@ -23,3 +23,18 @@ export function confirmForceCloseHeldByOther(
     onOk,
   });
 }
+
+/** Confirm that opening the register makes the signed-in manager the shift owner. */
+export function confirmTakeActiveShift(
+  modal: ConfirmableModal,
+  t: (key: string, options?: Record<string, string | number>) => string,
+  onOk: () => void | Promise<void>
+): void {
+  modal.confirm({
+    title: t('cashRegisters.shift.takeShiftTitle'),
+    content: t('cashRegisters.shift.takeShiftContent'),
+    okText: t('cashRegisters.actions.openRegister'),
+    cancelText: t('common.buttons.cancel'),
+    onOk,
+  });
+}

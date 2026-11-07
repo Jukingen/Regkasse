@@ -8,7 +8,10 @@ import type { CashRegister } from '@/api/generated/model';
 import { closeCashRegister, openCashRegister } from '@/features/cash-registers/api/cashRegisters';
 import type { CashRegisterActionKey } from '@/features/cash-registers/components/CashRegisterActions';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
-import { confirmForceCloseHeldByOther } from '@/features/cash-registers/utils/confirmForceCloseHeldByOther';
+import {
+  confirmForceCloseHeldByOther,
+  confirmTakeActiveShift,
+} from '@/features/cash-registers/utils/confirmForceCloseHeldByOther';
 import {
   isDecommissionedRegister,
   rawRegisterStatus,
@@ -111,7 +114,7 @@ export function useCashRegisterActionHandler({
       switch (key) {
         case 'open-shift':
           if (decommissioned || openMutation.isPending) return;
-          openMutation.mutate(register);
+          confirmTakeActiveShift(modal, t, () => openMutation.mutate(register));
           break;
         case 'close-shift':
           if (decommissioned || closeMutation.isPending || forceCloseMutation.isPending) return;

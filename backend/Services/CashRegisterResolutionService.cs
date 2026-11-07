@@ -18,8 +18,9 @@ namespace KasseAPI_Final.Services;
 /// It scopes <see cref="ListSelectableRegistersAsync"/> and <see cref="ValidateAssignmentChangeAsync"/> for non–Super Admins and is deliberately
 /// absent from <see cref="ValidatePaymentRegisterAsync"/>: payment authority stays with the operational shift.
 /// - <see cref="AppPermissions.CashRegisterView"/> widens <see cref="ValidateAssignmentChangeAsync"/> only: a register on another
-/// user&apos;s shift may still be saved as assignment (e.g. waiter default register). <see cref="ListSelectableRegistersAsync"/> still filters
-/// those rows out of the self-service picker; <see cref="ValidatePaymentRegisterAsync"/> always rejects payment on them for the non-owner.
+/// user&apos;s shift may still be saved as a preference. <see cref="ListSelectableRegistersAsync"/> keeps an assigned register
+/// that is open on someone else&apos;s shift in the picker as not selectable; <see cref="ValidatePaymentRegisterAsync"/> always
+/// rejects payment on it for the non-owner.
 /// Payment is allowed when the register exists, <see cref="RegisterStatus.Open"/>, and no other user holds the operational shift
 /// (<see cref="CashRegister.CurrentUserId"/>). Settings assignment and sole-register rules apply only after that occupancy check:
 /// they never override another user&apos;s shift (same conflict semantics as <see cref="PosCashRegisterReadinessService"/>, separate code path).
@@ -378,17 +379,19 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     /// POS clients consume this via <see cref="ListSelectableForPosPickerAsync"/> (<c>GET /api/pos/cash-register/selectable</c>).
     /// Two filters apply, in this order:
     /// <list type="number">
-    /// <item>occupancy — an <see cref="RegisterStatus.Open"/> register held on another user&apos;s shift
-    /// (<see cref="CashRegister.CurrentUserId"/>) is omitted for every principal, Super Admin included.
-    /// A <see cref="RegisterStatus.Closed"/> row keeps its place even when <c>CurrentUserId</c> is stale, so the
-    /// assigned cashier can open it;</item>
     /// <item>assignment — a non–Super Admin sees only registers whose <see cref="CashRegister.AssignedUserId"/> is
     /// their user id (<see cref="CashRegisterAssignment.IsAssignedTo"/>). Unassigned registers stay on the admin
     /// inventory; POS does not offer them and does not create one.</item>
+    /// <item>occupancy — an <see cref="RegisterStatus.Open"/> register held on another user&apos;s shift
+    /// (<see cref="CashRegister.CurrentUserId"/>) is omitted unless it is assigned to the caller. An assigned row stays
+    /// visible with <see cref="CashRegisterSelectableRow.IsSelectable"/> false and a German
+    /// <see cref="CashRegisterSelectableRow.StatusText"/>. A <see cref="RegisterStatus.Closed"/> row keeps its place
+    /// even when <c>CurrentUserId</c> is stale, so the assigned cashier can open it.</item>
     /// </list>
     /// <see cref="RegisterStatus.Closed"/> rows are listed: picking one triggers <c>POST /api/pos/shift/auto-open</c>, which opens it.
     /// <see cref="AppPermissions.CashRegisterView"/> no longer widens this list — Cashier and Waiter both hold it, so it could never
-    /// express the assignment rule. Full inventory listing stays on admin APIs. Super Admin still sees every operational register.
+    /// express the assignment rule. Full inventory listing stays on admin APIs. Super Admin still sees every operational register
+    /// that is not held on someone else&apos;s shift.
     /// </remarks>
     public async Task<IReadOnlyList<CashRegisterSelectableRow>> ListSelectableRegistersAsync(
         string userId,
@@ -405,19 +408,75 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
 
         var seesEveryAssignment = PermissionClaimHelper.IsSuperAdminPrincipal(principal);
 
-        return operational
-            .Where(r => r.Status != RegisterStatus.Open
-                || CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId))
+        var candidates = operational
             .Where(r => seesEveryAssignment || CashRegisterAssignment.IsAssignedTo(userId, r.AssignedUserId))
-            .Select(r => new CashRegisterSelectableRow
+            .Select(r => new
             {
-                Id = r.Id,
-                RegisterNumber = r.RegisterNumber,
-                Location = r.Location,
-                Status = r.Status,
-                AssignedUserId = r.AssignedUserId
+                Register = r,
+                HeldByOther = r.Status == RegisterStatus.Open
+                    && CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, r.CurrentUserId),
+            })
+            .Where(x => !x.HeldByOther || CashRegisterAssignment.IsAssignedTo(userId, x.Register.AssignedUserId))
+            .ToList();
+
+        var holderIds = candidates
+            .Where(x => x.HeldByOther && !string.IsNullOrEmpty(x.Register.CurrentUserId))
+            .Select(x => x.Register.CurrentUserId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var holderNames = await LoadUserDisplayNamesAsync(holderIds, cancellationToken).ConfigureAwait(false);
+
+        return candidates
+            .Select(x =>
+            {
+                string? statusText = null;
+                if (x.HeldByOther)
+                {
+                    var holderId = x.Register.CurrentUserId ?? string.Empty;
+                    var name = holderNames.TryGetValue(holderId, out var resolved) && !string.IsNullOrWhiteSpace(resolved)
+                        ? resolved
+                        : holderId;
+                    statusText = $"In Benutzung von {name}";
+                }
+
+                return new CashRegisterSelectableRow
+                {
+                    Id = x.Register.Id,
+                    RegisterNumber = x.Register.RegisterNumber,
+                    Location = x.Register.Location,
+                    Status = x.Register.Status,
+                    AssignedUserId = x.Register.AssignedUserId,
+                    IsSelectable = !x.HeldByOther,
+                    StatusText = statusText,
+                };
             })
             .ToList();
+    }
+
+    private async Task<Dictionary<string, string>> LoadUserDisplayNamesAsync(
+        IReadOnlyCollection<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        if (userIds.Count == 0)
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var users = await _context.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var names = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var user in users)
+        {
+            var fullName = $"{user.FirstName} {user.LastName}".Trim();
+            names[user.Id] = !string.IsNullOrEmpty(fullName)
+                ? fullName
+                : (string.IsNullOrWhiteSpace(user.UserName) ? user.Id : user.UserName);
+        }
+
+        return names;
     }
 
     /// <inheritdoc />
@@ -457,8 +516,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .Count(r => r.Status == RegisterStatus.Open
                 && CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, r.CurrentUserId));
 
-        // Distinguishes the two ways the picker can come up empty while registers exist: nothing is assigned to this
-        // cashier (none_assigned) versus an assigned register is open on someone else's shift (none_selectable_for_user).
+        // Distinguishes an empty picker while registers exist. An assigned register that is open on someone else's
+        // shift is returned as not selectable, so it does not produce none_selectable_for_user. That reason remains
+        // when nothing assigned to the caller is visible (for example a Super Admin whose every operational register
+        // is held on another shift).
         string emptyReason;
         if (operationalTotal == 0)
         {

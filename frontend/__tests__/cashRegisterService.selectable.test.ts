@@ -39,6 +39,26 @@ describe('fetchPosSelectableRegisters (POS selectable abstraction)', () => {
     });
   });
 
+  it('keeps an in-use assigned register and its status text', async () => {
+    jest.mocked(apiClient.get).mockResolvedValue({
+      registers: [
+        {
+          id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          registerNumber: 'K1',
+          status: 'Open',
+          isSelectable: false,
+          statusText: 'In Benutzung von Mia Hofer',
+        },
+      ],
+      emptyReason: null,
+    });
+    const { registers, emptyReason } = await fetchPosSelectableRegisters();
+    expect(registers).toHaveLength(1);
+    expect(registers[0].isSelectable).toBe(false);
+    expect(registers[0].statusText).toBe('In Benutzung von Mia Hofer');
+    expect(emptyReason).toBeNull();
+  });
+
   it('maps assignedUserId from the selectable row', async () => {
     jest.mocked(apiClient.get).mockResolvedValue({
       registers: [

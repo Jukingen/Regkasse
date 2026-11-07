@@ -12,6 +12,7 @@ import {
 import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+import { normalizeApiError } from '@/shared/errors/normalizedApiError';
 
 export type CashRegisterAssignedUserFieldProps = {
   registerId: string;
@@ -64,6 +65,7 @@ export function CashRegisterAssignedUserField({
   // Reset the pending edit whenever the server value moves (own save, refetch, or another admin).
   const [draft, setDraft] = useState<string | undefined>(persisted);
   const [syncedWith, setSyncedWith] = useState<string | undefined>(persisted);
+  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   if (syncedWith !== persisted) {
     setSyncedWith(persisted);
     setDraft(persisted);
@@ -93,7 +95,11 @@ export function CashRegisterAssignedUserField({
 
   const mutation = useMutation({
     mutationFn: (userId: string | null) => assignCashRegisterUser(registerId, userId),
+    onMutate: () => {
+      setConflictMessage(null);
+    },
     onSuccess: async (_data, userId) => {
+      setConflictMessage(null);
       notify.successKey(
         userId
           ? 'cashRegisters.detail.assignedUserSaved'
@@ -106,6 +112,12 @@ export function CashRegisterAssignedUserField({
       ]);
     },
     onError: (err) => {
+      const normalized = normalizeApiError(err);
+      if (normalized.httpStatus === 409 && normalized.rawMessage) {
+        setConflictMessage(normalized.rawMessage);
+        notify.error(normalized.rawMessage, { duration: 8 });
+        return;
+      }
       notify.apiError(err, {
         logContext: 'CashRegisterDetail.assignUser',
         fallbackKey: 'cashRegisters.detail.assignedUserFailed',
@@ -148,6 +160,11 @@ export function CashRegisterAssignedUserField({
           ? t('cashRegisters.detail.assignedUserHint')
           : t('cashRegisters.detail.assignedUserHintUnassigned')}
       </Typography.Text>
+      {conflictMessage ? (
+        <Typography.Text type="danger" role="alert">
+          {conflictMessage}
+        </Typography.Text>
+      ) : null}
     </Space>
   );
 }

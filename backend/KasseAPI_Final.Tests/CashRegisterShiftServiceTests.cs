@@ -118,6 +118,59 @@ public class CashRegisterShiftServiceTests
     }
 
     [Fact]
+    public async Task Open_ClosedAssignedRegister_IgnoresStaleCurrentUser()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        var cashier = new ApplicationUser
+        {
+            Id = "cashier-1",
+            UserName = "cashier1",
+            Email = "cashier1@test",
+            FirstName = "C",
+            LastName = "One"
+        };
+        ctx.Users.Add(cashier);
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            AssignedUserId = cashier.Id,
+            CurrentUserId = "previous-holder",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = new CashRegisterShiftService(
+            ctx,
+            CreateUserManager(cashier).Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
+
+        var result = await svc.TryOpenCashRegisterAsync(
+            regId,
+            cashier.Id,
+            0m,
+            "open",
+            allowIdempotentSameUser: true,
+            CancellationToken.None);
+
+        Assert.Equal(CashRegisterOpenKind.SuccessOpened, result.Kind);
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Open, reg.Status);
+        Assert.Equal(cashier.Id, reg.CurrentUserId);
+    }
+
+    [Fact]
     public async Task Open_DecommissionedRegister_ReturnsFailedInvalidState()
     {
         await using var ctx = CreateContext();

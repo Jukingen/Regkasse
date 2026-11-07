@@ -124,13 +124,10 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
         if (!settings.Enabled)
             return 0;
 
-        if (!AutoTagesabschlussCutoff.IsPastCutoff(utcNow, settings.HourVienna, settings.MinuteVienna))
-            return 0;
-
-        var businessDay = AutoTagesabschlussCutoff.GetYesterdayBusinessDay(utcNow);
-        var closingAnchorUtc = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(businessDay);
-        var (dayStartUtc, dayEndExclusiveUtc) =
-            PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(businessDay);
+        var latestEligibleDay = AutoTagesabschlussCutoff.GetLatestEligibleBusinessDay(
+            utcNow,
+            settings.HourVienna,
+            settings.MinuteVienna);
 
         var registers = await _context.CashRegisters
             .IgnoreQueryFilters()
@@ -140,7 +137,7 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                 && r.IsActive
                 && r.Status != RegisterStatus.Decommissioned
                 && r.Status != RegisterStatus.Disabled)
-            .Select(r => new { r.Id, r.RegisterNumber, r.Location, r.CurrentUserId, r.CurrentBalance, r.Status })
+            .Select(r => new { r.Id, r.RegisterNumber, r.Location, r.CurrentUserId, r.CurrentBalance, r.Status, r.LastBalanceUpdate })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -149,38 +146,93 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var alreadyClosed = await _context.DailyClosings
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .AnyAsync(
-                    d =>
-                        d.TenantId == tenantId
-                        && d.CashRegisterId == register.Id
-                        && d.ClosingType == "Daily"
-                        && d.ClosingDate == closingAnchorUtc,
+            var missedDays = await ListMissedInvoiceBusinessDaysAsync(
+                    tenantId,
+                    register.Id,
+                    utcNow,
+                    latestEligibleDay,
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (alreadyClosed)
-                continue;
-
-            var hasTransactions = await _context.Invoices
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .AnyAsync(
-                    i =>
-                        i.TenantId == tenantId
-                        && i.CashRegisterId == register.Id
-                        && i.CreatedAt >= dayStartUtc
-                        && i.CreatedAt < dayEndExclusiveUtc
-                        && i.Status == InvoiceStatus.Paid,
+            var sessionStartedUtc = await TryGetOpenSessionStartUtcAsync(
+                    tenantId,
+                    register.Id,
+                    register.Status,
+                    register.LastBalanceUpdate,
                     cancellationToken)
                 .ConfigureAwait(false);
-            if (!hasTransactions)
-                continue;
+            var (todayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(
+                AutoTagesabschlussCutoff.GetTodayBusinessDay(utcNow));
+            var (yesterdayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(
+                AutoTagesabschlussCutoff.GetYesterdayBusinessDay(utcNow));
+            var pastCutoff = AutoTagesabschlussCutoff.IsPastCutoff(
+                utcNow,
+                settings.HourVienna,
+                settings.MinuteVienna);
+            var emptyCloseBeforeUtc = pastCutoff ? todayStartUtc : yesterdayStartUtc;
+            var leftOpenFromPreviousDay = sessionStartedUtc is DateTime started && started < todayStartUtc;
+            var closeEmptySession = sessionStartedUtc is DateTime emptyStart && emptyStart < emptyCloseBeforeUtc;
+            if (leftOpenFromPreviousDay)
+            {
+                _logger.LogWarning(
+                    "Cash register {RegisterId} ({RegisterNumber}) tenant {TenantId} is still open from a previous Vienna day (latest eligible {BusinessDay:yyyy-MM-dd}).",
+                    register.Id,
+                    register.RegisterNumber,
+                    tenantId,
+                    latestEligibleDay);
+            }
 
-            var openOrders = await CountOpenOrdersAsync(tenantId, cancellationToken).ConfigureAwait(false);
-            var policy = AutoTagesabschlussOpenOrdersPolicies.Normalize(settings.OpenOrdersPolicy);
-            if (openOrders > 0)
+            if (missedDays.Count == 0)
+            {
+                if (closeEmptySession)
+                {
+                    var openOrders = await CountOpenOrdersAsync(tenantId, cancellationToken).ConfigureAwait(false);
+                    var policy = AutoTagesabschlussOpenOrdersPolicies.Normalize(settings.OpenOrdersPolicy);
+                    if (openOrders > 0 && policy == AutoTagesabschlussOpenOrdersPolicies.Block)
+                    {
+                        await PublishOpenOrdersWarningAsync(
+                                tenantId,
+                                tenantName,
+                                register.Id,
+                                register.RegisterNumber,
+                                register.Location,
+                                latestEligibleDay,
+                                openOrders,
+                                blocked: true,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                        _logger.LogWarning(
+                            "Automatic Tagesabschluss did not close empty register {RegisterId} tenant {TenantId}: {OpenOrders} open order(s).",
+                            register.Id,
+                            tenantId,
+                            openOrders);
+                        continue;
+                    }
+
+                    var (_, _, emptyCashNote) = await ReadCashCountAsync(tenantId, register.Id, cancellationToken)
+                        .ConfigureAwait(false);
+                    await CompleteShiftsAndCloseRegisterAsync(
+                            tenantId,
+                            register.Id,
+                            register.Status,
+                            register.CurrentBalance,
+                            dailyClosingId: null,
+                            cashCount: null,
+                            emptyCashNote,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    _logger.LogWarning(
+                        "Automatic Tagesabschluss closed register {RegisterId} ({RegisterNumber}) tenant {TenantId} with no fiscal invoices on missed days.",
+                        register.Id,
+                        register.RegisterNumber,
+                        tenantId);
+                }
+
+                continue;
+            }
+
+            var openOrdersForClosing = await CountOpenOrdersAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            var closingPolicy = AutoTagesabschlussOpenOrdersPolicies.Normalize(settings.OpenOrdersPolicy);
+            if (openOrdersForClosing > 0)
             {
                 await PublishOpenOrdersWarningAsync(
                         tenantId,
@@ -188,19 +240,19 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                         register.Id,
                         register.RegisterNumber,
                         register.Location,
-                        businessDay,
-                        openOrders,
-                        blocked: policy == AutoTagesabschlussOpenOrdersPolicies.Block,
+                        missedDays[0],
+                        openOrdersForClosing,
+                        blocked: closingPolicy == AutoTagesabschlussOpenOrdersPolicies.Block,
                         cancellationToken)
                     .ConfigureAwait(false);
 
-                if (policy == AutoTagesabschlussOpenOrdersPolicies.Block)
+                if (closingPolicy == AutoTagesabschlussOpenOrdersPolicies.Block)
                 {
                     _logger.LogWarning(
                         "Automatic Tagesabschluss blocked for register {RegisterId} tenant {TenantId}: {OpenOrders} open order(s).",
                         register.Id,
                         tenantId,
-                        openOrders);
+                        openOrdersForClosing);
                     continue;
                 }
             }
@@ -229,58 +281,63 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
             _tenantAccessor.TenantId = tenantId;
             try
             {
-                var result = await _tagesabschluss.PerformDailyClosingAsync(
-                        actorUserId,
-                        register.Id,
-                        new DailyClosingPerformOptions
-                        {
-                            Trigger = DailyClosingTriggers.Automatic,
-                            CashCountNote = cashNote,
-                            CashCount = cashCount,
-                            CashDifference = cashDifference,
-                            OpenOrdersCount = openOrders,
-                            OpenOrdersForced = openOrders > 0
-                                && policy != AutoTagesabschlussOpenOrdersPolicies.NotifyAndContinue,
-                        },
-                        businessDay,
-                        AutoTagesabschlussSettings.AutomaticLateReason)
-                    .ConfigureAwait(false);
-
-                if (!result.Success)
+                foreach (var businessDay in missedDays)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var result = await _tagesabschluss.PerformDailyClosingAsync(
+                            actorUserId,
+                            register.Id,
+                            new DailyClosingPerformOptions
+                            {
+                                Trigger = DailyClosingTriggers.Automatic,
+                                CashCountNote = cashNote,
+                                CashCount = cashCount,
+                                CashDifference = cashDifference,
+                                OpenOrdersCount = openOrdersForClosing,
+                                OpenOrdersForced = openOrdersForClosing > 0
+                                    && closingPolicy != AutoTagesabschlussOpenOrdersPolicies.NotifyAndContinue,
+                            },
+                            businessDay,
+                            AutoTagesabschlussSettings.AutomaticLateReason)
+                        .ConfigureAwait(false);
+
+                    if (!result.Success)
+                    {
+                        _logger.LogWarning(
+                            "Automatic Tagesabschluss did not succeed for register {RegisterId} businessDay={BusinessDay:yyyy-MM-dd}: {Error}",
+                            register.Id,
+                            businessDay,
+                            result.ErrorMessage);
+                        break;
+                    }
+
+                    await CompleteShiftsAndCloseRegisterAsync(
+                            tenantId,
+                            register.Id,
+                            register.Status,
+                            register.CurrentBalance,
+                            result.ClosingId,
+                            cashCount,
+                            cashNote,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    await TryPeriodClosingsAsync(
+                            actorUserId,
+                            register.Id,
+                            businessDay,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    closed++;
                     _logger.LogWarning(
-                        "Automatic Tagesabschluss did not succeed for register {RegisterId}: {Error}",
-                        register.Id,
-                        result.ErrorMessage);
-                    continue;
-                }
-
-                await CompleteShiftsAndCloseRegisterAsync(
-                        tenantId,
-                        register.Id,
-                        register.Status,
-                        register.CurrentBalance,
+                        "Automatic Tagesabschluss created closing {ClosingId} for register {RegisterId} ({RegisterNumber}) tenant {TenantId} businessDay={BusinessDay:yyyy-MM-dd}",
                         result.ClosingId,
-                        cashCount,
-                        cashNote,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-
-                await TryPeriodClosingsAsync(
-                        actorUserId,
                         register.Id,
-                        businessDay,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-
-                closed++;
-                _logger.LogWarning(
-                    "Automatic Tagesabschluss created closing {ClosingId} for register {RegisterId} ({RegisterNumber}) tenant {TenantId} businessDay={BusinessDay:yyyy-MM-dd}",
-                    result.ClosingId,
-                    register.Id,
-                    register.RegisterNumber,
-                    tenantId,
-                    businessDay);
+                        register.RegisterNumber,
+                        tenantId,
+                        businessDay);
+                }
             }
             finally
             {
@@ -290,6 +347,101 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
 
         return closed;
     }
+
+    private async Task<List<DateTime>> ListMissedInvoiceBusinessDaysAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        DateTime utcNow,
+        DateTime latestEligibleDay,
+        CancellationToken cancellationToken)
+    {
+        var today = AutoTagesabschlussCutoff.GetTodayBusinessDay(utcNow);
+        var (todayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(today);
+        var createdAts = await _context.Invoices
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(i =>
+                i.TenantId == tenantId
+                && i.CashRegisterId == cashRegisterId
+                && i.CreatedAt < todayStartUtc
+                && i.Status == InvoiceStatus.Paid)
+            .Select(i => i.CreatedAt)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var days = createdAts
+            .Select(PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant)
+            .Where(day => day <= latestEligibleDay)
+            .Distinct()
+            .OrderBy(day => day)
+            .ToList();
+
+        var missed = new List<DateTime>();
+        foreach (var day in days)
+        {
+            var anchor = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(day);
+            var alreadyClosed = await _context.DailyClosings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .AnyAsync(
+                    d =>
+                        d.TenantId == tenantId
+                        && d.CashRegisterId == cashRegisterId
+                        && d.ClosingType == "Daily"
+                        && d.ClosingDate == anchor,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!alreadyClosed)
+                missed.Add(day);
+        }
+
+        return missed;
+    }
+
+    private async Task<DateTime?> TryGetOpenSessionStartUtcAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        RegisterStatus status,
+        DateTime lastBalanceUpdate,
+        CancellationToken cancellationToken)
+    {
+        if (status != RegisterStatus.Open)
+            return null;
+
+        var shiftStarted = await _context.CashierShifts
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s =>
+                s.TenantId == tenantId
+                && s.CashRegisterId == cashRegisterId
+                && s.Status == CashierShiftStatuses.Active
+                && s.IsActive)
+            .OrderBy(s => s.StartedAt)
+            .Select(s => (DateTime?)s.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (shiftStarted is DateTime started)
+            return SpecifyUtc(started);
+
+        var lastOpen = await _context.CashRegisterTransactions
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(t =>
+                t.CashRegisterId == cashRegisterId
+                && t.TransactionType == TransactionType.Open
+                && t.IsActive)
+            .OrderByDescending(t => t.TransactionDate)
+            .Select(t => (DateTime?)t.TransactionDate)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (lastOpen is DateTime opened)
+            return SpecifyUtc(opened);
+
+        return SpecifyUtc(lastBalanceUpdate);
+    }
+
+    private static DateTime SpecifyUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 
     private async Task<AutoTagesabschlussSettings> LoadSettingsAsync(
         Guid tenantId,

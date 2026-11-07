@@ -82,4 +82,23 @@ public class PosCashRegisterSelectableAuthorizationTests
         using var doc = JsonDocument.Parse(json);
         Assert.Equal("cashier-1", doc.RootElement.GetProperty("assignedUserId").GetString());
     }
+
+    [Fact]
+    public void SelectableRow_SerializesInUseFlags()
+    {
+        var json = JsonSerializer.Serialize(
+            new CashRegisterSelectableRow
+            {
+                Id = Guid.NewGuid(),
+                RegisterNumber = "K-1",
+                Status = RegisterStatus.Open,
+                IsSelectable = false,
+                StatusText = "In Benutzung von Mia Hofer",
+            },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        using var doc = JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.GetProperty("isSelectable").GetBoolean());
+        Assert.Equal("In Benutzung von Mia Hofer", doc.RootElement.GetProperty("statusText").GetString());
+    }
 }

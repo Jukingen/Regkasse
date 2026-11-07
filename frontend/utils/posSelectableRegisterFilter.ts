@@ -16,9 +16,12 @@ export type CashRegisterRowWithOptionalStatus = {
   /** Backend RegisterStatus name, e.g. "Open" / "Closed". Absent on older backends. */
   status?: string;
   assignedUserId?: string | null;
+  /** False when another user holds the open shift. Absent means the row can be picked. */
+  isSelectable?: boolean;
+  statusText?: string | null;
 };
 
-export type PosPickerRowKind = 'available' | 'opensOnSelect' | 'requestOpen' | 'unavailable';
+export type PosPickerRowKind = 'available' | 'opensOnSelect' | 'requestOpen' | 'unavailable' | 'inUse';
 
 /** True when the till has no open shift (`RegisterStatus.Closed`). */
 export function isClosedRegister(row: CashRegisterRowWithOptionalStatus): boolean {
@@ -49,6 +52,7 @@ export function resolvePosPickerRowKind(
   row: CashRegisterRowWithOptionalStatus,
   canOpenShift: boolean
 ): PosPickerRowKind {
+  if (row.isSelectable === false) return 'inUse';
   if (!isPaymentUsableSelectableRow(row)) return 'unavailable';
   if (isClosedRegister(row)) return canOpenShift ? 'opensOnSelect' : 'requestOpen';
   return 'available';

@@ -959,10 +959,18 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
-    public async Task ListSelectableForPosPicker_SoleRowOpenByOtherUser_ReturnsEmpty_WithNoneSelectableReason()
+    public async Task ListSelectableForPosPicker_AssignedRowOpenByOtherUser_StaysVisible_NotSelectable()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u2",
+            UserName = "manager1",
+            Email = "manager1@test",
+            FirstName = "Mia",
+            LastName = "Hofer",
+        });
         ctx.CashRegisters.Add(new CashRegister
         {
             TenantId = SystemTenantIds.Platform,
@@ -984,8 +992,11 @@ public class CashRegisterResolutionServiceTests
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
 
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_selectable_for_user", result.EmptyReason);
+        var row = Assert.Single(result.Registers);
+        Assert.Equal(regId, row.Id);
+        Assert.False(row.IsSelectable);
+        Assert.Equal("In Benutzung von Mia Hofer", row.StatusText);
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
@@ -1219,7 +1230,7 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
-    public async Task ListSelectableForPosPicker_OpenButNotSelectable_EmptyReasonNoneSelectableForUser()
+    public async Task ListSelectableForPosPicker_AssignedRowsOpenByOthers_StayVisible_WithoutEmptyReason()
     {
         await using var db = CreateContext();
         foreach (var uid in new[] { "other", "other2" })
@@ -1246,8 +1257,9 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(db);
         var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
         var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
-        Assert.Empty(result.Registers);
-        Assert.Equal("none_selectable_for_user", result.EmptyReason);
+        Assert.Equal(2, result.Registers.Count);
+        Assert.All(result.Registers, row => Assert.False(row.IsSelectable));
+        Assert.Null(result.EmptyReason);
     }
 
     [Fact]
@@ -1657,9 +1669,9 @@ public class CashRegisterResolutionServiceTests
         Assert.Equal(theirs, list[0].Id);
     }
 
-    /// <summary>Assignment does not override occupancy: an assigned register on another user's shift stays out of the picker.</summary>
+    /// <summary>Assignment does not grant the shift: the row stays visible but cannot be picked while someone else holds it.</summary>
     [Fact]
-    public async Task ListSelectableRegisters_AssignedToCallerButHeldByOtherShift_IsExcluded()
+    public async Task ListSelectableRegisters_AssignedToCallerButHeldByOtherShift_IsVisibleButNotSelectable()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
@@ -1669,7 +1681,10 @@ public class CashRegisterResolutionServiceTests
         var svc = CreateService(ctx);
         var list = await svc.ListSelectableRegistersAsync("u1", PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView));
 
-        Assert.Empty(list);
+        var row = Assert.Single(list);
+        Assert.Equal(regId, row.Id);
+        Assert.False(row.IsSelectable);
+        Assert.Equal("In Benutzung von u2", row.StatusText);
     }
 
     [Fact]

@@ -13,9 +13,10 @@ const REGISTER_ID = '11111111-1111-1111-1111-111111111111';
 
 const notifySuccessKey = vi.fn();
 const notifyApiError = vi.fn();
+const notifyError = vi.fn();
 
 vi.mock('@/hooks/useNotify', () => ({
-  useNotify: () => ({ successKey: notifySuccessKey, apiError: notifyApiError }),
+  useNotify: () => ({ successKey: notifySuccessKey, apiError: notifyApiError, error: notifyError }),
 }));
 
 vi.mock('@/features/users/hooks/useUsersList', () => ({
@@ -141,6 +142,23 @@ describe('CashRegisterAssignedUserField', () => {
 
     await waitFor(() => expect(assignCashRegisterUser).toHaveBeenCalledWith(REGISTER_ID, null));
     expect(notifySuccessKey).toHaveBeenCalledWith('cashRegisters.detail.assignedUserCleared');
+  });
+
+  it('shows the 409 message when the register is open on another shift', async () => {
+    const message =
+      'This register is currently open by Mia Hofer. Please close it before assigning to Anna Berger.';
+    vi.mocked(assignCashRegisterUser).mockRejectedValue({
+      response: { status: 409, data: { message, code: 'REGISTER_OPEN_BY_OTHER_USER' } },
+    });
+    renderField({});
+
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(await screen.findByTitle('Anna Berger (anna.berger@dev.regkasse.at)'));
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(notifyError).toHaveBeenCalledWith(message, { duration: 8 });
+    expect(notifyApiError).not.toHaveBeenCalled();
   });
 
   it('blocks editing for a decommissioned register', () => {

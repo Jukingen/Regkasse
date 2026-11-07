@@ -120,6 +120,8 @@ export default function CashRegisterSelectScreen() {
     async (registerId: string) => {
       const trimmed = readValidPosCashRegisterId(registerId);
       if (!trimmed || savingId) return;
+      const picked = registers.find((row) => row.id === trimmed);
+      if (picked?.isSelectable === false) return;
 
       setSavingId(trimmed);
       setError(null);
@@ -142,7 +144,7 @@ export default function CashRegisterSelectScreen() {
         setSavingId(null);
       }
     },
-    [savingId, setCurrentCashRegisterId, t]
+    [registers, savingId, setCurrentCashRegisterId, t]
   );
 
   useEffect(() => {
@@ -342,6 +344,28 @@ export default function CashRegisterSelectScreen() {
             const selected = savingId === register.id;
             const busy = Boolean(savingId || requestingId);
 
+            if (kind === 'inUse') {
+              const inUseLabel =
+                register.statusText?.trim() || t('settings:registerSelect.inUse');
+              return (
+                <View
+                  key={register.id}
+                  style={[styles.optionRow, styles.optionRowInUse]}
+                  testID="cash-register-select-in-use"
+                  accessibilityRole="text"
+                  accessibilityLabel={inUseLabel}
+                  accessibilityHint={t('settings:registerSelect.inUseHint')}>
+                  <View style={styles.optionTextWrap}>
+                    <Text style={[styles.optionText, styles.optionTextMuted]}>
+                      {formatRegisterLabel(register.registerNumber)}
+                    </Text>
+                    <Text style={styles.optionStatus}>{inUseLabel}</Text>
+                    <Text style={styles.optionHint}>{t('settings:registerSelect.inUseHint')}</Text>
+                  </View>
+                </View>
+              );
+            }
+
             if (kind === 'unavailable') {
               return (
                 <View key={register.id} style={[styles.optionRow, styles.optionRowClosed]}>
@@ -512,6 +536,13 @@ const styles = StyleSheet.create({
   },
   optionRowDisabled: {
     opacity: 0.55,
+  },
+  optionRowInUse: {
+    backgroundColor: SoftColors.bgSecondary,
+    opacity: 0.72,
+  },
+  optionTextMuted: {
+    color: SoftColors.textMuted,
   },
   optionText: {
     fontSize: 16,

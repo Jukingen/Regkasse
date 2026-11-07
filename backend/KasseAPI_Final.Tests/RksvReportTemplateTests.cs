@@ -109,6 +109,10 @@ public sealed class RksvReportTemplateTests
         Assert.Contains("Ursprüngliches Datum: 14.07.2026", text, StringComparison.Ordinal);
         Assert.Contains("Erstellt am: 15.07.2026", text, StringComparison.Ordinal);
         Assert.Contains("Grund: Technisches Problem / Systemausfall", text, StringComparison.Ordinal);
+
+        var note = DailyClosingBackdatedReportNote.Format(closingDate, createdAt, model.LateCreationReason);
+        Assert.Contains("===", note, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u2550", note, StringComparison.Ordinal);
     }
 
     [Fact]

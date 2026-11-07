@@ -92,9 +92,11 @@ public sealed class PosCashRegisterController : ControllerBase
     /// <see cref="ICashRegisterResolutionService.ListSelectableRegistersAsync"/> and adds <c>emptyReason</c> when the list is empty).
     /// </summary>
     /// <remarks>
-    /// Response shape (camelCase): <c>{ "registers": [ { "id", "registerNumber", "location", "status" } ], "emptyReason": ... }</c>,
+    /// Response shape (camelCase): <c>{ "registers": [ { "id", "registerNumber", "location", "status", "isSelectable", "statusText" } ], "emptyReason": ... }</c>,
     /// where <c>status</c> is the <see cref="RegisterStatus"/> name (<c>"Open"</c> / <c>"Closed"</c>) — closed rows are selectable and
     /// get opened by <c>POST /api/pos/shift/auto-open</c> on pick when the caller has <c>shift.open</c>.
+    /// A row assigned to the caller but open on another shift has <c>isSelectable: false</c> and
+    /// <c>statusText</c> <c>In Benutzung von {Name}</c>. <c>emptyReason</c> <c>none_selectable_for_user</c> is used only when the list itself is empty.
     /// Without that permission the cashier requests Mandanten-Admin via <c>POST /api/pos/cash-register/open-requests</c>.
     /// Do not substitute <c>GET /api/CashRegister</c> on POS — that returns full inventory including decommissioned registers.
     /// </remarks>

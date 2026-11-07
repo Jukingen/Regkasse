@@ -86,12 +86,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterOpenResult.InvalidState();
             }
 
-            if (!string.IsNullOrEmpty(register.CurrentUserId) &&
-                !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return CashRegisterOpenResult.ConflictOtherUser();
-            }
+            // Closed is not an active session. A leftover CurrentUserId must not block the
+            // assigned cashier. Another holder is rejected only while Status is Open (above).
 
             var user = await _userManager.FindByIdAsync(shiftOperatorUserId);
             if (user == null)

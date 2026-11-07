@@ -152,7 +152,9 @@
     "closeHeldByOther": "Bu kasa başka bir vardiyada açık. Yalnızca vardiya sahibi kapatabilir.",
     "unknownHolder": "başka bir kullanıcı",
     "forceCloseTitle": "Kasa yine de kapatılsın mı?",
-    "forceCloseContent": "Güncel vardiya {{holder}} adlı kullanıcıda. Kasa kapanır; kasiyer ardından satış yapamaz."
+    "forceCloseContent": "Güncel vardiya {{holder}} adlı kullanıcıda. Kasa kapanır; kasiyer ardından satış yapamaz.",
+    "takeShiftTitle": "Vardiyayı devral",
+    "takeShiftContent": "Aktif vardiyayı siz alıyorsunuz. Atanan kasiyer, kasa kapatıldıktan sonra bu kasayı seçebilir."
   },
   "shiftGuidance": {
     "pageCollapseTitle": "Vardiya ve RKSV: kasa durumu rehberi",

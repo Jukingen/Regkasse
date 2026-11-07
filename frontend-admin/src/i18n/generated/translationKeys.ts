@@ -3855,6 +3855,8 @@ export const ADMIN_TRANSLATION_KEYS = [
   'cashRegisters.shift.forceCloseContent',
   'cashRegisters.shift.forceCloseTitle',
   'cashRegisters.shift.openSuccess',
+  'cashRegisters.shift.takeShiftContent',
+  'cashRegisters.shift.takeShiftTitle',
   'cashRegisters.shift.unknownHolder',
   'cashRegisters.shiftGuidance.closedReasons.adminAction',
   'cashRegisters.shiftGuidance.closedReasons.decommissionPrep',
