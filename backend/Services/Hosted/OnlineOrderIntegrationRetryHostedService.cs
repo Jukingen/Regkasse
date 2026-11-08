@@ -101,6 +101,7 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
         var production = _environment.IsProduction();
         var woltConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.WoltProvider);
         var foodoraConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.FoodoraProvider);
+        var lieferandoConfirmed = OnlineOrderIntegrationSignatureStatus.IsConfirmed(OnlineOrderIntegrationSignatureStatus.LieferandoProvider);
         var dueIds = await db.OnlineOrderIntegrations
             .IgnoreQueryFilters()
             .Where(r => r.IsActive
@@ -110,7 +111,8 @@ public sealed class OnlineOrderIntegrationRetryHostedService : BackgroundService
                         && (r.NextAttemptAt == null || r.NextAttemptAt <= now)
                         && (!production
                             || (woltConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.WoltProvider)
-                            || (foodoraConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.FoodoraProvider)))
+                            || (foodoraConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.FoodoraProvider)
+                            || (lieferandoConfirmed && r.Provider == OnlineOrderIntegrationSignatureStatus.LieferandoProvider)))
             .OrderBy(r => r.NextAttemptAt)
             .Select(r => r.Id)
             .Take(20)

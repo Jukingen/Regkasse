@@ -601,6 +601,7 @@ import type {
   LicenseTestSnapshotDto,
   LicenseTestTenantRequest,
   LicenseTransferRequestInfoResponse,
+  LieferandoTenantCredentialStatusDto,
   LimitDashboardDto,
   LodgingErrorDto,
   LogoutBulkSessionsRequestDto,
@@ -1056,6 +1057,7 @@ import type {
   UpgradeLicenseRequestBody,
   UpsertFoodoraTenantCredentialRequest,
   UpsertHairSalonCampaignRequest,
+  UpsertLieferandoTenantCredentialRequest,
   UpsertOnlineOrderIntegrationLocationRequest,
   UpsertOnlineOrderIntegrationProviderRequest,
   UpsertOnlineOrderProductMappingRequest,
@@ -11749,6 +11751,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiAdminOnlineOrderIntegrationsFoodoraCredentialsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<LieferandoTenantCredentialStatusDto>(
+      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey = () => {
+    return [`/api/admin/online-order-integrations/lieferando/credentials`] as const;
+    }
+
+
+export const getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>> = ({ signal }) => getApiAdminOnlineOrderIntegrationsLieferandoCredentials(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
+export type GetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryError = ProblemDetails
+
+export const useGetApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TData = Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOnlineOrderIntegrationsLieferandoCredentialsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminOnlineOrderIntegrationsLieferandoCredentials = (
+    upsertLieferandoTenantCredentialRequest: UpsertLieferandoTenantCredentialRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+
+
+      return customInstance<void>(
+      {url: `/api/admin/online-order-integrations/lieferando/credentials`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertLieferandoTenantCredentialRequest
+    },
+      options);
+    }
+
+
+
+export const getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, {data: UpsertLieferandoTenantCredentialRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminOnlineOrderIntegrationsLieferandoCredentials(data,requestOptions)
+        }
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>>
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationBody = UpsertLieferandoTenantCredentialRequest
+    export type PutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationError = ProblemDetails
+
+    export const usePutApiAdminOnlineOrderIntegrationsLieferandoCredentials = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>, TError,{data: UpsertLieferandoTenantCredentialRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminOnlineOrderIntegrationsLieferandoCredentials>>,
+        TError,
+        {data: UpsertLieferandoTenantCredentialRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminOnlineOrderIntegrationsLieferandoCredentialsMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
