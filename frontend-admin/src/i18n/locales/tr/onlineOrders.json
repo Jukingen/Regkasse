@@ -135,6 +135,16 @@
     "foodoraWebhookToken": "Webhook token",
     "foodoraSave": "Foodora kaydet",
     "foodoraSaved": "Foodora erişimi kaydedildi.",
-    "foodoraSaveFailed": "Foodora erişimi kaydedilemedi."
+    "foodoraSaveFailed": "Foodora erişimi kaydedilemedi.",
+    "lieferandoTitle": "Lieferando",
+    "lieferandoTenantTitle": "Lieferando erişimi",
+    "lieferandoEnabled": "Lieferando açık",
+    "lieferandoAuthorizationKey": "Authorization anahtarı",
+    "lieferandoHmacSecret": "HMAC sırrı",
+    "lieferandoFlytApiKey": "X-Flyt-API-Key",
+    "lieferandoBrandId": "Marka kimliği",
+    "lieferandoSave": "Lieferando kaydet",
+    "lieferandoSaved": "Lieferando erişimi kaydedildi.",
+    "lieferandoSaveFailed": "Lieferando erişimi kaydedilemedi."
   }
 }

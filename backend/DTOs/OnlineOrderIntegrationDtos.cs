@@ -105,8 +105,14 @@ public sealed class OnlineOrderIntegrationCommandResult
 
     public Guid? Id { get; init; }
 
+    /// <summary>Online order number returned to JET as <c>OrderId</c>. Null until intake creates the order.</summary>
+    public string? OrderNumber { get; init; }
+
     public static OnlineOrderIntegrationCommandResult Ok(int statusCode, Guid? id = null) =>
         new() { Succeeded = true, StatusCode = statusCode, Id = id };
+
+    public static OnlineOrderIntegrationCommandResult WithOrder(int statusCode, Guid id, string orderNumber) =>
+        new() { Succeeded = true, StatusCode = statusCode, Id = id, OrderNumber = orderNumber };
 
     public static OnlineOrderIntegrationCommandResult Fail(int statusCode, string code, string error) =>
         new() { Succeeded = false, StatusCode = statusCode, Code = code, Error = error };
@@ -173,4 +179,33 @@ public sealed class FoodoraTenantCredentialStatusDto
     public bool ProviderEnabled { get; set; }
 
     public string CredentialStatus { get; set; } = OnlineOrderIntegrationProviderStatuses.Missing;
+}
+
+public sealed class UpsertLieferandoTenantCredentialRequest
+{
+    /// <summary>API key JET sends in <c>Authorization</c>. Stored as <c>client_id</c>.</summary>
+    public string? ClientId { get; set; }
+
+    /// <summary>Optional HMAC secret for <c>X-JET-Connect-Hash</c>. Stored as <c>client_secret</c>.</summary>
+    public string? ClientSecret { get; set; }
+
+    /// <summary>JET brand identifier. Stored as <c>chain_id</c>.</summary>
+    public string? ChainId { get; set; }
+
+    /// <summary>Outbound <c>X-Flyt-API-Key</c>. Stored as <c>webhook_token</c>.</summary>
+    public string? WebhookToken { get; set; }
+}
+
+public sealed class LieferandoTenantCredentialStatusDto
+{
+    public bool ProviderEnabled { get; set; }
+
+    public string CredentialStatus { get; set; } = OnlineOrderIntegrationProviderStatuses.Missing;
+}
+
+/// <summary>JET Connect success body. The property name stays <c>OrderId</c>.</summary>
+public sealed class LieferandoOrderAck
+{
+    [System.Text.Json.Serialization.JsonPropertyName("OrderId")]
+    public string OrderId { get; init; } = string.Empty;
 }

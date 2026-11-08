@@ -135,6 +135,16 @@
     "foodoraWebhookToken": "Webhook token",
     "foodoraSave": "Save Foodora",
     "foodoraSaved": "Foodora credentials saved.",
-    "foodoraSaveFailed": "Foodora credentials could not be saved."
+    "foodoraSaveFailed": "Foodora credentials could not be saved.",
+    "lieferandoTitle": "Lieferando",
+    "lieferandoTenantTitle": "Lieferando credentials",
+    "lieferandoEnabled": "Lieferando enabled",
+    "lieferandoAuthorizationKey": "Authorization key",
+    "lieferandoHmacSecret": "HMAC secret",
+    "lieferandoFlytApiKey": "X-Flyt-API-Key",
+    "lieferandoBrandId": "Brand ID",
+    "lieferandoSave": "Save Lieferando",
+    "lieferandoSaved": "Lieferando credentials saved.",
+    "lieferandoSaveFailed": "Lieferando credentials could not be saved."
   }
 }

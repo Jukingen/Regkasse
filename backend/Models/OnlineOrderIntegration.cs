@@ -198,6 +198,8 @@ public static class OnlineOrderIntegrationSignatureStatus
 
     public const bool FoodoraConfirmed = false;
 
+    public const bool LieferandoConfirmed = false;
+
     /// <summary>
     /// Test assembly only (<c>InternalsVisibleTo</c>). Production code never sets this.
     /// Callers reset it to <c>false</c> in a <c>finally</c> block.
@@ -210,6 +212,12 @@ public static class OnlineOrderIntegrationSignatureStatus
     /// </summary>
     internal static bool FoodoraConfirmedForTests { get; set; }
 
+    /// <summary>
+    /// Test assembly only (<c>InternalsVisibleTo</c>). Production code never sets this.
+    /// Callers reset it to <c>false</c> in a <c>finally</c> block.
+    /// </summary>
+    internal static bool LieferandoConfirmedForTests { get; set; }
+
     public const string HeaderName = "X-Regkasse-Integration-Signature";
 
     /// <summary>Wolt marketplace webhook header. HMAC-SHA256 hex of the raw body.</summary>
@@ -218,6 +226,11 @@ public static class OnlineOrderIntegrationSignatureStatus
     public const string WoltProvider = "wolt";
 
     public const string FoodoraProvider = "foodora";
+
+    public const string LieferandoProvider = "lieferando";
+
+    /// <summary>JET Connect webhook HMAC header. Hex, or <c>HMAC-SHA256 t=...,signature=</c>.</summary>
+    public const string LieferandoHashHeaderName = "X-JET-Connect-Hash";
 
     public const string UnconfirmedCode = "INTEGRATION_SIGNATURE_UNCONFIRMED";
 
@@ -230,10 +243,17 @@ public static class OnlineOrderIntegrationSignatureStatus
     public static bool IsFoodora(string? provider) =>
         string.Equals((provider ?? string.Empty).Trim(), FoodoraProvider, StringComparison.OrdinalIgnoreCase);
 
+    public static bool IsLieferando(string? provider) =>
+        string.Equals((provider ?? string.Empty).Trim(), LieferandoProvider, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Foodora and Lieferando keep partner secrets on the tenant credential row.</summary>
+    public static bool IsTenantOwned(string? provider) => IsFoodora(provider) || IsLieferando(provider);
+
     /// <summary>
     /// Production gate. Deliverect reads <see cref="DeliverectConfirmed"/> only.
     /// Wolt reads <see cref="WoltConfirmed"/> or the test hook.
-    /// Foodora reads <see cref="FoodoraConfirmed"/> or the test hook. Every other provider stays closed.
+    /// Foodora reads <see cref="FoodoraConfirmed"/> or the test hook.
+    /// Lieferando reads <see cref="LieferandoConfirmed"/> or the test hook. Every other provider stays closed.
     /// </summary>
     public static bool IsConfirmed(string? provider)
     {
@@ -242,6 +262,8 @@ public static class OnlineOrderIntegrationSignatureStatus
             return WoltConfirmed || WoltConfirmedForTests;
         if (normalized == FoodoraProvider)
             return FoodoraConfirmed || FoodoraConfirmedForTests;
+        if (normalized == LieferandoProvider)
+            return LieferandoConfirmed || LieferandoConfirmedForTests;
         if (normalized == "deliverect")
             return DeliverectConfirmed;
         return false;
