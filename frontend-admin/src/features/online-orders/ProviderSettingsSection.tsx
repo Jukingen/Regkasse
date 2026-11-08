@@ -23,6 +23,7 @@ type ProviderForm = {
 
 const woltQueryKey = ['online-order-integration-provider', 'wolt'] as const;
 const foodoraQueryKey = ['online-order-integration-provider', 'foodora'] as const;
+const lieferandoQueryKey = ['online-order-integration-provider', 'lieferando'] as const;
 
 export function ProviderSettingsSection() {
   const { t } = useI18n();
@@ -51,6 +52,17 @@ export function ProviderSettingsSection() {
         url: '/api/admin/online-order-integrations/providers',
         method: 'GET',
         params: { provider: 'foodora' },
+      }),
+  });
+
+  const lieferando = useQuery({
+    queryKey: lieferandoQueryKey,
+    enabled: canConfigure,
+    queryFn: () =>
+      customInstance<ProviderAdmin>({
+        url: '/api/admin/online-order-integrations/providers',
+        method: 'GET',
+        params: { provider: 'lieferando' },
       }),
   });
 
@@ -101,6 +113,28 @@ export function ProviderSettingsSection() {
     },
   });
 
+  const lieferandoSave = useMutation({
+    mutationFn: (enabled: boolean) =>
+      customInstance<{ id: string }>({
+        url: '/api/admin/online-order-integrations/providers',
+        method: 'PUT',
+        data: {
+          provider: 'lieferando',
+          enabled,
+        },
+      }),
+    onSuccess: async () => {
+      notify.successKey('onlineOrders.providers.saved');
+      await queryClient.invalidateQueries({ queryKey: lieferandoQueryKey });
+    },
+    onError: (error) => {
+      notify.apiError(error, {
+        logContext: 'OnlineOrderProviders.lieferandoSave',
+        fallbackKey: 'onlineOrders.providers.saveFailed',
+      });
+    },
+  });
+
   if (!canConfigure) return null;
 
   const credentialStatus = status.data?.credentialStatus === 'configured'
@@ -137,6 +171,11 @@ export function ProviderSettingsSection() {
         saving={foodoraSave.isPending}
         onSave={(enabled) => foodoraSave.mutate(enabled)}
       />
+      <LieferandoEnableForm
+        enabled={lieferando.data?.enabled === true}
+        saving={lieferandoSave.isPending}
+        onSave={(enabled) => lieferandoSave.mutate(enabled)}
+      />
     </section>
   );
 }
@@ -167,6 +206,37 @@ function FoodoraEnableForm({
       </Form.Item>
       <Button type="primary" htmlType="submit" loading={saving}>
         {t('onlineOrders.providers.foodoraSave')}
+      </Button>
+    </Form>
+  );
+}
+
+function LieferandoEnableForm({
+  enabled,
+  saving,
+  onSave,
+}: {
+  enabled: boolean;
+  saving: boolean;
+  onSave: (enabled: boolean) => void;
+}) {
+  const { t } = useI18n();
+  const [form] = Form.useForm<{ enabled: boolean }>();
+
+  return (
+    <Form<{ enabled: boolean }>
+      form={form}
+      layout="vertical"
+      initialValues={{ enabled }}
+      key={enabled ? 'lieferando-on' : 'lieferando-off'}
+      onFinish={(values) => onSave(values.enabled)}
+    >
+      <Typography.Title level={4}>{t('onlineOrders.providers.lieferandoTitle')}</Typography.Title>
+      <Form.Item name="enabled" label={t('onlineOrders.providers.lieferandoEnabled')} valuePropName="checked">
+        <Switch />
+      </Form.Item>
+      <Button type="primary" htmlType="submit" loading={saving}>
+        {t('onlineOrders.providers.lieferandoSave')}
       </Button>
     </Form>
   );

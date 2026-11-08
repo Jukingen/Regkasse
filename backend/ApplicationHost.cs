@@ -1484,6 +1484,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFoodoraAccessTokenSource, FoodoraAccessTokenSource>();
         builder.Services.AddScoped<IFoodoraOrderNotificationService, FoodoraOrderNotificationService>();
         builder.Services.AddScoped<IFoodoraTenantCredentialService, FoodoraTenantCredentialService>();
+        builder.Services.AddScoped<ILieferandoOrderNotificationService, LieferandoOrderNotificationService>();
+        builder.Services.AddScoped<ILieferandoTenantCredentialService, LieferandoTenantCredentialService>();
         builder.Services.AddScoped<FoodoraAckDeadlineScanner>();
         builder.Services.AddScoped<IOnlineOrderIntegrationProviderService, OnlineOrderIntegrationProviderService>();
         builder.Services.AddScoped<IWoltIntegrationConnectService, WoltIntegrationConnectService>();

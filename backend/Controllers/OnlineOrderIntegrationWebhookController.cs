@@ -19,15 +19,18 @@ public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
     private readonly IOnlineOrderIntegrationWebhookService _webhooks;
     private readonly IWoltOrderNotificationService _wolt;
     private readonly IFoodoraOrderNotificationService _foodora;
+    private readonly ILieferandoOrderNotificationService _lieferando;
 
     public OnlineOrderIntegrationWebhookController(
         IOnlineOrderIntegrationWebhookService webhooks,
         IWoltOrderNotificationService wolt,
-        IFoodoraOrderNotificationService foodora)
+        IFoodoraOrderNotificationService foodora,
+        ILieferandoOrderNotificationService lieferando)
     {
         _webhooks = webhooks;
         _wolt = wolt;
         _foodora = foodora;
+        _lieferando = lieferando;
     }
 
     [HttpPost("{provider}")]
@@ -44,6 +47,17 @@ public sealed class OnlineOrderIntegrationWebhookController : ControllerBase
                 return foodoraResult.Id is Guid foodoraId ? Ok(new { id = foodoraId }) : Ok();
 
             return StatusCode(foodoraResult.StatusCode, new { code = foodoraResult.Code, message = foodoraResult.Error });
+        }
+
+        if (OnlineOrderIntegrationSignatureStatus.IsLieferando(provider))
+        {
+            var authorization = Request.Headers.Authorization.ToString();
+            var hash = Request.Headers[OnlineOrderIntegrationSignatureStatus.LieferandoHashHeaderName].ToString();
+            var lieferandoResult = await _lieferando.AcceptAsync(authorization, hash, Request.Body, ct);
+            if (lieferandoResult.Succeeded && !string.IsNullOrWhiteSpace(lieferandoResult.OrderNumber))
+                return Ok(new LieferandoOrderAck { OrderId = lieferandoResult.OrderNumber });
+
+            return StatusCode(lieferandoResult.StatusCode, new { code = lieferandoResult.Code, message = lieferandoResult.Error });
         }
 
         string raw;
