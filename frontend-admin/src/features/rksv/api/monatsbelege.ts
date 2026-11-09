@@ -42,6 +42,34 @@ export type FetchMonatsbelegeParams = {
   pageSize?: number;
 };
 
+export type PeriodSalesSummaryResponse = {
+  periodLabel: string;
+  receiptCount: number;
+  totalRevenue: number;
+  netAmount: number;
+  vat10: number;
+  vat20: number;
+  grossAmount: number;
+  zeroSales: boolean;
+  paymentId?: string | null;
+};
+
+export function fetchMonatsbelegSalesSummary(
+  params: { cashRegisterId: string; year: number; month?: number },
+  signal?: AbortSignal
+): Promise<PeriodSalesSummaryResponse> {
+  return customInstance<PeriodSalesSummaryResponse>({
+    url: '/api/admin/rksv/monatsbelege/sales-summary',
+    method: 'GET',
+    params: {
+      cashRegisterId: params.cashRegisterId,
+      year: params.year,
+      month: params.month,
+    },
+    signal,
+  });
+}
+
 export function fetchMonatsbelege(
   params: FetchMonatsbelegeParams,
   signal?: AbortSignal

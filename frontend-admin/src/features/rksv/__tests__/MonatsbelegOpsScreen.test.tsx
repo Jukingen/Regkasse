@@ -17,6 +17,13 @@ const mutateAsync = vi.hoisted(() => vi.fn());
 vi.mock('@/features/rksv/api/monatsbelege', () => ({
   monatsbelegeListQueryKey: ['admin', 'rksv', 'monatsbelege'],
   fetchMonatsbelege: (...args: unknown[]) => fetchMonatsbelege(...args),
+  fetchMonatsbelegSalesSummary: vi.fn().mockResolvedValue({
+    periodLabel: 'Monat: Jänner 2026',
+    receiptCount: 0,
+    totalRevenue: 0,
+    zeroSales: true,
+    paymentId: null,
+  }),
 }));
 
 vi.mock('@/features/settings/api/monatsbelegPolicy', () => ({

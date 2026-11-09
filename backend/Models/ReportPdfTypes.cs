@@ -10,6 +10,8 @@ public static class ReportPdfTypes
     public const string Nullbeleg = "nullbeleg";
     public const string Schlussbeleg = "schlussbeleg";
     public const string Receipt = "receipt";
+    public const string Tagesbericht = "tagesbericht";
+    public const string Jahresbericht = "jahresbericht";
 
     public static string FromClosingType(string? closingType) =>
         closingType?.Trim() switch
@@ -33,7 +35,8 @@ public static class ReportPdfTypes
     public static bool IsKnown(string? reportType) =>
         reportType?.Trim().ToLowerInvariant() switch
         {
-            Tagesabschluss or Monatsbeleg or Jahresbeleg or Startbeleg or Nullbeleg or Schlussbeleg or Receipt => true,
+            Tagesabschluss or Monatsbeleg or Jahresbeleg or Startbeleg or Nullbeleg or Schlussbeleg or Receipt
+                or Tagesbericht or Jahresbericht => true,
             _ => false,
         };
 
