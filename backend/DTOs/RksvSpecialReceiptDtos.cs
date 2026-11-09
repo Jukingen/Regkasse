@@ -84,6 +84,12 @@ public sealed class CreateMonatsbelegResponse
 
     /// <summary>Real UTC timestamp when the receipt was signed and persisted (never backdated).</summary>
     public DateTime CreatedAtUtc { get; set; }
+
+    /// <summary>True when force=true replaced the active Monatsbeleg with a newly signed receipt.</summary>
+    public bool Reissued { get; set; }
+
+    /// <summary>Previous active payment kept for the audit trail. Null on the first Monatsbeleg of the month.</summary>
+    public Guid? SupersededPaymentId { get; set; }
 }
 
 /// <summary>Returned when a past Vienna calendar month is requested without <c>force=true</c>.</summary>

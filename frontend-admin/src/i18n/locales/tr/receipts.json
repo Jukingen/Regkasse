@@ -53,7 +53,8 @@
   },
   "filters": {
     "placeholderReceiptNumber": "Fis numarasi",
-    "placeholderCashRegister": "Kasa kimligi",
+    "labelCashRegister": "Kasa",
+    "placeholderCashRegister": "Tum kasalar",
     "placeholderCashier": "Kasiyer kimligi",
     "dateFrom": "Baslangic",
     "dateTo": "Bitis",

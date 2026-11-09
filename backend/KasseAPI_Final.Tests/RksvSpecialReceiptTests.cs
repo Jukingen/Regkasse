@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Constants;
@@ -7,11 +8,14 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -313,30 +317,47 @@ public class RksvSpecialReceiptTests
             m -= 1;
         }
 
-        var first = await service.CreateMonatsbelegAsync(
-            new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = y, Month = m },
-            "u1",
-            forcePastMonth: true);
-        var exception = await Record.ExceptionAsync(() =>
-            service.CreateMonatsbelegAsync(
-                new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = y, Month = m },
-                "u1",
-                forcePastMonth: true));
+        var request = new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = y, Month = m };
+        var first = await service.CreateMonatsbelegAsync(request, "u1", forcePastMonth: true);
+        var blocked = await Record.ExceptionAsync(() =>
+            service.CreateMonatsbelegAsync(request, "u1", forcePastMonth: false));
 
         first.Should().NotBeNull();
-        exception.Should().BeOfType<RksvOperationGuardException>();
-        var guard = (RksvOperationGuardException)exception!;
+        blocked.Should().BeOfType<RksvOperationGuardException>();
+        ((RksvOperationGuardException)blocked!).ErrorCode.Should().Be(RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce);
+
         if (m == 12)
         {
+            var secondAttempt = await Record.ExceptionAsync(() =>
+                service.CreateMonatsbelegAsync(request, "u1", forcePastMonth: true));
+            secondAttempt.Should().BeOfType<RksvOperationGuardException>();
+            var guard = (RksvOperationGuardException)secondAttempt!;
             guard.ErrorCode.Should().Be(RksvGuardErrorCodes.DuplicateJahresbeleg);
             guard.Message.Should().Contain("Jahresbeleg");
+            return;
         }
-        else
-        {
-            guard.ErrorCode.Should().Be(RksvGuardErrorCodes.DuplicateMonatsbeleg);
-            guard.Message.Should().Contain("already exists");
-            guard.Message.Should().Contain($"{y}-{m:00}");
-        }
+
+        var second = await service.CreateMonatsbelegAsync(request, "u1", forcePastMonth: true);
+        second.Reissued.Should().BeTrue();
+        second.SupersededPaymentId.Should().Be(first.PaymentId);
+        second.PaymentId.Should().NotBe(first.PaymentId);
+        second.ReceiptNumber.Should().NotBe(first.ReceiptNumber);
+
+        var rows = await context.PaymentDetails
+            .Where(p => p.CashRegisterId == registerId &&
+                        p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                        p.RksvSpecialReceiptYear == y &&
+                        p.RksvSpecialReceiptMonth == m)
+            .ToListAsync();
+        rows.Should().HaveCount(2);
+        rows.Count(p => p.IsActive).Should().Be(1);
+        var prior = rows.Single(p => p.Id == first.PaymentId);
+        prior.IsActive.Should().BeFalse();
+        prior.ReceiptNumber.Should().Be(first.ReceiptNumber);
+        prior.TseSignature.Should().NotBeNullOrWhiteSpace();
+        var current = rows.Single(p => p.Id == second.PaymentId);
+        current.IsActive.Should().BeTrue();
+        current.TseSignature.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -401,5 +422,155 @@ public class RksvSpecialReceiptTests
 
         result.Success.Should().BeFalse();
         result.DiagnosticCode.Should().Be(RksvGuardErrorCodes.RegisterDecommissioned);
+    }
+
+    [Fact]
+    public async Task CreateMonatsbeleg_ForceReissue_WritesAuditAndActivity()
+    {
+        var registerId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid();
+        var supersededId = Guid.NewGuid();
+        var newPaymentId = Guid.NewGuid();
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (month == 1)
+        {
+            year -= 1;
+            month = 12;
+        }
+        else
+        {
+            month -= 1;
+        }
+
+        var special = new Mock<IRksvSpecialReceiptService>();
+        special.Setup(s => s.CreateMonatsbelegAsync(
+                It.IsAny<CreateMonatsbelegRequest>(),
+                "u1",
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreateMonatsbelegResponse
+            {
+                PaymentId = newPaymentId,
+                InvoiceId = Guid.NewGuid(),
+                ReceiptId = Guid.NewGuid(),
+                ReceiptNumber = "AT-KASSE-01-REISSUE",
+                Reissued = true,
+                SupersededPaymentId = supersededId,
+                Year = year,
+                Month = month,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                It.IsAny<AuditEventType?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var activity = new Mock<IActivityEventPublisher>();
+        activity.Setup(a => a.TryPublishAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<ActivityEventType>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var permissions = new Mock<ICashRegisterPermissionService>();
+        permissions.Setup(p => p.CanCreateSonderbelegAsync(registerId, It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CashRegisterPermissionResult.Allow());
+
+        var posAudit = new Mock<IPosCriticalActionAuditService>();
+        posAudit.Setup(p => p.LogSpecialReceiptOutcomeAsync(
+                It.IsAny<string>(),
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var tenant = new Mock<ICurrentTenantAccessor>();
+        tenant.SetupGet(t => t.TenantId).Returns(tenantId);
+
+        var controller = new KasseAPI_Final.Controllers.RksvSpecialReceiptsController(
+            special.Object,
+            posAudit.Object,
+            audit.Object,
+            permissions.Object,
+            Mock.Of<IApiMessageLocalizer>(),
+            activity.Object,
+            tenant.Object,
+            Mock.Of<ILogger<KasseAPI_Final.Controllers.RksvSpecialReceiptsController>>())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new Claim("userId", "u1"),
+                        new Claim("role", "Manager"),
+                    ],
+                    "test")),
+                },
+            },
+        };
+
+        var result = await controller.CreateMonatsbeleg(
+            new CreateMonatsbelegRequest { CashRegisterId = registerId, Year = year, Month = month },
+            force: true);
+
+        var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var body = ok.Value.Should().BeOfType<CreateMonatsbelegResponse>().Subject;
+        body.Reissued.Should().BeTrue();
+        body.PaymentId.Should().Be(newPaymentId);
+
+        audit.Verify(a => a.LogSystemOperationAsync(
+            "MonatsbelegReissued",
+            AuditLogEntityTypes.POS_CRITICAL,
+            "u1",
+            "Manager",
+            It.Is<string?>(d => d != null && d.Contains("re-issued") && d.Contains(supersededId.ToString())),
+            null,
+            AuditLogStatus.Success,
+            null,
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            null,
+            null,
+            AuditEventType.MonatsbelegReissued,
+            newPaymentId,
+            tenantId,
+            null,
+            null,
+            null), Times.Once);
+
+        activity.Verify(a => a.TryPublishAsync(
+            tenantId,
+            ActivityEventType.MonatsbelegReissued,
+            It.IsAny<object?>(),
+            "u1",
+            $"monatsbeleg-reissued:{newPaymentId}",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
