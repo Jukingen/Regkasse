@@ -53,7 +53,8 @@
   },
   "filters": {
     "placeholderReceiptNumber": "Belegnummer",
-    "placeholderCashRegister": "Kassen-ID",
+    "labelCashRegister": "Kasse",
+    "placeholderCashRegister": "Alle Kassen",
     "placeholderCashier": "Kassierer-ID",
     "dateFrom": "Von",
     "dateTo": "Bis",
