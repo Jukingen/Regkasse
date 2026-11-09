@@ -314,4 +314,10 @@ public enum ActivityEventType
     /// Metadata is ids and a short reason. The raw webhook body is not included.
     /// </summary>
     OnlineOrderIntegrationFailed = 266,
+
+    /// <summary>
+    /// force=true signed a new Monatsbeleg for a month that already had one.
+    /// Metadata is register, period, the kept payment id, and the new receipt number. No JWS.
+    /// </summary>
+    MonatsbelegReissued = 267,
 }

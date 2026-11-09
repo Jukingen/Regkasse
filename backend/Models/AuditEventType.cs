@@ -456,5 +456,12 @@ public enum AuditEventType
     /// </summary>
     TenantDemoSeedPartial = 153,
 
+    /// <summary>
+    /// A past-month Monatsbeleg was signed again with force=true.
+    /// The previous payment stays in the database with its signature and BelegNr; only IsActive is cleared.
+    /// Numeric 154: 99 is reserved for <see cref="Other"/>.
+    /// </summary>
+    MonatsbelegReissued = 154,
+
     Other = 99
 }

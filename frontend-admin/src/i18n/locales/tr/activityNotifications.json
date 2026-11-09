@@ -100,6 +100,7 @@
     "MonatsbelegMissingReminder": "Monatsbeleg eksik",
     "MonatsbelegAutoCreated": "Monatsbeleg otomatik oluşturuldu",
     "MonatsbelegCreated": "Monatsbeleg oluşturuldu",
+    "MonatsbelegReissued": "Monatsbeleg yeniden düzenlendi",
     "MonatsbelegAutoCreateFailed": "Monatsbeleg otomatik oluşturma başarısız",
     "MonatsbelegAutoCreateMissed": "Monatsbeleg otomatik oluşturma kaçırıldı",
     "JahresbelegFonReminder": "Jahresbeleg FinanzOnline hatırlatması",

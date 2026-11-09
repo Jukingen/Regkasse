@@ -5,8 +5,10 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +27,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     private readonly IAuditLogService _auditLogService;
     private readonly ICashRegisterPermissionService _permissions;
     private readonly IApiMessageLocalizer _messages;
+    private readonly IActivityEventPublisher _activityEvents;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<RksvSpecialReceiptsController> _logger;
 
     public RksvSpecialReceiptsController(
@@ -33,6 +37,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         IAuditLogService auditLogService,
         ICashRegisterPermissionService permissions,
         IApiMessageLocalizer messages,
+        IActivityEventPublisher activityEvents,
+        ICurrentTenantAccessor tenantAccessor,
         ILogger<RksvSpecialReceiptsController> logger)
     {
         _specialReceipts = specialReceipts;
@@ -40,6 +46,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         _auditLogService = auditLogService;
         _permissions = permissions;
         _messages = messages;
+        _activityEvents = activityEvents;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -331,6 +339,54 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                     },
                     responseData: new { result.PaymentId, result.ReceiptNumber },
                     entityId: result.PaymentId).ConfigureAwait(false);
+            }
+
+            if (result.Reissued)
+            {
+                await _auditLogService.LogSystemOperationAsync(
+                    "MonatsbelegReissued",
+                    AuditLogEntityTypes.POS_CRITICAL,
+                    userId,
+                    User.GetActorRole() ?? "Unknown",
+                    description:
+                        $"Monatsbeleg for {request.Year}-{request.Month:00} re-issued. Previous signed receipt {result.SupersededPaymentId} was kept; new receipt {result.ReceiptNumber} was signed.",
+                    requestData: new
+                    {
+                        request.CashRegisterId,
+                        request.Year,
+                        request.Month,
+                        Force = true,
+                        result.SupersededPaymentId,
+                    },
+                    responseData: new
+                    {
+                        result.PaymentId,
+                        result.ReceiptNumber,
+                        result.Reissued,
+                    },
+                    entityId: result.PaymentId,
+                    actionType: AuditEventType.MonatsbelegReissued,
+                    tenantId: _tenantAccessor.TenantId).ConfigureAwait(false);
+
+                if (_tenantAccessor.TenantId is Guid tenantId)
+                {
+                    await _activityEvents.TryPublishAsync(
+                        tenantId,
+                        ActivityEventType.MonatsbelegReissued,
+                        new
+                        {
+                            request.CashRegisterId,
+                            request.Year,
+                            request.Month,
+                            Force = true,
+                            result.SupersededPaymentId,
+                            NewPaymentId = result.PaymentId,
+                            result.ReceiptNumber,
+                        },
+                        userId,
+                        $"monatsbeleg-reissued:{result.PaymentId}",
+                        cancellationToken).ConfigureAwait(false);
+                }
             }
 
             return Ok(result);

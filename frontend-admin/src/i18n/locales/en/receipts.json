@@ -53,7 +53,8 @@
   },
   "filters": {
     "placeholderReceiptNumber": "Receipt number",
-    "placeholderCashRegister": "Cash register ID",
+    "labelCashRegister": "Cash register",
+    "placeholderCashRegister": "All registers",
     "placeholderCashier": "Cashier ID",
     "dateFrom": "From",
     "dateTo": "To",

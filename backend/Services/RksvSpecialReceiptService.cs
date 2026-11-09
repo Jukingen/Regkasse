@@ -716,21 +716,24 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
         EnsureRegisterNotDecommissioned(register);
 
-        var duplicate = await _db.PaymentDetails.AsNoTracking()
-            .AnyAsync(
+        var existingActive = await _db.PaymentDetails
+            .Where(
                 p => p.CashRegisterId == request.CashRegisterId &&
                      p.IsActive &&
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
                      p.RksvSpecialReceiptYear == request.Year &&
-                     p.RksvSpecialReceiptMonth == request.Month,
-                cancellationToken)
+                     p.RksvSpecialReceiptMonth == request.Month)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        if (duplicate)
+        if (existingActive.Count > 0 && !forcePastMonth)
         {
             throw new RksvOperationGuardException(
                 RksvGuardErrorCodes.DuplicateMonatsbeleg,
                 $"A Monatsbeleg already exists for register {register.RegisterNumber} in {request.Year}-{request.Month:00}.");
         }
+
+        var supersededPaymentId = existingActive.Count > 0 ? existingActive[0].Id : (Guid?)null;
 
         var guest = await _db.Customers.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
@@ -772,6 +775,17 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                         TaxDetailsJson: taxDetailsJson,
                         DbTransaction: tx))
                 .ConfigureAwait(false);
+
+            // Sign while the previous receipt is still active so the chain keeps it as the predecessor.
+            // Persist IsActive=false before the new insert: the partial unique index allows one active
+            // Monatsbeleg per register and month. Signature, BelegNr, amounts, and CreatedAt stay unchanged.
+            if (existingActive.Count > 0)
+            {
+                foreach (var prior in existingActive)
+                    prior.IsActive = false;
+
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             var paymentId = Guid.NewGuid();
             var payment = new PaymentDetails
@@ -894,6 +908,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 Year = request.Year,
                 Month = request.Month,
                 CreatedAtUtc = issuedAtUtc,
+                Reissued = supersededPaymentId.HasValue,
+                SupersededPaymentId = supersededPaymentId,
             };
         }
         catch

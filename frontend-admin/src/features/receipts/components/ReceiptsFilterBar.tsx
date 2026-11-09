@@ -1,12 +1,12 @@
 'use client';
 
 import { ClearOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Col, DatePicker, Form, Input, Row, Space } from 'antd';
+import { Button, DatePicker, Form, Input, Select, Space } from 'antd';
 import dayjs from 'dayjs';
-import React from 'react';
+import { useMemo } from 'react';
 
-import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import type { ReceiptListParams } from '@/features/receipts/types/receipts';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
 
 const { RangePicker } = DatePicker;
@@ -37,15 +37,40 @@ export default function ReceiptsFilterBar({
 }: ReceiptsFilterBarProps) {
   const { t } = useI18n();
   const [form] = Form.useForm<FilterFormValues>();
+  const { registers, isLoading: registersLoading } = useCashRegisterSelection({
+    autoSelect: false,
+    autoSelectSingle: false,
+    persistSelection: false,
+  });
+  const cashRegisterOptions = useMemo(
+    () =>
+      registers
+        .filter((register) => register.isActive !== false)
+        .map((register) => ({
+          value: register.id,
+          label: `${register.registerNumber} — ${register.location ?? ''}`.trim(),
+        })),
+    [registers]
+  );
+
+  const toParams = (values: FilterFormValues): Partial<ReceiptListParams> => ({
+    receiptNumber: values.receiptNumber || undefined,
+    cashRegisterId: values.cashRegisterId || undefined,
+    cashierId: values.cashierId || undefined,
+    issuedFrom: values.dateRange?.[0]?.toISOString(),
+    issuedTo: values.dateRange?.[1]?.toISOString(),
+  });
 
   const handleFinish = (values: FilterFormValues) => {
-    const params: Partial<ReceiptListParams> = {};
-    if (values.receiptNumber) params.receiptNumber = values.receiptNumber;
-    if (values.cashRegisterId) params.cashRegisterId = values.cashRegisterId;
-    if (values.cashierId) params.cashierId = values.cashierId;
-    if (values.dateRange?.[0]) params.issuedFrom = values.dateRange[0].toISOString();
-    if (values.dateRange?.[1]) params.issuedTo = values.dateRange[1].toISOString();
-    onFilterChange(params);
+    onFilterChange(toParams(values));
+  };
+
+  const handleValuesChange = (
+    changed: Partial<FilterFormValues>,
+    all: FilterFormValues
+  ) => {
+    if (!Object.prototype.hasOwnProperty.call(changed, 'cashRegisterId')) return;
+    onFilterChange(toParams(all));
   };
 
   const handleReset = () => {
@@ -70,6 +95,7 @@ export default function ReceiptsFilterBar({
       layout="inline"
       initialValues={formInitial}
       onFinish={handleFinish}
+      onValuesChange={handleValuesChange}
       style={{ marginBottom: 16, flexWrap: 'wrap', gap: 8 }}
     >
       <Form.Item name="receiptNumber">
@@ -81,13 +107,15 @@ export default function ReceiptsFilterBar({
         />
       </Form.Item>
 
-      <Form.Item name="cashRegisterId">
-        <CashRegisterSelector
-          showFormItem={false}
-          required={false}
+      <Form.Item name="cashRegisterId" label={t('receipts.filters.labelCashRegister')}>
+        <Select
           allowClear
+          showSearch
+          optionFilterProp="label"
+          loading={registersLoading}
           placeholder={t('receipts.filters.placeholderCashRegister')}
-          style={{ width: 220 }}
+          options={cashRegisterOptions}
+          style={{ width: 240 }}
         />
       </Form.Item>
 
