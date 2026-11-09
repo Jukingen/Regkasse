@@ -5,6 +5,8 @@ import {
   REGISTER_STATUS,
   canDecommissionRegister,
   isDecommissionedRegister,
+  isPermanentlyClosedRegister,
+  rawRegisterStatus,
   readStartbelegCreatedAt,
   registerStatusEmoji,
 } from '@/features/cash-registers/utils/registerStatus';
@@ -19,6 +21,16 @@ describe('registerStatus', () => {
   it('detects decommissioned status', () => {
     expect(isDecommissionedRegister(REGISTER_STATUS.decommissioned)).toBe(true);
     expect(isDecommissionedRegister(REGISTER_STATUS.open)).toBe(false);
+  });
+
+  it('reads Decommissioned from a numeric or named status', () => {
+    expect(rawRegisterStatus({ status: 5 })).toBe(REGISTER_STATUS.decommissioned);
+    expect(rawRegisterStatus({ status: 'Decommissioned' })).toBe(REGISTER_STATUS.decommissioned);
+    expect(isPermanentlyClosedRegister({ status: 'Decommissioned' })).toBe(true);
+    expect(isPermanentlyClosedRegister({ status: 'Open' })).toBe(false);
+    expect(
+      isPermanentlyClosedRegister({ status: 1, decommissionedAtUtc: '2026-08-01T00:00:00Z' })
+    ).toBe(true);
   });
 
   it('maps emoji for primary statuses', () => {
