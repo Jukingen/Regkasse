@@ -148,6 +148,9 @@ public sealed class TagesberichtListItemDto
     public int ReportVersion { get; set; }
     public string SubmissionImpact { get; set; } = string.Empty;
     public decimal GrossSalesAmount { get; set; }
+
+    public int SalePaymentRowCount { get; set; }
+
     public DateTime CreatedAtUtc { get; set; }
     public TagesberichtSubmissionStateDto Submission { get; set; } = new();
 }

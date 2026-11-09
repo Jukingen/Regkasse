@@ -33,7 +33,11 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
-import { rawRegisterStatus as rawCashRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
+import {
+  isPermanentlyClosedRegister,
+  rawRegisterStatus as rawCashRegisterStatus,
+} from '@/features/cash-registers/utils/registerStatus';
+import { isRksvRegisterDecommissionedError } from '@/features/rksv/utils/rksvRegisterDecommissionedError';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import {
   isRksvFinanzOnlineTrackedSpecialReceiptKind,
@@ -202,6 +206,10 @@ export default function RksvSonderbelegePage() {
     excludeDecommissioned: false,
     enabled: Boolean(ambientTenantId),
   });
+  const creatableRegisters = useMemo(
+    () => registers.filter((row) => !isPermanentlyClosedRegister(row)),
+    [registers]
+  );
 
   const { year: viennaYear, month: viennaMonth } = useMemo(() => getViennaCalendarYearMonth(), []);
   const defaultYear = useMemo(() => getViennaCalendarYear(), []);
@@ -385,13 +393,13 @@ export default function RksvSonderbelegePage() {
       return;
     }
     if (searchParams.get('registerId')?.trim()) return;
-    if (registers.length === 1 && registers[0]?.id) {
-      const id = String(registers[0].id);
+    if (creatableRegisters.length === 1 && creatableRegisters[0]?.id) {
+      const id = String(creatableRegisters[0].id);
       setRegisterId(id);
       syncSonderbelegeQuery({ registerId: id });
       didAutoSelectRef.current = true;
     }
-  }, [registers, registersLoading, registerId, searchParams, syncSonderbelegeQuery]);
+  }, [creatableRegisters, registersLoading, registerId, searchParams, syncSonderbelegeQuery]);
 
   useEffect(() => {
     const focus = searchParams.get('focus')?.trim();
@@ -449,7 +457,7 @@ export default function RksvSonderbelegePage() {
   const selectedRegisterStatus = selectedRegister
     ? rawCashRegisterStatus(selectedRegister)
     : undefined;
-  const selectedRegisterIsDecommissioned = selectedRegisterStatus === 5;
+  const selectedRegisterIsDecommissioned = isPermanentlyClosedRegister(selectedRegister);
   const selectedRegisterHasOpenSession = selectedRegisterStatus === 2;
   const canCreateSchlussbelegNow = selectedRegisterStatus === 1;
   const selectedStatusVisual = sonderbelegeStatusVisual(selectedRegisterStatus);
@@ -638,8 +646,12 @@ export default function RksvSonderbelegePage() {
       notify.errorKey('rksvHub.sonderbelege.tenantMismatchTitle');
       return undefined;
     }
+    if (isPermanentlyClosedRegister(selectedRegister)) {
+      notify.errorKey('rksvHub.sonderbelege.decommissionedHint');
+      return undefined;
+    }
     return registerId;
-  }, [notify, registerId, tenantBlocksCreate]);
+  }, [notify, registerId, selectedRegister, tenantBlocksCreate]);
 
   const onNullbeleg = useCallback(async () => {
     const cashRegisterId = ensureRegisterForCreate();
@@ -792,10 +804,14 @@ export default function RksvSonderbelegePage() {
         period: formatMonthYearDe(prevYear, prevMonth),
       });
     } catch (e: unknown) {
-      notify.apiError(e, {
-        logContext: 'RKSV.demoMonatsbeleg',
-        fallbackKey: 'common.errorGeneric',
-      });
+      if (isRksvRegisterDecommissionedError(e)) {
+        notify.errorKey('rksvHub.sonderbelege.decommissionedHint');
+      } else {
+        notify.apiError(e, {
+          logContext: 'RKSV.demoMonatsbeleg',
+          fallbackKey: 'common.errorGeneric',
+        });
+      }
     } finally {
       setBusy(null);
     }
@@ -1035,7 +1051,7 @@ export default function RksvSonderbelegePage() {
       <Card style={{ marginBottom: 16 }}>
         <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <SonderbelegeRegisterPicker
-            registers={registers}
+            registers={creatableRegisters}
             loading={registersLoading}
             registerId={registerId}
             onRegisterChange={handleRegisterChange}
@@ -1065,6 +1081,17 @@ export default function RksvSonderbelegePage() {
                 </Link>
               ) : null}
             </Empty>
+          ) : null}
+          {!registersLoading &&
+          creatableRegisters.length === 0 &&
+          registers.length > 0 &&
+          !selectedRegisterIsDecommissioned ? (
+            <Alert
+              type="warning"
+              showIcon
+              data-testid="monatsbeleg-register-decommissioned"
+              title={t('rksvHub.sonderbelege.decommissionedHint')}
+            />
           ) : null}
           {isTenantMismatch || orphanRegisterSelection ? (
             <Alert

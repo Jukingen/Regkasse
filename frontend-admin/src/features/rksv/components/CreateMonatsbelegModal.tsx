@@ -7,6 +7,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react
 
 import { MonatsbelegLateSuccessModal } from '@/features/rksv/components/MonatsbelegLateSuccessModal';
 import { useCreateMonatsbeleg } from '@/features/rksv/hooks/useCreateMonatsbeleg';
+import { isRksvRegisterDecommissionedError } from '@/features/rksv/utils/rksvRegisterDecommissionedError';
 import {
   type MonatsbelegLateSuccessResult,
   toMonatsbelegLateSuccessResult,
@@ -176,6 +177,11 @@ export function CreateMonatsbelegModal({
         onSuccess();
         onClose();
       } catch (error: unknown) {
+        if (isRksvRegisterDecommissionedError(error)) {
+          notify.errorKey('rksvHub.sonderbelege.decommissionedHint');
+          return;
+        }
+
         if (!isAxiosError(error)) {
           notify.errorKey('rksvHub.sonderbelege.monatsbelegCreateFailed');
           return;

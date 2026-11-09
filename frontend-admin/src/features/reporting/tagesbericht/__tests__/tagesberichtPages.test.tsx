@@ -109,7 +109,8 @@ describe('Tagesbericht FA screens', () => {
     renderList();
     expect(await screen.findByText('Kasse-1')).toBeInTheDocument();
     expect(screen.getByText('Provisorisch')).toBeInTheDocument();
-    expect(screen.getByText('128,50')).toBeInTheDocument();
+    expect(screen.getAllByText(/128,50/).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('period-sales-summary')).toBeInTheDocument();
   });
 
   it('renders detail summary cards', () => {

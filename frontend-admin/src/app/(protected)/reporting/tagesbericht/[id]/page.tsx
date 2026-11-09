@@ -19,6 +19,7 @@ import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExpor
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
 import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
 import { TagesberichtReconciliationFlags } from '@/features/reporting/tagesbericht/TagesberichtReconciliationFlags';
 import { TagesberichtSummaryCards } from '@/features/reporting/tagesbericht/TagesberichtSummaryCards';
 import { printTagesberichtSummary } from '@/features/reporting/tagesbericht/tagesberichtPrint';
@@ -276,7 +277,13 @@ export default function TagesberichtDetailPage() {
           { title: id },
         ]}
         actions={
-          <Space wrap>
+          <Space wrap align="start">
+            <PeriodSalesSummaryCard
+              periodLabel={`Tag: ${businessDate.split('-').reverse().join('.')}`}
+              receiptCount={d.summary.salePaymentRowCount ?? 0}
+              totalRevenue={d.summary.grossSalesAmount ?? 0}
+              zeroSales={(d.summary.salePaymentRowCount ?? 0) === 0 || (d.summary.grossSalesAmount ?? 0) === 0}
+            />
             {canExport ? (
               <Button
                 onClick={() => {

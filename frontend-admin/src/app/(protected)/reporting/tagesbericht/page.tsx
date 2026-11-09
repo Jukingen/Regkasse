@@ -16,6 +16,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { ExportTemplateApplyBanner } from '@/features/exports/components/ExportTemplateApplyBanner';
 import { buildTagesberichtCsv, downloadTextFile } from '@/features/reporting/tagesbericht/tagesberichtCsv';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
 import { TagesberichtBulkFinalizeModal } from '@/features/reporting/tagesbericht/TagesberichtBulkFinalizeModal';
 import {
   isProvisionalStatus,
@@ -167,6 +168,9 @@ export default function TagesberichtListPage() {
     }
   };
 
+  const previewReceiptCount = rows.reduce((sum, row) => sum + (row.salePaymentRowCount ?? 0), 0);
+  const previewRevenue = rows.reduce((sum, row) => sum + (Number(row.grossSalesAmount) || 0), 0);
+
   const selectedProvisional = rows.filter(
     (row) => selectedIds.includes(row.id) && isProvisionalStatus(row.reportStatus)
   );
@@ -276,6 +280,14 @@ export default function TagesberichtListPage() {
           }
           initialValues={{ dateRange: range }}
         />
+        <Space orientation="vertical" size={8} style={{ display: 'flex', marginBottom: 12 }}>
+          <PeriodSalesSummaryCard
+            periodLabel={`${fromDate} – ${toDate}`}
+            receiptCount={previewReceiptCount}
+            totalRevenue={previewRevenue}
+            zeroSales={rows.length > 0 && previewRevenue === 0 && previewReceiptCount === 0}
+          />
+        </Space>
         <Space wrap style={{ marginBottom: 12 }}>
           {canExport ? (
             <Button type="primary" loading={generateMut.isPending} onClick={handleGenerate}>

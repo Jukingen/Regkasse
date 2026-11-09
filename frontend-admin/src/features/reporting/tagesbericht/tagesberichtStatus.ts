@@ -8,6 +8,7 @@ export type TagesberichtListRow = {
   reportStatus: string;
   correctionKind: string;
   grossSalesAmount: number;
+  salePaymentRowCount?: number;
   createdAtUtc: string;
   submission: {
     lifecycle: string;

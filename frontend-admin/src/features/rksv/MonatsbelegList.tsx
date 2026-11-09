@@ -2,7 +2,7 @@
 
 import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Form, Select, Space, Tabs } from 'antd';
+import { Alert, Button, Card, Form, Select, Space, Tabs, Typography } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
@@ -15,6 +15,7 @@ import { useCreateMonatsbeleg } from '@/features/rksv/hooks/useCreateMonatsbeleg
 import { useMonatsbelegStatus } from '@/features/rksv/hooks/useMonatsbeleg';
 import { anyRegisterLastMonthMissing } from '@/features/rksv/utils/anyRegisterLastMonthMissing';
 import { collectPastMissingMonatsbelege } from '@/features/rksv/utils/monatsbelegMissingMonths';
+import { isRksvRegisterDecommissionedError } from '@/features/rksv/utils/rksvRegisterDecommissionedError';
 import {
   buildMonatsbelegOpsRows,
   filterMonatsbelegOpsRows,
@@ -28,8 +29,14 @@ import { getViennaCalendarYearMonth } from '@/shared/utils/viennaCalendar';
 
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { isPermanentlyClosedRegister } from '@/features/cash-registers/utils/registerStatus';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
+import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import {
+  fetchMonatsbelegSalesSummary,
   fetchMonatsbelege,
   monatsbelegeListQueryKey,
 } from '@/features/rksv/api/monatsbelege';
@@ -50,7 +57,7 @@ type OpsTab = 'monats' | 'jahres';
 export function MonatsbelegList() {
   const { t } = useI18n();
   const notify = useNotify();
-  const { modal } = useAntdApp();
+  const { modal, message } = useAntdApp();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed =
@@ -73,9 +80,21 @@ export function MonatsbelegList() {
 
   const registers = useAdminCashRegisterList({
     allowTenantScopedDefault: true,
-    excludeDecommissioned: true,
+    excludeDecommissioned: false,
     enabled: allowed,
   });
+  const selectableRegisters = useMemo(
+    () => (registers.registers ?? []).filter((row) => !isPermanentlyClosedRegister(row)),
+    [registers.registers]
+  );
+  const closedRegisterIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of registers.registers ?? []) {
+      if (row.id && isPermanentlyClosedRegister(row)) ids.add(String(row.id));
+    }
+    return ids;
+  }, [registers.registers]);
+  const selectedRegisterIsClosed = Boolean(cashRegisterId && closedRegisterIds.has(cashRegisterId));
 
   const listParams = useMemo(
     () => ({
@@ -111,7 +130,7 @@ export function MonatsbelegList() {
         missing: pastMissing,
         year,
         cashRegisterId,
-        registers: (registers.registers ?? []).map((r) => ({
+        registers: selectableRegisters.map((r) => ({
           id: r.id,
           registerNumber: r.registerNumber,
           location: r.location,
@@ -125,7 +144,7 @@ export function MonatsbelegList() {
       policyQuery.data?.autoMonatsbelegEnabled,
       policyQuery.data?.blockingMode,
       query.data?.items,
-      registers.registers,
+      selectableRegisters,
       year,
     ]
   );
@@ -143,9 +162,63 @@ export function MonatsbelegList() {
   const bulkTargets = useMemo(() => {
     const source = tab === 'jahres' ? opsRows.filter(isJahresbelegOpsRow) : opsRows;
     return source.filter(
-      (row) => row.displayStatus === 'Missing' || row.displayStatus === 'Overdue'
+      (row) =>
+        (row.displayStatus === 'Missing' || row.displayStatus === 'Overdue') &&
+        !closedRegisterIds.has(row.cashRegisterId)
     );
-  }, [opsRows, tab]);
+  }, [closedRegisterIds, opsRows, tab]);
+
+  const previewMonth = useMemo(() => {
+    if (!cashRegisterId || tab === 'jahres') return undefined;
+    const created = (query.data?.items ?? [])
+      .filter(
+        (row) =>
+          row.cashRegisterId === cashRegisterId && row.status === 'created' && !row.isJahresbeleg
+      )
+      .sort((a, b) => b.month - a.month);
+    if (created[0]) return created[0].month;
+    const vienna = getViennaCalendarYearMonth();
+    if (year < vienna.year) return 12;
+    if (year > vienna.year) return 1;
+    return Math.max(1, vienna.month - 1);
+  }, [cashRegisterId, query.data?.items, tab, year]);
+
+  const salesQuery = useQuery({
+    queryKey: ['admin', 'rksv', 'monatsbelege', 'sales-summary', cashRegisterId, year, previewMonth, tab],
+    queryFn: ({ signal }) =>
+      fetchMonatsbelegSalesSummary(
+        {
+          cashRegisterId: cashRegisterId ?? '',
+          year,
+          month: tab === 'jahres' ? undefined : previewMonth,
+        },
+        signal
+      ),
+    enabled: allowed && Boolean(cashRegisterId),
+  });
+
+  const downloadPreviewPdf = async () => {
+    const paymentId = salesQuery.data?.paymentId?.trim();
+    if (!paymentId) {
+      message.info(t('reporting.periodSales.noPdf'));
+      return;
+    }
+    const reportType = tab === 'jahres' ? 'jahresbeleg' : 'monatsbeleg';
+    try {
+      const blob = await downloadReportPdf(reportType, paymentId);
+      triggerReportPdfBlobDownload(
+        blob,
+        buildReportFileName({
+          reportType,
+          tenantSlug: getEffectiveTenantSlug(),
+          period: salesQuery.data?.periodLabel,
+        })
+      );
+      message.success(t('reporting.storedPdf.success'));
+    } catch {
+      message.error(t('reporting.storedPdf.error'));
+    }
+  };
 
   const jahresRows = useMemo(() => opsRows.filter(isJahresbelegOpsRow), [opsRows]);
   const showFonOverdueReminder =
@@ -159,22 +232,34 @@ export function MonatsbelegList() {
     const vienna = getViennaCalendarYearMonth();
     const prevMonth = vienna.month === 1 ? 12 : vienna.month - 1;
     const prevYear = vienna.month === 1 ? vienna.year - 1 : vienna.year;
-    const firstRegister = registers.registers?.[0];
-    return {
-      cashRegisterId: failed?.cashRegisterId ?? cashRegisterId ?? firstRegister?.id ?? '',
-      cashRegisterLabel: failed
+    const firstRegister = selectableRegisters[0];
+    const failedId = failed?.cashRegisterId;
+    const failedIsClosed = Boolean(failedId && closedRegisterIds.has(failedId));
+    const selectedIsClosed = Boolean(cashRegisterId && closedRegisterIds.has(cashRegisterId));
+    const chosenId =
+      !failedIsClosed && failedId
+        ? failedId
+        : !selectedIsClosed && cashRegisterId
+          ? cashRegisterId
+          : firstRegister?.id ?? '';
+    const chosenRegister = selectableRegisters.find((row) => row.id === chosenId) ?? firstRegister;
+    const registerLabel =
+      !failedIsClosed && failed
         ? failed.registerLocation
           ? `${failed.registerNumber} — ${failed.registerLocation}`
           : failed.registerNumber
-        : firstRegister
-          ? firstRegister.location
-            ? `${firstRegister.registerNumber} — ${firstRegister.location}`
-            : firstRegister.registerNumber
-          : undefined,
+        : chosenRegister
+          ? chosenRegister.location
+            ? `${chosenRegister.registerNumber} — ${chosenRegister.location}`
+            : chosenRegister.registerNumber
+          : undefined;
+    return {
+      cashRegisterId: chosenId,
+      cashRegisterLabel: registerLabel,
       year: failed?.year ?? prevYear,
       month: failed?.month ?? prevMonth,
     };
-  }, [cashRegisterId, query.data?.items, registers.registers]);
+  }, [cashRegisterId, closedRegisterIds, query.data?.items, selectableRegisters]);
 
   const yearOptions = useMemo(() => {
     const years: number[] = [];
@@ -211,7 +296,10 @@ export function MonatsbelegList() {
             force: true,
           });
           ok += 1;
-        } catch {
+        } catch (error: unknown) {
+          if (isRksvRegisterDecommissionedError(error)) {
+            notify.errorKey('rksvHub.sonderbelege.decommissionedHint');
+          }
           failed += 1;
         }
       }
@@ -336,7 +424,7 @@ export function MonatsbelegList() {
               style={{ minWidth: 220 }}
               placeholder={tp('filterRegisterAll')}
               value={cashRegisterId}
-              options={(registers.registers ?? []).map((r) => ({
+              options={selectableRegisters.map((r) => ({
                 value: r.id,
                 label: r.location ? `${r.registerNumber} — ${r.location}` : r.registerNumber,
               }))}
@@ -366,6 +454,40 @@ export function MonatsbelegList() {
             />
           </Form.Item>
         </Form>
+        {cashRegisterId ? (
+          <Space orientation="vertical" size={8} style={{ display: 'flex', marginBottom: 16 }}>
+            <PeriodSalesSummaryCard
+              loading={salesQuery.isFetching}
+              periodLabel={salesQuery.data?.periodLabel}
+              receiptCount={salesQuery.data?.receiptCount ?? 0}
+              totalRevenue={salesQuery.data?.totalRevenue ?? 0}
+              zeroSales={salesQuery.data?.zeroSales ?? false}
+            />
+            <Button
+              data-testid="monatsbeleg-pdf-download"
+              disabled={!salesQuery.data?.paymentId}
+              onClick={() => void downloadPreviewPdf()}
+            >
+              {t('reporting.periodSales.download')}
+            </Button>
+            {!salesQuery.isFetching && !salesQuery.data?.paymentId ? (
+              <Typography.Text type="secondary">{t('reporting.periodSales.noPdf')}</Typography.Text>
+            ) : null}
+          </Space>
+        ) : (
+          <Typography.Paragraph type="secondary">
+            {t('reporting.periodSales.selectRegister')}
+          </Typography.Paragraph>
+        )}
+        {selectedRegisterIsClosed ? (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            data-testid="monatsbeleg-register-decommissioned"
+            title={t('rksvHub.sonderbelege.decommissionedHint')}
+          />
+        ) : null}
         <Tabs
           activeKey={tab}
           onChange={(key) => {

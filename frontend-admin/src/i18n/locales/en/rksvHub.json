@@ -1320,7 +1320,7 @@
     "groupedByTenant": "Registers by tenant",
     "tenantGroupLabel": "{{name}} ({{count}})",
     "operatingStatus": "Operating status",
-    "decommissionedHint": "This register has already been decommissioned. No new special receipts can be created.",
+    "decommissionedHint": "This cash register is permanently closed (Schlussbeleg) and can no longer receive new receipts.",
     "status": {
       "active": "Active",
       "closed": "Closed",
