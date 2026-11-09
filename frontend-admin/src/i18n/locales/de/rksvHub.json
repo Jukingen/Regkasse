@@ -1320,7 +1320,7 @@
     "groupedByTenant": "Kassen nach Mandant",
     "tenantGroupLabel": "{{name}} ({{count}})",
     "operatingStatus": "Betriebsstatus",
-    "decommissionedHint": "Diese Kasse wurde bereits stillgelegt. Es können keine neuen Sonderbelege erstellt werden.",
+    "decommissionedHint": "Diese Kasse ist dauerhaft geschlossen (Schlussbeleg) und kann keine neuen Belege mehr erhalten.",
     "status": {
       "active": "Aktiv",
       "closed": "Geschlossen",

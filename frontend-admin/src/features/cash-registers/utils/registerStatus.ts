@@ -1,9 +1,25 @@
 import type { CashRegister } from '@/api/generated/model';
 
-/** Numeric `RegisterStatus` from API (1=Closed … 5=Decommissioned). */
-export function rawRegisterStatus(reg: CashRegister): number | undefined {
-  const r = reg as unknown as { status?: number };
-  return typeof r.status === 'number' ? r.status : undefined;
+const REGISTER_STATUS_BY_NAME: Record<string, number> = {
+  closed: 1,
+  open: 2,
+  maintenance: 3,
+  disabled: 4,
+  decommissioned: 5,
+};
+
+/** Numeric `RegisterStatus` from API (1=Closed … 5=Decommissioned). Accepts the numeric enum and its name. */
+export function rawRegisterStatus(
+  reg: { status?: number | string | null } | null | undefined
+): number | undefined {
+  const status = reg?.status;
+  if (typeof status === 'number' && Number.isFinite(status)) return status;
+  if (typeof status !== 'string') return undefined;
+  const trimmed = status.trim();
+  if (!trimmed) return undefined;
+  const asNumber = Number(trimmed);
+  if (Number.isFinite(asNumber)) return asNumber;
+  return REGISTER_STATUS_BY_NAME[trimmed.toLowerCase()];
 }
 
 /**
@@ -72,6 +88,15 @@ export function canDecommissionRegister(status: number | undefined): boolean {
 
 export function isDecommissionedRegister(status: number | undefined): boolean {
   return status === REGISTER_STATUS.decommissioned;
+}
+
+/** Schlussbeleg / Decommissioned: the register must not receive new fiscal receipts. */
+export function isPermanentlyClosedRegister(
+  reg: { status?: number | string | null; decommissionedAtUtc?: string | null } | null | undefined
+): boolean {
+  if (!reg) return false;
+  if (isDecommissionedRegister(rawRegisterStatus(reg))) return true;
+  return typeof reg.decommissionedAtUtc === 'string' && reg.decommissionedAtUtc.trim().length > 0;
 }
 
 export type CashRegisterDecommissionMeta = {

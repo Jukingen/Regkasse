@@ -15,6 +15,7 @@ import { useCreateMonatsbeleg } from '@/features/rksv/hooks/useCreateMonatsbeleg
 import { useMonatsbelegStatus } from '@/features/rksv/hooks/useMonatsbeleg';
 import { anyRegisterLastMonthMissing } from '@/features/rksv/utils/anyRegisterLastMonthMissing';
 import { collectPastMissingMonatsbelege } from '@/features/rksv/utils/monatsbelegMissingMonths';
+import { isRksvRegisterDecommissionedError } from '@/features/rksv/utils/rksvRegisterDecommissionedError';
 import {
   buildMonatsbelegOpsRows,
   filterMonatsbelegOpsRows,
@@ -78,9 +79,21 @@ export function MonatsbelegList() {
 
   const registers = useAdminCashRegisterList({
     allowTenantScopedDefault: true,
-    excludeDecommissioned: true,
+    excludeDecommissioned: false,
     enabled: allowed,
   });
+  const selectableRegisters = useMemo(
+    () => (registers.registers ?? []).filter((row) => !isPermanentlyClosedRegister(row)),
+    [registers.registers]
+  );
+  const closedRegisterIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of registers.registers ?? []) {
+      if (row.id && isPermanentlyClosedRegister(row)) ids.add(String(row.id));
+    }
+    return ids;
+  }, [registers.registers]);
+  const selectedRegisterIsClosed = Boolean(cashRegisterId && closedRegisterIds.has(cashRegisterId));
 
   const listParams = useMemo(
     () => ({
@@ -116,7 +129,7 @@ export function MonatsbelegList() {
         missing: pastMissing,
         year,
         cashRegisterId,
-        registers: (registers.registers ?? []).map((r) => ({
+        registers: selectableRegisters.map((r) => ({
           id: r.id,
           registerNumber: r.registerNumber,
           location: r.location,
@@ -130,7 +143,7 @@ export function MonatsbelegList() {
       policyQuery.data?.autoMonatsbelegEnabled,
       policyQuery.data?.blockingMode,
       query.data?.items,
-      registers.registers,
+      selectableRegisters,
       year,
     ]
   );
@@ -148,9 +161,11 @@ export function MonatsbelegList() {
   const bulkTargets = useMemo(() => {
     const source = tab === 'jahres' ? opsRows.filter(isJahresbelegOpsRow) : opsRows;
     return source.filter(
-      (row) => row.displayStatus === 'Missing' || row.displayStatus === 'Overdue'
+      (row) =>
+        (row.displayStatus === 'Missing' || row.displayStatus === 'Overdue') &&
+        !closedRegisterIds.has(row.cashRegisterId)
     );
-  }, [opsRows, tab]);
+  }, [closedRegisterIds, opsRows, tab]);
 
   const previewMonth = useMemo(() => {
     if (!cashRegisterId || tab === 'jahres') return undefined;
@@ -216,22 +231,34 @@ export function MonatsbelegList() {
     const vienna = getViennaCalendarYearMonth();
     const prevMonth = vienna.month === 1 ? 12 : vienna.month - 1;
     const prevYear = vienna.month === 1 ? vienna.year - 1 : vienna.year;
-    const firstRegister = registers.registers?.[0];
-    return {
-      cashRegisterId: failed?.cashRegisterId ?? cashRegisterId ?? firstRegister?.id ?? '',
-      cashRegisterLabel: failed
+    const firstRegister = selectableRegisters[0];
+    const failedId = failed?.cashRegisterId;
+    const failedIsClosed = Boolean(failedId && closedRegisterIds.has(failedId));
+    const selectedIsClosed = Boolean(cashRegisterId && closedRegisterIds.has(cashRegisterId));
+    const chosenId =
+      !failedIsClosed && failedId
+        ? failedId
+        : !selectedIsClosed && cashRegisterId
+          ? cashRegisterId
+          : firstRegister?.id ?? '';
+    const chosenRegister = selectableRegisters.find((row) => row.id === chosenId) ?? firstRegister;
+    const registerLabel =
+      !failedIsClosed && failed
         ? failed.registerLocation
           ? `${failed.registerNumber} — ${failed.registerLocation}`
           : failed.registerNumber
-        : firstRegister
-          ? firstRegister.location
-            ? `${firstRegister.registerNumber} — ${firstRegister.location}`
-            : firstRegister.registerNumber
-          : undefined,
+        : chosenRegister
+          ? chosenRegister.location
+            ? `${chosenRegister.registerNumber} — ${chosenRegister.location}`
+            : chosenRegister.registerNumber
+          : undefined;
+    return {
+      cashRegisterId: chosenId,
+      cashRegisterLabel: registerLabel,
       year: failed?.year ?? prevYear,
       month: failed?.month ?? prevMonth,
     };
-  }, [cashRegisterId, query.data?.items, registers.registers]);
+  }, [cashRegisterId, closedRegisterIds, query.data?.items, selectableRegisters]);
 
   const yearOptions = useMemo(() => {
     const years: number[] = [];
@@ -268,7 +295,10 @@ export function MonatsbelegList() {
             force: true,
           });
           ok += 1;
-        } catch {
+        } catch (error: unknown) {
+          if (isRksvRegisterDecommissionedError(error)) {
+            notify.errorKey('rksvHub.sonderbelege.decommissionedHint');
+          }
           failed += 1;
         }
       }
@@ -393,7 +423,7 @@ export function MonatsbelegList() {
               style={{ minWidth: 220 }}
               placeholder={tp('filterRegisterAll')}
               value={cashRegisterId}
-              options={(registers.registers ?? []).map((r) => ({
+              options={selectableRegisters.map((r) => ({
                 value: r.id,
                 label: r.location ? `${r.registerNumber} — ${r.location}` : r.registerNumber,
               }))}

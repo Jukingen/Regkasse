@@ -1320,7 +1320,7 @@
     "groupedByTenant": "Kasalar (mandant gruplu)",
     "tenantGroupLabel": "{{name}} ({{count}})",
     "operatingStatus": "İşletme durumu",
-    "decommissionedHint": "Bu kasa zaten stillgelegt. Yeni özel fiş oluşturulamaz.",
+    "decommissionedHint": "Bu kasa kalıcı olarak kapatıldı (Schlussbeleg) ve artık yeni fiş alamaz.",
     "status": {
       "active": "Aktif",
       "closed": "Kapalı",
