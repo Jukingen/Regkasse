@@ -1,6 +1,7 @@
 using System.Globalization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -153,30 +154,36 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                 ? payment.TseSignature
                 : receipt.SignatureValue;
 
-            return SpecialReceiptPdfService.Generate(
-                new SpecialReceiptPdfData
-                {
-                    TenantId = tenantId,
-                    CompanyName = companyName,
-                    CompanyAddress = companyAddress,
-                    CompanyVatId = companyVatId,
-                    ReceiptType = GetSpecialReceiptDisplayName(specialKind),
-                    CashRegisterId = payment.CashRegisterId.ToString("N"),
-                    RegisterNumber = payment.CashRegister?.RegisterNumber ?? registerLabel,
-                    ReceiptNumber = receipt.ReceiptNumber,
-                    IssuedAt = payment.TseTimestamp != default ? payment.TseTimestamp : receipt.IssuedAt,
-                    TotalAmount = payment.TotalAmount,
-                    PaymentMethod = paymentMethodLabel,
-                    TseSignature = tseSignature,
-                    TseSignatureTimestamp = FormatAustriaLocal(payment.TseTimestamp),
-                    QrContent = qrPayload ?? string.Empty,
-                    RksvFooterLabel = fiscal.RksvFooterLabel.Contains("DEMO", StringComparison.OrdinalIgnoreCase)
-                        ? ReceiptService.DemoRksvFooterLabel
-                        : ReceiptService.ProductionRksvFooterLabel,
-                    IncludeReprintWatermark = includeReprintWatermark,
-                },
-                qrEmbedPng,
-                qrFallbackChunk);
+            var periodSales = await TryLoadPeriodSalesAsync(payment, specialKind, cancellationToken)
+                .ConfigureAwait(false);
+
+            var pdfData = new SpecialReceiptPdfData
+            {
+                TenantId = tenantId,
+                CompanyName = companyName,
+                CompanyAddress = companyAddress,
+                CompanyVatId = companyVatId,
+                ReceiptType = GetSpecialReceiptDisplayName(specialKind),
+                CashRegisterId = payment.CashRegisterId.ToString("N"),
+                RegisterNumber = payment.CashRegister?.RegisterNumber ?? registerLabel,
+                ReceiptNumber = receipt.ReceiptNumber,
+                IssuedAt = payment.TseTimestamp != default ? payment.TseTimestamp : receipt.IssuedAt,
+                TotalAmount = payment.TotalAmount,
+                PaymentMethod = paymentMethodLabel,
+                TseSignature = tseSignature,
+                TseSignatureTimestamp = FormatAustriaLocal(payment.TseTimestamp),
+                QrContent = qrPayload ?? string.Empty,
+                RksvFooterLabel = fiscal.RksvFooterLabel.Contains("DEMO", StringComparison.OrdinalIgnoreCase)
+                    ? ReceiptService.DemoRksvFooterLabel
+                    : ReceiptService.ProductionRksvFooterLabel,
+                IncludeReprintWatermark = includeReprintWatermark,
+                PeriodSales = periodSales,
+            };
+
+            if (string.Equals(specialKind, RksvSpecialReceiptKinds.Monatsbeleg, StringComparison.Ordinal))
+                return MonatsbelegPdfGenerator.Generate(pdfData, qrEmbedPng, qrFallbackChunk);
+
+            return SpecialReceiptPdfService.Generate(pdfData, qrEmbedPng, qrFallbackChunk);
         }
 
         var deAt = CultureInfo.GetCultureInfo("de-AT");
@@ -279,6 +286,47 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                 });
             });
         }).GeneratePdf();
+    }
+
+    private async Task<PeriodSalesSummary?> TryLoadPeriodSalesAsync(
+        PaymentDetails payment,
+        string specialKind,
+        CancellationToken cancellationToken)
+    {
+        if (payment.CashRegisterId == Guid.Empty)
+            return null;
+
+        if (string.Equals(specialKind, RksvSpecialReceiptKinds.Monatsbeleg, StringComparison.Ordinal)
+            && payment.RksvSpecialReceiptYear is int year
+            && payment.RksvSpecialReceiptMonth is int month
+            && month is >= 1 and <= 12)
+        {
+            var (fromUtc, toUtc) = RksvClosingPeriodHelper.MonthUtcRange(year, month);
+            return await PeriodSalesSummaryAggregator.AggregateAsync(
+                    _context,
+                    payment.CashRegisterId,
+                    fromUtc,
+                    toUtc,
+                    PeriodSalesSummaryAggregator.MonthLabel(year, month),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (string.Equals(specialKind, RksvSpecialReceiptKinds.Jahresbeleg, StringComparison.Ordinal)
+            && payment.RksvSpecialReceiptYear is int reportYear)
+        {
+            var (fromUtc, toUtc) = RksvClosingPeriodHelper.YearUtcRange(reportYear);
+            return await PeriodSalesSummaryAggregator.AggregateAsync(
+                    _context,
+                    payment.CashRegisterId,
+                    fromUtc,
+                    toUtc,
+                    PeriodSalesSummaryAggregator.YearLabel(reportYear),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return null;
     }
 
     private static byte[]? SelectQrPngForEmbedding(byte[]? png) =>

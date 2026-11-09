@@ -2,7 +2,7 @@
 
 import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Form, Select, Space, Tabs } from 'antd';
+import { Alert, Button, Card, Form, Select, Space, Tabs, Typography } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
@@ -28,8 +28,13 @@ import { getViennaCalendarYearMonth } from '@/shared/utils/viennaCalendar';
 
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
+import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
+import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
 import {
+  fetchMonatsbelegSalesSummary,
   fetchMonatsbelege,
   monatsbelegeListQueryKey,
 } from '@/features/rksv/api/monatsbelege';
@@ -50,7 +55,7 @@ type OpsTab = 'monats' | 'jahres';
 export function MonatsbelegList() {
   const { t } = useI18n();
   const notify = useNotify();
-  const { modal } = useAntdApp();
+  const { modal, message } = useAntdApp();
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const allowed =
@@ -146,6 +151,58 @@ export function MonatsbelegList() {
       (row) => row.displayStatus === 'Missing' || row.displayStatus === 'Overdue'
     );
   }, [opsRows, tab]);
+
+  const previewMonth = useMemo(() => {
+    if (!cashRegisterId || tab === 'jahres') return undefined;
+    const created = (query.data?.items ?? [])
+      .filter(
+        (row) =>
+          row.cashRegisterId === cashRegisterId && row.status === 'created' && !row.isJahresbeleg
+      )
+      .sort((a, b) => b.month - a.month);
+    if (created[0]) return created[0].month;
+    const vienna = getViennaCalendarYearMonth();
+    if (year < vienna.year) return 12;
+    if (year > vienna.year) return 1;
+    return Math.max(1, vienna.month - 1);
+  }, [cashRegisterId, query.data?.items, tab, year]);
+
+  const salesQuery = useQuery({
+    queryKey: ['admin', 'rksv', 'monatsbelege', 'sales-summary', cashRegisterId, year, previewMonth, tab],
+    queryFn: ({ signal }) =>
+      fetchMonatsbelegSalesSummary(
+        {
+          cashRegisterId: cashRegisterId ?? '',
+          year,
+          month: tab === 'jahres' ? undefined : previewMonth,
+        },
+        signal
+      ),
+    enabled: allowed && Boolean(cashRegisterId),
+  });
+
+  const downloadPreviewPdf = async () => {
+    const paymentId = salesQuery.data?.paymentId?.trim();
+    if (!paymentId) {
+      message.info(t('reporting.periodSales.noPdf'));
+      return;
+    }
+    const reportType = tab === 'jahres' ? 'jahresbeleg' : 'monatsbeleg';
+    try {
+      const blob = await downloadReportPdf(reportType, paymentId);
+      triggerReportPdfBlobDownload(
+        blob,
+        buildReportFileName({
+          reportType,
+          tenantSlug: getEffectiveTenantSlug(),
+          period: salesQuery.data?.periodLabel,
+        })
+      );
+      message.success(t('reporting.storedPdf.success'));
+    } catch {
+      message.error(t('reporting.storedPdf.error'));
+    }
+  };
 
   const jahresRows = useMemo(() => opsRows.filter(isJahresbelegOpsRow), [opsRows]);
   const showFonOverdueReminder =
@@ -366,6 +423,31 @@ export function MonatsbelegList() {
             />
           </Form.Item>
         </Form>
+        {cashRegisterId ? (
+          <Space orientation="vertical" size={8} style={{ display: 'flex', marginBottom: 16 }}>
+            <PeriodSalesSummaryCard
+              loading={salesQuery.isFetching}
+              periodLabel={salesQuery.data?.periodLabel}
+              receiptCount={salesQuery.data?.receiptCount ?? 0}
+              totalRevenue={salesQuery.data?.totalRevenue ?? 0}
+              zeroSales={salesQuery.data?.zeroSales ?? false}
+            />
+            <Button
+              data-testid="monatsbeleg-pdf-download"
+              disabled={!salesQuery.data?.paymentId}
+              onClick={() => void downloadPreviewPdf()}
+            >
+              {t('reporting.periodSales.download')}
+            </Button>
+            {!salesQuery.isFetching && !salesQuery.data?.paymentId ? (
+              <Typography.Text type="secondary">{t('reporting.periodSales.noPdf')}</Typography.Text>
+            ) : null}
+          </Space>
+        ) : (
+          <Typography.Paragraph type="secondary">
+            {t('reporting.periodSales.selectRegister')}
+          </Typography.Paragraph>
+        )}
         <Tabs
           activeKey={tab}
           onChange={(key) => {

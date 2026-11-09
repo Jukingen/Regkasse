@@ -5,6 +5,15 @@
     "success": "PDF heruntergeladen",
     "error": "PDF konnte nicht geladen werden"
   },
+  "periodSales": {
+    "period": "Berichtszeitraum",
+    "revenue": "Gesamtumsatz",
+    "receipts": "Anzahl der Belege",
+    "zeroSales": "In diesem Zeitraum wurden keine Umsätze erfasst.",
+    "selectRegister": "Bitte eine Kasse wählen, um die Umsatzübersicht des PDF zu sehen.",
+    "download": "PDF herunterladen",
+    "noPdf": "Für diesen Zeitraum liegt noch kein Beleg zum Download vor."
+  },
   "policy": {
     "formalReportLanguageTitle": "Formale Berichtstexte",
     "formalReportLanguageBody": "Die Oberfläche kann auf Türkisch eingestellt sein; formale Berichtstexte in diesem Bereich sind jedoch nur auf Deutsch oder Englisch verfügbar (Standard: Deutsch).",

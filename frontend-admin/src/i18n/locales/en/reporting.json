@@ -5,6 +5,15 @@
     "success": "PDF downloaded",
     "error": "Could not load PDF"
   },
+  "periodSales": {
+    "period": "Reporting period",
+    "revenue": "Total revenue",
+    "receipts": "Number of receipts",
+    "zeroSales": "No sales were recorded in this period.",
+    "selectRegister": "Select a cash register to preview the PDF sales summary.",
+    "download": "Download PDF",
+    "noPdf": "No receipt is available for download in this period yet."
+  },
   "policy": {
     "formalReportLanguageTitle": "Formal report text",
     "formalReportLanguageBody": "Your admin UI may be Turkish; legal and accounting report text in this area is only shown in German or English (default: German).",

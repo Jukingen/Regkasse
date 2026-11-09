@@ -373,6 +373,7 @@ public sealed class TagesberichtService : ITagesberichtService
                 ReportVersion = x.ReportVersion,
                 SubmissionImpact = x.SubmissionImpact,
                 GrossSalesAmount = x.SnapshotGrossSalesAmount,
+                SalePaymentRowCount = ReadSalePaymentRowCount(x.SnapshotJson),
                 CreatedAtUtc = x.CreatedAtUtc,
                 Submission = await BuildSubmissionStateAsync(x, cancellationToken),
             });
@@ -763,6 +764,28 @@ public sealed class TagesberichtService : ITagesberichtService
         }
 
         buckets["row_tax_sum"] = buckets.GetValueOrDefault("row_tax_sum") + rowTax;
+    }
+
+    private static int ReadSalePaymentRowCount(string? snapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(snapshotJson))
+            return 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(snapshotJson);
+            if (doc.RootElement.TryGetProperty("salePaymentRowCount", out var count)
+                && count.TryGetInt32(out var value))
+            {
+                return value < 0 ? 0 : value;
+            }
+        }
+        catch (JsonException)
+        {
+            return 0;
+        }
+
+        return 0;
     }
 
     private static string? TryPaymentMethodLabel(string raw)

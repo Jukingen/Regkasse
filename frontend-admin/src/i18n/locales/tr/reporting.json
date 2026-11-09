@@ -5,6 +5,15 @@
     "success": "PDF indirildi",
     "error": "PDF yuklenemedi"
   },
+  "periodSales": {
+    "period": "Rapor dönemi",
+    "revenue": "Toplam ciro",
+    "receipts": "Fiş sayısı",
+    "zeroSales": "Bu dönemde ciro kaydı yok.",
+    "selectRegister": "PDF ciro özetini görmek için bir kasa seçin.",
+    "download": "PDF indir",
+    "noPdf": "Bu dönem için indirilecek bir fiş henüz yok."
+  },
   "policy": {
     "formalReportLanguageTitle": "Resmi rapor metinleri",
     "formalReportLanguageBody": "Yonetim arayuzu Turkce olabilir; bu bolumdeki yasal ve muhasebe rapor metinleri yalnizca Almanca veya Ingilizce gosterilir (varsayilan: Almanca).",
