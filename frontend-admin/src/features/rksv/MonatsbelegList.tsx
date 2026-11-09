@@ -31,6 +31,7 @@ import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { isPermanentlyClosedRegister } from '@/features/cash-registers/utils/registerStatus';
 import { PeriodSalesSummaryCard } from '@/features/reporting/PeriodSalesSummaryCard';
 import { downloadReportPdf, triggerReportPdfBlobDownload } from '@/features/reports/api/reportPdfApi';
 import { buildReportFileName } from '@/features/reports/utils/reportExportFileName';
@@ -478,6 +479,15 @@ export function MonatsbelegList() {
             {t('reporting.periodSales.selectRegister')}
           </Typography.Paragraph>
         )}
+        {selectedRegisterIsClosed ? (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            data-testid="monatsbeleg-register-decommissioned"
+            title={t('rksvHub.sonderbelege.decommissionedHint')}
+          />
+        ) : null}
         <Tabs
           activeKey={tab}
           onChange={(key) => {
