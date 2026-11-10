@@ -8,6 +8,7 @@ using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
@@ -491,10 +492,28 @@ namespace KasseAPI_Final.Controllers
                         });
                     }
 
+                    if (scopedTenantId == SystemTenantIds.Platform)
+                    {
+                        return Ok(new UsersListResponse
+                        {
+                            Items = [],
+                            Pagination = new UsersListPagination
+                            {
+                                Page = page,
+                                PageSize = pageSize,
+                                TotalCount = 0,
+                                TotalPages = 0,
+                            },
+                        });
+                    }
+
+                    var superAdmin = Roles.SuperAdmin.ToLowerInvariant();
+                    var platformAdmin = RoleHierarchy.PlatformAdmin.ToLowerInvariant();
                     q = q.Where(u =>
                         _context.UserTenantMemberships.Any(m =>
                             m.UserId == u.Id && m.TenantId == scopedTenantId && m.IsActive)
-                        && u.Role != Roles.SuperAdmin);
+                        && (u.Role == null
+                            || (u.Role.ToLower() != superAdmin && u.Role.ToLower() != platformAdmin)));
                 }
 
                 if (isActive.HasValue)
@@ -1749,6 +1768,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+                if (!IsCurrentUserSuperAdmin())
+                    roles = roles.Where(name => !RoleHierarchy.IsPlatformOperatorRole(name)).ToList();
                 return Ok(roles);
             }
             catch (Exception ex)

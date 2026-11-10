@@ -24,6 +24,22 @@ export function roleFilterValuesForActor(isSuperAdminActor: boolean): readonly s
   return isSuperAdminActor ? ADMIN_USER_ROLE_FILTER_VALUES : TENANT_STAFF_ROLE_FILTER_VALUES;
 }
 
+const ACTIVITY_STAFF_ROLE_FILTER_VALUES = [
+  'Manager',
+  'Cashier',
+  'Accountant',
+  'Waiter',
+  'Kitchen',
+  'ReportViewer',
+  'ComplianceOfficer',
+] as const;
+
+/** Rolle filter on /audit-logs/activity. Tenant admins stay at Mandanten-Admin rank and below. */
+export function activityRoleFilterValues(isSuperAdminActor: boolean): readonly string[] {
+  if (!isSuperAdminActor) return ACTIVITY_STAFF_ROLE_FILTER_VALUES;
+  return ['SuperAdmin', 'PlatformAdmin', ...ACTIVITY_STAFF_ROLE_FILTER_VALUES];
+}
+
 export function isPlatformUserRole(role: string | undefined | null): boolean {
   if (!role) return false;
   const normalized = role.trim().toLowerCase();

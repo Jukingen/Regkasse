@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getColorFromEmail, getColorFromName } from '@/features/users/utils/avatarColor';
 import {
+  activityRoleFilterValues,
   isBusinessTenantSlug,
   isPlatformUserRole,
   roleFilterValuesForActor,
@@ -35,6 +36,11 @@ describe('userScope', () => {
     expect(roleFilterValuesForActor(true)).toContain('SuperAdmin');
     expect(roleFilterValuesForActor(false)).not.toContain('SuperAdmin');
     expect(roleFilterValuesForActor(false)).toContain('Manager');
+    expect(activityRoleFilterValues(false)).not.toContain('SuperAdmin');
+    expect(activityRoleFilterValues(false)).not.toContain('PlatformAdmin');
+    expect(activityRoleFilterValues(false)).toContain('Manager');
+    expect(activityRoleFilterValues(true)).toContain('SuperAdmin');
+    expect(activityRoleFilterValues(true)).toContain('PlatformAdmin');
   });
 });
 

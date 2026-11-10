@@ -21,7 +21,11 @@ import {
   useActivityLog,
 } from '@/features/audit/hooks/useActivityLog';
 import { resolveActivityActionLabel } from '@/features/audit/utils/resolveActivityActionLabel';
-import { useTenantStaff } from '@/features/staff/hooks/useTenantStaff';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useUsersList } from '@/features/users/hooks/useUsersList';
+import { formatRoleDisplayLabel } from '@/features/users/utils/roleDisplayLabel';
+import { activityRoleFilterValues, isPlatformUserRole } from '@/features/users/utils/userScope';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -41,10 +45,13 @@ function staffDisplayName(
 export function ActivityLog() {
   const { t, formatLocale } = useI18n();
   const { message } = useAntdApp();
+  const { user: currentUser } = useAuth();
+  const actorIsSuperAdmin = isSuperAdmin(currentUser?.role);
   const [filters, setFilters] = useState<ActivityLogFilters>(defaultActivityLogFilters);
   const [searchDraft, setSearchDraft] = useState('');
 
-  const { staff, isLoading: staffLoading } = useTenantStaff({ page: 1, pageSize: 200 });
+  const usersQuery = useUsersList({ page: 1, pageSize: 100 });
+  const staffLoading = usersQuery.isLoading;
   const { activities, total, isLoading, isFetching, refetch } = useActivityLog(filters);
 
   const actionOptions = useMemo(
@@ -65,14 +72,24 @@ export function ActivityLog() {
 
   const staffOptions = useMemo(
     () =>
-      staff
+      (usersQuery.data?.items ?? [])
         .filter((user) => Boolean(user.id))
+        .filter((user) => actorIsSuperAdmin || !isPlatformUserRole(user.role))
         .map((user) => ({
           value: user.id!,
           label: staffDisplayName(user.firstName, user.lastName, user.userName),
         }))
         .sort((a, b) => a.label.localeCompare(b.label, formatLocale)),
-    [formatLocale, staff]
+    [actorIsSuperAdmin, formatLocale, usersQuery.data?.items]
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      activityRoleFilterValues(actorIsSuperAdmin).map((value) => ({
+        value,
+        label: formatRoleDisplayLabel(t, value),
+      })),
+    [actorIsSuperAdmin, t]
   );
 
   const formatActionLabel = useCallback(
@@ -184,23 +201,44 @@ export function ActivityLog() {
           allowClear
         />
 
-        <Select
-          placeholder={t('activity.filters.userPlaceholder')}
-          style={{ minWidth: 180 }}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          loading={staffLoading}
-          value={filters.userId}
-          options={staffOptions}
-          onChange={(value) =>
-            setFilters((prev) => ({
-              ...prev,
-              userId: value,
-              page: 1,
-            }))
-          }
-        />
+        {!staffLoading && staffOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('activity.filters.userPlaceholder')}
+            style={{ minWidth: 180 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            loading={staffLoading}
+            value={filters.userId}
+            options={staffOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userId: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
+
+        {roleOptions.length === 0 ? null : (
+          <Select
+            placeholder={t('staff.list.roleFilter')}
+            style={{ minWidth: 160 }}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            value={filters.userRole}
+            options={roleOptions}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                userRole: value,
+                page: 1,
+              }))
+            }
+          />
+        )}
 
         <Select
           placeholder={t('activity.filters.actionTypePlaceholder')}

@@ -14,6 +14,7 @@ import { customInstance } from '@/lib/axios';
 export type ActivityLogFilters = {
   dateRange: [Dayjs | null, Dayjs | null] | null;
   userId?: string;
+  userRole?: string;
   actionType: string;
   search: string;
   page: number;
@@ -76,6 +77,7 @@ function buildQueryParams(
     pageSize: filters.pageSize,
     includeTotalCount: true,
     userId: filters.userId,
+    userRole: filters.userRole || undefined,
     action: filters.actionType || undefined,
     startDate: from ? from.startOf('day').toISOString() : undefined,
     endDate: to ? to.endOf('day').toISOString() : undefined,

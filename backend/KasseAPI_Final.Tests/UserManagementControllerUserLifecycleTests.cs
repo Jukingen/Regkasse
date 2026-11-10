@@ -96,7 +96,8 @@ public class UserManagementControllerUserLifecycleTests
         string? actorId = "admin-id",
         string actorRole = "SuperAdmin",
         IUserTenantMembershipProvisioner? tenantMembershipProvisioner = null,
-        IUserRoleChangeService? userRoleChangeService = null)
+        IUserRoleChangeService? userRoleChangeService = null,
+        ICurrentTenantAccessor? tenantAccessor = null)
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
         var roleMgmt = roleManagementService ?? new Mock<IRoleManagementService>().Object;
@@ -122,7 +123,7 @@ public class UserManagementControllerUserLifecycleTests
             Mock.Of<IUserPermissionOverrideService>(),
             logger,
             provisioner,
-            NullCurrentTenantAccessor.Instance,
+            tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             LocalizationTestDoubles.ApiMessageLocalizer(),
             LocalizationTestDoubles.I18nErrorService(),
             LocalizationTestDoubles.PasswordErrorTranslator(),
@@ -141,6 +142,45 @@ public class UserManagementControllerUserLifecycleTests
         urlHelper.Setup(u => u.Action(It.IsAny<UrlActionContext>())).Returns("http://test/api/usermanagement/placeholder");
         controller.Url = urlHelper.Object;
         return controller;
+    }
+
+    [Fact]
+    public async Task GetUsers_WhenActorManager_ReturnsOnlyOwnTenantStaff()
+    {
+        var tenantA = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var tenantB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"UserMgmtList_{Guid.NewGuid()}")
+            .Options;
+        var accessor = TenantTestDoubles.TenantAccessorReturning(tenantA);
+        using var context = new AppDbContext(options, accessor);
+        context.Users.AddRange(
+            new ApplicationUser { Id = "cashier", UserName = "cashier", Role = Roles.Cashier, FirstName = "C", LastName = "A", IsActive = true },
+            new ApplicationUser { Id = "super", UserName = "super", Role = "superadmin", FirstName = "S", LastName = "B", IsActive = true },
+            new ApplicationUser { Id = "platform", UserName = "platform", Role = RoleHierarchy.PlatformAdmin, FirstName = "P", LastName = "C", IsActive = true },
+            new ApplicationUser { Id = "other", UserName = "other", Role = Roles.Manager, FirstName = "O", LastName = "D", IsActive = true });
+        context.UserTenantMemberships.AddRange(
+            new UserTenantMembership { Id = Guid.NewGuid(), UserId = "cashier", TenantId = tenantA, IsActive = true },
+            new UserTenantMembership { Id = Guid.NewGuid(), UserId = "super", TenantId = tenantA, IsActive = true },
+            new UserTenantMembership { Id = Guid.NewGuid(), UserId = "platform", TenantId = tenantA, IsActive = true },
+            new UserTenantMembership { Id = Guid.NewGuid(), UserId = "other", TenantId = tenantB, IsActive = true });
+        await context.SaveChangesAsync();
+
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers();
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager,
+            tenantAccessor: accessor);
+
+        var result = await controller.GetUsers(page: 1, pageSize: 50);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<UsersListResponse>(ok.Value);
+        Assert.Equal(["cashier"], body.Items.Select(u => u.Id).ToArray());
     }
 
     [Fact]
