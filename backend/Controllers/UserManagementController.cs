@@ -892,6 +892,16 @@ namespace KasseAPI_Final.Controllers
 
                     if (roleError != null)
                     {
+                        if (string.Equals(roleError, RoleHierarchy.ElevatedTargetError, StringComparison.Ordinal))
+                        {
+                            _logger.LogWarning(
+                                "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to modify a user outside their hierarchy",
+                                actorId,
+                                actorRole,
+                                ResolveActorTenantScope());
+                            return NotFound(new { message = "User not found.", code = "USER_NOT_FOUND" });
+                        }
+
                         return BadRequest(new { message = roleError, code = "ROLE_ASSIGN_FAILED" });
                     }
                 }

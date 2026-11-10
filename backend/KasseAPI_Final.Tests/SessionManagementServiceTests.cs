@@ -193,6 +193,82 @@ public sealed class SessionManagementServiceTests
     }
 
     [Fact]
+    public async Task ListSessionsAsync_Manager_HidesPlatformOperatorsInOwnTenant()
+    {
+        await using var db = CreateDb();
+        var tenant = Guid.NewGuid();
+        db.Tenants.Add(new Tenant { Id = tenant, Name = "Cafe A", Slug = "cafe-a" });
+        var platform = await SeedUserAsync(db, "sa-user", "root");
+        platform.Role = Roles.SuperAdmin;
+        var alias = await SeedUserAsync(db, "plat-user", "plat");
+        alias.Role = "PlatformAdmin";
+        var cashier = await SeedUserAsync(db, "cashier", "cashier1");
+        AddSession(db, platform.Id, "admin", tenantId: tenant);
+        AddSession(db, alias.Id, "admin", tenantId: tenant);
+        var visible = AddSession(db, cashier.Id, "pos", tenantId: tenant);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var list = await sut.ListSessionsAsync(
+            new SessionManagementAccess
+            {
+                ActorUserId = "mgr-1",
+                ActorRole = Roles.Manager,
+                ScopedTenantId = tenant,
+            });
+
+        var row = Assert.Single(list);
+        Assert.Equal(visible.Id, row.Id);
+        Assert.Equal(Roles.Cashier, row.Role);
+    }
+
+    [Fact]
+    public async Task TerminateSessionAsync_Manager_PlatformOperator_ReturnsNotFound()
+    {
+        await using var db = CreateDb();
+        var tenant = Guid.NewGuid();
+        var platform = await SeedUserAsync(db, "sa-user", "root");
+        platform.Role = Roles.SuperAdmin;
+        var session = AddSession(db, platform.Id, "admin", tenantId: tenant);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var result = await sut.TerminateSessionAsync(
+            session.Id,
+            "mgr-1",
+            Roles.Manager,
+            scopedTenantId: tenant);
+
+        Assert.False(result.Success);
+        Assert.False(result.IsCurrentSession);
+        Assert.Null((await db.AuthSessions.SingleAsync()).RevokedAtUtc);
+    }
+
+    [Fact]
+    public async Task TerminateAllSessionsAsync_Manager_SkipsPlatformOperators()
+    {
+        await using var db = CreateDb();
+        var tenant = Guid.NewGuid();
+        var platform = await SeedUserAsync(db, "sa-user", "root");
+        platform.Role = Roles.SuperAdmin;
+        var cashier = await SeedUserAsync(db, "cashier", "cashier1");
+        var keep = AddSession(db, platform.Id, "admin", tenantId: tenant);
+        var staff = AddSession(db, cashier.Id, "pos", tenantId: tenant);
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        var count = await sut.TerminateAllSessionsAsync(
+            "mgr-1",
+            Roles.Manager,
+            exceptSessionId: null,
+            scopedTenantId: tenant);
+
+        Assert.Equal(1, count);
+        Assert.Null((await db.AuthSessions.SingleAsync(s => s.Id == keep.Id)).RevokedAtUtc);
+        Assert.NotNull((await db.AuthSessions.SingleAsync(s => s.Id == staff.Id)).RevokedAtUtc);
+    }
+
+    [Fact]
     public async Task TerminateSessionAsync_CurrentSession_IsRejected()
     {
         await using var db = CreateDb();

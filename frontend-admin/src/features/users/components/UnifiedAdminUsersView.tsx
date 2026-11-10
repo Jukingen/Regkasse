@@ -89,7 +89,7 @@ import {
   sameTenantId,
 } from '@/features/users/utils/adminUserRowDisplay';
 import { getColorFromEmail } from '@/features/users/utils/avatarColor';
-import { isPlatformUserRole } from '@/features/users/utils/userScope';
+import { isPlatformUserRole, roleFilterValuesForActor } from '@/features/users/utils/userScope';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
@@ -99,14 +99,6 @@ import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessa
 
 export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
 
-const TENANT_ROLE_FILTER_VALUES = [
-  'SuperAdmin',
-  'Manager',
-  'Cashier',
-  'Accountant',
-  'Waiter',
-  'Kitchen',
-] as const;
 const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
 const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
 const TABLE_SCROLL_X = 1520;
@@ -277,7 +269,9 @@ export function UnifiedAdminUsersView({
   );
   const tenantFilter = isTenantScoped ? tenantScopeId! : tenantFilterFromUiValue(selectedTenant);
   const [roleFilter, setRoleFilter] = useState<string | undefined>();
-  const [roleOptions, setRoleOptions] = useState<string[]>([...TENANT_ROLE_FILTER_VALUES]);
+  const [roleOptions, setRoleOptions] = useState<string[]>(() => [
+    ...roleFilterValuesForActor(isSuperAdminActor),
+  ]);
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
@@ -350,7 +344,7 @@ export function UnifiedAdminUsersView({
       listAllAdminUsers({
         ...(statusFilter != null ? { isActive: statusFilter } : {}),
       }),
-    enabled: !isTenantScoped && tenantFilter === FILTER_ALL,
+    enabled: isSuperAdminActor && !isTenantScoped && tenantFilter === FILTER_ALL,
     select: (data) => data.map(rowFromAdminDto),
   });
 
@@ -428,19 +422,21 @@ export function UnifiedAdminUsersView({
 
   useEffect(() => {
     if (roleFilter) return;
-    const found = new Set<string>(TENANT_ROLE_FILTER_VALUES);
+    const found = new Set<string>(roleFilterValuesForActor(isSuperAdminActor));
     for (const row of unifiedRows) {
       const role = row.role?.trim();
-      if (role && role !== '—') found.add(role);
+      if (!role || role === '—') continue;
+      if (!isSuperAdminActor && isPlatformUserRole(role)) continue;
+      found.add(role);
     }
     const next = [...found].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     setRoleOptions((prev) => (prev.join('\n') === next.join('\n') ? prev : next));
-  }, [unifiedRows, roleFilter]);
+  }, [unifiedRows, roleFilter, isSuperAdminActor]);
 
   const filteredRows = useMemo(() => {
     let rows = unifiedRows;
     if (isTenantScoped || !isSuperAdminActor) {
-      rows = rows.filter((row) => row.userType !== 'Platform');
+      rows = rows.filter((row) => row.userType !== 'Platform' && !isPlatformUserRole(row.role));
     }
     if (tenantFilter === FILTER_PLATFORM) {
       rows = rows.filter((row) => row.userType === 'Platform');
@@ -1166,11 +1162,19 @@ export function UnifiedAdminUsersView({
               onChange={(e) => setSearchInput(e.target.value)}
               onSearch={handleSearch}
             />
-            {!isTenantScoped ? (
+            {isSuperAdminActor && !isTenantScoped ? (
               <TenantFilter
                 value={selectedTenant}
                 onChange={handleTenantFilterChange}
-                includePlatformOption={isSuperAdminActor}
+                includePlatformOption
+                style={{ width: 180 }}
+              />
+            ) : !isSuperAdminActor ? (
+              <TenantFilter
+                value={tenantScopeId ?? ''}
+                onChange={() => undefined}
+                scopeToTenantId={tenantScopeId ?? ''}
+                disabled
                 style={{ width: 180 }}
               />
             ) : null}

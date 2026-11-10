@@ -43,6 +43,10 @@ vi.mock('@/features/tenancy/hooks/useTenantList', () => ({
   useTenantList: () => ({ tenants: [], isLoading: false }),
 }));
 
+vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
+  useCurrentTenant: () => ({ tenantId: 'tenant-1' }),
+}));
+
 vi.mock('@/hooks/useNotify', () => ({
   useNotify: () => ({
     successKey: vi.fn(),
@@ -207,6 +211,36 @@ describe('AdminSessionsPage', () => {
     expect(screen.getByText('POS (Android)')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'users.sessions.logout' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'users.sessions.logoutAllOthers' })).toBeNull();
+  });
+
+  it('hides platform and other-tenant sessions from a tenant admin', () => {
+    permissions.current = {
+      isSuperAdmin: false,
+      isManager: true,
+      hasPermission: () => true,
+    };
+    sessionsQuery.current = {
+      ...sessionsQuery.current,
+      sessions: [
+        { ...currentAdminSession, isCurrent: false, tenantId: 'tenant-1' },
+        { ...posSession, tenantId: 'tenant-1' },
+        {
+          ...posSession,
+          id: 'sess-foreign',
+          userId: 'u-foreign',
+          userName: 'foreign',
+          tenantId: 'tenant-2',
+        },
+      ],
+    };
+
+    render(<AdminSessionsPage />);
+
+    expect(screen.queryByText('admin')).toBeNull();
+    expect(screen.queryByText('foreign')).toBeNull();
+    expect(screen.getByText('cashier1')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'users.sessions.logout' })).toBeTruthy();
+    expect(screen.queryByText('users.sessions.filterTenant')).toBeNull();
   });
 
   it('blocks cashiers without user.view', () => {

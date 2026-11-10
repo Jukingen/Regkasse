@@ -66,6 +66,73 @@ public sealed class UserRoleChangeServiceTests
     }
 
     [Fact]
+    public async Task ChangeUserRoleAsync_Manager_CannotModifyPlatformOperator()
+    {
+        await using var db = CreateDb();
+        var userManager = CreateUserManager(db);
+        var service = CreateService(db, userManager);
+        var user = new ApplicationUser { Id = "sa-user", Role = Roles.SuperAdmin };
+
+        var (result, error) = await service.ChangeUserRoleAsync(
+            user,
+            Roles.Cashier,
+            actorUserId: "mgr-1",
+            actorRole: Roles.Manager,
+            tenantIdForAudit: Guid.NewGuid());
+
+        Assert.Equal(RoleHierarchy.ElevatedTargetError, error);
+        Assert.False(result.RoleChanged);
+        Assert.Equal(Roles.SuperAdmin, user.Role);
+    }
+
+    [Fact]
+    public async Task ChangeUserRoleAsync_Manager_CannotAssignPlatformOperator()
+    {
+        await using var db = CreateDb();
+        var userManager = CreateUserManager(db);
+        var service = CreateService(db, userManager);
+        var user = new ApplicationUser { Id = "cashier-1", Role = Roles.Cashier };
+
+        var (_, superAdminError) = await service.ChangeUserRoleAsync(
+            user,
+            Roles.SuperAdmin,
+            actorUserId: "mgr-1",
+            actorRole: Roles.Manager,
+            tenantIdForAudit: Guid.NewGuid());
+        var (_, platformError) = await service.ChangeUserRoleAsync(
+            user,
+            RoleHierarchy.PlatformAdmin,
+            actorUserId: "mgr-1",
+            actorRole: Roles.Manager,
+            tenantIdForAudit: Guid.NewGuid());
+
+        Assert.Equal(RoleHierarchy.RoleAssignmentDeniedError, superAdminError);
+        Assert.Equal(RoleHierarchy.RoleAssignmentDeniedError, platformError);
+        Assert.Equal(Roles.Cashier, user.Role);
+    }
+
+    [Fact]
+    public async Task ChangeUserRoleAsync_Manager_CanChangeStaffRole()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var userManager = CreateUserManager(db);
+        var user = await CreateUserAsync(userManager, Roles.Cashier);
+        var service = CreateService(db, userManager);
+
+        var (result, error) = await service.ChangeUserRoleAsync(
+            user,
+            Roles.Waiter,
+            actorUserId: "mgr-1",
+            actorRole: Roles.Manager,
+            tenantIdForAudit: Guid.NewGuid());
+
+        Assert.Null(error);
+        Assert.True(result.RoleChanged);
+        Assert.Equal(Roles.Waiter, user.Role);
+    }
+
+    [Fact]
     public async Task UpdateUserRole_ThenPermissionCacheIsInvalidated()
     {
         await using var db = CreateDb();

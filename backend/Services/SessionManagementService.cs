@@ -1,6 +1,8 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Constants;
 using KasseAPI_Final.Models.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -104,8 +106,17 @@ public sealed class SessionManagementService : ISessionManagementService
             .AsNoTracking()
             .SingleOrDefaultAsync(s => s.Id == sessionId && s.RevokedAtUtc == null, cancellationToken)
             .ConfigureAwait(false);
-        if (session == null || !IsSessionInScope(session.TenantId, scopedTenantId))
+        if (session == null)
             return AdminSessionTerminateResult.NotFound();
+
+        if (!IsSessionInScope(session.TenantId, scopedTenantId)
+            || await IsProtectedFromScopedActorAsync(session.UserId, session.TenantId, scopedTenantId, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            if (scopedTenantId.HasValue)
+                LogOutOfHierarchySessionAttempt(actorUserId, actorRole, scopedTenantId);
+            return AdminSessionTerminateResult.NotFound();
+        }
 
         await _refreshTokens.LogoutSessionAsync(sessionId, RevokeReasonTerminateSession, cancellationToken)
             .ConfigureAwait(false);
@@ -121,9 +132,10 @@ public sealed class SessionManagementService : ISessionManagementService
             .ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Admin {ActorUserId} ({ActorRole}) terminated session {SessionId} for user {TargetUserId} clientApp={ClientApp}",
+            "Admin {ActorUserId} role {ActorRole} tenant {ActorTenantId} terminated session {SessionId} for user {TargetUserId} clientApp={ClientApp}",
             actorUserId,
             actorRole,
+            scopedTenantId,
             sessionId,
             session.UserId,
             session.ClientApp);
@@ -153,6 +165,23 @@ public sealed class SessionManagementService : ISessionManagementService
                 && (!exceptSessionId.HasValue || s.Id != exceptSessionId.Value))
             .ToList();
 
+        if (scopedTenantId.HasValue && toRevoke.Count > 0)
+        {
+            var protectedIds = await GetProtectedUserIdsAsync(
+                    toRevoke.Select(s => s.UserId),
+                    scopedTenantId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            var skipped = toRevoke.Where(s =>
+                protectedIds.Contains(s.UserId)
+                || (s.TenantId is Guid tid && SystemTenantIds.IsPlatformTenantId(tid))).ToList();
+            if (skipped.Count > 0)
+            {
+                LogOutOfHierarchySessionAttempt(actorUserId, actorRole, scopedTenantId);
+                toRevoke = toRevoke.Except(skipped).ToList();
+            }
+        }
+
         foreach (var session in toRevoke)
         {
             await _refreshTokens.LogoutSessionAsync(session.Id, RevokeReasonTerminateBulk, cancellationToken)
@@ -180,9 +209,10 @@ public sealed class SessionManagementService : ISessionManagementService
         }
 
         _logger.LogInformation(
-            "Admin {ActorUserId} ({ActorRole}) bulk-terminated {Count} session(s)",
+            "Admin {ActorUserId} role {ActorRole} tenant {TenantId} bulk-terminated {Count} session(s)",
             actorUserId,
             actorRole,
+            scopedTenantId,
             toRevoke.Count);
         return toRevoke.Count;
     }
@@ -231,7 +261,29 @@ public sealed class SessionManagementService : ISessionManagementService
         if (scopedTenantId.HasValue)
             query = query.Where(s => s.TenantId == scopedTenantId.Value);
 
-        var sessionIds = await query.Select(s => s.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var candidates = await query
+            .Select(s => new { s.Id, s.UserId, s.TenantId })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (scopedTenantId.HasValue && candidates.Count > 0)
+        {
+            var protectedIds = await GetProtectedUserIdsAsync(
+                    candidates.Select(s => s.UserId),
+                    scopedTenantId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            var skipped = candidates.Where(s =>
+                protectedIds.Contains(s.UserId)
+                || (s.TenantId is Guid tid && SystemTenantIds.IsPlatformTenantId(tid))).ToList();
+            if (skipped.Count > 0)
+            {
+                LogOutOfHierarchySessionAttempt(actorUserId, actorRole, scopedTenantId);
+                candidates = candidates.Except(skipped).ToList();
+            }
+        }
+
+        var sessionIds = candidates.Select(s => s.Id).ToList();
 
         foreach (var id in sessionIds)
             await _refreshTokens.LogoutSessionAsync(id, RevokeReasonTerminateAll, cancellationToken).ConfigureAwait(false);
@@ -249,9 +301,10 @@ public sealed class SessionManagementService : ISessionManagementService
             actionType: AuditEventType.UserSessionTerminated).ConfigureAwait(false);
 
         _logger.LogWarning(
-            "Admin {ActorUserId} ({ActorRole}) terminated {Count} {Scope} session(s) except {ExceptSessionId}",
+            "Admin {ActorUserId} role {ActorRole} tenant {TenantId} terminated {Count} {Scope} session(s) except {ExceptSessionId}",
             actorUserId,
             actorRole,
+            scopedTenantId,
             sessionIds.Count,
             scopeLabel,
             exceptSessionId);
@@ -396,6 +449,20 @@ public sealed class SessionManagementService : ISessionManagementService
             .ConfigureAwait(false);
         var userMap = users.ToDictionary(u => u.Id, StringComparer.Ordinal);
 
+        if (!access.IsSuperAdmin)
+        {
+            if (access.ScopedTenantId is Guid scopedTenant && SystemTenantIds.IsPlatformTenantId(scopedTenant))
+                return Array.Empty<AdminActiveSessionDto>();
+
+            rows = rows.Where(r =>
+            {
+                userMap.TryGetValue(r.Session.UserId, out var owner);
+                if (r.Session.TenantId is Guid tid && SystemTenantIds.IsPlatformTenantId(tid))
+                    return false;
+                return !RoleHierarchy.IsPlatformOperatorRole(owner?.Role);
+            }).ToList();
+        }
+
         var tenantIds = rows
             .Select(r => r.Session.TenantId)
             .Where(id => id.HasValue)
@@ -498,6 +565,66 @@ public sealed class SessionManagementService : ISessionManagementService
         }
 
         return result.ToList();
+    }
+
+    private async Task<bool> IsProtectedFromScopedActorAsync(
+        string userId,
+        Guid? sessionTenantId,
+        Guid? scopedTenantId,
+        CancellationToken cancellationToken)
+    {
+        if (!scopedTenantId.HasValue)
+            return false;
+        if (SystemTenantIds.IsPlatformTenantId(scopedTenantId.Value))
+            return true;
+        if (sessionTenantId is Guid sessionTenant && SystemTenantIds.IsPlatformTenantId(sessionTenant))
+            return true;
+
+        var role = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return RoleHierarchy.IsPlatformOperatorRole(role);
+    }
+
+    private async Task<HashSet<string>> GetProtectedUserIdsAsync(
+        IEnumerable<string> userIds,
+        Guid? scopedTenantId,
+        CancellationToken cancellationToken)
+    {
+        var blocked = new HashSet<string>(StringComparer.Ordinal);
+        if (!scopedTenantId.HasValue || SystemTenantIds.IsPlatformTenantId(scopedTenantId.Value))
+            return blocked;
+
+        var ids = userIds.Where(id => !string.IsNullOrEmpty(id)).Distinct(StringComparer.Ordinal).ToList();
+        if (ids.Count == 0)
+            return blocked;
+
+        var roles = await _db.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.Role })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var user in roles)
+        {
+            if (RoleHierarchy.IsPlatformOperatorRole(user.Role))
+                blocked.Add(user.Id);
+        }
+
+        return blocked;
+    }
+
+    private void LogOutOfHierarchySessionAttempt(string actorUserId, string actorRole, Guid? scopedTenantId)
+    {
+        _logger.LogWarning(
+            "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to manage a session outside their hierarchy",
+            actorUserId,
+            actorRole,
+            scopedTenantId);
     }
 
     private static bool IsSessionInScope(Guid? sessionTenantId, Guid? scopedTenantId)

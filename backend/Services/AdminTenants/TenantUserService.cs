@@ -793,7 +793,7 @@ public sealed class TenantUserService : ITenantUserService
         if (string.IsNullOrEmpty(trimmed))
             return (false, "Role is required.");
 
-        if (string.Equals(trimmed, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+        if (RoleHierarchy.IsPlatformOperatorRole(trimmed)
             || Roles.ReservedRoleNames.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
         {
             return (false, $"Role '{trimmed}' cannot be assigned to a tenant user.");

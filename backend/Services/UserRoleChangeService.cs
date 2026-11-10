@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Caching;
 using Microsoft.AspNetCore.Identity;
@@ -37,6 +38,19 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
         var normalizedNewRole = newRole.Trim();
         var previousRole = user.Role?.Trim();
 
+        if (!RoleHierarchy.CanChangeUserRole(actorRole, previousRole, normalizedNewRole))
+        {
+            _logger.LogWarning(
+                "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted a role change outside their hierarchy",
+                actorUserId,
+                actorRole,
+                tenantIdForAudit);
+            var error = RoleHierarchy.IsPlatformOperatorRole(previousRole)
+                ? RoleHierarchy.ElevatedTargetError
+                : RoleHierarchy.RoleAssignmentDeniedError;
+            return (new UserRoleChangeResult(), error);
+        }
+
         if (string.Equals(previousRole, normalizedNewRole, StringComparison.OrdinalIgnoreCase))
         {
             return (new UserRoleChangeResult
@@ -67,7 +81,10 @@ public sealed class UserRoleChangeService : IUserRoleChangeService
                 cancellationToken)
             .ConfigureAwait(false);
         _logger.LogInformation(
-            "User permission cache invalidated after role change for user {UserId}",
+            "User role updated by actor {ActorUserId} role {ActorRole} tenant {TenantId} for user {UserId}",
+            actorUserId,
+            actorRole,
+            tenantIdForAudit,
             user.Id);
 
         return (new UserRoleChangeResult

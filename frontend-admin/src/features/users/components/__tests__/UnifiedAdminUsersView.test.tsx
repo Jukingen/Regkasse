@@ -46,8 +46,18 @@ vi.mock('@/features/super-admin/components/ResetPasswordModal', () => ({
   ResetPasswordModal: () => null,
 }));
 
+const tenantFilterProps = vi.hoisted(() => ({
+  current: null as {
+    scopeToTenantId?: string;
+    includePlatformOption?: boolean;
+  } | null,
+}));
+
 vi.mock('@/features/users/components/TenantFilter', () => ({
-  TenantFilter: () => <div data-testid="tenant-filter" />,
+  TenantFilter: (props: { scopeToTenantId?: string; includePlatformOption?: boolean }) => {
+    tenantFilterProps.current = props;
+    return <div data-testid="tenant-filter" />;
+  },
 }));
 
 vi.mock('@/features/users/components/UserRoleBadge', () => ({
@@ -147,6 +157,7 @@ vi.mock('@/features/users/api/users', () => ({
 describe('UnifiedAdminUsersView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    tenantFilterProps.current = null;
   });
 
   it('shows reactivate action for inactive tenant users', async () => {
@@ -367,6 +378,34 @@ describe('UnifiedAdminUsersView', () => {
         isActive: true,
         lastLoginAt: null,
       },
+      {
+        userId: 'platform-admin',
+        userName: 'root',
+        email: 'root@platform.test',
+        name: 'Platform Admin',
+        role: 'SuperAdmin',
+        isOwner: false,
+        joinedAtUtc: '2025-01-01T00:00:00Z',
+        tenantId: 'tenant-1',
+        tenantSlug: 'cafe-central',
+        tenantName: 'Cafe Central',
+        isActive: true,
+        lastLoginAt: null,
+      },
+      {
+        userId: 'other-tenant-user',
+        userName: 'other',
+        email: 'other@other.test',
+        name: 'Other Tenant User',
+        role: 'Cashier',
+        isOwner: false,
+        joinedAtUtc: '2025-01-01T00:00:00Z',
+        tenantId: 'tenant-2',
+        tenantSlug: 'other',
+        tenantName: 'Other Cafe',
+        isActive: true,
+        lastLoginAt: null,
+      },
     ]);
 
     const queryClient = new QueryClient({
@@ -407,7 +446,11 @@ describe('UnifiedAdminUsersView', () => {
       expect(screen.getByText('Scoped Manager (manager@tenant.test)')).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId('tenant-filter')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tenant-filter')).toBeInTheDocument();
+    expect(tenantFilterProps.current?.scopeToTenantId).toBe('tenant-1');
+    expect(tenantFilterProps.current?.includePlatformOption).toBeUndefined();
+    expect(screen.queryByText(/Platform Admin/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Other Tenant User/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Plattform-Admin anlegen/i })
     ).not.toBeInTheDocument();

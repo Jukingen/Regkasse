@@ -16,7 +16,9 @@ import { formatSessionDevice } from '@/features/admin/sessions/sessionDeviceLabe
 import { formatSessionDuration } from '@/features/admin/sessions/sessionDuration';
 import { ROLES_CANONICAL } from '@/features/auth/constants/roles';
 import { useAdminSessions } from '@/features/sessions/hooks/useAdminSessions';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
+import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
@@ -39,6 +41,7 @@ export function SessionManagement() {
   const { t } = useI18n();
   const notify = useNotify();
   const { isSuperAdmin, isManager, hasPermission } = usePermissions();
+  const { tenantId: currentTenantId } = useCurrentTenant();
   const canView = hasPermission(PERMISSIONS.USER_VIEW);
   const canManage = hasPermission(PERMISSIONS.USER_MANAGE);
 
@@ -59,8 +62,29 @@ export function SessionManagement() {
     [appliedUser, isSuperAdmin, role, tenantId]
   );
 
-  const { sessions, isLoading, isFetching, isError, error, refetch, terminateOne, terminateAll, terminateBulk } =
+  const { sessions: loadedSessions, isLoading, isFetching, isError, error, refetch, terminateOne, terminateAll, terminateBulk } =
     useAdminSessions(canView, listParams);
+  const sessions = useMemo(() => {
+    if (isSuperAdmin) return loadedSessions;
+    return loadedSessions.filter((row) => {
+      if (isPlatformUserRole(row.role)) return false;
+      if (
+        row.tenantId &&
+        currentTenantId &&
+        row.tenantId.toLowerCase() !== currentTenantId.toLowerCase()
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [currentTenantId, isSuperAdmin, loadedSessions]);
+  const roleFilterOptions = useMemo(
+    () =>
+      (isSuperAdmin ? ROLES_CANONICAL : ROLES_CANONICAL.filter((name) => !isPlatformUserRole(name))).map(
+        (r) => ({ value: r, label: r })
+      ),
+    [isSuperAdmin]
+  );
   const { tenants, isLoading: tenantsLoading } = useTenantList({ enabled: isSuperAdmin });
 
   const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', {
@@ -232,7 +256,7 @@ export function SessionManagement() {
               value={role}
               onChange={(value) => setRole(value)}
               style={{ minWidth: 160 }}
-              options={ROLES_CANONICAL.map((r) => ({ value: r, label: r }))}
+              options={roleFilterOptions}
             />
             {isSuperAdmin ? (
               <Select

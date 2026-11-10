@@ -76,6 +76,7 @@ import { useCreateRoleMutation } from '@/features/users/hooks/useCreateRoleMutat
 import { useRoles } from '@/features/users/hooks/useRoles';
 import { useUpdateUserRole } from '@/features/users/hooks/useUpdateUserRole';
 import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
+import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { shouldUseTenantRoleChangeApi } from '@/features/users/utils/roleChangeTenantApi';
 import {
   CANONICAL_ROLE_NAMES,
@@ -272,15 +273,13 @@ export default function UsersPage() {
   const modalRules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
 
   // Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.
-  const roleOptions = useMemo(
-    () =>
-      roles?.map((r) => ({ value: r, label: roleDisplayLabel(r) })) ??
-      CANONICAL_ROLE_NAMES.map((value) => ({
-        value,
-        label: roleDisplayLabel(value),
-      })),
-    [roles, t, roleDisplayLabel]
-  );
+  const roleOptions = useMemo(() => {
+    const names = roles ?? [...CANONICAL_ROLE_NAMES];
+    const visible = isSuperAdminLayout
+      ? names
+      : names.filter((name) => !isPlatformUserRole(name));
+    return visible.map((value) => ({ value, label: roleDisplayLabel(value) }));
+  }, [roles, isSuperAdminLayout, roleDisplayLabel]);
 
   const [createPlatformMode, setCreatePlatformMode] = useState(false);
 

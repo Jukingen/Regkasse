@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { getColorFromEmail, getColorFromName } from '@/features/users/utils/avatarColor';
-import { isBusinessTenantSlug, isPlatformUserRole } from '@/features/users/utils/userScope';
+import {
+  isBusinessTenantSlug,
+  isPlatformUserRole,
+  roleFilterValuesForActor,
+} from '@/features/users/utils/userScope';
 import { maskQrPayloadPreview } from '@/features/receipts/utils/maskQrPayloadPreview';
 
 describe('avatarColor', () => {
@@ -21,12 +25,16 @@ describe('userScope', () => {
     expect(isPlatformUserRole(null)).toBe(false);
     expect(isPlatformUserRole('Manager')).toBe(false);
     expect(isPlatformUserRole('SuperAdmin')).toBe(true);
+    expect(isPlatformUserRole('PlatformAdmin')).toBe(true);
     expect(isBusinessTenantSlug(null)).toBe(false);
     expect(isBusinessTenantSlug('admin')).toBe(false);
     expect(isBusinessTenantSlug('platform')).toBe(false);
     expect(isBusinessTenantSlug('default')).toBe(true); // leftover slug string is not a special sentinel
     expect(isBusinessTenantSlug('cafe')).toBe(true);
     expect(isBusinessTenantSlug('dev')).toBe(true);
+    expect(roleFilterValuesForActor(true)).toContain('SuperAdmin');
+    expect(roleFilterValuesForActor(false)).not.toContain('SuperAdmin');
+    expect(roleFilterValuesForActor(false)).toContain('Manager');
   });
 });
 
