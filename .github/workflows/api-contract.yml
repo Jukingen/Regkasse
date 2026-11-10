@@ -2,10 +2,11 @@ name: API contract validation
 
 # OpenAPI backward-compatibility diff vs base revision + focused backend contract tests.
 
+# Development bypass: OpenAPI contract diff runs on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 concurrency:

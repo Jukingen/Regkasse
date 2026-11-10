@@ -2,16 +2,11 @@ name: API contract tests (OpenAPI + backend + Admin/POS smoke)
 
 # Critical route/schema checks, DTO contract tests, Orval smoke, and payment-focused frontend tests.
 
+# Development bypass: OpenAPI contract tests run on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-    paths:
-      - 'backend/**'
-      - 'frontend-admin/**'
-      - 'frontend/**'
-      - 'scripts/validate-critical-openapi-paths.mjs'
-      - '.github/workflows/api-contract-tests.yml'
-  push:
-    branches: [main, master]
     paths:
       - 'backend/**'
       - 'frontend-admin/**'

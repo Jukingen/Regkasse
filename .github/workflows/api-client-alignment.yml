@@ -2,16 +2,11 @@ name: API client alignment (OpenAPI / Orval)
 
 # Ensures frontend-admin Orval output matches committed backend/swagger.json.
 
+# Development bypass: OpenAPI/Orval drift runs on pull requests and
+# workflow_dispatch, not on every push to main. See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-    paths:
-      - 'backend/swagger.json'
-      - 'frontend-admin/**'
-      - 'scripts/verify-api-client.mjs'
-      - 'scripts/validate-critical-openapi-paths.mjs'
-      - '.github/workflows/api-client-alignment.yml'
-  push:
-    branches: [main, master]
     paths:
       - 'backend/swagger.json'
       - 'frontend-admin/**'

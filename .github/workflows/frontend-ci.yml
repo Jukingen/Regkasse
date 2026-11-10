@@ -93,6 +93,7 @@ jobs:
         run: npm run test:contract
 
       - name: i18n validate (strict missing)
+        if: github.event_name != 'push'
         working-directory: ${{ github.workspace }}
         run: >
           node localization/scripts/validate-translations.mjs

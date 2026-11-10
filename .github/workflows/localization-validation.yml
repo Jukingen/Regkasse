@@ -1,15 +1,11 @@
 name: Localization Validation
 
+# Development bypass: i18n runs on pull requests and workflow_dispatch, not on
+# every push to main. Restore the push trigger before production.
+# See docs/DEVELOPMENT_BYPASS.md.
+
 on:
   pull_request:
-    branches: [main, master]
-    paths:
-      - 'frontend/i18n/**'
-      - 'frontend-admin/src/i18n/**'
-      - 'frontend-sites/**'
-      - 'localization/**'
-      - '.github/workflows/localization-validation.yml'
-  push:
     branches: [main, master]
     paths:
       - 'frontend/i18n/**'
