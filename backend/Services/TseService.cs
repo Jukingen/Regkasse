@@ -30,6 +30,7 @@ namespace KasseAPI_Final.Services
         private readonly IOptionsMonitor<TseOptions>? _tseOptions;
         private readonly ISoftTseService? _softTse;
         private readonly FiskalyEnabledOverrideCache? _fiskalyEnabledCache;
+        private readonly IFiskalyTenantCredentialResolver? _fiskalyCredentials;
         private readonly ICountryStrategyContext _countryStrategyContext;
         private readonly ITaxStrategyResolver _taxStrategyResolver;
 
@@ -50,7 +51,8 @@ namespace KasseAPI_Final.Services
             ICountryStrategyContext? countryStrategyContext = null,
             ITaxStrategyResolver? taxStrategyResolver = null,
             ISettingsTenantResolver? settingsTenantResolver = null,
-            ICountryProfileRegistry? countryProfileRegistry = null)
+            ICountryProfileRegistry? countryProfileRegistry = null,
+            IFiskalyTenantCredentialResolver? fiskalyCredentials = null)
         {
             _context = context;
             _pipeline = pipeline;
@@ -65,6 +67,7 @@ namespace KasseAPI_Final.Services
             _tseOptions = tseOptions;
             _softTse = softTse;
             _fiskalyEnabledCache = fiskalyEnabledCache;
+            _fiskalyCredentials = fiskalyCredentials;
             var registry = countryProfileRegistry ?? new CountryProfileRegistry();
             _countryStrategyContext = countryStrategyContext
                 ?? new CountryStrategyContext(_context, registry, settingsTenantResolver);
@@ -90,6 +93,18 @@ namespace KasseAPI_Final.Services
 
         private bool CanUseSoftTseFallback() =>
             TseSoftFallbackPolicy.IsAllowed(_tseOptions?.CurrentValue ?? new TseOptions(), _hostEnvironment);
+
+        private async Task<bool> HasFiskalyCredentialsAsync()
+        {
+            if (_fiskalyCredentials is not null)
+            {
+                return await _fiskalyCredentials
+                    .HasActiveCredentialsAsync(_fiskalyEnabledCache?.OverrideEnabled)
+                    .ConfigureAwait(false);
+            }
+
+            return _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) == true;
+        }
 
         public async Task<TseStatus> GetTseStatusAsync()
         {
@@ -211,8 +226,7 @@ namespace KasseAPI_Final.Services
 
         private async Task<(bool Connected, string? ErrorMessage)> TryGetFiskalyAuthStatusAsync()
         {
-            if (_fiskalyTse is null
-                || _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) != true)
+            if (_fiskalyTse is null || !await HasFiskalyCredentialsAsync().ConfigureAwait(false))
                 return (false, null);
 
             try
@@ -463,8 +477,7 @@ namespace KasseAPI_Final.Services
                 return TseSigningMode.SoftTse;
             }
 
-            if (_fiskalyTse is not null
-                && _fiskalyOptions?.CurrentValue.HasActiveCredentials(_fiskalyEnabledCache?.OverrideEnabled) == true)
+            if (_fiskalyTse is not null && await HasFiskalyCredentialsAsync().ConfigureAwait(false))
             {
                 if (await _fiskalyTse.IsReadyToSignAsync(cashRegisterId).ConfigureAwait(false))
                     return TseSigningMode.Fiskaly;
@@ -521,7 +534,12 @@ namespace KasseAPI_Final.Services
             FiskalySignedReceipt signed;
             try
             {
-                var tssId = _fiskalyOptions?.CurrentValue.SignatureCreationUnitId ?? string.Empty;
+                var resolved = _fiskalyCredentials is null
+                    ? null
+                    : await _fiskalyCredentials.ResolveAsync().ConfigureAwait(false);
+                var tssId = resolved?.ScuId
+                    ?? _fiskalyOptions?.CurrentValue.SignatureCreationUnitId
+                    ?? string.Empty;
                 var txId = Guid.NewGuid().ToString("D");
                 var isCancellation = string.Equals(
                     data.ReceiptType,

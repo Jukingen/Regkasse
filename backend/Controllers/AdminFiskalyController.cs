@@ -16,11 +16,16 @@ public sealed class AdminFiskalyController : ControllerBase
 {
     private readonly IFiskalySettingsService _settings;
     private readonly IFiskalySetupService _setup;
+    private readonly IFiskalyCredentialAdminService? _credentials;
 
-    public AdminFiskalyController(IFiskalySettingsService settings, IFiskalySetupService setup)
+    public AdminFiskalyController(
+        IFiskalySettingsService settings,
+        IFiskalySetupService setup,
+        IFiskalyCredentialAdminService? credentials = null)
     {
         _settings = settings;
         _setup = setup;
+        _credentials = credentials;
     }
 
     /// <summary>Effective Fiskaly settings (config + tenant/global overlay). No secrets.</summary>
@@ -63,6 +68,49 @@ public sealed class AdminFiskalyController : ControllerBase
             .UpdateEnabledAsync(request.Enabled, actor, cancellationToken)
             .ConfigureAwait(false);
         return Ok(updated);
+    }
+
+    /// <summary>Tenant Fiskaly credential status. Never returns the API secret.</summary>
+    [HttpGet("credentials")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(FiskalyTenantCredentialStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FiskalyTenantCredentialStatusDto>> GetCredentials(
+        CancellationToken cancellationToken = default)
+    {
+        if (_credentials is null)
+            return NotFound(new { message = "Tenant was not found." });
+
+        var status = await _credentials.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (status is null)
+            return NotFound(new { message = "Tenant was not found." });
+        return Ok(status);
+    }
+
+    /// <summary>Store the ambient tenant's Fiskaly API key, secret, and SCU. Empty secret keeps the previous ciphertext.</summary>
+    [HttpPut("credentials")]
+    [HasPermission(AppPermissions.CashRegisterManage)]
+    [ProducesResponseType(typeof(FiskalyTenantCredentialStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FiskalyTenantCredentialStatusDto>> PutCredentials(
+        [FromBody] UpsertFiskalyTenantCredentialRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new { message = "Request body is required." });
+        if (_credentials is null)
+            return NotFound(new { message = "Tenant was not found." });
+
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.Identity?.Name ?? "unknown";
+        var result = await _credentials
+            .UpsertAsync(request, actor, cancellationToken)
+            .ConfigureAwait(false);
+        if (result.StatusCode == StatusCodes.Status404NotFound)
+            return NotFound(new { message = result.Error });
+        if (result.StatusCode == StatusCodes.Status400BadRequest)
+            return BadRequest(new { message = result.Error });
+        return Ok(result.Body);
     }
 
     /// <summary>FON / SCU / cash-register initialization snapshot (no PIN). Manager: own tenant registers.</summary>

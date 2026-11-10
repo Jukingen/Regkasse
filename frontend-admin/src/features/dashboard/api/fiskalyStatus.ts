@@ -55,3 +55,39 @@ export async function updateFiskalySettings(
     signal,
   });
 }
+
+export type FiskalyTenantCredentialStatus = {
+  configured: boolean;
+  isActive: boolean;
+  apiKeyHint?: string | null;
+  scuId?: string | null;
+  environment?: string | null;
+  updatedAt?: string | null;
+};
+
+export type UpsertFiskalyTenantCredentialRequest = {
+  apiKey?: string;
+  apiSecret?: string;
+  scuId: string;
+  environment: string;
+};
+
+export async function getFiskalyCredentials(signal?: AbortSignal): Promise<FiskalyTenantCredentialStatus> {
+  return customInstance<FiskalyTenantCredentialStatus>({
+    url: '/api/admin/fiskaly/credentials',
+    method: 'GET',
+    signal,
+  });
+}
+
+export async function updateFiskalyCredentials(
+  body: UpsertFiskalyTenantCredentialRequest,
+  signal?: AbortSignal
+): Promise<FiskalyTenantCredentialStatus> {
+  return customInstance<FiskalyTenantCredentialStatus>({
+    url: '/api/admin/fiskaly/credentials',
+    method: 'PUT',
+    data: body,
+    signal,
+  });
+}

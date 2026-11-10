@@ -25,6 +25,10 @@ vi.mock('@/features/settings/components/FiskalyEnabledSwitch', () => ({
   FiskalyEnabledSwitch: () => <div data-testid="fiskaly-enabled-switch" />,
 }));
 
+vi.mock('@/features/settings/components/FiskalyCredentialForm', () => ({
+  FiskalyCredentialForm: () => <div data-testid="fiskaly-credential-form" />,
+}));
+
 vi.mock('@/features/settings/components/TenantTseStatusCard', () => ({
   TenantTseStatusCard: () => <div data-testid="tenant-tse-status-card" />,
 }));

@@ -20,11 +20,11 @@ public sealed class FiskalyHttpClient : IFiskalyClient
     private readonly FiskalyOptions _options;
     private readonly FiskalyAccessTokenCache _tokenCache;
     private readonly FiskalyEnabledOverrideCache? _enabledCache;
+    private readonly IFiskalyTenantCredentialResolver? _credentials;
     private readonly ILogger<FiskalyHttpClient> _logger;
     private readonly ConcurrentDictionary<string, SigningCertificateBundle> _registry =
         new(StringComparer.OrdinalIgnoreCase);
-
-    private readonly SemaphoreSlim _authLock = new(1, 1);
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _authLocks = new(StringComparer.Ordinal);
 
     private static readonly JsonSerializerOptions FiskalyJson = new(JsonSerializerDefaults.Web)
     {
@@ -36,12 +36,14 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         IOptions<FiskalyOptions> options,
         FiskalyAccessTokenCache tokenCache,
         ILogger<FiskalyHttpClient> logger,
-        FiskalyEnabledOverrideCache? enabledCache = null)
+        FiskalyEnabledOverrideCache? enabledCache = null,
+        IFiskalyTenantCredentialResolver? credentials = null)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _tokenCache = tokenCache;
         _enabledCache = enabledCache;
+        _credentials = credentials;
         _logger = logger;
 
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
@@ -170,7 +172,8 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         }
 
         await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
-        if (!_tokenCache.TryGet(out var token, out var expiresAt))
+        var creds = await ResolveCallCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        if (!_tokenCache.TryGet(creds.TenantId, out var token, out var expiresAt))
             throw new FiskalyApiException("fiskaly authentication succeeded but the token cache is empty.");
 
         _logger.LogInformation(
@@ -528,13 +531,15 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         if (string.IsNullOrWhiteSpace(signatureCreationUnitId))
             throw new InvalidOperationException("fiskaly Signature Creation Unit id is required.");
 
+        var creds = await ResolveCallCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        var configuredScu = creds.ScuId?.Trim() ?? string.Empty;
         if (!string.Equals(
                 signatureCreationUnitId.Trim(),
-                _options.SignatureCreationUnitId.Trim(),
+                configuredScu,
                 StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                $"Requested SCU '{signatureCreationUnitId}' does not match configured SCU '{_options.SignatureCreationUnitId}'.");
+                $"Requested SCU '{signatureCreationUnitId}' does not match configured SCU '{configuredScu}'.");
         }
 
         var scu = await GetSignatureCreationUnitAsync(signatureCreationUnitId, cancellationToken);
@@ -543,10 +548,7 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             _logger.LogWarning("fiskaly SCU {ScuId} is in state {State}, expected INITIALIZED.", scu.Id, scu.State);
         }
 
-        var active = _registry.Values.FirstOrDefault(b => b.IsActive)
-            ?? throw new InvalidOperationException(
-                "No fiskaly signing certificate configured. Set Fiskaly:SigningCertificateDerBase64.");
-
+        var active = RequireBundle(creds);
         if (!string.IsNullOrWhiteSpace(scu?.CertificateSerialNumber))
             active = active with { SerialNumber = scu.CertificateSerialNumber.Trim() };
 
@@ -558,7 +560,38 @@ public sealed class FiskalyHttpClient : IFiskalyClient
         if (string.IsNullOrWhiteSpace(_options.SigningCertificateDerBase64))
             return;
 
-        var leafDer = Convert.FromBase64String(_options.SigningCertificateDerBase64.Trim());
+        var bundle = BuildBundle(_options.SigningCertificateDerBase64, _options.IssuerCertificatesDerBase64);
+        _registry[bundle.Thumbprint] = bundle;
+    }
+
+    private SigningCertificateBundle RequireBundle(CallCredentials creds)
+    {
+        if (creds.FromTenant)
+        {
+            if (string.IsNullOrWhiteSpace(creds.Certificate))
+            {
+                throw new InvalidOperationException(
+                    "No fiskaly signing certificate configured. Set Fiskaly:SigningCertificateDerBase64.");
+            }
+
+            return BuildBundle(creds.Certificate, creds.Issuers);
+        }
+
+        if (!string.IsNullOrWhiteSpace(creds.Certificate))
+        {
+            var built = BuildBundle(creds.Certificate, creds.Issuers);
+            _registry[built.Thumbprint] = built;
+            return built;
+        }
+
+        return _registry.Values.FirstOrDefault(b => b.IsActive)
+            ?? throw new InvalidOperationException(
+                "No fiskaly signing certificate configured. Set Fiskaly:SigningCertificateDerBase64.");
+    }
+
+    private SigningCertificateBundle BuildBundle(string leafBase64, IReadOnlyList<string>? issuersBase64)
+    {
+        var leafDer = Convert.FromBase64String(leafBase64.Trim());
         var leaf = X509CertificateLoader.LoadCertificate(leafDer);
         var thumbprint = TseCertificateThumbprint.Compute(leaf);
         var serial = leaf.SerialNumber.TrimStart('0').ToUpperInvariant();
@@ -566,30 +599,33 @@ public sealed class FiskalyHttpClient : IFiskalyClient
             serial = "FISKALY-SCU";
 
         var issuers = new List<X509Certificate2>();
-        foreach (var issuerB64 in _options.IssuerCertificatesDerBase64)
+        if (issuersBase64 is not null)
         {
-            if (string.IsNullOrWhiteSpace(issuerB64))
-                continue;
+            foreach (var issuerB64 in issuersBase64)
+            {
+                if (string.IsNullOrWhiteSpace(issuerB64))
+                    continue;
 
-            try
-            {
-                var issuerDer = Convert.FromBase64String(issuerB64.Trim());
-                issuers.Add(X509CertificateLoader.LoadCertificate(issuerDer));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Skipping invalid fiskaly issuer certificate entry.");
+                try
+                {
+                    var issuerDer = Convert.FromBase64String(issuerB64.Trim());
+                    issuers.Add(X509CertificateLoader.LoadCertificate(issuerDer));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Skipping invalid fiskaly issuer certificate entry.");
+                }
             }
         }
 
-        var bundle = new SigningCertificateBundle(leaf, thumbprint, serial, leafDer, issuers, IsActive: true);
-        _registry[thumbprint] = bundle;
+        return new SigningCertificateBundle(leaf, thumbprint, serial, leafDer, issuers, IsActive: true);
     }
 
     private async Task<string> RequireAccessTokenAsync(CancellationToken cancellationToken)
     {
-        await EnsureAuthenticatedAsync(cancellationToken).ConfigureAwait(false);
-        if (_tokenCache.TryGet(out var token, out _))
+        var creds = await ResolveCallCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureAuthenticatedAsync(creds, cancellationToken).ConfigureAwait(false);
+        if (_tokenCache.TryGet(creds.TenantId, out var token, out _))
             return token;
 
         throw new FiskalyApiException("fiskaly access token is not available.");
@@ -597,28 +633,35 @@ public sealed class FiskalyHttpClient : IFiskalyClient
 
     private async Task EnsureAuthenticatedAsync(CancellationToken cancellationToken)
     {
+        var creds = await ResolveCallCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureAuthenticatedAsync(creds, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task EnsureAuthenticatedAsync(CallCredentials creds, CancellationToken cancellationToken)
+    {
         if (!IsEnabled)
             throw new FiskalyApiException("Fiskaly is disabled.");
 
-        if (_tokenCache.TryGet(out _, out _))
+        if (_tokenCache.TryGet(creds.TenantId, out _, out _))
             return;
 
-        if (string.IsNullOrWhiteSpace(_options.ApiKey) || string.IsNullOrWhiteSpace(_options.ApiSecret))
+        if (string.IsNullOrWhiteSpace(creds.ApiKey) || string.IsNullOrWhiteSpace(creds.ApiSecret))
         {
             throw new FiskalyApiException(
                 "Fiskaly:ApiKey / Fiskaly:ApiSecret are not configured. Set user-secrets in Development.");
         }
 
-        await _authLock.WaitAsync(cancellationToken);
+        var gate = _authLocks.GetOrAdd(FiskalyAccessTokenCache.ScopeKey(creds.TenantId), _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
         try
         {
-            if (_tokenCache.TryGet(out _, out _))
+            if (_tokenCache.TryGet(creds.TenantId, out _, out _))
                 return;
 
             var authBody = new FiskalyAuthRequestDto
             {
-                ApiKey = _options.ApiKey,
-                ApiSecret = _options.ApiSecret,
+                ApiKey = creds.ApiKey,
+                ApiSecret = creds.ApiSecret,
             };
 
             using var response = await PostAuthWithRetryAsync(authBody, cancellationToken).ConfigureAwait(false);
@@ -633,13 +676,52 @@ public sealed class FiskalyHttpClient : IFiskalyClient
                 throw new FiskalyApiException("fiskaly auth returned no access_token.");
 
             var expiresAt = auth.ExpiresAt ?? DateTimeOffset.UtcNow.Add(_options.ResolveTokenCacheLifetime());
-            _tokenCache.Set(auth.AccessToken, expiresAt);
+            _tokenCache.Set(creds.TenantId, auth.AccessToken, expiresAt);
         }
         finally
         {
-            _authLock.Release();
+            gate.Release();
         }
     }
+
+    private async Task<CallCredentials> ResolveCallCredentialsAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            var resolved = await _credentials.ResolveAsync(cancellationToken).ConfigureAwait(false);
+            if (resolved is null)
+            {
+                return new CallCredentials(null, string.Empty, string.Empty, string.Empty, null, [], false);
+            }
+
+            return new CallCredentials(
+                resolved.TenantId,
+                resolved.ApiKey,
+                resolved.ApiSecret,
+                resolved.ScuId,
+                resolved.SigningCertificateDerBase64,
+                resolved.IssuerCertificatesDerBase64,
+                resolved.Source == FiskalyCredentialSources.Tenant);
+        }
+
+        return new CallCredentials(
+            null,
+            _options.ApiKey,
+            _options.ApiSecret,
+            _options.SignatureCreationUnitId,
+            _options.SigningCertificateDerBase64,
+            _options.IssuerCertificatesDerBase64,
+            false);
+    }
+
+    private sealed record CallCredentials(
+        Guid? TenantId,
+        string ApiKey,
+        string ApiSecret,
+        string ScuId,
+        string? Certificate,
+        IReadOnlyList<string> Issuers,
+        bool FromTenant);
 
     private async Task<HttpResponseMessage> PostAuthWithRetryAsync(
         FiskalyAuthRequestDto authBody,
