@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import OnboardingScreen from '../app/(auth)/onboarding';
 import i18n, { changeLanguage, i18nReady } from '../i18n';
-import { loginIndustrySubtitle } from '../services/verticalProfiles/posOnboarding';
+import {
+  buildOnboardingSlides,
+  loginIndustrySubtitle,
+  shouldSkipPosOnboarding,
+} from '../services/verticalProfiles/posOnboarding';
 
 const mockReplace = jest.fn<(...args: unknown[]) => void>();
 const mockSecureGet = jest.fn<(...args: unknown[]) => Promise<string | null>>();
@@ -78,20 +82,41 @@ describe('POS onboarding', () => {
     expect(screen.getByText('Terminkalender')).toBeTruthy();
   });
 
-  it('advances the gastronomy table slide without a table selection', async () => {
+  it('skips gastronomy decks and opens the cash register', async () => {
     await renderOnboarding('gastronomy-tables');
-    expect(screen.getByText('Ihre Gastronomie')).toBeTruthy();
-    expect(screen.getByText('1 / 2')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Weiter' }));
-    expect(screen.getByText('2 / 2')).toBeTruthy();
-    expect(
-      screen.getByText('Die Tische 1–10 stehen auf der Kasse. Hier ist keine Auswahl nötig.')
-    ).toBeTruthy();
-    expect(screen.getByText('10')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Loslegen' }));
+    expect(screen.queryByText('Ihre Gastronomie')).toBeNull();
+    expect(screen.queryByText('Weiter')).toBeNull();
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/(tabs)/cash-register');
     });
+    expect(mockSecureSet).not.toHaveBeenCalled();
+  });
+
+  it('skips the gastronomy profile the same way', async () => {
+    await renderOnboarding('gastronomy');
+    expect(screen.queryByText('Ihre Gastronomie')).toBeNull();
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)/cash-register');
+    });
+    expect(mockSecureSet).not.toHaveBeenCalled();
+  });
+
+  it('keeps onboarding slides for taxi and rooms', () => {
+    expect(shouldSkipPosOnboarding('gastronomy')).toBe(true);
+    expect(shouldSkipPosOnboarding('gastronomy-tables')).toBe(true);
+    expect(shouldSkipPosOnboarding('taxi')).toBe(false);
+    expect(shouldSkipPosOnboarding('beherbergung')).toBe(false);
+    expect(buildOnboardingSlides('gastronomy')).toEqual([]);
+    expect(buildOnboardingSlides('gastronomy-tables')).toEqual([]);
+    expect(buildOnboardingSlides('taxi').map((slide) => slide.id)).toEqual([
+      'welcome',
+      'trip',
+      'tariff',
+    ]);
+    expect(buildOnboardingSlides('beherbergung').map((slide) => slide.id)).toEqual([
+      'welcome',
+      'rooms',
+    ]);
   });
 
   it('shows the taxi slides', async () => {

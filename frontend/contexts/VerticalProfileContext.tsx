@@ -12,6 +12,7 @@ import { useAuth } from './AuthContext';
 import { apiClient } from '../services/api/config';
 import { secureStorage } from '../services/secureStorage';
 import { tenantStorage } from '../services/tenant/tenantStorage';
+import { verticalProfileCacheKey } from '../services/verticalProfiles/posOnboarding';
 
 export type PosLayout = 'standard' | 'tables' | 'appointment' | 'queue' | 'taxi' | 'ticket' | 'rooms';
 export type PosFeatureMap = Record<string, boolean>;
@@ -132,7 +133,7 @@ export function normalizeVerticalProfile(value: unknown): EffectiveVerticalProfi
 }
 
 function cacheKey(scope: string): string {
-  return `vertical_profile_v1_${scope.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+  return verticalProfileCacheKey(scope);
 }
 
 function firstNonBlank(...values: (string | null | undefined)[]): string | null {

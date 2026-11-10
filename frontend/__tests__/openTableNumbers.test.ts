@@ -25,4 +25,13 @@ describe('collectOpenTableNumbers', () => {
       []
     );
   });
+
+  it('ignores a stale recovery count when the local cart for that table is empty', () => {
+    expect(
+      collectOpenTableNumbers(
+        { 2: { items: [{ qty: 0 }] } },
+        { tableOrders: [{ tableNumber: 2, itemCount: 4 }, { tableNumber: 6, itemCount: 1 }] }
+      )
+    ).toEqual([6]);
+  });
 });

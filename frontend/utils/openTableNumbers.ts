@@ -24,15 +24,21 @@ export function collectOpenTableNumbers(
   recoveryData?: OpenTableRecoverySnapshot | null
 ): number[] {
   const open = new Set<number>();
+  const localTables = new Set<number>();
 
   for (const [key, cartData] of Object.entries(cartsByTable ?? {})) {
     const tableNumber = Number(key);
+    if (Number.isFinite(tableNumber) && tableNumber > 0) localTables.add(tableNumber);
     const total = (cartData?.items ?? []).reduce((sum, item) => sum + (item?.qty ?? 0), 0);
     addOpenTable(open, tableNumber, total);
   }
 
   for (const order of recoveryData?.tableOrders ?? []) {
-    addOpenTable(open, Number(order?.tableNumber), order?.itemCount ?? 0);
+    const tableNumber = Number(order?.tableNumber);
+    // A loaded local cart is the source of truth. Stale recovery counts must not
+    // keep a table "open" after Alle leeren already emptied it.
+    if (localTables.has(tableNumber)) continue;
+    addOpenTable(open, tableNumber, order?.itemCount ?? 0);
   }
 
   return [...open].sort((a, b) => a - b);

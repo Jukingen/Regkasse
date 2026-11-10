@@ -29,7 +29,11 @@ import {
 import { getUserSettings, getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { sessionManager, type StoredSessionUser } from '../services/session/sessionManager';
 import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
-import { hasSeenPosOnboarding } from '../services/verticalProfiles/posOnboarding';
+import {
+  hasSeenPosOnboarding,
+  shouldSkipPosOnboarding,
+} from '../services/verticalProfiles/posOnboarding';
+import { resolveProfileIdForOnboardingGate } from '../services/verticalProfiles/readVerticalProfileId';
 import { authTrace } from '../utils/authTrace';
 import { createLoginFailedError, handleLoginError } from '../utils/loginErrorHandler';
 import {
@@ -734,9 +738,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isAuthenticatedRef.current || !latest) return;
             if (latest.mustChangePasswordOnNextLogin) return;
             if (!(await hasSeenPosOnboarding())) {
-              authDevLog('🧭 Navigating to onboarding...');
-              await router.replace('/(auth)/onboarding');
-              return;
+              const profileId = await resolveProfileIdForOnboardingGate(
+                latest.tenantId ?? latest.tenantSlug ?? null
+              );
+              // Unknown profile: the auth layout decides once the profile loads.
+              // Gastronomy skips the deck and continues to the register below.
+              if (!shouldSkipPosOnboarding(profileId)) {
+                if (!profileId) {
+                  authDevLog('🧭 Onboarding deferred until the vertical profile loads');
+                  return;
+                }
+                authDevLog('🧭 Navigating to onboarding...');
+                await router.replace('/(auth)/onboarding');
+                return;
+              }
+              authDevLog('🧭 Skipping onboarding for profile', profileId);
             }
             if (needsPosCashRegisterSelection(latest.currentCashRegisterId)) {
               authDevLog('🧭 Navigating to cash-register-select...');

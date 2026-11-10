@@ -3,7 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { hasSeenPosOnboarding } from '../../services/verticalProfiles/posOnboarding';
+import { useVerticalProfileContext } from '../../contexts/VerticalProfileContext';
+import {
+  hasSeenPosOnboarding,
+  shouldSkipPosOnboarding,
+} from '../../services/verticalProfiles/posOnboarding';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import {
   needsPosCashRegisterSelection,
@@ -14,7 +18,16 @@ import { isPosAllowedRole } from '../../utils/posRoleGuard';
 export default function AuthLayout() {
   const segments = useSegments();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const {
+    profileId,
+    isLoading: profileLoading,
+    source: profileSource,
+    error: profileError,
+  } = useVerticalProfileContext();
   const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
+  const profileSettled =
+    profileSource === 'cache' || profileSource === 'network' || profileError != null;
+  const skipOnboarding = profileSettled && shouldSkipPosOnboarding(profileId);
 
   const isOnLoginScreen = Array.isArray(segments) && (segments as string[]).includes('login');
   const isOnChangePasswordScreen =
@@ -69,14 +82,14 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated && user) {
-    if (onboardingSeen === null) {
+    if (onboardingSeen === null || (!onboardingSeen && !profileSettled && profileLoading)) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <WaveLoader size={32} color="#007AFF" />
         </View>
       );
     }
-    if (!onboardingSeen) {
+    if (!onboardingSeen && !skipOnboarding) {
       if (!isOnboardingScreen) {
         return <Redirect href="/(auth)/onboarding" />;
       }

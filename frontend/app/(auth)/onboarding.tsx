@@ -15,6 +15,7 @@ import {
   buildOnboardingSlides,
   hasSeenPosOnboarding,
   markPosOnboardingSeen,
+  shouldSkipPosOnboarding,
 } from '../../services/verticalProfiles/posOnboarding';
 
 const ONBOARDING_TABLE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -28,8 +29,9 @@ export default function OnboardingScreen() {
   const [settled, setSettled] = useState(source === 'cache' || source === 'network' || error != null);
   const [index, setIndex] = useState(0);
   const slides = useMemo(() => buildOnboardingSlides(profileId), [profileId]);
-  const slide = slides[Math.min(index, slides.length - 1)];
-  const isLast = index >= slides.length - 1;
+  const skipDeck = shouldSkipPosOnboarding(profileId);
+  const slide = slides[Math.min(index, Math.max(slides.length - 1, 0))];
+  const isLast = slides.length === 0 || index >= slides.length - 1;
 
   useEffect(() => {
     if (isLoading) return;
@@ -39,7 +41,11 @@ export default function OnboardingScreen() {
   }, [error, isLoading, source]);
 
   useEffect(() => {
-    if (!settled) return;
+    if (!settled || isLoading) return;
+    if (skipDeck) {
+      router.replace('/(tabs)/cash-register');
+      return;
+    }
     let cancelled = false;
     void hasSeenPosOnboarding().then((seen) => {
       if (!cancelled && seen) {
@@ -49,7 +55,7 @@ export default function OnboardingScreen() {
     return () => {
       cancelled = true;
     };
-  }, [router, settled]);
+  }, [isLoading, router, settled, skipDeck]);
 
   const finish = useCallback(() => {
     // Leave even if SecureStore is slow. The flag write still runs.
@@ -70,7 +76,7 @@ export default function OnboardingScreen() {
     setIndex(index + 1);
   }, [finish, index, slides.length]);
 
-  if (!settled || isLoading) {
+  if (!settled || isLoading || skipDeck || !slide) {
     return (
       <View style={styles.loading}>
         <StatusBar style="dark" />

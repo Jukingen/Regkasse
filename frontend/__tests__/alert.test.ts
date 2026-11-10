@@ -3,7 +3,7 @@
  */
 import { Alert, Platform } from 'react-native';
 
-import { showAlert } from '../utils/alert';
+import { showAlert, showConfirm } from '../utils/alert';
 
 jest.mock('react-native', () => {
   const osRef = { current: 'ios' as string };
@@ -62,5 +62,73 @@ describe('showAlert', () => {
     expect(Alert.alert).toHaveBeenCalledTimes(1);
     expect(Alert.alert).toHaveBeenCalledWith('Fehler', 'Zahlung fehlgeschlagen');
     expect(windowAlert).not.toHaveBeenCalled();
+  });
+});
+
+describe('showConfirm', () => {
+  const windowAlert = jest.fn();
+  const windowConfirm = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setPlatform('ios');
+    windowConfirm.mockReturnValue(false);
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { alert: windowAlert, confirm: windowConfirm },
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, 'window');
+  });
+
+  it('uses window.confirm on web and runs the clear action only when accepted', () => {
+    setPlatform('web');
+    windowConfirm.mockReturnValue(true);
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+
+    showConfirm('Alle Tische leeren?', '2 offene Tische werden geleert.', [
+      { text: 'Abbrechen', style: 'cancel', onPress: onCancel },
+      { text: 'Alle leeren', style: 'destructive', onPress: onConfirm },
+    ]);
+
+    expect(windowConfirm).toHaveBeenCalledWith(
+      'Alle Tische leeren?\n\n2 offene Tische werden geleert.'
+    );
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
+  it('does not clear on web when the cashier cancels', () => {
+    setPlatform('web');
+    windowConfirm.mockReturnValue(false);
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+
+    showConfirm('Alle Tische leeren?', '1 offene Tische werden geleert.', [
+      { text: 'Abbrechen', style: 'cancel', onPress: onCancel },
+      { text: 'Alle leeren', style: 'destructive', onPress: onConfirm },
+    ]);
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps React Native Alert buttons on native', () => {
+    setPlatform('ios');
+    const buttons = [
+      { text: 'Abbrechen', style: 'cancel' as const },
+      { text: 'Alle leeren', style: 'destructive' as const, onPress: () => undefined },
+    ];
+    showConfirm('Alle Tische leeren?', '2 offene Tische werden geleert.', buttons);
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Alle Tische leeren?',
+      '2 offene Tische werden geleert.',
+      buttons
+    );
+    expect(windowConfirm).not.toHaveBeenCalled();
   });
 });

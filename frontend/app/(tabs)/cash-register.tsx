@@ -110,6 +110,7 @@ import {
   buildPosRegisterGateContext,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
+import { showConfirm } from '../../utils/alert';
 import { collectOpenTableNumbers } from '../../utils/openTableNumbers';
 import { resolveProductDisplayName } from '../../utils/productLocalization';
 import type { ProductTextLocale } from '../../utils/productLocalization';
@@ -892,7 +893,7 @@ export default function CashRegisterScreen() {
       return;
     }
 
-    Alert.alert(
+    showConfirm(
       t('checkout:posFlow.toast.clearAllConfirmTitle'),
       t('checkout:posFlow.toast.clearAllConfirmMessage', { count: openTables.length }),
       [
@@ -917,6 +918,12 @@ export default function CashRegisterScreen() {
                 return;
               }
 
+              try {
+                await refreshTableOrders();
+              } catch (err) {
+                console.error('Table recovery refresh after clear-all failed', err);
+              }
+
               if (cleared < openTables.length) {
                 addToast(
                   'warning',
@@ -939,7 +946,7 @@ export default function CashRegisterScreen() {
         },
       ]
     );
-  }, [addToast, cartsByTable, clearCart, recoveryData, t]);
+  }, [addToast, cartsByTable, clearCart, recoveryData, refreshTableOrders, t]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {

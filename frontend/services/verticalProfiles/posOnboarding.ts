@@ -7,6 +7,23 @@ import { secureStorage } from '../secureStorage';
 /** One device flag. Set after the cashier finishes or skips the deck. */
 export const POS_ONBOARDING_SEEN_KEY = 'pos_onboarding_seen_v1';
 
+/**
+ * Gastronomy cashiers already land on the register. The deck is not useful there.
+ * Other profiles (taxi, rooms, vet, …) keep their slides. The seen-flag stays unset
+ * so a later login on another profile on the same device still shows that deck.
+ */
+const ONBOARDING_SKIP_PROFILE_IDS = new Set(['gastronomy', 'gastronomy-tables']);
+
+/** Cache key shared with VerticalProfileContext (`vertical_profile_v1_*`). */
+export function verticalProfileCacheKey(scope: string): string {
+  return `vertical_profile_v1_${scope.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+}
+
+export function shouldSkipPosOnboarding(profileId: string | null | undefined): boolean {
+  const id = profileId?.trim();
+  return !!id && ONBOARDING_SKIP_PROFILE_IDS.has(id);
+}
+
 export type OnboardingSlide = {
   id: string;
   titleKey: string;
@@ -90,34 +107,6 @@ const PROFILE_SLIDES: Record<string, OnboardingSlide[]> = {
       previewKey: 'onboarding.taxi.tariffPreview',
     },
   ],
-  gastronomy: [
-    {
-      id: 'welcome',
-      titleKey: 'onboarding.gastronomy.welcomeTitle',
-      bodyKey: 'onboarding.gastronomy.welcomeBody',
-      previewKey: 'onboarding.gastronomy.kitchenPreview',
-    },
-    {
-      id: 'kitchen',
-      titleKey: 'onboarding.gastronomy.kitchenTitle',
-      bodyKey: 'onboarding.gastronomy.kitchenBody',
-      previewKey: 'onboarding.gastronomy.kitchenPreview',
-    },
-  ],
-  'gastronomy-tables': [
-    {
-      id: 'welcome',
-      titleKey: 'onboarding.gastronomyTables.welcomeTitle',
-      bodyKey: 'onboarding.gastronomyTables.welcomeBody',
-      previewKey: 'onboarding.gastronomyTables.tablesPreview',
-    },
-    {
-      id: 'tables',
-      titleKey: 'onboarding.gastronomyTables.tablesTitle',
-      bodyKey: 'onboarding.gastronomyTables.tablesBody',
-      previewKey: 'onboarding.gastronomyTables.tablesPreview',
-    },
-  ],
   'handy-shop': [
     {
       id: 'welcome',
@@ -192,6 +181,7 @@ const INDUSTRY_KEYS: Record<string, string> = {
 export function buildOnboardingSlides(profileId: string | null | undefined): OnboardingSlide[] {
   const id = profileId?.trim();
   if (!id) return DEFAULT_SLIDES;
+  if (shouldSkipPosOnboarding(id)) return [];
   return PROFILE_SLIDES[id] ?? DEFAULT_SLIDES;
 }
 
