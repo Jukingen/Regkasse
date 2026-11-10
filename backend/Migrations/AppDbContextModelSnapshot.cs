@@ -14370,6 +14370,84 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_domains", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantFiskalyCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApiKeyHint")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("api_key_hint");
+
+                    b.Property<string>("ApiKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("api_key_protected");
+
+                    b.Property<string>("ApiSecretProtected")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("api_secret_protected");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("TEST")
+                        .HasColumnName("environment");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.PrimitiveCollection<string>("IssuerCertificatesDerBase64")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("issuer_certificates_der_base64");
+
+                    b.Property<string>("ScuId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("scu_id");
+
+                    b.Property<string>("SigningCertificateDerBase64")
+                        .HasColumnType("text")
+                        .HasColumnName("signing_certificate_der_base64");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_fiskaly_credentials_tenant_id");
+
+                    b.ToTable("tenant_fiskaly_credentials");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>
                 {
                     b.Property<Guid>("Id")
@@ -20138,6 +20216,15 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantFiskalyCredential", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>

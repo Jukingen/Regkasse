@@ -380,6 +380,8 @@ namespace KasseAPI_Final.Data
 
         public DbSet<OnlineOrderIntegrationTenantCredential> OnlineOrderIntegrationTenantCredentials { get; set; }
 
+        public DbSet<TenantFiskalyCredential> TenantFiskalyCredentials { get; set; }
+
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
 
         public DbSet<CommunicationLog> CommunicationLogs { get; set; }
@@ -404,6 +406,7 @@ namespace KasseAPI_Final.Data
             builder.ApplyConfiguration(new OnlineOrderIntegrationOAuthTokenEntityConfiguration());
             builder.ApplyConfiguration(new OnlineOrderIntegrationProviderEntityConfiguration());
             builder.ApplyConfiguration(new OnlineOrderIntegrationTenantCredentialEntityConfiguration());
+            builder.ApplyConfiguration(new TenantFiskalyCredentialEntityConfiguration());
 
             // Enable pg_trgm extension for GIN indexes
             builder.HasPostgresExtension("pg_trgm");

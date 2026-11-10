@@ -66,7 +66,20 @@
       "connected": "Bagli",
       "disconnected": "Bagli degil",
       "manage": "TSE ayarlarini yonet",
-      "viewRksvStatus": "RKSV durumunu ac"
+      "viewRksvStatus": "RKSV durumunu ac",
+      "credentials": {
+        "apiKey": "API anahtari",
+        "apiSecret": "API sirri",
+        "scuId": "SCU kimligi",
+        "environment": "Ortam",
+        "envTest": "TEST",
+        "envLive": "LIVE",
+        "save": "Fiskaly kaydet",
+        "saveSuccess": "Fiskaly kimlik bilgileri kaydedildi.",
+        "hint": "Kayitli (····{{hint}})",
+        "missing": "Fiskaly kimlik bilgisi yok.",
+        "secretPlaceholder": "Sirri korumak icin bos birakin"
+      }
     },
     "tsePortal": {
       "title": "TSE durumu",
