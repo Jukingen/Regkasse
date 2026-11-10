@@ -58,7 +58,7 @@
     "monatsbeleg_overdue_title": "Monatsbeleg überfällig",
     "monatsbeleg_overdue_description": "{{count}} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.",
     "monatsbeleg_pending_title": "Monatsbeleg fehlt",
-    "monatsbeleg_pending_description": "Monatsbeleg fehlt für {{count}} Kasse(n).",
+    "monatsbeleg_pending_description": "Monatsbeleg fehlt für {{count}} aktive Kasse(n). Monate ohne Umsatz sind ebenfalls nachzuholen. Außer Betrieb genommene Kassen zählen nicht.",
     "jahresbeleg_pending_title": "Jahresbeleg ausstehend",
     "jahresbeleg_pending_description": "{{count}} Kassen benötigen einen Jahresbeleg.",
     "all_current_title": "Alle RKSV-Sonderbelege sind aktuell",
@@ -460,7 +460,7 @@
     "noActivities": "Keine Aktivitäten",
     "pendingMonatsbeleg": "Monatsbeleg fehlt für {{count}} Kasse",
     "pendingMonatsbelegPlural": "Monatsbeleg fehlt für {{count}} Kassen",
-    "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
+    "pendingMonatsbelegDescription": "Nur aktive Kassen mit einem fehlenden Monat. Ein Monat ohne Umsatz bleibt pflichtig. Außer Betrieb genommene Kassen erscheinen hier nicht.",
     "createNow": "Jetzt nachholen",
     "openMonatsbelegRequests": {
       "title": "Offene Monatsbeleg-Anfragen",

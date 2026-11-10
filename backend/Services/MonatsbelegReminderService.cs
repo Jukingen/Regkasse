@@ -37,7 +37,7 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == cashRegisterId && r.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
-        if (register == null)
+        if (register == null || !register.IsActive || register.Status == RegisterStatus.Decommissioned)
             return null;
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
@@ -141,7 +141,7 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var registerIds = await _db.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
+            .Where(r => r.TenantId == tenantId && r.IsActive && r.Status != RegisterStatus.Decommissioned)
             .OrderBy(r => r.RegisterNumber)
             .Select(r => r.Id)
             .ToListAsync(cancellationToken)

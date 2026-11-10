@@ -809,7 +809,7 @@ namespace KasseAPI_Final.Services
                 pageSize = Math.Clamp(pageSize, 1, 100);
                 page = Math.Max(1, page);
 
-                var filtered = AuditLogsReadOnly.ApplyFilters(filters);
+                var filtered = AuditLogsReadOnly.ApplyFilters(filters, _context);
 
                 int? total = null;
                 if (includeTotalCount)
@@ -980,7 +980,7 @@ namespace KasseAPI_Final.Services
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
-                var count = await AuditLogsReadOnly.ApplyFilters(filters).CountAsync();
+                var count = await AuditLogsReadOnly.ApplyFilters(filters, _context).CountAsync();
 
                 _logger.LogInformation("Retrieved audit log count: {Count}", count);
 

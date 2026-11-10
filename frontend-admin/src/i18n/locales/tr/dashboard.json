@@ -58,7 +58,7 @@
     "monatsbeleg_overdue_title": "Monatsbeleg gecikmiş",
     "monatsbeleg_overdue_description": "{{count}} kasa Monatsbeleg’i zamanında oluşturmadı.",
     "monatsbeleg_pending_title": "Monatsbeleg eksik",
-    "monatsbeleg_pending_description": "{{count}} kasa için Monatsbeleg eksik.",
+    "monatsbeleg_pending_description": "{{count}} aktif kasa için Monatsbeleg eksik. Satışı olmayan aylar da oluşturulmalıdır. Hizmetten çıkarılan kasalar sayılmaz.",
     "jahresbeleg_pending_title": "Jahresbeleg bekliyor",
     "jahresbeleg_pending_description": "{{count}} kasa Jahresbeleg gerektiriyor.",
     "all_current_title": "Tüm RKSV özel fişler güncel",
@@ -460,7 +460,7 @@
     "noActivities": "Aktivite yok",
     "pendingMonatsbeleg": "{{count}} kasa için Monatsbeleg eksik",
     "pendingMonatsbelegPlural": "{{count}} kasa için Monatsbeleg eksik",
-    "pendingMonatsbelegDescription": "Lütfen bekleyen aylık belgeleri oluşturun.",
+    "pendingMonatsbelegDescription": "Yalnızca ayı gerçekten eksik olan aktif kasalar. Satışı olmayan bir ay da zorunludur. Hizmetten çıkarılan kasalar listelenmez.",
     "createNow": "Eksikleri tamamla",
     "openMonatsbelegRequests": {
       "title": "Açık Monatsbeleg talepleri",

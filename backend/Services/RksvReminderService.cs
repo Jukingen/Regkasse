@@ -39,7 +39,7 @@ public sealed class RksvReminderService : IRksvReminderService
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == cashRegisterId && r.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
-        if (register == null)
+        if (register == null || !register.IsActive || register.Status == RegisterStatus.Decommissioned)
             return null;
 
         var settings = await _db.CompanySettings.AsNoTracking()
@@ -73,23 +73,28 @@ public sealed class RksvReminderService : IRksvReminderService
             .EvaluateSalesGateAsync(cashRegisterId, cancellationToken)
             .ConfigureAwait(false);
 
-        // RKSV: Monatsbeleg is due for the previous completed month (within 7 days of month end).
-        var mbRequired = !hasPreviousMonth;
+        // Previous month is due only after the register was in operation (first receipt, else CreatedAt).
+        // A month with no sales is still due once that window has started. Decommissioned registers are omitted above.
+        var firstRequired = await ResolveFirstRequiredMonthAnchorAsync(register, cancellationToken)
+            .ConfigureAwait(false);
+        var previousMonthInScope = firstRequired <= prevMonthAnchor;
+        var mbRequired = previousMonthInScope && !hasPreviousMonth;
         var currentMonthGraceOverdue = false;
-        var lastMonthMissing = !hasPreviousMonth;
+        var lastMonthMissing = mbRequired;
 
         string mbStatus;
-        if (!hasPreviousMonth && gate.WarningLevel == MonatsbelegSalesGateEvaluator.WarningRed)
-            mbStatus = MbOverdue;
-        else if (!hasPreviousMonth)
-            mbStatus = MbUpcoming;
-        else
+        if (!mbRequired)
             mbStatus = MbOk;
+        else if (gate.WarningLevel == MonatsbelegSalesGateEvaluator.WarningRed)
+            mbStatus = MbOverdue;
+        else
+            mbStatus = MbUpcoming;
 
         int? mbDays = mbRequired ? Math.Max(0, 7 - today.Day) : null;
 
-        var warningMessageDe = gate.WarningMessageDe
-            ?? BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue);
+        var warningMessageDe = mbRequired
+            ? gate.WarningMessageDe ?? BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue)
+            : null;
 
         var monatsbeleg = new RksvReminderMonatsbelegDto
         {
@@ -102,7 +107,7 @@ public sealed class RksvReminderService : IRksvReminderService
             LastMonthMissing = lastMonthMissing,
             WarningMessageDe = warningMessageDe,
             BlockingMode = MonatsbelegBlockingModeNames.ToPersisted(gate.Mode),
-            WarningLevel = gate.WarningLevel,
+            WarningLevel = mbRequired ? gate.WarningLevel : MonatsbelegSalesGateEvaluator.WarningNone,
             SalesBlocked = gate.BlocksSales,
             CanContinueWithWarning = gate.CanContinueWithWarning,
             ViennaDayOfMonth = gate.ViennaDayOfMonth,
@@ -171,7 +176,7 @@ public sealed class RksvReminderService : IRksvReminderService
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var registerIds = await _db.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.Status != RegisterStatus.Decommissioned)
+            .Where(r => r.TenantId == tenantId && r.IsActive && r.Status != RegisterStatus.Decommissioned)
             .OrderBy(r => r.RegisterNumber)
             .Select(r => r.Id)
             .ToListAsync(cancellationToken)
@@ -191,6 +196,25 @@ public sealed class RksvReminderService : IRksvReminderService
         }
 
         return results;
+    }
+
+    private async Task<DateTime> ResolveFirstRequiredMonthAnchorAsync(
+        CashRegister register,
+        CancellationToken cancellationToken)
+    {
+        var firstFiscalOperationUtc = await _db.PaymentDetails.AsNoTracking()
+            .Where(p => p.CashRegisterId == register.Id && p.IsActive)
+            .OrderBy(p => p.CreatedAt)
+            .Select(p => (DateTime?)p.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var basisUtc = firstFiscalOperationUtc ?? register.CreatedAt;
+        var basisUtcNormalized = basisUtc.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(basisUtc, DateTimeKind.Utc)
+            : basisUtc.ToUniversalTime();
+        var basisVienna = TimeZoneInfo.ConvertTimeFromUtc(basisUtcNormalized, PostgreSqlUtcDateTime.AustriaTimeZone);
+        return new DateTime(basisVienna.Year, basisVienna.Month, 1);
     }
 
     private async Task<bool> HasJahresbelegForViennaYearAsync(

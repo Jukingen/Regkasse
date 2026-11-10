@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -49,7 +50,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         private bool IsActorSuperAdmin() =>
-            string.Equals(
+            RoleHierarchy.IsSuperAdminActor(User.GetActorRole())
+            || string.Equals(
                 RoleCanonicalization.GetCanonicalRole(User.FindFirstValue(ClaimTypes.Role) ?? string.Empty),
                 Roles.SuperAdmin,
                 StringComparison.Ordinal);
@@ -145,6 +147,24 @@ namespace KasseAPI_Final.Controllers
                 if (auditLog == null)
                 {
                     return NotFound(new { message = "Audit log not found" });
+                }
+
+                if (!IsActorSuperAdmin())
+                {
+                    var visibleToStaff = await _db.AuditLogs.AsNoTracking()
+                        .Where(a => a.Id == id)
+                        .ApplyFilters(new AuditLogQueryFilters { ExcludePlatformOperatorActors = true }, _db)
+                        .AnyAsync()
+                        .ConfigureAwait(false);
+                    if (!visibleToStaff)
+                    {
+                        _logger.LogWarning(
+                            "Security: actor {ActorUserId} role {ActorRole} tenant {TenantId} attempted to read an audit event outside their hierarchy",
+                            User.GetActorUserId(),
+                            User.GetActorRole(),
+                            _tenantAccessor.TenantId);
+                        return NotFound(new { message = "Audit log not found" });
+                    }
                 }
 
                 var response = new AuditLogResponse

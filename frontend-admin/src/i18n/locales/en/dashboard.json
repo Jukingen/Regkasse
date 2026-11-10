@@ -58,7 +58,7 @@
     "monatsbeleg_overdue_title": "Monatsbeleg overdue",
     "monatsbeleg_overdue_description": "{{count}} registers did not create the Monatsbeleg in time.",
     "monatsbeleg_pending_title": "Monatsbeleg missing",
-    "monatsbeleg_pending_description": "Monatsbeleg missing for {{count}} register(s).",
+    "monatsbeleg_pending_description": "Monatsbeleg missing for {{count}} active register(s). Months without sales still need the receipt. Decommissioned registers are not counted.",
     "jahresbeleg_pending_title": "Jahresbeleg pending",
     "jahresbeleg_pending_description": "{{count}} registers need a Jahresbeleg.",
     "all_current_title": "All RKSV special receipts are up to date",
@@ -460,7 +460,7 @@
     "noActivities": "No activities",
     "pendingMonatsbeleg": "Monatsbeleg missing for {{count}} register",
     "pendingMonatsbelegPlural": "Monatsbeleg missing for {{count}} registers",
-    "pendingMonatsbelegDescription": "Please create the outstanding monthly receipts.",
+    "pendingMonatsbelegDescription": "Only active registers with a missing month. A month without sales still needs the receipt. Decommissioned registers are not listed.",
     "createNow": "Catch up now",
     "openMonatsbelegRequests": {
       "title": "Open Monatsbeleg requests",

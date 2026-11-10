@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
@@ -108,12 +109,15 @@ public sealed class ActivityEventService : IActivityEventService
         int limit,
         int offset,
         string? severityFilter,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false)
     {
         limit = Math.Clamp(limit, 1, 100);
         offset = Math.Max(0, offset);
 
         var query = _db.ActivityEvents.AsNoTracking().Where(e => e.TenantId == tenantId);
+        if (restrictToTenantStaff)
+            query = VisibleToTenantStaff(query, tenantId);
 
         if (ActivitySeverityNames.TryNormalizeFilter(severityFilter, out var normalizedSeverity))
             query = query.Where(e => e.Severity == normalizedSeverity);
@@ -150,11 +154,15 @@ public sealed class ActivityEventService : IActivityEventService
     public async Task<ActivitiesUnreadCountDto> GetUnreadCountAsync(
         string userId,
         Guid tenantId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false)
     {
+        var events = _db.ActivityEvents.AsNoTracking().Where(e => e.TenantId == tenantId);
+        if (restrictToTenantStaff)
+            events = VisibleToTenantStaff(events, tenantId);
+
         var count = await (
-            from e in _db.ActivityEvents.AsNoTracking()
-            where e.TenantId == tenantId
+            from e in events
             where !_db.ActivityEventReads.Any(r => r.ActivityEventId == e.Id && r.UserId == userId)
             select e.Id).CountAsync(cancellationToken).ConfigureAwait(false);
 
@@ -165,7 +173,8 @@ public sealed class ActivityEventService : IActivityEventService
         string userId,
         Guid tenantId,
         Guid activityId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false)
     {
         var evt = await _db.ActivityEvents
             .FirstOrDefaultAsync(e => e.Id == activityId && e.TenantId == tenantId, cancellationToken)
@@ -173,6 +182,15 @@ public sealed class ActivityEventService : IActivityEventService
 
         if (evt == null)
             return null;
+
+        if (restrictToTenantStaff && !await IsVisibleToTenantStaffAsync(evt, tenantId, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogWarning(
+                "Security: actor {ActorUserId} tenant {TenantId} attempted to read an activity outside their hierarchy",
+                userId,
+                tenantId);
+            return null;
+        }
 
         var now = DateTime.UtcNow;
         var existing = await _db.ActivityEventReads
@@ -200,12 +218,16 @@ public sealed class ActivityEventService : IActivityEventService
     public async Task<int> MarkAllReadAsync(
         string userId,
         Guid tenantId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false)
     {
         var now = DateTime.UtcNow;
+        var events = _db.ActivityEvents.Where(e => e.TenantId == tenantId);
+        if (restrictToTenantStaff)
+            events = VisibleToTenantStaff(events, tenantId);
+
         var unreadIds = await (
-            from e in _db.ActivityEvents
-            where e.TenantId == tenantId
+            from e in events
             where !_db.ActivityEventReads.Any(r => r.ActivityEventId == e.Id && r.UserId == userId)
             select e.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
 
@@ -238,7 +260,8 @@ public sealed class ActivityEventService : IActivityEventService
     public async Task<bool> DeleteAsync(
         Guid tenantId,
         Guid activityId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false)
     {
         var evt = await _db.ActivityEvents
             .FirstOrDefaultAsync(e => e.Id == activityId && e.TenantId == tenantId, cancellationToken)
@@ -246,6 +269,14 @@ public sealed class ActivityEventService : IActivityEventService
 
         if (evt == null)
             return false;
+
+        if (restrictToTenantStaff && !await IsVisibleToTenantStaffAsync(evt, tenantId, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogWarning(
+                "Security: tenant {TenantId} attempted to delete an activity outside the tenant-admin hierarchy",
+                tenantId);
+            return false;
+        }
 
         var retentionDays = Math.Max(1, _options.DeleteRetentionDays);
         var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
@@ -293,6 +324,55 @@ public sealed class ActivityEventService : IActivityEventService
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return events.Count;
+    }
+
+    private IQueryable<ActivityEvent> VisibleToTenantStaff(IQueryable<ActivityEvent> query, Guid tenantId)
+    {
+        var superAdmin = Roles.SuperAdmin.ToLowerInvariant();
+        var platformAdmin = RoleHierarchy.PlatformAdmin.ToLowerInvariant();
+        return query.Where(e =>
+            e.ActorUserId == null
+            || e.ActorUserId == ""
+            || (
+                !_db.Users.Any(u =>
+                    u.Id == e.ActorUserId
+                    && u.Role != null
+                    && (u.Role.ToLower() == superAdmin || u.Role.ToLower() == platformAdmin))
+                && (
+                    !_db.Users.Any(u => u.Id == e.ActorUserId)
+                    || _db.UserTenantMemberships.Any(m =>
+                        m.UserId == e.ActorUserId && m.TenantId == tenantId && m.IsActive))));
+    }
+
+    private async Task<bool> IsVisibleToTenantStaffAsync(
+        ActivityEvent evt,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (evt.TenantId != tenantId)
+            return false;
+        if (string.IsNullOrEmpty(evt.ActorUserId))
+            return true;
+
+        var userExists = await _db.Users.AsNoTracking()
+            .AnyAsync(u => u.Id == evt.ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!userExists)
+            return true;
+
+        var role = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == evt.ActorUserId)
+            .Select(u => u.Role)
+            .FirstAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (RoleHierarchy.IsPlatformOperatorRole(role))
+            return false;
+
+        return await _db.UserTenantMemberships.AsNoTracking()
+            .AnyAsync(
+                m => m.UserId == evt.ActorUserId && m.TenantId == tenantId && m.IsActive,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<ActivityEvent> InsertAsync(

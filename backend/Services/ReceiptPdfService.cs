@@ -1,9 +1,11 @@
 using System.Globalization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
@@ -29,6 +31,7 @@ public sealed class ReceiptPdfService : IReceiptPdfService
     private const int QrFallbackPayloadMaxChars = 100;
     private const int SignaturePreviewMaxChars = 40;
     private const int ProductNameMaxChars = 20;
+    private const float QrSizePoints = 160f;
 
     private readonly AppDbContext _context;
     private readonly IQrImageService _qrService;
@@ -92,7 +95,7 @@ public sealed class ReceiptPdfService : IReceiptPdfService
 
         var payment = receipt.Payment;
         var registerLabel = payment.CashRegister?.RegisterNumber ?? payment.CashRegisterId.ToString();
-        var qrPayload = receipt.QrCodePayload?.Trim();
+        var qrPayload = ResolveQrPayloadForPdf(receipt.QrCodePayload, receipt.SignatureValue, payment.TseSignature);
 
         byte[]? qrEmbedPng = null;
         string? qrFallbackChunk = null;
@@ -107,6 +110,17 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                     var relaxed = SelectQrPngForEmbedding(_qrService.GenerateQrCodeImage(qrPayload));
                     if (relaxed != null)
                         qrEmbedPng = relaxed;
+                }
+
+                if (qrEmbedPng == null)
+                {
+                    var machineOnly = MachineCodeForQr(receipt.SignatureValue)
+                        ?? MachineCodeForQr(payment.TseSignature);
+                    if (!string.IsNullOrEmpty(machineOnly)
+                        && !string.Equals(machineOnly, qrPayload, StringComparison.Ordinal))
+                    {
+                        qrEmbedPng = SelectQrPngForEmbedding(_qrService.GetQrPngFromExactPayload(machineOnly));
+                    }
                 }
 
                 if (qrEmbedPng == null)
@@ -270,7 +284,8 @@ public sealed class ReceiptPdfService : IReceiptPdfService
                     if (qrEmbedPng != null)
                     {
                         column.Item().AlignCenter()
-                            .Width(200)
+                            .Width(QrSizePoints)
+                            .Height(QrSizePoints)
                             .Image(qrEmbedPng)
                             .FitArea();
                     }
@@ -327,6 +342,39 @@ public sealed class ReceiptPdfService : IReceiptPdfService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Prefer a freshly built RKSV §9 QR from the stored compact JWS (same rule as receipt printing).
+    /// Fall back to the persisted payload, then to a machine code already stored as <c>_R1-AT…</c>.
+    /// </summary>
+    internal static string? ResolveQrPayloadForPdf(string? storedPayload, string? signatureValue, string? tseSignature)
+    {
+        var fromSignature = RksvReceiptQrPayloadBuilder.BuildFromCompactJwsOrNull(signatureValue)
+            ?? RksvReceiptQrPayloadBuilder.BuildFromCompactJwsOrNull(tseSignature);
+        if (!string.IsNullOrEmpty(fromSignature))
+            return fromSignature;
+
+        var stored = storedPayload?.Trim();
+        if (!string.IsNullOrEmpty(stored))
+            return stored;
+
+        return MachineCodeForQr(signatureValue) ?? MachineCodeForQr(tseSignature);
+    }
+
+    private static string? MachineCodeForQr(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        if (trimmed.StartsWith("_R1-AT", StringComparison.Ordinal))
+            return trimmed;
+
+        return SignaturePipeline.TryGetMachineCodeFromCompactJws(trimmed, out var machineCode)
+            && !string.IsNullOrEmpty(machineCode)
+            ? machineCode
+            : null;
     }
 
     private static byte[]? SelectQrPngForEmbedding(byte[]? png) =>

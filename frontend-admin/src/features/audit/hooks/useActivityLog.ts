@@ -112,7 +112,7 @@ export function useActivityLog(filters: ActivityLogFilters) {
   });
 
   const rows = (query.data?.auditLogs ?? [])
-    .filter((row) => !isPlatformUserRole(row.userRole))
+    .filter((row) => !isPlatformUserRole(row.userRole) && !isPlatformUserRole(row.user?.role))
     .map(mapAuditRow);
 
   return {

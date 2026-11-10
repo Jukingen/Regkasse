@@ -55,7 +55,14 @@ public sealed class AdminActivitiesController : ControllerBase
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var result = await _activity
-            .ListAsync(userId, tenantId, limit, offset, severity, cancellationToken)
+            .ListAsync(
+                userId,
+                tenantId,
+                limit,
+                offset,
+                severity,
+                cancellationToken,
+                restrictToTenantStaff: !RoleHierarchy.IsSuperAdminActor(User.GetActorRole()))
             .ConfigureAwait(false);
         return Ok(result);
     }
@@ -191,7 +198,11 @@ public sealed class AdminActivitiesController : ControllerBase
             return Unauthorized(new { message = "User not authenticated" });
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
-        var count = await _activity.GetUnreadCountAsync(userId, tenantId, cancellationToken).ConfigureAwait(false);
+        var count = await _activity.GetUnreadCountAsync(
+            userId,
+            tenantId,
+            cancellationToken,
+            restrictToTenantStaff: !RoleHierarchy.IsSuperAdminActor(User.GetActorRole())).ConfigureAwait(false);
         return Ok(count);
     }
 
@@ -230,7 +241,12 @@ public sealed class AdminActivitiesController : ControllerBase
             return Unauthorized(new { message = "User not authenticated" });
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
-        var dto = await _activity.MarkEventReadAsync(userId, tenantId, id, cancellationToken).ConfigureAwait(false);
+        var dto = await _activity.MarkEventReadAsync(
+            userId,
+            tenantId,
+            id,
+            cancellationToken,
+            restrictToTenantStaff: !RoleHierarchy.IsSuperAdminActor(User.GetActorRole())).ConfigureAwait(false);
         if (dto == null)
             return NotFound();
 
@@ -247,7 +263,11 @@ public sealed class AdminActivitiesController : ControllerBase
             return Unauthorized(new { message = "User not authenticated" });
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
-        var marked = await _activity.MarkAllReadAsync(userId, tenantId, cancellationToken).ConfigureAwait(false);
+        var marked = await _activity.MarkAllReadAsync(
+            userId,
+            tenantId,
+            cancellationToken,
+            restrictToTenantStaff: !RoleHierarchy.IsSuperAdminActor(User.GetActorRole())).ConfigureAwait(false);
         return Ok(new { markedCount = marked });
     }
 
@@ -257,9 +277,14 @@ public sealed class AdminActivitiesController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
-        var deleted = await _activity.DeleteAsync(tenantId, id, cancellationToken).ConfigureAwait(false);
+        var staffOnly = !RoleHierarchy.IsSuperAdminActor(User.GetActorRole());
+        var deleted = await _activity.DeleteAsync(tenantId, id, cancellationToken, restrictToTenantStaff: staffOnly)
+            .ConfigureAwait(false);
         if (!deleted)
         {
+            if (staffOnly)
+                return NotFound();
+
             return BadRequest(new
             {
                 message =
