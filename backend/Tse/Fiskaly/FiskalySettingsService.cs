@@ -188,6 +188,20 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _enabledCache.SetOverride(enabled, tenantId);
 
+        string? apiKeyHint = null;
+        string? scuId = null;
+        if (tenantId is Guid credentialTenantId)
+        {
+            var credential = await db.TenantFiskalyCredentials
+                .AsNoTracking()
+                .Where(c => c.TenantId == credentialTenantId && c.IsActive)
+                .Select(c => new { c.ApiKeyHint, c.ScuId })
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+            apiKeyHint = credential?.ApiKeyHint;
+            scuId = credential?.ScuId;
+        }
+
         await _auditLog.LogSystemOperationAsync(
                 action: "FISKALY_ENABLED_SET",
                 entityType: "TenantSetting",
@@ -199,7 +213,14 @@ public sealed class FiskalySettingsService : IFiskalySettingsService
                 entityId: row.Id,
                 tenantId: tenantId,
                 oldValues: oldValue is null ? new { Enabled = oldEnabled } : new { Value = oldValue, Enabled = oldEnabled },
-                newValues: new { Enabled = enabled, Source = source, TenantId = tenantId })
+                newValues: new
+                {
+                    Enabled = enabled,
+                    Source = source,
+                    TenantId = tenantId,
+                    ApiKeyHint = apiKeyHint,
+                    ScuId = scuId
+                })
             .ConfigureAwait(false);
 
         _logger.LogInformation(

@@ -66,7 +66,20 @@
       "connected": "Connected",
       "disconnected": "Not connected",
       "manage": "Manage TSE settings",
-      "viewRksvStatus": "Open RKSV status"
+      "viewRksvStatus": "Open RKSV status",
+      "credentials": {
+        "apiKey": "API key",
+        "apiSecret": "API secret",
+        "scuId": "SCU ID",
+        "environment": "Environment",
+        "envTest": "TEST",
+        "envLive": "LIVE",
+        "save": "Save Fiskaly",
+        "saveSuccess": "Fiskaly credentials saved.",
+        "hint": "Stored (····{{hint}})",
+        "missing": "No Fiskaly credentials stored.",
+        "secretPlaceholder": "Leave blank to keep the current secret"
+      }
     },
     "tsePortal": {
       "title": "TSE Status",

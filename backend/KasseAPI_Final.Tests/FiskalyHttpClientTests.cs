@@ -34,7 +34,7 @@ public sealed class FiskalyHttpClientTests
         Assert.Equal(10, first.AccessTokenLength);
         Assert.Equal(first.ExpiresAt, second.ExpiresAt);
         Assert.Single(handler.Requests);
-        Assert.True(cache.TryGet(out var token, out _));
+        Assert.True(cache.TryGet(null, out var token, out _));
         Assert.Equal("tok-cached", token);
     }
 

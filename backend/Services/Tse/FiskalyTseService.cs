@@ -19,24 +19,27 @@ public sealed class FiskalyTseService : IFiskalyTseService
     private readonly FiskalyEnabledOverrideCache? _enabledCache;
     private readonly AppDbContext _db;
     private readonly ILogger<FiskalyTseService> _logger;
+    private readonly IFiskalyTenantCredentialResolver? _credentials;
 
     public FiskalyTseService(
         IFiskalyClient client,
         IOptionsMonitor<FiskalyOptions> options,
         AppDbContext db,
         ILogger<FiskalyTseService> logger,
-        FiskalyEnabledOverrideCache? enabledCache = null)
+        FiskalyEnabledOverrideCache? enabledCache = null,
+        IFiskalyTenantCredentialResolver? credentials = null)
     {
         _client = client;
         _options = options;
         _db = db;
         _logger = logger;
         _enabledCache = enabledCache;
+        _credentials = credentials;
     }
 
     public async Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default)
     {
-        EnsureCredentials();
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             return await _client.AuthenticateAsync(cancellationToken).ConfigureAwait(false);
@@ -57,7 +60,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
         string? vatId = null,
         CancellationToken cancellationToken = default)
     {
-        EnsureCredentials();
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
         if (!Guid.TryParse(tssId, out var scuId) || scuId == Guid.Empty)
             throw new ArgumentException("tssId must be a UUIDv4 (SIGN AT SCU id).", nameof(tssId));
 
@@ -85,7 +88,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
         string clientId,
         CancellationToken cancellationToken = default)
     {
-        EnsureCredentials();
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
         _ = tssId; // SIGN AT cash registers are not nested under an SCU id.
         if (!Guid.TryParse(clientId, out var cashRegisterId) || cashRegisterId == Guid.Empty)
             throw new ArgumentException("clientId must be a UUIDv4 (SIGN AT cash-register id).", nameof(clientId));
@@ -117,7 +120,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
         FiskalyTransactionData data,
         CancellationToken cancellationToken = default)
     {
-        EnsureCredentials();
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
         ArgumentNullException.ThrowIfNull(data);
         _ = tssId;
 
@@ -168,11 +171,11 @@ public sealed class FiskalyTseService : IFiskalyTseService
         string? signatureCreationUnitId = null,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
             return null;
 
         var scuId = string.IsNullOrWhiteSpace(signatureCreationUnitId)
-            ? _options.CurrentValue.SignatureCreationUnitId
+            ? await ResolveConfiguredScuIdAsync(cancellationToken).ConfigureAwait(false)
             : signatureCreationUnitId;
         if (string.IsNullOrWhiteSpace(scuId))
             return null;
@@ -196,7 +199,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
     {
         if (cashRegisterId == Guid.Empty)
             return null;
-        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
             return null;
 
         try
@@ -214,7 +217,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
     {
         if (cashRegisterId == Guid.Empty)
             return false;
-        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
             return false;
 
         try
@@ -254,7 +257,7 @@ public sealed class FiskalyTseService : IFiskalyTseService
         string registerNumber,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
         {
             var disabled = !_options.CurrentValue.IsEffectivelyEnabled(_enabledCache?.OverrideEnabled);
             return new FiskalyResourceEnsureResult
@@ -303,6 +306,13 @@ public sealed class FiskalyTseService : IFiskalyTseService
 
     private async Task<Guid> ResolveScuIdAsync(Guid tenantId, CancellationToken cancellationToken)
     {
+        if (_credentials is not null)
+        {
+            var resolved = await _credentials.ResolveAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            if (Guid.TryParse(resolved?.ScuId, out var resolvedId) && resolvedId != Guid.Empty)
+                return resolvedId;
+        }
+
         var configured = _options.CurrentValue.SignatureCreationUnitId;
         if (Guid.TryParse(configured, out var configuredId) && configuredId != Guid.Empty)
             return configuredId;
@@ -341,14 +351,59 @@ public sealed class FiskalyTseService : IFiskalyTseService
         return FiskalyConnectionProbe.DefaultTestVatId;
     }
 
-    private void EnsureCredentials()
+    private void EnsureCredentialsAsyncReady()
     {
+        // Sign and create paths call the async check below. This keeps the throw site synchronous
+        // for the host-options path used when no resolver is registered (unit tests).
+        if (_credentials is not null)
+            return;
+
         if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
         {
             throw new FiskalyApiException(
                 "Fiskaly is disabled or ApiKey/ApiSecret are missing. "
                 + "Set Fiskaly:Enabled and user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
         }
+    }
+
+    private async Task EnsureCredentialsAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is null)
+        {
+            EnsureCredentialsAsyncReady();
+            return;
+        }
+
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            throw new FiskalyApiException(
+                "Fiskaly is disabled or ApiKey/ApiSecret are missing. "
+                + "Set Fiskaly:Enabled and user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
+        }
+    }
+
+    private async Task<bool> HasActiveCredentialsAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            return await _credentials
+                .HasActiveCredentialsAsync(_enabledCache?.OverrideEnabled, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return _options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled);
+    }
+
+    private async Task<string> ResolveConfiguredScuIdAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            var resolved = await _credentials.ResolveAsync(cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(resolved?.ScuId))
+                return resolved.ScuId;
+        }
+
+        return _options.CurrentValue.SignatureCreationUnitId;
     }
 
     private string DescribeEnvironment()

@@ -406,6 +406,9 @@ internal static class ApplicationHost
             builder.Services.AddOptions<FiskalyOptions>().ValidateOnStart();
         }
         builder.Services.AddScoped<FiskalyEnabledOverrideCache>();
+        builder.Services.AddSingleton<FiskalyCredentialProtector>();
+        builder.Services.AddScoped<IFiskalyTenantCredentialResolver, FiskalyTenantCredentialResolver>();
+        builder.Services.AddScoped<IFiskalyCredentialAdminService, FiskalyCredentialAdminService>();
         builder.Services.AddScoped<IFiskalySettingsService, FiskalySettingsService>();
         builder.Services.AddScoped<IFiskalySetupService, FiskalySetupService>();
         builder.Services.AddScoped<IFiskalySignTestService, FiskalySignTestService>();

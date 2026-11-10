@@ -1,46 +1,40 @@
+using System.Collections.Concurrent;
+
 namespace KasseAPI_Final.Tse.Fiskaly;
 
-/// <summary>Process-wide fiskaly bearer cache (typed HttpClient is transient).</summary>
+/// <summary>Per-tenant fiskaly bearer cache. A null tenant id is the Development host slot.</summary>
 public sealed class FiskalyAccessTokenCache
 {
-    private readonly object _gate = new();
-    private string? _accessToken;
-    private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
+    private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
-    public bool TryGet(out string token, out DateTimeOffset expiresAt)
+    public bool TryGet(Guid? tenantId, out string token, out DateTimeOffset expiresAt)
     {
-        lock (_gate)
+        if (_entries.TryGetValue(ScopeKey(tenantId), out var entry)
+            && !string.IsNullOrWhiteSpace(entry.AccessToken)
+            && DateTimeOffset.UtcNow < entry.ExpiresAt.AddMinutes(-1))
         {
-            if (!string.IsNullOrWhiteSpace(_accessToken)
-                && DateTimeOffset.UtcNow < _expiresAt.AddMinutes(-1))
-            {
-                token = _accessToken;
-                expiresAt = _expiresAt;
-                return true;
-            }
-
-            token = string.Empty;
-            expiresAt = DateTimeOffset.MinValue;
-            return false;
+            token = entry.AccessToken;
+            expiresAt = entry.ExpiresAt;
+            return true;
         }
+
+        token = string.Empty;
+        expiresAt = DateTimeOffset.MinValue;
+        return false;
     }
 
-    public void Set(string token, DateTimeOffset expiresAt)
+    public void Set(Guid? tenantId, string token, DateTimeOffset expiresAt)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
-        lock (_gate)
-        {
-            _accessToken = token;
-            _expiresAt = expiresAt;
-        }
+        _entries[ScopeKey(tenantId)] = new Entry(token, expiresAt);
     }
 
-    public void Clear()
+    public void Clear(Guid? tenantId)
     {
-        lock (_gate)
-        {
-            _accessToken = null;
-            _expiresAt = DateTimeOffset.MinValue;
-        }
+        _entries.TryRemove(ScopeKey(tenantId), out _);
     }
+
+    public static string ScopeKey(Guid? tenantId) => tenantId?.ToString("D") ?? "host";
+
+    private sealed record Entry(string AccessToken, DateTimeOffset ExpiresAt);
 }
