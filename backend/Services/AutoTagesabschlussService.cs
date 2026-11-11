@@ -185,7 +185,12 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
             {
                 if (closeEmptySession)
                 {
-                    var openOrders = await CountOpenOrdersAsync(tenantId, cancellationToken).ConfigureAwait(false);
+                    var openDay = pastCutoff
+                        ? AutoTagesabschlussCutoff.GetYesterdayBusinessDay(utcNow)
+                        : AutoTagesabschlussCutoff.GetYesterdayBusinessDay(utcNow).AddDays(-1);
+                    var (openStart, openEnd) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(openDay);
+                    var openOrders = await CountOpenOrdersAsync(tenantId, openStart, openEnd, cancellationToken)
+                        .ConfigureAwait(false);
                     var policy = AutoTagesabschlussOpenOrdersPolicies.Normalize(settings.OpenOrdersPolicy);
                     if (openOrders > 0 && policy == AutoTagesabschlussOpenOrdersPolicies.Block)
                     {
@@ -230,7 +235,10 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                 continue;
             }
 
-            var openOrdersForClosing = await CountOpenOrdersAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            var (missedStart, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(missedDays[0]);
+            var (_, missedEnd) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(missedDays[^1]);
+            var openOrdersForClosing = await CountOpenOrdersAsync(tenantId, missedStart, missedEnd, cancellationToken)
+                .ConfigureAwait(false);
             var closingPolicy = AutoTagesabschlussOpenOrdersPolicies.Normalize(settings.OpenOrdersPolicy);
             if (openOrdersForClosing > 0)
             {
@@ -254,6 +262,15 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                         tenantId,
                         openOrdersForClosing);
                     continue;
+                }
+
+                if (closingPolicy == AutoTagesabschlussOpenOrdersPolicies.ForceWithWarning)
+                {
+                    _logger.LogWarning(
+                        "Automatic Tagesabschluss ForceWithWarning for register {RegisterId} tenant {TenantId}: {OpenOrders} open table(s)/cart(s). Unpaid amounts stay out of the Z report.",
+                        register.Id,
+                        tenantId,
+                        openOrdersForClosing);
                 }
             }
 
@@ -466,7 +483,11 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
         return settings;
     }
 
-    private async Task<int> CountOpenOrdersAsync(Guid tenantId, CancellationToken cancellationToken)
+    private async Task<int> CountOpenOrdersAsync(
+        Guid tenantId,
+        DateTime dayStartUtc,
+        DateTime dayEndExclusiveUtc,
+        CancellationToken cancellationToken)
     {
         var userIds = await _context.UserTenantMemberships
             .IgnoreQueryFilters()
@@ -485,7 +506,13 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                     userIds.Contains(o.UserId)
                     && o.IsActive
                     && o.Status != TableOrderStatus.Completed
-                    && o.Status != TableOrderStatus.Cancelled,
+                    && o.Status != TableOrderStatus.Cancelled
+                    && ((o.LastModifiedTime != null
+                            && o.LastModifiedTime >= dayStartUtc
+                            && o.LastModifiedTime < dayEndExclusiveUtc)
+                        || (o.LastModifiedTime == null
+                            && o.OrderStartTime >= dayStartUtc
+                            && o.OrderStartTime < dayEndExclusiveUtc)),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -495,7 +522,9 @@ public sealed class AutoTagesabschlussService : IAutoTagesabschlussService
                 c =>
                     userIds.Contains(c.UserId)
                     && c.IsActive
-                    && c.Status == CartStatus.Active,
+                    && c.Status == CartStatus.Active
+                    && ((c.UpdatedAt != null && c.UpdatedAt >= dayStartUtc && c.UpdatedAt < dayEndExclusiveUtc)
+                        || (c.UpdatedAt == null && c.CreatedAt >= dayStartUtc && c.CreatedAt < dayEndExclusiveUtc)),
                 cancellationToken)
             .ConfigureAwait(false);
 

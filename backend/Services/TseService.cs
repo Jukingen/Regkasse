@@ -319,6 +319,7 @@ namespace KasseAPI_Final.Services
             string prevSig = string.Empty;
             string sigVorigerBeleg = string.Empty;
             string? fiskalyQr = null;
+            string? fiskalyReceiptId = null;
             var signingProvider = "local";
             var phase = "init";
 
@@ -342,12 +343,14 @@ namespace KasseAPI_Final.Services
                 // PUT /receipt with receipt_type=CANCELLATION so Fiskaly dashboard shows a Stornobeleg.
                 var fiskalyReceiptType = FiskalyReceiptSchemaMapper.MapReceiptType(
                     totalAmount < 0m || taxSets.TotalGross < 0m);
-                fiskalyQr = await SignInvoiceWithFiskalyAsync(
+                var fiskalySigned = await SignInvoiceWithFiskalyAsync(
                     cashRegisterId,
                     taxSets,
                     receiptType: fiskalyReceiptType,
                     paymentType: null,
                     correlationId).ConfigureAwait(false);
+                fiskalyQr = fiskalySigned.Qr;
+                fiskalyReceiptId = fiskalySigned.ReceiptId;
                 signingProvider = "fiskaly";
             }
 
@@ -435,13 +438,27 @@ namespace KasseAPI_Final.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "CreateInvoiceSignatureAsync failed at phase={Phase}, correlationId={CorrelationId}, cashRegisterId={CashRegisterId}, invoiceNumber={InvoiceNumber}",
-                    phase,
-                    correlationId,
-                    cashRegisterId,
-                    invoiceNumber);
+                if (!string.IsNullOrWhiteSpace(fiskalyReceiptId))
+                {
+                    // SIGN AT has no cancel. The QR is already at Fiskaly; the local row did not commit.
+                    _logger.LogCritical(
+                        ex,
+                        "CRITICAL orphan Fiskaly receipt: local fiscal transaction rolled back. FiskalyReceiptId={FiskalyReceiptId} correlationId={CorrelationId} cashRegisterId={CashRegisterId} invoiceNumber={InvoiceNumber}. Manual reconciliation required.",
+                        fiskalyReceiptId,
+                        correlationId,
+                        cashRegisterId,
+                        invoiceNumber);
+                }
+                else
+                {
+                    _logger.LogError(
+                        ex,
+                        "CreateInvoiceSignatureAsync failed at phase={Phase}, correlationId={CorrelationId}, cashRegisterId={CashRegisterId}, invoiceNumber={InvoiceNumber}",
+                        phase,
+                        correlationId,
+                        cashRegisterId,
+                        invoiceNumber);
+                }
                 if (ownTransaction)
                     await dbTransaction!.RollbackAsync();
                 throw;
@@ -510,7 +527,9 @@ namespace KasseAPI_Final.Services
             return TseSigningMode.Disabled;
         }
 
-        private async Task<string> SignInvoiceWithFiskalyAsync(
+        private readonly record struct FiskalySignOutcome(string Qr, string ReceiptId);
+
+        private async Task<FiskalySignOutcome> SignInvoiceWithFiskalyAsync(
             Guid cashRegisterId,
             RksvTaxSetAmounts taxSets,
             string? receiptType,
@@ -572,13 +591,17 @@ namespace KasseAPI_Final.Services
                     "Fiskaly returned an invalid RKSV QR payload.");
             }
 
+            var receiptId = !string.IsNullOrWhiteSpace(signed.Id)
+                ? signed.Id
+                : signed.ReceiptNumber ?? string.Empty;
             _logger.LogInformation(
-                "Fiskaly receipt signed. correlationId={CorrelationId} receiptNumber={ReceiptNumber} receiptType={ReceiptType} signed={Signed}",
+                "Fiskaly receipt signed. correlationId={CorrelationId} receiptId={ReceiptId} receiptNumber={ReceiptNumber} receiptType={ReceiptType} signed={Signed}",
                 correlationId,
+                receiptId,
                 signed.ReceiptNumber,
                 data.ReceiptType,
                 signed.Signed);
-            return signed.QrCodeData;
+            return new FiskalySignOutcome(signed.QrCodeData, receiptId);
         }
 
         /// <summary>Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current chain state.</summary>

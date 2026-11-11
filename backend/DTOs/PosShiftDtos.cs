@@ -241,6 +241,8 @@ public sealed class PosDailyClosingReportDto
         DailyClosingReportComposer.RksvDailyDisclaimerDe;
     /// <summary>Plain-text late-closing note when <c>DailyClosing.IsBackdated</c>.</summary>
     public string? BackdatedNotice { get; init; }
+    /// <summary>Shown when open tables were forced. Fiscal totals stay paid invoices only.</summary>
+    public string? OpenTablesForcedNotice { get; init; }
     /// <summary>Shown when payment-row Umsatz and signed fiscal gross diverge.</summary>
     public string? SalesFiscalReconciliationNote { get; init; }
     /// <summary>Explains shift-scoped cash difference vs calendar-day cash sales.</summary>

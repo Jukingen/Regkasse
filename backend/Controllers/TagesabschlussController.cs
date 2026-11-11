@@ -67,6 +67,11 @@ namespace KasseAPI_Final.Controllers
                 var result = await _tagesabschlussService.PerformDailyClosingAsync(
                     userId,
                     request.CashRegisterId,
+                    new DailyClosingPerformOptions
+                    {
+                        Trigger = DailyClosingTriggers.Manual,
+                        OpenOrdersForced = request.ConfirmCloseOpenTables,
+                    },
                     request.ClosingDate,
                     request.Reason);
 
@@ -582,6 +587,9 @@ namespace KasseAPI_Final.Controllers
             if (errorMessage.Contains("already performed for the current year", StringComparison.OrdinalIgnoreCase))
                 return TagesabschlussErrorCodes.AlreadyClosedYear;
 
+            if (errorMessage.Contains("offene Tische", StringComparison.OrdinalIgnoreCase))
+                return TagesabschlussErrorCodes.OpenTablesConfirmation;
+
             if (errorMessage.Contains("already performed for today", StringComparison.OrdinalIgnoreCase)
                 || errorMessage.Contains("already performed for ", StringComparison.OrdinalIgnoreCase))
                 return TagesabschlussErrorCodes.AlreadyClosedToday;
@@ -620,6 +628,7 @@ namespace KasseAPI_Final.Controllers
         public const string PaymentsWithoutInvoice = "PAYMENTS_WITHOUT_INVOICE";
         public const string CashRegisterUnavailable = "CASH_REGISTER_UNAVAILABLE";
         public const string TseNotConnected = "TSE_NOT_CONNECTED";
+        public const string OpenTablesConfirmation = "OPEN_TABLES_CONFIRMATION";
         public const string TenantContextRequired = "TENANT_CONTEXT_REQUIRED";
         public const string NoRegister = "TAGESABSCHLUSS_NO_REGISTER";
     }
@@ -641,6 +650,11 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [MaxLength(500)]
         public string? Reason { get; set; }
+
+        /// <summary>
+        /// Set after the operator confirms open tables. Unpaid carts stay out of the Z total.
+        /// </summary>
+        public bool ConfirmCloseOpenTables { get; set; }
     }
 
     public class TagesabschlussCanCloseResponse

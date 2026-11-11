@@ -34,7 +34,8 @@ public sealed class TseServiceFiskalySigningTests
         FiskalyOptions fiskalyOptions,
         string environmentName,
         ISoftTseService? softTse = null,
-        TseOptions? tseOptions = null)
+        TseOptions? tseOptions = null,
+        ILogger<TseService>? logger = null)
     {
         var env = new Mock<IHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(environmentName);
@@ -48,7 +49,7 @@ public sealed class TseServiceFiskalySigningTests
             pipeline,
             key,
             provider.Object,
-            Mock.Of<ILogger<TseService>>(),
+            logger ?? Mock.Of<ILogger<TseService>>(),
             env.Object,
             developmentOptions: null,
             developmentModeService: null,
@@ -216,5 +217,74 @@ public sealed class TseServiceFiskalySigningTests
                 It.IsAny<FiskalyTransactionData>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateInvoiceSignature_FiskalySucceeds_LocalRollback_LogsCriticalReceiptId()
+    {
+        await using var db = CreateDb();
+        var registerId = Guid.NewGuid();
+        const string fiskalyReceiptId = "fiskaly-receipt-orphan-1";
+        var fiskaly = new Mock<IFiskalyTseService>();
+        fiskaly.Setup(s => s.IsReadyToSignAsync(registerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        fiskaly.Setup(s => s.SignTransactionAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<FiskalyTransactionData>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FiskalySignedReceipt(
+                fiskalyReceiptId,
+                registerId.ToString("D"),
+                "SIGNED",
+                "_R1-AT1_KASSE-1_1_2026-08-16T12:00:00_10,00_0,00_0,00_0,00_0,00_abc_123_0_sig",
+                "1",
+                "TEST",
+                TimeSignature: 1,
+                Signed: true,
+                CashRegisterSerialNumber: "KASSE-1"));
+
+        var logger = new CapturingLogger<TseService>();
+
+        var svc = CreateService(
+            db,
+            fiskaly.Object,
+            new FiskalyOptions { Enabled = true, ApiKey = "k", ApiSecret = "s" },
+            Environments.Production,
+            logger: logger);
+
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            svc.CreateInvoiceSignatureAsync(registerId, "AT-1", 10m, "KASSE-1"));
+
+        Assert.Contains(
+            logger.Entries,
+            entry => entry.Level == LogLevel.Critical
+                     && entry.Message.Contains(fiskalyReceiptId, StringComparison.Ordinal)
+                     && entry.Message.Contains("orphan Fiskaly receipt", StringComparison.Ordinal));
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = new();
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+
+        private sealed class NullScope : IDisposable
+        {
+            public static readonly NullScope Instance = new();
+            public void Dispose() { }
+        }
     }
 }

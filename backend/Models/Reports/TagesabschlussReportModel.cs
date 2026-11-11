@@ -18,6 +18,10 @@ public sealed class TagesabschlussReportModel
 
     public bool IsBackdated { get; init; }
 
+    public int OpenOrdersCount { get; init; }
+
+    public bool OpenOrdersForced { get; init; }
+
     public string? LateCreationReason { get; init; }
 
     public DateTime? PeriodStart { get; init; }
@@ -100,6 +104,8 @@ public sealed class TagesabschlussReportModel
             ClosingDate = closing.ClosingDate,
             CreatedAt = closing.CreatedAt,
             IsBackdated = closing.IsBackdated,
+            OpenOrdersCount = closing.OpenOrdersCount,
+            OpenOrdersForced = closing.OpenOrdersForced,
             LateCreationReason = closing.LateCreationReason,
             PeriodStart = cloud.PeriodStartUtc,
             PeriodEnd = cloud.PeriodEndUtc,

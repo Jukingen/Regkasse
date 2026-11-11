@@ -743,9 +743,16 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var old = now.AddHours(-2);
 
         await using var seed = CreateContext();
+        TenantTestDoubles.EnsureTenant(seed, _tenantId, "ta" + _tenantId.ToString("N")[..8]);
         TenantTestDoubles.EnsureTenant(seed, tenantB, "tb" + tenantB.ToString("N")[..8]);
-        seed.Users.Add(TestUser(userA));
-        seed.Users.Add(TestUser(userB));
+        await seed.SaveChangesAsync();
+
+        var entityA = TestUser(userA);
+        var entityB = TestUser(userB);
+        entityA.EmployeeNumber = Guid.NewGuid().ToString("N")[..8];
+        entityB.EmployeeNumber = Guid.NewGuid().ToString("N")[..8];
+        seed.Users.Add(entityA);
+        seed.Users.Add(entityB);
         seed.UserTenantMemberships.Add(new UserTenantMembership { UserId = userA, TenantId = _tenantId, IsActive = true });
         seed.UserTenantMemberships.Add(new UserTenantMembership { UserId = userB, TenantId = tenantB, IsActive = true });
         seed.Carts.Add(TestCart(staleId, userA, old, old));

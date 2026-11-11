@@ -124,6 +124,43 @@ namespace KasseAPI_Final.Services
                 || _tseOptions.UseSoftTseWhenNoDevice;
         }
 
+        /// <summary>
+        /// Open carts and tables whose activity falls in the Vienna business day.
+        /// Unpaid amounts are never added to the Z total.
+        /// </summary>
+        private async Task<int> CountOpenCartsAndTablesAsync(DateTime dayStartUtc, DateTime dayEndExclusiveUtc)
+        {
+            var userIds = await _context.UserTenantMemberships.AsNoTracking()
+                .Where(m => m.IsActive)
+                .Select(m => m.UserId)
+                .ToListAsync();
+            if (userIds.Count == 0)
+                return 0;
+
+            var openTables = await _context.TableOrders.AsNoTracking()
+                .CountAsync(o =>
+                    userIds.Contains(o.UserId)
+                    && o.IsActive
+                    && o.Status != TableOrderStatus.Completed
+                    && o.Status != TableOrderStatus.Cancelled
+                    && ((o.LastModifiedTime != null
+                            && o.LastModifiedTime >= dayStartUtc
+                            && o.LastModifiedTime < dayEndExclusiveUtc)
+                        || (o.LastModifiedTime == null
+                            && o.OrderStartTime >= dayStartUtc
+                            && o.OrderStartTime < dayEndExclusiveUtc)));
+
+            var openCarts = await _context.Carts.AsNoTracking()
+                .CountAsync(c =>
+                    userIds.Contains(c.UserId)
+                    && c.IsActive
+                    && c.Status == CartStatus.Active
+                    && ((c.UpdatedAt != null && c.UpdatedAt >= dayStartUtc && c.UpdatedAt < dayEndExclusiveUtc)
+                        || (c.UpdatedAt == null && c.CreatedAt >= dayStartUtc && c.CreatedAt < dayEndExclusiveUtc)));
+
+            return openTables + openCarts;
+        }
+
         /// <summary>Sprint 4: Count active payments in scope (register + date range) that have no Invoice with SourcePaymentId. Used to block closing when &gt; 0.</summary>
         public async Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive)
         {
@@ -304,6 +341,32 @@ namespace KasseAPI_Final.Services
                 var transactionCount = transactions.Count;
                 var isEmpty = transactionCount == 0;
                 var dayKind = DailyClosingDayKinds.FromTransactionCount(transactionCount);
+                var openOnDay = await CountOpenCartsAndTablesAsync(dayStartUtc, dayEndExclusiveUtc);
+                if (!isAutomatic && openOnDay > 0 && !options.OpenOrdersForced)
+                {
+                    const string confirm = "Es gibt noch offene Tische. Möchten Sie diese schließen?";
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = confirm,
+                        Warning = confirm,
+                        OpenOrdersCount = openOnDay,
+                        OpenOrdersForced = false,
+                        IsBackdated = isBackdated,
+                    };
+                }
+
+                var recordedOpen = Math.Max(options.OpenOrdersCount, openOnDay);
+                var recordedForced = options.OpenOrdersForced && recordedOpen > 0;
+                if (recordedForced)
+                {
+                    _logger.LogWarning(
+                        "Tagesabschluss continues with {OpenCount} open table(s)/cart(s) for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} Trigger={Trigger}. Unpaid carts are excluded from the Z total.",
+                        recordedOpen,
+                        cashRegisterId,
+                        businessDay,
+                        trigger);
+                }
 
                 if (isEmpty)
                 {
@@ -346,8 +409,8 @@ namespace KasseAPI_Final.Services
                         CashCountNote = options.CashCountNote,
                         CashCount = options.CashCount,
                         CashDifference = options.CashDifference,
-                        OpenOrdersCount = Math.Max(0, options.OpenOrdersCount),
-                        OpenOrdersForced = options.OpenOrdersForced,
+                        OpenOrdersCount = Math.Max(0, recordedOpen),
+                        OpenOrdersForced = recordedForced,
                         ClosingType = "Daily",
                         DayKind = dayKind,
                         TotalAmount = totalAmount,
@@ -447,6 +510,13 @@ namespace KasseAPI_Final.Services
                         $"Backdated daily closing for {businessDay:yyyy-MM-dd}; creation timestamp is the real current UTC time (nachträglich, audit-transparent).";
                 }
 
+                if (recordedForced)
+                {
+                    const string forcedNote =
+                        "Offene Tische wurden mit Warnung geschlossen. Unbezahlte Beträge sind nicht im Z-Bericht enthalten.";
+                    warning = string.IsNullOrEmpty(warning) ? forcedNote : warning + " " + forcedNote;
+                }
+
                 return new TagesabschlussResult
                 {
                     Success = true,
@@ -470,8 +540,8 @@ namespace KasseAPI_Final.Services
                     CashCountNote = options.CashCountNote,
                     CashCount = options.CashCount,
                     CashDifference = options.CashDifference,
-                    OpenOrdersCount = Math.Max(0, options.OpenOrdersCount),
-                    OpenOrdersForced = options.OpenOrdersForced,
+                    OpenOrdersCount = Math.Max(0, recordedOpen),
+                    OpenOrdersForced = recordedForced,
                     CreatedAt = dailyClosing.CreatedAt,
                     Warning = warning
                 };
