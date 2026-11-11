@@ -95,6 +95,8 @@ public static class PaymentApiContractMapper
             return StatusCodes.Status403Forbidden;
         if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
             return StatusCodes.Status409Conflict;
+        if (result.DiagnosticCode is "CART_ALREADY_PAID" or "STORNO_ALREADY_EXISTS" or "ALREADY_CANCELLED")
+            return StatusCodes.Status409Conflict;
         if (result.LimitError != null
             || string.Equals(result.DiagnosticCode, LimitExceededException.ErrorCodeValue, StringComparison.Ordinal))
             return StatusCodes.Status409Conflict;

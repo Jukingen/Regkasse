@@ -1323,6 +1323,14 @@ namespace KasseAPI_Final.Services
 
                     var cartSnapshot = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
                     var cartSnapshotPrices = cartSnapshot?.UnitPrices;
+                    var cartClaim = await TryClaimMatchingCartForPaymentAsync(userId, request.TableNumber, request.Items)
+                        .ConfigureAwait(false);
+                    if (cartClaim != null)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return cartClaim;
+                    }
 
                     var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
                     var pendingImeiRows = new List<ProductImei>();
@@ -2853,6 +2861,12 @@ namespace KasseAPI_Final.Services
                         }
                         _logger.LogInformation("Idempotent cancel: returning existing storno {StornoId} for payment {PaymentId} key {Key}", existingStorno.Id, paymentId, key);
                         await TryMarkPreorderCancelledAsync(paymentId);
+                        var replayRefundFailure = await RefundCardAfterFiscalStornoAsync(
+                                existingStorno.OriginalPaymentId ?? paymentId,
+                                Math.Abs(existingStorno.TotalAmount))
+                            .ConfigureAwait(false);
+                        if (replayRefundFailure != null)
+                            return replayRefundFailure;
                         return new PaymentResult
                         {
                             Success = true,
@@ -2902,12 +2916,17 @@ namespace KasseAPI_Final.Services
                     .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
                 if (alreadyHasStorno)
                 {
+                    var refundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                        .ConfigureAwait(false);
+                    if (refundFailure != null)
+                        return refundFailure;
+
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Payment is already cancelled",
                         Errors = { "A reversal (storno) already exists for this payment" },
-                        DiagnosticCode = "ALREADY_CANCELLED",
+                        DiagnosticCode = "STORNO_ALREADY_EXISTS",
                         IsDeterministicFailure = true
                     };
                 }
@@ -3043,6 +3062,10 @@ namespace KasseAPI_Final.Services
                             paymentId,
                             key);
                         await TryMarkPreorderCancelledAsync(paymentId);
+                        var replayRefundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                            .ConfigureAwait(false);
+                        if (replayRefundFailure != null)
+                            return replayRefundFailure;
                         return new PaymentResult
                         {
                             Success = true,
@@ -3081,6 +3104,11 @@ namespace KasseAPI_Final.Services
                 .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
             if (alreadyHasStorno)
             {
+                var refundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                    .ConfigureAwait(false);
+                if (refundFailure != null)
+                    return refundFailure;
+
                 return new PaymentResult
                 {
                     Success = false,
@@ -3130,24 +3158,6 @@ namespace KasseAPI_Final.Services
                     IsDeterministicFailure = true,
                     DiagnosticCode = "STORNO_ORIGINAL_RECEIPT_REQUIRED"
                 };
-            }
-
-            if (_cardPaymentService != null)
-            {
-                var (gwOk, gwCode, gwMsg) = await _cardPaymentService
-                    .RefundForFiscalPaymentAsync(paymentId, payment.TotalAmount)
-                    .ConfigureAwait(false);
-                if (!gwOk)
-                {
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = gwMsg ?? "Gateway refund failed.",
-                        Errors = { gwMsg ?? "Gateway refund failed." },
-                        IsDeterministicFailure = true,
-                        DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
-                    };
-                }
             }
 
             var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
@@ -3356,6 +3366,19 @@ namespace KasseAPI_Final.Services
                 await _context.SaveChangesAsync();
                 await dbTx.CommitAsync();
             }
+            catch (DbUpdateException ex) when (IsStornoUniqueViolation(ex))
+            {
+                await dbTx.RollbackAsync();
+                _logger.LogWarning(ex, "Concurrent storno lost the unique original-payment race for {PaymentId}", paymentId);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Payment is already cancelled",
+                    Errors = { "A reversal (storno) already exists for this payment" },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS"
+                };
+            }
             catch (DbUpdateException ex) when (IsCancelIdempotencyKeyViolation(ex))
             {
                 await dbTx.RollbackAsync();
@@ -3402,6 +3425,14 @@ namespace KasseAPI_Final.Services
                     Message = "Storno transaction failed",
                     Errors = { ex.Message }
                 };
+            }
+
+            var cardRefundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                .ConfigureAwait(false);
+            if (cardRefundFailure != null)
+            {
+                cardRefundFailure.PaymentId = stornoId;
+                return cardRefundFailure;
             }
 
             var stornoRow = await _context.PaymentDetails.AsNoTracking()
@@ -4591,6 +4622,20 @@ namespace KasseAPI_Final.Services
             return false;
         }
 
+        private static bool IsStornoUniqueViolation(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505")
+                {
+                    var name = pg.ConstraintName ?? "";
+                    if (name.Contains("one_storno", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// True when the exception is a PostgreSQL unique constraint violation (23505) on BenefitDailyUsage
         /// (CustomerId, BenefitDefinitionId, UsageDate) create-if-missing race. Excludes idempotency_key violations.
@@ -4808,6 +4853,116 @@ namespace KasseAPI_Final.Services
             if (msg.Contains("duplicate") || msg.Contains("already submitted") || msg.Contains("validation") || msg.Contains("forbidden"))
                 return FinanzOnlineFailureKind.Permanent;
             return FinanzOnlineFailureKind.Unknown;
+        }
+
+        /// <summary>
+        /// Marks the matching active cart <see cref="CartStatus.Completed"/> inside the open payment transaction.
+        /// A second request for that cart returns <c>CART_ALREADY_PAID</c> (HTTP 409) instead of another receipt.
+        /// </summary>
+        private async Task<PaymentResult?> TryClaimMatchingCartForPaymentAsync(
+            string userId,
+            int tableNumber,
+            IReadOnlyList<PaymentItemRequest> items)
+        {
+            if (items == null || items.Count == 0)
+                return null;
+
+            var active = await _context.Carts.AsNoTracking()
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                .ConfigureAwait(false);
+            if (active != null && CartLinesMatch(active, items))
+            {
+                var provider = _context.Database.ProviderName ?? string.Empty;
+                if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Single UPDATE holds the row lock until this payment transaction commits.
+                    var claimed = await _context.Carts
+                        .Where(c => c.CartId == active.CartId && c.Status == CartStatus.Active)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(c => c.Status, CartStatus.Completed)
+                            .SetProperty(c => c.UpdatedAt, DateTime.UtcNow))
+                        .ConfigureAwait(false);
+                    if (claimed == 0)
+                        return CartAlreadyPaid();
+                    return null;
+                }
+
+                var tracked = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == active.CartId && c.Status == CartStatus.Active)
+                    .ConfigureAwait(false);
+                if (tracked == null)
+                    return CartAlreadyPaid();
+                tracked.Status = CartStatus.Completed;
+                tracked.UpdatedAt = DateTime.UtcNow;
+                return null;
+            }
+
+            if (active != null)
+                return null;
+
+            var paid = await _context.Carts.AsNoTracking()
+                .Include(c => c.Items)
+                .Where(c => c.UserId == userId && c.TableNumber == tableNumber && c.Status == CartStatus.Completed)
+                .OrderByDescending(c => c.UpdatedAt)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+            if (paid != null && CartLinesMatch(paid, items))
+                return CartAlreadyPaid();
+
+            return null;
+        }
+
+        private static PaymentResult CartAlreadyPaid() => new()
+        {
+            Success = false,
+            Message = "Cart is already paid",
+            Errors = { "This cart was already paid. A second receipt was not created." },
+            IsDeterministicFailure = true,
+            DiagnosticCode = "CART_ALREADY_PAID"
+        };
+
+        private static bool CartLinesMatch(Cart cart, IReadOnlyList<PaymentItemRequest> items)
+        {
+            if (cart.Items == null || cart.Items.Count == 0)
+                return false;
+
+            var reqByProduct = items.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            var cartByProduct = cart.Items.GroupBy(ci => ci.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            if (reqByProduct.Count != cartByProduct.Count)
+                return false;
+            foreach (var kv in reqByProduct)
+            {
+                if (!cartByProduct.TryGetValue(kv.Key, out var qty) || qty != kv.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Card gateway refund runs only after the fiscal storno row has committed.
+        /// Cash sales have no card row and return success without a gateway call.
+        /// </summary>
+        private async Task<PaymentResult?> RefundCardAfterFiscalStornoAsync(Guid originalPaymentId, decimal amount)
+        {
+            if (_cardPaymentService == null)
+                return null;
+
+            var (gwOk, gwCode, gwMsg) = await _cardPaymentService
+                .RefundForFiscalPaymentAsync(originalPaymentId, amount)
+                .ConfigureAwait(false);
+            if (gwOk)
+                return null;
+
+            return new PaymentResult
+            {
+                Success = false,
+                Message = gwMsg ?? "Gateway refund failed.",
+                Errors = { gwMsg ?? "Gateway refund failed." },
+                IsDeterministicFailure = true,
+                DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
+            };
         }
 
         /// <summary>

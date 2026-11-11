@@ -1138,6 +1138,17 @@ namespace KasseAPI_Final.Controllers
                     return Forbid();
                 }
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
+                if (tenantId == Guid.Empty)
+                    return NotFound(new { message = "Tenant not found" });
+
+                // Ambient tenant only. UserTenantMemberships is filtered; do not IgnoreQueryFilters.
+                var memberUserIds = await _context.UserTenantMemberships.AsNoTracking()
+                    .Where(m => m.IsActive)
+                    .Select(m => m.UserId)
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+
                 var cleanupResult = new ForceCleanupResponse
                 {
                     RequestedBy = userId,
@@ -1154,7 +1165,8 @@ namespace KasseAPI_Final.Controllers
                     var tableCarts = await _context.Carts
                         .Include(c => c.Items)
                         .Where(c => c.TableNumber == request.TableNumber.Value &&
-                                   c.Status == CartStatus.Active)
+                                   c.Status == CartStatus.Active &&
+                                   memberUserIds.Contains(c.UserId))
                         .ToListAsync();
 
                     foreach (var cart in tableCarts)
@@ -1186,7 +1198,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var allActiveCarts = await _context.Carts
                         .Include(c => c.Items)
-                        .Where(c => c.Status == CartStatus.Active)
+                        .Where(c => c.Status == CartStatus.Active && memberUserIds.Contains(c.UserId))
                         .ToListAsync();
 
                     foreach (var cart in allActiveCarts)

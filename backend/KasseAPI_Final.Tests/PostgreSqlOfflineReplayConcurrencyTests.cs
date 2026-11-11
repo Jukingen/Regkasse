@@ -4,12 +4,14 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
@@ -620,4 +622,211 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         Assert.True(scope.WaitDurationMs >= 0 && scope.WaitDurationMs < 200,
             $"Expected immediate or fast acquire, got WaitDurationMs={scope.WaitDurationMs}");
     }
+
+    [SkippableFact]
+    public async Task ConcurrentStorno_TwoKeys_SingleReversal()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+        await using var seed = CreateContext();
+        var (_, productId, customerId, cashRegisterId) = await SeedMinimalDomainAsync(seed);
+
+        var audit = new Mock<IAuditLogService>();
+        SetupAuditMocks(audit);
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
+        var (payment, _) = CreateServices(
+            seed,
+            audit,
+            CreateTseService(seed, pipeline, keyProvider),
+            new ReceiptSequenceService(seed, Mock.Of<ILogger<ReceiptSequenceService>>()));
+
+        var sale = await payment.CreatePaymentAsync(
+            BuildPaymentRequest(customerId, cashRegisterId, productId, Guid.NewGuid().ToString("N")),
+            "u1");
+        Assert.True(sale.Success, sale.Message);
+        var saleId = sale.PaymentId!.Value;
+
+        var results = await Task.WhenAll(
+            Task.Run(() => CancelOnFreshContextAsync(audit, pipeline, keyProvider, saleId, "storno-key-a")),
+            Task.Run(() => CancelOnFreshContextAsync(audit, pipeline, keyProvider, saleId, "storno-key-b")));
+
+        Assert.Single(results, r => r.Success);
+        var failure = Assert.Single(results, r => !r.Success);
+        Assert.Equal("STORNO_ALREADY_EXISTS", failure.DiagnosticCode);
+        Assert.Equal(StatusCodes.Status409Conflict, PaymentApiContractMapper.MapToStatusCode(failure));
+
+        await using var verify = CreateContext();
+        var stornoCount = await verify.PaymentDetails.CountAsync(p => p.OriginalPaymentId == saleId && p.IsStorno);
+        Assert.Equal(1, stornoCount);
+    }
+
+    [SkippableFact]
+    public async Task ConcurrentPayment_SameCart_DifferentIdempotencyKeys_SingleReceipt()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+        await using var seed = CreateContext();
+        var (_, productId, customerId, cashRegisterId) = await SeedMinimalDomainAsync(seed);
+        var userId = "cart-" + Guid.NewGuid().ToString("N");
+        seed.Users.Add(new ApplicationUser
+        {
+            Id = userId,
+            UserName = userId,
+            NormalizedUserName = userId.ToUpperInvariant(),
+            Email = userId + "@t.test",
+            NormalizedEmail = (userId + "@t.test").ToUpperInvariant(),
+            FirstName = "Ada",
+            LastName = "Lovelace",
+            SecurityStamp = Guid.NewGuid().ToString("N"),
+            IsActive = true
+        });
+        seed.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = userId,
+            TenantId = _tenantId,
+            IsActive = true
+        });
+        var cartId = "cart-" + Guid.NewGuid().ToString("N");
+        seed.Carts.Add(new Cart
+        {
+            CartId = cartId,
+            UserId = userId,
+            TableNumber = 1,
+            Status = CartStatus.Active,
+            ExpiresAt = DateTime.UtcNow.AddHours(2),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true,
+            Items =
+            {
+                new CartItem
+                {
+                    ProductId = productId,
+                    Quantity = 1,
+                    UnitPrice = 6.90m
+                }
+            }
+        });
+        await seed.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        SetupAuditMocks(audit);
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
+
+        var results = await Task.WhenAll(
+            Task.Run(() => PayOnFreshContextAsync(audit, pipeline, keyProvider, customerId, cashRegisterId, productId, userId, Guid.NewGuid().ToString("N"))),
+            Task.Run(() => PayOnFreshContextAsync(audit, pipeline, keyProvider, customerId, cashRegisterId, productId, userId, Guid.NewGuid().ToString("N"))));
+
+        Assert.Single(results, r => r.Success);
+        var failure = Assert.Single(results, r => !r.Success);
+        Assert.Equal("CART_ALREADY_PAID", failure.DiagnosticCode);
+        Assert.Equal(StatusCodes.Status409Conflict, PaymentApiContractMapper.MapToStatusCode(failure));
+
+        await using var verify = CreateContext();
+        var saleCount = await verify.PaymentDetails.CountAsync(p => p.CashRegisterId == cashRegisterId && !p.IsStorno && !p.IsRefund);
+        Assert.Equal(1, saleCount);
+        var cart = await verify.Carts.AsNoTracking().SingleAsync(c => c.CartId == cartId);
+        Assert.Equal(CartStatus.Completed, cart.Status);
+    }
+
+    [SkippableFact]
+    public async Task CartLifecycle_FortyFiveMinutes_DoesNotDeleteOtherTenantsOrRecentlyUpdatedCarts()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+        var tenantB = Guid.NewGuid();
+        var userA = "life-a-" + Guid.NewGuid().ToString("N");
+        var userB = "life-b-" + Guid.NewGuid().ToString("N");
+        var staleId = "stale-" + Guid.NewGuid().ToString("N");
+        var freshId = "fresh-" + Guid.NewGuid().ToString("N");
+        var otherId = "other-" + Guid.NewGuid().ToString("N");
+        var now = DateTime.UtcNow;
+        var old = now.AddHours(-2);
+
+        await using var seed = CreateContext();
+        TenantTestDoubles.EnsureTenant(seed, tenantB, "tb" + tenantB.ToString("N")[..8]);
+        seed.Users.Add(TestUser(userA));
+        seed.Users.Add(TestUser(userB));
+        seed.UserTenantMemberships.Add(new UserTenantMembership { UserId = userA, TenantId = _tenantId, IsActive = true });
+        seed.UserTenantMemberships.Add(new UserTenantMembership { UserId = userB, TenantId = tenantB, IsActive = true });
+        seed.Carts.Add(TestCart(staleId, userA, old, old));
+        seed.Carts.Add(TestCart(freshId, userA, old, now));
+        seed.Carts.Add(TestCart(otherId, userB, old, old));
+        await seed.SaveChangesAsync();
+
+        var deleted = await CartLifecycleService.CleanupFortyFiveMinuteCartsAsync(seed, now);
+        Assert.Equal(1, deleted);
+
+        await using var verify = CreateContext();
+        Assert.False(await verify.Carts.AnyAsync(c => c.CartId == staleId));
+        Assert.True(await verify.Carts.AnyAsync(c => c.CartId == freshId));
+        Assert.True(await verify.Carts.AnyAsync(c => c.CartId == otherId));
+        Assert.Equal(userA, (await verify.Carts.SingleAsync(c => c.CartId == freshId)).UserId);
+        Assert.Equal(userB, (await verify.Carts.SingleAsync(c => c.CartId == otherId)).UserId);
+    }
+
+    private async Task<PaymentResult> CancelOnFreshContextAsync(
+        Mock<IAuditLogService> audit,
+        SignaturePipeline pipeline,
+        SoftwareTseKeyProvider keyProvider,
+        Guid paymentId,
+        string idempotencyKey)
+    {
+        await using var ctx = CreateContext();
+        var (pay, _) = CreateServices(
+            ctx,
+            audit,
+            CreateTseService(ctx, pipeline, keyProvider),
+            new ReceiptSequenceService(ctx, Mock.Of<ILogger<ReceiptSequenceService>>()));
+        return await pay.CancelPaymentAsync(
+            paymentId,
+            "Customer changed mind",
+            "u1",
+            idempotencyKey,
+            CancellationReasonCode.CustomerRequest);
+    }
+
+    private async Task<PaymentResult> PayOnFreshContextAsync(
+        Mock<IAuditLogService> audit,
+        SignaturePipeline pipeline,
+        SoftwareTseKeyProvider keyProvider,
+        Guid customerId,
+        Guid cashRegisterId,
+        Guid productId,
+        string userId,
+        string idempotencyKey)
+    {
+        await using var ctx = CreateContext();
+        var (pay, _) = CreateServices(
+            ctx,
+            audit,
+            CreateTseService(ctx, pipeline, keyProvider),
+            new ReceiptSequenceService(ctx, Mock.Of<ILogger<ReceiptSequenceService>>()));
+        var req = BuildPaymentRequest(customerId, cashRegisterId, productId, idempotencyKey);
+        return await pay.CreatePaymentAsync(req, userId);
+    }
+
+    private static ApplicationUser TestUser(string userId) => new()
+    {
+        Id = userId,
+        UserName = userId,
+        NormalizedUserName = userId.ToUpperInvariant(),
+        Email = userId + "@t.test",
+        NormalizedEmail = (userId + "@t.test").ToUpperInvariant(),
+        FirstName = "Test",
+        LastName = "User",
+        SecurityStamp = Guid.NewGuid().ToString("N"),
+        IsActive = true
+    };
+
+    private static Cart TestCart(string cartId, string userId, DateTime createdAt, DateTime updatedAt) => new()
+    {
+        CartId = cartId,
+        UserId = userId,
+        TableNumber = 4,
+        Status = CartStatus.Active,
+        ExpiresAt = DateTime.UtcNow.AddHours(12),
+        CreatedAt = createdAt,
+        UpdatedAt = updatedAt,
+        IsActive = true
+    };
 }

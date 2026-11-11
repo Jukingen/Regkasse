@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services
@@ -47,20 +48,47 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
+        /// 45-minute idle cleanup for one ambient tenant. Test seam for
+        /// <see cref="CartTenantCleanup.DeleteIdleActiveCartsAsync"/>.
+        /// </summary>
+        internal static Task<int> CleanupFortyFiveMinuteCartsAsync(
+            AppDbContext context,
+            DateTime utcNow,
+            CancellationToken cancellationToken = default) =>
+            CartTenantCleanup.DeleteIdleActiveCartsAsync(context, utcNow, cancellationToken);
+
+        /// <summary>
         /// Süresi dolmuş sepetleri temizle
         /// </summary>
         private async Task CleanupExpiredCarts()
         {
-            using var scope = _serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
             try
             {
-                // 🔒 GÜVENLİK: Sadece süresi dolmuş aktif sepetleri bul
+                await ForEachActiveTenantAsync(async context =>
+                {
+                    await DeleteExpiredCartsForAmbientTenantAsync(context).ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Expired cart cleanup error");
+            }
+        }
+
+        private async Task DeleteExpiredCartsForAmbientTenantAsync(AppDbContext context)
+        {
+            try
+            {
+                var userIds = await CartTenantCleanup.ActiveMemberUserIdsAsync(context).ConfigureAwait(false);
+                if (userIds.Count == 0)
+                    return;
+
+                // 🔒 GÜVENLİK: Sadece süresi dolmuş aktif sepetleri bul (ambient tenant üyeleri)
                 var expiredCarts = await context.Carts
                     .Include(c => c.Items)
                     .Where(c => c.ExpiresAt < DateTime.UtcNow &&
-                               c.Status == CartStatus.Active)
+                               c.Status == CartStatus.Active &&
+                               userIds.Contains(c.UserId))
                     .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count })
                     .ToListAsync();
 
@@ -175,27 +203,64 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Zaman kurallarına göre sepet temizleme (45 dakika + gece 00:00)
+        /// Runs <paramref name="action"/> once per active tenant with that tenant bound on the scope accessor.
+        /// Membership queries then see only that tenant. Carts are filtered by those user ids.
         /// </summary>
+        private async Task ForEachActiveTenantAsync(Func<AppDbContext, Task> action)
+        {
+            List<Guid> tenantIds;
+            using (var listScope = _serviceProvider.CreateScope())
+            {
+                var listDb = listScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                tenantIds = await listDb.Tenants.AsNoTracking()
+                    .Where(t => t.IsActive)
+                    .Select(t => t.Id)
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+            }
+
+            foreach (var tenantId in tenantIds)
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var accessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
+                accessor.TenantId = tenantId;
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                await action(context).ConfigureAwait(false);
+            }
+        }
+
         private async Task CleanupCartsByTimeRules()
         {
-            using var scope = _serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            try
+            {
+                await ForEachActiveTenantAsync(CleanupCartsByTimeRulesForAmbientTenantAsync).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ CleanupCartsByTimeRules error");
+            }
+        }
 
+        private async Task CleanupCartsByTimeRulesForAmbientTenantAsync(AppDbContext context)
+        {
             try
             {
                 var now = DateTime.UtcNow;
                 var currentHour = now.Hour;
                 var currentMinute = now.Minute;
+                var userIds = await CartTenantCleanup.ActiveMemberUserIdsAsync(context).ConfigureAwait(false);
 
-                // 🌙 Gece 00:00 kontrolü - Tüm aktif sepetleri temizle
+                // 🌙 Gece 00:00 kontrolü - Yalnızca bu mandantın aktif sepetlerini temizle
                 if (currentHour == 0 && currentMinute == 0)
                 {
-                    _logger.LogInformation("🌙 Midnight 00:00 - All active carts automatically resetting...");
+                    _logger.LogInformation("🌙 Midnight 00:00 - Active carts for the ambient tenant resetting...");
+
+                    if (userIds.Count == 0)
+                        return;
 
                     var allActiveCarts = await context.Carts
                         .Include(c => c.Items)
-                        .Where(c => c.Status == CartStatus.Active)
+                        .Where(c => c.Status == CartStatus.Active && userIds.Contains(c.UserId))
                         .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count })
                         .ToListAsync();
 
@@ -205,11 +270,9 @@ namespace KasseAPI_Final.Services
                             allActiveCarts.Count);
 
                         // Önce CartItems'ları sil
+                        var activeCartIds = allActiveCarts.Select(c => c.CartId).ToList();
                         var cartItemsToDelete = await context.CartItems
-                            .Where(ci => context.Carts
-                                .Where(c => c.Status == CartStatus.Active)
-                                .Select(c => c.CartId)
-                                .Contains(ci.CartId))
+                            .Where(ci => activeCartIds.Contains(ci.CartId))
                             .ToListAsync();
 
                         if (cartItemsToDelete.Any())
@@ -220,7 +283,7 @@ namespace KasseAPI_Final.Services
 
                         // Sonra Cart'ları sil
                         var cartsToDelete = await context.Carts
-                            .Where(c => c.Status == CartStatus.Active)
+                            .Where(c => activeCartIds.Contains(c.CartId))
                             .ToListAsync();
 
                         context.Carts.RemoveRange(cartsToDelete);
@@ -239,56 +302,12 @@ namespace KasseAPI_Final.Services
                     return; // Gece 00:00 işlemi yapıldıysa diğer kontrolleri atla
                 }
 
-                // ⏰ 45 dakika kontrolü - Her sepet için oluşturulma zamanından 45 dakika geçtiyse temizle
-                var fortyFiveMinutesAgo = now.AddMinutes(-45);
-
-                var expiredByTimeRule = await context.Carts
-                    .Include(c => c.Items)
-                    .Where(c => c.Status == CartStatus.Active &&
-                               c.CreatedAt < fortyFiveMinutesAgo)
-                    .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count, c.CreatedAt })
-                    .ToListAsync();
-
-                if (expiredByTimeRule.Any())
+                var deletedIdle = await CleanupFortyFiveMinuteCartsAsync(context, now).ConfigureAwait(false);
+                if (deletedIdle > 0)
                 {
-                    _logger.LogInformation("⏰ {ExpiredCartsCount} carts expired by 45-minute rule, cleaning...",
-                        expiredByTimeRule.Count);
-
-                    // Batch delete için ID'leri topla
-                    var cartIds = expiredByTimeRule.Select(c => c.CartId).ToList();
-
-                    // Önce CartItems'ları sil
-                    var cartItemsToDelete = await context.CartItems
-                        .Where(ci => cartIds.Contains(ci.CartId))
-                        .ToListAsync();
-
-                    if (cartItemsToDelete.Any())
-                    {
-                        context.CartItems.RemoveRange(cartItemsToDelete);
-                        _logger.LogInformation("🧹 {ItemsCount} cart items deleted (45-minute rule)", cartItemsToDelete.Count);
-                    }
-
-                    // Sonra Cart'ları sil
-                    var cartsToDelete = await context.Carts
-                        .Where(c => cartIds.Contains(c.CartId))
-                        .ToListAsync();
-
-                    context.Carts.RemoveRange(cartsToDelete);
-
-                    // Değişiklikleri kaydet
-                    var deletedCount = await context.SaveChangesAsync();
-
-                    _logger.LogInformation("✅ 45-minute rule cleanup completed: {CartsCount} carts, {ItemsCount} items deleted",
-                        cartsToDelete.Count, cartItemsToDelete.Count);
-
-                    // Detaylı log
-                    foreach (var cart in expiredByTimeRule)
-                    {
-                        var timeDiff = now - cart.CreatedAt;
-                        var minutesDiff = (int)timeDiff.TotalMinutes;
-                        _logger.LogInformation("⏰ Table {TableNumber} cart expired after {MinutesDiff} minutes, reset (UserId: {UserId})",
-                            cart.TableNumber, minutesDiff, cart.UserId);
-                    }
+                    _logger.LogInformation(
+                        "⏰ {ExpiredCartsCount} carts expired by 45-minute idle rule (UpdatedAt) for the ambient tenant",
+                        deletedIdle);
                 }
             }
             catch (Exception ex)

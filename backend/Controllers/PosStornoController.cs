@@ -85,11 +85,11 @@ public sealed class PosStornoController : ControllerBase
             .AnyAsync(p => p.OriginalPaymentId == request.PaymentId && p.IsStorno, cancellationToken);
         if (!originalPayment.IsActive || hasStornoChild)
         {
-            return BadRequest(new StornoResponse
+            return Conflict(new StornoResponse
             {
                 Success = false,
                 ErrorKey = "errors.alreadyCancelled",
-                DiagnosticCode = "ALREADY_CANCELLED",
+                DiagnosticCode = "STORNO_ALREADY_EXISTS",
             });
         }
 
@@ -175,6 +175,16 @@ public sealed class PosStornoController : ControllerBase
 
         if (!result.Success)
         {
+            if (result.DiagnosticCode is "STORNO_ALREADY_EXISTS" or "ALREADY_CANCELLED")
+            {
+                return Conflict(new StornoResponse
+                {
+                    Success = false,
+                    ErrorKey = "errors.alreadyCancelled",
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS",
+                });
+            }
+
             return BadRequest(new StornoResponse
             {
                 Success = false,

@@ -306,6 +306,8 @@ namespace KasseAPI_Final.Controllers
                     return StatusCode(403, new { success = false, message = result.Message, code = result.DiagnosticCode, details = new { errors = result.Errors } });
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
                     return ErrorResponse(result.Message, 409, new { code = "BENEFIT_DAILY_ALLOWANCE_CONFLICT", errors = result.Errors });
+                if (result.DiagnosticCode is "CART_ALREADY_PAID" or "STORNO_ALREADY_EXISTS" or "ALREADY_CANCELLED")
+                    return ErrorResponse(result.Message, 409, new { code = result.DiagnosticCode, errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 if (result.LimitError != null
                     || string.Equals(result.DiagnosticCode, LimitExceededException.ErrorCodeValue, StringComparison.Ordinal))
                 {
@@ -502,6 +504,8 @@ namespace KasseAPI_Final.Controllers
                     return SuccessResponse(result, "Payment cancelled successfully");
                 }
 
+                if (result.DiagnosticCode is "STORNO_ALREADY_EXISTS" or "ALREADY_CANCELLED")
+                    return ErrorResponse(result.Message, 409, MapReversalFailurePayload(result));
                 if (!string.IsNullOrEmpty(result.DiagnosticCode))
                     return ErrorResponse(result.Message, 400, MapReversalFailurePayload(result));
                 return ErrorResponse(result.Message, 400, result.Errors);

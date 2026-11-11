@@ -9158,6 +9158,11 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("OfflineTransactionId");
 
+                    b.HasIndex("OriginalPaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_one_storno_per_original")
+                        .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
+
                     b.HasIndex("OriginalReceiptId");
 
                     b.HasIndex("PaymentMethodRaw");

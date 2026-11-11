@@ -620,7 +620,7 @@ public sealed class PaymentServiceFiskalyCoverageTests
             reasonCode: CancellationReasonCode.CustomerRequest);
 
         Assert.False(second.Success);
-        Assert.Equal("ALREADY_CANCELLED", second.DiagnosticCode);
+        Assert.Equal("STORNO_ALREADY_EXISTS", second.DiagnosticCode);
         Assert.True(second.IsDeterministicFailure);
     }
 

@@ -2106,6 +2106,10 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
                 entity.Property(e => e.CancelIdempotencyKey).HasMaxLength(64);
                 entity.HasIndex(e => e.CancelIdempotencyKey).IsUnique().HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
+                entity.HasIndex(e => e.OriginalPaymentId)
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_one_storno_per_original")
+                    .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
 
                 // Strengthen data integrity for POS/receipt numbering.
                 // Unique over real receipt numbers only (ignore empty/draft values).
