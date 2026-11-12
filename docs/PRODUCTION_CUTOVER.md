@@ -2,14 +2,14 @@
 
 Ordered checklist for the first real production deployment. Piece-by-piece guides stay in the linked docs. This file is the sequence. It is not a legal RKSV or FinanzOnline compliance certificate.
 
-**Last updated:** 2026-10-27
+**Last updated:** 2026-11-12
 
 | Related | Link |
 |---------|------|
 | Host deploy | [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md) · [`../DEPLOYMENT.md`](../DEPLOYMENT.md) |
 | Environments | [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) |
 | Pipeline | [`CI_CD.md`](CI_CD.md) · [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md) |
-| RKSV / TSE | [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) |
+| RKSV / TSE | [`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md) · [`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md) · [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md) |
 | FinanzOnline | [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md) |
 | Monitoring | [`MONITORING.md`](MONITORING.md) · [`ALERTING.md`](ALERTING.md) |
 | Backup | [`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md) |
@@ -27,7 +27,8 @@ Do not write secrets into this file. Do not run a real sale on a real mandant du
 - [ ] A deployment license key is issued. Offline verify uses `License__OfflineVerificationPublicKeyPem` or `LicenseSettings__PublicKeyPath`.
 - [ ] The trial / demo path is confirmed. The first real mandant will be created with `seedDemo=false` (wizard default).
 - [ ] Backup target exists (`PgDump`, staging and archive dirs). Execution mode is not `Fake` ([`BACKUP_AND_DISASTER_RECOVERY.md`](BACKUP_AND_DISASTER_RECOVERY.md)).
-- [ ] RKSV/TSE key material for a real tenant is in the secret store, not in git ([`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md)).
+- [ ] Each real mandant will use its own Fiskaly organization. API key, secret, and SCU id go into `tenant_fiskaly_credentials` from FA `/settings` (`cash_register.manage`). Production does not fall back to a host `Fiskaly:ApiKey`. See [`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md).
+- [ ] RKSV/TSE key material for a real tenant is in that tenant row or the secret store, not in git ([`RKSV_PRODUCTION_CUTOVER_CHECKLIST.md`](RKSV_PRODUCTION_CUTOVER_CHECKLIST.md)).
 - [ ] FinanzOnline credentials are in the secret store ([`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md)).
 - [ ] NTP is configured. Online fiscal payments stay blocked when sync fails or the offset is over `MaxAllowedOffsetSeconds`.
 - [ ] Marketing URLs are decided: site `https://regkasse.at`, API `https://api.regkasse.at` (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL` at build time).
@@ -70,6 +71,7 @@ There is no CI job for this script. `npm run validate:scripts` only checks that 
 ## Fiscal keys (D-2)
 
 - [ ] TSE mode is the real device path (`TseMode=Device` / vendor Real). Demo, Off, and Fake are rejected ([`TSE_PRODUCTION_CONFIG_LOCK.md`](TSE_PRODUCTION_CONFIG_LOCK.md)).
+- [ ] Fiskaly is not one shared organization. The Mandanten-Admin of each real tenant saves that tenant's LIVE API key, secret, and SCU UUID on `/settings` before the first LIVE receipt. Host `Fiskaly:ApiKey` stays empty in Production.
 - [ ] FinanzOnline `UseSimulation=false` on the production host. `RksvSubmission` client kind is Real.
 - [ ] No simulation flag remains in the Production environment file.
 - [ ] Staging, if it shares the lock, keeps `Tse:EnforceProductionLockInStaging=true` (Staging example default). That flag does not turn Production simulation on.
@@ -96,6 +98,7 @@ There is no CI job for this script. `npm run validate:scripts` only checks that 
 
 - [ ] 24 hours of monitoring with no unacked critical alert (Sentry, uptime, Slack).
 - [ ] First real tenant is onboarded in the wizard with `seedDemo=false`.
+- [ ] That tenant's Mandanten-Admin has saved Fiskaly BYOK credentials (`GET /api/admin/fiskaly/credentials` shows `configured: true` and `environment: LIVE`) and FON/SCU initialization for that ambient tenant is `INITIALIZED` ([`FISKALY_PRODUCTION_CUTOVER.md`](FISKALY_PRODUCTION_CUTOVER.md)).
 - [ ] First license is activated for that tenant (`POST /api/license/activate`).
 - [ ] First FinanzOnline submission follows the written policy (TEST webservice user first, then PROD). Do not skip the TEST gate in [`FINANZONLINE_PROD_CUTOVER_CHECKLIST.md`](FINANZONLINE_PROD_CUTOVER_CHECKLIST.md).
 

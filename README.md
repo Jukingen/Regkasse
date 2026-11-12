@@ -5,7 +5,8 @@ RKSV-compliant multi-tenant POS platform for Austrian cash registers (Registrier
 | Surface | Local | Production |
 |---------|-------|------------|
 | POS | http://localhost:8081 | https://pos.regkasse.at |
-| Admin (FA) | http://localhost:3000 | https://admin.regkasse.at |
+| Admin (FA) | http://admin.regkasse.local:3000 (same Next dev server as http://localhost:3000) | https://admin.regkasse.at |
+| Marketing | http://localhost:3002 | https://regkasse.at |
 | Tenant sites | http://localhost:3001 | `/[slug]` storefronts (+ optional custom domains) |
 | API | http://localhost:5184 | https://api.regkasse.at |
 
@@ -19,6 +20,8 @@ Regkasse is an npm-workspace monorepo for:
 - **Admin (FA)** — Mandanten-Admin and Super Admin back office (users, RKSV, backup, billing, trials, self-service portal, support tickets, digital services); **i18n de/en/tr**
 - **Tenant websites** — shared Next.js storefronts and online-order intake (`frontend-sites`; not fiscal POS)
 - **API** — ASP.NET Core multi-tenant backend with RKSV/TSE, FinanzOnline outbox, backup/DR, and licensing
+- **Fiskaly BYOK** — each mandant stores its own SIGN AT API key, secret, and SCU on `tenant_fiskaly_credentials` (FA `/settings`). Production does not share one Fiskaly organization.
+- **Marketplace orders** — Wolt (OAuth), Foodora (client credentials), and Lieferando (JET Connect) post into `online_orders`. FA: `/admin/online-order-integrations`. Not a receipt until POS payment.
 
 **Single POS UI:** production POS is one shared host (`pos.regkasse.at`); tenant comes from JWT `tenant_id` after login — not `{slug}.regkasse.at` as the POS entry point. See [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
 
@@ -85,7 +88,7 @@ Comparison + rollback: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md). S
 | Project | Command | URL |
 |---------|---------|-----|
 | API | `npm run dev:backend` | http://localhost:5184 |
-| Admin | `npm run dev:admin` | http://localhost:3000 |
+| Admin | `npm run dev:admin` | http://localhost:3000 — prefer http://admin.regkasse.local:3000 (`127.0.0.1 admin.regkasse.local` in the hosts file). Next still binds port 3000. |
 | POS | `npm run dev:pos` | http://localhost:8081 (Expo) |
 | Sites | `npm run dev:sites` | http://localhost:3001 |
 
@@ -366,6 +369,7 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`frontend/`](frontend/) | Mobile POS (Expo) — cashier UI |
 | [`frontend-admin/`](frontend-admin/) | Admin panel (Next.js) |
 | [`frontend-sites/`](frontend-sites/) | Shared tenant websites / online-order UI |
+| [`frontend-marketing/`](frontend-marketing/) | Marketing site (Next.js, port 3002, de/en/tr) |
 | [`localization/`](localization/) | i18n import/export/validation and CI budgets |
 | [`scripts/`](scripts/) | OpenAPI verify, seeds, git hooks, SQL helpers — [`scripts/README.md`](scripts/README.md) |
 | [`tools/`](tools/) | License generator + wrappers — [`tools/README.md`](tools/README.md) |

@@ -2,7 +2,7 @@
 
 This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.mdc`](.cursor/rules/000-core.mdc) on every task. Other rules attach by glob, or manually for workflow and deploy. Edit the matching `.mdc` file. Do not paste the full rule set back here.
 
-**Last updated:** 2026-10-27
+**Last updated:** 2026-11-12
 
 ## Rule files
 
@@ -19,6 +19,12 @@ This file is the GitHub-visible index. Cursor applies [`.cursor/rules/000-core.m
 | [`.cursor/rules/201-deploy.mdc`](.cursor/rules/201-deploy.mdc) | Manual | Deployment checklist and environment variables |
 
 For medium or large tasks, also read [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md), optionally [`docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md`](docs/PROJECT_COMPREHENSIVE_DOCUMENTATION.md), and the relevant file under [`ai/`](ai/).
+
+## Recent milestones
+
+- Per-tenant Fiskaly credentials (BYOK) and the production cutover note in [`docs/FISKALY_PRODUCTION_CUTOVER.md`](docs/FISKALY_PRODUCTION_CUTOVER.md).
+- Wolt, Foodora, and Lieferando online-order intake. Operator steps: [`docs/MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md`](docs/MARKETPLACE_INTEGRATIONS_OPERATOR_GUIDE.md).
+- GDPR purge keeps fiscal amounts and TSE signatures and strips other tenant PII.
 
 ## Where to read more
 
