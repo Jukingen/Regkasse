@@ -404,6 +404,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                (startDate, endDate) = AuditLogStatisticsAggregation.ApplyDefaultWindow(startDate, endDate, DateTime.UtcNow);
                 var statistics = await _auditLogService.GetAuditLogStatisticsAsync(startDate, endDate);
 
                 var response = new AuditLogStatisticsResponse

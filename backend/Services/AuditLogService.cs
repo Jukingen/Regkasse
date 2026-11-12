@@ -1109,6 +1109,8 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                (startDate, endDate) = AuditLogStatisticsAggregation.ApplyDefaultWindow(startDate, endDate, DateTime.UtcNow);
+
                 var query = AuditLogsReadOnly;
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
@@ -1117,42 +1119,13 @@ namespace KasseAPI_Final.Services
                 if (hi.HasValue)
                     query = query.Where(a => a.Timestamp < hi.Value);
 
-                var statistics = new Dictionary<string, int>();
-
-                // Count by action
-                var actionStats = await query
-                    .GroupBy(a => a.Action)
-                    .Select(g => new { Action = g.Key, Count = g.Count() })
+                var groups = await query
+                    .GroupBy(a => new { a.Action, a.Status, a.EntityType })
+                    .Select(g => new { g.Key.Action, g.Key.Status, g.Key.EntityType, Count = g.Count() })
                     .ToListAsync();
 
-                foreach (var stat in actionStats)
-                {
-                    statistics[$"Action_{stat.Action}"] = stat.Count;
-                }
-
-                // Count by status
-                var statusStats = await query
-                    .GroupBy(a => a.Status)
-                    .Select(g => new { Status = g.Key, Count = g.Count() })
-                    .ToListAsync();
-
-                foreach (var stat in statusStats)
-                {
-                    statistics[$"Status_{stat.Status}"] = stat.Count;
-                }
-
-                // Count by entity type
-                var entityTypeStats = await query
-                    .GroupBy(a => a.EntityType)
-                    .Select(g => new { EntityType = g.Key, Count = g.Count() })
-                    .ToListAsync();
-
-                foreach (var stat in entityTypeStats)
-                {
-                    statistics[$"EntityType_{stat.EntityType}"] = stat.Count;
-                }
-
-                statistics["Total"] = actionStats.Sum(s => s.Count);
+                var statistics = AuditLogStatisticsAggregation.FromCombinedGroups(
+                    groups.Select(g => new AuditLogStatisticsAggregation.Bucket(g.Action, g.Status, g.EntityType, g.Count)));
 
                 _logger.LogInformation("Retrieved audit log statistics: {Statistics}",
                     string.Join(", ", statistics.Select(kvp => $"{kvp.Key}: {kvp.Value}")));

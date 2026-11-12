@@ -29,19 +29,27 @@ namespace KasseAPI_Final.Controllers
             _settingsTenantResolver = settingsTenantResolver;
         }
 
-        // GET: api/orders
+        // GET: api/orders?page=1&pageSize=50
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             try
             {
-                var orders = await _context.Orders
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
+                var filtered = _context.Orders.AsNoTracking();
+                var totalCount = await filtered.CountAsync();
+                var items = await filtered
+                    .AsSplitQuery()
                     .Include(o => o.Items)
                     .Include(o => o.Customer)
                     .OrderByDescending(o => o.OrderDate)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                return Ok(orders);
+                return Ok(new { items, page, pageSize, totalCount });
             }
             catch (Exception ex)
             {

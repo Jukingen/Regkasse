@@ -384,11 +384,20 @@ public partial class AdminUsersController : ControllerBase
 
         if (tenantId.HasValue && tenantId.Value != Guid.Empty)
         {
-            var tenantUsers = await _tenantUserService
-                .ListAsync(tenantId.Value, cancellationToken)
-                .ConfigureAwait(false);
-            if (tenantUsers == null)
-                return new List<AdminTenantUserRowDto>();
+            var tenantUsers = new List<TenantUserDto>();
+            const int membershipPageSize = 100;
+            for (var membershipPage = 1; ; membershipPage++)
+            {
+                var batch = await _tenantUserService
+                    .ListAsync(tenantId.Value, membershipPage, membershipPageSize, cancellationToken)
+                    .ConfigureAwait(false);
+                if (batch == null)
+                    return new List<AdminTenantUserRowDto>();
+
+                tenantUsers.AddRange(batch.Items);
+                if (batch.Items.Count == 0 || tenantUsers.Count >= batch.TotalCount)
+                    break;
+            }
 
             var tenant = await _context.Tenants
                 .AsNoTracking()

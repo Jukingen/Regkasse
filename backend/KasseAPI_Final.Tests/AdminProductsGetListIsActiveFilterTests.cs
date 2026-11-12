@@ -160,6 +160,30 @@ public sealed class AdminProductsGetListIsActiveFilterTests
         Assert.Equal(3, ReadTotalCount(result));
         Assert.Equal("Beta", ReadFirstItemName(result));
     }
+
+    [Fact]
+    public async Task Search_Paginates_AndDoesNotReturnEveryMatch()
+    {
+        await using var ctx = await SeedThreeProductsAsync();
+        ctx.Products.Add(NewProduct(
+            Guid.NewGuid(),
+            "Alpine",
+            isActive: true,
+            ctx.Categories.Single().Id,
+            ctx.Products.First().TaxGroupId));
+        await ctx.SaveChangesAsync();
+
+        var controller = CreateController(ctx);
+        var result = await controller.Search(name: "alp", page: 1, pageSize: 1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        using var doc = JsonDocument.Parse(json);
+        var data = doc.RootElement.GetProperty("data");
+        Assert.Equal(2, data.GetProperty("pagination").GetProperty("totalCount").GetInt32());
+        Assert.Equal(1, data.GetProperty("pagination").GetProperty("pageSize").GetInt32());
+        Assert.Equal(1, data.GetProperty("items").GetArrayLength());
+        Assert.Equal("Alpha", data.GetProperty("items")[0].GetProperty("name").GetString());
+    }
 }
 
 /// <summary>
@@ -227,6 +251,62 @@ public sealed class AdminProductsGetListNameSearchPostgreSqlTests
         var data = doc.RootElement.GetProperty("data");
         Assert.Equal(1, data.GetProperty("pagination").GetProperty("totalCount").GetInt32());
         Assert.Equal(gammaName, data.GetProperty("items")[0].GetProperty("name").GetString());
+    }
+
+    [SkippableFact]
+    public async Task Search_NameILike_PaginatesMatches()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+
+        await using var ctx = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options,
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        var taxGroupId = TenantTestDoubles.EnsureTaxGroup(ctx, SystemTenantIds.Platform);
+        var catId = Guid.NewGuid();
+        var token = catId.ToString("N")[..8];
+        ctx.Categories.Add(new Category
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = catId,
+            Name = $"C-{token}",
+            VatRate = 10m
+        });
+
+        ctx.Products.AddRange(
+            NewProduct(Guid.NewGuid(), $"{token}-Alpha", isActive: true, catId, taxGroupId),
+            NewProduct(Guid.NewGuid(), $"{token}-Alpine", isActive: true, catId, taxGroupId),
+            NewProduct(Guid.NewGuid(), $"{token}-Beta", isActive: true, catId, taxGroupId));
+        await ctx.SaveChangesAsync();
+
+        var controller = new AdminProductsController(
+            ctx,
+            Mock.Of<IGenericRepository<Product>>(),
+            NullLogger<AdminProductsController>.Instance,
+            TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform),
+            Mock.Of<IWebHostEnvironment>(),
+            Options.Create(new ProductMediaOptions()),
+            new ProductImageThumbnailService(
+                Options.Create(new ProductMediaOptions()),
+                NullLogger<ProductImageThumbnailService>.Instance),
+            Mock.Of<IDemoProductImportService>(),
+            NullCurrentTenantAccessor.Instance,
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(SystemTenantIds.Platform)),
+            Mock.Of<IProductService>(),
+            Mock.Of<IProductExportService>(),
+            Mock.Of<KasseAPI_Final.Services.Operations.IOperationLogService>(),
+            Mock.Of<IProductPriceHistoryService>(),
+            Mock.Of<IPriceChangeService>());
+
+        var result = await controller.Search(name: $"{token}-alp", page: 1, pageSize: 1);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        using var doc = JsonDocument.Parse(json);
+        var data = doc.RootElement.GetProperty("data");
+        Assert.Equal(2, data.GetProperty("pagination").GetProperty("totalCount").GetInt32());
+        Assert.Equal(1, data.GetProperty("items").GetArrayLength());
+        Assert.Equal($"{token}-Alpha", data.GetProperty("items")[0].GetProperty("name").GetString());
     }
 
     private static Product NewProduct(Guid id, string name, bool isActive, Guid categoryId, Guid taxGroupId) => new()

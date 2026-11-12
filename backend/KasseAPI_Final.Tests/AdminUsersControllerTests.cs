@@ -490,10 +490,16 @@ public class AdminUsersControllerTests
 
         var tenantUserService = new Mock<ITenantUserService>();
         tenantUserService
-            .Setup(s => s.ListAsync(ambientTenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TenantUserDto>
+            .Setup(s => s.ListAsync(ambientTenantId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantUserListPage
             {
-                new("cashier-1", "cashier1", "cashier1@test.com", "Cash Ier", Roles.Cashier, false, DateTime.UtcNow),
+                Items =
+                [
+                    new("cashier-1", "cashier1", "cashier1@test.com", "Cash Ier", Roles.Cashier, false, DateTime.UtcNow),
+                ],
+                Page = 1,
+                PageSize = 100,
+                TotalCount = 1,
             });
 
         var controller = CreateController(
@@ -510,7 +516,9 @@ public class AdminUsersControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var rows = Assert.IsAssignableFrom<IEnumerable<AdminUsersController.AdminTenantUserRowDto>>(ok.Value);
         Assert.Single(rows);
-        tenantUserService.Verify(s => s.ListAsync(ambientTenantId, It.IsAny<CancellationToken>()), Times.Once);
+        tenantUserService.Verify(
+            s => s.ListAsync(ambientTenantId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -547,11 +555,17 @@ public class AdminUsersControllerTests
 
         var tenantUserService = new Mock<ITenantUserService>();
         tenantUserService
-            .Setup(s => s.ListAsync(ambientTenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TenantUserDto>
+            .Setup(s => s.ListAsync(ambientTenantId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantUserListPage
             {
-                new("cashier-1", "cashier1", "cashier1@test.com", "Cash Ier", Roles.Cashier, false, DateTime.UtcNow),
-                new("platform-1", "root", "root@platform.test", "Root Admin", Roles.SuperAdmin, false, DateTime.UtcNow),
+                Items =
+                [
+                    new("cashier-1", "cashier1", "cashier1@test.com", "Cash Ier", Roles.Cashier, false, DateTime.UtcNow),
+                    new("platform-1", "root", "root@platform.test", "Root Admin", Roles.SuperAdmin, false, DateTime.UtcNow),
+                ],
+                Page = 1,
+                PageSize = 100,
+                TotalCount = 2,
             });
 
         var controller = CreateController(

@@ -58,25 +58,29 @@ public sealed class AdminTenantUsersController : ControllerBase
 
     [HttpGet]
 
-    [ProducesResponseType(typeof(IReadOnlyList<TenantUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TenantUserListPage), StatusCodes.Status200OK)]
 
     [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-    public async Task<ActionResult<IReadOnlyList<TenantUserDto>>> List(
+    public async Task<ActionResult<TenantUserListPage>> List(
 
         Guid tenantId,
+
+        [FromQuery] int page = 1,
+
+        [FromQuery] int pageSize = 50,
 
         CancellationToken cancellationToken = default)
 
     {
 
-        var items = await _tenantUserService.ListAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        var result = await _tenantUserService.ListAsync(tenantId, page, pageSize, cancellationToken).ConfigureAwait(false);
 
-        if (items == null)
+        if (result == null)
 
             return NotFound(new { message = "Tenant not found." });
 
-        return Ok(items);
+        return Ok(result);
 
     }
 

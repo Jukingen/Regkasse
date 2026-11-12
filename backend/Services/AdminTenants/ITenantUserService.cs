@@ -4,7 +4,11 @@ namespace KasseAPI_Final.Services.AdminTenants;
 
 public interface ITenantUserService
 {
-    Task<IReadOnlyList<TenantUserDto>?> ListAsync(Guid tenantId, CancellationToken cancellationToken = default);
+    Task<TenantUserListPage?> ListAsync(
+        Guid tenantId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default);
 
     Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(
         Guid tenantId,

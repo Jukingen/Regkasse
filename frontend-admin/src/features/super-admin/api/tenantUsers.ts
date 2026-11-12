@@ -54,8 +54,21 @@ export const TENANT_CREATE_ROLES = [
 /** @deprecated Use TENANT_CREATE_ROLES */
 export const INVITE_TENANT_ROLES = TENANT_CREATE_ROLES;
 
-export async function listTenantUsers(tenantId: string): Promise<TenantUser[]> {
-  const { data } = await AXIOS_INSTANCE.get<TenantUser[]>(`/api/admin/tenants/${tenantId}/users`);
+export type TenantUserListPage = {
+  items: TenantUser[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
+
+export async function listTenantUsers(
+  tenantId: string,
+  params?: { page?: number; pageSize?: number }
+): Promise<TenantUserListPage> {
+  const { data } = await AXIOS_INSTANCE.get<TenantUserListPage>(
+    `/api/admin/tenants/${tenantId}/users`,
+    { params }
+  );
   return data;
 }
 

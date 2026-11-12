@@ -128,6 +128,7 @@ namespace KasseAPI_Final.Services
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var receipt = await _context.Receipts
+                .AsSplitQuery()
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)!.ThenInclude(p => p!.OfflineTransaction)

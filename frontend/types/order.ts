@@ -72,6 +72,13 @@ export interface CreateOrderItemRequest {
   specialNotes?: string;
 }
 
+export type OrdersPage = {
+  items: Order[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
+
 export interface OrderResponse {
   orderId: string;
   tableNumber: string;

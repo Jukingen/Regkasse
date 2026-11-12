@@ -1,7 +1,7 @@
 import { safeLog } from '../../utils/loggingUtils';
 // Order servisi - Backend Orders API'leri ile iletişim
 import { SecureApiService } from './secureApiService';
-import { CreateOrderRequest, OrderResponse, Order } from '../../types/order';
+import { CreateOrderRequest, OrderResponse, Order, OrdersPage } from '../../types/order';
 
 const API_BASE_URL = '/api/orders';
 const secureApiService = SecureApiService.getInstance();
@@ -20,9 +20,13 @@ export const orderService = {
   },
 
   // Tüm siparişleri getir
-  async getOrders(): Promise<Order[]> {
+  async getOrders(page = 1, pageSize = 50): Promise<OrdersPage> {
     try {
-      return await secureApiService.secureGet<Order[]>(API_BASE_URL);
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      return await secureApiService.secureGet<OrdersPage>(`${API_BASE_URL}?${params.toString()}`);
     } catch (error) {
       console.error('Error fetching orders:', error);
       throw error;

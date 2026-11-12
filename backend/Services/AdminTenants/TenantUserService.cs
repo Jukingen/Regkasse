@@ -87,7 +87,11 @@ public sealed class TenantUserService : ITenantUserService
         _tenantLimitGuard = tenantLimitGuard;
     }
 
-    public async Task<IReadOnlyList<TenantUserDto>?> ListAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<TenantUserListPage?> ListAsync(
+        Guid tenantId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         if (!CanAccessTenant(tenantId))
             return null;
@@ -95,7 +99,10 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return null;
 
-        var rows = await MembershipsUnfiltered()
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
+        var query = MembershipsUnfiltered()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive)
             .Join(
@@ -115,11 +122,22 @@ public sealed class TenantUserService : ITenantUserService
                     : (x.User.FirstName + " " + x.User.LastName).Trim(),
                 x.User.Role ?? Roles.FallbackUnknown,
                 x.Membership.IsOwner,
-                x.Membership.CreatedAtUtc))
+                x.Membership.CreatedAtUtc));
+
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+        var rows = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows;
+        return new TenantUserListPage
+        {
+            Items = rows,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
     }
 
     public Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(

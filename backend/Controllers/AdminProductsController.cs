@@ -279,21 +279,58 @@ namespace KasseAPI_Final.Controllers
         /// Ürün ara (name, category adı). GET api/admin/products/search
         /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? name = null, [FromQuery] string? category = null)
+        public async Task<IActionResult> Search(
+            [FromQuery] string? name = null,
+            [FromQuery] string? category = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var useILike = _context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
                 if (!string.IsNullOrWhiteSpace(name))
-                    query = query.Where(p => p.Name.ToLower().Contains(name.Trim().ToLower()));
-                if (!string.IsNullOrWhiteSpace(category))
-                    query = query.Where(p => p.Category != null && p.Category.ToLower().Contains(category.Trim().ToLower()));
+                {
+                    var term = name.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => EF.Functions.ILike(p.Name, pattern))
+                        : query.Where(p => p.Name.ToLower().Contains(term.ToLower()));
+                }
 
-                var products = await query.OrderBy(p => p.Name).ToListAsync();
+                if (!string.IsNullOrWhiteSpace(category))
+                {
+                    var term = category.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => p.Category != null && EF.Functions.ILike(p.Category, pattern))
+                        : query.Where(p => p.Category != null && p.Category.ToLower().Contains(term.ToLower()));
+                }
+
+                var totalCount = await query.CountAsync();
+                var products = await query
+                    .OrderBy(p => p.Name)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
                 var items = products.Select(AdminProductDto.FromProduct).ToList();
-                _logger.LogInformation("Admin products search: found {Count} products", items.Count);
-                return SuccessResponse(items, $"Found {items.Count} products");
+                var payload = new
+                {
+                    items,
+                    pagination = new
+                    {
+                        pageNumber = page,
+                        pageSize,
+                        totalCount,
+                        totalPages = pageSize == 0 ? 0 : (int)Math.Ceiling((double)totalCount / pageSize),
+                    },
+                };
+                _logger.LogInformation("Admin products search: page {Page}, total {Total}", page, totalCount);
+                return SuccessResponse(payload, $"Found {totalCount} products");
             }
             catch (Exception ex)
             {

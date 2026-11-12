@@ -1,7 +1,7 @@
 'use client';
 
 import { CrownOutlined, KeyOutlined, UserDeleteOutlined } from '@ant-design/icons';
-import { Button, Popconfirm, Select, Space, Table, Tag } from 'antd';
+import { Button, Pagination, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { dateColumnRender } from '@/components/DateColumn';
@@ -30,6 +30,13 @@ export type TenantUserTableProps = {
   onRemove: (userId: string) => void;
   onRoleChange: (userId: string, previousRole: string, newRole: string) => void;
   onResetPassword?: (userId: string) => void;
+  /** Server page. The table does not slice `users` again. */
+  listPage?: {
+    current: number;
+    pageSize: number;
+    total: number;
+    onChange: (page: number) => void;
+  };
 };
 
 export function TenantUserTable({
@@ -44,6 +51,7 @@ export function TenantUserTable({
   onRemove,
   onRoleChange,
   onResetPassword,
+  listPage,
 }: TenantUserTableProps) {
   const { t } = useI18n();
 
@@ -149,14 +157,26 @@ export function TenantUserTable({
   ];
 
   return (
+    <>
     <Table
       rowKey="userId"
       loading={loading}
       dataSource={users}
       columns={columns}
       locale={{ emptyText: t('tenants.users.empty') }}
-      pagination={{ pageSize: 20 }}
+      pagination={listPage ? false : { pageSize: 20 }}
     />
+    {listPage ? (
+      <Pagination
+        style={{ marginTop: 16, textAlign: 'right' }}
+        current={listPage.current}
+        pageSize={listPage.pageSize}
+        total={listPage.total}
+        showSizeChanger={false}
+        onChange={listPage.onChange}
+      />
+    ) : null}
+    </>
   );
 }
 

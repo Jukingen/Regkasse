@@ -244,11 +244,70 @@ public sealed class TenantUserServiceTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db, CreateUserManager(db));
-        var rows = await service.ListAsync(tenantId);
-        Assert.NotNull(rows);
-        var row = Assert.Single(rows!);
+        var page = await service.ListAsync(tenantId);
+        Assert.NotNull(page);
+        var row = Assert.Single(page!.Items);
         Assert.Equal("cashier99", row.UserName);
         Assert.Equal("list-user", row.UserId);
+        Assert.Equal(1, page.TotalCount);
+    }
+
+    [Fact]
+    public async Task ListAsync_Paginates_AndDoesNotReturnEveryRow()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Paged Cafe",
+            Slug = "paged-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        for (var i = 0; i < 3; i++)
+        {
+            var userId = $"paged-user-{i}";
+            db.Users.Add(new ApplicationUser
+            {
+                Id = userId,
+                UserName = $"paged{i}",
+                Email = $"paged{i}@cafe.test",
+                FirstName = "Paged",
+                LastName = $"User{i:D2}",
+                EmployeeNumber = $"EMP-{i}",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            db.UserTenantMemberships.Add(new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                TenantId = tenantId,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var first = await service.ListAsync(tenantId, page: 1, pageSize: 2);
+        Assert.NotNull(first);
+        Assert.Equal(3, first!.TotalCount);
+        Assert.Equal(2, first.Items.Count);
+        Assert.Equal(1, first.Page);
+        Assert.Equal(2, first.PageSize);
+
+        var second = await service.ListAsync(tenantId, page: 2, pageSize: 2);
+        Assert.NotNull(second);
+        Assert.Single(second!.Items);
+        Assert.Equal(3, second.TotalCount);
+        Assert.Empty(first.Items.Select(row => row.UserId).Intersect(second.Items.Select(row => row.UserId)));
     }
 
     [Fact]
