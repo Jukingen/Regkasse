@@ -138,7 +138,7 @@ describe('VerticalConfigHub', () => {
         expect.objectContaining({ name: 'Edited gastronomy' })
       )
     );
-  });
+  }, 45_000);
 
   it('invalidates the sidebar profile cache after a catalog save', async () => {
     const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries');

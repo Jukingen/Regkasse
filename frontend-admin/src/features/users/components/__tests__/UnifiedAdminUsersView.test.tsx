@@ -222,7 +222,7 @@ describe('UnifiedAdminUsersView', () => {
         isActive: false,
       })
     );
-  });
+  }, 45_000);
 
   it('shows deactivate action for active tenant users', async () => {
     const onDeactivate = vi.fn();

@@ -197,7 +197,7 @@ describe('SuperAdminTenantsPage', () => {
     expect(screen.getByRole('button', { name: /CSV exportieren/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Name oder Subdomain/i)).toBeInTheDocument();
     expect(screen.getByText('Gastronomie')).toBeInTheDocument();
-  });
+  }, 45_000);
 
   it('hides includeDeleted toggle for non-Super Admin', async () => {
     mockUseAuth.mockReturnValue({

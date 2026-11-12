@@ -183,7 +183,7 @@ describe('CreateTenantWizard country step', () => {
         screen.queryByText(/Nicht-AT-Mandanten aktivieren RKSV\/TSE nicht/)
       ).not.toBeInTheDocument();
     });
-  });
+  }, 45_000);
 
   it('blocks advancing when country is cleared', async () => {
     const user = userEvent.setup();
