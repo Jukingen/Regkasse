@@ -45,6 +45,12 @@ namespace KasseAPI_Final.DTOs
 
         public string? Notes { get; set; }
 
+        /// <summary>
+        /// Cash tendered by the customer. Stored on the payment row with the computed change.
+        /// Not part of the RKSV signature or the TSE payload.
+        /// </summary>
+        public decimal? CashGiven { get; set; }
+
         /// <summary>Optional idempotency key for this payment attempt. When retried with the same key, the existing payment result is returned.</summary>
         [MaxLength(64)]
         public string? IdempotencyKey { get; set; }

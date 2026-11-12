@@ -76,6 +76,23 @@ public sealed class PaymentServiceCreatePaymentCoreCoverageTests
     }
 
     [Fact]
+    public async Task CreatePayment_Cash_PersistsCashGivenAndChangeDue()
+    {
+        await using var ctx = PaymentServiceCoverageHarness.CreateContext();
+        var (customerId, productId, registerId, _) = await PaymentServiceCoverageHarness.SeedCatalogAsync(ctx);
+        var sut = PaymentServiceCoverageHarness.CreatePaymentService(ctx);
+        var request = PaymentServiceCoverageHarness.SaleRequest(customerId, productId, registerId, total: 10m, method: "cash");
+        request.CashGiven = 50m;
+
+        var result = await sut.CreatePaymentAsync(request, PaymentServiceCoverageHarness.CashierId);
+
+        Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
+        var row = await ctx.PaymentDetails.SingleAsync();
+        Assert.Equal(50m, row.CashGiven);
+        Assert.Equal(decimal.Round(50m - row.TotalAmount, 2), row.ChangeDue);
+    }
+
+    [Fact]
     public async Task CreatePayment_WhenClientSendsTseRequiredFalse_AndTseModeDevice_StillCreatesSignature()
     {
         await using var ctx = PaymentServiceCoverageHarness.CreateContext();

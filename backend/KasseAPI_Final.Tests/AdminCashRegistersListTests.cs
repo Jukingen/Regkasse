@@ -169,9 +169,9 @@ public sealed class AdminCashRegistersListTests
     }
 
     [Fact]
-    public async Task ListCashRegisters_Manager_TriesToAccessOtherTenant_ReturnsForbid()
+    public async Task ListCashRegisters_Manager_TriesToAccessOtherTenant_Returns404()
     {
-        // Manager başka tenant'ın kasalarına erişememeli -> 403
+        // Manager başka tenant'ın kasalarına erişememeli -> 404 (varlık sızdırılmaz)
         await using var db = CreateDb();
         await SeedTwoTenantsWithRegistersAsync(db);
 
@@ -188,7 +188,7 @@ public sealed class AdminCashRegistersListTests
             pageSize: 20,
             cancellationToken: CancellationToken.None);
 
-        Assert.IsType<ForbidResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]

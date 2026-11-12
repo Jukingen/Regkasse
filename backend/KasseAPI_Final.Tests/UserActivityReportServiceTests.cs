@@ -146,6 +146,77 @@ public sealed class UserActivityReportServiceTests
     }
 
     [Fact]
+    public async Task BuildReportAsync_ManagerSessionStats_ExcludeNullAndOtherTenant()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        await using var db = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"UserActivitySessions_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            TenantTestDoubles.TenantAccessorReturning(tenantA));
+        db.Tenants.AddRange(
+            new Tenant { Id = tenantA, Name = "A", Slug = "sess-a", Status = TenantStatuses.Active, IsActive = true },
+            new Tenant { Id = tenantB, Name = "B", Slug = "sess-b", Status = TenantStatuses.Active, IsActive = true });
+        var user = new ApplicationUser
+        {
+            Id = "u-sess",
+            UserName = "manager-view",
+            Email = "s@a.at",
+            FirstName = "S",
+            LastName = "Ess",
+            Role = "Cashier",
+        };
+        db.Users.Add(user);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = user.Id,
+            TenantId = tenantA,
+            IsActive = true,
+        });
+        var now = DateTime.UtcNow;
+        db.AuthSessions.AddRange(
+            new AuthSession
+            {
+                UserId = user.Id,
+                ClientApp = "pos",
+                TenantId = tenantA,
+                CreatedAtUtc = now.AddHours(-3),
+                LastActivityAtUtc = now.AddMinutes(-30),
+                IpAddress = "10.0.0.1",
+            },
+            new AuthSession
+            {
+                UserId = user.Id,
+                ClientApp = "pos",
+                TenantId = null,
+                CreatedAtUtc = now.AddHours(-1),
+                LastActivityAtUtc = now,
+                IpAddress = "10.9.9.9",
+            },
+            new AuthSession
+            {
+                UserId = user.Id,
+                ClientApp = "admin",
+                TenantId = tenantB,
+                CreatedAtUtc = now.AddHours(-1),
+                LastActivityAtUtc = now.AddMinutes(-5),
+                IpAddress = "10.8.8.8",
+            });
+        await db.SaveChangesAsync();
+
+        var report = await CreateService(db).BuildReportAsync(
+            new UserActivityReportQuery { UserId = user.Id },
+            actorIsSuperAdmin: false,
+            ambientTenantId: tenantA);
+
+        Assert.NotNull(report);
+        Assert.Equal(1, report!.ActiveSessions);
+        Assert.Equal("10.0.0.1", report.LastLoginIp);
+    }
+
+    [Fact]
     public async Task ExportAsync_ReturnsCsv()
     {
         await using var db = CreateContext();

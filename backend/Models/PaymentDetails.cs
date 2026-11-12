@@ -26,6 +26,14 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
+        /// <summary>Cash tendered by the customer. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("cash_given", TypeName = "decimal(18,2)")]
+        public decimal? CashGiven { get; set; }
+
+        /// <summary>Change returned on a cash sale. Null for non-cash and legacy rows. Not part of the RKSV/TSE payload.</summary>
+        [Column("change_due", TypeName = "decimal(18,2)")]
+        public decimal? ChangeDue { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }

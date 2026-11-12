@@ -362,6 +362,109 @@ public sealed class TagesabschlussServiceOperationalTests
     }
 
     [Fact]
+    public async Task ManualDailyClosing_DaysOldTableOrder_Succeeds_AndExcludesItFromTotal()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var (dayStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+        var noonUtc = dayStartUtc.AddHours(12);
+        var daysAgo = dayStartUtc.AddDays(-3);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-old", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = noonUtc,
+            Status = RegisterStatus.Open,
+            CreatedAt = noonUtc,
+        });
+        ctx.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = userId,
+            TenantId = tenantId,
+            IsActive = true,
+        });
+        ctx.TableOrders.Add(new TableOrder
+        {
+            TableOrderId = "TO-OLD",
+            TableNumber = 4,
+            UserId = userId,
+            Status = TableOrderStatus.Active,
+            IsActive = true,
+            Subtotal = 70m,
+            TaxAmount = 10m,
+            TotalAmount = 80m,
+            OrderStartTime = daysAgo,
+            LastModifiedTime = daysAgo,
+            CreatedAt = daysAgo,
+        });
+        ctx.Invoices.Add(new Invoice
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            InvoiceNumber = "INV-PAID",
+            InvoiceDate = noonUtc,
+            DueDate = noonUtc,
+            Subtotal = 8m,
+            TaxAmount = 2m,
+            TotalAmount = 10m,
+            PaidAmount = 10m,
+            RemainingAmount = 0m,
+            CompanyName = "Test Co",
+            CompanyTaxNumber = "ATU12345678",
+            CompanyAddress = "Addr",
+            TaxDetails = System.Text.Json.JsonDocument.Parse("{}"),
+            InvoiceItems = System.Text.Json.JsonDocument.Parse("[]"),
+            Status = InvoiceStatus.Paid,
+            CreatedAt = noonUtc,
+            IsActive = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(s => s.GetTseStatusAsync()).ReturnsAsync(new TseStatus
+        {
+            IsConnected = false,
+            Status = "Disconnected",
+        });
+        tseMock.Setup(s => s.CreateDailyClosingSignatureAsync(
+                registerId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<decimal>(),
+                It.IsAny<int>(),
+                It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?>()))
+            .ReturnsAsync("dev-daily-closing-jws");
+        var sut = new TagesabschlussService(
+            ctx,
+            tseMock.Object,
+            new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
+            Mock.Of<IFinanzOnlineService>(f => f.IsEnabledAsync() == Task.FromResult(false)),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            Mock.Of<IReportPdfCaptureService>(),
+            Mock.Of<IReportPdfStorageService>(),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true));
+
+        var closed = await sut.PerformDailyClosingAsync(userId, registerId);
+
+        Assert.True(closed.Success, closed.ErrorMessage);
+        Assert.Equal(10m, closed.TotalAmount);
+        Assert.False(closed.OpenOrdersForced);
+    }
+
+    [Fact]
     public async Task PerformDailyClosingAsync_WhenFiskalyFails_KeepsLocalClosing()
     {
         var tenantId = Guid.NewGuid();

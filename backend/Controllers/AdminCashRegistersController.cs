@@ -214,7 +214,8 @@ public sealed class AdminCashRegistersController : ControllerBase
         }
         catch (UnauthorizedAccessException ex) when (ex.Message.Contains("other tenants", StringComparison.OrdinalIgnoreCase))
         {
-            return Forbid();
+            // Cross-tenant list must not reveal that the other mandant exists.
+            return NotFound();
         }
         catch (UnauthorizedAccessException ex)
         {

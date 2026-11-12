@@ -1825,6 +1825,22 @@ namespace KasseAPI_Final.Services
                         }
                     }
 
+                    // Cash tender is operational only. It is not part of the RKSV signature or the TSE payload.
+                    decimal? cashGiven = null;
+                    decimal? changeDue = null;
+                    var isCashSale = !request.IsStorno
+                        && !request.IsRefund
+                        && string.Equals(
+                            methodResolution.LegacyRaw,
+                            ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                            StringComparison.Ordinal);
+                    if (isCashSale && request.CashGiven is decimal tendered)
+                    {
+                        cashGiven = decimal.Round(tendered, 2, MidpointRounding.AwayFromZero);
+                        var due = decimal.Round(cashGiven.Value - totalAmount, 2, MidpointRounding.AwayFromZero);
+                        changeDue = due < 0m ? 0m : due;
+                    }
+
                     // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                     payment = new PaymentDetails
                     {
@@ -1833,6 +1849,8 @@ namespace KasseAPI_Final.Services
                         PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems)),
                         TotalAmount = totalAmount,
                         TaxAmount = totalTaxAmount,
+                        CashGiven = cashGiven,
+                        ChangeDue = changeDue,
                         TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
                         PaymentMethodRaw = methodResolution.LegacyRaw,
                         Notes = request.Notes,

@@ -1,7 +1,9 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Order;
@@ -26,6 +28,7 @@ public sealed class OnlineOrderPaymentService : IOnlineOrderPaymentService
     private readonly IOnlineOrderNotificationService _notifications;
     private readonly TimeProvider _time;
     private readonly ILogger<OnlineOrderPaymentService> _logger;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
     public OnlineOrderPaymentService(
         IDbContextFactory<AppDbContext> dbFactory,
@@ -33,7 +36,8 @@ public sealed class OnlineOrderPaymentService : IOnlineOrderPaymentService
         IPaymentGateway gateway,
         IOnlineOrderNotificationService notifications,
         TimeProvider time,
-        ILogger<OnlineOrderPaymentService> logger)
+        ILogger<OnlineOrderPaymentService> logger,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         _dbFactory = dbFactory;
         _tenantAccessor = tenantAccessor;
@@ -41,6 +45,7 @@ public sealed class OnlineOrderPaymentService : IOnlineOrderPaymentService
         _notifications = notifications;
         _time = time;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<OnlineOrderPaymentResult> CreatePaymentIntentAsync(
@@ -137,9 +142,7 @@ public sealed class OnlineOrderPaymentService : IOnlineOrderPaymentService
             return OnlineOrderPaymentResult.Fail(IntentNotFoundCode, "Payment intent id is required.");
 
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        var order = await db.OnlineOrders
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(o => o.StripePaymentIntentId == paymentIntentId, ct);
+        var order = await FindOrderForConfirmAsync(db, paymentIntentId.Trim(), ct);
         if (order is null)
             return OnlineOrderPaymentResult.Fail(IntentNotFoundCode, "No online order for this payment intent.");
 
@@ -192,6 +195,52 @@ public sealed class OnlineOrderPaymentService : IOnlineOrderPaymentService
         await ApplyPaidAsync(db, order, ct);
         return OnlineOrderPaymentResult.Success(order, paymentIntentId, null, _gateway.ProviderName);
     }
+
+    /// <summary>
+    /// Super Admin may read across tenants. Everyone else is limited to the payment intent id:
+    /// a bound mandant stays inside that tenant filter; a public caller binds the intent's tenant
+    /// and then loads the row through the filter.
+    /// </summary>
+    private async Task<OnlineOrder?> FindOrderForConfirmAsync(
+        AppDbContext db,
+        string paymentIntentId,
+        CancellationToken ct)
+    {
+        if (CallerIsSuperAdmin())
+        {
+            return await db.OnlineOrders
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.StripePaymentIntentId == paymentIntentId, ct)
+                .ConfigureAwait(false);
+        }
+
+        var ambient = _tenantAccessor.TenantId;
+        if (ambient is Guid tenantId
+            && tenantId != Guid.Empty
+            && tenantId != SystemTenantIds.Platform)
+        {
+            return await db.OnlineOrders
+                .FirstOrDefaultAsync(o => o.StripePaymentIntentId == paymentIntentId, ct)
+                .ConfigureAwait(false);
+        }
+
+        var ownerTenantId = await db.OnlineOrders
+            .IgnoreQueryFilters()
+            .Where(o => o.StripePaymentIntentId == paymentIntentId)
+            .Select(o => (Guid?)o.TenantId)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+        if (ownerTenantId is not Guid owner || owner == Guid.Empty)
+            return null;
+
+        _tenantAccessor.TenantId = owner;
+        return await db.OnlineOrders
+            .FirstOrDefaultAsync(o => o.StripePaymentIntentId == paymentIntentId, ct)
+            .ConfigureAwait(false);
+    }
+
+    private bool CallerIsSuperAdmin() =>
+        _httpContextAccessor?.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
     private async Task ApplyPaidAsync(AppDbContext db, OnlineOrder order, CancellationToken ct)
     {

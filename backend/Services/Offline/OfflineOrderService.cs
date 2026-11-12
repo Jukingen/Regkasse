@@ -117,6 +117,7 @@ public sealed class OfflineOrderService : IOfflineOrderService
             .AsNoTracking()
             .Where(o => o.CashRegisterId == cashRegisterId
                         && o.Status == OfflineOrderStatuses.Pending
+                        && o.Status != OfflineOrderStatuses.Expired
                         && o.ExpiresAtUtc > now)
             .OrderBy(o => o.CreatedAtUtc)
             .ToListAsync(ct)
@@ -136,6 +137,7 @@ public sealed class OfflineOrderService : IOfflineOrderService
         var orders = await _context.OfflineOrders
             .Where(o => o.CashRegisterId == cashRegisterId
                         && o.Status == OfflineOrderStatuses.Pending
+                        && o.Status != OfflineOrderStatuses.Expired
                         && o.ExpiresAtUtc > now)
             .OrderBy(o => o.CreatedAtUtc)
             .ToListAsync(ct)
@@ -196,7 +198,9 @@ public sealed class OfflineOrderService : IOfflineOrderService
             .Select(o => new { o.Id, o.OfflineOrderId, o.TenantId, o.CashRegisterId, o.ExpiresAtUtc })
             .ToList();
 
-        _context.OfflineOrders.RemoveRange(expired);
+        foreach (var order in expired)
+            order.Status = OfflineOrderStatuses.Expired;
+
         await _context.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await _auditLogService.LogSystemOperationAsync(
@@ -204,11 +208,11 @@ public sealed class OfflineOrderService : IOfflineOrderService
             entityType: "OfflineOrder",
             userId: "system",
             userRole: "System",
-            description: $"Deleted {expired.Count} expired pending offline order(s).",
+            description: $"Marked {expired.Count} expired pending offline order(s) as expired.",
             requestData: summary,
             status: AuditLogStatus.Success).ConfigureAwait(false);
 
-        _logger.LogInformation("Deleted {Count} expired pending offline orders.", expired.Count);
+        _logger.LogInformation("Marked {Count} pending offline orders as expired.", expired.Count);
         return expired.Count;
     }
 
@@ -326,7 +330,9 @@ public sealed class OfflineOrderService : IOfflineOrderService
 
         var registerIds = await _context.OfflineOrders
             .AsNoTracking()
-            .Where(o => o.Status == OfflineOrderStatuses.Pending && o.ExpiresAtUtc > DateTime.UtcNow)
+            .Where(o => o.Status == OfflineOrderStatuses.Pending
+                        && o.Status != OfflineOrderStatuses.Expired
+                        && o.ExpiresAtUtc > DateTime.UtcNow)
             .Select(o => o.CashRegisterId)
             .Distinct()
             .ToListAsync(ct)

@@ -8867,6 +8867,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("CashGiven")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("cash_given");
+
                     b.Property<Guid>("CashRegisterId")
                         .HasColumnType("uuid")
                         .HasColumnName("cash_register_id");
@@ -8880,6 +8884,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("certificate_thumbprint");
+
+                    b.Property<decimal?>("ChangeDue")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("change_due");
 
                     b.Property<string>("CompanyAddress")
                         .HasMaxLength(200)
