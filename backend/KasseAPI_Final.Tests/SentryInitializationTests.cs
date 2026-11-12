@@ -66,6 +66,13 @@ public sealed class SentryInitializationTests
         sentryEvent.SetExtra("token", "jwt");
         sentryEvent.SetExtra("voucherCode", "GIFT-1");
         sentryEvent.SetExtra("TseSignature", "jws");
+        sentryEvent.SetExtra("phone", "+431234567");
+        sentryEvent.SetExtra("name", "Max");
+        sentryEvent.SetExtra("address", "Hauptstrasse 1");
+        sentryEvent.SetExtra("iban", "AT00");
+        sentryEvent.SetExtra("authorization", "Bearer secret");
+        sentryEvent.SetExtra("exception_message", "boom");
+        sentryEvent.SetExtra("breadcrumb", "clicked");
         sentryEvent.Request = new SentryRequest
         {
             Url = "https://api.regkasse.at/api/pos/payment",
@@ -91,6 +98,13 @@ public sealed class SentryInitializationTests
         Assert.False(sentryEvent.Extra.ContainsKey("token"));
         Assert.False(sentryEvent.Extra.ContainsKey("voucherCode"));
         Assert.False(sentryEvent.Extra.ContainsKey("TseSignature"));
+        Assert.False(sentryEvent.Extra.ContainsKey("phone"));
+        Assert.False(sentryEvent.Extra.ContainsKey("name"));
+        Assert.False(sentryEvent.Extra.ContainsKey("address"));
+        Assert.False(sentryEvent.Extra.ContainsKey("iban"));
+        Assert.False(sentryEvent.Extra.ContainsKey("authorization"));
+        Assert.False(sentryEvent.Extra.ContainsKey("exception_message"));
+        Assert.False(sentryEvent.Extra.ContainsKey("breadcrumb"));
         Assert.Null(sentryEvent.User.Email);
         Assert.Equal("user-1", sentryEvent.User.Id);
 
@@ -117,6 +131,44 @@ public sealed class SentryInitializationTests
         var sent = KasseAPI_Final.Services.Monitoring.SentryPiiScrubber.BeforeSend(sentryEvent, new SentryHint());
 
         Assert.Null(sent);
+    }
+
+    [Fact]
+    public void BeforeSendTransaction_ScrubsIdentityFields_AndDropsHealth()
+    {
+        var health = new SentryTransaction("GET /health/live", "http.server")
+        {
+            Request = new SentryRequest { Url = "https://api.regkasse.at/health/live" },
+        };
+        Assert.Null(SentryPiiScrubber.BeforeSendTransaction(health, new SentryHint()));
+
+        var transaction = new SentryTransaction("GET /api/public/customer/dashboard", "http.server")
+        {
+            User = new SentryUser { Id = "user-1", Email = "cashier@example.at", Username = "max" },
+            Request = new SentryRequest
+            {
+                Url = "https://api.regkasse.at/api/public/customer/dashboard",
+                QueryString = "?phone=43123456789&status=ok",
+            },
+            Description = "lookup cashier@example.at",
+        };
+        transaction.SetData("phone", "+43123456789");
+        transaction.SetData("userId", "user-1");
+        transaction.SetTag("authorization", "Bearer secret");
+        transaction.SetTag("endpoint", "/api/public/customer/dashboard");
+
+        var sent = SentryPiiScrubber.BeforeSendTransaction(transaction, new SentryHint());
+
+        Assert.NotNull(sent);
+        Assert.Null(sent.User.Email);
+        Assert.Null(sent.User.Username);
+        Assert.Equal("user-1", sent.User.Id);
+        Assert.False(sent.Data.ContainsKey("phone"));
+        Assert.Equal("user-1", sent.Data["userId"]);
+        Assert.False(sent.Tags.ContainsKey("authorization"));
+        Assert.Equal("/api/public/customer/dashboard", sent.Tags["endpoint"]);
+        Assert.DoesNotContain("cashier@example.at", sent.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("phone=", sent.Request.QueryString, StringComparison.OrdinalIgnoreCase);
     }
 
     private static WebApplication CreateHost(string dsn, IDiagnosticLogger? logger = null)

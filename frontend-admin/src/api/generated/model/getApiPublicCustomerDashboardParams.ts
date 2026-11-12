@@ -9,4 +9,5 @@
 export type GetApiPublicCustomerDashboardParams = {
 tenant?: string;
 phone?: string;
+orderNumber?: string;
 };

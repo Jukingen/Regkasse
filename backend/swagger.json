@@ -50306,6 +50306,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "orderNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -50318,6 +50325,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests"
           },
           "400": {
             "description": "Bad Request",

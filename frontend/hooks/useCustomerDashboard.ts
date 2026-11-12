@@ -5,7 +5,7 @@ import {
   type PublicCustomerDashboard,
 } from '../services/api/publicCustomerDashboardService';
 
-const MIN_PHONE_DIGITS = 6;
+const MIN_PHONE_DIGITS = 8;
 
 function digitCount(value: string): number {
   let n = 0;
@@ -21,8 +21,8 @@ export function useCustomerDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const loadDashboard = useCallback(async (tenant: string, phone: string) => {
-    if (!tenant.trim() || !phone.trim()) {
+  const loadDashboard = useCallback(async (tenant: string, phone: string, orderNumber: string) => {
+    if (!tenant.trim() || !phone.trim() || !orderNumber.trim()) {
       setError('missing_params');
       setDashboard(null);
       return null;
@@ -37,7 +37,7 @@ export function useCustomerDashboard() {
     setError(null);
     setNotFound(false);
     try {
-      const result = await fetchPublicCustomerDashboard({ tenant, phone });
+      const result = await fetchPublicCustomerDashboard({ tenant, phone, orderNumber });
       setDashboard(result);
       return result;
     } catch (err: unknown) {

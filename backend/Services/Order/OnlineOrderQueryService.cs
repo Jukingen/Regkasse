@@ -174,20 +174,14 @@ public sealed class OnlineOrderQueryService : IOnlineOrderQueryService
                 o => o.TenantId == tenant.Id
                      && o.OrderNumber.ToLower() == numberLower,
                 ct);
-        if (match is null)
+        if (match is null || string.IsNullOrWhiteSpace(customerPhone))
             return null;
 
-        if (!string.IsNullOrWhiteSpace(customerPhone))
-        {
-            var requested = DigitsOnly(customerPhone);
-            var stored = DigitsOnly(match.CustomerPhone);
-            var phoneOk = requested.Length > 0
-                && stored.Length > 0
-                && (string.Equals(stored, requested, StringComparison.Ordinal)
-                    || stored.EndsWith(requested, StringComparison.Ordinal));
-            if (!phoneOk)
-                return null;
-        }
+        var requested = DigitsOnly(customerPhone);
+        var stored = DigitsOnly(match.CustomerPhone);
+        if (requested.Length < PublicCustomerDashboardService.MinPhoneDigits
+            || !string.Equals(stored, requested, StringComparison.Ordinal))
+            return null;
 
         var history = await db.OnlineOrderStatusChanges.AsNoTracking()
             .IgnoreQueryFilters()

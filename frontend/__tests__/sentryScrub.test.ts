@@ -11,6 +11,8 @@ describe('scrubPosSentryEvent', () => {
         token: 'jwt',
         voucherCode: 'GIFT',
         TseSignature: 'jws',
+        phone: '+43111',
+        authorization: 'Bearer x',
         userId: 'user-1',
         tenantId: 'tenant-1',
       },
@@ -28,6 +30,8 @@ describe('scrubPosSentryEvent', () => {
     expect(extra.token).toBeUndefined();
     expect(extra.voucherCode).toBeUndefined();
     expect(extra.TseSignature).toBeUndefined();
+    expect(extra.phone).toBeUndefined();
+    expect(extra.authorization).toBeUndefined();
     expect(extra.userId).toBe('user-1');
     expect(extra.tenantId).toBe('tenant-1');
     expect((event.user as Record<string, unknown>).email).toBeUndefined();

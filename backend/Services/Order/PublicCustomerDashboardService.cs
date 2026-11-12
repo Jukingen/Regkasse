@@ -10,18 +10,19 @@ namespace KasseAPI_Final.Services.Order;
 public interface IPublicCustomerDashboardService
 {
     /// <summary>
-    /// Lookup by tenant slug + phone digits. Returns null → HTTP 404 (no enumeration).
-    /// Requires at least 6 phone digits.
+    /// Lookup by tenant slug, the full phone number, and an order number.
+    /// Returns null → HTTP 404 (no enumeration). Phone digits must match exactly.
     /// </summary>
     Task<PublicCustomerDashboardDto?> GetDashboardAsync(
         string tenantSlug,
         string phone,
+        string orderNumber,
         CancellationToken ct = default);
 }
 
 public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardService
 {
-    public const int MinPhoneDigits = 6;
+    public const int MinPhoneDigits = 8;
 
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
@@ -33,9 +34,12 @@ public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardSer
     public async Task<PublicCustomerDashboardDto?> GetDashboardAsync(
         string tenantSlug,
         string phone,
+        string orderNumber,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(tenantSlug) || string.IsNullOrWhiteSpace(phone))
+        if (string.IsNullOrWhiteSpace(tenantSlug)
+            || string.IsNullOrWhiteSpace(phone)
+            || string.IsNullOrWhiteSpace(orderNumber))
             return null;
 
         var phoneDigits = DigitsOnly(phone);
@@ -43,6 +47,7 @@ public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardSer
             return null;
 
         var slug = tenantSlug.Trim().ToLowerInvariant();
+        var number = orderNumber.Trim().ToLowerInvariant();
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         var tenant = await db.Tenants.AsNoTracking()
@@ -53,13 +58,6 @@ public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardSer
         if (tenant is null)
             return null;
 
-        var customers = await db.Customers.AsNoTracking()
-            .IgnoreQueryFilters()
-            .Where(c => c.TenantId == tenant.Id && !c.IsSystem && c.IsActive)
-            .ToListAsync(ct);
-
-        var customer = customers.FirstOrDefault(c => PhoneMatches(DigitsOnly(c.Phone), phoneDigits));
-
         var orders = await db.OnlineOrders.AsNoTracking()
             .IgnoreQueryFilters()
             .Where(o => o.TenantId == tenant.Id)
@@ -68,9 +66,20 @@ public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardSer
             .ToListAsync(ct);
 
         var matchedOrders = orders
-            .Where(o => PhoneMatches(DigitsOnly(o.CustomerPhone), phoneDigits))
+            .Where(o => PhoneExact(o.CustomerPhone, phoneDigits))
             .Take(50)
             .ToList();
+        var orderMatches = matchedOrders.Any(o =>
+            string.Equals(o.OrderNumber, number, StringComparison.OrdinalIgnoreCase));
+        if (!orderMatches)
+            return null;
+
+        var customers = await db.Customers.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenant.Id && !c.IsSystem && c.IsActive)
+            .ToListAsync(ct);
+
+        var customer = customers.FirstOrDefault(c => PhoneExact(c.Phone, phoneDigits));
 
         if (customer is null && matchedOrders.Count == 0)
             return null;
@@ -106,13 +115,11 @@ public sealed class PublicCustomerDashboardService : IPublicCustomerDashboardSer
         };
     }
 
-    private static bool PhoneMatches(string stored, string requested)
+    private static bool PhoneExact(string? stored, string requestedDigits)
     {
-        if (stored.Length == 0 || requested.Length == 0)
-            return false;
-        return string.Equals(stored, requested, StringComparison.Ordinal)
-               || stored.EndsWith(requested, StringComparison.Ordinal)
-               || requested.EndsWith(stored, StringComparison.Ordinal);
+        var storedDigits = DigitsOnly(stored);
+        return storedDigits.Length >= MinPhoneDigits
+               && string.Equals(storedDigits, requestedDigits, StringComparison.Ordinal);
     }
 
     private static string DigitsOnly(string? value)

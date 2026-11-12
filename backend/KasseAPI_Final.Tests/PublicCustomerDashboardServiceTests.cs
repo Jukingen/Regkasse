@@ -43,7 +43,7 @@ public sealed class PublicCustomerDashboardServiceTests
             TenantId = tenantId,
             OrderNumber = "ORD-1",
             CustomerName = "Max Mustermann",
-            CustomerPhone = "06641234567",
+            CustomerPhone = "+43 664 1234567",
             OrderType = OnlineOrderTypes.Takeaway,
             Total = 15m,
             OrderStatus = OnlineOrderStatuses.Completed,
@@ -55,7 +55,7 @@ public sealed class PublicCustomerDashboardServiceTests
         await db.SaveChangesAsync();
 
         var sut = new PublicCustomerDashboardService(factory);
-        var dto = await sut.GetDashboardAsync("cafe-demo", "6641234567");
+        var dto = await sut.GetDashboardAsync("cafe-demo", "+43 664 1234567", "ORD-1");
 
         Assert.NotNull(dto);
         Assert.Equal(250, dto!.LoyaltyPoints);
@@ -85,7 +85,46 @@ public sealed class PublicCustomerDashboardServiceTests
         await db.SaveChangesAsync();
 
         var sut = new PublicCustomerDashboardService(factory);
-        Assert.Null(await sut.GetDashboardAsync("cafe-demo", "9999999999"));
+        Assert.Null(await sut.GetDashboardAsync("cafe-demo", "9999999999", "ORD-1"));
+    }
+
+    [Fact]
+    public async Task GetDashboard_rejects_phone_suffix_and_wrong_order()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
+            .Options;
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        var factory = new Factory(options);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-demo",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        db.OnlineOrders.Add(new OnlineOrder
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            OrderNumber = "ORD-9",
+            CustomerName = "Max Mustermann",
+            CustomerPhone = "+436641234567",
+            OrderType = OnlineOrderTypes.Takeaway,
+            Total = 15m,
+            OrderStatus = OnlineOrderStatuses.Completed,
+            PaymentStatus = OnlineOrderPaymentStatuses.Paid,
+            PaymentMethod = OnlineOrderPaymentMethods.Online,
+            Source = OnlineOrderSources.Web,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var sut = new PublicCustomerDashboardService(factory);
+        Assert.Null(await sut.GetDashboardAsync("cafe-demo", "1234567", "ORD-9"));
+        Assert.Null(await sut.GetDashboardAsync("cafe-demo", "+436641234567", "ORD-OTHER"));
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>

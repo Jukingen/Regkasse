@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.Email;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
@@ -153,12 +154,12 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Tenant license reminder email sent to {Email}.", recipient);
+            _logger.LogInformation("Tenant license reminder email sent to {EmailMasked}.", EmailLogMask.Mask(recipient));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Tenant license reminder email could not be sent to {Email}.", recipient);
+            _logger.LogWarning(ex, "Tenant license reminder email could not be sent to {EmailMasked}.", EmailLogMask.Mask(recipient));
             return false;
         }
     }

@@ -1495,6 +1495,7 @@ internal static class ApplicationHost
         if (!OpenApiExportMode.IsEnabled)
             builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OnlineOrderIntegrationRetryHostedService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
+        builder.Services.AddSingleton<PublicCustomerLookupRateLimiter>();
 
         // Register repositories
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

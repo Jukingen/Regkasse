@@ -1116,7 +1116,7 @@ namespace KasseAPI_Final.Controllers
                 catch (Exception ex)
                 {
                     await tx.RollbackAsync(regCt);
-                    _logger.LogError(ex, "Registration failed (rolled back) for email {Email}", model.Email);
+                    _logger.LogError(ex, "Registration failed (rolled back) for email {EmailMasked}", EmailLogMask.Mask(model.Email));
                     return StatusCode(500, new { message = "Registrierung fehlgeschlagen.", code = "REGISTRATION_TRANSACTION_FAILED" });
                 }
 

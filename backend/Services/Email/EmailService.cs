@@ -83,12 +83,12 @@ public sealed class EmailService : IEmailService
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Email sent to {Email} subject {Subject}", to, subject);
+            _logger.LogInformation("Email sent to {EmailMasked} subject {Subject}", EmailLogMask.Mask(to), subject);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Email could not be sent to {Email} subject {Subject}", to, subject);
+            _logger.LogWarning(ex, "Email could not be sent to {EmailMasked} subject {Subject}", EmailLogMask.Mask(to), subject);
             return false;
         }
     }

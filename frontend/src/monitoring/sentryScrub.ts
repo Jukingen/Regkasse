@@ -1,4 +1,18 @@
-const DROPPED = new Set(['email', 'password', 'token', 'vouchercode', 'tsesignature']);
+/** Keep in sync with backend SentryPiiScrubber.DroppedKeys. */
+const DROPPED = new Set([
+  'email',
+  'password',
+  'token',
+  'vouchercode',
+  'tsesignature',
+  'phone',
+  'name',
+  'address',
+  'iban',
+  'authorization',
+  'exception_message',
+  'breadcrumb',
+]);
 
 function isDropped(key: string): boolean {
   return DROPPED.has(key.trim().toLowerCase());
@@ -38,6 +52,16 @@ export function scrubPosSentryEvent(event: Record<string, unknown>): Record<stri
       copy.headers = scrubRecord(copy.headers as Record<string, unknown>);
     }
     event.request = copy;
+  }
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map((crumb) => {
+      if (!crumb || typeof crumb !== 'object') return crumb;
+      const copy = { ...(crumb as Record<string, unknown>) };
+      if (copy.data && typeof copy.data === 'object') {
+        copy.data = scrubRecord(copy.data as Record<string, unknown>);
+      }
+      return copy;
+    });
   }
   return event;
 }

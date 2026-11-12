@@ -39,7 +39,7 @@ public sealed class OnlineOrderPublicStatusTests
         });
         await db.SaveChangesAsync();
 
-        var status = await sut.GetPublicStatusAsync("tracker-cafe", "ord-77", "6789");
+        var status = await sut.GetPublicStatusAsync("tracker-cafe", "ord-77", "+43123456789");
 
         Assert.NotNull(status);
         Assert.Equal("ORD-77", status!.OrderNumber);
@@ -79,6 +79,8 @@ public sealed class OnlineOrderPublicStatusTests
 
         var status = await sut.GetPublicStatusAsync("phone-cafe", "ORD-1", "999");
         Assert.Null(status);
+        Assert.Null(await sut.GetPublicStatusAsync("phone-cafe", "ORD-1", null));
+        Assert.Null(await sut.GetPublicStatusAsync("phone-cafe", "ORD-1", "11"));
     }
 
     private static (OnlineOrderQueryService Sut, AppDbContext Db) CreateSut()

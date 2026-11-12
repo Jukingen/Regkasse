@@ -44,7 +44,7 @@ export const getGetApiPublicCustomerDashboardQueryKey = (params?: GetApiPublicCu
     }
 
 
-export const getGetApiPublicCustomerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails>(params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiPublicCustomerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails | void>(params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -63,9 +63,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiPublicCustomerDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>>
-export type GetApiPublicCustomerDashboardQueryError = ProblemDetails
+export type GetApiPublicCustomerDashboardQueryError = ProblemDetails | void
 
-export const useGetApiPublicCustomerDashboard = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails>(
+export const useGetApiPublicCustomerDashboard = <TData = Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError = ProblemDetails | void>(
  params?: GetApiPublicCustomerDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPublicCustomerDashboard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {

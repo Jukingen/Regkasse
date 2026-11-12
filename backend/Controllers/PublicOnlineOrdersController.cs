@@ -77,9 +77,11 @@ public sealed class PublicOnlineOrdersController : ControllerBase
         [FromQuery] string? phone = null,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(tenant) || string.IsNullOrWhiteSpace(orderNumber))
+        if (string.IsNullOrWhiteSpace(tenant)
+            || string.IsNullOrWhiteSpace(orderNumber)
+            || string.IsNullOrWhiteSpace(phone))
         {
-            return BadRequest(new { message = "tenant and orderNumber are required." });
+            return BadRequest(new { message = "tenant, orderNumber, and phone are required." });
         }
 
         var status = await _queries.GetPublicStatusAsync(tenant, orderNumber, phone, ct);

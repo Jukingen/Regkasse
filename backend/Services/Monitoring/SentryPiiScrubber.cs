@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Sentry;
 
 namespace KasseAPI_Final.Services.Monitoring;
@@ -19,6 +20,13 @@ internal static class SentryPiiScrubber
         "token",
         "voucherCode",
         "TseSignature",
+        "phone",
+        "name",
+        "address",
+        "iban",
+        "authorization",
+        "exception_message",
+        "breadcrumb",
     };
 
     private static readonly ConditionalWeakTable<Exception, object> Captured = new();
@@ -40,6 +48,8 @@ internal static class SentryPiiScrubber
         _ = hint;
         if (IsIgnoredRequest(transaction.Request?.Url))
             return null;
+
+        ScrubTransaction(transaction);
         return transaction;
     }
 
@@ -80,7 +90,94 @@ internal static class SentryPiiScrubber
             foreach (var pair in contexts)
                 ScrubObject(pair.Value);
         }
+
+        RedactMessage(sentryEvent.Message);
+        RedactExceptions(sentryEvent.SentryExceptions);
+        RedactBreadcrumbs(sentryEvent.Breadcrumbs);
     }
+
+    private static void ScrubTransaction(SentryTransaction transaction)
+    {
+        if (transaction.User != null)
+        {
+            transaction.User.Email = null;
+            transaction.User.Username = null;
+            transaction.User.IpAddress = null;
+            ScrubDictionary(transaction.User.Other);
+        }
+
+        if (transaction.Request != null)
+            ScrubRequest(transaction.Request);
+
+        ScrubObject(transaction.Data);
+        ScrubObject(transaction.Tags);
+        transaction.Description = RedactEmails(transaction.Description);
+        RedactBreadcrumbs(transaction.Breadcrumbs);
+    }
+
+    private static void RedactMessage(SentryMessage? message)
+    {
+        if (message == null)
+            return;
+        message.Message = RedactEmails(message.Message);
+        message.Formatted = RedactEmails(message.Formatted);
+    }
+
+    private static void RedactExceptions(IEnumerable<Sentry.Protocol.SentryException>? exceptions)
+    {
+        if (exceptions == null)
+            return;
+        foreach (var exception in exceptions)
+            exception.Value = RedactEmails(exception.Value);
+    }
+
+    private static void RedactBreadcrumbs(IEnumerable<Breadcrumb>? breadcrumbs)
+    {
+        // Breadcrumb.Message and Data are init-only. Rebuild the mutable list the SDK stores.
+        if (breadcrumbs is not List<Breadcrumb> list || list.Count == 0)
+            return;
+
+        var rebuilt = new List<Breadcrumb>(list.Count);
+        foreach (var breadcrumb in list)
+        {
+            rebuilt.Add(new Breadcrumb(
+                RedactEmails(breadcrumb.Message) ?? string.Empty,
+                breadcrumb.Type ?? "default",
+                ScrubBreadcrumbData(breadcrumb.Data),
+                breadcrumb.Category,
+                breadcrumb.Level));
+        }
+
+        list.Clear();
+        list.AddRange(rebuilt);
+    }
+
+    private static Dictionary<string, string>? ScrubBreadcrumbData(IReadOnlyDictionary<string, string>? data)
+    {
+        if (data == null || data.Count == 0)
+            return null;
+
+        var copy = new Dictionary<string, string>(data.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in data)
+        {
+            if (IsDroppedKey(pair.Key))
+                continue;
+            copy[pair.Key] = RedactEmails(pair.Value) ?? string.Empty;
+        }
+
+        return copy.Count == 0 ? null : copy;
+    }
+
+    private static string? RedactEmails(string? value)
+    {
+        if (string.IsNullOrEmpty(value) || !value.Contains('@', StringComparison.Ordinal))
+            return value;
+        return EmailInText.Replace(value, "***");
+    }
+
+    private static readonly Regex EmailInText = new(
+        @"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static bool IsIgnoredRequest(string? url) => IsIgnoredPath(url);
 

@@ -59,12 +59,12 @@ public sealed class WelcomeEmailService : IWelcomeEmailService
         try
         {
             await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Welcome email sent to {Email} for tenant slug {Slug}.", to, request.TenantSlug);
+            _logger.LogInformation("Welcome email sent to {EmailMasked} for tenant slug {Slug}.", EmailLogMask.Mask(to), request.TenantSlug);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Welcome email could not be sent to {Email} for tenant slug {Slug}.", to, request.TenantSlug);
+            _logger.LogWarning(ex, "Welcome email could not be sent to {EmailMasked} for tenant slug {Slug}.", EmailLogMask.Mask(to), request.TenantSlug);
             return false;
         }
     }
