@@ -47,7 +47,7 @@ export function FinanzOnlineOutboxWidget({ title, dragHandleProps, onRefresh }: 
     staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
     queryFn: () =>
       customInstance<OutboxSummary>({
-        url: '/api/admin/finanzonline-outbox/summary',
+        url: '/api/admin/finanzonline-outbox/health',
         method: 'GET',
       }),
   });
@@ -55,7 +55,7 @@ export function FinanzOnlineOutboxWidget({ title, dragHandleProps, onRefresh }: 
   const retryAll = useMutation({
     mutationFn: () =>
       customInstance<{ retriedCount: number }>({
-        url: '/api/admin/finanzonline-outbox/retry-all-failed',
+        url: '/api/admin/finanzonline-outbox/retry-failed',
         method: 'POST',
       }),
     onSuccess: (result) => {
