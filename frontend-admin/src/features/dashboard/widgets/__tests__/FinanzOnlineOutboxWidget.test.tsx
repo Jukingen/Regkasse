@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { FinanzOnlineOutboxWidget } from '@/features/dashboard/widgets/FinanzOnlineOutboxWidget';
 import { I18nProvider } from '@/i18n/I18nProvider';
+import { customInstance } from '@/lib/axios';
 
 const authState = vi.hoisted(() => ({ role: 'SuperAdmin' as string }));
 
@@ -72,6 +73,12 @@ describe('FinanzOnlineOutboxWidget', () => {
     expect(screen.getByText(/Letzte erfolgreiche Übermittlung/)).toBeInTheDocument();
     expect(screen.getByTestId('fon-outbox-retry-all')).toHaveTextContent(
       'Alle Fehlgeschlagenen erneut senden'
+    );
+    expect(customInstance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/api/admin/finanzonline-outbox/health',
+        method: 'GET',
+      })
     );
   });
 

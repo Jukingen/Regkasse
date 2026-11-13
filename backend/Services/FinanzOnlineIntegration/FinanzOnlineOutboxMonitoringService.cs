@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -12,12 +13,24 @@ public interface IFinanzOnlineOutboxMonitoringService
     /// </summary>
     Task<FinanzOnlineOutboxSummaryDto> GetSummaryAsync(Guid? tenantId, CancellationToken cancellationToken = default);
 
+    Task<FinanzOnlineOutboxHealthDto> GetHealthAsync(Guid? tenantId, CancellationToken cancellationToken = default);
+
     Task<int> CountFailedSinceAsync(Guid? tenantId, DateTime sinceUtc, CancellationToken cancellationToken = default);
 }
 
 public sealed class FinanzOnlineOutboxMonitoringService : IFinanzOnlineOutboxMonitoringService
 {
     public const int HourlyFailureAlertThreshold = 5;
+    public const int RecentErrorLimit = 5;
+    public const int RedactedMessageMaxLength = 160;
+
+    private static readonly Regex EmailPattern = new(
+        @"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LongDigitPattern = new(
+        @"\d{8,}",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>Terminal or operator-blocked rows. Pending and in-flight statuses are not failures.</summary>
     public static readonly string[] FailedStatuses =
@@ -62,6 +75,48 @@ public sealed class FinanzOnlineOutboxMonitoringService : IFinanzOnlineOutboxMon
             FailedLast24Hours = failed,
             LastSuccessfulSubmissionUtc = lastSuccess,
         };
+    }
+
+    public async Task<FinanzOnlineOutboxHealthDto> GetHealthAsync(
+        Guid? tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var summary = await GetSummaryAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        var failed = FailedStatuses;
+        var rows = await Scope(tenantId)
+            .Where(x => failed.Contains(x.Status))
+            .OrderByDescending(x => x.ProcessedAt ?? x.CreatedAt)
+            .Take(RecentErrorLimit)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new FinanzOnlineOutboxHealthDto
+        {
+            PendingCount = summary.PendingCount,
+            FailedLast24Hours = summary.FailedLast24Hours,
+            LastSuccessfulSubmissionUtc = summary.LastSuccessfulSubmissionUtc,
+            RecentErrors = rows.Select(row => new FinanzOnlineOutboxRecentErrorDto
+            {
+                Status = row.Status,
+                ErrorCode = string.IsNullOrWhiteSpace(row.LastErrorCode) ? null : row.LastErrorCode.Trim(),
+                Message = SanitizeErrorMessage(row.LastErrorMessage),
+                OccurredAtUtc = row.ProcessedAt ?? row.CreatedAt,
+            }).ToList(),
+        };
+    }
+
+    /// <summary>Drops email addresses and long digit runs (phones, ids) from an operator-facing error line.</summary>
+    internal static string? SanitizeErrorMessage(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return null;
+
+        var cleaned = EmailPattern.Replace(message, "[redacted]");
+        cleaned = LongDigitPattern.Replace(cleaned, "[redacted]");
+        cleaned = cleaned.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        if (cleaned.Length > RedactedMessageMaxLength)
+            cleaned = cleaned[..RedactedMessageMaxLength];
+        return cleaned.Length == 0 ? null : cleaned;
     }
 
     public Task<int> CountFailedSinceAsync(

@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Services.Hosted;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -89,6 +90,56 @@ public sealed class FinanzOnlineOutboxMonitoringTests
         var alerts = new List<int>();
         Assert.False(await CreateMonitor(db, alerts).CheckAndAlertAsync());
         Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public async Task Health_ReturnsCounts_AndTopFiveErrorsWithoutPii()
+    {
+        await using var db = CreateContext();
+        var newest = Now.UtcDateTime.AddMinutes(-1);
+        db.FinanzOnlineOutboxMessages.Add(Row(
+            TenantA,
+            FinanzOnlineOutboxStatuses.ProtocolFailure,
+            newest,
+            errorCode: "FON-421",
+            errorMessage: "Session for max@shop.at failed, id 123456789"));
+        for (var i = 0; i < 5; i++)
+        {
+            db.FinanzOnlineOutboxMessages.Add(Row(
+                TenantA,
+                FinanzOnlineOutboxStatuses.RetryableFailure,
+                newest.AddMinutes(-(i + 2)),
+                errorCode: "FON-500",
+                errorMessage: "transient"));
+        }
+        db.FinanzOnlineOutboxMessages.Add(Row(TenantA, FinanzOnlineOutboxStatuses.Pending, Now.UtcDateTime));
+        db.FinanzOnlineOutboxMessages.Add(Row(
+            TenantB,
+            FinanzOnlineOutboxStatuses.DeadLetter,
+            newest,
+            errorCode: "FON-999",
+            errorMessage: "other tenant"));
+        await db.SaveChangesAsync();
+
+        var health = await new FinanzOnlineOutboxMonitoringService(db, new FixedTime(Now)).GetHealthAsync(TenantA);
+
+        Assert.Equal(1, health.PendingCount);
+        Assert.Equal(6, health.FailedLast24Hours);
+        Assert.Equal(5, health.RecentErrors.Count);
+        Assert.Equal("FON-421", health.RecentErrors[0].ErrorCode);
+        Assert.DoesNotContain("max@shop.at", health.RecentErrors[0].Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("123456789", health.RecentErrors[0].Message, StringComparison.Ordinal);
+        Assert.Contains("[redacted]", health.RecentErrors[0].Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(health.RecentErrors, e => e.ErrorCode == "FON-999");
+    }
+
+    [Fact]
+    public void Health_RequiresFinanzOnlineView_AndMonitorRunsEveryFifteenMinutes()
+    {
+        var method = typeof(FinanzOnlineOutboxAdminController).GetMethod(nameof(FinanzOnlineOutboxAdminController.Health));
+        var attribute = Assert.Single(method!.GetCustomAttributes(typeof(HasPermissionAttribute), inherit: true).Cast<HasPermissionAttribute>());
+        Assert.Equal(AppPermissions.FinanzOnlineView, attribute.Permission);
+        Assert.Equal(TimeSpan.FromMinutes(15), FinanzOnlineOutboxMonitorHostedService.Interval);
     }
 
     [Fact]
@@ -187,7 +238,13 @@ public sealed class FinanzOnlineOutboxMonitoringTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantA));
     }
 
-    private static FinanzOnlineOutboxMessage Row(Guid tenantId, string status, DateTime createdUtc, DateTime? processed = null) =>
+    private static FinanzOnlineOutboxMessage Row(
+        Guid tenantId,
+        string status,
+        DateTime createdUtc,
+        DateTime? processed = null,
+        string? errorCode = null,
+        string? errorMessage = null) =>
         new()
         {
             TenantId = tenantId.ToString("D"),
@@ -203,6 +260,8 @@ public sealed class FinanzOnlineOutboxMonitoringTests
             ProcessedAt = status == FinanzOnlineOutboxStatuses.Pending ? null : processed ?? createdUtc,
             NextAttemptAt = createdUtc,
             CorrelationId = "corr",
+            LastErrorCode = errorCode,
+            LastErrorMessage = errorMessage,
         };
 
     private sealed class FixedTime : TimeProvider

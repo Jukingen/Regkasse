@@ -318,6 +318,23 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     }
 
     /// <summary>
+    /// Pending count, failures in the last 24 hours, the last protocol success, and the five newest error codes.
+    /// Messages are redacted. Super Admin sees every mandant. Other callers see the ambient tenant only.
+    /// </summary>
+    [HttpGet("health")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    public async Task<ActionResult<FinanzOnlineOutboxHealthDto>> Health(CancellationToken cancellationToken = default)
+    {
+        var allTenants = User.IsInRole(Roles.SuperAdmin);
+        if (!allTenants && _tenant.TenantId is not Guid)
+            return NotFound(new { message = "Outbox health not found.", code = "FINANZONLINE_OUTBOX_NOT_FOUND" });
+
+        var tenantId = allTenants ? null : _tenant.TenantId;
+        var health = await _monitoring.GetHealthAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return Ok(health);
+    }
+
+    /// <summary>
     /// Pending count, failures in the last 24 hours, and the last protocol success.
     /// Super Admin sees every mandant. Other callers see the ambient tenant only.
     /// </summary>

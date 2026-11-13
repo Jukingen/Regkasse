@@ -1536,7 +1536,7 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
         builder.Services.AddSingleton<IFinanzOnlineOutboxWorkerSignal, FinanzOnlineOutboxWorkerSignal>();
         builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
-        builder.Services.AddHostedService<FinanzOnlineOutboxAlertHostedService>();
+        builder.Services.AddHostedService<FinanzOnlineOutboxMonitorHostedService>();
         builder.Services.AddHostedService<NtpTimeSyncService>();
 
         // ðŸš€ AkÄ±llÄ± Sepet YaÅŸam DÃ¶ngÃ¼sÃ¼ Service'i

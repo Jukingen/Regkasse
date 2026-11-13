@@ -3,19 +3,19 @@ using KasseAPI_Final.Services.FinanzOnlineIntegration;
 namespace KasseAPI_Final.Services.Hosted;
 
 /// <summary>
-/// Every five minutes, alerts Slack/email when FinanzOnline outbox failures in the last hour exceed 5.
-/// One alert per UTC hour while the condition holds.
+/// Every 15 minutes, alerts Slack/email when FinanzOnline outbox failures in the last hour exceed 5.
+/// One alert per UTC hour while the condition holds. Does not submit SOAP.
 /// </summary>
-public sealed class FinanzOnlineOutboxAlertHostedService : BackgroundService
+public sealed class FinanzOnlineOutboxMonitorHostedService : BackgroundService
 {
-    public static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
 
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<FinanzOnlineOutboxAlertHostedService> _logger;
+    private readonly ILogger<FinanzOnlineOutboxMonitorHostedService> _logger;
 
-    public FinanzOnlineOutboxAlertHostedService(
+    public FinanzOnlineOutboxMonitorHostedService(
         IServiceScopeFactory scopeFactory,
-        ILogger<FinanzOnlineOutboxAlertHostedService> logger)
+        ILogger<FinanzOnlineOutboxMonitorHostedService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -40,7 +40,7 @@ public sealed class FinanzOnlineOutboxAlertHostedService : BackgroundService
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "FinanzOnline outbox alert check failed.");
+                _logger.LogError(ex, "FinanzOnline outbox monitor check failed.");
             }
 
             try
