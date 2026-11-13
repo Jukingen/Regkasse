@@ -104,6 +104,7 @@
     "MonatsbelegAutoCreateFailed": "Monatsbeleg automatisch fehlgeschlagen",
     "MonatsbelegAutoCreateMissed": "Monatsbeleg automatisch verpasst",
     "JahresbelegFonReminder": "Jahresbeleg FinanzOnline-Erinnerung",
+    "JahresbelegDeadlineReminder": "Jahresbeleg-Frist",
     "MonatsbelegManagerContacted": "Monatsbeleg: Kassierer hat kontaktiert"
   }
 }

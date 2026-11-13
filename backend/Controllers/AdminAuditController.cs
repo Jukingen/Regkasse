@@ -109,7 +109,7 @@ public class AdminAuditController : ControllerBase
         var query = _db.AuditLogs.AsNoTracking()
             .IgnoreQueryFilters()
             .Where(a => a.TenantId == tenantId)
-            .ApplyFilters(filters);
+            .ApplyFilters(filters, _db);
 
         var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 

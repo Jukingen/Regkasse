@@ -15,6 +15,7 @@ import { PreorderStatusWidget } from '@/features/dashboard/widgets/PreorderStatu
 import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
 import { FiskalyStatusWidget } from '@/features/dashboard/widgets/FiskalyStatusWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
+import { JahresbelegStatusWidget } from '@/features/dashboard/widgets/JahresbelegStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlertsWidget';
 import { parsePaymentTrendPeriod } from '@/features/dashboard/widgets/paymentTrendPeriod';
@@ -111,6 +112,8 @@ export function renderDashboardWidget(
       return <BackupStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.preorderStatus:
       return <PreorderStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.jahresbelegStatus:
+      return <JahresbelegStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.dataRetention:
       return <DataRetentionWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.topSellingProducts: {

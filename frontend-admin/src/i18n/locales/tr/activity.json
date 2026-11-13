@@ -12,7 +12,7 @@
     "userPlaceholder": "Kullanıcı",
     "actionType": "İşlem tipi",
     "actionTypePlaceholder": "İşlem tipi",
-    "search": "Ara (kullanici, islem…)",
+    "search": "Ara (aksiyon, varlık, e-posta, açıklama…)",
     "allActions": "Tüm işlemler"
   },
   "actions": {
