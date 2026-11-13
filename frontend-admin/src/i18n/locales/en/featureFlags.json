@@ -2,27 +2,36 @@
   "pageTitle": "Feature Flags",
   "accessDenied": "Only Super Admins can manage feature flags.",
   "introTitle": "Gradual rollout",
-  "introBody": "Global defaults come from appsettings (FeatureFlags). Tenant overrides are stored in tenant_settings. Ship code with features off, then enable per tenant.",
-  "tenantScope": "Tenant scope (optional)",
-  "tenantIdInputPlaceholder": "Tenant UUID for overrides (empty = global)",
-  "tenantIdPasteHint": "Leave empty for global overrides. A valid UUID switches to tenant scope.",
+  "introBody": "The switch sets the global value. The tenant list chooses who receives an override. Reserved flags (Peppol) stay off.",
   "saved": "Feature flag saved.",
   "saveFailed": "Could not save feature flag.",
   "clearOverride": "Clear override",
-  "bool": {
-    "true": "Yes",
-    "false": "No"
-  },
+  "overrideForTenant": "Override for tenant",
+  "overridePlaceholder": "Choose a tenant",
+  "noOverrides": "None",
+  "globalSwitch": "{{name}} global",
+  "tenantSwitch": "{{name}} for tenant",
+  "on": "On",
+  "off": "Off",
   "columns": {
     "name": "Flag",
-    "enabled": "Enabled",
-    "configDefault": "Config default",
-    "source": "Source",
-    "actions": "Actions"
+    "description": "Description",
+    "value": "Current value",
+    "tenantOverrides": "Tenant overrides"
   },
-  "source": {
-    "config": "Config",
-    "global_override": "Global override",
-    "tenant_override": "Tenant override"
+  "descriptions": {
+    "EnableNewPaymentFlow": "Alternate payment path in PaymentService. Default off.",
+    "EnableDepExportV2": "DEP export sets the header X-Regkasse-Dep-Export-Schema: v2. The BMF JSON body stays the same.",
+    "EnableOnlineOrdersV2": "Online orders are marked intakeVersion v2.",
+    "EnableAutoAusfall": "TSE failover may enqueue a FON Ausfall immediately when Ausfall:AutoEnqueue is on.",
+    "fiscalRksvAt": "Austrian RKSV signing. Locked on for AT.",
+    "fiscalKassenSicherheitDe": "German KassenSichV. Profile default off until that package is production-ready.",
+    "fiscalMwstCh": "Swiss VAT. On for CH profiles.",
+    "eInvoicingZugferd": "ZUGFeRD builder. Default off.",
+    "eInvoicingXRechnung": "XRechnung builder. Default off.",
+    "eInvoicingQrRechnung": "QR-bill. On for CH.",
+    "eInvoicingEn16931": "EN 16931 / UBL. On for EU_DEFAULT. Does not gate reverse-charge tax.",
+    "viesCheckEnabled": "VIES VAT-ID check. Default off.",
+    "eInvoicingPeppol": "Peppol send. Reserved and off until package 22-b-5 promotes the name."
   }
 }

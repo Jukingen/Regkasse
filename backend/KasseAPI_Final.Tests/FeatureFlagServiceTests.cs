@@ -290,4 +290,29 @@ public sealed class FeatureFlagServiceTests
         Assert.True(svc.IsEnabled(FeatureFlagNames.EnableOnlineOrdersV2, tenantId.ToString("D")));
         Assert.False(svc.IsEnabled(FeatureFlagNames.EnableOnlineOrdersV2));
     }
+
+    [Fact]
+    public async Task GetStatuses_ListsEveryDeclaredFlag_IncludingOtherTenantOverrides()
+    {
+        var (factory, _) = CreateFactory();
+        var svc = CreateService(factory);
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        await svc.SetEnabledAsync(FeatureFlagNames.EnableDepExportV2, true, tenantA.ToString("D"), "admin");
+        await svc.SetEnabledAsync(FeatureFlagNames.EnableDepExportV2, false, tenantB.ToString("D"), "admin");
+
+        var statuses = await svc.GetStatusesAsync();
+
+        Assert.Equal(FeatureFlagNames.All.Count + FeatureFlagNames.Reserved.Count, FeatureFlagNames.Catalog.Count);
+        Assert.Equal(FeatureFlagNames.Catalog, statuses.Select(status => status.Name));
+        var peppol = Assert.Single(statuses, status => status.Name == FeatureFlagNames.EInvoicingPeppol);
+        Assert.False(peppol.Enabled);
+        Assert.Equal(FeatureFlagSources.Reserved, peppol.Source);
+        Assert.False(svc.IsEnabled(FeatureFlagNames.EInvoicingPeppol));
+
+        var dep = Assert.Single(statuses, status => status.Name == FeatureFlagNames.EnableDepExportV2);
+        Assert.Equal(2, dep.TenantOverrides.Count);
+        Assert.Contains(dep.TenantOverrides, row => row.TenantId == tenantA.ToString("D") && row.Enabled);
+        Assert.Contains(dep.TenantOverrides, row => row.TenantId == tenantB.ToString("D") && !row.Enabled);
+    }
 }

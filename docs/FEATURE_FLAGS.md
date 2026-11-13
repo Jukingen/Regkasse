@@ -1,126 +1,70 @@
 # Feature flags
 
-**Last updated:** 2026-09-29  
-**Related:** [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md) · [`DEVELOPMENT.md`](../DEVELOPMENT.md)
+**Last updated:** 2026-11-13  
+**Related:** [`ENVIRONMENT_CONFIGURATION.md`](ENVIRONMENT_CONFIGURATION.md) · [`COUNTRIES.md`](COUNTRIES.md) · [`COUNTRY_LAYER_CUTOVER.md`](COUNTRY_LAYER_CUTOVER.md)
 
-Ship code with new behavior **off by default**, then enable gradually (global or per tenant) without redeploying binaries.
+Ship code with new behavior **off by default**, then enable it globally or per tenant without redeploying binaries.
 
----
-
-## 1. Configuration defaults
-
-`appsettings*.json` / env:
-
-```json
-"FeatureFlags": {
-  "EnableNewPaymentFlow": false,
-  "EnableDepExportV2": false,
-  "EnableOnlineOrdersV2": false,
-  "EnableAutoAusfall": false
-}
-```
-
-| Flag | Purpose |
-|------|---------|
-| `EnableNewPaymentFlow` | Instrumented / alternate payment path hook in `PaymentService` |
-| `EnableDepExportV2` | DEP export response header `X-Regkasse-Dep-Export-Schema: v2` (BMF JSON body unchanged) |
-| `EnableOnlineOrdersV2` | Online order intake V2 marker (`intakeVersion: "v2"`) |
-| `EnableAutoAusfall` | Allows TSE failover auto-enqueue **only if** `Ausfall:AutoEnqueue=true` |
-
-Env override example: `FeatureFlags__EnableAutoAusfall=true`.
-
-`EInvoicing.Peppol` is a Reserved flag; it is not resolved by `FeatureFlagService` and cannot be turned on until Paket 22 lands. Reserved is enforced by `PeppolReservedFlagGuardTests`; do not remove without a matching §-level decision record.
+`GET /api/admin/feature-flags` returns every name in `FeatureFlagNames.Catalog` (`All` plus `Reserved`). Writes still accept only `FeatureFlagNames.All`. `EInvoicing.Peppol` is listed with source `reserved` and stays off.
 
 ---
 
-## 2. Resolution order
+## 1. Flags
 
-Effective value for a flag:
+| Flag | Purpose | Default |
+|------|---------|---------|
+| `EnableNewPaymentFlow` | Alternate payment path hook in `PaymentService` | Off (`FeatureFlags:EnableNewPaymentFlow`) |
+| `EnableDepExportV2` | DEP export adds header `X-Regkasse-Dep-Export-Schema: v2`. The BMF JSON body is unchanged | Off |
+| `EnableOnlineOrdersV2` | Online-order intake marker `intakeVersion: "v2"` | Off |
+| `EnableAutoAusfall` | TSE failover may enqueue a FON Ausfall immediately, and only when `Ausfall:AutoEnqueue=true` | Off |
+| `Fiscal.RksvAt` | Austrian RKSV signing. Locked on when the mandant profile is `RKSV_AT` | On for AT, off otherwise. No appsettings property |
+| `Fiscal.KassenSicherheitDe` | German KassenSichV signing. Profile default stays off until that package is production-ready | Off |
+| `Fiscal.MwstCh` | Swiss VAT | On for CH, off otherwise |
+| `EInvoicing.Zugferd` | ZUGFeRD builder. Not country-derived | Off |
+| `EInvoicing.XRechnung` | XRechnung builder. Not country-derived | Off |
+| `EInvoicing.QrRechnung` | QR-bill | On when the profile lists `QR_RECHNUNG` (CH) |
+| `EInvoicing.En16931` | EN 16931 / UBL. Does not gate reverse-charge tax or disclosures | On when the profile lists `EN_16931` (`EU_DEFAULT`) |
+| `Vies.CheckEnabled` | VIES VAT-ID check. Not country-derived | Off |
+| `EInvoicing.Peppol` | Peppol send. Reserved. Not writable until package 22-b-5 moves it into `All` | Off (`source=reserved`) |
 
-1. **Tenant override** in `tenant_settings` (`key = FeatureFlags:{Name}`, `tenant_id = {guid}`)
-2. Else **global override** (`tenant_id` null)
-3. Else **config default** from `FeatureFlags`
+Experimental names (`Enable*`) resolve as tenant override, then global override, then appsettings. Country profile is not consulted.
 
-Unknown names → `false`.
+Country and fiscal names resolve as: AT `Fiscal.RksvAt` lock, then tenant override, then country profile, then global override, then `FeatureFlagsOptions`, then `false`. Detail: [`COUNTRIES.md`](COUNTRIES.md) §4.
 
-Short names work in code: `IsEnabled("NewPaymentFlow")` → `EnableNewPaymentFlow`.
-
----
-
-## 3. Service API
-
-```csharp
-public interface IFeatureFlagService
-{
-    bool IsEnabled(string featureName, string? tenantId = null);
-    Task SetEnabledAsync(string featureName, bool enabled, string? tenantId = null, ...);
-    Task ClearOverrideAsync(string featureName, string? tenantId = null, ...);
-    Task<IReadOnlyList<FeatureFlagStatusDto>> GetStatusesAsync(string? tenantId = null, ...);
-}
-```
-
-Usage:
-
-```csharp
-if (_featureFlags.IsEnabled(FeatureFlagNames.EnableNewPaymentFlow, tenantId.ToString("D")))
-{
-    // new path
-}
-else
-{
-    // legacy path
-}
-```
-
-Canonical names: `FeatureFlagNames` in `backend/Services/FeatureFlags/`.
+Env example: `FeatureFlags__EnableAutoAusfall=true`.
 
 ---
 
-## 4. Admin API (Super Admin / `system.critical`)
+## 2. Admin API (Super Admin / `system.critical`)
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `GET` | `/api/admin/feature-flags?tenantId=` | List effective flags |
-| `PUT` | `/api/admin/feature-flags` | Body: `{ name, enabled, tenantId?, clearOverride? }` |
+| `GET` | `/api/admin/feature-flags?tenantId=` | Every catalog flag. `tenantOverrides` lists each mandant row. `tenantId` only changes the effective `enabled` / `source` for that mandant |
+| `PUT` | `/api/admin/feature-flags` | Body: `{ name, enabled, tenantId?, clearOverride? }`. Omit `tenantId` for the global value. Reserved names return 400 |
 | `GET` | `/api/admin/feature-flags/{name}/enabled?tenantId=` | Quick check |
 
-Changes are audited (`AuditEventType.FeatureFlagChanged`).
+Changes are audited (`AuditEventType.FeatureFlagChanged`). Overrides live in `tenant_settings` under `FeatureFlags:{Name}`. `tenant_id` null is the global row.
 
 ---
 
-## 5. FA UI
+## 3. FA UI
 
-- Route: `/admin/feature-flags` (Verwaltung sidebar)
-- Permission: Super Admin / `system.critical`
-- Optional tenant UUID field scopes overrides; empty = global
+Route `/admin/feature-flags` (sidebar, `system.critical` only).
 
----
-
-## 6. Storage
-
-Table `tenant_settings` (migration `20260729230000_AddTenantSettings`):
-
-| Column | Notes |
-|--------|--------|
-| `tenant_id` | null = global |
-| `key` | e.g. `FeatureFlags:EnableDepExportV2` |
-| `value` | `true` / `false` |
-| `updated_at_utc` / `updated_by_user_id` | audit helpers |
+| Column / control | Behavior |
+|--------------------|----------|
+| Flag | Canonical name |
+| Description | Purpose from the admin catalogs (de / en / tr) |
+| Current value | Switch. Writes the global override (`tenantId` null). Disabled for `EInvoicing.Peppol` |
+| Tenant overrides | One tag per mandant row (`On` / `Off`) |
+| Override for tenant | Dropdown of active mandants. The switch under each flag writes that mandant's override |
 
 ---
 
-## 7. Promotion pattern
-
-1. Merge feature behind flag (default `false`).
-2. Deploy to Staging / Production with flag off.
-3. Enable globally or for canary tenants via FA / API.
-4. Monitor metrics / errors.
-5. Flip remaining tenants; later remove flag + dead code.
-
----
-
-## 8. Tests
+## 4. Tests
 
 ```bash
-cd backend && dotnet test --filter "FullyQualifiedName~FeatureFlag"
+dotnet test backend/KasseAPI_Final.sln --filter "FullyQualifiedName~FeatureFlag"
+cd frontend-admin && npx vitest run src/features/feature-flags/__tests__/FeatureFlagsScreen.test.tsx
+cd frontend-admin && npx playwright test tests/e2e/feature-flags.spec.ts
 ```

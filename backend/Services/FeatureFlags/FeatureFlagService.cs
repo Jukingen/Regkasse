@@ -182,9 +182,9 @@ public sealed class FeatureFlagService : IFeatureFlagService
         var tenantGuid = ParseTenantId(tenantId);
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
 
-        var keys = FeatureFlagNames.All.Select(FeatureFlagNames.SettingsKey).ToList();
+        var keys = FeatureFlagNames.Catalog.Select(FeatureFlagNames.SettingsKey).ToList();
         var rows = await db.TenantSettings.AsNoTracking()
-            .Where(s => keys.Contains(s.Key) && (s.TenantId == null || s.TenantId == tenantGuid))
+            .Where(s => keys.Contains(s.Key))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -192,8 +192,8 @@ public sealed class FeatureFlagService : IFeatureFlagService
         if (tenantGuid is Guid tid)
             profile = await LoadProfileAsync(tid, cancellationToken, db).ConfigureAwait(false);
 
-        var list = new List<FeatureFlagStatusDto>(FeatureFlagNames.All.Count);
-        foreach (var name in FeatureFlagNames.All)
+        var list = new List<FeatureFlagStatusDto>(FeatureFlagNames.Catalog.Count);
+        foreach (var name in FeatureFlagNames.Catalog)
         {
             var key = FeatureFlagNames.SettingsKey(name);
             var tenantOverride = tenantGuid is Guid
@@ -201,6 +201,19 @@ public sealed class FeatureFlagService : IFeatureFlagService
                 : null;
             var globalOverride = rows.FirstOrDefault(r => r.TenantId == null && r.Key == key);
             var resolved = Resolve(name, tenantGuid, tenantOverride, globalOverride, profile, loadFromDb: false);
+            var tenantOverrides = rows
+                .Where(r => r.TenantId is Guid && r.Key == key && TryParseBool(r.Value, out _))
+                .Select(r =>
+                {
+                    TryParseBool(r.Value, out var enabled);
+                    return new FeatureFlagTenantOverrideDto
+                    {
+                        TenantId = r.TenantId!.Value.ToString("D"),
+                        Enabled = enabled,
+                    };
+                })
+                .OrderBy(r => r.TenantId, StringComparer.Ordinal)
+                .ToList();
 
             list.Add(new FeatureFlagStatusDto
             {
@@ -210,6 +223,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
                 OverrideValue = resolved.OverrideValue,
                 Source = resolved.Source,
                 TenantId = tenantGuid?.ToString("D"),
+                TenantOverrides = tenantOverrides,
             });
         }
 

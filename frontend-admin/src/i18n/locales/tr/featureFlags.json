@@ -2,27 +2,36 @@
   "pageTitle": "Feature Flags",
   "accessDenied": "Yalnızca Super Admin feature flag yönetebilir.",
   "introTitle": "Kademeli açılış",
-  "introBody": "Global varsayılanlar appsettings (FeatureFlags) içindedir. Tenant override'ları tenant_settings tablosunda tutulur. Özellikler kapalıyken kod yayınlayıp tenant bazında açabilirsiniz.",
-  "tenantScope": "Tenant kapsamı (isteğe bağlı)",
-  "tenantIdInputPlaceholder": "Override için tenant UUID (boş = global)",
-  "tenantIdPasteHint": "Global override için boş bırakın. Geçerli UUID tenant kapsamına geçer.",
+  "introBody": "Anahtar global değeri yazar. Tenant listesi override'ın kime uygulanacağını seçer. Ayrılmış bayraklar (Peppol) kapalı kalır.",
   "saved": "Feature flag kaydedildi.",
   "saveFailed": "Feature flag kaydedilemedi.",
   "clearOverride": "Override'ı kaldır",
-  "bool": {
-    "true": "Evet",
-    "false": "Hayır"
-  },
+  "overrideForTenant": "Tenant için override",
+  "overridePlaceholder": "Tenant seçin",
+  "noOverrides": "Yok",
+  "globalSwitch": "{{name}} global",
+  "tenantSwitch": "{{name}} tenant için",
+  "on": "Açık",
+  "off": "Kapalı",
   "columns": {
     "name": "Flag",
-    "enabled": "Aktif",
-    "configDefault": "Config varsayılanı",
-    "source": "Kaynak",
-    "actions": "İşlemler"
+    "description": "Açıklama",
+    "value": "Güncel değer",
+    "tenantOverrides": "Tenant override'ları"
   },
-  "source": {
-    "config": "Config",
-    "global_override": "Global override",
-    "tenant_override": "Tenant override"
+  "descriptions": {
+    "EnableNewPaymentFlow": "PaymentService içinde alternatif ödeme yolu. Varsayılan kapalı.",
+    "EnableDepExportV2": "DEP dışa aktarımı X-Regkasse-Dep-Export-Schema: v2 başlığını ekler. BMF JSON gövdesi aynı kalır.",
+    "EnableOnlineOrdersV2": "Online siparişler intakeVersion v2 olarak işaretlenir.",
+    "EnableAutoAusfall": "Ausfall:AutoEnqueue açıksa TSE failover bir FON Ausfall kaydını hemen kuyruğa alır.",
+    "fiscalRksvAt": "Avusturya RKSV imzası. AT için kilitli ve her zaman açık.",
+    "fiscalKassenSicherheitDe": "Almanya KassenSichV. Paket üretime hazır olana kadar profil varsayılanı kapalı.",
+    "fiscalMwstCh": "İsviçre MWST. CH profillerinde açık.",
+    "eInvoicingZugferd": "ZUGFeRD oluşturucu. Varsayılan kapalı.",
+    "eInvoicingXRechnung": "XRechnung oluşturucu. Varsayılan kapalı.",
+    "eInvoicingQrRechnung": "QR-fatura. CH için açık.",
+    "eInvoicingEn16931": "EN 16931 / UBL. EU_DEFAULT için açık. Reverse-charge vergisini kilitlemez.",
+    "viesCheckEnabled": "VIES KDV kimlik kontrolü. Varsayılan kapalı.",
+    "eInvoicingPeppol": "Peppol gönderimi. 22-b-5 adı serbest bırakana kadar ayrılmış ve kapalı."
   }
 }
