@@ -12,6 +12,7 @@ node_modules/
 
 # Testing
 coverage/
+.lighthouse/
 
 # Production / build outputs
 build/
