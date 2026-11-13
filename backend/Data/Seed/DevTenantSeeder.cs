@@ -1,8 +1,10 @@
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using TenantSlugs = KasseAPI_Final.Constants.TenantSlugs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Constants;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -545,8 +547,28 @@ public static class DevTenantSeeder
     }
 
     /// <summary>
+    /// Demo cashiers used by POS (manual login and <c>frontend/e2e/fixtures/test-users.json</c>).
+    /// <see cref="IsPrimary"/> receives the tenant's default register in <see cref="AssignDemoCashRegistersAsync"/>.
+    /// </summary>
+    public static readonly DemoCashierStaffSpec[] DemoCashierStaff =
+    [
+        new(TenantSlugs.Dev, "cashier1", "demo-cashier-dev", "Kasse", "Dev", "DEMO-CASHIER-001", IsPrimary: true),
+        new(TenantSlugs.Dev, "cashier-gastro", "demo-cashier-gastro", "Cashier", "Gastro", "DEMO-GASTRO-001", IsPrimary: false),
+        new("dev-gastronomy-tables", "cashier-tables", "demo-cashier-tables", "Cashier", "Tables", "DEMO-TABLES-001", IsPrimary: true),
+        new("dev-vet", "cashier-vet", "demo-cashier-vet", "Tierarzt", "Kasse", "DEMO-VET-001", IsPrimary: true),
+        new("dev-doctor", "cashier-doctor", "demo-cashier-doctor", "Arzt", "Kasse", "DEMO-DOCTOR-001", IsPrimary: true),
+        new("dev-hair-salon", "cashier-hair", "demo-cashier-hair", "Friseur", "Kasse", "DEMO-HAIR-001", IsPrimary: true),
+        new("dev-mobile-services", "cashier-mobile", "demo-cashier-mobile", "Mobil", "Kasse", "DEMO-MOBILE-001", IsPrimary: true),
+        new("dev-handy-shop", "cashier-handy", "demo-cashier-handy", "Handy", "Kasse", "DEMO-HANDY-001", IsPrimary: true),
+        new("dev-taxi", "cashier-taxi", "demo-cashier-taxi", "Taxi", "Kasse", "DEMO-TAXI-001", IsPrimary: true),
+        new("dev-ticket-sales", "cashier-ticket", "demo-cashier-ticket", "Ticket", "Kasse", "DEMO-TICKET-001", IsPrimary: true),
+        new("dev-beherbergung", "cashier-lodge", "demo-cashier-lodge", "Lodge", "Kasse", "DEMO-LODGE-001", IsPrimary: true),
+    ];
+
+    /// <summary>
     /// Demo POS staff with a stable username, matching email, and the mandant they belong to.
     /// <c>cashier1</c> is Cashier on <c>dev</c>. <c>manager1</c> is Manager on <c>prod</c>.
+    /// Vertical cashiers match the POS E2E fixture usernames. Password is <see cref="KitchenPassword"/>.
     /// </summary>
     public static async Task SeedPosDemoStaffAsync(
         AppDbContext db,
@@ -554,18 +576,21 @@ public static class DevTenantSeeder
         IUserTenantMembershipProvisioner membershipProvisioner,
         CancellationToken cancellationToken = default)
     {
-        await EnsureDemoStaffUserAsync(
-            db,
-            userManager,
-            membershipProvisioner,
-            userName: "cashier1",
-            userId: "demo-cashier-dev",
-            tenantSlug: TenantSlugs.Dev,
-            role: Roles.Cashier,
-            firstName: "Kasse",
-            lastName: "Dev",
-            employeeNumber: "DEMO-CASHIER-001",
-            cancellationToken).ConfigureAwait(false);
+        foreach (var spec in DemoCashierStaff)
+        {
+            await EnsureDemoStaffUserAsync(
+                db,
+                userManager,
+                membershipProvisioner,
+                userName: spec.UserName,
+                userId: spec.UserId,
+                tenantSlug: spec.TenantSlug,
+                role: Roles.Cashier,
+                firstName: spec.FirstName,
+                lastName: spec.LastName,
+                employeeNumber: spec.EmployeeNumber,
+                cancellationToken).ConfigureAwait(false);
+        }
 
         await EnsureDemoStaffUserAsync(
             db,
@@ -584,32 +609,6 @@ public static class DevTenantSeeder
             db,
             userManager,
             membershipProvisioner,
-            userName: "cashier-gastro",
-            userId: "demo-cashier-gastro",
-            tenantSlug: TenantSlugs.Dev,
-            role: Roles.Cashier,
-            firstName: "Cashier",
-            lastName: "Gastro",
-            employeeNumber: "DEMO-GASTRO-001",
-            cancellationToken).ConfigureAwait(false);
-
-        await EnsureDemoStaffUserAsync(
-            db,
-            userManager,
-            membershipProvisioner,
-            userName: "cashier-tables",
-            userId: "demo-cashier-tables",
-            tenantSlug: "dev-gastronomy-tables",
-            role: Roles.Cashier,
-            firstName: "Cashier",
-            lastName: "Tables",
-            employeeNumber: "DEMO-TABLES-001",
-            cancellationToken).ConfigureAwait(false);
-
-        await EnsureDemoStaffUserAsync(
-            db,
-            userManager,
-            membershipProvisioner,
             userName: "admin1",
             userId: "demo-admin1-dev",
             tenantSlug: TenantSlugs.Dev,
@@ -618,6 +617,240 @@ public static class DevTenantSeeder
             lastName: "Dev",
             employeeNumber: "DEMO-ADMIN-001",
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sets <see cref="CashRegister.AssignedUserId"/> so POS can list a register for each demo cashier.
+    /// The picker only returns rows assigned to the signed-in user. One register goes to the primary
+    /// cashier (<c>KASSE-001</c> → <c>cashier1</c> on <c>dev</c>). Further demo cashiers on the same
+    /// tenant each receive a different operational register, created closed when none is free.
+    /// A single cashier receives every still-unassigned operational register. Assignments that already
+    /// point at someone outside this catalog are left unchanged.
+    /// </summary>
+    public static async Task AssignDemoCashRegistersAsync(
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var group in DemoCashierStaff.GroupBy(row => row.TenantSlug, StringComparer.Ordinal))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tenant = await db.Tenants
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(
+                    row => row.Slug == group.Key && row.IsActive && row.DeletedAtUtc == null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (tenant is null)
+                continue;
+
+            var cashiers = new List<ApplicationUser>();
+            foreach (var spec in group
+                         .OrderByDescending(row => row.IsPrimary)
+                         .ThenBy(row => row.UserName, StringComparer.Ordinal))
+            {
+                var user = await db.Users
+                    .FirstOrDefaultAsync(row => row.UserName == spec.UserName, cancellationToken)
+                    .ConfigureAwait(false);
+                if (user is null || !user.IsActive)
+                    continue;
+
+                var member = await db.UserTenantMemberships
+                    .IgnoreQueryFilters()
+                    .AnyAsync(
+                        row => row.UserId == user.Id && row.TenantId == tenant.Id && row.IsActive,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (!member)
+                    continue;
+
+                cashiers.Add(user);
+            }
+
+            if (cashiers.Count == 0)
+                continue;
+
+            var registers = await db.CashRegisters
+                .IgnoreQueryFilters()
+                .Where(row => row.TenantId == tenant.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var now = DateTime.UtcNow;
+            var changed = false;
+            foreach (var cashier in cashiers)
+            {
+                if (HasOperationalAssignment(registers, cashier.Id))
+                    continue;
+
+                var free = registers
+                    .Where(IsOperationalRegister)
+                    .Where(row => string.IsNullOrEmpty(row.AssignedUserId))
+                    .OrderByDescending(row => row.IsDefaultForTenant)
+                    .ThenBy(row => row.RegisterNumber, StringComparer.Ordinal)
+                    .FirstOrDefault();
+                if (free is null)
+                {
+                    free = CreateClosedDemoRegister(tenant, registers, now);
+                    registers.Add(free);
+                    db.CashRegisters.Add(free);
+                }
+
+                free.AssignedUserId = cashier.Id;
+                free.UpdatedAt = now;
+                free.UpdatedBy = CreatedBy;
+                changed = true;
+            }
+
+            if (cashiers.Count == 1)
+            {
+                foreach (var register in registers.Where(IsOperationalRegister))
+                {
+                    if (!string.IsNullOrEmpty(register.AssignedUserId))
+                        continue;
+
+                    register.AssignedUserId = cashiers[0].Id;
+                    register.UpdatedAt = now;
+                    register.UpdatedBy = CreatedBy;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        await EnsureDemoStartbelegMarkersAsync(db, cancellationToken).ConfigureAwait(false);
+        await EnsureDemoPaymentMethodsAsync(db, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Marks operational <c>dev</c> / <c>dev-*</c> registers as commissioned.
+    /// POS refuses to open a shift until <see cref="CashRegister.StartbelegCreatedAt"/> is set
+    /// (<c>REGISTER_STARTBELEG_REQUIRED</c>). This is a Development marker only: it does not
+    /// create a signed Sonderbeleg and does not run the signature pipeline.
+    /// </summary>
+    public static async Task EnsureDemoStartbelegMarkersAsync(
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantIds = await db.Tenants
+            .IgnoreQueryFilters()
+            .Where(row => row.IsActive && row.DeletedAtUtc == null && row.Slug != null
+                && (row.Slug == TenantSlugs.Dev || row.Slug.StartsWith("dev-")))
+            .Select(row => row.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (tenantIds.Count == 0)
+            return;
+
+        var registers = await db.CashRegisters
+            .IgnoreQueryFilters()
+            .Where(row => tenantIds.Contains(row.TenantId) && row.StartbelegCreatedAt == null)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var now = DateTime.UtcNow;
+        var changed = false;
+        foreach (var register in registers)
+        {
+            if (!IsOperationalRegister(register))
+                continue;
+
+            register.StartbelegCreatedAt = now;
+            register.UpdatedAt = now;
+            register.UpdatedBy = CreatedBy;
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// POS lists payment methods from <c>payment_method_definitions</c> for the open register.
+    /// Registers created by the demo seed have none until this runs.
+    /// </summary>
+    public static async Task EnsureDemoPaymentMethodsAsync(
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantIds = await db.Tenants
+            .IgnoreQueryFilters()
+            .Where(row => row.IsActive && row.DeletedAtUtc == null && row.Slug != null
+                && (row.Slug == TenantSlugs.Dev || row.Slug.StartsWith("dev-")))
+            .Select(row => row.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (tenantIds.Count == 0)
+            return;
+
+        var registers = await db.CashRegisters
+            .IgnoreQueryFilters()
+            .Where(row => tenantIds.Contains(row.TenantId))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var bootstrap = new PaymentMethodDefinitionBootstrapService(db);
+        foreach (var register in registers)
+        {
+            if (!IsOperationalRegister(register))
+                continue;
+
+            await bootstrap
+                .EnsureDefaultsForCashRegisterAsync(register.TenantId, register.Id, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static bool IsOperationalRegister(CashRegister register) =>
+        register.IsActive
+        && register.DecommissionedAtUtc == null
+        && register.Status is RegisterStatus.Closed or RegisterStatus.Open;
+
+    private static bool HasOperationalAssignment(IReadOnlyList<CashRegister> registers, string userId) =>
+        registers.Any(row => IsOperationalRegister(row)
+            && string.Equals(row.AssignedUserId, userId, StringComparison.Ordinal));
+
+    private static CashRegister CreateClosedDemoRegister(Tenant tenant, IReadOnlyList<CashRegister> existing, DateTime now)
+    {
+        var taken = existing
+            .Select(row => row.RegisterNumber)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var number = CashRegisterNumbers.ForTenant(tenant.Id, tenant.Slug);
+        if (taken.Contains(number))
+        {
+            number = string.Empty;
+            for (var index = 2; index < 100; index++)
+            {
+                var candidate = $"KASSE-{index:000}";
+                if (taken.Contains(candidate))
+                    continue;
+                number = candidate;
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(number))
+            number = "K-" + Guid.NewGuid().ToString("N")[..18].ToUpperInvariant();
+
+        var hasDefault = existing.Any(row => row.IsActive && row.IsDefaultForTenant);
+        return new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            RegisterNumber = number,
+            Location = "Hauptkasse",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = now,
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = !hasDefault,
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = CreatedBy,
+            UpdatedBy = CreatedBy,
+        };
     }
 
     /// <summary>
@@ -908,6 +1141,15 @@ public sealed record DevTenantProfileCatalog(
     RksvProductCategory FiscalCategory,
     IReadOnlyList<string> ProductNames,
     IReadOnlyList<string> CustomerNames);
+
+public readonly record struct DemoCashierStaffSpec(
+    string TenantSlug,
+    string UserName,
+    string UserId,
+    string FirstName,
+    string LastName,
+    string EmployeeNumber,
+    bool IsPrimary);
 
 public readonly record struct DevTenantSeedReport(
     int ForeignCategoriesRemoved,

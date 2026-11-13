@@ -1,4 +1,5 @@
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Seed;
 using KasseAPI_Final.Models;
@@ -435,6 +436,219 @@ public sealed class DevTenantSeederTests
         Assert.Equal("DEV-KEEP-1", stored.ReceiptNumber);
         Assert.Equal(0, await db.Receipts.IgnoreQueryFilters().CountAsync());
         Assert.Equal(0, await db.TseSignatures.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task AssignDemoCashRegisters_GivesKasse001ToCashier1_AndAnotherRegisterToGastro()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            TenantId = DemoTenantIds.Dev,
+            RegisterNumber = DevTenantSeeder.RegisterNumber,
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = true,
+            IsActive = true,
+            LastBalanceUpdate = now,
+            CreatedAt = now,
+        });
+        AddCashier(db, DemoTenantIds.Dev, "demo-cashier-dev", "cashier1");
+        AddCashier(db, DemoTenantIds.Dev, "demo-cashier-gastro", "cashier-gastro");
+        await db.SaveChangesAsync();
+
+        await DevTenantSeeder.AssignDemoCashRegistersAsync(db);
+        await DevTenantSeeder.AssignDemoCashRegistersAsync(db);
+
+        var registers = await db.CashRegisters.IgnoreQueryFilters()
+            .Where(row => row.TenantId == DemoTenantIds.Dev)
+            .OrderBy(row => row.RegisterNumber)
+            .ToListAsync();
+        Assert.Equal(2, registers.Count);
+        var primary = Assert.Single(registers, row => row.RegisterNumber == "KASSE-001");
+        Assert.Equal("demo-cashier-dev", primary.AssignedUserId);
+        var gastro = Assert.Single(registers, row => row.AssignedUserId == "demo-cashier-gastro");
+        Assert.Equal(RegisterStatus.Closed, gastro.Status);
+        Assert.False(gastro.IsDefaultForTenant);
+        Assert.NotEqual(primary.Id, gastro.Id);
+    }
+
+    [Fact]
+    public async Task AssignDemoCashRegisters_AssignsTheOnlyRegisterToTheVerticalCashier()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        var tenantId = Guid.Parse("b0000001-0001-4001-8001-00000000000d");
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Arztpraxis",
+            Slug = "dev-doctor",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        var extra = new CashRegister
+        {
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-002",
+            Location = "Nebenkasse",
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = false,
+            IsActive = true,
+            LastBalanceUpdate = now,
+            CreatedAt = now,
+        };
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                TenantId = tenantId,
+                RegisterNumber = "KASSE-001",
+                Location = "Hauptkasse",
+                Status = RegisterStatus.Closed,
+                IsDefaultForTenant = true,
+                IsActive = true,
+                LastBalanceUpdate = now,
+                CreatedAt = now,
+            },
+            extra);
+        AddCashier(db, tenantId, "demo-cashier-doctor", "cashier-doctor");
+        await db.SaveChangesAsync();
+
+        await DevTenantSeeder.AssignDemoCashRegistersAsync(db);
+
+        var registers = await db.CashRegisters.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .ToListAsync();
+        Assert.Equal(2, registers.Count);
+        Assert.All(registers, row => Assert.Equal("demo-cashier-doctor", row.AssignedUserId));
+    }
+
+    [Fact]
+    public async Task AssignDemoCashRegisters_DoesNotReplaceANonDemoAssignment()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Tierarzt",
+            Slug = "dev-vet",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        var held = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = true,
+            IsActive = true,
+            AssignedUserId = "real-cashier",
+            LastBalanceUpdate = now,
+            CreatedAt = now,
+        };
+        db.CashRegisters.Add(held);
+        AddCashier(db, tenantId, "demo-cashier-vet", "cashier-vet");
+        await db.SaveChangesAsync();
+
+        await DevTenantSeeder.AssignDemoCashRegistersAsync(db);
+
+        var registers = await db.CashRegisters.IgnoreQueryFilters()
+            .Where(row => row.TenantId == tenantId)
+            .ToListAsync();
+        Assert.Equal(2, registers.Count);
+        Assert.Equal("real-cashier", registers.Single(row => row.Id == held.Id).AssignedUserId);
+        Assert.Equal("demo-cashier-vet", registers.Single(row => row.Id != held.Id).AssignedUserId);
+    }
+
+    [Fact]
+    public async Task EnsureDemoStartbelegMarkers_SetsTheMarkerOnOperationalRegistersOnly()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+        var doctorId = Guid.Parse("b0000001-0001-4001-8001-00000000000d");
+        db.Tenants.Add(new Tenant
+        {
+            Id = doctorId,
+            Name = "Arztpraxis",
+            Slug = "dev-doctor",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = now,
+        });
+        var open = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = doctorId,
+            RegisterNumber = "KASSE-001",
+            Location = "Hauptkasse",
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = true,
+            IsActive = true,
+            LastBalanceUpdate = now,
+            CreatedAt = now,
+        };
+        var retired = new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = doctorId,
+            RegisterNumber = "KASSE-ALT",
+            Location = "Alt",
+            Status = RegisterStatus.Decommissioned,
+            DecommissionedAtUtc = now,
+            IsActive = true,
+            LastBalanceUpdate = now,
+            CreatedAt = now,
+        };
+        db.CashRegisters.AddRange(open, retired);
+        await db.SaveChangesAsync();
+
+        await DevTenantSeeder.EnsureDemoStartbelegMarkersAsync(db);
+        var stamped = (await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.Id == open.Id)).StartbelegCreatedAt;
+        await DevTenantSeeder.EnsureDemoStartbelegMarkersAsync(db);
+
+        Assert.NotNull(stamped);
+        Assert.Equal(
+            stamped,
+            (await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.Id == open.Id)).StartbelegCreatedAt);
+        Assert.Null((await db.CashRegisters.IgnoreQueryFilters().SingleAsync(row => row.Id == retired.Id)).StartbelegCreatedAt);
+    }
+
+    private static void AddCashier(AppDbContext db, Guid tenantId, string userId, string userName)
+    {
+        db.Users.Add(new ApplicationUser
+        {
+            Id = userId,
+            UserName = userName,
+            Email = $"{userName}@seed.test",
+            FirstName = "Kasse",
+            LastName = "Demo",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = userId,
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
     }
 
     private static async Task<string[]> ActiveCategoryKeysAsync(AppDbContext db, Guid tenantId)

@@ -17,8 +17,7 @@ type ProfileCheck = {
 };
 
 async function visible(page: Page, text: string): Promise<void> {
-  const locator = page.getByText(text, { exact: true }).first();
-  await locator.scrollIntoViewIfNeeded();
+  const locator = page.getByText(text, { exact: true }).filter({ visible: true }).first();
   await expect(locator).toBeVisible();
 }
 
@@ -28,10 +27,11 @@ async function absent(page: Page, text: string): Promise<void> {
 
 const profiles: ProfileCheck[] = [
   {
+    // Slug dev is gastronomy-tables, same chrome as dev-gastronomy-tables.
     slug: 'dev',
     assertUi: async (page) => {
       await visible(page, 'Küche');
-      await absent(page, 'Tisch wählen');
+      await visible(page, 'Tisch wählen');
     },
   },
   {
