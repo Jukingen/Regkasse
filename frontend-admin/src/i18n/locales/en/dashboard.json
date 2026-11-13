@@ -114,6 +114,18 @@
     "hint_ok": "No open issues",
     "details": "Details"
   },
+  "finanzOnlineOutbox": {
+    "pending": "Pending submissions",
+    "failed24h": "Failed (24h)",
+    "lastSuccess": "Last successful submission",
+    "lastSuccessNever": "none yet",
+    "openQueue": "Open queue",
+    "retryAllFailed": "Retry all failed",
+    "retryConfirmTitle": "Retry all failed submissions?",
+    "retryConfirmBody": "Failed rows are returned to the queue. This does not submit SOAP by itself.",
+    "retryQueued": "{{count}} rows were queued again.",
+    "retryError": "Retry failed."
+  },
   "offlineStatusWidget": {
     "badge_critical": "Critical",
     "badge_pending": "Pending",

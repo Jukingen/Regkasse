@@ -65,6 +65,7 @@
     "OfflineQueueGrowing": "Offline queue growing",
     "OfflineQueueApproachingLimit": "Offline queue approaching limit",
     "FinanzOnlineSubmissionFailed": "FinanzOnline submission failed",
+    "FinanzOnlineOutboxFailureSpike": "FinanzOnline outbox failure spike",
     "BackupFailed": "Backup failed",
     "BackupSucceeded": "Backup succeeded",
     "RestoreDrillFailed": "Restore drill failed",

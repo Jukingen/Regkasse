@@ -14,6 +14,7 @@ import { BackupStatusWidget } from '@/features/dashboard/widgets/BackupStatusWid
 import { PreorderStatusWidget } from '@/features/dashboard/widgets/PreorderStatusWidget';
 import { DailyClosingWidget } from '@/features/dashboard/widgets/DailyClosingWidget';
 import { FiskalyStatusWidget } from '@/features/dashboard/widgets/FiskalyStatusWidget';
+import { FinanzOnlineOutboxWidget } from '@/features/dashboard/widgets/FinanzOnlineOutboxWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { JahresbelegStatusWidget } from '@/features/dashboard/widgets/JahresbelegStatusWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
@@ -106,6 +107,8 @@ export function renderDashboardWidget(
       return <LicenseExpiryWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.finanzOnlineStatus:
       return <FinanzOnlineStatusWidget {...common} />;
+    case DASHBOARD_WIDGET_IDS.finanzOnlineOutbox:
+      return <FinanzOnlineOutboxWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.offlineSystemStatus:
       return <OfflineStatusWidget {...common} />;
     case DASHBOARD_WIDGET_IDS.backupStatus:
