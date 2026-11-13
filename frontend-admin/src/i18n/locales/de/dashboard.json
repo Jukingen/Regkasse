@@ -503,5 +503,18 @@
     "subtitle": "Kurzwege zu Kassenverwaltung und weiteren Werkzeugen.",
     "recentTitle": "Zuletzt verwendet",
     "recentEmpty": "Noch keine zuletzt geöffneten Seiten."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Mandant",
+    "year": "Jahr",
+    "deadline": "Frist",
+    "status": "Status",
+    "created": "Erstellt",
+    "missing": "Offen",
+    "notDue": "Noch nicht fällig",
+    "empty": "Keine Kasse mit Jahresbeleg-Pflicht.",
+    "loadError": "Jahresbeleg-Status konnte nicht geladen werden.",
+    "warning": "Die Jahresbeleg-Frist ist der 31. Januar. Bitte erstellen.",
+    "open": "Jahresbeleg öffnen"
   }
 }

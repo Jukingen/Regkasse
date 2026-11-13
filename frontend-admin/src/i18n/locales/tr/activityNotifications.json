@@ -104,6 +104,7 @@
     "MonatsbelegAutoCreateFailed": "Monatsbeleg otomatik oluşturma başarısız",
     "MonatsbelegAutoCreateMissed": "Monatsbeleg otomatik oluşturma kaçırıldı",
     "JahresbelegFonReminder": "Jahresbeleg FinanzOnline hatırlatması",
+    "JahresbelegDeadlineReminder": "Jahresbeleg son tarihi",
     "MonatsbelegManagerContacted": "Monatsbeleg: kasiyer yöneticiyi aradı"
   }
 }
