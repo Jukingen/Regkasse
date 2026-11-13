@@ -150,6 +150,30 @@ public sealed class ActivityStreamHub : IActivityStreamHub
         }
     }
 
+    private async Task RunSsePingLoopAsync(
+        ChannelWriter<ActivityStreamMessage> writer,
+        int pingSeconds,
+        CancellationToken cancellationToken)
+    {
+        using var pingTimer = new PeriodicTimer(TimeSpan.FromSeconds(pingSeconds));
+        try
+        {
+            while (await pingTimer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!writer.TryWrite(new ActivityStreamMessage("ping", new { })))
+                    return;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Subscriber disconnected or subscription finally cancelled the ping loop.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Activity SSE ping loop ended unexpectedly");
+        }
+    }
+
     private void Register(Guid tenantId, ChannelWriter<ActivityStreamMessage> writer)
     {
         lock (_gate)
