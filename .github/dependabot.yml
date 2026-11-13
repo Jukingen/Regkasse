@@ -7,47 +7,6 @@
 version: 2
 
 updates:
-  # --- npm: frontend-admin (Next.js admin) ---------------------------------
-  - package-ecosystem: npm
-    directory: /frontend-admin
-    schedule:
-      interval: weekly
-      day: saturday
-    open-pull-requests-limit: 8
-    labels:
-      - dependencies
-      - frontend-admin
-    groups:
-      frontend-admin-minor-patch:
-        update-types:
-          - minor
-          - patch
-        exclude-patterns:
-          - next
-          - react
-          - react-dom
-          - antd
-          - '@ant-design/*'
-      frontend-admin-types:
-        patterns:
-          - '@types/*'
-      frontend-admin-lint-format:
-        patterns:
-          - eslint*
-          - prettier
-          - '@typescript-eslint/*'
-      frontend-admin-test:
-        patterns:
-          - vitest
-          - '@vitest/*'
-          - '@testing-library/*'
-          - '@playwright/*'
-          - jsdom
-    # Orval major upgrades need OpenAPI/client regen — review separately
-    ignore:
-      - dependency-name: orval
-        update-types: ['version-update:semver-major']
-
   # --- npm: POS (Expo) -----------------------------------------------------
   - package-ecosystem: npm
     directory: /frontend
@@ -64,9 +23,11 @@ updates:
           - minor
           - patch
         exclude-patterns:
-          - expo
-          - react
           - react-native
+          - 'react-native-*'
+          - expo
+          - 'expo-*'
+          - react
           - react-dom
 
   # --- npm: tenant websites ------------------------------------------------
@@ -80,39 +41,88 @@ updates:
       - dependencies
       - frontend-sites
     groups:
+      # One PR for the framework set, so the lockfile moves once.
+      # Auto-merge still requires the root package-lock.json.
+      frontend-sites-framework:
+        patterns:
+          - next
+          - react
+          - react-dom
+          - '@types/*'
+        update-types:
+          - minor
+          - patch
       frontend-sites-minor-patch:
         update-types:
           - minor
           - patch
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
+          - '@types/*'
 
-  # --- npm: repo root + scripts tooling ------------------------------------
+  # npm workspaces. CI npm ci at repo root uses package-lock.json.
+  # Do NOT re-add directory: /frontend-admin — its lock is not used by root npm ci.
+  # /frontend and /frontend-sites stay: their CI runs npm ci in those directories.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: saturday
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     labels:
       - dependencies
     groups:
+      frontend-admin-types:
+        patterns:
+          - '@types/*'
+      frontend-admin-lint-format:
+        patterns:
+          - eslint*
+          - prettier
+          - '@typescript-eslint/*'
+      frontend-admin-test:
+        patterns:
+          - vitest
+          - '@vitest/*'
+          - '@testing-library/*'
+          - '@playwright/*'
+          - jsdom
+      frontend-admin-minor-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - next
+          - react
+          - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
+          - antd
+          - '@ant-design/*'
       root-minor-patch:
         update-types:
           - minor
           - patch
-
-  - package-ecosystem: npm
-    directory: /scripts
-    schedule:
-      interval: weekly
-      day: saturday
-    open-pull-requests-limit: 3
-    labels:
-      - dependencies
-    groups:
-      scripts-minor-patch:
-        update-types:
-          - minor
-          - patch
+        exclude-patterns:
+          - react
+          - react-dom
+          - react-native
+          - 'react-native-*'
+          - '@react-native/*'
+          - expo
+          - 'expo-*'
+          - next
+          - antd
+          - '@ant-design/*'
+    # Orval major upgrades need OpenAPI/client regen — review separately
+    ignore:
+      - dependency-name: orval
+        update-types: ['version-update:semver-major']
 
   # --- NuGet: ASP.NET Core API ---------------------------------------------
   - package-ecosystem: nuget
@@ -133,7 +143,6 @@ updates:
           - Microsoft.AspNetCore.*
           - Microsoft.EntityFrameworkCore.*
           - Npgsql*
-
   # --- GitHub Actions ------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /

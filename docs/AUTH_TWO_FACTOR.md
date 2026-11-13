@@ -2,6 +2,8 @@
 
 Technical documentation (English). Operator-facing FA copy is i18n (`common.auth.twoFactor.*`).
 
+Logout and session teardown: [`AUTH_LOGOUT.md`](AUTH_LOGOUT.md).
+
 ## Summary
 
 | Environment | SuperAdmin | Other roles |

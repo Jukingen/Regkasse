@@ -1,6 +1,7 @@
-import { useCameraPermissions } from 'expo-camera';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform } from 'react-native';
+
+import { useNativeCameraPermissions } from './camera/useNativeCameraPermissions';
 
 export type PosCameraPermissionUi = 'loading' | 'web' | 'granted' | 'prompt' | 'blocked';
 
@@ -10,7 +11,7 @@ export type PosCameraPermissionUi = 'loading' | 'web' | 'granted' | 'prompt' | '
  * - Exposes `blocked` when the OS will not show the system prompt again (`canAskAgain === false`).
  */
 export function usePosCameraPermission(enabled: boolean) {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] = useNativeCameraPermissions();
   const [requested, setRequested] = useState(false);
 
   useEffect(() => {

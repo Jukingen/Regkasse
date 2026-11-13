@@ -1,12 +1,45 @@
 {
   "pageTitle": "Shifts & daily closings",
   "intro": "Tenant POS cashier shifts: active shifts, history, and linked daily closings (cash count + fiscal closing).",
+  "userId": "User ID",
   "filters": {
     "register": "Register",
     "allRegisters": "All registers",
     "from": "From",
     "to": "To",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "cashier": "Cashier",
+    "allCashiers": "All cashiers",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "searchPlaceholder": "Search: register or name"
+  },
+  "grouping": {
+    "registerHeader": "{{register}} ({{count}} shifts)"
+  },
+  "summary": {
+    "filteredTotal": "Totals (filtered)",
+    "shiftCount": "Shifts",
+    "totalSales": "Sales",
+    "totalCash": "Cash",
+    "totalCard": "Card",
+    "totalDifference": "Difference"
+  },
+  "tooltips": {
+    "cashierName": "Name",
+    "registerNumber": "Register number",
+    "registerId": "Register ID"
+  },
+  "details": {
+    "title": "Shift details",
+    "close": "Close",
+    "paymentBreakdown": "Payment breakdown",
+    "differenceExplanation": "Difference explanation",
+    "differenceBalanced": "No difference: counted cash matches the expected balance.",
+    "differenceDiscrepancy": "Discrepancy detected: counted cash differs from the expected balance.",
+    "differenceOther": "Difference from opening/closing float and counted cash.",
+    "notes": "Notes",
+    "openDailyClosing": "Open daily closing"
   },
   "sections": {
     "active": "Active shifts",
@@ -35,7 +68,7 @@
     "fiscalStatus": "Fiscal status"
   },
   "status": {
-    "Active": "Active",
+    "Active": "Open",
     "Completed": "Completed",
     "Discrepancy": "Discrepancy",
     "RegisterOpen": "Register open"
@@ -49,7 +82,8 @@
     "forceCloseTitle": "Force close shift?",
     "forceCloseConfirm": "The register will be closed and active shift rows ended. Use only when a shift is stuck.",
     "forceCloseSuccess": "Shift/register was closed.",
-    "forceCloseFailed": "Could not close the shift."
+    "forceCloseFailed": "Could not close the shift.",
+    "details": "Details"
   },
   "warnings": {
     "staleShiftsTitle": "Long-running open shifts",

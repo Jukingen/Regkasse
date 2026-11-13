@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
-using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KasseAPI_Final.Controllers;
@@ -8,60 +9,32 @@ namespace KasseAPI_Final.Controllers;
 public sealed partial class AdminLicenseController
 {
     /// <summary>
-    /// Extend the current tenant mandant license via billing <c>license_sales</c> key (Manager self-service).
+    /// Deprecated. Use <c>POST /api/license/activate</c> (unified server + tenant activation).
     /// </summary>
+    [Obsolete("Use POST /api/license/activate.")]
+    [HttpPost("activate")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(StatusCodes.Status308PermanentRedirect)]
+    public IActionResult ActivateLicenseDeprecated([FromBody] ActivateLicenseRequest? body)
+    {
+        _logger.LogInformation(
+            "Deprecated POST /api/admin/license/activate redirected to {Target}",
+            UnifiedLicenseRoutes.Activate);
+        return LicenseController.RedirectToUnifiedActivate();
+    }
+
+    /// <summary>
+    /// Deprecated. Use <c>POST /api/license/activate</c> (billing extend is activation of the new sale key).
+    /// </summary>
+    [Obsolete("Use POST /api/license/activate.")]
     [HttpPost("extend")]
     [HasPermission(AppPermissions.SettingsManage)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ExtendLicense(
-        [FromBody] ExtendLicenseRequest request,
-        CancellationToken ct)
+    [ProducesResponseType(StatusCodes.Status308PermanentRedirect)]
+    public IActionResult ExtendLicense([FromBody] ExtendLicenseRequest? request)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var tenantId = _currentTenantAccessor.TenantId;
-        if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
-            return BadRequest(new { message = "Tenant context required." });
-
-        var (accessibleTenantId, accessError) = await ResolveAccessibleMandantTenantIdAsync(
-                tenantId.Value,
-                ct)
-            .ConfigureAwait(false);
-        if (accessError != null)
-            return accessError;
-
-        if (accessibleTenantId is not Guid effectiveTenantId)
-            return BadRequest(new { message = "Tenant context required." });
-
-        var actorUserIdText = User.GetActorUserId();
-        if (!Guid.TryParse(actorUserIdText, out var actorUserId) || actorUserId == Guid.Empty)
-            return BadRequest(new { message = "User context required." });
-
-        var result = await _billingTenantLicenseService
-            .ExtendLicenseAsync(
-                effectiveTenantId,
-                request.LicenseKey.Trim(),
-                actorUserId,
-                ct)
-            .ConfigureAwait(false);
-
-        if (!result.Success)
-            return BadRequest(new { message = result.Message });
-
         _logger.LogInformation(
-            "Billing mandant license extended for tenant {TenantId} by user {ActorUserId}",
-            effectiveTenantId,
-            actorUserIdText);
-
-        return Ok(new
-        {
-            success = true,
-            message = result.Message,
-            licenseKey = result.LicenseKey,
-            validUntil = result.ValidUntilUtc,
-            plan = result.LicensePlan,
-        });
+            "Deprecated POST /api/admin/license/extend redirected to {Target}",
+            UnifiedLicenseRoutes.Activate);
+        return LicenseController.RedirectToUnifiedActivate();
     }
 }

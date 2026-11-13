@@ -5,9 +5,10 @@
     "rowSystem": "System (global): tax rates, backup, notifications — API `GET/PUT /api/Settings` (SystemSettings). No dedicated admin UI yet.",
     "rowCompany": "Company & fiscal (tenant): master data, FinanzOnline, TSE defaults — `/api/company/settings` (alias: `/api/CompanySettings`).",
     "rowUser": "User: POS / register preferences — `GET/PUT /api/user/settings` (UserSettings), not tenant-wide.",
-    "rowReceipt": "Receipt templates & copy — Kasse & Belege → Receipt templates (`/receipt-templates`).",
+    "rowReceipt": "Receipt thank-you text — `/settings/receipt`. Templates — Kasse & Belege → Receipt templates (`/receipt-templates`).",
     "rowRksv": "RKSV operations (outbox, integrity, diagnostics) — RKSV menu, not under company settings.",
     "linkReceiptTemplates": "Open receipt templates",
+    "linkReceiptSettings": "Open receipt text",
     "linkRksv": "Open RKSV"
   },
   "page": {
@@ -65,7 +66,20 @@
       "connected": "Connected",
       "disconnected": "Not connected",
       "manage": "Manage TSE settings",
-      "viewRksvStatus": "Open RKSV status"
+      "viewRksvStatus": "Open RKSV status",
+      "credentials": {
+        "apiKey": "API key",
+        "apiSecret": "API secret",
+        "scuId": "SCU ID",
+        "environment": "Environment",
+        "envTest": "TEST",
+        "envLive": "LIVE",
+        "save": "Save Fiskaly",
+        "saveSuccess": "Fiskaly credentials saved.",
+        "hint": "Stored (····{{hint}})",
+        "missing": "No Fiskaly credentials stored.",
+        "secretPlaceholder": "Leave blank to keep the current secret"
+      }
     },
     "tsePortal": {
       "title": "TSE Status",
@@ -114,10 +128,25 @@
     "placeholderPhone": "+43 123 456789",
     "placeholderEmail": "info@cafe.at",
     "placeholderWebsite": "https://www.cafe.at",
-    "placeholderReceiptFooter": "Thank you for your visit!",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Einkauf!",
+    "receiptSettingsLink": "Edit preview and receipt text under receipt settings",
     "reset": "Reset",
     "advancedHint": "FinanzOnline, TSE, localization, and password settings are on the",
     "advancedLink": "fiscal & integration settings page"
+  },
+  "receiptPage": {
+    "pageTitle": "Receipt text",
+    "cardTitle": "Thank-you message",
+    "saveSuccess": "Thank-you message has been saved.",
+    "infoTitle": "POS receipt footer",
+    "infoDescription": "This text appears at the bottom of each cash-register receipt. Leave empty to use the default line.",
+    "thankYouLabel": "Thank-you message",
+    "thankYouHint": "Empty = default: “Vielen Dank für Ihren Einkauf!”",
+    "thankYouMax": "Maximum 500 characters.",
+    "previewTitle": "Preview",
+    "previewCompany": "Development Company",
+    "previewKassierer": "Cashier: kassier1",
+    "reset": "Reset"
   },
   "taxGroups": {
     "pageTitle": "Tax groups",
@@ -242,7 +271,7 @@
     "stopOnlineOrdersRequired": "Minutes are required",
     "stopOnlineOrdersRange": "Value must be between 0 and 180",
     "autoClosePosLabel": "POS closing prompt at closing time",
-    "autoClosePosTooltip": "Display only: shows a strong POS prompt at closing time. No automatic Tagesabschluss and no lock on orders or payments (RKSV).",
+    "autoClosePosTooltip": "Display only: shows a strong POS prompt at closing time. Does not lock orders or payments. Fiscal automatic Tagesabschluss is configured separately on Operativer Tagesabschluss.",
     "closedDayMessageLabel": "Closed-day customer message",
     "closedDayMessageTooltip": "Shown on website/app when closed today (not POS/Admin).",
     "closedDayMessageRequired": "Message is required",
@@ -449,6 +478,8 @@
     },
     "tse": {
       "cardTitle": "TSE (Technical security device)",
+      "fiskalyEnabled": "Fiskaly TSE enabled",
+      "fiskalyEnabledHint": "SIGN AT connection for this tenant. Default: on. API keys stay in server configuration.",
       "autoConnect": "Connect automatically on startup",
       "defaultDeviceId": "Default TSE device ID",
       "defaultDeviceIdMax": "Maximum 100 characters",
@@ -736,6 +767,27 @@
       "timeZone": "Timezone",
       "language": "Language",
       "use24HourFormat": "24-hour format"
+    }
+  },
+  "rksv": {
+    "monatsbelegPolicy": {
+      "title": "Monatsbeleg — POS sales blocking",
+      "intro": "RKSV requires creating the Monatsbeleg within 7 days of month end. Blocking POS sales is a tenant policy, not a legal requirement.",
+      "modeLabel": "Blocking mode",
+      "modeHelp": "Strict: block sales until the previous-month Monatsbeleg exists. GracePeriod: allow 14 days with warning, then block. WarningOnly: always allow sales and always warn.",
+      "modeStrict": "Strict — block sales (default)",
+      "modeGracePeriod": "GracePeriod — allow 14 days with warning",
+      "modeWarningOnly": "WarningOnly — warning only, never block",
+      "autoLabel": "Auto-Monatsbeleg",
+      "autoHelp": "On the 1st of each Vienna calendar month at 00:01 (catch-up through day 7), last month's Monatsbeleg is TSE-signed and stored in the DEP. The tenant admin is notified.",
+      "retryLabel": "Retries on failure",
+      "retryHelp": "Automatic attempts (1–5, default 3) with exponential backoff, then a red warning in FA.",
+      "openList": "View Monatsbelege",
+      "openCreate": "Create Monatsbeleg in special receipts",
+      "saveSuccess": "Monatsbeleg policy saved.",
+      "saveFailed": "Monatsbeleg policy could not be saved.",
+      "loadFailed": "Monatsbeleg policy could not be loaded.",
+      "readOnly": "You do not have permission to change the Monatsbeleg policy."
     }
   }
 }

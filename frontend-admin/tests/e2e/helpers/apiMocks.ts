@@ -23,6 +23,7 @@ const SUPER_ADMIN_ME = {
     'report.view',
     'report.export',
     'audit.view',
+    'online-payments.manage',
   ],
   isActive: true,
   mustChangePasswordOnNextLogin: false,
@@ -49,6 +50,33 @@ async function json(route: Route, status: number, body: unknown) {
     contentType: 'application/json',
     body: JSON.stringify(body),
   });
+}
+
+/** Session cookies live on 127.0.0.1; /me is called on the API origin. */
+async function hasAdminSession(
+  page: Page,
+  request: { headers: () => Record<string, string> }
+): Promise<boolean> {
+  const headers = request.headers();
+  const cookieHeader = headers.cookie ?? '';
+  const authorization = headers.authorization ?? '';
+  if (authorization.trim().length > 0) {
+    return true;
+  }
+  if (
+    cookieHeader.includes('rk_admin_edge_session=1') ||
+    cookieHeader.includes('access_token=') ||
+    cookieHeader.includes('rk_admin_access_token=')
+  ) {
+    return true;
+  }
+  const cookies = await page.context().cookies();
+  return cookies.some(
+    (cookie) =>
+      (cookie.name === 'rk_admin_edge_session' && cookie.value === '1') ||
+      cookie.name === 'access_token' ||
+      cookie.name === 'rk_admin_access_token'
+  );
 }
 
 /**
@@ -114,6 +142,10 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/Auth/me' && method === 'GET') {
+      if (!(await hasAdminSession(page, request))) {
+        await json(route, 401, { message: 'Unauthorized' });
+        return;
+      }
       await json(route, 200, SUPER_ADMIN_ME);
       return;
     }
@@ -160,6 +192,75 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (path === '/api/admin/countries' && method === 'GET') {
+      await json(route, 200, [
+        {
+          code: 'AT',
+          name: 'Austria',
+          currency: 'EUR',
+          defaultLocale: 'de-DE',
+          fiscalSystem: 'RKSV_AT',
+          fiscalSystemLabel: 'RKSV',
+          vatIdPattern: '^ATU\\d{8}$',
+          fiscalSections: [
+            {
+              id: 'rksv',
+              titleKey: 'tenants.create.fiscal.rksv.title',
+              helperKey: 'tenants.create.fiscal.rksv.helper',
+              flags: [{ name: 'Fiscal.RksvAt', enabled: true, locked: true }],
+            },
+          ],
+          eInvoicingStandards: [],
+          allowedVatRegimes: ['AT_RKSV_STANDARD', 'EU_REVERSE_CHARGE', 'EU_OSS', 'NON_EU'],
+        },
+        {
+          code: 'DE',
+          name: 'Germany',
+          currency: 'EUR',
+          defaultLocale: 'de-DE',
+          fiscalSystem: 'KASSENSICHERHEIT_DE',
+          fiscalSystemLabel: 'KassenSicherheit',
+          vatIdPattern: '^DE\\d{9}$',
+          fiscalSections: [
+            {
+              id: 'kassenSicherheit',
+              titleKey: 'tenants.create.fiscal.kassenSicherheit.title',
+              helperKey: 'tenants.create.fiscal.kassenSicherheit.helper',
+              flags: [{ name: 'Fiscal.KassenSicherheitDe', enabled: true, locked: false }],
+            },
+          ],
+          eInvoicingStandards: ['ZUGFERD', 'XRECHNUNG'],
+          allowedVatRegimes: [
+            'DE_USTG_STANDARD',
+            'DE_KLEINUNTERNEHMER',
+            'EU_REVERSE_CHARGE',
+            'EU_OSS',
+            'NON_EU',
+          ],
+        },
+        {
+          code: 'CH',
+          name: 'Switzerland',
+          currency: 'CHF',
+          defaultLocale: 'de-CH',
+          fiscalSystem: 'MWST_CH',
+          fiscalSystemLabel: 'MWST',
+          vatIdPattern: '^CHE-\\d{3}\\.\\d{3}\\.\\d{3}( (MWST|TVA|IVA))?$',
+          fiscalSections: [
+            {
+              id: 'qrRechnung',
+              titleKey: 'tenants.create.fiscal.qrRechnung.title',
+              helperKey: 'tenants.create.fiscal.qrRechnung.helper',
+              flags: [{ name: 'EInvoicing.QrRechnung', enabled: true, locked: false }],
+            },
+          ],
+          eInvoicingStandards: ['QR_RECHNUNG'],
+          allowedVatRegimes: ['CH_MWST_STANDARD', 'CH_KLEINUNTERNEHMER', 'NON_EU'],
+        },
+      ]);
+      return;
+    }
+
     if (path === '/api/admin/tenants/slug-availability' && method === 'GET') {
       const slug = url.searchParams.get('slug') ?? 'e2e-tenant';
       await json(route, 200, {
@@ -181,12 +282,13 @@ export async function installAdminApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/api/admin/tenants' && method === 'POST') {
-      const body = request.postDataJSON() as { name?: string; slug?: string };
+      const body = request.postDataJSON() as { name?: string; slug?: string; countryCode?: string };
       await json(route, 201, {
         ...DEMO_TENANT,
         id: '33333333-3333-4333-8333-333333333333',
         name: body.name ?? 'E2E Tenant',
         slug: body.slug ?? 'e2e-tenant',
+        country: body.countryCode ?? 'AT',
       });
       return;
     }

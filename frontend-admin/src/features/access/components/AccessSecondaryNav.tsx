@@ -6,6 +6,7 @@ import {
   CloudUploadOutlined,
   HistoryOutlined,
   KeyOutlined,
+  LaptopOutlined,
   PieChartOutlined,
   SafetyOutlined,
   TeamOutlined,
@@ -24,6 +25,7 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 const ACCESS_TAB_META: Record<AccessAreaRoutePath, { labelKey: string; Icon: ComponentType }> = {
   '/admin/access': { labelKey: 'nav.accessOverview', Icon: KeyOutlined },
   '/admin/users': { labelKey: 'nav.users', Icon: TeamOutlined },
+  '/admin/sessions': { labelKey: 'nav.sessions', Icon: LaptopOutlined },
   '/admin/access/roles': { labelKey: 'nav.rolesPermissions', Icon: SafetyOutlined },
   '/admin/access/matrix': { labelKey: 'nav.accessMatrix', Icon: AuditOutlined },
   '/admin/access/permission-history': { labelKey: 'nav.permissionHistory', Icon: HistoryOutlined },

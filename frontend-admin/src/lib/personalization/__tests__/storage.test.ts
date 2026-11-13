@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   PERSONALIZATION_STORAGE_KEY,
+  THEME_MODE_STORAGE_KEY,
+  clearStoredPersonalization,
   normalizePersonalization,
   readStoredPersonalization,
   writeStoredPersonalization,
@@ -49,5 +51,23 @@ describe('personalization storage', () => {
   it('keeps supported date formats', () => {
     expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('MM/DD/YYYY');
     expect(normalizePersonalization({ dateFormat: 'bogus' }).dateFormat).toBe('DD.MM.YYYY');
+  });
+
+  it('clearStoredPersonalization removes preference and theme keys', () => {
+    writeStoredPersonalization({
+      themeMode: 'dark',
+      density: 'compact',
+      defaultLandingPath: '/reporting',
+      dateFormat: 'YYYY-MM-DD',
+      timeFormat: '12h',
+      timeZone: 'Europe/Berlin',
+      language: 'en',
+      reducedAnimations: true,
+    });
+    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, 'dark');
+    clearStoredPersonalization();
+    expect(window.localStorage.getItem(PERSONALIZATION_STORAGE_KEY)).toBeNull();
+    expect(window.localStorage.getItem(THEME_MODE_STORAGE_KEY)).toBeNull();
+    expect(readStoredPersonalization()).toMatchObject({ themeMode: 'system' });
   });
 });

@@ -45,6 +45,197 @@
     "title": "Zugriff verweigert",
     "body": "Nur Super-Administratoren dürfen diese Seite öffnen."
   },
+  "limits": {
+    "title": "Mandanten-Limits",
+    "maxActiveRegistersPerUser": "Max. aktive Kassen pro Benutzer",
+    "maxProductsPerTenant": "Max. Produkte pro Mandant",
+    "maxUsersPerTenant": "Max. Benutzer pro Mandant",
+    "dailyMaxTransactions": "Max. Transaktionen pro Tag",
+    "maxTransactionAmount": "Max. Betrag pro Transaktion",
+    "dailyMaxRevenue": "Max. Tagesumsatz",
+    "maxBackupsPerTenant": "Max. Backups pro Mandant",
+    "maxBackupSizeMB": "Max. Backup-Größe (kumulativ, MB)",
+    "maxOfflineTransactions": "Max. Offline-Transaktionen (Mandant)",
+    "save": "Limits speichern",
+    "reset": "Auf Standard zurücksetzen",
+    "resetConfirm": "Sind Sie sicher? Alle Limits werden auf Standard zurückgesetzt.",
+    "saved": "Limits erfolgreich gespeichert",
+    "error": "Fehler beim Speichern der Limits",
+    "required": "Bitte einen Wert eingeben.",
+    "overrideNote": "Nur SuperAdmin kann die Kassen-Zuweisung (max. aktive Kassen pro Benutzer) mit force=true überschreiben. Andere Limits haben keinen Override.",
+    "warningUsage": "{{current}} / {{limit}} — {{name}}",
+    "warningReached": "Limit erreicht! Keine weiteren Einträge möglich.",
+    "warningRemaining": "Noch {{remaining}} verfügbar.",
+    "dashboard": {
+      "title": "Limit Dashboard",
+      "pageTitle": "Limit Dashboard",
+      "subtitle": "Aktuelle Auslastung, kritische Benutzer und Limit-Warnungen.",
+      "lastUpdated": "Letzte Aktualisierung",
+      "allTenants": "Alle Mandanten",
+      "context": {
+        "tenant": "Mandant",
+        "register": "Kasse",
+        "cashier": "Kassierer",
+        "allRegisters": "Alle Kassen",
+        "noTenant": "Kein Mandant gewählt",
+        "tenantValue": "{{name}} ({{slug}})",
+        "mandantLine": "Mandant: {{name}} ({{slug}})",
+        "signedIn": "Angemeldet als: {{name}} ({{userName}})",
+        "roleTenant": "Rolle: {{role}} | Mandant: {{slug}}"
+      },
+      "refresh": "Aktualisieren",
+      "exportCsv": "Als CSV exportieren",
+      "exportEmpty": "Keine Zeilen zum Exportieren.",
+      "exported": "{{count}} Limits exportiert.",
+      "approaching": "Nahe am Limit",
+      "violations": "Limit überschritten",
+      "newAlerts": "Neue Warnungen",
+      "limitsTitle": "Limits",
+      "criticalUsersTitle": "Kritische Benutzer",
+      "recentLogsTitle": "Letzte Limit-Ereignisse",
+      "limit": "Limit",
+      "usage": "Auslastung",
+      "status": {
+        "Healthy": "Gesund",
+        "Warning": "Warnung",
+        "Critical": "Kritisch",
+        "Approaching": "Nähert sich",
+        "Full": "Voll",
+        "Exceeded": "Überschritten"
+      },
+      "statusOk": "OK",
+      "statusApproaching": "Warnung (≥80%)",
+      "statusExceeded": "Überschritten",
+      "tenant": "Mandant",
+      "user": "Benutzer",
+      "tenantWide": "Mandantenweit",
+      "when": "Zeit",
+      "event": "Ereignis",
+      "message": "Meldung",
+      "emptyLimits": "Keine Limits für diesen Filter.",
+      "emptyUsers": "Keine Benutzer nahe am oder über dem Limit.",
+      "emptyLogs": "Keine Limit-Ereignisse.",
+      "loadFailed": "Fehler beim Laden der Limit-Daten",
+      "loadFailedHint": "Bitte versuchen Sie es später erneut.",
+      "filter": {
+        "all": "Alle",
+        "healthy": "Gesund",
+        "warning": "Warnung",
+        "critical": "Kritisch"
+      },
+      "summary": {
+        "healthy": "Gesund",
+        "warning": "Warnung",
+        "critical": "Kritisch",
+        "total": "Gesamt"
+      },
+      "alerts": {
+        "criticalLimit": "{{name}} ist kritisch ({{percent}} %).",
+        "warningLimit": "{{name}} nähert sich dem Limit ({{percent}} %).",
+        "criticalUser": "{{user}} — {{name}} ({{percent}} %)."
+      },
+      "trend": {
+        "Increasing": "Steigend",
+        "Stable": "Stabil",
+        "Decreasing": "Fallend"
+      },
+      "csv": {
+        "current": "Aktuell",
+        "cap": "Limit",
+        "percentage": "Prozent"
+      },
+      "limits": {
+        "title": "Limits",
+        "trend": "Trend",
+        "change": "Änderung (7 Tage)",
+        "changeUnit": "Einheit",
+        "openDetail": "Details öffnen",
+        "maxProductsPerTenant": "Max. Produkte pro Mandant",
+        "maxUsersPerTenant": "Max. Benutzer pro Mandant",
+        "dailyMaxTransactions": "Max. Transaktionen pro Tag",
+        "maxTransactionAmount": "Max. Betrag pro Transaktion",
+        "dailyMaxRevenue": "Max. Tagesumsatz",
+        "maxActiveRegistersPerUser": "Max. Kassen pro Kassierer",
+        "maxBackupsPerTenant": "Max. Backups pro Mandant",
+        "maxBackupSizeMB": "Max. Backup-Größe",
+        "maxOfflineTransactions": "Max. Offline-Transaktionen"
+      },
+      "users": {
+        "title": "Limite nähernde Benutzer",
+        "user": "Benutzer",
+        "limit": "Limit",
+        "usage": "Auslastung",
+        "status": "Status",
+        "action": "Aktion"
+      },
+      "activity": {
+        "title": "Limit-Aktivitätsprotokoll",
+        "time": "Zeit",
+        "limit": "Limit",
+        "status": "Status",
+        "description": "Beschreibung"
+      }
+    },
+    "errors": {
+      "generic": "Mandanten-Limit erreicht ({{current}}/{{limit}}). Bitte kontaktieren Sie den Administrator.",
+      "maxProductsPerTenant": "Maximale Produktanzahl ({{limit}}) erreicht. Aktuell: {{current}}. Bitte löschen Sie nicht benötigte Produkte oder kontaktieren Sie den Administrator.",
+      "maxUsersPerTenant": "Maximale Benutzeranzahl ({{limit}}) erreicht. Aktuell: {{current}}. Bitte deaktivieren Sie nicht benötigte Benutzer oder kontaktieren Sie den Administrator.",
+      "maxActiveRegistersPerUser": "Maximale Kassenanzahl pro Kassierer ({{limit}}) erreicht. Aktuell: {{current}}. Bitte heben Sie nicht benötigte Zuweisungen auf.",
+      "maxBackupsPerTenant": "Maximale Backup-Anzahl ({{limit}}) erreicht. Aktuell: {{current}}. Bitte löschen Sie alte Backups.",
+      "maxBackupSizeMB": "Maximale Backup-Größe ({{limit}} MB) erreicht. Aktuell: {{current}} MB. Bitte löschen Sie alte Backups.",
+      "dailyMaxTransactions": "Tägliches Transaktionslimit ({{limit}}) erreicht. Aktuell: {{current}}. Bitte warten Sie bis morgen.",
+      "maxTransactionAmount": "Maximaler Transaktionsbetrag ({{limit}} €) überschritten. Bitte reduzieren Sie den Betrag.",
+      "dailyMaxRevenue": "Tägliches Umsatzlimit ({{limit}} €) erreicht. Aktuell: {{current}} €. Bitte warten Sie bis morgen.",
+      "maxOfflineTransactions": "Offline-Warteschlange voll ({{current}}/{{limit}}). Bitte synchronisieren Sie die Warteschlange."
+    },
+    "devPanel": {
+      "title": "Limit-Test",
+      "alertTitle": "🧪 Development Limit Test Panel",
+      "alertDescription": "Nur in der Development-Umgebung (Super Admin). Caps werden relativ zur aktuellen Nutzung gesetzt — es werden keine fiskalischen Testdaten erzeugt.",
+      "productionBlocked": "Das Limit-Testpanel ist in Production deaktiviert.",
+      "selectTenant": "Mandant",
+      "selectTenantPlaceholder": "Mandant wählen…",
+      "noTenantSelected": "Bitte zuerst einen Mandanten wählen.",
+      "contextTenantHint": "Aktueller Kontext: {{name}} ({{slug}})",
+      "statusTitle": "Nutzung vs. Limits",
+      "quickEditTitle": "Limit schnell ändern",
+      "scenariosTitle": "Ein-Klick-Szenarien",
+      "scenariosHint": "Szenarien verschieben die Caps (near ≈ 80 %, at = aktuelle Nutzung, tiny = 1). Die nächste echte Aktion löst den Limit-Fehler aus.",
+      "eventLogTitle": "Limit-Ereignisse",
+      "usage": "{{current}} / {{limit}}",
+      "limit": "Limit",
+      "value": "Wert",
+      "apply": "Übernehmen",
+      "resetAll": "Alle zurücksetzen",
+      "resetConfirm": "Alle Limits dieses Mandanten auf Standardwerte zurücksetzen?",
+      "clearCache": "Cache leeren",
+      "cacheCleared": "Limit-Cache geleert.",
+      "saved": "Limit aktualisiert.",
+      "error": "Limit konnte nicht aktualisiert werden.",
+      "loadFailed": "Fehler beim Laden der Test-Daten",
+      "loadFailedHint": "Bitte versuchen Sie es später erneut.",
+      "scenarioSuccess": "Szenario angewendet.",
+      "refresh": "Aktualisieren",
+      "allKeys": "Alle Limits",
+      "logEmpty": "Noch keine Ereignisse in dieser Sitzung.",
+      "logClear": "Log leeren",
+      "logTime": "Zeit",
+      "logAction": "Aktion",
+      "logDetail": "Detail",
+      "scenario": {
+        "near": "Nahe am Limit (~80 %)",
+        "at": "Am Limit (nächste Aktion blockiert)",
+        "tiny": "Minimal (1)",
+        "reset": "Standards"
+      },
+      "logActions": {
+        "set": "Setzen",
+        "reset": "Reset",
+        "scenario": "Szenario",
+        "cache": "Cache"
+      }
+    }
+  },
   "domainManagement": {
     "pageTitle": "Eigene Domain",
     "openAction": "Domain",
@@ -371,19 +562,80 @@
     "pendingBody": "Eine Website-Anfrage wird bereits geprüft.",
     "pendingBodyWithNote": "Eine Website-Anfrage wird bereits geprüft ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS-Profil",
+    "subtitle": "POS-Funktionen und optionale Datenfelder für diesen Mandanten konfigurieren.",
+    "accessDenied": "Nur Super-Administratoren dürfen POS-Profile verwalten.",
+    "selectorTitle": "Profil auswählen",
+    "selectorHelp": "Das Profil liefert die Standardfunktionen und das POS-Layout.",
+    "profileLabel": "POS-Profil",
+    "profilePlaceholder": "Profil auswählen",
+    "overrideTitle": "Mandanten-Overrides",
+    "posFeaturesTitle": "POS-Funktionen",
+    "customFieldsTitle": "Optionale Datenfelder",
+    "customerFields": "Kundenfelder",
+    "productFields": "Produktfelder",
+    "customerFieldPlaceholder": "Kundenfeld hinzufügen",
+    "productFieldPlaceholder": "Produktfeld hinzufügen",
+    "addField": "Hinzufügen",
+    "noCustomFields": "Keine zusätzlichen Felder.",
+    "noFeatures": "Dieses Profil enthält keine POS-Funktionen.",
+    "save": "Profil speichern",
+    "saveSuccess": "POS-Profil wurde gespeichert.",
+    "saveError": "POS-Profil konnte nicht gespeichert werden.",
+    "impactTitle": "Historische Daten bleiben erhalten",
+    "impactIntro": "Der Profilwechsel blendet diese Einträge aus. Rechnungen, Belege und gespeicherte Zeilen werden nicht gelöscht oder verändert.",
+    "impactConfirmTitle": "Profil trotzdem wechseln?",
+    "impactConfirmBody": "Historische Daten bleiben gespeichert und werden nur ausgeblendet.",
+    "impactConfirmOk": "Trotzdem speichern",
+    "impactConfirmCancel": "Abbrechen",
+    "impactCustomersWithPetData": "{{count}} Kunden mit Tierdaten",
+    "impactPaymentsWithPrescriptionReference": "{{count}} Zahlungen mit Rezeptreferenz",
+    "impactPaymentsWithRouteFrom": "{{count}} Zahlungen mit Taxi-Route",
+    "impactSoldImeis": "{{count}} verkaufte IMEIs",
+    "impactAppointments": "{{count}} Termine",
+    "impactRooms": "{{count}} Zimmer",
+    "impactFolios": "{{count}} Folios",
+    "impactTickets": "{{count}} Tickets",
+    "loadError": "POS-Profil konnte nicht geladen werden.",
+    "features": {
+      "tables": "Tische",
+      "kitchenDisplay": "Küchenanzeige",
+      "patientRecord": "Patientenakte",
+      "serviceDuration": "Leistungsdauer",
+      "appointment": "Termine",
+      "imeiTracking": "IMEI-Verfolgung",
+      "routeTracking": "Routenverfolgung",
+      "roomTracking": "Raum-/Sitzplatzverfolgung",
+      "ticketScan": "Ticket-Scan",
+      "prescription": "Rezeptpflicht"
+    },
+    "taxiTariffTitle": "Taxi-Tarif",
+    "taxiTariffHelp": "Kilometertarif für den POS-Fahrpreisvorschlag. Der fiskalische Belegbetrag bleibt die Warenkorb-Leistung.",
+    "taxiTariffLabel": "Tarif pro Kilometer (EUR)"
+  },
   "columns": {
     "name": "Mandant",
     "slug": "Subdomain",
+    "profile": "Profil",
     "email": "Kontakt-E-Mail",
     "status": "Status",
     "adminUser": "Administrator",
     "license": "Lizenz",
+    "licenseType": "Paket",
+    "registers": "Kassen",
+    "users": "Benutzer",
+    "lastActivity": "Letzte Aktivität",
     "created": "Erstellt",
     "actions": "Aktionen"
   },
   "status": {
+    "lead": "Lead",
+    "in_onboarding": "Onboarding",
     "active": "Aktiv",
     "suspended": "Gesperrt",
+    "cancelled": "Gekündigt",
+    "archived": "Archiviert",
     "deleted": "Archiviert"
   },
   "fields": {
@@ -426,6 +678,24 @@
     "title": "Neuen Kunden (Mandant) anlegen",
     "subtitle": "Alle technischen Schritte (Kasse, Demo-Daten, Administrator) werden automatisch eingerichtet.",
     "submit": "Kunden anlegen",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Für Österreich fest aktiv. Dieser Schalter kann nicht ausgeschaltet werden."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "Deutsches Kassenmodul. Der Schalter kann je Mandant geändert werden."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "Schweizer QR-Zahlteil. Der Schalter kann je Mandant geändert werden."
+      },
+      "en16931": {
+        "title": "E-Rechnung (EN 16931)",
+        "helper": "UBL-Entwurf für das EU-Standardprofil. Kein Netzwerkversand."
+      }
+    },
     "wizard": {
       "next": "Weiter",
       "back": "Zurück",
@@ -507,7 +777,7 @@
         "admin": "Administrator wird erstellt …",
         "adminDone": "Administrator-Zugang erstellt",
         "license": "Demo-Lizenz wird aktiviert …",
-        "licenseDone": "Demo-Lizenz (30 Tage) aktiviert",
+        "licenseDone": "Demo-Lizenz (Trial) aktiviert",
         "register": "Kasse wird eingerichtet …",
         "registerDone": "Kasse „Hauptkasse“ eingerichtet",
         "products": "Demo-Produkte werden angelegt …",
@@ -523,7 +793,7 @@
         "placeholder": "Café Beispiel",
         "hint": "Wie der Kunde auf Belegen erscheint",
         "errors": {
-          "required": "Bitte geben Sie einen Firmennamen ein.",
+          "required": "Bitte geben Sie einen Firmennamen ein",
           "tooShort": "Der Firmenname muss mindestens 2 Zeichen haben.",
           "tooLong": "Der Firmenname darf höchstens 200 Zeichen haben."
         }
@@ -533,14 +803,16 @@
         "tooltip": "Internet-Adresse für Kasse und Verwaltung des Kunden",
         "placeholder": "cafe-beispiel",
         "hint": "Wird automatisch aus dem Firmennamen vorgeschlagen",
-        "availableShort": "✅ Verfügbar",
-        "takenShort": "Bereits vergeben",
+        "subdomainHint": "Wird für die Subdomain verwendet: {{slug}}.{{domain}}",
+        "availableShort": "Verfügbar",
+        "takenShort": "Nicht verfügbar",
         "checkingShort": "Verfügbarkeit wird geprüft …",
+        "suggestionsLabel": "Vorschläge:",
         "success": "Diese Adresse ist verfügbar.",
         "errors": {
-          "required": "Bitte eine Subdomain eingeben (z. B. cafe-example).",
-          "pattern": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt",
-          "invalid": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt; nicht die volle Domain einfügen.",
+          "required": "Bitte eine Subdomain eingeben (z. B. cafe-beispiel).",
+          "pattern": "Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten",
+          "invalid": "Der Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten; nicht die volle Domain einfügen.",
           "reserved": "Diese Subdomain ist reserviert (z. B. admin, www).",
           "taken": "Diese Subdomain ist bereits vergeben.",
           "checking": "Verfügbarkeit wird geprüft …",
@@ -551,10 +823,10 @@
         "label": "E-Mail (Kontakt)",
         "tooltip": "Wird auch als Anmelde-E-Mail für den Administrator verwendet",
         "placeholder": "geschaeftsfuehrer@cafe-beispiel.at",
-        "hint": "Für Rechnungen, Support und Administrator-Anmeldung",
+        "hint": "Diese E-Mail wird für den Admin-Benutzer verwendet",
         "errors": {
-          "required": "Bitte eine gültige E-Mail-Adresse eingeben.",
-          "invalid": "Bitte eine gültige E-Mail-Adresse eingeben."
+          "required": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+          "invalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein"
         }
       },
       "phone": {
@@ -584,12 +856,16 @@
         "copy": "E-Mail kopieren"
       },
       "grantTrialLicense": {
-        "label": "Demo-Lizenz (30 Tage kostenlos) aktivieren",
-        "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich"
+        "label": "Demo-Lizenz (Trial) aktivieren",
+        "tooltip": "Konfigurierbare Trial-Dauer (Standard 14 Tage); danach Verlängerung oder Paid-Upgrade möglich"
       },
-      "autoDemoSetup": {
-        "label": "Demo-Produkte und Kasse automatisch anlegen",
-        "tooltip": "Legt Hauptkasse und drei Demo-Produkte an (empfohlen)"
+      "trialDuration": {
+        "label": "Trial-Dauer",
+        "tooltip": "Super Admin wählt die Trial-Länge",
+        "days_14": "14 Tage",
+        "days_30": "30 Tage",
+        "days_60": "60 Tage",
+        "days_90": "90 Tage"
       },
       "importDemoProducts": {
         "label": "Demo-Produkte automatisch importieren",
@@ -608,10 +884,14 @@
     "successTitle": "Mandant angelegt",
     "successHeadline": "Kunde „{{name}}“ wurde erfolgreich angelegt!",
     "demoMenuImported": "Demo-Menü importiert: {{count}} Produkte angelegt.",
+    "demoReady": "46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.",
     "missingWarning": "Die automatische Einrichtung konnte nicht bestätigt werden. Bitte Mandant prüfen oder Support kontaktieren.",
     "passwordWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
     "credentialsTitle": "Zugangsdaten (einmalige Anzeige!)",
     "adminEmailLabel": "Admin E-Mail",
+    "usernameLabel": "Benutzername",
+    "loginUrlLabel": "Login-URL",
+    "tenantPortalLabel": "Mandanten-Portal",
     "password": "Passwort",
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
@@ -623,14 +903,20 @@
       "good": "Gut",
       "strong": "Sehr stark"
     },
-    "firstStepsTitle": "Erste Schritte",
+    "firstStepsTitle": "Nächste Schritte",
     "firstStepLogin": "Kunde einloggen:",
     "firstStepChangePassword": "Passwort ändern",
     "firstStepProducts": "Produkte anpassen",
     "firstStepPrinter": "Kasse mit Drucker verbinden",
     "firstStepTestSale": "Test-Transaktion durchführen",
+    "firstStepLoginAdmin": "Im Admin-Portal anmelden",
+    "firstStepCompanySettings": "Firmeneinstellungen konfigurieren (Steuernummer, Adresse)",
+    "firstStepCashRegister": "Kasse einrichten und verbinden",
+    "firstStepStartPos": "POS nutzen und erste Testbuchung durchführen",
     "emailSent": "Eine E-Mail mit den Zugangsdaten wurde an {{email}} gesendet.",
     "emailNotSent": "SMTP ist nicht konfiguriert oder der Versand ist fehlgeschlagen. Bitte übermitteln Sie die Zugangsdaten manuell an {{email}}.",
+    "emailCredentials": "Zugangsdaten per E-Mail senden",
+    "emailCredentialsDisabled": "Willkommens-E-Mail wird beim Anlegen automatisch versucht (SMTP).",
     "forcePasswordChange": "Der Kunde muss das Passwort bei der ersten Anmeldung ändern.",
     "createAnother": "Neuen Kunden anlegen",
     "switchToTenant": "Zum Kunden wechseln",
@@ -641,11 +927,27 @@
     "copyFailed": "Kopieren fehlgeschlagen"
   },
   "filters": {
-    "includeDeleted": "Gelöschte anzeigen"
+    "includeDeleted": "Gelöschte anzeigen",
+    "searchPlaceholder": "Name oder Subdomain suchen",
+    "statusPlaceholder": "Status",
+    "licenseTypePlaceholder": "Lizenztyp",
+    "sortByPlaceholder": "Sortierung",
+    "allStatuses": "Alle Status",
+    "allLicenseTypes": "Alle Lizenztypen",
+    "sortName": "Name",
+    "sortCreated": "Erstellt",
+    "sortLicenseDays": "Lizenz-Resttage",
+    "sortRegisters": "Kassenanzahl",
+    "sortUsers": "Benutzeranzahl",
+    "sortLastActivity": "Letzte Aktivität"
   },
   "actions": {
     "create": "Mandant anlegen",
+    "createDemo": "Demo-Mandant anlegen",
     "edit": "Bearbeiten",
+    "exportCsv": "CSV exportieren",
+    "exportSuccess": "Export gestartet.",
+    "exportFailed": "CSV-Export fehlgeschlagen.",
     "decommission": "Mandant decommission",
     "delete": "Löschen",
     "archive": "Archivieren",
@@ -657,7 +959,26 @@
     "manageLicense": "Lizenz",
     "suspend": "Sperren",
     "reactivate": "Reaktivieren",
-    "view": "Details"
+    "view": "Details",
+    "changeStatus": "Status ändern"
+  },
+  "analytics": {
+    "title": "Kundenübersicht",
+    "totalTenants": "Mandanten gesamt",
+    "activeTenants": "Aktiv",
+    "expiringSoon": "Läuft bald ab",
+    "mrr": "MRR",
+    "loadFailed": "Statistiken konnten nicht geladen werden.",
+    "churnRate": "Churn (Monat)",
+    "arpu": "ARPU",
+    "paidTenants": "Zahlend",
+    "trialTenants": "Testphase",
+    "ltv": "LTV",
+    "planDistribution": "Paketverteilung",
+    "planTrial": "Test",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo-Mandant",
@@ -666,6 +987,10 @@
       "users": "Benutzer",
       "registers": "Kassen",
       "license": "Lizenz",
+      "verticalProfile": "POS-Profil",
+      "limits": "Limits",
+      "kitchen": "Küche",
+      "rooms": "Zimmer",
       "settings": "Einstellungen"
     },
     "overview": {
@@ -1424,5 +1749,70 @@
   },
   "list": {
     "pageTitle": "Mandanten"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung-Drucklücken",
+    "description": "Erfasst, welche offenen Drucklücken für diesen Mandanten akzeptabel sind. Der Eintrag ändert die PDF nicht und schaltet keine Bankübermittlung frei.",
+    "save": "Speichern",
+    "saved": "Lückenbestätigung gespeichert.",
+    "invalidGaps": "Eine oder mehrere Lücken-IDs gehören nicht zum bekannten Katalog.",
+    "loadFailed": "Die Drucklücken-Bestätigung konnte nicht geladen werden.",
+    "outstandingWarning": "Diese Druckfunktionen sind nicht Teil der aktuellen QR-Rechnung-Ausgabe. Der Betreiber muss bestätigen, dass sie für diesen Mandanten akzeptabel sind.",
+    "gap": {
+      "officialSwissCross": "Offizielles 7-mm-Schweizerkreuz mit weißem Rand",
+      "fontEmbeddingLiberationArial": "Eingebettete Schrift Liberation Sans oder Arial",
+      "pain001": "pain.001-Überweisungsdatei",
+      "bankScan": "Bankscan der gedruckten Rechnung",
+      "perforationLine": "Perforationsmarke zwischen Empfangsschein und Zahlteil"
+    }
+  },
+  "kitchen": {
+    "title": "Küche",
+    "subtitle": "Küchenaufträge und Anzeige-Einstellungen für diesen Mandanten.",
+    "unavailable": "Das aktuelle POS-Profil hat keine Küchenanzeige.",
+    "settingsTitle": "Einstellungen",
+    "autoClear": "Automatisch ausblenden (Minuten)",
+    "autoClearHelp": "Nach wie vielen Minuten fertige Tickets ausgeblendet werden dürfen.",
+    "sound": "Ton bei neuer Bestellung",
+    "soundHelp": "KDS darf einen Hinweis-Ton abspielen, wenn das Gerät das erlaubt.",
+    "save": "Speichern",
+    "saved": "Kücheneinstellungen gespeichert.",
+    "saveFailed": "Kücheneinstellungen konnten nicht gespeichert werden.",
+    "readOnly": "Nur Lesen — zum Speichern ist settings.manage erforderlich.",
+    "liveTitle": "Offene Küchenbestellungen",
+    "empty": "Keine Küchenbestellungen.",
+    "colTable": "Tisch",
+    "colStatus": "Status",
+    "colNotes": "Notizen",
+    "colItems": "Positionen",
+    "takeAway": "Außer Haus",
+    "analyticsTitle": "Auswertung",
+    "avgPrep": "Durchschnittliche Zubereitungszeit",
+    "avgPrepValue": "{{minutes}} Min.",
+    "ordersPerHour": "Bestellungen pro Stunde (24h)",
+    "lastHour": "Bestellungen in der letzten Stunde",
+    "status": {
+      "Pending": "Offen",
+      "InPreparation": "In Zubereitung",
+      "Ready": "Fertig",
+      "Served": "Serviert",
+      "Cancelled": "Storniert"
+    }
+  },
+  "demoRequests": {
+    "title": "Demo-Anfragen",
+    "empty": "Keine Demo-Anfragen.",
+    "loadError": "Demo-Anfragen konnten nicht geladen werden.",
+    "statusNew": "Neu",
+    "statusContacted": "Kontaktiert",
+    "statusClosed": "Geschlossen",
+    "columns": {
+      "name": "Name",
+      "email": "E-Mail",
+      "company": "Firma",
+      "industry": "Branche",
+      "status": "Status",
+      "created": "Eingegangen"
+    }
   }
 }

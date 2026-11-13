@@ -1,8 +1,20 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.Services.AdminTenants;
 
 public interface IAdminTenantService
 {
     Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(bool includeDeleted, CancellationToken cancellationToken = default);
+
+    /// <summary>Filtered, sorted, paginated Super Admin tenant inventory.</summary>
+    Task<PagedResult<AdminTenantListItemDto>> ListPagedAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Filtered Super Admin tenant inventory without pagination (CSV / full export).</summary>
+    Task<IReadOnlyList<AdminTenantListItemDto>> ListForExportAsync(
+        AdminTenantListQuery query,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Dev/header tenant switcher: all tenants for SuperAdmin; membership-scoped for other users.
@@ -53,6 +65,18 @@ public interface IAdminTenantService
         Guid tenantId,
         UpdateTenantOperationModeRequest request,
         string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Super Admin: change operating country and/or VAT regime on <c>company_settings</c>.</summary>
+    Task<(AdminTenantDetailDto? Result, string? Error, string? ErrorCode)> UpdateCountryAsync(
+        Guid tenantId,
+        UpdateAdminTenantCountryRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<CountryChangeImpactDto?> GetCountryChangeImpactAsync(
+        Guid tenantId,
+        string country,
         CancellationToken cancellationToken = default);
 
     Task<(bool Success, string? Error)> SoftDeleteAsync(

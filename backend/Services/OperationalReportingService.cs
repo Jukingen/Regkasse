@@ -14,8 +14,8 @@ namespace KasseAPI_Final.Services;
 /// POS ödeme satırlarından operatör / muhasebe raporları (read-only).
 /// </summary>
 /// <remarks>
-/// TODO (genişletme): Ödeme satırı «durum» filtresi (yalnızca Verkauf / nur Erstattung / inkl. Storno) için ayrı query parametresi;
-/// şu an <c>activeOnly</c> ve satış/refund ayrımı toplamlarda yansır ancak tek endpoint parametresi yok.
+/// Optional later: dedicated payment-row status filter (Verkauf / Erstattung / Storno).
+/// Today <c>activeOnly</c> plus sale/refund totals cover the operator view.
 /// </remarks>
 public interface IOperationalReportingService
 {

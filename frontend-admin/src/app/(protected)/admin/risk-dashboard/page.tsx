@@ -9,12 +9,14 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 
 import { dateColumnRender } from '@/components/DateColumn';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { getRiskScores, resolveRisk } from '@/features/risk/api/riskScores';
 import type { RiskScoreDto } from '@/features/risk/types';
 import { deactivateUser } from '@/features/users/api/usersApi';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 
 const LEVEL_COLOR: Record<string, string> = {
   Critical: 'red',
@@ -156,10 +158,13 @@ export default function RiskDashboardPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <Typography.Title level={3} style={{ marginTop: 0 }}>
-        {t('riskDashboard.pageTitle')}
-      </Typography.Title>
-      <Typography.Paragraph type="secondary">{t('riskDashboard.pageSubtitle')}</Typography.Paragraph>
+      <AdminPageHeader
+        title={t('riskDashboard.pageTitle')}
+        subtitle={t('riskDashboard.pageSubtitle')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'monitoringLogs', {
+          title: t('riskDashboard.pageTitle'),
+        })}
+      />
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} md={6}>

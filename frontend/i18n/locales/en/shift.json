@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "needRegisterSelection": "Please select a cash register before continuing.",
+    "registerNotFound": "The selected cash register was not found.",
+    "registerUnavailable": "The selected cash register is not available. Please contact the administrator.",
+    "registerDecommissioned": "This cash register has been decommissioned and can no longer be used.",
+    "noActiveRegisters": "No active cash registers found. Please contact the administrator.",
+    "shiftAlreadyOpen": "The shift is already open.",
+    "unknown": "An error occurred. Please try again."
+  },
+  "success": {
+    "shiftOpened": "Shift opened successfully.",
+    "shiftAlreadyOpen": "The shift is already open."
+  },
+  "alerts": {
+    "needRegisterTitle": "Select a register",
+    "registerNotFoundTitle": "Register not found",
+    "registerUnavailableTitle": "Register unavailable",
+    "registerDecommissionedTitle": "Register decommissioned",
+    "noActiveRegistersTitle": "No registers",
+    "shiftAlreadyOpenTitle": "Shift already open",
+    "unknownTitle": "Could not open the shift"
+  }
+}

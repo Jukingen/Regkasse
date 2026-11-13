@@ -42,7 +42,6 @@ public sealed class DepExportScheduler : IDepExportScheduler
     private readonly IAuditReportEmailService _emailService;
     private readonly IFileNamingService _fileNaming;
     private readonly ILogger<DepExportScheduler> _logger;
-    private readonly string _storageRoot;
 
     public DepExportScheduler(
         AppDbContext context,
@@ -58,8 +57,6 @@ public sealed class DepExportScheduler : IDepExportScheduler
         _emailService = emailService;
         _fileNaming = fileNaming;
         _logger = logger;
-        _storageRoot = Path.Combine(Path.GetTempPath(), "regkasse-dep-exports");
-        Directory.CreateDirectory(_storageRoot);
     }
 
     public DateTime ComputeNextRunUtc(
@@ -177,8 +174,6 @@ public sealed class DepExportScheduler : IDepExportScheduler
                 "json",
                 registerNumber,
                 tenantSlug: tenantSlug);
-            var storagePath = Path.Combine(_storageRoot, $"{schedule.TenantId:N}_{Guid.NewGuid():N}.json");
-            await File.WriteAllTextAsync(storagePath, json, cancellationToken).ConfigureAwait(false);
 
             await _historyService.RecordCompletedAsync(
                     new DepExportHistoryRecordRequest
@@ -190,7 +185,6 @@ public sealed class DepExportScheduler : IDepExportScheduler
                         ExportedByUserId = "system-scheduler",
                         Export = export,
                         ScheduleId = schedule.Id,
-                        StoragePath = storagePath,
                         FileName = fileName,
                     },
                     cancellationToken)

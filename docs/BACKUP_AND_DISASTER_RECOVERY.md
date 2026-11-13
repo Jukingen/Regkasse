@@ -3,7 +3,8 @@
 **Audience:** Backend/FA maintainers, operators, AI agents.  
 **Status:** Implemented (Tenant vs System strategies, role-aware FA, validation-only restore).  
 **Always-applied rules:** [`AGENTS.md`](../AGENTS.md) § Backup & Disaster Recovery.  
-**Full system guide:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md).
+**Full system guide:** [`BACKUP_SYSTEM.md`](BACKUP_SYSTEM.md).  
+**Current focus (2026-09-06):** System Backup reliability (Production PgDump + archive + alerts). Isolated workstation restore drill **Passed**. **Legal retention:** System backups are held for 7 years (BAO §132) via Legal Hold + optional Cold/WORM archive (`ICloudStorageService`). **Still P2:** Tenant Validation Restore (Manager self-service). Incremental Tenant ZIP + WAL inventory/PITR planning are available; production WAL replay remains a DBA procedure ([`PITR_RESTORE.md`](PITR_RESTORE.md)).
 
 ---
 
@@ -15,7 +16,7 @@
 | Strategy | `BackupStrategyKind.Tenant` | `BackupStrategyKind.System` |
 | Artifact | `*.tenant.zip` (JSON tables) | `pg_dump -Fc` + `*.system.zip` |
 | Identity | Excluded | Included |
-| Retention default | 30 days | 90 days |
+| Retention default | 30 days (operational) | 90 days operational + **7 years legal** (BAO §132) |
 | Facade | `CreateTenantBackupAsync` | `CreateSystemBackupAsync` |
 | Scheduled cron | — | Yes (`BackupScheduledEnqueueService`) |
 | List / download (Manager) | Own tenant only | Never |
@@ -56,24 +57,54 @@ Detail: [`restore-boundary-notes.md`](restore-boundary-notes.md), restore drill 
 
 Detail: [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md), AI short: [`ai/modules/backup_permissions.md`](../ai/modules/backup_permissions.md).
 
+### Download security
+
+Backup artifact downloads are gated by JWT authentication, role / permission checks, and tenant isolation (cross-tenant → 404). Sensitive system downloads may still require privacy acknowledgement and (when configured) Super Admin approval. **Step-up 2FA is not required** for backup downloads (`DownloadSecurity:RequireTwoFactorForCriticalExports=false`).
+
 ---
 
 ## Frontend Admin
 
 | Path | Purpose |
 |------|---------|
-| `/backup` | Role-aware hub (`TenantBackupView` / `SystemBackupView`) |
+| `/dashboard` | Home widget `BackupStatusWidget` — last backup, RPO, staging storage, next schedule, health alerts |
 | `/backup/dashboard` | DR operator dashboard |
 | `/backup/performance` | Duration / ETA metrics |
 | `/backup/compliance` | RKSV product-gate readiness |
 | `/backup/costs` | Indicative Hot/Warm/Cold storage costs |
-| `/backup/runs` | Run list / metrics |
+| `/backup/retention` | Super Admin Hot/Warm/Cold + 7-year legal policy (`/settings/backup-retention` redirects here) |
+| `/backup/pitr` | Point-in-time planning, backup chain, WAL status, isolated dry-run (Super Admin) |
+| `/admin/restore-verification` | Restore-drill PASS/FAIL list + detail + PDF/CSV (`/backup/restore-verification` redirects here) |
+| `/backup/runs` | Run list (created-by, type/date filters, download) + detail metadata / download history |
 | `/backup/configuration` | Schedule + platform execution mode (gated) |
 | `/backup/audit` | Activity + audit |
 
 Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 
 ---
+
+## Known-gap acceptance
+
+Super Admin can acknowledge a known Backup/DR gap for one mandant. The record is `tenant_settings` key `Backup:KnownGapsAccepted` (`acceptedGaps`, `acceptedBy`, `acceptedAtUtc`). There is no new table and no deployment-wide row. The catalog is `backend/Services/Backup/BackupKnownGaps.json` (version 1):
+
+| Id | Meaning when accepted |
+|----|------------------------|
+| `external-archive-not-set` | Archive root is missing (health Degraded). The operator knows; dumps stay in the database path only. |
+| `scheduled-drill-not-run` | The weekly scheduled drill is more than 7 days late. The operator knows; the next scheduled run is unchanged. |
+| `system-legal-hold-not-configured` | Legal hold is missing on the latest succeeded system backup. Legal review is on file. |
+| `dev-only-fake-adapter` | Development is using the fake adapter. Expected in that environment. |
+
+Acceptance does **not** disable the check and does **not** move `lastSuccessfulRestoreProofAt` or `lastSuccessfulRestoreDrillAtUtc`. An accepted open gap is amber ("known") on `/backup/compliance`, `/backup/dashboard`, and an overdue drill row on `/backup/drills`. The compliance verdict stays fail unless `Backup:KnownGapsAcceptance` is `{ "AllowsGateOverride": true }` (default false). Even then the card stays amber; it does not turn green.
+
+API (Super Admin, `system.critical`): `GET /api/admin/backup/known-gaps?tenantId=` and `PUT /api/admin/backup/known-gaps` with `{ tenantId, acceptedGapIds, acceptedBy }`. Unknown ids are HTTP 400 `BACKUP_KNOWN_GAP_UNKNOWN`. A missing tenant is HTTP 404. Every save writes audit `BackupKnownGapsAccepted` (142). The FA panel is on `/backup/compliance` only (no new route, no sidebar entry).
+
+## Restore drills
+
+`POST /api/admin/backup/drills/{id}/pdf` (`system.critical`) returns a single-drill A4 PDF for a Passed or Failed drill. A cancelled drill is HTTP 400 `DRILL_NOT_REPORTABLE`. A missing or cross-tenant drill is HTTP 404. The response is not stored. Each download writes audit `RestoreDrillPdfDownloaded` (151) with tenant id, drill id, and actor id. FA `/backup/drills` shows "PDF herunterladen" on Passed and Failed rows. The `/backup/dashboard` section "Wiederherstellbarkeit prüfen" shows the live recoverability summary and compares it with the last 5 drills.
+
+## Weekly drill summary
+
+`BackupDrillReport` (default off, Monday 06:00 UTC) emails the recoverability proof time, days since that proof, the next drill cadence, the 30-day drill success rate, and `Backup:KnownGapsAccepted` rows. If no recipients are configured, the run is recorded as `BackupDrillReportSkipped` (145, reason: no-recipients) and no email is sent. A send writes `BackupDrillReportSent` (143), and a failed send writes `BackupDrillReportFailed` (144).
 
 ## Key code
 
@@ -84,7 +115,9 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 | Access filter | `backend/Services/Backup/BackupRunAccessEvaluator.cs` |
 | Tenant export | `TenantScopedLogicalBackupExecutionAdapter`, `TenantScopedBackupExporter` |
 | System export | `CompositeSystemBackupExecutionAdapter`, `SystemScopedBackupExporter` |
-| API | `AdminBackupController`, `AdminRestoreController` |
+| API | `AdminBackupController`, `AdminBackupKnownGapsController`, `AdminBackupPitrController`, `AdminRestoreController` |
+| Weekly drill summary | `BackupDrillReportHostedService`, `BackupDrillReport` |
+| PITR / incremental / WAL | `PitrService`, `IncrementalBackupService`, `WalArchiveService`, `BackupChainService` |
 | FA hub | `frontend-admin/src/app/(protected)/backup/page.tsx` |
 
 ---
@@ -92,5 +125,7 @@ Routes: `frontend-admin/src/shared/backupAreaRoutes.ts`.
 ## Related runbooks
 
 - Phase 1 orchestration: [`backup-phase1-runbook.md`](backup-phase1-runbook.md)
+- PITR + incremental + WAL archive: [`PITR_RESTORE.md`](PITR_RESTORE.md)
+- `GET /api/admin/backup/pitr/wal-status` returns live WAL archival health; `/backup/pitr` shows it at the top.
 - Phase 2 `pg_dump`: [`backup-phase2-runbook.md`](backup-phase2-runbook.md)
 - Distributed lock (restore verification): [`restore-verification-distributed-lock.md`](restore-verification-distributed-lock.md)

@@ -48,5 +48,16 @@ public interface IRefreshTokenService
 
     Task LogoutAllAsync(string userId, string reason, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Revokes active sessions (and their refresh tokens) for <paramref name="userId"/>
+    /// scoped to <paramref name="clientApp"/> (<c>admin</c> or <c>pos</c>).
+    /// No-op when <paramref name="clientApp"/> is unknown so a POS logout cannot wipe FA sessions.
+    /// </summary>
+    Task RevokeForUserAndClientAppAsync(
+        string userId,
+        string? clientApp,
+        string reason,
+        CancellationToken cancellationToken = default);
+
     Task<bool> IsSessionActiveAsync(string userId, Guid sessionId, CancellationToken cancellationToken = default);
 }

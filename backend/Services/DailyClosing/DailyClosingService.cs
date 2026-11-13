@@ -43,6 +43,29 @@ public interface IDailyClosingService
         bool isBackdated = false,
         string? reason = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Builds a Vienna-calendar month grid: closed / open / empty / future days for one tenant
+    /// (optional cash register). Transaction counts use paid invoices excluding RKSV special receipts.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Year or month is outside the supported range.</exception>
+    /// <exception cref="KeyNotFoundException">Requested cash register is not in the tenant scope.</exception>
+    Task<DailyClosingCalendarDto> GetCalendarAsync(
+        Guid tenantId,
+        int year,
+        int month,
+        Guid? cashRegisterId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Vienna-today plus ISO week (Mon–Sun) snapshot for the FA dashboard widget.
+    /// Transaction counts use paid invoices excluding RKSV special receipts.
+    /// </summary>
+    /// <exception cref="KeyNotFoundException">Requested cash register is not in the tenant scope.</exception>
+    Task<DailyClosingDashboardSummaryDto> GetDashboardSummaryAsync(
+        Guid tenantId,
+        Guid? cashRegisterId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class DailyClosingService : IDailyClosingService
@@ -302,14 +325,6 @@ public sealed class DailyClosingService : IDailyClosingService
                             && p.RksvSpecialReceiptKind != null))
             .ToListAsync(cancellationToken);
 
-        if (transactions.Count == 0)
-        {
-            return Fail(
-                computedBackdated
-                    ? $"No transactions found for {businessDay:dd.MM.yyyy}. Cannot perform daily closing."
-                    : "No transactions found for today. Cannot perform daily closing.");
-        }
-
         var tenantId = register.TenantId != Guid.Empty
             ? register.TenantId
             : await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
@@ -323,6 +338,18 @@ public sealed class DailyClosingService : IDailyClosingService
         var totalAmount = transactions.Sum(t => t.TotalAmount);
         var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
         var transactionCount = transactions.Count;
+        var isEmpty = transactionCount == 0;
+        var dayKind = DailyClosingDayKinds.FromTransactionCount(transactionCount);
+
+        if (isEmpty)
+        {
+            _logger.LogInformation(
+                "Empty daily closing (no fiscal invoices) for CashRegisterId={CashRegisterId} BusinessDay={BusinessDay:yyyy-MM-dd} ActorUserId={UserId} Backdated={IsBackdated}",
+                cashRegisterId,
+                businessDay,
+                actorUserId,
+                computedBackdated);
+        }
 
         var previousClosing = await _db.DailyClosings.AsNoTracking()
             .Where(c => c.CashRegisterId == cashRegisterId
@@ -368,6 +395,7 @@ public sealed class DailyClosingService : IDailyClosingService
             IsBackdated = computedBackdated,
             LateCreationReason = computedBackdated ? lateReason : null,
             ClosingType = "Daily",
+            DayKind = dayKind,
             TotalAmount = totalAmount,
             TotalTaxAmount = totalTaxAmount,
             TransactionCount = transactionCount,
@@ -413,12 +441,16 @@ public sealed class DailyClosingService : IDailyClosingService
             businessDay,
             computedBackdated,
             lateReason,
-            closing.CreatedAt);
+            closing.CreatedAt,
+            isEmpty,
+            transactionCount);
 
         return new DailyClosingResult
         {
             Success = true,
             IsBackdated = computedBackdated,
+            IsEmpty = isEmpty,
+            DayKind = dayKind,
             Closing = MapToDto(closing, register.RegisterNumber),
             PaymentBreakdown = summary.PaymentBreakdown,
             TaxBreakdown = summary.TaxBreakdown,
@@ -433,7 +465,9 @@ public sealed class DailyClosingService : IDailyClosingService
         DateTime businessDay,
         bool isBackdated,
         string? lateReason,
-        DateTime createdAtUtc)
+        DateTime createdAtUtc,
+        bool isEmpty = false,
+        int transactionCount = 0)
     {
         try
         {
@@ -443,9 +477,13 @@ public sealed class DailyClosingService : IDailyClosingService
             var daysLate = isBackdated
                 ? Math.Max(0, (viennaToday.Date - businessDay.Date).Days)
                 : 0;
-            var description = isBackdated
-                ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
-                : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
+            var description = isEmpty
+                ? (isBackdated
+                    ? $"Leerer nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen, DaysLate={daysLate})"
+                    : $"Leerer Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (0 Transaktionen)")
+                : isBackdated
+                    ? $"Nachträglicher Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt (CreatedAt = echte UTC-Zeit, DaysLate={daysLate})"
+                    : $"Tagesabschluss für {businessDay:yyyy-MM-dd} erstellt";
 
             await _auditLogService.LogSystemOperationAsync(
                 action,
@@ -459,12 +497,15 @@ public sealed class DailyClosingService : IDailyClosingService
                     userId = actorUserId,
                     closingDate = businessDay.ToString("yyyy-MM-dd"),
                     isBackdated,
+                    isEmpty,
+                    transactionCount,
+                    dayKind = isEmpty ? DailyClosingDayKinds.Empty : DailyClosingDayKinds.Normal,
                     backdatedReason = lateReason,
                     reason = lateReason,
                     createdAt = createdAtUtc,
                     daysLate,
                 },
-                responseData: new { closingId, isBackdated, daysLate },
+                responseData: new { closingId, isBackdated, isEmpty, daysLate },
                 entityId: closingId,
                 tenantId: tenantId);
         }
@@ -515,6 +556,12 @@ public sealed class DailyClosingService : IDailyClosingService
             IsBackdated = closing.IsBackdated,
             LateCreationReason = closing.LateCreationReason,
             ClosingType = closing.ClosingType,
+            DayKind = string.IsNullOrWhiteSpace(closing.DayKind)
+                ? DailyClosingDayKinds.FromTransactionCount(closing.TransactionCount)
+                : closing.DayKind,
+            IsEmpty = DailyClosingDayKinds.IsEmptyValue(closing.DayKind)
+                      || (string.Equals(closing.ClosingType, "Daily", StringComparison.OrdinalIgnoreCase)
+                          && closing.TransactionCount == 0),
             TotalAmount = closing.TotalAmount,
             TotalTaxAmount = closing.TotalTaxAmount,
             TransactionCount = closing.TransactionCount,
@@ -553,6 +600,232 @@ public sealed class DailyClosingService : IDailyClosingService
     private static bool IsDuplicateDailyClosing(DbUpdateException ex) =>
         ex.InnerException?.Message.Contains("IX_", StringComparison.OrdinalIgnoreCase) == true
         || ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <inheritdoc />
+    public async Task<DailyClosingCalendarDto> GetCalendarAsync(
+        Guid tenantId,
+        int year,
+        int month,
+        Guid? cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        if (year is < 2000 or > 2100)
+            throw new ArgumentOutOfRangeException(nameof(year), "Year must be between 2000 and 2100.");
+        if (month is < 1 or > 12)
+            throw new ArgumentOutOfRangeException(nameof(month), "Month must be between 1 and 12.");
+
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var monthStart = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(year, month, 1);
+        var monthEnd = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(year, month, daysInMonth);
+        var today = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var range = await LoadViennaClosingRangeAsync(tenantId, monthStart, monthEnd, cashRegisterId, cancellationToken);
+
+        var days = new List<DailyClosingDayDto>(daysInMonth);
+        for (var dayNumber = 1; dayNumber <= daysInMonth; dayNumber++)
+        {
+            var key = $"{year:D4}{month:D2}{dayNumber:D2}";
+            var calendarMidnight = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(year, month, dayNumber);
+            var isFuture = calendarMidnight > today;
+            var isToday = calendarMidnight == today;
+            var closed = range.ClosingsByDate.TryGetValue(key, out var closing);
+            var transactionCount = range.TransactionCounts.TryGetValue(key, out var count) ? count : 0;
+            var dayKind = closed ? closing!.DayKind : null;
+
+            days.Add(new DailyClosingDayDto
+            {
+                Date = new DateOnly(year, month, dayNumber),
+                IsClosed = closed,
+                DayKind = dayKind,
+                ClosingType = dayKind,
+                TransactionCount = transactionCount,
+                CanClose = range.RegisterIds.Count > 0 && !closed && !isFuture,
+                ClosingId = closed ? closing!.Id : null,
+                IsToday = isToday,
+                IsFuture = isFuture,
+            });
+        }
+
+        return new DailyClosingCalendarDto
+        {
+            Year = year,
+            Month = month,
+            CashRegisterId = range.RequestedRegisterId,
+            Days = days,
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosingDashboardSummaryDto> GetDashboardSummaryAsync(
+        Guid tenantId,
+        Guid? cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var today = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var mondayOffset = ((int)today.DayOfWeek + 6) % 7;
+        var weekStart = today.AddDays(-mondayOffset);
+        var weekEnd = weekStart.AddDays(6);
+        var range = await LoadViennaClosingRangeAsync(tenantId, weekStart, weekEnd, cashRegisterId, cancellationToken);
+
+        var todayKey = $"{today.Year:D4}{today.Month:D2}{today.Day:D2}";
+        var todayClosed = range.ClosingsByDate.TryGetValue(todayKey, out var todayClosing);
+        var todayTx = range.TransactionCounts.TryGetValue(todayKey, out var todayCount) ? todayCount : 0;
+        var todayKind = todayClosed ? todayClosing!.DayKind : null;
+
+        var week = new DailyClosingWeekSummaryDto
+        {
+            Start = DateOnly.FromDateTime(weekStart),
+            End = DateOnly.FromDateTime(weekEnd),
+            TotalDays = 7,
+        };
+
+        for (var i = 0; i < 7; i++)
+        {
+            var day = weekStart.AddDays(i);
+            var key = $"{day.Year:D4}{day.Month:D2}{day.Day:D2}";
+            var closed = range.ClosingsByDate.TryGetValue(key, out var closing);
+            var tx = range.TransactionCounts.TryGetValue(key, out var count) ? count : 0;
+            if (closed)
+            {
+                week.ClosedDays++;
+                if (DailyClosingDayKinds.IsEmptyValue(closing!.DayKind))
+                    week.EmptyDays++;
+            }
+            else if (day > today)
+            {
+                week.FutureDays++;
+            }
+            else if (tx > 0)
+            {
+                week.OpenDays++;
+            }
+            else
+            {
+                week.NoTransactionDays++;
+            }
+        }
+
+        DailyClosingLastClosingDto? lastClosing = null;
+        if (range.RegisterIds.Count > 0)
+        {
+            var last = await _db.DailyClosings.AsNoTracking()
+                .Where(c => c.TenantId == tenantId
+                            && c.ClosingType == "Daily"
+                            && c.Status == "Completed"
+                            && range.RegisterIds.Contains(c.CashRegisterId))
+                .OrderByDescending(c => c.ClosingDate)
+                .ThenByDescending(c => c.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (last != null)
+            {
+                var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(
+                    PostgreSqlUtcDateTime.InstantToPersistUtc(last.ClosingDate),
+                    PostgreSqlUtcDateTime.AustriaTimeZone);
+                lastClosing = new DailyClosingLastClosingDto
+                {
+                    Date = new DateOnly(lastLocal.Year, lastLocal.Month, lastLocal.Day),
+                    ClosedAt = last.CreatedAt,
+                    DayKind = last.DayKind,
+                    ClosingId = last.Id,
+                    TransactionCount = last.TransactionCount,
+                };
+            }
+        }
+
+        return new DailyClosingDashboardSummaryDto
+        {
+            CashRegisterId = range.RequestedRegisterId,
+            Today = new DailyClosingDaySummaryDto
+            {
+                Date = new DateOnly(today.Year, today.Month, today.Day),
+                IsClosed = todayClosed,
+                DayKind = todayKind,
+                ClosingType = todayKind,
+                TransactionCount = todayTx,
+                CanClose = range.RegisterIds.Count > 0 && !todayClosed,
+                ClosingId = todayClosed ? todayClosing!.Id : null,
+            },
+            Week = week,
+            LastClosing = lastClosing,
+            RequiresAttention = !todayClosed && todayTx > 0,
+        };
+    }
+
+    private async Task<ViennaClosingRange> LoadViennaClosingRangeAsync(
+        Guid tenantId,
+        DateTime startCalendarMidnight,
+        DateTime endCalendarMidnight,
+        Guid? cashRegisterId,
+        CancellationToken cancellationToken)
+    {
+        var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(
+            startCalendarMidnight, endCalendarMidnight);
+
+        var registerQuery = _db.CashRegisters.AsNoTracking()
+            .ForResolvedTenantScope()
+            .Where(cr => cr.TenantId == tenantId);
+        var requestedRegisterId = cashRegisterId is { } id && id != Guid.Empty ? id : (Guid?)null;
+        if (requestedRegisterId.HasValue)
+            registerQuery = registerQuery.Where(cr => cr.Id == requestedRegisterId.Value);
+
+        var registerIds = await registerQuery.Select(cr => cr.Id).ToListAsync(cancellationToken);
+        if (requestedRegisterId.HasValue && registerIds.Count == 0)
+            throw new KeyNotFoundException("Cash register is not in the current tenant.");
+
+        List<DailyClosing> closings;
+        if (registerIds.Count == 0)
+        {
+            closings = [];
+        }
+        else
+        {
+            closings = await _db.DailyClosings.AsNoTracking()
+                .Where(c => c.TenantId == tenantId
+                            && c.ClosingType == "Daily"
+                            && c.Status == "Completed"
+                            && c.ClosingDate >= fromUtc
+                            && c.ClosingDate < toExclusive
+                            && registerIds.Contains(c.CashRegisterId))
+                .ToListAsync(cancellationToken);
+        }
+
+        var closingsByDate = closings
+            .GroupBy(c => PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(c.ClosingDate))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).First());
+
+        List<DateTime> invoiceCreatedAt;
+        if (registerIds.Count == 0)
+        {
+            invoiceCreatedAt = [];
+        }
+        else
+        {
+            invoiceCreatedAt = await _db.Invoices.AsNoTracking()
+                .Where(i => registerIds.Contains(i.CashRegisterId)
+                            && i.CreatedAt >= fromUtc
+                            && i.CreatedAt < toExclusive
+                            && i.Status == InvoiceStatus.Paid)
+                .Where(i => i.SourcePaymentId == null
+                            || !_db.PaymentDetails.Any(p =>
+                                p.Id == i.SourcePaymentId!.Value
+                                && p.RksvSpecialReceiptKind != null))
+                .Select(i => i.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+
+        var transactionCounts = invoiceCreatedAt
+            .GroupBy(createdAt => PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(createdAt))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return new ViennaClosingRange(registerIds, requestedRegisterId, closingsByDate, transactionCounts);
+    }
+
+    private sealed record ViennaClosingRange(
+        List<Guid> RegisterIds,
+        Guid? RequestedRegisterId,
+        Dictionary<string, DailyClosing> ClosingsByDate,
+        Dictionary<string, int> TransactionCounts);
 
     private static DailyClosingResult Fail(string message) =>
         new()

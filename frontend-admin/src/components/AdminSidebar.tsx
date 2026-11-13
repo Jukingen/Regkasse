@@ -19,6 +19,9 @@ import React, {
 } from 'react';
 
 import sidebarStyles from '@/app/(protected)/protected-layout-sidebar.module.css';
+import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
+import { AdminSidebarQuickAccess } from '@/components/admin-layout/AdminSidebarQuickAccess';
+import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
 import {
   canShowPlatformAdminMenu,
   canShowRksvMenu,
@@ -28,28 +31,10 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isTenantLicenseBlockingModule } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
+import { injectSidebarFavoriteStars } from '@/features/menu/injectSidebarFavoriteStars';
+import { collectAllMenuKeys } from '@/features/menu/sidebarFavoritesLogic';
+import { useFavorites } from '@/features/menu/useFavorites';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { mapLicenseLifecycleUiState, useLicenseStatus } from '@/hooks/useLicenseStatus';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useI18n } from '@/i18n';
-import {
-  type SidebarPermissionContext,
-  collectSelectableRouteKeysFromMenuItems,
-  computeSidebarOpenKeysMerge,
-  filterSidebarMenuItems,
-  resolveAdminMenuSelectedKeys,
-} from '@/shared/adminSidebarNavigation';
-import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
-import { logMenuPermissionMappingWarnings } from '@/shared/auth/menuPermissionMappingValidation';
-import { tryRegistryMenuVisibility } from '@/shared/auth/menuPermissionRegistry';
-import { SIDEBAR_NAV_ITEM_CATALOG, logSidebarMenuPermissionMapWarnings } from '@/shared/adminSidebarRegistry';
-import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
-import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
-import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
-import { filterSidebarMenuItemsForLicenseLockdown } from '@/shared/sidebarLicenseLockdown';
-import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
-import { MenuPermissionGroupDebugPanel } from '@/components/MenuPermissionGroupDebugPanel';
-import { PermissionExplorerDrawer } from '@/components/admin-layout/PermissionExplorerDrawer';
 import {
   runAndLogMenuPermissionConsistencyCheck,
   shouldRunDailyConsistencyCheck,
@@ -58,6 +43,32 @@ import {
   getRoleMenuPreviewSession,
   subscribeRoleMenuPreview,
 } from '@/features/users/utils/roleMenuPreviewSession';
+import { useAdminVerticalProfile } from '@/features/vertical-profiles/contexts/AdminVerticalProfileContext';
+import { useLicenseMenuVisibility } from '@/hooks/useLicenseMenuVisibility';
+import { mapLicenseLifecycleUiState, useLicenseStatus } from '@/hooks/useLicenseStatus';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useI18n } from '@/i18n';
+import {
+  type SidebarPermissionContext,
+  collectSelectableRouteKeysFromMenuItems,
+  collectSubmenuKeysFromMenuItems,
+  computeSidebarOpenKeysMerge,
+  filterSidebarMenuItems,
+  filterSidebarMenuItemsByQuery,
+  resolveAdminMenuSelectedKeys,
+} from '@/shared/adminSidebarNavigation';
+import {
+  SIDEBAR_NAV_ITEM_CATALOG,
+  logSidebarMenuPermissionMapWarnings,
+} from '@/shared/adminSidebarRegistry';
+import { logMenuPermissionMappingWarnings } from '@/shared/auth/menuPermissionMappingValidation';
+import { tryRegistryMenuVisibility } from '@/shared/auth/menuPermissionRegistry';
+import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
+import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
+import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
+import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
+import { filterSidebarMenuItemsForLicenseLockdown } from '@/shared/sidebarLicenseLockdown';
+import { toVerticalProfileMenuScope } from '@/shared/sidebarVerticalProfile';
 
 const EMPTY_PERMISSIONS: string[] = [];
 
@@ -110,12 +121,11 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
     runAndLogMenuPermissionConsistencyCheck();
   }, []);
 
-  const permissions =
-    previewSession?.permissions?.length
-      ? previewSession.permissions
-      : userPermissions.length > 0
-        ? userPermissions
-        : EMPTY_PERMISSIONS;
+  const permissions = previewSession?.permissions?.length
+    ? previewSession.permissions
+    : userPermissions.length > 0
+      ? userPermissions
+      : EMPTY_PERMISSIONS;
   const usePermissionFirst = permissions.length > 0;
   const effectiveRole = previewSession?.roleName || user?.role || '';
   const { isSuperAdminUser } = useCurrentTenant();
@@ -126,13 +136,20 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
     licenseLifecycleStatus?.state ??
     (tenantLicense ? mapLicenseLifecycleUiState(tenantLicense) : null);
 
+  const verticalProfile = useAdminVerticalProfile();
+  const verticalProfileScope = useMemo(
+    () => toVerticalProfileMenuScope(verticalProfile),
+    [verticalProfile]
+  );
+
   const { menuItems: allMenuItems, rksvMenuGroups } = useMemo(
     () =>
       buildAdminSidebarMenuItems({
         t,
         verificationNavLabel: OPERATOR_VERIFICATIONS_COPY.navMenuLabel,
+        verticalProfile: verticalProfileScope,
       }),
-    [t]
+    [t, verticalProfileScope]
   );
 
   const canSeeRksv = useMemo(
@@ -334,40 +351,76 @@ export function AdminSidebarMenuPanel(props: AdminSidebarMenuPanelProps) {
   const { isLocked } = useLicenseMenuVisibility();
   const { menuItems, selectableRouteKeys, hasAccessibleMenus, openKeys, setOpenKeys } =
     useAdminSidebarMenu();
+  const [menuQuery, setMenuQuery] = useState('');
+
+  const displayedMenuItems = useMemo(
+    () => filterSidebarMenuItemsByQuery(menuItems, menuQuery) ?? [],
+    [menuItems, menuQuery]
+  );
+  const isFiltering = menuQuery.trim().length > 0;
+  const filterOpenKeys = useMemo(
+    () => (isFiltering ? collectSubmenuKeysFromMenuItems(displayedMenuItems) : null),
+    [isFiltering, displayedMenuItems]
+  );
+  const allowedMenuKeys = useMemo(() => new Set(selectableRouteKeys), [selectableRouteKeys]);
+  const visibleMenuKeys = useMemo(() => new Set(collectAllMenuKeys(menuItems)), [menuItems]);
+  const { isFavorite, toggleFavorite } = useFavorites({ visibleMenuKeys });
+  const starredMenuItems = useMemo(
+    () =>
+      injectSidebarFavoriteStars(displayedMenuItems, {
+        isFavorite,
+        onToggle: toggleFavorite,
+        collapsed: props.menuInlineCollapsed,
+      }) ?? [],
+    [displayedMenuItems, isFavorite, toggleFavorite, props.menuInlineCollapsed]
+  );
 
   if (!hasAccessibleMenus) {
     return <AdminSidebarEmptyState />;
   }
 
+  const panelOpenKeys = filterOpenKeys ?? openKeys;
+  const hasFilterResults = (displayedMenuItems?.length ?? 0) > 0;
+
   return (
     <>
-      <Suspense
-        fallback={
+      <AdminSidebarQuickAccess
+        query={menuQuery}
+        onQueryChange={setMenuQuery}
+        allowedMenuKeys={allowedMenuKeys}
+        visibleMenuKeys={visibleMenuKeys}
+        collapsed={props.menuInlineCollapsed}
+        onNavigate={props.onNavigate}
+      />
+      {!hasFilterResults && isFiltering ? (
+        <div className={sidebarStyles.filterEmpty} role="status">
+          {t('adminShell.sidebar.filterNoResults')}
+        </div>
+      ) : (
+        <Suspense
+          fallback={
+            <AdminSidebarMenuInner
+              {...props}
+              menuItems={starredMenuItems}
+              selectableRouteKeys={selectableRouteKeys}
+              openKeys={panelOpenKeys}
+              setOpenKeys={setOpenKeys}
+              withSearchParams={false}
+            />
+          }
+        >
           <AdminSidebarMenuInner
             {...props}
-            menuItems={menuItems}
+            menuItems={starredMenuItems}
             selectableRouteKeys={selectableRouteKeys}
-            openKeys={openKeys}
+            openKeys={panelOpenKeys}
             setOpenKeys={setOpenKeys}
-            withSearchParams={false}
+            withSearchParams
           />
-        }
-      >
-        <AdminSidebarMenuInner
-          {...props}
-          menuItems={menuItems}
-          selectableRouteKeys={selectableRouteKeys}
-          openKeys={openKeys}
-          setOpenKeys={setOpenKeys}
-          withSearchParams
-        />
-      </Suspense>
+        </Suspense>
+      )}
       {isLocked && !props.menuInlineCollapsed ? (
-        <div
-          className={sidebarStyles.licenseLockdownFooter}
-          role="status"
-          aria-live="polite"
-        >
+        <div className={sidebarStyles.licenseLockdownFooter} role="status" aria-live="polite">
           {t('adminShell.sidebar.lockdownFooter')}
         </div>
       ) : null}

@@ -17,7 +17,7 @@ public interface IOnlineOrderQueryService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Public lookup by tenant slug + order number (optional phone match).
+    /// Public lookup by tenant slug, order number, and the full phone number.
     /// Cross-tenant safe — does not use ambient tenant filter.
     /// </summary>
     Task<PublicOnlineOrderStatusDto?> GetPublicStatusAsync(

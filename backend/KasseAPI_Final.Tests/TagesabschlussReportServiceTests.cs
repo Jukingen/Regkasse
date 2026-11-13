@@ -47,7 +47,7 @@ public sealed class TagesabschlussReportServiceTests
             .UseInMemoryDatabase($"TagesabschlussReport_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static ITagesabschlussReportEnricher CreateReportEnricherMock()
@@ -209,7 +209,7 @@ public sealed class TagesabschlussReportServiceTests
         ctx.DailyClosings.Add(new DailyClosing
         {
             Id = closingId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = Guid.NewGuid(),
             UserId = userId.ToString("D"),
             ClosingDate = DateTime.UtcNow,

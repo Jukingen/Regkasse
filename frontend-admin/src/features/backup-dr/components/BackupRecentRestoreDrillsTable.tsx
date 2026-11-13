@@ -2,12 +2,13 @@
 
 import { Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import Link from 'next/link';
 import React, { useCallback, useMemo, useState } from 'react';
 
 import { useGetApiAdminRestoreVerificationRuns } from '@/api/generated/admin-restore-verification/admin-restore-verification';
 import {
   type RestoreVerificationRunResponseDto,
-  RestoreVerificationRunResponseDtoStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import { RecentRestoreDrillsTable } from '@/features/backup-dr/components/RecentRestoreDrillsTable';
 import {
@@ -24,6 +25,7 @@ import {
   pgRestoreListFailureKindToStatusLabelKey,
   pgRestoreListFailureKindToTagColor,
 } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
+import { restoreVerificationDetailPath } from '@/shared/backupAreaRoutes';
 
 export interface BackupRecentRestoreDrillsTableProps {
   formatDt: (iso: string | undefined | null, locale: string) => string;
@@ -70,7 +72,7 @@ export function BackupRecentRestoreDrillsTable({
         key: 'status',
         render: (s: number | undefined, row: RestoreVerificationRunResponseDto) => {
           const listInterp =
-            s === RestoreVerificationRunResponseDtoStatus.NUMBER_3 &&
+            s === RestoreVerificationStatus.Failed &&
             row.failureCode === PG_RESTORE_LIST_FAILED
               ? interpretPgRestoreListFailure({
                   run: row,
@@ -152,6 +154,17 @@ export function BackupRecentRestoreDrillsTable({
           return code;
         },
       },
+      {
+        title: t('backupDr.restoreVerificationPage.columns.actions'),
+        key: 'actions',
+        width: 90,
+        render: (_: unknown, row: RestoreVerificationRunResponseDto) =>
+          row.id ? (
+            <Link href={restoreVerificationDetailPath(row.id)} prefetch={false}>
+              {t('backupDr.restoreVerificationPage.openDetail')}
+            </Link>
+          ) : null,
+      },
     ],
     [formatDt, formatLocale, isSimulatedAdapterEnvironment, restoreStatusLabel, t]
   );
@@ -162,13 +175,13 @@ export function BackupRecentRestoreDrillsTable({
 
   return (
     <RecentRestoreDrillsTable
-      title={t('backupDr.restoreHistory.title')}
+      title={t('backupDr.recentRestoreDrills.title')}
       rowKey="id"
       dataSource={restoreHistoryQuery.data?.items ?? []}
       columns={restoreHistoryColumns}
       loading={restoreHistoryQuery.isFetching}
       queryError={restoreHistoryQuery.isError}
-      emptyText={t('backupDr.restoreHistory.empty')}
+      emptyText={t('backupDr.recentRestoreDrills.empty')}
       t={t}
       onRetry={onRetry}
       pagination={{

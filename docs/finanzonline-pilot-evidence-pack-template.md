@@ -27,7 +27,7 @@ config_summary:  # redacted: only key names and true/false
   Tse.TseMode:
   Tse.Mode:
 
-trigger_action: POST /api/pos/payment (or /api/Payment) — note idempotency key if any
+trigger_action: POST /api/pos/payment — note idempotency key if any
 
 expected_logs:
   - Payment created successfully; Invoice {id}

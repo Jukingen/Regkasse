@@ -12,7 +12,7 @@ import {
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 
-const HORIZONS = [30, 14, 7, 1, 0] as const;
+const HORIZONS = [30, 15, 7, 3, 1, 0] as const;
 
 type HorizonDays = (typeof HORIZONS)[number];
 

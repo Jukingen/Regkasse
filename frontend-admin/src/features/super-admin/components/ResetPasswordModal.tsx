@@ -69,12 +69,13 @@ export function ResetPasswordModal({
   };
 
   const copyPassword = async () => {
-    if (!password) {
+    const value = result?.generatedPassword || password;
+    if (!value) {
       message.error(t('users.password.noPasswordToCopy'));
       return;
     }
 
-    const copied = await copyTextToClipboard(password);
+    const copied = await copyTextToClipboard(value);
     if (copied) {
       message.success(t('tenants.provisioning.copySuccess'));
     } else {

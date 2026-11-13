@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { applyStoredApiBaseUrl } from '../services/api/config';
 import {
@@ -44,7 +45,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({ visible, onC
         setIpAddress(savedIP);
       }
     } catch (error) {
-      console.log('Error loading API settings:', error);
+      safeLog('Error loading API settings:', error);
     }
   };
 

@@ -7,9 +7,28 @@ export const DEV_TENANT_LOCAL_STORAGE_KEY = 'dev_tenant_id';
 /** Same-tab dev tenant switch (HeaderDevTenantSwitch, impersonation dev path). */
 export const DEV_TENANT_CHANGED_EVENT = 'regkasse:dev-tenant-changed';
 
+/**
+ * Login / session bootstrap updated the dev slug without a user-initiated switch.
+ * Listeners should sync their refs only — never clear JWT or reload.
+ */
+export const DEV_TENANT_BOOTSTRAP_EVENT = 'regkasse:dev-tenant-bootstrap';
+
 export type DevTenantChangedDetail = {
   slug: string;
   previousSlug: string | null;
+};
+
+export type DevTenantBootstrapDetail = {
+  slug: string;
+};
+
+export type WriteDevTenantSlugOptions = {
+  /**
+   * Persist only (login bootstrap). Skips {@link DEV_TENANT_CHANGED_EVENT} so
+   * {@link useTenantChangeListener} does not wipe a freshly issued JWT.
+   * Emits {@link DEV_TENANT_BOOTSTRAP_EVENT} so listeners can sync refs.
+   */
+  silent?: boolean;
 };
 
 export const DEV_TENANT_ENV_KEY = 'NEXT_PUBLIC_DEV_TENANT_ID';
@@ -86,7 +105,11 @@ export function getDevTenant(): string {
  * Persists dev tenant slug and notifies listeners (same-tab CustomEvent + cross-tab storage).
  * @returns true when the slug actually changed.
  */
-export function writeDevTenantSlug(slug: string, tenantId?: string | null): boolean {
+export function writeDevTenantSlug(
+  slug: string,
+  tenantId?: string | null,
+  options?: WriteDevTenantSlugOptions
+): boolean {
   if (!isDevelopment() || typeof window === 'undefined') {
     return false;
   }
@@ -106,6 +129,14 @@ export function writeDevTenantSlug(slug: string, tenantId?: string | null): bool
   });
   if (!slugChanged) {
     return false;
+  }
+  if (options?.silent) {
+    window.dispatchEvent(
+      new CustomEvent<DevTenantBootstrapDetail>(DEV_TENANT_BOOTSTRAP_EVENT, {
+        detail: { slug: normalized },
+      })
+    );
+    return true;
   }
   window.dispatchEvent(
     new CustomEvent<DevTenantChangedDetail>(DEV_TENANT_CHANGED_EVENT, {

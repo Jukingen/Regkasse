@@ -1,7 +1,12 @@
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.HealthChecks;
+using KasseAPI_Final.Services.Deployment;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -14,10 +19,20 @@ namespace KasseAPI_Final.Controllers;
 public sealed class HealthController : ControllerBase
 {
     private readonly HealthCheckService _healthChecks;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly DeploymentOptions _deploymentOptions;
+    private readonly IFiskalySettingsService _fiskalySettings;
 
-    public HealthController(HealthCheckService healthChecks)
+    public HealthController(
+        HealthCheckService healthChecks,
+        IHostEnvironment hostEnvironment,
+        IOptions<DeploymentOptions> deploymentOptions,
+        IFiskalySettingsService fiskalySettings)
     {
         _healthChecks = healthChecks;
+        _hostEnvironment = hostEnvironment;
+        _deploymentOptions = deploymentOptions.Value;
+        _fiskalySettings = fiskalySettings;
     }
 
     /// <summary>Liveness: process is up. No dependency I/O.</summary>
@@ -27,19 +42,25 @@ public sealed class HealthController : ControllerBase
     public ContentResult Live() => Content("OK", "text/plain");
 
     /// <summary>
-    /// Readiness: database + fiscal config posture (TSE production lock + FinanzOnline simulation gate).
+    /// Readiness: database + fiscal config posture (TSE production lock + FinanzOnline simulation gate) + cache/Redis.
     /// Device TSE/NTP probes are excluded (see <c>/api/health</c>). In Development, fiscal checks stay Healthy
     /// when Soft TSE / FON simulation is intentional; in Production, misconfiguration → Unhealthy (HTTP 503).
+    /// Cache/Redis is probed via <see cref="RedisCacheHealthCheck"/> (GetAsync <c>health_check_ping</c>, ≤1s);
+    /// failures are <c>Degraded</c> (not Unhealthy) and surfaced as <see cref="HealthProbeResponseDto.RedisStatus"/>.
+    /// Response includes <see cref="HealthProbeResponseDto.ReleaseStage"/> for Staging (Demo &amp; QA) / smoke verification.
     /// </summary>
     [HttpGet("ready")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(HealthProbeResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HealthProbeResponseDto), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Ready(CancellationToken cancellationToken)
     {
+        // ready tag includes database, fiscal posture, and RedisCacheHealthCheck (cache ping → RedisStatus).
         var report = await _healthChecks
             .CheckHealthAsync(r => r.Tags.Contains(DatabaseHealthCheck.ReadyTag), cancellationToken)
             .ConfigureAwait(false);
-        return ToActionResult(report);
+        // releaseStage: primarily for debugging and staging verification (also returned in Production for smoke checks).
+        var releaseStage = ReleaseStageResolver.Resolve(_hostEnvironment, _deploymentOptions);
+        return ToActionResult(report, releaseStage);
     }
 
     /// <summary>
@@ -58,6 +79,20 @@ public sealed class HealthController : ControllerBase
     }
 
     /// <summary>
+    /// Fiskaly SIGN AT status (no secrets). Anonymous for ops dashboards.
+    /// When enabled and API keys are present, probes authentication (token is cached).
+    /// </summary>
+    [HttpGet("fiskaly/status")]
+    [ProducesResponseType(typeof(FiskalyStatusDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FiskalyStatusDto>> GetFiskalyStatus(CancellationToken cancellationToken)
+    {
+        var status = await _fiskalySettings
+            .GetStatusAsync(probeAuthentication: true, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(status);
+    }
+
+    /// <summary>
     /// EF Core migration posture: applied vs pending relative to the running binary.
     /// HTTP 200 for Healthy/Degraded; 503 when the check cannot query the database.
     /// </summary>
@@ -72,7 +107,7 @@ public sealed class HealthController : ControllerBase
         return ToActionResult(report);
     }
 
-    private IActionResult ToActionResult(HealthReport report)
+    private IActionResult ToActionResult(HealthReport report, string? releaseStage = null)
     {
         var statusCode = report.Status switch
         {
@@ -81,20 +116,6 @@ public sealed class HealthController : ControllerBase
             _ => StatusCodes.Status503ServiceUnavailable,
         };
 
-        return StatusCode(statusCode, new
-        {
-            status = report.Status.ToString(),
-            totalDurationMs = report.TotalDuration.TotalMilliseconds,
-            checkedAtUtc = DateTime.UtcNow,
-            entries = report.Entries.ToDictionary(
-                e => e.Key,
-                e => new
-                {
-                    status = e.Value.Status.ToString(),
-                    description = e.Value.Description,
-                    durationMs = e.Value.Duration.TotalMilliseconds,
-                    data = e.Value.Data,
-                }),
-        });
+        return StatusCode(statusCode, HealthProbeResponseFactory.FromReport(report, releaseStage));
     }
 }

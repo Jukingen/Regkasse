@@ -11,6 +11,16 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
+type CustomerAddressData = {
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+};
+
+type CustomerListRow = Customer & {
+  addressData?: CustomerAddressData | null;
+};
+
 interface CustomerListProps {
   data: Customer[];
   loading: boolean;
@@ -68,6 +78,16 @@ export default function CustomerList({
           {record.phone && <span style={{ fontSize: 12, color: '#888' }}>{record.phone}</span>}
         </Space>
       ),
+    },
+    {
+      title: t('customers.list.columnAddress'),
+      key: 'address',
+      render: (_: unknown, record: CustomerListRow) => {
+        const structured = [record.addressData?.street, record.addressData?.postalCode, record.addressData?.city]
+          .filter((part) => Boolean(part && String(part).trim()))
+          .join(', ');
+        return structured || record.address || '—';
+      },
     },
     {
       title: t('customers.list.columnPoints'),

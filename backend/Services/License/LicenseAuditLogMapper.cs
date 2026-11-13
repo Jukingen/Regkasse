@@ -110,6 +110,18 @@ public static partial class LicenseAuditLogMapper
         if (actionType == AuditEventType.LicenseRenewalPageViewed
             || string.Equals(action, AuditLogActions.LICENSE_RENEWAL_PAGE_VIEWED, StringComparison.OrdinalIgnoreCase))
             return "LICENSE_RENEWAL_PAGE_VIEWED";
+        if (actionType == AuditEventType.LicenseActivated
+            || string.Equals(action, AuditLogActions.LICENSE_ACTIVATED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_ACTIVATED";
+        if (actionType == AuditEventType.LicenseRevoked
+            || string.Equals(action, AuditLogActions.LICENSE_REVOKED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_REVOKED";
+        if (actionType == AuditEventType.LicenseActivationFailed
+            || string.Equals(action, AuditLogActions.LICENSE_ACTIVATION_FAILED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_ACTIVATION_FAILED";
+        if (actionType == AuditEventType.LicensePreviewed
+            || string.Equals(action, AuditLogActions.LICENSE_PREVIEWED, StringComparison.OrdinalIgnoreCase))
+            return "LICENSE_PREVIEWED";
         if (!string.IsNullOrWhiteSpace(action))
             return action.Trim().ToUpperInvariant();
         return "LICENSE_UPDATED";
@@ -309,6 +321,6 @@ public static partial class LicenseAuditLogMapper
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..(max - 1)] + "…";
 
-    [GeneratedRegex(@"REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}|REGK-\d{8}-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*-[A-Z0-9]{8}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RegkKeyRegex();
 }

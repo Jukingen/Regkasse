@@ -1,0 +1,416 @@
+using System.Text.RegularExpressions;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
+using KasseAPI_Final.Tse.Fiskaly;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
+namespace KasseAPI_Final.Services.Tse;
+
+/// <summary>
+/// Tenant/cash-register fiskaly SIGN AT resource manager (SCU + cash register + receipt sign).
+/// </summary>
+public sealed class FiskalyTseService : IFiskalyTseService
+{
+    private static readonly Regex AustrianVatId = KasseAPI_Final.Models.Countries.VatIdPatterns.AustriaRegex;
+
+    private readonly IFiskalyClient _client;
+    private readonly IOptionsMonitor<FiskalyOptions> _options;
+    private readonly FiskalyEnabledOverrideCache? _enabledCache;
+    private readonly AppDbContext _db;
+    private readonly ILogger<FiskalyTseService> _logger;
+    private readonly IFiskalyTenantCredentialResolver? _credentials;
+
+    public FiskalyTseService(
+        IFiskalyClient client,
+        IOptionsMonitor<FiskalyOptions> options,
+        AppDbContext db,
+        ILogger<FiskalyTseService> logger,
+        FiskalyEnabledOverrideCache? enabledCache = null,
+        IFiskalyTenantCredentialResolver? credentials = null)
+    {
+        _client = client;
+        _options = options;
+        _db = db;
+        _logger = logger;
+        _enabledCache = enabledCache;
+        _credentials = credentials;
+    }
+
+    public async Task<FiskalyAuthResult> AuthenticateAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await _client.AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (FiskalyApiException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "fiskaly AuthenticateAsync failed in {Environment}", DescribeEnvironment());
+            throw new FiskalyApiException($"fiskaly authentication failed ({DescribeEnvironment()}): {ex.Message}");
+        }
+    }
+
+    public async Task<FiskalyScuInfo> CreateTssAsync(
+        string tssId,
+        string? vatId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        if (!Guid.TryParse(tssId, out var scuId) || scuId == Guid.Empty)
+            throw new ArgumentException("tssId must be a UUIDv4 (SIGN AT SCU id).", nameof(tssId));
+
+        var resolvedVat = await ResolveVatIdAsync(vatId, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var scu = await _client
+                .CreateSignatureCreationUnitAsync(scuId, resolvedVat, "Regkasse", cancellationToken)
+                .ConfigureAwait(false);
+            _logger.LogInformation("fiskaly SCU created/retrieved {ScuId} state={State}", scu.Id, scu.State);
+            return scu;
+        }
+        catch (FiskalyApiException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw Wrap(ex, "CreateTssAsync");
+        }
+    }
+
+    public async Task<FiskalyCashRegisterInfo> CreateClientAsync(
+        string tssId,
+        string clientId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        _ = tssId; // SIGN AT cash registers are not nested under an SCU id.
+        if (!Guid.TryParse(clientId, out var cashRegisterId) || cashRegisterId == Guid.Empty)
+            throw new ArgumentException("clientId must be a UUIDv4 (SIGN AT cash-register id).", nameof(clientId));
+
+        try
+        {
+            var created = await _client
+                .CreateCashRegisterAsync(cashRegisterId, "Regkasse POS", cancellationToken)
+                .ConfigureAwait(false);
+            _logger.LogInformation(
+                "fiskaly cash register created/retrieved {CashRegisterId} state={State}",
+                created.Id,
+                created.State);
+            return created;
+        }
+        catch (FiskalyApiException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw Wrap(ex, "CreateClientAsync");
+        }
+    }
+
+    public async Task<FiskalySignedReceipt> SignTransactionAsync(
+        string tssId,
+        string txId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureCredentialsAsync(cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(data);
+        _ = tssId;
+
+        if (!Guid.TryParse(txId, out var receiptId) || receiptId == Guid.Empty)
+            throw new ArgumentException("txId must be a UUIDv4 (SIGN AT receipt id).", nameof(txId));
+
+        var cashRegisterRaw = string.IsNullOrWhiteSpace(data.CashRegisterId)
+            ? throw new ArgumentException("TransactionData.CashRegisterId is required.", nameof(data))
+            : data.CashRegisterId;
+        if (!Guid.TryParse(cashRegisterRaw, out var cashRegisterId) || cashRegisterId == Guid.Empty)
+            throw new ArgumentException("TransactionData.CashRegisterId must be a UUIDv4.", nameof(data));
+
+        try
+        {
+            return await _client
+                .SignReceiptAsync(cashRegisterId, receiptId, data, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (FiskalyApiException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "fiskaly SignTransactionAsync failed ({Environment}). SCU/cash register must be INITIALIZED to sign.",
+                DescribeEnvironment());
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw Wrap(ex, "SignTransactionAsync");
+        }
+    }
+
+    public Task<FiskalySignedReceipt> CancelReceiptAsync(
+        string tssId,
+        string txId,
+        FiskalyTransactionData data,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return SignTransactionAsync(
+            tssId,
+            txId,
+            data.WithReceiptType(FiskalyReceiptSchemaMapper.ReceiptTypeCancellation),
+            cancellationToken);
+    }
+
+    public async Task<FiskalyScuInfo?> GetScuAsync(
+        string? signatureCreationUnitId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+
+        var scuId = string.IsNullOrWhiteSpace(signatureCreationUnitId)
+            ? await ResolveConfiguredScuIdAsync(cancellationToken).ConfigureAwait(false)
+            : signatureCreationUnitId;
+        if (string.IsNullOrWhiteSpace(scuId))
+            return null;
+
+        try
+        {
+            return await _client
+                .GetSignatureCreationUnitAsync(scuId.Trim(), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "fiskaly GetScuAsync failed for {ScuId}", scuId);
+            return null;
+        }
+    }
+
+    public async Task<FiskalyCashRegisterInfo?> GetCashRegisterAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            return null;
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+
+        try
+        {
+            return await _client.GetCashRegisterAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "fiskaly GetCashRegisterAsync failed for {CashRegisterId}", cashRegisterId);
+            return null;
+        }
+    }
+
+    public async Task<bool> IsReadyToSignAsync(Guid cashRegisterId, CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            return false;
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+            return false;
+
+        try
+        {
+            var scu = await GetScuAsync(null, cancellationToken).ConfigureAwait(false);
+            if (!IsInitialized(scu?.State))
+            {
+                _logger.LogWarning("Fiskaly SCU is not INITIALIZED. State: {State}", scu?.State ?? "missing");
+                return false;
+            }
+
+            var register = await GetCashRegisterAsync(cashRegisterId, cancellationToken).ConfigureAwait(false);
+            if (!IsInitialized(register?.State))
+            {
+                _logger.LogWarning(
+                    "Fiskaly cash register {CashRegisterId} is not INITIALIZED. State: {State}",
+                    cashRegisterId,
+                    register?.State ?? "missing");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fiskaly readiness check failed for cash register {CashRegisterId}", cashRegisterId);
+            return false;
+        }
+    }
+
+    private static bool IsInitialized(string? state) =>
+        string.Equals(state, FiskalyResourceStates.Initialized, StringComparison.OrdinalIgnoreCase);
+
+    public async Task<FiskalyResourceEnsureResult> EnsureResourcesForCashRegisterAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        string registerNumber,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var disabled = !_options.CurrentValue.IsEffectivelyEnabled(_enabledCache?.OverrideEnabled);
+            return new FiskalyResourceEnsureResult
+            {
+                Success = false,
+                Message = disabled
+                    ? "Fiskaly is disabled."
+                    : "Fiskaly credentials are not configured."
+            };
+        }
+
+        try
+        {
+            await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+
+            var scuId = await ResolveScuIdAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            var scu = await CreateTssAsync(scuId.ToString("D"), vatId: null, cancellationToken)
+                .ConfigureAwait(false);
+            var client = await CreateClientAsync(scu.Id, cashRegisterId.ToString("D"), cancellationToken)
+                .ConfigureAwait(false);
+
+            return new FiskalyResourceEnsureResult
+            {
+                Success = true,
+                ScuId = scu.Id,
+                ScuState = scu.State,
+                CashRegisterId = client.Id,
+                CashRegisterState = client.State,
+                Message = $"SCU {scu.State}; cash register {client.State} ({registerNumber})."
+            };
+        }
+        catch (FiskalyApiException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "fiskaly EnsureResourcesForCashRegisterAsync failed for tenant {TenantId} register {CashRegisterId}",
+                tenantId,
+                cashRegisterId);
+            return new FiskalyResourceEnsureResult
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+    }
+
+    private async Task<Guid> ResolveScuIdAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            var resolved = await _credentials.ResolveAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            if (Guid.TryParse(resolved?.ScuId, out var resolvedId) && resolvedId != Guid.Empty)
+                return resolvedId;
+        }
+
+        var configured = _options.CurrentValue.SignatureCreationUnitId;
+        if (Guid.TryParse(configured, out var configuredId) && configuredId != Guid.Empty)
+            return configuredId;
+
+        var existing = await _db.TseDevices
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(d => d.TenantId == tenantId && d.DeviceType == "fiskaly" && d.IsActive)
+            .Select(d => d.DeviceId ?? d.SerialNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (Guid.TryParse(existing, out var existingId) && existingId != Guid.Empty)
+            return existingId;
+
+        return Guid.NewGuid();
+    }
+
+    private async Task<string> ResolveVatIdAsync(string? vatId, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(vatId) && AustrianVatId.IsMatch(vatId.Trim().ToUpperInvariant()))
+            return vatId.Trim().ToUpperInvariant();
+
+        var fromSettings = await _db.CompanySettings
+            .AsNoTracking()
+            .Select(s => s.CompanyTaxNumber)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!string.IsNullOrWhiteSpace(fromSettings)
+            && AustrianVatId.IsMatch(fromSettings.Trim().ToUpperInvariant()))
+        {
+            return fromSettings.Trim().ToUpperInvariant();
+        }
+
+        return FiskalyConnectionProbe.DefaultTestVatId;
+    }
+
+    private void EnsureCredentialsAsyncReady()
+    {
+        // Sign and create paths call the async check below. This keeps the throw site synchronous
+        // for the host-options path used when no resolver is registered (unit tests).
+        if (_credentials is not null)
+            return;
+
+        if (!_options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled))
+        {
+            throw new FiskalyApiException(
+                "Fiskaly is disabled or ApiKey/ApiSecret are missing. "
+                + "Set Fiskaly:Enabled and user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
+        }
+    }
+
+    private async Task EnsureCredentialsAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is null)
+        {
+            EnsureCredentialsAsyncReady();
+            return;
+        }
+
+        if (!await HasActiveCredentialsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            throw new FiskalyApiException(
+                "Fiskaly is disabled or ApiKey/ApiSecret are missing. "
+                + "Set Fiskaly:Enabled and user-secrets Fiskaly:ApiKey / Fiskaly:ApiSecret.");
+        }
+    }
+
+    private async Task<bool> HasActiveCredentialsAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            return await _credentials
+                .HasActiveCredentialsAsync(_enabledCache?.OverrideEnabled, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return _options.CurrentValue.HasActiveCredentials(_enabledCache?.OverrideEnabled);
+    }
+
+    private async Task<string> ResolveConfiguredScuIdAsync(CancellationToken cancellationToken)
+    {
+        if (_credentials is not null)
+        {
+            var resolved = await _credentials.ResolveAsync(cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(resolved?.ScuId))
+                return resolved.ScuId;
+        }
+
+        return _options.CurrentValue.SignatureCreationUnitId;
+    }
+
+    private string DescribeEnvironment()
+    {
+        return _options.CurrentValue.ResolveEnvironment();
+    }
+
+    private FiskalyApiException Wrap(Exception ex, string operation) =>
+        new($"fiskaly {operation} failed ({DescribeEnvironment()}): {ex.Message}");
+}

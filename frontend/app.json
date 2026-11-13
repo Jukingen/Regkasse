@@ -7,8 +7,15 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
+    "updates": {
+      "url": "https://u.expo.dev/e6e5317f-30dd-43a9-af15-0ab47d7d7137",
+      "checkAutomatically": "ON_LOAD"
+    },
     "orientation": "portrait",
-    "scheme": ["cashregister", "regkasse"],
+    "scheme": [
+      "cashregister",
+      "regkasse"
+    ],
     "userInterfaceStyle": "automatic",
     "primaryColor": "#2196F3",
     "backgroundColor": "#F5F5F5",
@@ -79,7 +86,9 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/OCRA-B.ttf"]
+          "fonts": [
+            "./assets/fonts/OCRA-B.ttf"
+          ]
         }
       ],
       [
@@ -137,6 +146,12 @@
     "experiments": {
       "typedRoutes": true,
       "onDemandFilesystem": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e6e5317f-30dd-43a9-af15-0ab47d7d7137"
+      }
+    },
+    "owner": "musitu"
   }
 }

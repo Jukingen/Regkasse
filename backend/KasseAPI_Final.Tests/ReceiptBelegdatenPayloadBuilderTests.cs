@@ -20,7 +20,7 @@ public sealed class ReceiptBelegdatenPayloadBuilderTests
             .UseInMemoryDatabase($"ReceiptBelegdaten_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
@@ -33,7 +33,7 @@ public sealed class ReceiptBelegdatenPayloadBuilderTests
     public async Task GetMachineCodeForReceiptAsync_UsesStoredCompactJwsMachineCode()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(
             keyProvider,
@@ -43,7 +43,7 @@ public sealed class ReceiptBelegdatenPayloadBuilderTests
         var registerId = Guid.NewGuid();
         db.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = registerId,
             RegisterNumber = "KASSE-001",
             Location = "Test",

@@ -45,6 +45,7 @@
 - Cashier **POS** (cart → payment → receipt → Tagesabschluss)
 - **Admin (FA)** for Mandanten-Admin and Super Admin
 - Shared **tenant websites** / online-order intake (non-fiscal)
+- **Marketing** site for `regkasse.at` (landing, pricing, demo request — non-fiscal)
 - ASP.NET Core **API** with TSE/RKSV signing, FinanzOnline outbox, backup/DR, licensing
 
 **Production hosts (single POS UI)**
@@ -55,7 +56,7 @@
 | Admin (FA) | `https://admin.regkasse.at` |
 | API | `https://api.regkasse.at` |
 
-Local defaults: POS `:8081`, FA `:3000`, Sites `:3001`, API `:5184`.  
+Local defaults: POS `:8081`, FA `:3000`, Sites `:3001`, Marketing `:3002`, API `:5184`.  
 Detail: [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md).
 
 ### 1.2 Repository structure
@@ -66,6 +67,7 @@ Detail: [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MU
 | POS | `frontend/` | Expo SDK 56 + React Native — cashier UI (**German de-DE**) |
 | Admin | `frontend-admin/` | Next.js 16 + Ant Design 6 — Mandanten + Super Admin (**i18n de/en/tr**) |
 | Sites | `frontend-sites/` | Next.js storefronts `/[slug]`, online orders (non-fiscal) |
+| Marketing | `frontend-marketing/` | Next.js landing for `regkasse.at` (port 3002) |
 | Localization | `localization/` | Shared i18n validate/import/export + CI budgets |
 | Scripts | `scripts/` | OpenAPI verify, seeds, git hooks, helpers |
 | Tools | `tools/` | License generator |
@@ -105,7 +107,7 @@ Authoritative pin table also lives in [`../AGENTS.md`](../AGENTS.md) § Updated 
 | Admin | `/api/admin/*`, `/api/Auth/*` | `/api/pos/*` |
 | Sites / public | `/api/public/*`, `/api/sites/*` | Fiscal POS payment APIs |
 
-Cross-tenant access → **HTTP 404** (not 403). Legacy `/api/Payment|Cart|Product` — soft-deprecated; see [`API_LEGACY_DEPRECATION.md`](API_LEGACY_DEPRECATION.md).
+Cross-tenant access → **HTTP 404** (not 403). Removed aliases `/api/Payment|Cart|Product` — see [`API_LEGACY_DEPRECATION.md`](API_LEGACY_DEPRECATION.md).
 
 ---
 
@@ -675,7 +677,7 @@ When adding a new Super Admin TSE feature, update: controller + service + FA pag
 | Change | Breaking? | Action |
 |--------|-----------|--------|
 | TSE Super Admin ops wave (2026-07-23) | **No** (additive APIs/tables/pages) | Deploy migrations + apps |
-| Soft-deprecate `/api/Payment|Cart|Product` | **Upcoming** hard remove | Migrate clients before sunset |
+| Hard-remove `/api/Payment|Cart|Product` (2026-08-13) | **Yes** for leftover alias clients | Use `/api/pos/*`; 404 on old prefixes |
 | Ant Design 6 static APIs | **Yes for FA code** using `message`/`Modal.confirm` | Use `useNotify` / `useAntdApp` |
 | Next.js 16 `proxy.ts` auth boundary | **Yes vs old middleware patterns** | Follow FA auth docs |
 | Working hours gating on POS | **Must not break** — POS stays ungated | Contract tests enforce |

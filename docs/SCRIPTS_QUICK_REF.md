@@ -18,7 +18,7 @@ All entry points are under `scripts/<category>/` (no root `.bat`).
 
 | Icon | Script | What it does |
 |------|--------|--------------|
-| 🪟 | `scripts\legacy\start-all.bat` | Redis + Backend + POS + Admin (windows) |
+| 🪟 | `scripts\legacy\start-all.bat` | Redis + Backend + Admin + POS |
 | ⚙️ | `scripts\legacy\start-backend.bat` | Host `dotnet run` |
 | 📱 | `scripts\legacy\start-frontend.bat` | Host Expo POS |
 | 🖥️ | `scripts\legacy\start-frontend-admin.bat` | Host Admin |

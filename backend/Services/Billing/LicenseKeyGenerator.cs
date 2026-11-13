@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
 
 namespace KasseAPI_Final.Services.Billing;
@@ -8,50 +9,127 @@ namespace KasseAPI_Final.Services.Billing;
 public interface ILicenseKeyGenerator
 {
     string GenerateLicenseKey(string tenantSlug, DateTime validUntil);
+    string GenerateUnifiedLicenseKey(DateTime validUntil, string slug);
     bool ValidateLicenseKeyFormat(string licenseKey);
+    bool IsMandantBillingLicenseKey(string licenseKey);
     (string? TenantSlug, DateTime? ValidUntil, string? RandomPart) ParseLicenseKey(string licenseKey);
 }
 
 /// <summary>
-/// Mandanten SaaS billing key format: <c>REGK-{yyyyMMdd}-{tenantSlug}-{random}</c>
-/// (e.g. <c>REGK-20261231-cafe-A7F3K2D9</c>). Distinct from deployment JWT display keys.
+/// Unified REGK key format: <c>REGK-{yyyyMMdd}-{slug}-{8 alnum}</c>.
+/// Mandant keys use the tenant slug; deployment keys use <see cref="SystemSlug"/>.
 /// </summary>
 public sealed partial class LicenseKeyGenerator : ILicenseKeyGenerator
 {
+    public const string SystemSlug = LicenseKeyKinds.System;
+
     public const string InvalidFormatMessage =
         "Invalid license key format. Expected REGK-YYYYMMDD-{tenantSlug}-{code}.";
+
+    public const string ReservedOrInvalidSlugMessage =
+        "License slug is reserved or invalid. Use a valid tenant slug or 'system' for server licenses.";
+
+    public const string ExpiryMustBeInTheFutureMessage =
+        "License expiry date must be in the future (UTC).";
+
+    public const string InvalidRandomPartMessage =
+        "Random part must be 8 alphanumeric characters.";
 
     private const int RandomSuffixLength = 8;
     private const string RandomAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     [GeneratedRegex(
         @"^[A-Z0-9]{8}$",
-        RegexOptions.CultureInvariant)]
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RandomSuffixRegex();
 
-    public string GenerateLicenseKey(string tenantSlug, DateTime validUntil)
+    public string GenerateLicenseKey(string tenantSlug, DateTime validUntil) =>
+        GenerateUnifiedLicenseKey(validUntil, tenantSlug);
+
+    public string GenerateUnifiedLicenseKey(DateTime validUntil, string slug)
     {
-        if (string.IsNullOrWhiteSpace(tenantSlug))
-            throw new ArgumentException("Tenant slug is required.", nameof(tenantSlug));
+        var validUntilUtc = ToUtc(validUntil);
+        if (validUntilUtc <= DateTime.UtcNow)
+            throw new ArgumentException(ExpiryMustBeInTheFutureMessage, nameof(validUntil));
 
-        var slug = TenantSlugSuggestions.NormalizeSlug(tenantSlug);
-        if (string.IsNullOrEmpty(slug))
-            throw new ArgumentException("Tenant slug is required.", nameof(tenantSlug));
-
-        var validUntilUtc = validUntil.Kind switch
-        {
-            DateTimeKind.Utc => validUntil,
-            DateTimeKind.Local => validUntil.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(validUntil, DateTimeKind.Utc),
-        };
-
-        var datePart = validUntilUtc.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        var randomPart = GenerateRandomSuffix();
-        return $"REGK-{datePart}-{slug}-{randomPart}";
+        var randomPart = GenerateRandomString(RandomSuffixLength);
+        return FormatUnifiedLicenseKey(validUntilUtc, slug, randomPart);
     }
 
-    public bool ValidateLicenseKeyFormat(string licenseKey)
+    /// <summary>
+    /// Builds <c>REGK-{yyyyMMdd}-{slug}-{random}</c> after validating slug and random part.
+    /// Does not require <paramref name="validUntil"/> to be in the future so expired keys stay well-formed.
+    /// </summary>
+    public static string FormatUnifiedLicenseKey(DateTime validUntil, string slug, string randomPart)
     {
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new ArgumentException("License slug is required.", nameof(slug));
+
+        var normalizedSlug = NormalizeKeySlug(slug);
+        if (string.IsNullOrEmpty(normalizedSlug))
+            throw new ArgumentException("License slug is required.", nameof(slug));
+
+        if (!IsAllowedKeySlug(normalizedSlug))
+            throw new ArgumentException(ReservedOrInvalidSlugMessage, nameof(slug));
+
+        if (!IsValidRandomPart(randomPart))
+            throw new ArgumentException(InvalidRandomPartMessage, nameof(randomPart));
+
+        var validUntilUtc = ToUtc(validUntil);
+        var datePart = validUntilUtc.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return $"REGK-{datePart}-{normalizedSlug}-{randomPart.ToUpperInvariant()}";
+    }
+
+    public bool ValidateLicenseKeyFormat(string licenseKey) =>
+        TryParseLicenseKey(licenseKey, out _, out _, out _);
+
+    public bool IsMandantBillingLicenseKey(string licenseKey) =>
+        IsMandantBillingKey(licenseKey);
+
+    public (string? TenantSlug, DateTime? ValidUntil, string? RandomPart) ParseLicenseKey(string licenseKey)
+    {
+        if (!TryParseLicenseKey(licenseKey, out var slug, out var validUntil, out var randomPart))
+            return (null, null, null);
+
+        return (slug, validUntil, randomPart);
+    }
+
+    /// <summary>Legacy display key or unified deployment key (<c>system</c> slug).</summary>
+    public static bool IsDeploymentLicenseKey(string? licenseKey) =>
+        RegkTenantLicenseKeyFormat.IsValid(licenseKey) || IsSystemLicenseKey(licenseKey);
+
+    public static bool IsSystemLicenseKey(string? licenseKey) =>
+        TryParseLicenseKey(licenseKey, out var slug, out _, out _)
+        && string.Equals(slug, SystemSlug, StringComparison.Ordinal);
+
+    public static bool IsMandantBillingKey(string? licenseKey) =>
+        TryParseLicenseKey(licenseKey, out var slug, out _, out _)
+        && !string.Equals(slug, SystemSlug, StringComparison.Ordinal);
+
+    public static bool IsAllowedKeySlug(string? slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return false;
+
+        if (string.Equals(slug, SystemSlug, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return TenantSlugSuggestions.IsValidSlug(slug);
+    }
+
+    public static bool IsValidRandomPart(string? randomPart) =>
+        !string.IsNullOrWhiteSpace(randomPart) && RandomSuffixRegex().IsMatch(randomPart);
+
+    public static bool TryParseLicenseKey(
+        string? licenseKey,
+        out string slug,
+        out DateTime validUntil,
+        out string randomPart)
+    {
+        slug = string.Empty;
+        validUntil = default;
+        randomPart = string.Empty;
+
         if (string.IsNullOrWhiteSpace(licenseKey))
             return false;
 
@@ -69,47 +147,51 @@ public sealed partial class LicenseKeyGenerator : ILicenseKeyGenerator
                 "yyyyMMdd",
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.None,
-                out _))
+                out validUntil))
         {
             return false;
         }
 
-        var randomPart = parts[^1];
-        if (!RandomSuffixRegex().IsMatch(randomPart))
+        randomPart = parts[^1];
+        if (!IsValidRandomPart(randomPart))
             return false;
 
-        var slug = string.Join('-', parts.AsSpan(2, parts.Length - 3));
-        return TenantSlugSuggestions.IsValidSlug(slug);
+        slug = string.Join('-', parts.AsSpan(2, parts.Length - 3)).ToLowerInvariant();
+        return IsAllowedKeySlug(slug);
     }
 
-    public (string? TenantSlug, DateTime? ValidUntil, string? RandomPart) ParseLicenseKey(string licenseKey)
+    private static DateTime ToUtc(DateTime value) =>
+        value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+
+    private static string NormalizeKeySlug(string tenantSlug)
     {
-        if (!ValidateLicenseKeyFormat(licenseKey))
-            return (null, null, null);
-
-        var parts = licenseKey.Trim().Split('-');
-        var datePart = parts[1];
-        var randomPart = parts[^1];
-        var slug = string.Join('-', parts.AsSpan(2, parts.Length - 3));
-
-        var validUntil = DateTime.ParseExact(
-            datePart,
-            "yyyyMMdd",
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.None);
-
-        return (slug, validUntil, randomPart);
+        var normalized = TenantSlugSuggestions.NormalizeSlug(tenantSlug);
+        if (string.Equals(normalized, SystemSlug, StringComparison.OrdinalIgnoreCase))
+            return SystemSlug;
+        return normalized;
     }
 
-    private static string GenerateRandomSuffix()
+    private static string GenerateRandomString(int length)
     {
-        Span<char> buffer = stackalloc char[RandomSuffixLength];
-        Span<byte> randomBytes = stackalloc byte[RandomSuffixLength];
+        if (length <= 0)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        Span<char> buffer = stackalloc char[length];
+        Span<byte> randomBytes = stackalloc byte[length];
 
         RandomNumberGenerator.Fill(randomBytes);
-        for (var i = 0; i < RandomSuffixLength; i++)
+        for (var i = 0; i < length; i++)
             buffer[i] = RandomAlphabet[randomBytes[i] % RandomAlphabet.Length];
 
-        return new string(buffer);
+        var generated = new string(buffer);
+        if (length == RandomSuffixLength && !IsValidRandomPart(generated))
+            throw new InvalidOperationException(InvalidRandomPartMessage);
+
+        return generated;
     }
 }

@@ -22,7 +22,7 @@ public sealed class TenantContextServiceTests
             .UseInMemoryDatabase($"TenantContext_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static TenantContextService CreateService(
@@ -45,7 +45,7 @@ public sealed class TenantContextServiceTests
     public async Task ResolveTenantContextAsync_JwtTenant_WinsOverDevHeaderInDevelopment()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -63,21 +63,21 @@ public sealed class TenantContextServiceTests
         httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
         httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
         [
-            new Claim("tenant_id", LegacyDefaultTenantIds.Primary.ToString("D")),
+            new Claim("tenant_id", SystemTenantIds.Platform.ToString("D")),
         ],
         authenticationType: "Test"));
 
         var resolved = await service.ResolveTenantContextAsync(httpContext);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, resolved.Id);
-        Assert.Equal("default", resolved.Slug);
+        Assert.Equal(SystemTenantIds.Platform, resolved.Id);
+        Assert.Equal(SystemTenantIds.PlatformSlug, resolved.Slug);
     }
 
     [Fact]
     public async Task ResolveTenantContextAsync_DevHeader_UsedWhenJwtMissing()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -105,7 +105,7 @@ public sealed class TenantContextServiceTests
     public async Task ResolveTenantContextAsync_JwtTenant_UsedWhenNoDevOverride()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -137,7 +137,7 @@ public sealed class TenantContextServiceTests
     public async Task ApplyAuthenticatedTenantAsync_Production_IgnoresDevHeader_UsesJwtOnly()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -155,22 +155,22 @@ public sealed class TenantContextServiceTests
         httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
         httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
         [
-            new Claim("tenant_id", LegacyDefaultTenantIds.Primary.ToString("D")),
+            new Claim("tenant_id", SystemTenantIds.Platform.ToString("D")),
         ],
         authenticationType: "Test"));
 
         await service.ApplyAuthenticatedTenantAsync(httpContext);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        Assert.Equal(SystemTenantIds.Platform, accessor.TenantId);
     }
 
     [Fact]
     public async Task ApplyAuthenticatedTenantAsync_Production_MissingJwt_ClearsAmbient()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
-        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var accessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         var service = CreateService(db, accessor, isDevelopment: false);
 
         var httpContext = new DefaultHttpContext();
@@ -190,7 +190,7 @@ public sealed class TenantContextServiceTests
     public async Task ApplyAuthenticatedTenantAsync_Development_SuperAdmin_NoJwt_BindsDevPreset()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -201,7 +201,7 @@ public sealed class TenantContextServiceTests
         });
         await db.SaveChangesAsync();
 
-        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var accessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         var service = CreateService(db, accessor, isDevelopment: true);
 
         var httpContext = new DefaultHttpContext();
@@ -223,7 +223,7 @@ public sealed class TenantContextServiceTests
     public async Task ApplyAuthenticatedTenantAsync_Production_SuperAdmin_NoJwt_ClearsAmbient()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -234,7 +234,7 @@ public sealed class TenantContextServiceTests
         });
         await db.SaveChangesAsync();
 
-        var accessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        var accessor = new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform };
         var service = CreateService(db, accessor, isDevelopment: false);
 
         var httpContext = new DefaultHttpContext();
@@ -256,7 +256,7 @@ public sealed class TenantContextServiceTests
     public async Task ApplyAuthenticatedTenantAsync_Development_SuperAdmin_JwtWinsOverDevDefault()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -294,10 +294,19 @@ public sealed class TenantContextServiceTests
     }
 
     [Fact]
-    public async Task ApplyFromRequestAsync_AdminHost_MapsToLegacyDefaultTenant()
+    public async Task ApplyFromRequestAsync_AdminHost_MapsToDevTenantInDevelopment()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
 
         var accessor = new CurrentTenantAccessor();
         var service = CreateService(db, accessor);
@@ -307,7 +316,26 @@ public sealed class TenantContextServiceTests
 
         await service.ApplyFromRequestAsync(httpContext);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ApplyFromRequestAsync_AdminHost_MapsToPlatformInProduction()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor, isDevelopment: false);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("localhost");
+
+        await service.ApplyFromRequestAsync(httpContext);
+
+        Assert.Equal(SystemTenantIds.Platform, accessor.TenantId);
     }
 
     [Fact]
@@ -336,10 +364,18 @@ public sealed class TenantContextServiceTests
     }
 
     [Fact]
-    public async Task ResolveTenantContextAsync_AdminHost_FallsBackToDefaultTenant()
+    public async Task ResolveTenantContextAsync_AdminHost_FallsBackToDevTenantInDevelopment()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
         await db.SaveChangesAsync();
 
         var accessor = new CurrentTenantAccessor();
@@ -350,7 +386,144 @@ public sealed class TenantContextServiceTests
 
         var resolved = await service.ResolveTenantContextAsync(httpContext);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, resolved.Id);
-        Assert.Equal("default", resolved.Slug);
+        Assert.Equal(DemoTenantIds.Dev, resolved.Id);
+        Assert.Equal("dev", resolved.Slug);
+    }
+
+    [Fact]
+    public async Task ApplyFromRequestAsync_UnknownDefaultSlug_DoesNotAliasToDev_LeavesAmbientUnset()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "default";
+
+        // Explicit `default` is not remapped to `dev`; missing slug leaves ambient unset (not platform).
+        await service.ApplyFromRequestAsync(httpContext);
+
+        Assert.Null(accessor.TenantId);
+        Assert.Null(accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ApplyFromRequestAsync_Development_BindsInactiveDevPreset()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Suspended,
+            IsActive = false,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor, isDevelopment: true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
+
+        await service.ApplyFromRequestAsync(httpContext);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ApplyFromRequestAsync_Production_DoesNotBindInactiveDevPreset()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Suspended,
+            IsActive = false,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor, isDevelopment: false);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "dev";
+        httpContext.Request.Host = new HostString("dev.regkasse.at");
+
+        await service.ApplyFromRequestAsync(httpContext);
+
+        Assert.Null(accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task ApplyFromRequestAsync_GuidHeader_BindsTenantById()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] =
+            DemoTenantIds.Dev.ToString("D");
+
+        await service.ApplyFromRequestAsync(httpContext);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+        Assert.Equal("dev", accessor.TenantSlug);
+    }
+
+    [Fact]
+    public async Task ResolveTenantContextAsync_CafeAlias_RemapsToDev()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var service = CreateService(db, accessor);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "cafe";
+
+        var resolved = await service.ResolveTenantContextAsync(httpContext);
+
+        Assert.Equal(DemoTenantIds.Dev, resolved.Id);
+        Assert.Equal("dev", resolved.Slug);
     }
 }

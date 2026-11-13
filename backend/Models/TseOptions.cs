@@ -52,6 +52,13 @@ namespace KasseAPI_Final.Models
         public bool IsOff => string.Equals(TseMode, "Off", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
+        /// POS payments must be TSE-signed. Independent of client <c>TseRequired</c>.
+        /// False only when <see cref="IsOff"/>. Demo still signs (Soft TSE);
+        /// Device signs with the configured provider.
+        /// </summary>
+        public bool RequiresFiscalSignature => !IsOff;
+
+        /// <summary>
         /// Deployment label for vendor APIs (e.g. Production / Test / Sandbox). Informational + Fiskaly base-url hints.
         /// </summary>
         [MaxLength(32)]
@@ -63,6 +70,18 @@ namespace KasseAPI_Final.Models
         /// </summary>
         public bool AllowSimulatedDailyClosing { get; set; } = false;
 
+        /// <summary>
+        /// Development-only: when Fiskaly is unavailable, allow Soft TSE fallback (status, provisioning, closing).
+        /// Must stay false in Production (startup lock).
+        /// </summary>
+        public bool FallbackEnabled { get; set; }
+
+        /// <summary>
+        /// When true with <see cref="FallbackEnabled"/>, local simulated JWS (<c>FakeTseProvider</c>) may be used.
+        /// Must stay false in Production.
+        /// </summary>
+        public bool SoftTseEnabled { get; set; }
+
         /// <summary>Background probe interval for hardware TSE readiness (seconds).</summary>
         public int HealthCheckIntervalSeconds { get; set; } = 30;
 
@@ -71,7 +90,11 @@ namespace KasseAPI_Final.Models
         /// </summary>
         public bool OfflineModeEnabled { get; set; } = true;
 
-        /// <summary>Cap of NonFiscalPending rows per cash register (server-side offline queue).</summary>
+        /// <summary>
+        /// Obsolete. Offline queue size is <c>tenant_limits.max_offline_transactions</c>
+        /// (<see cref="TenantLimits.MaxOfflineTransactions"/>). Kept so existing appsettings bind.
+        /// </summary>
+        [Obsolete("Use tenant_limits.max_offline_transactions (ITenantLimitService).")]
         public int MaxOfflineTransactionsPerCashRegister { get; set; } = 50;
 
         /// <summary>Background replay worker cadence for NonFiscalPending intents (seconds).</summary>

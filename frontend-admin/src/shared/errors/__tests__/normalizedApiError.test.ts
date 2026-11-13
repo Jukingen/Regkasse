@@ -77,6 +77,26 @@ describe('normalizeApiError', () => {
     expect(n.traceId).toBe('abc-123');
   });
 
+  it('reads nested Fiskaly error object (code, message, details)', () => {
+    const n = normalizeApiError({
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          error: {
+            code: 'FISKALY_AUTH_FAILED',
+            message: 'Fiskaly authentication failed',
+            details: 'Invalid API key or secret',
+          },
+        },
+      },
+    });
+    expect(n.httpStatus).toBe(400);
+    expect(n.code).toBe('FISKALY_AUTH_FAILED');
+    expect(n.rawMessage).toBe('Fiskaly authentication failed');
+    expect(n.details).toBe('Invalid API key or secret');
+  });
+
   it('reads normalized.message on client wrapper', () => {
     const n = normalizeApiError({
       normalized: { message: 'Wrapped' },

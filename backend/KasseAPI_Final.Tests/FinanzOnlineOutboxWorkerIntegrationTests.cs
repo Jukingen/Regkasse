@@ -129,12 +129,13 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
         RksvSpecialReceiptFinanzOnlineOutboxPayloadBody inner,
         string registerNumber)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         if (!await db.Customers.AnyAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId))
         {
             db.Customers.Add(new Customer
             {
                 Id = WalkInCustomerConstants.GuestCustomerId,
+                TenantId = SystemTenantIds.Platform,
                 Name = "Gast",
                 Email = "gast@test",
                 Phone = "0",
@@ -150,7 +151,7 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
             db.CashRegisters.Add(new CashRegister
             {
                 Id = inner.CashRegisterId,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 RegisterNumber = registerNumber,
                 Location = "T",
                 StartingBalance = 0,
@@ -189,6 +190,7 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
             db.Receipts.Add(new Receipt
             {
                 ReceiptId = inner.ReceiptId,
+                TenantId = SystemTenantIds.Platform,
                 PaymentId = inner.PaymentId,
                 ReceiptNumber = inner.ReceiptNumber,
                 IssuedAt = DateTime.UtcNow,
@@ -229,7 +231,9 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddScoped(_ =>
-            new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(connectionString).Options));
+            new AppDbContext(
+                new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(connectionString).Options,
+                TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
         services.AddSingleton(OptionsMonitor(outboxOpts));
         services.AddScoped(_ => submission.Object);
         services.AddScoped(_ => queryClient);

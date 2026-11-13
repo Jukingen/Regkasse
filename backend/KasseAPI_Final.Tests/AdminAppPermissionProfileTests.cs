@@ -150,10 +150,31 @@ public class AdminAppPermissionProfileTests
         AdminAppPermissionProfile.ManagerRksvSonderbelegCreatePermissions.Select(p => new object[] { p });
 
     [Theory]
+    [MemberData(nameof(ManagerFiskalyOperationsPermissionCases))]
+    public void Filter_Admin_Manager_PreservesFiskalyOperationsPermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.Contains(permission, effective);
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.Contains(permission, result);
+        Assert.DoesNotContain(AppPermissions.FiskalyOperationsConfig, result);
+    }
+
+    public static IEnumerable<object[]> ManagerFiskalyOperationsPermissionCases() =>
+        AdminAppPermissionProfile.ManagerFiskalyOperationsPermissions.Select(p => new object[] { p });
+
+    [Theory]
     [InlineData(AppPermissions.PaymentTake)]
     [InlineData(AppPermissions.SaleCreate)]
     [InlineData(AppPermissions.OrderUpdate)]
     [InlineData(AppPermissions.TseSign)]
+    [InlineData(AppPermissions.ShiftOpen)]
+    [InlineData(AppPermissions.ShiftClose)]
     public void Filter_Admin_Manager_StripsOperationalWritePermissions(string writePermission)
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });

@@ -56,19 +56,18 @@ describe('resolveTenantLicenseBadgeDisplay', () => {
   });
 
   it('shows grace-write badge for recently expired licenses', () => {
-    expect(resolveTenantLicenseBadgeDisplay('2026-05-10T00:00:00Z', 'REGK-KEY', t, now)).toEqual({
+    expect(resolveTenantLicenseBadgeDisplay('2026-05-18T00:00:00Z', 'REGK-KEY', t, now)).toEqual({
       label: 'Grace-Phase: Schreiben erlaubt',
       color: 'gold',
-      tooltip: 'Mandantenlizenz ist seit 10 Tagen abgelaufen. Seit 10 Tagen abgelaufen',
+      tooltip: 'Mandantenlizenz ist seit 2 Tagen abgelaufen. Seit 2 Tagen abgelaufen',
     });
   });
 
-  it('shows grace-readonly badge after tenant write grace ends', () => {
+  it('shows lockdown badge after tenant write grace ends', () => {
     expect(resolveTenantLicenseBadgeDisplay('2026-04-05T00:00:00Z', 'REGK-KEY', t, now)).toEqual({
-      label: 'Grace-Phase: Nur Lesen',
-      color: 'orange',
-      tooltip:
-        'Mandantenlizenz ist seit 45 Tagen abgelaufen. Schreiben ist gesperrt. Seit 45 Tagen abgelaufen',
+      label: 'Lockdown',
+      color: 'red',
+      tooltip: 'Mandantenlizenz ist seit 45 Tagen abgelaufen. Lockdown. Seit 45 Tagen abgelaufen',
     });
   });
 

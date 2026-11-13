@@ -21,7 +21,17 @@ Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`MULTI_TENANT.md`](MUL
 
 **Enum:** `RegisterStatus` — `backend/Models/`.
 
+FA **Status** is inventory lifecycle (`IsActive` / Wartung / Stillgelegt). FA **Schichtstatus** is till occupancy (`Open` / `Closed` / no shift yet). POS **Geschlossen** is occupancy, not “inactive”.
+
 POS and API reject payments on decommissioned registers with `RKSV_REGISTER_DECOMMISSIONED` / `CASH_REGISTER_DECOMMISSIONED_RKSV`.
+
+---
+
+## Automatic Tagesabschluss fallback
+
+If a cashier forgets the daily closing, `AutoTagesabschlussHostedService` creates a TSE-signed Daily closing for the **previous** Vienna business day after the tenant-configured local time (default 03:00). Only days with paid invoices are closed. FA `/tagesabschluss` lists the trigger (System vs User). This is separate from register occupancy auto-close (`ShiftAutoClose`) and from the POS working-hours prompt.
+
+Related: [`RKSV_AFTER_TAGESABSCHLUSS.md`](RKSV_AFTER_TAGESABSCHLUSS.md).
 
 ---
 
@@ -133,6 +143,33 @@ Audit write failures are logged as warnings; decommission itself still completes
 
 ---
 
+## POS cash register opening
+
+`IsActive` / FA **Aktiv** is the register inventory flag. `RegisterStatus.Open` / **Offen** is an open till (shift occupancy). POS **Geschlossen** means no open till — not that the register is inactive.
+
+Cashiers with `shift.open` pick a closed register on **Kasse wählen**; `POST /api/pos/shift/auto-open` opens the till.
+
+Without `shift.open` they request Mandanten-Admin:
+
+1. **Kassenöffnung anfordern** → `POST /api/pos/cash-register/open-requests` (activity + audit).
+2. FA **Kassenverwaltung** pending queue. **Genehmigen** opens the register as the requesting cashier.
+3. POS polls while a request is pending.
+
+| Method | Path | Permission |
+|--------|------|------------|
+| `POST` | `/api/pos/cash-register/open-requests` | `cart.view` |
+| `GET` | `/api/pos/cash-register/open-requests/mine` | `cart.view` |
+| `GET` | `/api/admin/cash-registers/open-requests` | `cash_register.manage` |
+| `POST` | `/api/admin/cash-registers/open-requests/{id}/approve` | `cash_register.manage` |
+| `POST` | `/api/admin/cash-registers/open-requests/{id}/deny` | `cash_register.manage` |
+
+FA list columns: **Status** = lifecycle (Aktiv / Wartung / Stillgelegt), **Schichtstatus** = 🟢 Offen / 🔴 Geschlossen / ⚠️ Kein Shift, plus current cashier and last shift.
+
+**Service:** `backend/Services/CashRegisterOpenRequestService.cs`  
+**FA panel:** `frontend-admin/src/features/cash-registers/components/CashRegisterOpenRequestsPanel.tsx`
+
+---
+
 ## POS behavior
 
 After decommission, POS readiness shows German hard-stop copy (`posRegisterGateCopy.ts`):
@@ -147,6 +184,7 @@ After decommission, POS readiness shows German hard-stop copy (`posRegisterGateC
 | Area | Path |
 |------|------|
 | FA page | `frontend-admin/src/app/(protected)/kassenverwaltung/page.tsx` |
+| Open-request panel | `frontend-admin/src/features/cash-registers/components/CashRegisterOpenRequestsPanel.tsx` |
 | Modal | `frontend-admin/src/features/cash-registers/components/DecommissionModal.tsx` |
 | API client | `frontend-admin/src/features/cash-registers/api/cashRegisters.ts` |
 | Status helpers | `frontend-admin/src/features/cash-registers/utils/registerStatus.ts` |

@@ -9,8 +9,14 @@ import { SkeletonWrapper } from '@/components/Skeleton';
 import { useBillingTenantLicense } from '@/features/billing/hooks';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import { ChQrGapAcceptancePanel } from '@/features/super-admin/components/ChQrGapAcceptancePanel';
+import { TenantCountryFiscalRegimeCard } from '@/features/super-admin/components/TenantCountryFiscalRegimeCard';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
-import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import {
+  calculateLicenseDaysRemaining,
+  formatLicenseValidUntil,
+} from '@/features/license/utils/licenseValidUntil';
+import { isTenantRemovedStatus, tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { TenantActivityReport } from '@/features/tenants/components/TenantActivityReport';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { formatDate, formatDateTime, useI18n } from '@/i18n';
@@ -36,6 +42,10 @@ export function TenantDetailOverviewTab({
     canAccessBilling
   );
   const licenseStatus = licenseInfo?.status;
+  const licenseDaysRemaining =
+    calculateLicenseDaysRemaining(licenseStatus?.validUntilUtc) ??
+    licenseStatus?.daysRemaining ??
+    null;
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
@@ -83,7 +93,7 @@ export function TenantDetailOverviewTab({
             />
           </Descriptions.Item>
         </Descriptions>
-        {tenant.status !== 'deleted' ? (
+        {!isTenantRemovedStatus(tenant.status) ? (
           <Space wrap style={{ marginTop: 16 }}>
             {tenant.status === 'active' ? (
               <Popconfirm
@@ -107,6 +117,9 @@ export function TenantDetailOverviewTab({
           </Space>
         ) : null}
       </Card>
+
+      <TenantCountryFiscalRegimeCard tenant={tenant} />
+      <ChQrGapAcceptancePanel tenant={tenant} />
 
       <Card title={t('tenants.detail.overview.statsTitle')}>
         <Descriptions column={{ xs: 1, sm: 3 }} size="small">
@@ -143,16 +156,12 @@ export function TenantDetailOverviewTab({
                 )}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.tenantDetail.validUntil')}>
-                {licenseStatus?.validUntilUtc
-                  ? formatDate(licenseStatus.validUntilUtc, formatLocale, {
-                      dateStyle: 'medium',
-                    })
-                  : '—'}
+                {formatLicenseValidUntil(licenseStatus?.validUntilUtc)}
               </Descriptions.Item>
               <Descriptions.Item label={t('license.tenantDetail.daysRemaining')}>
-                {licenseStatus?.daysRemaining != null
+                {licenseDaysRemaining != null
                   ? t('license.tenantDetail.daysRemainingValue', {
-                      count: licenseStatus.daysRemaining,
+                      count: licenseDaysRemaining,
                     })
                   : '—'}
               </Descriptions.Item>
@@ -177,7 +186,7 @@ export function TenantDetailOverviewTab({
         </Card>
       ) : null}
 
-      {tenant.status === 'deleted' ? (
+      {isTenantRemovedStatus(tenant.status) ? (
         <Typography.Paragraph type="secondary">
           {t('tenants.detail.settings.danger.deletedSettingsHint')}
         </Typography.Paragraph>

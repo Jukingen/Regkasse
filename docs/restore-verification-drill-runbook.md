@@ -55,8 +55,11 @@ Base route: `api/admin/restore-verification`
 |--------|------|------------|
 | POST | `trigger` | SettingsManage |
 | GET | `runs/latest` | SettingsView |
-| GET | `runs` | SettingsView |
+| GET | `runs` | SettingsView. Optional filters: `status`, `triggerSource`, `fromUtc`, `toUtc`, `sourceBackupRunId` |
 | GET | `runs/{id}` | SettingsView |
+| GET | `runs/{id}/report` | SettingsView. `format=json` (default), `csv`, or `pdf` |
+
+FA: `/admin/restore-verification` (list) and `/admin/restore-verification/{id}` (checks, row counts, fiscal SQL, export). Super Admin sees all drills. Mandanten-Admin (`Manager`) sees only Tenant-strategy runs for the ambient tenant; System dump drills return HTTP 404.
 
 Response DTO highlights: `DumpInspectionPassed`, `RestoreAttemptExecuted` / `RestoreAttemptPassed`, `FiscalSql*`, `IntegrityChecksPassed`, `DetailsJson` (outbox/TSE/interpretation).
 
@@ -81,9 +84,11 @@ Response DTO highlights: `DumpInspectionPassed`, `RestoreAttemptExecuted` / `Res
 - [x] Integrity reflects `IIntegrityCheckService` when enabled.
 - [x] No destructive restore on prod app DB; no restore work on HTTP thread.
 - [x] Manual trigger + optional weekly enqueue.
+- Attach the per-drill PDF to the operator record.
 
 ## Related
 
+- Evidence log (fill after a real host drill; do not invent results): [`BACKUP_RESTORE_DRILL_EVIDENCE.md`](BACKUP_RESTORE_DRILL_EVIDENCE.md)
 - `GET /api/admin/integrity` — `IntegrityController`; same service as optional drill integrity step (different scope label in `DetailsJson`).
 - `scripts/sql/fiscal_go_live_validation.sql`
 - Backup admin APIs — artifact verification only.

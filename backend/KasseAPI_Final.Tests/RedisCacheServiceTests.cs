@@ -1,56 +1,32 @@
-using KasseAPI_Final.Configuration;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Metrics;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Integration tests against a live Redis on localhost:6379.
-/// Skipped when Redis is unavailable (CI without Redis).
+/// RedisCacheService tests against <see cref="MemoryDistributedCache"/> (no live Redis required).
 /// </summary>
-public sealed class RedisCacheServiceTests : IDisposable
+public sealed class RedisCacheServiceTests
 {
-    private readonly IConnectionMultiplexer? _mux;
-    private readonly bool _redisAvailable;
-
-    public RedisCacheServiceTests()
-    {
-        try
-        {
-            _mux = ConnectionMultiplexer.Connect(
-                "127.0.0.1:6379,abortConnect=false,connectTimeout=5000,syncTimeout=5000");
-            _ = _mux.GetDatabase().Ping();
-            _redisAvailable = true;
-        }
-        catch
-        {
-            _redisAvailable = false;
-            _mux?.Dispose();
-            _mux = null;
-        }
-    }
-
-    public void Dispose() => _mux?.Dispose();
-
-    [SkippableFact]
+    [Fact]
     public async Task GetOrCreateAsync_CachesFactoryResult()
     {
-        Skip.If(!_redisAvailable, "Redis is not running on localhost:6379");
         var sut = CreateSut();
         var key = $"test:getorcreate:{Guid.NewGuid():N}";
         var calls = 0;
 
-        var first = await sut.GetOrCreateAsync(key, async () =>
+        var first = await sut.GetOrCreateAsync(key, async _ =>
         {
             calls++;
             await Task.Yield();
             return 42;
         });
-        var second = await sut.GetOrCreateAsync(key, () =>
+        var second = await sut.GetOrCreateAsync(key, _ =>
         {
             calls++;
             return Task.FromResult(99);
@@ -63,14 +39,13 @@ public sealed class RedisCacheServiceTests : IDisposable
         await sut.RemoveAsync(key);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task RemoveAsync_ForcesFactoryToRunAgain()
     {
-        Skip.If(!_redisAvailable, "Redis is not running on localhost:6379");
         var sut = CreateSut();
         var key = $"test:remove:{Guid.NewGuid():N}";
         var calls = 0;
-        Func<Task<string>> factory = () =>
+        Func<CancellationToken, Task<string>> factory = _ =>
         {
             calls++;
             return Task.FromResult($"v{calls}");
@@ -84,30 +59,27 @@ public sealed class RedisCacheServiceTests : IDisposable
         await sut.RemoveAsync(key);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task RemoveByPrefixAsync_RemovesMatchingKeysOnly()
     {
-        Skip.If(!_redisAvailable, "Redis is not running on localhost:6379");
         var sut = CreateSut();
-        var suffix = Guid.NewGuid().ToString("N");
-        var p1 = $"products:{suffix}:t1";
-        var p2 = $"products:{suffix}:t2";
-        var other = $"other:{suffix}:x";
+        var prefix = $"products:{Guid.NewGuid():N}:";
+        var other = $"other:{Guid.NewGuid():N}";
 
-        await sut.GetOrCreateAsync(p1, () => Task.FromResult("a"));
-        await sut.GetOrCreateAsync(p2, () => Task.FromResult("b"));
-        await sut.GetOrCreateAsync(other, () => Task.FromResult("c"));
+        await sut.GetOrCreateAsync(prefix + "t1", _ => Task.FromResult("a"));
+        await sut.GetOrCreateAsync(prefix + "t2", _ => Task.FromResult("b"));
+        await sut.GetOrCreateAsync(other, _ => Task.FromResult("c"));
 
-        await sut.RemoveByPrefixAsync($"products:{suffix}:");
+        await sut.RemoveByPrefixAsync(prefix);
 
         var productsCalls = 0;
         var otherCalls = 0;
-        var products = await sut.GetOrCreateAsync(p1, () =>
+        var products = await sut.GetOrCreateAsync(prefix + "t1", _ =>
         {
             productsCalls++;
             return Task.FromResult("a2");
         });
-        var otherValue = await sut.GetOrCreateAsync(other, () =>
+        var otherValue = await sut.GetOrCreateAsync(other, _ =>
         {
             otherCalls++;
             return Task.FromResult("c2");
@@ -121,44 +93,168 @@ public sealed class RedisCacheServiceTests : IDisposable
         await sut.RemoveAsync(other);
     }
 
-    [SkippableFact]
-    public async Task ExistsAsync_ReflectsKeyPresence()
+    [Fact]
+    public async Task GetSetAsync_RoundTripsJsonPayload()
     {
-        Skip.If(!_redisAvailable, "Redis is not running on localhost:6379");
         var sut = CreateSut();
-        var key = $"test:exists:{Guid.NewGuid():N}";
-
-        Assert.False(await sut.ExistsAsync(key));
-        await sut.GetOrCreateAsync(key, () => Task.FromResult(1));
-        Assert.True(await sut.ExistsAsync(key));
+        var key = $"test:getset:{Guid.NewGuid():N}";
+        await sut.SetAsync(key, new CacheProbeDto { Name = "regkasse" });
+        var loaded = await sut.GetAsync<CacheProbeDto>(key);
+        Assert.NotNull(loaded);
+        Assert.Equal("regkasse", loaded!.Name);
         await sut.RemoveAsync(key);
-        Assert.False(await sut.ExistsAsync(key));
     }
 
-    [SkippableFact]
-    public async Task InstanceName_PrefixesKeysInRedis()
+    [Fact]
+    public async Task WhenRedisFails_FallsBackToMemory_AndIsRedisAvailableBecomesFalse()
     {
-        Skip.If(!_redisAvailable, "Redis is not running on localhost:6379");
+        var memory = new MemoryCache(new MemoryCacheOptions());
+        var distributed = new ThrowingDistributedCache();
+        var sut = new RedisCacheService(
+            distributed,
+            memory,
+            NullLogger<RedisCacheService>.Instance,
+            new CacheMetricsService());
+
+        Assert.True(sut.IsRedisAvailable);
+
+        await sut.SetAsync("k1", "via-memory");
+        Assert.False(sut.IsRedisAvailable);
+        Assert.Equal("via-memory", await sut.GetAsync<string>("k1"));
+
+        // Recovery path: swap in a working distributed cache via successful ops is not possible
+        // with a permanently throwing backend; flag stays false until a Redis success.
+        Assert.False(sut.IsRedisAvailable);
+    }
+
+    [Fact]
+    public async Task WhenRedisSucceeds_IsRedisAvailableRemainsTrue()
+    {
         var sut = CreateSut();
-        var logicalKey = $"test:prefix:{Guid.NewGuid():N}";
-        await sut.GetOrCreateAsync(logicalKey, () => Task.FromResult("x"));
-
-        var raw = await _mux!.GetDatabase().StringGetAsync($"Regkasse_Test:{logicalKey}");
-        Assert.True(raw.HasValue);
-
-        await sut.RemoveAsync(logicalKey);
+        Assert.True(sut.IsRedisAvailable);
+        await sut.SetAsync("ok", 1);
+        Assert.True(sut.IsRedisAvailable);
+        Assert.Equal(1, await sut.GetAsync<int>("ok"));
+        Assert.True(sut.IsRedisAvailable);
+        await sut.RemoveAsync("ok");
     }
 
-    private RedisCacheService CreateSut()
+    [Fact]
+    public async Task WhenRedisRecovers_IsRedisAvailableBecomesTrueAgain()
     {
-        var options = Options.Create(new RedisOptions
+        var memory = new MemoryCache(new MemoryCacheOptions());
+        var distributed = new ToggleableDistributedCache();
+        var sut = new RedisCacheService(
+            distributed,
+            memory,
+            NullLogger<RedisCacheService>.Instance,
+            new CacheMetricsService());
+
+        distributed.Throw = true;
+        await sut.SetAsync("recover-key", "fallback");
+        Assert.False(sut.IsRedisAvailable);
+
+        distributed.Throw = false;
+        await sut.SetAsync("recover-key", "redis-again");
+        Assert.True(sut.IsRedisAvailable);
+        Assert.Equal("redis-again", await sut.GetAsync<string>("recover-key"));
+    }
+
+    private sealed class CacheProbeDto
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>Simulates Redis outage (name contains Redis so IsTransientCacheFailure matches).</summary>
+    private sealed class ThrowingDistributedCache : IDistributedCache
+    {
+        public byte[]? Get(string key) => throw new IOException("Redis connection refused");
+
+        public Task<byte[]?> GetAsync(string key, CancellationToken token = default) =>
+            Task.FromException<byte[]?>(new IOException("Redis connection refused"));
+
+        public void Refresh(string key) => throw new IOException("Redis connection refused");
+
+        public Task RefreshAsync(string key, CancellationToken token = default) =>
+            Task.FromException(new IOException("Redis connection refused"));
+
+        public void Remove(string key) => throw new IOException("Redis connection refused");
+
+        public Task RemoveAsync(string key, CancellationToken token = default) =>
+            Task.FromException(new IOException("Redis connection refused"));
+
+        public void Set(string key, byte[] value, DistributedCacheEntryOptions options) =>
+            throw new IOException("Redis connection refused");
+
+        public Task SetAsync(
+            string key,
+            byte[] value,
+            DistributedCacheEntryOptions options,
+            CancellationToken token = default) =>
+            Task.FromException(new IOException("Redis connection refused"));
+    }
+
+    /// <summary>Distributed cache that can simulate Redis outage then recovery.</summary>
+    private sealed class ToggleableDistributedCache : IDistributedCache
+    {
+        private readonly MemoryDistributedCache _inner =
+            new(Options.Create(new MemoryDistributedCacheOptions()));
+
+        public bool Throw { get; set; }
+
+        public byte[]? Get(string key) => Throw
+            ? throw new IOException("Redis connection refused")
+            : _inner.Get(key);
+
+        public Task<byte[]?> GetAsync(string key, CancellationToken token = default) =>
+            Throw
+                ? Task.FromException<byte[]?>(new IOException("Redis connection refused"))
+                : _inner.GetAsync(key, token);
+
+        public void Refresh(string key)
         {
-            ConnectionString = "localhost:6379",
-            InstanceName = "Regkasse_Test",
-        });
+            if (Throw) throw new IOException("Redis connection refused");
+            _inner.Refresh(key);
+        }
+
+        public Task RefreshAsync(string key, CancellationToken token = default) =>
+            Throw
+                ? Task.FromException(new IOException("Redis connection refused"))
+                : _inner.RefreshAsync(key, token);
+
+        public void Remove(string key)
+        {
+            if (Throw) throw new IOException("Redis connection refused");
+            _inner.Remove(key);
+        }
+
+        public Task RemoveAsync(string key, CancellationToken token = default) =>
+            Throw
+                ? Task.FromException(new IOException("Redis connection refused"))
+                : _inner.RemoveAsync(key, token);
+
+        public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
+        {
+            if (Throw) throw new IOException("Redis connection refused");
+            _inner.Set(key, value, options);
+        }
+
+        public Task SetAsync(
+            string key,
+            byte[] value,
+            DistributedCacheEntryOptions options,
+            CancellationToken token = default) =>
+            Throw
+                ? Task.FromException(new IOException("Redis connection refused"))
+                : _inner.SetAsync(key, value, options, token);
+    }
+
+    private static RedisCacheService CreateSut()
+    {
+        IDistributedCache distributed = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
         return new RedisCacheService(
-            _mux!,
-            options,
+            distributed,
+            new MemoryCache(new MemoryCacheOptions()),
             NullLogger<RedisCacheService>.Instance,
             new CacheMetricsService());
     }

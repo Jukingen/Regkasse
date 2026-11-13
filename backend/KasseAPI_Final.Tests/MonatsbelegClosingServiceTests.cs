@@ -99,9 +99,9 @@ public sealed class MonatsbelegClosingServiceTests
     [Fact]
     public async Task CreateMonatsbelegClosingAsync_PersistsAggregatedTotals_AndChainFields()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -165,9 +165,9 @@ public sealed class MonatsbelegClosingServiceTests
     [Fact]
     public async Task CreateMonatsbelegClosingAsync_LinksPreviousMonthSignature()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -224,9 +224,9 @@ public sealed class MonatsbelegClosingServiceTests
     [Fact]
     public async Task CreateMonatsbelegClosingAsync_DuplicateMonth_ReturnsFailure()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
@@ -269,9 +269,9 @@ public sealed class MonatsbelegClosingServiceTests
     [Fact]
     public async Task BuildReportDtoAsync_UsesDemoFooter_InDevelopment()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         var entity = new Monatsbeleg

@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.RestoreVerification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -36,6 +37,7 @@ public sealed class BackupService : IBackupService
     private readonly IBackupStagingDiskMonitor _diskMonitor;
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly ILogger<BackupService> _logger;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public BackupService(
         AppDbContext db,
@@ -44,7 +46,8 @@ public sealed class BackupService : IBackupService
         IManualRestoreTriggerService manualRestore,
         IBackupStagingDiskMonitor diskMonitor,
         IOptionsMonitor<BackupOptions> options,
-        ILogger<BackupService> logger)
+        ILogger<BackupService> logger,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _db = db;
         _manualTrigger = manualTrigger;
@@ -53,9 +56,10 @@ public sealed class BackupService : IBackupService
         _diskMonitor = diskMonitor;
         _options = options;
         _logger = logger;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
-    public Task<BackupResult> CreateBackupAsync(
+    public Task<BackupTriggerResult> CreateBackupAsync(
         Guid tenantId,
         Guid userId,
         CancellationToken ct = default) =>
@@ -65,19 +69,37 @@ public sealed class BackupService : IBackupService
     /// Mandanten-Admin path: validates tenant, then enqueues a Tenant-strategy run.
     /// Worker writes tenant-only JSON ZIP (payments/receipts/products/…; no Identity / platform users).
     /// </summary>
-    public async Task<BackupResult> CreateTenantBackupAsync(
+    public async Task<BackupTriggerResult> CreateTenantBackupAsync(
         Guid tenantId,
         Guid userId,
         CancellationToken ct = default)
     {
         // ✅ Only enqueue for a known tenant — row extract runs off-request on the worker.
         if (tenantId == Guid.Empty)
-            return BackupResult.Fail(TenantNotFoundCode, "Tenant id is required.");
+            return BackupTriggerResult.Fail(TenantNotFoundCode, "Tenant id is required.");
 
         var tenant = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
         if (tenant == null)
-            return BackupResult.Fail(TenantNotFoundCode, "Tenant not found.");
+            return BackupTriggerResult.Fail(TenantNotFoundCode, "Tenant not found.");
+
+        if (_tenantLimitGuard != null)
+        {
+            try
+            {
+                await _tenantLimitGuard.EnsureCanCreateBackupAsync(tenantId, ct).ConfigureAwait(false);
+            }
+            catch (LimitExceededException ex)
+            {
+                _logger.LogWarning(
+                    "Tenant backup blocked by limit TenantId={TenantId} LimitKey={LimitKey} Limit={Limit} Current={Current}",
+                    tenantId,
+                    ex.LimitKey,
+                    ex.LimitAmount,
+                    ex.CurrentAmount);
+                return BackupTriggerResult.Fail(LimitExceededException.ErrorCodeValue, ex.Message);
+            }
+        }
 
         var budget = await EnsureStorageBudgetAsync(ct);
         if (budget != null)
@@ -102,7 +124,7 @@ public sealed class BackupService : IBackupService
             outcome.Run.Id,
             outcome.Kind);
 
-        return BackupResult.Success(outcome.Run.Id, outcome.Kind);
+        return BackupTriggerResult.Success(outcome.Run.Id, outcome.Kind);
     }
 
     /// <summary>
@@ -110,7 +132,7 @@ public sealed class BackupService : IBackupService
     /// Worker produces <c>pg_dump</c> (restore) + structured <c>*.system.zip</c>
     /// (all active tenants, Identity, platform settings, deployment licenses, audit).
     /// </summary>
-    public async Task<BackupResult> CreateSystemBackupAsync(
+    public async Task<BackupTriggerResult> CreateSystemBackupAsync(
         Guid userId,
         CancellationToken ct = default)
     {
@@ -140,7 +162,7 @@ public sealed class BackupService : IBackupService
             activeTenantCount,
             BackupStrategyPolicy.SystemRetentionDays);
 
-        return BackupResult.Success(outcome.Run.Id, outcome.Kind);
+        return BackupTriggerResult.Success(outcome.Run.Id, outcome.Kind);
     }
 
     public async Task<BackupListResult> ListBackupsAsync(
@@ -240,6 +262,7 @@ public sealed class BackupService : IBackupService
             userId.ToString(),
             actorEmail: null,
             correlationId: $"restore-service-{Guid.NewGuid():N}",
+            actorIsSuperAdmin: true,
             ct);
 
         _logger.LogInformation(
@@ -252,7 +275,7 @@ public sealed class BackupService : IBackupService
         return RestoreResult.SuccessQueued(backupId, status.RequestId, targetDb);
     }
 
-    private async Task<BackupResult?> EnsureStorageBudgetAsync(CancellationToken ct)
+    private async Task<BackupTriggerResult?> EnsureStorageBudgetAsync(CancellationToken ct)
     {
         var usedBytes = await (
                 from a in _db.BackupArtifacts.AsNoTracking()
@@ -264,7 +287,7 @@ public sealed class BackupService : IBackupService
             .SumAsync(ct);
         if (usedBytes >= MaxStorageBytes)
         {
-            return BackupResult.Fail(
+            return BackupTriggerResult.Fail(
                 StorageLimitCode,
                 $"Backup storage budget exceeded ({usedBytes} bytes >= {MaxStorageBytes} bytes). Reduce retention or free artifacts.");
         }
@@ -273,7 +296,7 @@ public sealed class BackupService : IBackupService
         var disk = _diskMonitor.TryGetUsage(opts.ArtifactStagingRoot, opts.StagingDiskUsageAlertPercent);
         if (disk is { Alert: true })
         {
-            return BackupResult.Fail(
+            return BackupTriggerResult.Fail(
                 StagingDiskFullCode,
                 $"Staging disk at {disk.UsedPercent}% (alert threshold {opts.StagingDiskUsageAlertPercent}%). Free space before enqueueing.");
         }

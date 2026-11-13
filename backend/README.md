@@ -18,7 +18,7 @@ ASP.NET Core Web API for Regkasse POS / Admin: multi-tenant auth, payments, RKSV
 | Container | Multi-stage [`Dockerfile`](Dockerfile) → self-contained on `aspnet:10.0`, port **8080** |
 | Tests | xUnit + FluentAssertions + Moq; `Microsoft.AspNetCore.Mvc.Testing`; Testcontainers (PostgreSQL) |
 
-Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`).
+Package versions are pinned in `KasseAPI_Final.csproj` (e.g. EF/Identity `10.0.10`, Swashbuckle `10.2.3`). Image thumbnails use SkiaSharp (MIT). ImageSharp was removed due to a security advisory and the Six Labors commercial license.
 
 ## Setup
 
@@ -223,7 +223,7 @@ Code: `Services/AdminTenants/`, `Controllers/AdminTenantsController.cs`.
 dotnet ef database update --project KasseAPI_Final.csproj --startup-project KasseAPI_Final.csproj
 ```
 
-Legacy backfills use `LegacyDefaultTenantIds.Primary`. Contracts: `ai/02_DATABASE_CONTRACT.md`, [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
+Legacy backfills use `SystemTenantIds.Platform`. Contracts: `ai/02_DATABASE_CONTRACT.md`, [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
 
 ### Migration inventory & squash (high risk)
 
@@ -332,6 +332,7 @@ Stop the other `KasseAPI_Final` / `dotnet run` process, or change `Urls` in Deve
 | Doc | Topic |
 |-----|--------|
 | [`CONFIGURATION.md`](CONFIGURATION.md) | Secrets, env layering, Redis |
+| `Sentry:Dsn` | API error reporting. Leave empty to disable Sentry. See [`../docs/MONITORING.md`](../docs/MONITORING.md). |
 | [`docs/SWAGGER_GUARDRAILS.md`](docs/SWAGGER_GUARDRAILS.md) | OpenAPI inclusion / regenerate |
 | [`docs/MIDDLEWARE_GUARDRAILS.md`](docs/MIDDLEWARE_GUARDRAILS.md) | Pipeline order |
 | [`docs/HEALTH_GUARDRAILS.md`](docs/HEALTH_GUARDRAILS.md) | Live / ready probes |

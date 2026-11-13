@@ -21,7 +21,7 @@ public sealed class CurrentTenantServiceTests
             .UseInMemoryDatabase($"CurrentTenant_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static (CurrentTenantService Service, CurrentTenantAccessor Accessor, DefaultHttpContext HttpContext) CreateHarness(
@@ -53,7 +53,7 @@ public sealed class CurrentTenantServiceTests
     public async Task ApplyCurrentTenantAsync_ResolvesSlugToTenantGuid()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var tenantB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         db.Tenants.Add(new Tenant { Id = tenantB, Name = "B", Slug = "companyb" });
         await db.SaveChangesAsync();
@@ -69,10 +69,19 @@ public sealed class CurrentTenantServiceTests
     }
 
     [Fact]
-    public async Task ApplyCurrentTenantAsync_AdminSlug_MapsToDefaultTenant()
+    public async Task ApplyCurrentTenantAsync_AdminSlug_MapsToDevTenantInDevelopment()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
 
         var (service, accessor, _) = CreateHarness(db, ctx =>
         {
@@ -81,7 +90,7 @@ public sealed class CurrentTenantServiceTests
 
         await service.ApplyCurrentTenantAsync();
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     [Fact]
@@ -112,7 +121,7 @@ public sealed class CurrentTenantServiceTests
     public async Task ApplyDevTenantOverrideAsync_Throws_OutsideDevelopment()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
 
         var accessor = new CurrentTenantAccessor();
         var environment = new Mock<IWebHostEnvironment>();

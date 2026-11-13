@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 import { DailyClosingModal } from './DailyClosingModal';
 import { useShift } from '../hooks/useShift';
@@ -100,7 +101,7 @@ export function ShiftManager() {
   const openDailyClosingModal = useCallback(() => {
     const canRun = Boolean(activeShift && dailyClosingStatus?.canClose && !isLoading);
     if (__DEV__) {
-      console.log('🔄 Tagesabschluss button clicked', {
+      safeLog('🔄 Tagesabschluss button clicked', {
         canRunDailyClosing: canRun,
         hasActiveShift: Boolean(activeShift),
         canClose: dailyClosingStatus?.canClose ?? null,
@@ -110,14 +111,14 @@ export function ShiftManager() {
     }
     if (!canRun) {
       if (__DEV__) {
-        console.log('⚠️ Tagesabschluss modal not opened (button gated)');
+        safeLog('⚠️ Tagesabschluss modal not opened (button gated)');
       }
       return;
     }
     setDailyClosingError(null);
     setShowDailyClosingModal(true);
     if (__DEV__) {
-      console.log('✅ setShowDailyClosingModal(true)');
+      safeLog('✅ setShowDailyClosingModal(true)');
     }
   }, [activeShift, dailyClosingStatus, isLoading]);
 

@@ -87,6 +87,51 @@ public sealed class LicenseAuditQueryServiceTests
         Assert.Contains(page.Items, i => i.Action == "LICENSE_RENEWED");
     }
 
+    [Fact]
+    public async Task ListAsync_FiltersByUserSearch()
+    {
+        await using var db = CreateDb();
+        var tenantA = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantA,
+            Name = "Alpha",
+            Slug = "alpha",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.BillingAuditLogs.AddRange(
+            new BillingAuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantA,
+                UserId = Guid.Empty,
+                Action = BillingAuditEventTypes.LicenseActivated,
+                Details = """{"invoiceNumber":"RE1"}""",
+                TimestampUtc = DateTime.UtcNow.AddMinutes(-2),
+            },
+            new BillingAuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantA,
+                UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                Action = BillingAuditEventTypes.LicenseExtended,
+                Details = """{"invoiceNumber":"RE2"}""",
+                TimestampUtc = DateTime.UtcNow.AddMinutes(-1),
+            });
+        await db.SaveChangesAsync();
+
+        var sut = new LicenseAuditQueryService(
+            db,
+            Options.Create(new LicenseOptions { GracePeriodDays = 7 }));
+
+        var page = await sut.ListAsync(new LicenseAuditLogQuery(UserSearch: "System"));
+
+        Assert.Equal(1, page.TotalCount);
+        Assert.Equal("LICENSE_ACTIVATED", page.Items[0].Action);
+    }
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

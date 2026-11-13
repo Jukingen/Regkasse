@@ -1,8 +1,6 @@
 using KasseAPI_Final.Configuration;
 using Microsoft.Extensions.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace KasseAPI_Final.Services.AdminProducts;
 
@@ -18,10 +16,12 @@ public sealed class ProductImageProcessingException : Exception
 }
 
 /// <summary>
-/// Builds a square WebP thumbnail using center-crop (no distortion). Uses SixLabors.ImageSharp — Apache-2.0, widely used on .NET, supports decode + resize + WebP encode without native dependencies.
+/// Builds a square WebP thumbnail using center-crop (no distortion). Uses SkiaSharp (MIT).
 /// </summary>
 public sealed class ProductImageThumbnailService
 {
+    private static readonly SKSamplingOptions HighQualitySampling = new(SKCubicResampler.Mitchell);
+
     private readonly IOptions<ProductMediaOptions> _options;
     private readonly ILogger<ProductImageThumbnailService> _logger;
 
@@ -36,41 +36,60 @@ public sealed class ProductImageThumbnailService
     /// <summary>
     /// Decode image bytes, center-crop to a square of <see cref="ProductMediaOptions.ThumbnailEdgePixels"/>, encode WebP. Original pixels are not retained on disk (caller writes only the returned bytes).
     /// </summary>
-    public async Task<byte[]> CreateSquareThumbnailWebpAsync(ReadOnlyMemory<byte> sourceBytes, CancellationToken cancellationToken)
+    public Task<byte[]> CreateSquareThumbnailWebpAsync(ReadOnlyMemory<byte> sourceBytes, CancellationToken cancellationToken)
     {
         var edge = Math.Clamp(_options.Value.ThumbnailEdgePixels, 32, 2048);
         var quality = Math.Clamp(_options.Value.WebpEncodingQuality, 1, 100);
 
         try
         {
-            await using var input = new MemoryStream(sourceBytes.ToArray(), writable: false);
-            using var image = await Image.LoadAsync(input, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            using var bitmap = SKBitmap.Decode(sourceBytes.Span);
+            if (bitmap is null)
+                throw new ProductImageProcessingException("Invalid or corrupt image (could not decode).");
 
-            image.Mutate(ctx => ctx.Resize(new ResizeOptions
-            {
-                Size = new Size(edge, edge),
-                Mode = ResizeMode.Crop,
-                Position = AnchorPositionMode.Center
-            }));
-
-            await using var output = new MemoryStream();
-            await image.SaveAsync(output, new WebpEncoder { Quality = quality }, cancellationToken);
-            return output.ToArray();
+            using var cropped = CenterCropSquare(bitmap, edge);
+            using var image = SKImage.FromBitmap(cropped);
+            using var encoded = image.Encode(SKEncodedImageFormat.Webp, quality)
+                ?? throw new ProductImageProcessingException("Image could not be processed.");
+            return Task.FromResult(encoded.ToArray());
         }
-        catch (UnknownImageFormatException ex)
+        catch (OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Product image upload rejected: unknown image format");
-            throw new ProductImageProcessingException("Invalid or corrupt image (could not decode).", ex);
+            throw;
         }
-        catch (InvalidImageContentException ex)
+        catch (ProductImageProcessingException ex)
         {
-            _logger.LogWarning(ex, "Product image upload rejected: invalid image content");
-            throw new ProductImageProcessingException("Invalid or corrupt image content.", ex);
+            _logger.LogWarning(ex, "Product image upload rejected");
+            throw;
         }
-        catch (ImageProcessingException ex)
+        catch (Exception ex)
         {
             _logger.LogWarning(ex, "Product image processing failed");
             throw new ProductImageProcessingException("Image could not be processed.", ex);
         }
+    }
+
+    private static SKBitmap CenterCropSquare(SKBitmap source, int edge)
+    {
+        if (source.Width <= 0 || source.Height <= 0)
+            throw new ProductImageProcessingException("Invalid or corrupt image content.");
+
+        var scale = Math.Max(edge / (double)source.Width, edge / (double)source.Height);
+        var scaledWidth = Math.Max(edge, (int)Math.Ceiling(source.Width * scale));
+        var scaledHeight = Math.Max(edge, (int)Math.Ceiling(source.Height * scale));
+        var scaledInfo = new SKImageInfo(scaledWidth, scaledHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var scaled = source.Resize(scaledInfo, HighQualitySampling)
+            ?? throw new ProductImageProcessingException("Image could not be processed.");
+
+        var cropX = Math.Max(0, (scaled.Width - edge) / 2);
+        var cropY = Math.Max(0, (scaled.Height - edge) / 2);
+        var output = new SKBitmap(new SKImageInfo(edge, edge, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using var canvas = new SKCanvas(output);
+        canvas.Clear(SKColors.Transparent);
+        var sourceRect = SKRect.Create(cropX, cropY, edge, edge);
+        canvas.DrawBitmap(scaled, sourceRect, SKRect.Create(edge, edge));
+        canvas.Flush();
+        return output;
     }
 }

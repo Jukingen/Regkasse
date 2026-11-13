@@ -41,6 +41,26 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         services.AddLogging(b => { });
         services.AddSingleton<ISmartRetentionService, SmartRetentionService>();
         services.AddSingleton<IStorageTierService, StorageTierService>();
+        services.AddSingleton<ICloudStorageService>(_ => Mock.Of<ICloudStorageService>());
+        services.AddScoped<IBackupRetentionPolicyService>(_ =>
+        {
+            var mock = new Mock<IBackupRetentionPolicyService>();
+            mock.Setup(x => x.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(BackupRetentionPolicySnapshot.Defaults);
+            mock.Setup(x => x.ApplyDefaultLegalHoldIfRequiredAsync(
+                    It.IsAny<BackupRun>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            return mock.Object;
+        });
+        services.AddScoped<IBackupColdArchiveService>(_ =>
+        {
+            var mock = new Mock<IBackupColdArchiveService>();
+            mock.Setup(x => x.ArchiveAgedSucceededRunsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(0);
+            return mock.Object;
+        });
         services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessOrchestrationHook>();
         extra?.Invoke(services);
         var sp = services.BuildServiceProvider();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
+import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { SIDEBAR_LAYOUT_ROWS, SIDEBAR_NAV_ITEM_CATALOG } from '@/shared/adminSidebarRegistry';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
@@ -22,6 +23,13 @@ describe('sidebarRegistryCatalog', () => {
         if (block.kind === 'leaves' || block.kind === 'nested') {
           for (const id of block.catalogIds) {
             expect(ids.has(id), `Unknown catalog id: ${id}`).toBe(true);
+          }
+          if (block.kind === 'nested') {
+            for (const child of block.childGroups ?? []) {
+              for (const id of child.catalogIds) {
+                expect(ids.has(id), `Unknown child catalog id: ${id}`).toBe(true);
+              }
+            }
           }
         }
       }
@@ -54,22 +62,203 @@ describe('sidebarRegistryCatalog', () => {
 
   it('hides Super Admin-only sidebar leaves from Manager permissions', () => {
     const managerPerms = [...MANAGER_ADMIN_PERMISSIONS];
-    for (const key of ['/admin/tenants', '/admin/billing', '/admin/cash-registers']) {
+    for (const key of [
+      '/admin/tenants',
+      '/admin/tenants/create',
+      '/admin/billing',
+      '/admin/cash-registers',
+    ]) {
       expect(isMenuItemAllowed(key, managerPerms), key).toBe(false);
     }
     // license.manage → license.view (implication); platform shell still gates /admin/licenses via role.
     expect(isMenuItemAllowed('/admin/licenses', managerPerms)).toBe(true);
-    expect(isMenuItemAllowed('/admin/license', managerPerms)).toBe(true);
+    expect(isMenuItemAllowed('/admin/license-management', managerPerms)).toBe(true);
   });
 
   it('declares system.critical on Super Admin platform catalog leaves', () => {
     expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminTenants.permission).toBe(PERMISSIONS.SYSTEM_CRITICAL);
+    expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCreateTenant.permission).toBe(
+      PERMISSIONS.SYSTEM_CRITICAL
+    );
     expect(SIDEBAR_NAV_ITEM_CATALOG.billingOverview.permission).toEqual([
       PERMISSIONS.SYSTEM_CRITICAL,
     ]);
     expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.permission).toBe(
       PERMISSIONS.SYSTEM_CRITICAL
     );
+    expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.sidebarHidden).toBeFalsy();
+  });
+
+  it('groups FA IA by daily workflow: Verkauf, Finanzen, Verwaltung, System', () => {
+    const groupIds = SIDEBAR_LAYOUT_ROWS.filter((r) => r.kind === 'group').map((r) => r.group);
+    expect(groupIds).toEqual([
+      'dashboard',
+      'operations',
+      'catalog',
+      'customers',
+      'finance',
+      'rksv',
+      'backup',
+      'settings',
+      'administration',
+      'system',
+    ]);
+
+    const collectIds = (
+      blocks: Extract<(typeof SIDEBAR_LAYOUT_ROWS)[number], { kind: 'group' }>['blocks']
+    ): string[] => {
+      const ids: string[] = [];
+      for (const block of blocks) {
+        if (block.kind === 'leaves' || block.kind === 'nested') {
+          ids.push(...block.catalogIds);
+          if (block.kind === 'nested') {
+            for (const child of block.childGroups ?? []) {
+              ids.push(...child.catalogIds);
+            }
+          }
+        }
+      }
+      return ids;
+    };
+
+    const byGroup = Object.fromEntries(
+      SIDEBAR_LAYOUT_ROWS.filter((r) => r.kind === 'group').map((r) => [r.group, collectIds(r.blocks)])
+    );
+
+    expect(byGroup.operations).toEqual(
+      expect.arrayContaining(['onlineOrders', 'receipts', 'tagesabschluss', 'tables', 'staffHub'])
+    );
+    expect(byGroup.operations).not.toContain('payments');
+    expect(byGroup.operations).not.toContain('vouchers');
+    expect(byGroup.customers).toEqual(expect.arrayContaining(['customers', 'vouchers']));
+    expect(byGroup.finance).toEqual(
+      expect.arrayContaining(['payments', 'invoices', 'reportCenter', 'stornoRefundAudit'])
+    );
+    expect(byGroup.administration).toEqual(
+      expect.arrayContaining([
+        'superAdminTenants',
+        'superAdminCashRegisters',
+        'licenseManagement',
+        'licenseStatusDashboard',
+      ])
+    );
+    expect(byGroup.administration).not.toContain('superAdminDataManagement');
+    expect(byGroup.administration).not.toContain('adminTseManagement');
+    expect(byGroup.settings).toEqual(
+      expect.arrayContaining([
+        'settingsDataManagement',
+        'digitalServicesManage',
+        'digitalServiceRequests',
+        'tenantPortal',
+      ])
+    );
+    expect(byGroup.settings).not.toContain('licenseManagement');
+    expect(byGroup.system).toEqual(
+      expect.arrayContaining([
+        'adminTseManagement',
+        'adminRksvRuntimeConfig',
+        'adminMwst',
+        'superAdminApprovals',
+        'adminTseLogs',
+        'superAdminDeployments',
+        'superAdminFeatureFlags',
+        'superAdminMaintenance',
+        'adminMonitoring',
+        'adminRiskDashboard',
+        'elmahErrors',
+        'limitTest',
+      ])
+    );
+    expect(SIDEBAR_NAV_ITEM_CATALOG.limitTest.developmentOnly).toBe(true);
+  });
+
+  it('nests TSE leaves under System → Sicherheit & TSE subgroups', () => {
+    const system = SIDEBAR_LAYOUT_ROWS.find((r) => r.kind === 'group' && r.group === 'system');
+    expect(system?.kind).toBe('group');
+    if (system?.kind !== 'group') return;
+
+    const security = system.blocks.find(
+      (b) => b.kind === 'nested' && b.menuKey === ADMIN_SIDEBAR_GROUP_KEYS.securityTse
+    );
+    expect(security?.kind).toBe('nested');
+    if (security?.kind !== 'nested') return;
+
+    expect(security.childGroups?.map((c) => c.menuKey)).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.peppol,
+      ADMIN_SIDEBAR_GROUP_KEYS.ch,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseManagement,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseOpsFailover,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseAnalyticsMonitoring,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseReportsFinance,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseAdvanced,
+      ADMIN_SIDEBAR_GROUP_KEYS.tseDiagnostics,
+    ]);
+  });
+
+  it('nests RKSV leaves under IA subgroups and Online-Bestellungen under Verkauf', () => {
+    const rksv = SIDEBAR_LAYOUT_ROWS.find((r) => r.kind === 'group' && r.group === 'rksv');
+    expect(rksv?.kind).toBe('group');
+    if (rksv?.kind !== 'group') return;
+
+    const nestedKeys = rksv.blocks
+      .filter((b) => b.kind === 'nested')
+      .map((b) => (b.kind === 'nested' ? b.menuKey : ''));
+    expect(nestedKeys).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvCurrentStatus,
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport,
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvFinanzOnline,
+      ADMIN_SIDEBAR_GROUP_KEYS.rksvAuditPruefung,
+    ]);
+
+    const belege = rksv.blocks.find(
+      (b) => b.kind === 'nested' && b.menuKey === ADMIN_SIDEBAR_GROUP_KEYS.rksvBelegeExport
+    );
+    expect(belege?.kind).toBe('nested');
+    if (belege?.kind !== 'nested') return;
+    expect(belege.childGroups?.map((c) => c.menuKey)).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts,
+    ]);
+    expect(belege.catalogIds).toEqual(['rksvTestsDepExport', 'rksvTestsSignatureVerify']);
+
+    const hub = rksv.blocks.find((b) => b.kind === 'rksvHub');
+    expect(hub).toMatchObject({
+      kind: 'rksvHub',
+      menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksvTools,
+      labelKey: 'nav.rksv.werkzeuge',
+    });
+
+    const operations = SIDEBAR_LAYOUT_ROWS.find(
+      (r) => r.kind === 'group' && r.group === 'operations'
+    );
+    expect(operations?.kind).toBe('group');
+    if (operations?.kind !== 'group') return;
+    const sales = operations.blocks.find(
+      (b) => b.kind === 'nested' && b.menuKey === ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions
+    );
+    expect(sales?.kind).toBe('nested');
+    if (sales?.kind !== 'nested') return;
+    expect(sales.catalogIds).toEqual(
+      expect.arrayContaining(['onlineOrders', 'receipts', 'tagesabschluss'])
+    );
+    expect(sales.catalogIds).not.toContain('payments');
+  });
+
+  it('nests Einstellungen leaves under IA subgroups', () => {
+    const settings = SIDEBAR_LAYOUT_ROWS.find((r) => r.kind === 'group' && r.group === 'settings');
+    expect(settings?.kind).toBe('group');
+    if (settings?.kind !== 'group') return;
+
+    const nestedKeys = settings.blocks
+      .filter((b) => b.kind === 'nested')
+      .map((b) => (b.kind === 'nested' ? b.menuKey : ''));
+    expect(nestedKeys).toEqual([
+      ADMIN_SIDEBAR_GROUP_KEYS.myAccount,
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsGeneral,
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsFinancesTaxes,
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsOperations,
+      ADMIN_SIDEBAR_GROUP_KEYS.digitalServices,
+      ADMIN_SIDEBAR_GROUP_KEYS.settingsCompliance,
+    ]);
   });
 
   it('hides RKSV test helper from Manager sidebar permissions', () => {

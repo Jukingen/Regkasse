@@ -32,8 +32,11 @@ namespace KasseAPI_Final.DTOs
         /// </summary>
         public decimal TotalAmount { get; set; }
 
-        /// <summary>Optional UID hint (ATU########). Normalized from company profile when omitted or invalid after validation rules.</summary>
-        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
+        /// <summary>
+        /// Optional VAT-ID hint. The shape is the tenant country profile
+        /// (<c>vatIdPattern</c> on <c>GET /api/admin/countries</c>), enforced by
+        /// <c>ITaxStrategy.ValidateVatId</c>. This property does not publish a country regex.
+        /// </summary>
         public string? Steuernummer { get; set; }
 
         /// <summary>Required: POS cash register row (FK). Must not be empty GUID.</summary>
@@ -41,6 +44,12 @@ namespace KasseAPI_Final.DTOs
         public Guid CashRegisterId { get; set; }
 
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Cash tendered by the customer. Stored on the payment row with the computed change.
+        /// Not part of the RKSV signature or the TSE payload.
+        /// </summary>
+        public decimal? CashGiven { get; set; }
 
         /// <summary>Optional idempotency key for this payment attempt. When retried with the same key, the existing payment result is returned.</summary>
         [MaxLength(64)]
@@ -66,6 +75,59 @@ namespace KasseAPI_Final.DTOs
         /// <summary>RKSV Storno reason; required when <see cref="IsStorno"/>.</summary>
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public StornoReason? StornoReason { get; set; }
+
+        /// <summary>
+        /// When true on a normal sale, a Vorbestellung row is created after the fiscal receipt.
+        /// Ignored for storno/refund. Does not change TSE signing.
+        /// </summary>
+        public bool IsPreorder { get; set; }
+
+        [MaxLength(2000)]
+        public string? PreorderCustomerNotes { get; set; }
+
+        /// <summary>
+        /// Operational remaining amount due later (not part of this TSE total).
+        /// This sale still fiscalizes <see cref="TotalAmount"/> / catalog lines.
+        /// </summary>
+        [Range(0, 999999)]
+        public decimal PreorderRemainingAmount { get; set; }
+
+        /// <summary>
+        /// When set, this sale pays remaining balance on an existing Vorbestellung.
+        /// Creates a new fiscal receipt; mutually exclusive with <see cref="IsPreorder"/>.
+        /// </summary>
+        public Guid? PreorderBalanceOrderId { get; set; }
+
+        /// <summary>
+        /// Optional non-fiscal prescription reference. Accepted only when the tenant vertical
+        /// profile has patientRecord=true. Not part of the RKSV signature chain.
+        /// </summary>
+        [MaxLength(255)]
+        public string? PrescriptionReference { get; set; }
+
+        /// <summary>
+        /// Optional taxi origin. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// Not part of the RKSV signature chain.
+        /// </summary>
+        [MaxLength(255)]
+        public string? RouteFrom { get; set; }
+
+        /// <summary>
+        /// Optional taxi destination. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        [MaxLength(255)]
+        public string? RouteTo { get; set; }
+
+        /// <summary>
+        /// Optional taxi distance in kilometres. Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        [Range(0, 999999.99)]
+        public decimal? RouteKm { get; set; }
+
+        /// <summary>
+        /// Optional taxi trip start (UTC). Accepted only when the tenant vertical profile id is <c>taxi</c>.
+        /// </summary>
+        public DateTime? TripStartedAtUtc { get; set; }
 
         /// <inheritdoc />
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -118,6 +180,20 @@ namespace KasseAPI_Final.DTOs
                 if (TotalAmount < 0.01m)
                     yield return new ValidationResult("TotalAmount must be greater than zero for storno parity.", [nameof(TotalAmount)]);
             }
+
+            if (IsPreorder && PreorderBalanceOrderId is Guid balanceId && balanceId != Guid.Empty)
+            {
+                yield return new ValidationResult(
+                    "IsPreorder and PreorderBalanceOrderId cannot both be set.",
+                    [nameof(IsPreorder), nameof(PreorderBalanceOrderId)]);
+            }
+
+            if (PreorderRemainingAmount < 0)
+            {
+                yield return new ValidationResult(
+                    "PreorderRemainingAmount cannot be negative.",
+                    [nameof(PreorderRemainingAmount)]);
+            }
         }
     }
 
@@ -137,7 +213,7 @@ namespace KasseAPI_Final.DTOs
         public int TableNumber { get; set; }
 
         [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0.")]
+        [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true, ErrorMessage = "Total amount must be greater than 0.")]
         public decimal TotalAmount { get; set; }
 
         [Required]
@@ -217,6 +293,25 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Phase 2 legacy: Add-ons as separate items. Kept for backward compat.</summary>
         [Obsolete("Add-ons as separate items. Kept for backward compat.", false)]
         public List<PaymentItemModifierRequest>? Modifiers { get; set; }
+
+        /// <summary>
+        /// Optional IMEI for a single IMEI-tracked unit. Not part of the RKSV payload.
+        /// Required when the catalog product has <c>imeiTracked=true</c> and quantity is 1.
+        /// </summary>
+        [MaxLength(20)]
+        public string? Imei { get; set; }
+
+        /// <summary>
+        /// Optional IMEI list when an IMEI-tracked line has quantity &gt; 1.
+        /// Count must match <see cref="Quantity"/>. Not part of the RKSV payload.
+        /// </summary>
+        public List<string>? Imeis { get; set; }
+
+        /// <summary>
+        /// Optional catalog variant. Metadata only: not stored on payment_details
+        /// and not part of the RKSV receipt, TSE payload, or DEP export.
+        /// </summary>
+        public Guid? VariantId { get; set; }
     }
 
     /// <summary>
@@ -227,6 +322,10 @@ namespace KasseAPI_Final.DTOs
         [Required]
         public string Method { get; set; } = "cash"; // cash, card, voucher
 
+        /// <summary>
+        /// Client hint only. Signing is decided by <c>TseOptions.RequiresFiscalSignature</c>
+        /// (<c>Tse:TseMode</c> not Off). A POS client cannot skip TSE by sending false.
+        /// </summary>
         [Required]
         public bool TseRequired { get; set; } = true;
 
@@ -241,6 +340,12 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Confirmed card payment intent id when method is card (Stripe-ready two-step flow).</summary>
         public Guid? CardPaymentIntentId { get; set; }
+
+        /// <summary>POS <c>gateway_payment_intents</c> row id to link after fiscal commit.</summary>
+        public Guid? OnlinePaymentId { get; set; }
+
+        /// <summary>Provider-agnostic alias for the gateway intent id.</summary>
+        public Guid? GatewayIntentId { get; set; }
     }
 
     /// <summary>
@@ -265,6 +370,9 @@ namespace KasseAPI_Final.DTOs
         /// Non-sensitive diagnostic code when Success is false (e.g. DEMO_BY_FLAG, DEMO_BY_ROLE). For ops/debug only.
         /// </summary>
         public string? DiagnosticCode { get; set; }
+
+        /// <summary>Profile capability that rejected an optional field (<c>PROFILE_FEATURE_DISABLED</c>).</summary>
+        public string? ProfileFeature { get; set; }
 
         /// <summary>When true (default), invoice was persisted for this payment. When false, payment succeeded but invoice sync failed — operator attention required.</summary>
         public bool InvoicePersisted { get; set; } = true;
@@ -292,8 +400,16 @@ namespace KasseAPI_Final.DTOs
 
         public bool ApprovalNotificationSent { get; set; }
 
+        public LimitErrorDto? LimitError { get; set; }
+
         /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
         public bool TimeSyncWarning { get; set; }
+
+        /// <summary>
+        /// Plaintext ticket codes returned once for print. Not stored and not part of the RKSV payload.
+        /// </summary>
+        public IReadOnlyList<KasseAPI_Final.Services.Tickets.IssuedTicketDto> IssuedTickets { get; set; } =
+            Array.Empty<KasseAPI_Final.Services.Tickets.IssuedTicketDto>();
     }
 
     /// <summary>

@@ -16,7 +16,7 @@
   "modals": {
     "openShift": {
       "title": "Schicht öffnen",
-      "description": "Schicht für Kasse öffnen?",
+      "description": "Sie übernehmen die aktive Schicht. Die zugewiesene Kassiererin kann die Kasse erst nach dem Schließen auswählen.",
       "confirm": "Öffnen"
     },
     "closeShift": {

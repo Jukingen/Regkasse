@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
+import { safeLog } from '../utils/loggingUtils';
 
 export interface AppState {
   // Global loading states
@@ -240,7 +241,7 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
     reset,
   };
 
-  console.log('📱 APP STATE PROVIDER: Rendering children...');
+  safeLog('📱 APP STATE PROVIDER: Rendering children...');
 
   return <AppStateContext.Provider value={contextValue}>{children}</AppStateContext.Provider>;
 };

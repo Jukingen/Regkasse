@@ -6,10 +6,10 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// CI smoke: committed BMF Prüftool fixtures must PASS CheckDEPExportFormat when JARs + JDK 17+ are present.
 /// </summary>
+[Collection(PrueftoolFixtureCollection.Name)]
 public sealed class RksvDepPrueftoolCiSmokeTests
 {
-    private static string FixtureDirectory =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tests", "fixtures", "prueftool"));
+    private static string FixtureDirectory => PrueftoolFixtureLocations.CommittedDirectory;
 
     [SkippableFact]
     [Trait("Category", "DepPrueftool")]

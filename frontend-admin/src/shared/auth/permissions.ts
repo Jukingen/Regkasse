@@ -108,6 +108,8 @@ export const PERMISSIONS = {
   DIGITAL_ORDERS_MANAGE: 'digital.orders.manage',
   /** Approve online orders / POS bridge (Super Admin). Backend: AppPermissions.DigitalOrdersApprove. */
   DIGITAL_ORDERS_APPROVE: 'digital.orders.approve',
+  /** Super Admin online-checkout payment console (list + synthetic webhooks). Backend: AppPermissions.OnlinePaymentsManage. */
+  ONLINE_PAYMENTS_MANAGE: 'online-payments.manage',
   LICENSE_VIEW: AppPermissions.LicenseView,
   /** Mandant (tenant) license view/update for own tenant — align with backend `AppPermissions.LicenseManage`. */
   LICENSE_MANAGE: 'license.manage',
@@ -152,14 +154,33 @@ export const PERMISSIONS = {
   RECEIPT_REPRINT: 'receipt.reprint',
   /** RKSV Jahresbeleg (annual zero receipt); align with backend AppPermissions.RksvJahresbelegCreate. */
   RKSV_JAHRESBELEG_CREATE: 'rksv.jahresbeleg.create',
+  RKSV_JAHRESBELEG_VIEW: 'rksv.jahresbeleg.view',
   RKSV_NULLBELEG_CREATE: 'rksv.nullbeleg.create',
   RKSV_STARTBELEG_CREATE: 'rksv.startbeleg.create',
   RKSV_MONATSBELEG_CREATE: 'rksv.monatsbeleg.create',
+  RKSV_MONATSBELEG_VIEW: 'rksv.monatsbeleg.view',
   RKSV_SCHLUSSBELEG_CREATE: 'rksv.schlussbeleg.create',
   /** RKSV demo/test helper card (Sonderbelege). SuperAdmin-only via backend catalog; align with AppPermissions.RksvTestHelper. */
   RKSV_TEST_HELPER: 'rksv.test-helper',
   /** Reset TSE simulation from the RKSV demo helper; align with AppPermissions.RksvTseSimulation. */
   RKSV_TSE_SIMULATION: 'rksv.tse-simulation',
+  /** View Fiskaly receipt/batch operations. Backend: AppPermissions.FiskalyOperationsView. */
+  FISKALY_OPERATIONS_VIEW: 'fiskaly.operations.view',
+  FISKALY_OPERATIONS_NORMAL: 'fiskaly.operations.normal',
+  FISKALY_OPERATIONS_CANCEL: 'fiskaly.operations.cancel',
+  FISKALY_OPERATIONS_NULLBELEG: 'fiskaly.operations.nullbeleg',
+  FISKALY_OPERATIONS_STARTBELEG: 'fiskaly.operations.startbeleg',
+  FISKALY_OPERATIONS_MONATSBELEG: 'fiskaly.operations.monatsbeleg',
+  FISKALY_OPERATIONS_JAHRESBELEG: 'fiskaly.operations.jahresbeleg',
+  FISKALY_OPERATIONS_SCHLUSSBELEG: 'fiskaly.operations.schlussbeleg',
+  FISKALY_OPERATIONS_TAGESABSCHLUSS: 'fiskaly.operations.tagesabschluss',
+  FISKALY_OPERATIONS_DEP_EXPORT: 'fiskaly.operations.dep-export',
+  /** FON/SCU/cash-register initialize. SuperAdmin-only. Backend: AppPermissions.FiskalyOperationsConfig. */
+  FISKALY_OPERATIONS_CONFIG: 'fiskaly.operations.config',
+  /** View Fiskaly operation history. Backend: AppPermissions.FiskalyHistoryView. */
+  FISKALY_HISTORY_VIEW: 'fiskaly.history.view',
+  /** Retry failed Fiskaly operations. Backend: AppPermissions.FiskalyHistoryRetry. */
+  FISKALY_HISTORY_RETRY: 'fiskaly.history.retry',
   BENEFIT_VIEW: 'benefit.view',
   BENEFIT_MANAGE: 'benefit.manage',
   VOUCHER_READ: 'voucher.read',
@@ -170,6 +191,24 @@ export const PERMISSIONS = {
   CUSTOMER_MANAGE: 'customer.manage',
   SHIFT_VIEW: 'shift.view',
   SHIFT_MANAGE: 'shift.manage',
+  /** Beherbergung rooms. Backend: AppPermissions.RoomView. */
+  ROOM_VIEW: 'room.view',
+  ROOM_MANAGE: 'room.manage',
+  /** Ticket sales. Backend: AppPermissions.TicketView. */
+  TICKET_VIEW: 'ticket.view',
+  TICKET_MANAGE: 'ticket.manage',
+  /** Hair salon appointments. Backend: AppPermissions.AppointmentView. */
+  APPOINTMENT_VIEW: 'appointment.view',
+  APPOINTMENT_MANAGE: 'appointment.manage',
+  /** Vet patient record. Backend: AppPermissions.PatientView. */
+  PATIENT_VIEW: 'patient.view',
+  PATIENT_MANAGE: 'patient.manage',
+  /** Handy shop IMEI stock. Backend: AppPermissions.ImeiView. */
+  IMEI_VIEW: 'imei.view',
+  IMEI_MANAGE: 'imei.manage',
+  /** Taxi trips. Backend: AppPermissions.TaxiTripView. */
+  TAXI_TRIP_VIEW: 'taxi.trip.view',
+  TAXI_TRIP_MANAGE: 'taxi.trip.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

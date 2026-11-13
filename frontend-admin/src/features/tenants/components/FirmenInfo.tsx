@@ -2,8 +2,9 @@
 
 import { Alert, Card, Descriptions, Skeleton, Tag, Typography } from 'antd';
 
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import type { Tenant } from '@/features/tenancy/providers/TenantProvider';
-import { formatGermanDateTime, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 
 export type FirmenInfoProps = {
   /** Active mandant from parent ({@link useTenant} / {@link useCurrentTenant}). */
@@ -80,7 +81,7 @@ export function FirmenInfo({
           <Tag color={tenant.licenseValid ? 'green' : 'red'}>{licenseLabel}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label={t('license.mandant.validUntil')}>
-          {formatGermanDateTime(validUntil)}
+          {formatLicenseValidUntil(validUntil)}
         </Descriptions.Item>
       </Descriptions>
     </Card>

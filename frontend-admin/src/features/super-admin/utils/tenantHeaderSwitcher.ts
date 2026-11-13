@@ -8,8 +8,9 @@ import {
   isDevelopmentOrTestTenantSlug,
 } from '@/features/tenancy/devTenantCatalog';
 import { getTenantSwitcherLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 
-export { formatDisplaySlug, formatTenantDisplay };
+export { formatDisplaySlug, formatTenantDisplay, isTenantRemovedStatus };
 
 export type TenantHeaderIndicatorKind =
   'activeWithAdmin' | 'activeNoAdmin' | 'suspended' | 'deleted';
@@ -43,7 +44,7 @@ export function tenantHeaderShowsNoAdminWarning(
 export function getTenantHeaderIndicator(
   tenant: Pick<AdminTenantListItem, 'status' | 'isActive' | 'ownerAdminEmail'>
 ): TenantHeaderIndicator {
-  if (tenant.status === 'deleted') {
+  if (isTenantRemovedStatus(tenant.status)) {
     return { kind: 'deleted', emoji: '⚫' };
   }
   if (tenant.status === 'suspended' || !tenant.isActive) {

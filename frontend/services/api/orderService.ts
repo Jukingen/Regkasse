@@ -1,6 +1,7 @@
+import { safeLog } from '../../utils/loggingUtils';
 // Order servisi - Backend Orders API'leri ile iletişim
 import { SecureApiService } from './secureApiService';
-import { CreateOrderRequest, OrderResponse, Order } from '../../types/order';
+import { CreateOrderRequest, OrderResponse, Order, OrdersPage } from '../../types/order';
 
 const API_BASE_URL = '/api/orders';
 const secureApiService = SecureApiService.getInstance();
@@ -10,7 +11,7 @@ export const orderService = {
   async createOrder(request: CreateOrderRequest): Promise<OrderResponse> {
     try {
       const response = await secureApiService.securePost<OrderResponse>(API_BASE_URL, request);
-      console.log('Order created successfully:', response);
+      safeLog('Order created successfully:', response);
       return response;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -19,9 +20,13 @@ export const orderService = {
   },
 
   // Tüm siparişleri getir
-  async getOrders(): Promise<Order[]> {
+  async getOrders(page = 1, pageSize = 50): Promise<OrdersPage> {
     try {
-      return await secureApiService.secureGet<Order[]>(API_BASE_URL);
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      return await secureApiService.secureGet<OrdersPage>(`${API_BASE_URL}?${params.toString()}`);
     } catch (error) {
       console.error('Error fetching orders:', error);
       throw error;
@@ -54,7 +59,7 @@ export const orderService = {
   async deleteOrder(orderId: string): Promise<void> {
     try {
       await secureApiService.secureDelete(`${API_BASE_URL}/${orderId}`);
-      console.log('Order deleted successfully:', orderId);
+      safeLog('Order deleted successfully:', orderId);
     } catch (error) {
       console.error('Error deleting order:', error);
       throw error;
@@ -70,7 +75,8 @@ export const orderService = {
     customerPhone?: string,
     notes?: string,
     cartId?: string,
-    customerId?: string
+    customerId?: string,
+    locationData?: CreateOrderRequest['locationData']
   ): Promise<OrderResponse> {
     const orderRequest: CreateOrderRequest = {
       tableNumber,
@@ -79,6 +85,7 @@ export const orderService = {
       customerName,
       customerPhone,
       notes,
+      locationData: locationData ?? undefined,
       cartId,
       items: cartItems.map((item) => ({
         productId: item.productId,

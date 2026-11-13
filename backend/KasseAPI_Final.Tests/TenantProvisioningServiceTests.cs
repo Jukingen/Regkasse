@@ -5,6 +5,8 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Trial;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +23,25 @@ public sealed class TenantProvisioningServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"tenant_provision_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+    }
+
+    private static ITrialService CreateTrialServiceStub(int defaultDays = 14)
+    {
+        var trial = new Mock<ITrialService>();
+        trial.Setup(x => x.ResolveDurationDays(It.IsAny<int?>()))
+            .Returns((int? requested) => requested is > 0 ? requested.Value : defaultDays);
+        trial.Setup(x => x.ApplyTrialGrant(It.IsAny<Tenant>(), It.IsAny<int>(), It.IsAny<DateTime>()))
+            .Callback<Tenant, int, DateTime>((tenant, days, now) =>
+            {
+                tenant.TrialStartedAtUtc = now;
+                tenant.TrialEndsAtUtc = now.AddDays(days);
+                tenant.TrialStatus = TrialStatuses.Active;
+                tenant.LicenseKey = null;
+                tenant.LicenseValidUntilUtc = tenant.TrialEndsAtUtc;
+                tenant.UpdatedAt = now;
+            });
+        return trial.Object;
     }
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManagerMock()
@@ -87,6 +107,7 @@ public sealed class TenantProvisioningServiceTests
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: true);
@@ -121,8 +142,21 @@ public sealed class TenantProvisioningServiceTests
         var settings = await db.UserSettings.SingleAsync(s => s.UserId == result.AdminUserId);
         Assert.Equal(register.Id.ToString("D"), settings.CashRegisterId);
 
+        Assert.True(result.TseProvisioned);
+
+        var at = new CountryProfileRegistry().Default;
+        var company = await db.CompanySettings.IgnoreQueryFilters()
+            .SingleAsync(s => s.TenantId == tenant.Id);
+        Assert.Equal(at.Code, company.Country);
+        Assert.Equal(VatRegime.AT_RKSV_STANDARD, company.VatRegime);
+        Assert.Equal(at.Currency, company.Currency);
+        Assert.Equal(at.DefaultLocale, company.Language);
+        Assert.Equal(at.DefaultTimeZone, company.TimeZone);
+
         var reloadedTenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.NotNull(reloadedTenant.LicenseValidUntilUtc);
+        Assert.Equal(TrialStatuses.Active, reloadedTenant.TrialStatus);
+        Assert.NotNull(reloadedTenant.TrialEndsAtUtc);
         Assert.NotNull(result.TrialLicenseValidUntilUtc);
     }
 
@@ -154,6 +188,7 @@ public sealed class TenantProvisioningServiceTests
             Mock.Of<IDemoProductImportService>(),
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(
@@ -213,6 +248,7 @@ public sealed class TenantProvisioningServiceTests
             importMock.Object,
             new PaymentMethodDefinitionBootstrapService(db),
             TseProvisioningTestDoubles.Successful(),
+            CreateTrialServiceStub(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         db.Categories.Add(new Category
@@ -242,5 +278,46 @@ public sealed class TenantProvisioningServiceTests
 
         var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
         Assert.Empty(products);
+    }
+
+    [Fact]
+    public async Task ProvisionAsync_ContinuesWhenTseProvisioningFails()
+    {
+        await using var db = CreateDb();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "TSE Fail Cafe",
+            Slug = "tse-fail",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync();
+
+        var uniqueness = new Mock<IUserUniquenessValidationService>();
+        uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
+
+        var service = new TenantProvisioningService(
+            db,
+            CreateUserManagerMock().Object,
+            new UserTenantMembershipProvisioner(db),
+            uniqueness.Object,
+            Mock.Of<IDemoProductImportService>(),
+            new PaymentMethodDefinitionBootstrapService(db),
+            TseProvisioningTestDoubles.Failed("fiskaly timeout"),
+            CreateTrialServiceStub(),
+            Mock.Of<ILogger<TenantProvisioningService>>());
+
+        var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: false);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.False(result!.TseProvisioned);
+        Assert.Null(result.TseDeviceId);
+        Assert.False(result.TseFellBackToSoft);
+        Assert.Equal(1, await db.CashRegisters.IgnoreQueryFilters().CountAsync(r => r.TenantId == tenant.Id));
     }
 }

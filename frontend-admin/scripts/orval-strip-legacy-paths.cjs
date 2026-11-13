@@ -2,7 +2,7 @@
  * Orval transformer: canonical boundary disi legacy path'leri spec'ten çıkarır.
  * FE-Admin payment için /api/admin/payments/* ve /api/pos/payment/* kullanır.
  */
-const LEGACY = ['/api/Product', '/api/Categories', '/api/Payment']; // path prefix'leri – silinirse orval bu endpoint'leri üretmez
+const LEGACY = ['/api/Product', '/api/Categories', '/api/Payment', '/api/Cart']; // removed aliases — do not generate clients
 
 /** Removed from backend; do not generate clients. */
 const REMOVED_PATHS = new Set([

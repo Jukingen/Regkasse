@@ -7,7 +7,20 @@
   },
   "sidebar": {
     "noAccessibleMenus": "Keine Menüpunkte verfügbar.",
-    "lockdownFooter": "Eingeschränkter Modus — Lizenz abgelaufen"
+    "lockdownFooter": "Eingeschränkter Modus — Lizenz abgelaufen",
+    "filterPlaceholder": "Menü filtern…",
+    "filterAria": "Seitenmenü filtern",
+    "filterNoResults": "Keine Menüpunkte zu dieser Suche.",
+    "recentTitle": "Zuletzt verwendet",
+    "favorites": {
+      "title": "Favoriten",
+      "empty": "Noch keine Favoriten. Klicken Sie auf den Stern neben einem Menüpunkt, um ihn hinzuzufügen.",
+      "maxReached": "Sie können höchstens 7 Favoriten hinzufügen.",
+      "pin": "Zu Favoriten hinzufügen",
+      "unpin": "Aus Favoriten entfernen",
+      "remove": "Entfernen",
+      "reorderHandle": "Favorit verschieben"
+    }
   },
   "menuPermission": {
     "popoverTitle": "Welche Berechtigung steuert dieses Menü?",
@@ -46,6 +59,7 @@
     "payments": "Zahlungen",
     "paymentTrends": "Zahlungstrends",
     "cardTransactions": "Kartentransaktionen",
+    "onlinePayments": "Online-Zahlungen",
     "cancellations": "Storno & Rückerstattung",
     "vouchers": "Gutscheine",
     "invoices": "Rechnungen",
@@ -87,6 +101,9 @@
     "taxHistory": "Steueränderungsverlauf",
     "backupRestore": "Backup & Restore",
     "administration": "Verwaltung",
+    "securityTse": "Sicherheit & TSE",
+    "deploymentSystem": "Deployment & System",
+    "monitoringLogs": "Monitoring & Logs",
     "accessRoles": "Zugriff & Rollen",
     "overview": "Übersicht",
     "users": "Benutzer",
@@ -146,7 +163,10 @@
     "cashRegisterQuickSwitchHint": "Kasse auswählen und Kassenverwaltung öffnen",
     "cashRegisterQuickSwitchManage": "Kassenverwaltung öffnen",
     "monatsbelegBadgeLabel": "Monatsbeleg ({count})",
-    "monatsbelegBadgeAria": "Monatsbeleg-Warnungen: {count}"
+    "monatsbelegBadgeAria": "Monatsbeleg-Warnungen: {count}",
+    "profileSimulationAria": "POS-Profil für die Navigation simulieren",
+    "profileSimulationAll": "Alle Profile",
+    "profileSimulationActual": "Aktuelles Mandantenprofil"
   },
   "tenant": {
     "badge": {
@@ -170,8 +190,10 @@
     "badgeImpersonatingTooltip": "Support-Impersonation aktiv",
     "badgeSupportModeTag": "Support-Modus",
     "badgeDevOverrideTooltip": "Entwicklung: Mandant per Header-Dropdown überschrieben",
-    "badgeDevModeTag": "Entwicklung",
+    "badgeDevModeTag": "DEV",
     "badgeDevModeTooltip": "Entwicklungsmodus – nur für Tests",
+    "badgeDevTenantName": "Entwicklung",
+    "badgeDevAutoSelectedTooltip": "Entwicklungstenant (automatisch ausgewählt)",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Aktuelle Firma",
     "infoCardEyebrow": "Firmen-Info",
@@ -234,7 +256,8 @@
       "title": "Mandant auswählen",
       "body": "Bitte wählen Sie einen Mandanten aus, um fortzufahren. Der Kontext gilt für alle Seiten.",
       "confirm": "Mandant übernehmen",
-      "applyFailed": "Mandant konnte nicht gesetzt werden."
+      "applyFailed": "Mandant konnte nicht gesetzt werden.",
+      "devAutoSelecting": "Entwicklungstenant wird ausgewählt…"
     },
     "tseLayout": {
       "title": "Kein Mandant ausgewählt",
@@ -277,6 +300,9 @@
     "reportingAnalytics": "Berichte & Auswertungen",
     "settings": "Einstellungen",
     "administration": "Verwaltung",
+    "securityTse": "Sicherheit & TSE",
+    "deploymentSystem": "Deployment & System",
+    "monitoringLogs": "Monitoring & Logs",
     "accessRoles": "Zugriff & Rollen",
     "fiscalCompliance": "RKSV & FinanzOnline",
     "verwaltung": "Verwaltung"

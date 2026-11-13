@@ -2,9 +2,9 @@
 
 import { ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, DatePicker, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Avatar, Button, Card, DatePicker, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs, { type Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import React, { useCallback, useMemo, useState } from 'react';
 
@@ -17,28 +17,23 @@ import {
   type AdminShiftRow,
   forceCloseAdminShiftRegister,
 } from '@/features/shifts/api/shiftsOverview';
+import { ShiftHistoryTable } from '@/features/shifts/components/ShiftHistoryTable';
 import { useAdminShiftOverview } from '@/features/shifts/hooks/useAdminShiftOverview';
+import {
+  cashierInitial,
+  differenceTextColor,
+  shiftStatusRowBackground,
+  shiftStatusTagColor,
+  shortUserId,
+} from '@/features/shifts/utils/shiftHistoryDisplay';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { usePermissions } from '@/hooks/usePermissions';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const STALE_SHIFT_WARNING_HOURS = 8;
-
-function statusTagColor(status: string): string {
-  switch (status) {
-    case 'Active':
-    case 'RegisterOpen':
-      return 'green';
-    case 'Discrepancy':
-      return 'orange';
-    case 'Completed':
-    default:
-      return 'blue';
-  }
-}
 
 export type ShiftOverviewProps = {
   /** When rendered under `/staff/shifts`, use staff hub breadcrumbs and back link. */
@@ -121,10 +116,38 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
     [formatLocale]
   );
 
+  const renderCashierCell = useCallback(
+    (row: AdminShiftRow) => (
+      <Tooltip
+        title={
+          <div>
+            <div>
+              {ts('userId')}: {row.cashierId}
+            </div>
+            <div>
+              {ts('tooltips.cashierName')}: {row.cashierName}
+            </div>
+          </div>
+        }
+      >
+        <Space size={8}>
+          <Avatar size="small">{cashierInitial(row.cashierName)}</Avatar>
+          <span>
+            {row.cashierName}{' '}
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              (#{shortUserId(row.cashierId)})
+            </Typography.Text>
+          </span>
+        </Space>
+      </Tooltip>
+    ),
+    [ts]
+  );
+
   const renderStatus = useCallback(
     (status: string, row: AdminShiftRow) => (
       <Space size={4} wrap>
-        <Tag color={statusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
+        <Tag color={shiftStatusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
         {row.isOrphanedRegisterSession ? (
           <Tag color="gold">{ts('badges.orphanedRegister')}</Tag>
         ) : null}
@@ -140,9 +163,9 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
     const columns: ColumnsType<AdminShiftRow> = [
       {
         title: ts('columns.cashier'),
-        dataIndex: 'cashierName',
-        key: 'cashierName',
+        key: 'cashier',
         ellipsis: true,
+        render: (_v, row) => renderCashierCell(row),
       },
       {
         title: ts('columns.register'),
@@ -199,7 +222,11 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         dataIndex: 'difference',
         key: 'difference',
         align: 'right',
-        render: formatMoney,
+        render: (v: number) => (
+          <Typography.Text style={{ color: differenceTextColor(v) }}>
+            {formatMoney(v)}
+          </Typography.Text>
+        ),
       },
       {
         title: ts('columns.status'),
@@ -235,31 +262,10 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
     formatDt,
     formatMoney,
     handleForceClose,
+    renderCashierCell,
     renderStatus,
     ts,
   ]);
-
-  const historyColumns: ColumnsType<AdminShiftRow> = useMemo(
-    () => [
-      ...shiftColumns.slice(0, 4),
-      {
-        title: ts('columns.startBalance'),
-        dataIndex: 'startBalance',
-        key: 'startBalance',
-        align: 'right',
-        render: formatMoney,
-      },
-      {
-        title: ts('columns.endBalance'),
-        dataIndex: 'endBalance',
-        key: 'endBalance',
-        align: 'right',
-        render: formatMoney,
-      },
-      ...shiftColumns.slice(4, -(canForceClose ? 1 : 0)),
-    ],
-    [canForceClose, formatMoney, shiftColumns, ts]
-  );
 
   const closingColumns: ColumnsType<AdminDailyClosingOverviewRow> = useMemo(
     () => [
@@ -303,7 +309,11 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         dataIndex: 'difference',
         key: 'difference',
         align: 'right',
-        render: formatMoney,
+        render: (v: number) => (
+          <Typography.Text style={{ color: differenceTextColor(v) }}>
+            {formatMoney(v)}
+          </Typography.Text>
+        ),
       },
       {
         title: ts('columns.fiscalTotal'),
@@ -333,7 +343,7 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
         key: 'shiftStatus',
         width: 130,
         render: (status: string) => (
-          <Tag color={statusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
+          <Tag color={shiftStatusTagColor(status)}>{ts(`status.${status}`) || status}</Tag>
         ),
       },
     ],
@@ -422,19 +432,17 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
               pagination={false}
               scroll={{ x: 1100 }}
               locale={{ emptyText: ts('empty') }}
+              onRow={(record) => ({
+                style: { background: shiftStatusRowBackground(record.status) },
+              })}
             />
           </Card>
 
           <Card type="inner" title={ts('sections.history')} style={{ marginBottom: 16 }}>
-            <Table<AdminShiftRow>
-              rowKey="id"
-              size="small"
+            <ShiftHistoryTable
+              rows={overviewQ.data?.shiftHistory ?? []}
               loading={overviewQ.isLoading}
-              dataSource={overviewQ.data?.shiftHistory ?? []}
-              columns={historyColumns}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
-              scroll={{ x: 1300 }}
-              locale={{ emptyText: ts('empty') }}
+              serverRegisterId={registerId}
             />
           </Card>
 

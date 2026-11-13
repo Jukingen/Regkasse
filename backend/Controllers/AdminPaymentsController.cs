@@ -366,11 +366,11 @@ public class AdminPaymentsController : ControllerBase
                 .AnyAsync(p => p.OriginalPaymentId == id && p.IsStorno, cancellationToken);
             if (alreadyReversed)
             {
-                return BadRequest(new CancellationResponse
+                return Conflict(new CancellationResponse
                 {
                     Success = false,
                     Message = "Payment already cancelled",
-                    DiagnosticCode = "ALREADY_CANCELLED",
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS",
                 });
             }
 

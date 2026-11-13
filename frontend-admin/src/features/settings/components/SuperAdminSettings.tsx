@@ -31,6 +31,7 @@ import type { CompanySettings } from '@/api/generated/model';
 import { FormSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ChangeMyPasswordForm } from '@/features/settings/components/ChangeMyPasswordForm';
+import { FiskalyEnabledSwitch } from '@/features/settings/components/FiskalyEnabledSwitch';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import {
   resolveSettingsHubTabForField,
@@ -39,6 +40,7 @@ import {
   SETTINGS_HUB_TAB_KEYS,
   resolveSettingsHubTabKey,
 } from '@/features/settings/constants/settingsHubTabs';
+import { useCountryVatIdValidation } from '@/features/settings/hooks/useCountryVatIdValidation';
 import {
   type SettingsFormValues,
   buildUpdateCompanySettingsRequest,
@@ -50,8 +52,6 @@ import { useI18n } from '@/i18n';
 import { customInstance } from '@/lib/axios';
 import { applyAspNetFieldErrorsToForm } from '@/lib/form/applyAspNetFieldErrorsToForm';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-
-const ATU_REGEX = /^ATU\d{8}$/;
 
 function getSettingsLoadErrorDescription(err: unknown, translate: (key: string) => string): string {
   if (err instanceof Error && err.message.trim()) return err.message.trim();
@@ -274,6 +274,19 @@ function SpaceWrapper({ children }: { children: React.ReactNode }) {
 function GeneralInfoTab() {
   const { t } = useI18n();
   const g = (key: string) => t(`settings.form.general.${key}`);
+  const { rules: vatIdRules } = useCountryVatIdValidation({
+    required: true,
+    messages: {
+      required: g('companyTaxNumberRequired'),
+      invalidAt: g('companyTaxNumberPattern'),
+    },
+  });
+  const { rules: optionalVatIdRules } = useCountryVatIdValidation({
+    required: false,
+    messages: {
+      invalidAt: g('companyTaxNumberPattern'),
+    },
+  });
   return (
     <Card title={g('cardTitle')}>
       <Row gutter={24}>
@@ -295,17 +308,14 @@ function GeneralInfoTab() {
           <Form.Item
             label={g('companyTaxNumber')}
             name="companyTaxNumber"
-            rules={[
-              { required: true, message: g('companyTaxNumberRequired') },
-              { pattern: ATU_REGEX, message: g('companyTaxNumberPattern') },
-            ]}
+            rules={vatIdRules}
           >
             <Input placeholder={g('placeholderAtu')} />
           </Form.Item>
           <Form.Item
             label={g('companyVatNumber')}
             name="companyVatNumber"
-            rules={[{ pattern: ATU_REGEX, message: g('companyTaxNumberPattern') }]}
+            rules={optionalVatIdRules}
           >
             <Input placeholder={g('placeholderAtu')} />
           </Form.Item>
@@ -584,6 +594,8 @@ function TSETab() {
   const ts = (key: string) => t(`settings.form.tse.${key}`);
   return (
     <Card title={ts('cardTitle')}>
+      <FiskalyEnabledSwitch />
+
       <Form.Item name="tseAutoConnect" valuePropName="checked" label={ts('autoConnect')}>
         <Switch />
       </Form.Item>

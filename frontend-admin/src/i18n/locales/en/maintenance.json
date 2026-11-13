@@ -12,6 +12,11 @@
     "description": "Some operations are temporarily disabled. You can view data but cannot modify it.",
     "disabledTooltip": "Disabled during maintenance"
   },
+  "superAdmin": {
+    "bannerTitle": "Maintenance mode is active",
+    "bannerDescription": "The system is under maintenance. You can continue working as Super Admin."
+  },
+
   "manage": {
     "pageTitle": "System maintenance",
     "pageSubtitle": "Start and end platform-wide maintenance windows. While active, the system runs in limited (read-mostly) mode: POS payments and write APIs are blocked for non-SuperAdmin users.",
@@ -34,6 +39,12 @@
     "formMessage": "Message (optional)",
     "formEnd": "Scheduled end",
     "emptyNotifications": "No notifications",
+    "cacheCardTitle": "Application cache",
+    "cacheCardHint": "Manually clear license/product caches for troubleshooting. Does not restart the application.",
+    "clearCacheAction": "Clear cache",
+    "clearCacheConfirmTitle": "Clear entire application cache?",
+    "clearCacheConfirmBody": "All tracked cache entries (license status, product lists, etc.) will be removed. Subsequent requests reload from the database.",
+    "clearCacheSuccess": "Cache cleared",
     "columns": {
       "title": "Title",
       "status": "Status",

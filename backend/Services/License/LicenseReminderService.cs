@@ -16,7 +16,7 @@ namespace KasseAPI_Final.Services.License;
 /// </summary>
 public sealed class LicenseReminderService : ILicenseReminderService
 {
-    private static readonly int[] DefaultReminderAnchors = [30, 14, 7, 1];
+    private static readonly int[] DefaultReminderAnchors = [30, 15, 7, 3, 1];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -98,6 +98,19 @@ public sealed class LicenseReminderService : ILicenseReminderService
             {
                 skipped++;
                 continue;
+            }
+
+            if (isExpiredDue)
+            {
+                await _db.Tenants
+                    .Where(t => t.Id == tenant.Id && t.Status == TenantStatuses.Active)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(t => t.Status, TenantStatuses.Suspended)
+                            .SetProperty(t => t.IsActive, false)
+                            .SetProperty(t => t.UpdatedAt, now),
+                        cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             var daysBefore = isExpiredDue ? 0 : daysRemaining!.Value;
@@ -372,7 +385,7 @@ public sealed class LicenseReminderService : ILicenseReminderService
         foreach (var reminder in pending)
         {
             var tenant = reminder.Tenant;
-            if (tenant == null || tenant.Status == TenantStatuses.Deleted)
+            if (tenant == null || TenantStatuses.IsRemoved(tenant.Status))
             {
                 reminder.Status = LicenseReminderStatuses.Cancelled;
                 continue;
@@ -412,7 +425,8 @@ public sealed class LicenseReminderService : ILicenseReminderService
                             mappedDays ?? daysRemaining,
                             recipient.DisplayName,
                             renewUrl,
-                            supportEmail));
+                            supportEmail,
+                            sale.LicenseType ?? Models.Enums.LicenseType.Starter));
                     var delivered = await _emailSender
                         .TrySendTenantLicenseReminderAsync(
                             recipient.Email,
@@ -426,10 +440,10 @@ public sealed class LicenseReminderService : ILicenseReminderService
                         anyDelivered = true;
                         sent++;
                         _logger.LogInformation(
-                            "Billing license reminder email sent for tenant {TenantSlug} sale {SaleId} to {RecipientEmail}",
+                            "License reminder sent to {Email} for tenant {TenantSlug}, days remaining: {Days}",
+                            recipient.Email,
                             tenant.Slug,
-                            sale.Id,
-                            recipient.Email);
+                            mappedDays ?? daysRemaining);
                     }
                     else
                     {
@@ -493,15 +507,14 @@ public sealed class LicenseReminderService : ILicenseReminderService
         string dedupKey,
         CancellationToken cancellationToken)
     {
-        return await _db.BillingAuditLogs
+        var details = await _db.BillingAuditLogs
             .AsNoTracking()
-            .AnyAsync(
-                l => l.TenantId == tenantId
-                     && l.Action == BillingAuditEventTypes.LicenseReminderSent
-                     && l.Details != null
-                     && l.Details.Contains(dedupKey, StringComparison.Ordinal),
-                cancellationToken)
+            .Where(l => l.TenantId == tenantId && l.Action == BillingAuditEventTypes.LicenseReminderSent)
+            .Select(l => l.Details)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        return details.Any(d => d != null && d.Contains(dedupKey, StringComparison.Ordinal));
     }
 
     private Task LogReminderSentAsync(

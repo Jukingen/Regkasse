@@ -4,6 +4,7 @@ import {
   isCanceledLikeError,
   isNetworkLikeError,
   isProductionSentryEnabled,
+  scrubSentryPii,
   shouldDropSentryEvent,
   shouldReportAxiosErrorToSentry,
 } from '../sentryFilter';
@@ -74,5 +75,25 @@ describe('shouldDropSentryEvent', () => {
         exception: { values: [{ type: 'Error', value: 'Internal Server Error' }] },
       })
     ).toBe(false);
+  });
+});
+
+describe('scrubSentryPii', () => {
+  it('drops the same identity keys as the API scrubber', () => {
+    const event = scrubSentryPii({
+      extra: { phone: '+431', name: 'Max', userId: 'u1', authorization: 'Bearer x' },
+      user: { id: 'u1', email: 'a@b.c' },
+      breadcrumbs: [{ data: { iban: 'AT00', status: 'ok' } }],
+    });
+
+    const extra = event.extra as Record<string, unknown>;
+    expect(extra.phone).toBeUndefined();
+    expect(extra.name).toBeUndefined();
+    expect(extra.authorization).toBeUndefined();
+    expect(extra.userId).toBe('u1');
+    expect((event.user as Record<string, unknown>).email).toBeUndefined();
+    const crumb = (event.breadcrumbs as Array<{ data: Record<string, unknown> }>)[0];
+    expect(crumb.data.iban).toBeUndefined();
+    expect(crumb.data.status).toBe('ok');
   });
 });

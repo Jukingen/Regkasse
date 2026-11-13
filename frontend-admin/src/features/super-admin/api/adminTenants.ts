@@ -31,6 +31,19 @@ export type AdminTenantListItem = {
   updatedAt?: string | null;
   ownerAdminEmail?: string | null;
   isDemoPreset?: boolean;
+  /**
+   * Package tier from license_sales (Trial | Starter | Business | Plus).
+   * Tenants without an active sale default to Trial.
+   */
+  licenseType?: 'Trial' | 'Starter' | 'Business' | 'Plus' | null;
+  registerCount?: number;
+  userCount?: number;
+  lastActivityAtUtc?: string | null;
+  trialStatus?: string | null;
+  trialEndsAtUtc?: string | null;
+  trialDaysRemaining?: number | null;
+  verticalProfileId?: string | null;
+  verticalProfileName?: string | null;
 };
 
 export type TenantProvisioning = {
@@ -91,6 +104,17 @@ export type AdminTenantDetail = AdminTenantListItem & {
   maintenanceMessage?: string | null;
   maintenanceStartedAt?: string | null;
   maintenanceEndsAt?: string | null;
+  trialStartedAtUtc?: string | null;
+  trialGracePeriodEndsAtUtc?: string | null;
+  trialConvertedAtUtc?: string | null;
+  trialReminder7dSent?: boolean;
+  trialReminder3dSent?: boolean;
+  trialReminder1dSent?: boolean;
+  country?: string | null;
+  vatRegime?: string | null;
+  vatId?: string | null;
+  billingCountry?: string | null;
+  taxExempt?: boolean;
 };
 
 export type UpdateTenantOperationModeRequest = {
@@ -109,6 +133,8 @@ export type TenantSlugAvailability = {
 export type CreateAdminTenantRequest = {
   name: string;
   slug: string;
+  countryCode: string;
+  vatRegime: string;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
@@ -117,6 +143,8 @@ export type CreateAdminTenantRequest = {
   adminEmail?: string | null;
   adminPassword?: string | null;
   grantTrialLicense?: boolean;
+  /** Override trial length (14 / 30 / 60 / 90). Backend default is Trial:DefaultDurationDays. */
+  trialDurationDays?: number;
   /** When true, imports full demo menu (Salate, Pizzas, …) instead of three generic demo products. */
   importDemoMenu?: boolean;
   /** Optional cash register number (default KASSE-001). */
@@ -125,6 +153,8 @@ export type CreateAdminTenantRequest = {
   industryTemplateId?: string | null;
   /** When true, seed starter users for industry template slots. */
   seedIndustryStarterUsers?: boolean;
+  /** Super Admin only. Applies the vertical demo catalog after create. Regular create sends false. */
+  seedDemo?: boolean;
 };
 
 export type UpdateAdminTenantRequest = {
@@ -136,6 +166,11 @@ export type UpdateAdminTenantRequest = {
   licenseKey?: string | null;
   licenseValidUntilUtc?: string | null;
   isActive?: boolean | null;
+};
+
+export type UpdateAdminTenantCountryRequest = {
+  country: string;
+  vatRegime: string;
 };
 
 export type TenantImpersonationResponse = {
@@ -175,11 +210,64 @@ export async function getAdminTenantSlugSuggestions(
   return data.suggestions ?? [];
 }
 
-export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {
-  const { data } = await AXIOS_INSTANCE.get<AdminTenantListItem[]>('/api/admin/tenants', {
-    params: { includeDeleted },
+export type AdminTenantListQuery = {
+  includeDeleted?: boolean;
+  status?: string;
+  licenseType?: 'Trial' | 'Starter' | 'Business' | 'Plus';
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc' | 'Asc' | 'Desc';
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminTenantListPagedResult = {
+  items: AdminTenantListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function listAdminTenantsPaged(
+  query: AdminTenantListQuery = {}
+): Promise<AdminTenantListPagedResult> {
+  const { data } = await AXIOS_INSTANCE.get<AdminTenantListPagedResult>('/api/admin/tenants', {
+    params: {
+      includeDeleted: query.includeDeleted ?? false,
+      status: query.status,
+      licenseType: query.licenseType,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    },
   });
   return data;
+}
+
+/** Backward-compatible full list (fetches all pages, max 100 per request). */
+export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {
+  const pageSize = 100;
+  let page = 1;
+  let totalPages = 1;
+  const all: AdminTenantListItem[] = [];
+
+  do {
+    const result = await listAdminTenantsPaged({
+      includeDeleted,
+      page,
+      pageSize,
+      sortBy: 'Name',
+      sortOrder: 'Asc',
+    });
+    all.push(...(result.items ?? []));
+    totalPages = Math.max(1, result.totalPages ?? 1);
+    page += 1;
+  } while (page <= totalPages);
+
+  return all;
 }
 
 export async function getAdminTenantById(tenantId: string): Promise<AdminTenantDetail> {
@@ -202,6 +290,85 @@ export async function updateAdminTenant(
     `/api/admin/tenants/${tenantId}`,
     body
   );
+  return data;
+}
+
+export async function updateAdminTenantCountry(
+  tenantId: string,
+  body: UpdateAdminTenantCountryRequest
+): Promise<AdminTenantDetail> {
+  const { data } = await AXIOS_INSTANCE.patch<AdminTenantDetail>(
+    `/api/admin/tenants/${tenantId}/country`,
+    body
+  );
+  return data;
+}
+
+export type CountryChangeImpact = {
+  affectedRowCount: number;
+  incompatibleRowCount: number;
+};
+
+export async function getAdminTenantCountryImpact(
+  tenantId: string,
+  country: string
+): Promise<CountryChangeImpact> {
+  const { data } = await AXIOS_INSTANCE.get<CountryChangeImpact>(
+    `/api/admin/tenants/${tenantId}/country-impact`,
+    { params: { country } }
+  );
+  return data;
+}
+
+/** Super Admin: set lifecycle status (lead | in_onboarding | active | suspended | cancelled | archived). */
+export async function updateTenantStatus(
+  tenantId: string,
+  status: string
+): Promise<AdminTenantDetail> {
+  return updateAdminTenant(tenantId, { status });
+}
+
+export async function exportTenantsCsv(query: AdminTenantListQuery = {}): Promise<Blob> {
+  const { data } = await AXIOS_INSTANCE.get<Blob>('/api/admin/tenants/export', {
+    params: {
+      includeDeleted: query.includeDeleted ?? false,
+      status: query.status,
+      licenseType: query.licenseType,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    },
+    responseType: 'blob',
+  });
+  return data;
+}
+
+export type PlanDistributionDto = {
+  trial: number;
+  starter: number;
+  business: number;
+  plus: number;
+};
+
+export type CustomerAnalyticsDto = {
+  totalTenants: number;
+  activeTenants: number;
+  inOnboardingTenants: number;
+  suspendedTenants: number;
+  trialTenants: number;
+  paidTenants: number;
+  expiringSoon: number;
+  expiredTenants: number;
+  mrr: number;
+  newTenantsLast30Days: number;
+  churnRate: number;
+  arpu: number;
+  planDistribution: PlanDistributionDto;
+  customerLtv: number | null;
+};
+
+export async function getCustomerAnalytics(): Promise<CustomerAnalyticsDto> {
+  const { data } = await AXIOS_INSTANCE.get<CustomerAnalyticsDto>('/api/admin/analytics/customers');
   return data;
 }
 

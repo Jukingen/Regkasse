@@ -14,7 +14,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { BackupRunResponseDtoStatus } from '@/api/generated/model';
+import { BackupRunStatus } from '@/api/generated/model';
 import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 import {
   bundleEmptyEffectiveAdapterKind,
@@ -139,10 +139,10 @@ describe('Backup & DR — çelişkili durum entegrasyonu (operatör görünür s
 
   it('sunucu projeksiyonu eksik/uyumsuz + istemci geri dönüş kapalı: resmi adım listesi boş (yanlış tam pipeline yok)', () => {
     const r = resolveBackupPipelineStepsForUi(
-      { id: 'a', status: BackupRunResponseDtoStatus.NUMBER_3 } as never,
+      { id: 'a', status: BackupRunStatus.Succeeded } as never,
       {
         id: 'a',
-        status: BackupRunResponseDtoStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         pipeline: { projectionVersion: '2099-unsupported', steps: [...eightSteps] },
       } as never,
       {},
@@ -154,10 +154,10 @@ describe('Backup & DR — çelişkili durum entegrasyonu (operatör görünür s
 
   it('desteklenen projeksiyon sürümü: sunucu projeksiyonu kullanılır', () => {
     const r = resolveBackupPipelineStepsForUi(
-      { id: 'a', status: BackupRunResponseDtoStatus.NUMBER_3 } as never,
+      { id: 'a', status: BackupRunStatus.Succeeded } as never,
       {
         id: 'a',
-        status: BackupRunResponseDtoStatus.NUMBER_3,
+        status: BackupRunStatus.Succeeded,
         pipeline: { projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION, steps: [...eightSteps] },
       } as never,
       {},
@@ -177,7 +177,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never
@@ -200,7 +200,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never
@@ -225,7 +225,7 @@ describe('BackupRunProgressBanner — başarı metni “kanıt eksik” ile domi
       <BackupRunProgressBanner
         latest={
           {
-            status: BackupRunResponseDtoStatus.NUMBER_3,
+            status: BackupRunStatus.Succeeded,
             id: 'x',
             requestedAt: '2026-01-01T00:00:00Z',
           } as never

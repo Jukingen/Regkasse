@@ -4,5 +4,10 @@ namespace KasseAPI_Final.Services
     public interface IActorDisplayNameResolver
     {
         Task<IReadOnlyDictionary<string, string>> ResolveAsync(IList<string> userIds);
+
+        /// <summary>
+        /// Resolves login labels for readable logs: email, else username, else omitted (caller uses <c>unknown</c>).
+        /// </summary>
+        Task<IReadOnlyDictionary<string, string>> ResolveLoginLabelsAsync(IList<string> userIds);
     }
 }

@@ -20,7 +20,7 @@ public sealed class TenantResolutionMiddlewareTests
     public async Task InvokeAsync_Development_DevHeader_BindsDevTenant()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -48,7 +48,10 @@ public sealed class TenantResolutionMiddlewareTests
         httpContextAccessor.HttpContext = httpContext;
 
         var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
-        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
 
         await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
 
@@ -59,7 +62,15 @@ public sealed class TenantResolutionMiddlewareTests
     public async Task InvokeAsync_Development_NoDevHeader_UsesHostSlug()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
         await db.SaveChangesAsync();
 
         var accessor = new CurrentTenantAccessor();
@@ -79,18 +90,64 @@ public sealed class TenantResolutionMiddlewareTests
         httpContextAccessor.HttpContext = httpContext;
 
         var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
-        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
 
         await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
 
-        Assert.Equal(LegacyDefaultTenantIds.Primary, accessor.TenantId);
+        // Development: localhost/admin host remaps to seeded `dev` (not platform).
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_CafeAliasHeader_RemapsToDev()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers[SubdomainTenantProvider.DevTenantHeaderName] = "cafe";
+        httpContextAccessor.HttpContext = httpContext;
+
+        var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
+
+        await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
+
+        Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
     }
 
     [Fact]
     public async Task InvokeAsync_Production_ApiHost_LeavesAmbientTenantUnset()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         await db.SaveChangesAsync();
 
         var accessor = new CurrentTenantAccessor { TenantId = Guid.NewGuid() };
@@ -114,7 +171,10 @@ public sealed class TenantResolutionMiddlewareTests
         accessor.TenantId = Guid.NewGuid();
 
         var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
-        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
 
         await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
 
@@ -125,7 +185,7 @@ public sealed class TenantResolutionMiddlewareTests
     public async Task InvokeAsync_Production_MandantSubdomain_BindsFromHost()
     {
         await using var db = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Tenants.Add(new Tenant
         {
             Id = DemoTenantIds.Dev,
@@ -153,11 +213,50 @@ public sealed class TenantResolutionMiddlewareTests
         httpContextAccessor.HttpContext = httpContext;
 
         var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
-        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
 
         await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
 
         Assert.Equal(DemoTenantIds.Dev, accessor.TenantId);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Production_QueryTenant_IsIgnoredAndLeavesAmbientUnsetOnApiHost()
+    {
+        await using var db = CreateContext();
+        TenantTestDoubles.EnsurePlatformTenant(db);
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor { TenantId = Guid.NewGuid() };
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var tenantContextService = new TenantContextService(
+            db,
+            accessor,
+            environment.Object,
+            Mock.Of<KasseAPI_Final.Services.Tenancy.ITenantDomainService>(),
+            NullLogger<TenantContextService>.Instance);
+
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("api.regkasse.at");
+        httpContext.Request.QueryString = new QueryString("?tenant=dev");
+        httpContextAccessor.HttpContext = httpContext;
+
+        var currentTenantService = new CurrentTenantService(tenantContextService, httpContextAccessor, environment.Object);
+        var middleware = new TenantResolutionMiddleware(
+            _ => Task.CompletedTask,
+            environment.Object,
+            NullLogger<TenantResolutionMiddleware>.Instance);
+
+        await middleware.InvokeAsync(httpContext, currentTenantService, accessor);
+
+        // Query must not bind tenant in Production; platform host clears ambient.
+        Assert.Null(accessor.TenantId);
     }
 
     private static AppDbContext CreateContext()
@@ -166,6 +265,6 @@ public sealed class TenantResolutionMiddlewareTests
             .UseInMemoryDatabase($"TenantResolutionMiddleware_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 }

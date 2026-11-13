@@ -15,7 +15,7 @@ public sealed class OnlineOrderModelTests
             .UseInMemoryDatabase(nameof(OnlineOrder_persists_items_and_modifiers_with_cascade) + Guid.NewGuid())
             .Options;
 
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var tenantId = Guid.NewGuid();
         db.Tenants.Add(new Tenant
         {

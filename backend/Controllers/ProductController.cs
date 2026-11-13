@@ -5,6 +5,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,42 +15,57 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// POS product read/catalog handlers. Canonical route: <c>api/pos/*</c> (product actions on this controller).
-    /// Legacy alias <c>api/Product/*</c> maps to the same actions; deprecation headers via <see cref="LegacyRouteDeprecationFilter"/>.
-    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>) — do not add new admin features here.
-    /// Mutations remaining on this controller are compatibility surface only. Sunset for legacy alias: 2026-09-30.
+    /// Legacy alias <c>/api/Product/*</c> was removed (2026-08-13); POS clients must call <c>/api/pos/*</c>.
+    /// Admin catalog CRUD belongs on <see cref="AdminProductsController"/> (<c>/api/admin/products</c>).
     /// </summary>
-    [Obsolete(
-        "Legacy HTTP alias /api/Product/* is deprecated; POS clients must call /api/pos/*, Admin must use /api/admin/products. " +
-        "This type still hosts canonical /api/pos product routes (dual [Route]). " +
-        "Do not add new endpoints that exist only on the legacy prefix. Sunset: 2026-09-30.",
-        error: false)]
-    [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
-    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.ProductView)]
     public class ProductController : EntityController<Product>
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
+        private readonly IProductService? _productService;
 
         public ProductController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
             ILogger<ProductController> logger,
-            ISettingsTenantResolver settingsTenantResolver) : base(productRepository, logger)
+            ISettingsTenantResolver settingsTenantResolver,
+            ITenantLimitGuard? tenantLimitGuard = null,
+            IProductService? productService = null) : base(productRepository, logger)
         {
             _context = context;
             _productRepository = productRepository;
             _settingsTenantResolver = settingsTenantResolver;
+            _tenantLimitGuard = tenantLimitGuard;
+            _productService = productService;
         }
 
         private Task<Guid> EffectiveTenantIdAsync(CancellationToken cancellationToken = default) =>
             _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
 
+        private async Task StampHasVariantsAsync(List<Product> products)
+        {
+            if (products.Count == 0)
+                return;
+
+            var ids = products.Select(product => product.Id).ToList();
+            var withVariants = await _context.ProductVariants
+                .AsNoTracking()
+                .Where(variant => ids.Contains(variant.ProductId))
+                .Select(variant => variant.ProductId)
+                .Distinct()
+                .ToListAsync();
+            var variantProducts = withVariants.ToHashSet();
+            foreach (var product in products)
+                product.HasVariants = variantProducts.Contains(product.Id);
+        }
+
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/Product — base route tek action olmalı (Swagger çakışmasını önler).
+        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/pos — base route tek action olmalı (Swagger çakışmasını önler).
         /// </summary>
         [HttpGet]
         public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
@@ -58,7 +74,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/Product/list
+        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/pos/list
         /// </summary>
         [HttpGet("list")]
         public async Task<IActionResult> GetAllPaginated(
@@ -84,6 +100,7 @@ namespace KasseAPI_Final.Controllers
                     .Skip((validPageNumber - 1) * validPageSize)
                     .Take(validPageSize)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 var response = new
                 {
@@ -107,6 +124,31 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Retail barcode lookup. Same product shape as the POS list, including <c>hasVariants</c>.
+        /// Unknown or foreign barcodes return 404 <c>BARCODE_NOT_FOUND</c>.
+        /// </summary>
+        [HttpGet("products/by-barcode/{barcode}")]
+        public async Task<IActionResult> GetByBarcode(string barcode, CancellationToken cancellationToken)
+        {
+            var tenantId = await EffectiveTenantIdAsync(cancellationToken);
+            var product = _productService is null
+                ? null
+                : await _productService.GetByBarcodeAsync(tenantId, barcode, cancellationToken);
+            if (product is null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    code = ProductBarcodeWriteResult.NotFoundCode,
+                    message = "No product with this barcode was found.",
+                    timestamp = DateTime.UtcNow,
+                });
+            }
+
+            return SuccessResponse(product, "Product found");
+        }
+
+        /// <summary>
         /// Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
         /// </summary>
         [HttpGet("all")]
@@ -121,6 +163,7 @@ namespace KasseAPI_Final.Controllers
                     .OrderBy(p => p.Category)  // kategori adı (string); CategoryId = FK
                     .ThenBy(p => p.Name)
                     .ToListAsync();
+                await StampHasVariantsAsync(products);
 
                 _logger.LogInformation($"Retrieved {products.Count} active products without pagination");
                 return SuccessResponse(products, $"Retrieved {products.Count} active products");
@@ -166,13 +209,13 @@ namespace KasseAPI_Final.Controllers
                 var allGroupIds = productToGroupIds.Values.SelectMany(x => x).Distinct().ToList();
                 List<ModifierGroupDto> emptyGroups = new();
 
-                var categoryList = activeProducts
-                    .Where(p => p.CategoryNavigation != null)
-                    .Select(p => p.CategoryNavigation!)
-                    .DistinctBy(c => c.Id)
+                var categoryList = (await _context.Categories
+                    .AsNoTracking()
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
                     .OrderBy(c => c.SortOrder)
                     .ThenBy(c => c.Name)
-                    .Select(c => new CatalogCategoryDto { Id = c.Id, Name = c.Name, VatRate = c.VatRate })
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
                     .ToList();
 
                 if (allGroupIds.Count == 0)
@@ -220,6 +263,17 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        private static CatalogCategoryDto MapToCatalogCategoryDto(Category c) =>
+            new()
+            {
+                Id = c.Id,
+                Name = c.Name,
+                VatRate = c.VatRate,
+                Icon = CategoryAppearance.NormalizeIcon(c.Icon),
+                Color = c.Color,
+                SortOrder = c.SortOrder
+            };
+
         private static CatalogProductDto MapToCatalogProductDto(Product p, List<ModifierGroupDto> modifierGroups)
         {
             return new CatalogProductDto
@@ -238,8 +292,14 @@ namespace KasseAPI_Final.Controllers
                 StockQuantity = p.StockQuantity,
                 MinStockLevel = p.MinStockLevel,
                 Unit = p.Unit,
+                DurationMinutes = p.DurationMinutes,
+                StaffId = p.StaffId,
+                ImeiTracked = p.ImeiTracked,
+                IsTicket = p.IsTicket,
                 ProductCategory = p.Category,
                 CategoryId = p.CategoryId,
+                CategoryIcon = CategoryAppearance.NormalizeIcon(p.CategoryNavigation?.Icon),
+                CategoryColor = p.CategoryNavigation?.Color,
                 TaxType = p.TaxType,
                 TaxRate = p.TaxRate,
                 IsActive = p.IsActive,
@@ -307,6 +367,10 @@ namespace KasseAPI_Final.Controllers
                         p.Price,
                         p.ImageUrl,
                         p.StockQuantity,
+                        p.DurationMinutes,
+                        p.StaffId,
+                        p.ImeiTracked,
+                        p.IsTicket,
                         p.TaxType,
                         p.TaxRate,
                         p.IsActive,
@@ -328,6 +392,10 @@ namespace KasseAPI_Final.Controllers
                             p.Price,
                             p.ImageUrl,
                             p.StockQuantity,
+                            p.DurationMinutes,
+                            p.StaffId,
+                            p.ImeiTracked,
+                            p.IsTicket,
                             p.TaxType,
                             p.TaxRate,
                             p.IsActive
@@ -404,7 +472,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm kategorileri getir
+        /// Active POS categories with icon/color (same appearance as admin).
         /// </summary>
         [HttpGet("categories")]
         public async Task<IActionResult> GetAllCategories()
@@ -412,16 +480,16 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await EffectiveTenantIdAsync();
-                var categories = await _context.Products
+                var categories = (await _context.Categories
                     .AsNoTracking()
-                    .Where(p => p.IsActive && p.TenantId == tenantId)
-                    .Select(p => p.Category)
-                    .Distinct()
-                    .OrderBy(c => c)
-                    .ToListAsync();
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
+                    .OrderBy(c => c.SortOrder)
+                    .ThenBy(c => c.Name)
+                    .ToListAsync())
+                    .Select(MapToCatalogCategoryDto)
+                    .ToList();
 
-                // İngilizce teknik log
-                _logger.LogInformation($"Retrieved {categories.Count} unique categories");
+                _logger.LogInformation("Retrieved {Count} POS categories", categories.Count);
 
                 return SuccessResponse(categories, $"Retrieved {categories.Count} categories");
             }
@@ -675,6 +743,19 @@ namespace KasseAPI_Final.Controllers
 
                 // CategoryId'den kategori adını senkronize et
                 var tenantId = await EffectiveTenantIdAsync();
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
+
                 var category = await _context.Categories
                     .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
                 if (category == null || !category.IsActive)

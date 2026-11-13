@@ -26,16 +26,16 @@ export function buildSensitiveExportHeaders(input: {
 }): SensitiveExportSecurityHeaders {
   const headers: SensitiveExportSecurityHeaders = {};
   if (input.privacyAck) headers['X-Sensitive-Export-Ack'] = 'true';
+  // X-2FA-Code is accepted for backward compatibility but no longer required by the API.
   if (input.twoFactorCode?.trim()) headers['X-2FA-Code'] = input.twoFactorCode.trim();
   if (input.approvalId?.trim()) headers['X-Sensitive-Export-Approval-Id'] = input.approvalId.trim();
   if (input.downloadTicket?.trim()) headers['X-Download-Ticket'] = input.downloadTicket.trim();
   return headers;
 }
 
-export function requiresCriticalTwoFactor(kind: SensitiveExportKind): boolean {
-  return (
-    kind === SENSITIVE_EXPORT_KINDS.SystemBackup || kind === SENSITIVE_EXPORT_KINDS.AuditLogExport
-  );
+/** @deprecated Step-up 2FA for critical exports is disabled; always returns false. */
+export function requiresCriticalTwoFactor(_kind: SensitiveExportKind): boolean {
+  return false;
 }
 
 export type SensitiveExportApprovalDto = {

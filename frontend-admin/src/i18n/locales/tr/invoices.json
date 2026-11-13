@@ -245,5 +245,31 @@
     "formEmailLabel": "Alici e-postasi",
     "formEmailPlaceholder": "musteri@ornek.com",
     "formEmailInvalid": "Lutfen gecerli bir e-posta adresi girin."
+  },
+  "chQr": {
+    "download": "QR-Rechnung PDF indir",
+    "markUploaded": "Bankaya yuklendi olarak isaretle",
+    "modalTitle": "Banka portali yukleme",
+    "bankReference": "Banka referansi",
+    "bankReferenceRequired": "Banka referansini girin.",
+    "confirm": "Kaydet",
+    "cancel": "Iptal",
+    "downloaded": "QR-Rechnung PDF indirildi.",
+    "uploaded": "Banka portali yukleme notu kaydedildi.",
+    "downloadFailed": "QR-Rechnung PDF indirilemedi.",
+    "uploadFailed": "Yukleme notu kaydedilemedi.",
+    "outstandingWarning": "Bu baski ozellikleri mevcut QR-Rechnung ciktisinin parcasi degildir. PDF indirilmeden once operator bunlarin bu kiraci icin kabul edilebilir oldugunu onaylamalidir.",
+    "gapWarning": {
+      "title": "QR-Rechnung: kabul edilen baskı özellikleri eksik",
+      "description": "Bu baskı özellikleri mevcut QR-Rechnung çıktısında yok. Fatura engellenmez.",
+      "link": "Boşluk kabulünü aç",
+      "gap": {
+        "officialSwissCross": "Beyaz kenarlıklı resmi 7 mm İsviçre haçı",
+        "fontEmbeddingLiberationArial": "Gömülü Liberation Sans veya Arial yazı tipi",
+        "pain001": "pain.001 kredi transfer dosyası",
+        "bankScan": "Basılı faturanın banka taraması",
+        "perforationLine": "Makbuz ile ödeme bölümü arasındaki perforasyon işareti"
+      }
+    }
   }
 }

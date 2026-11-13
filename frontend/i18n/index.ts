@@ -15,10 +15,13 @@ import 'intl-pluralrules';
 import enPayment from './locales/en/payment.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enProducts from './locales/en/products.json';
+import enReceipts from './locales/en/receipts.json';
 import enReports from './locales/en/reports.json';
 import enSettings from './locales/en/settings.json';
+import enShift from './locales/en/shift.json';
 import enSystem from './locales/en/system.json';
 import enTables from './locales/en/tables.json';
+import enVerticalProfiles from './locales/en/verticalProfiles.json';
 
 import deCart from './locales/de/cart.json';
 import deAuth from './locales/de/auth.json';
@@ -29,14 +32,18 @@ import deEmployees from './locales/de/employees.json';
 import deNavigation from './locales/de/navigation.json';
 import deInvoices from './locales/de/invoices.json';
 import deLicense from './locales/de/license.json';
+import deOffline from './locales/de/offline.json';
 import deOrders from './locales/de/orders.json';
 import dePayment from './locales/de/payment.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
 import deProducts from './locales/de/products.json';
+import deReceipts from './locales/de/receipts.json';
 import deReports from './locales/de/reports.json';
 import deSettings from './locales/de/settings.json';
+import deShift from './locales/de/shift.json';
 import deSystem from './locales/de/system.json';
 import deTables from './locales/de/tables.json';
+import deVerticalProfiles from './locales/de/verticalProfiles.json';
 import enAuth from './locales/en/auth.json';
 import enCart from './locales/en/cart.json';
 import enCheckout from './locales/en/checkout.json';
@@ -46,6 +53,7 @@ import enEmployees from './locales/en/employees.json';
 import enInvoices from './locales/en/invoices.json';
 import enLicense from './locales/en/license.json';
 import enNavigation from './locales/en/navigation.json';
+import enOffline from './locales/en/offline.json';
 import enOrders from './locales/en/orders.json';
 import trAuth from './locales/tr/auth.json';
 import trCart from './locales/tr/cart.json';
@@ -56,14 +64,18 @@ import trEmployees from './locales/tr/employees.json';
 import trInvoices from './locales/tr/invoices.json';
 import trLicense from './locales/tr/license.json';
 import trNavigation from './locales/tr/navigation.json';
+import trOffline from './locales/tr/offline.json';
 import trOrders from './locales/tr/orders.json';
 import trPayment from './locales/tr/payment.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trProducts from './locales/tr/products.json';
+import trReceipts from './locales/tr/receipts.json';
 import trReports from './locales/tr/reports.json';
 import trSettings from './locales/tr/settings.json';
+import trShift from './locales/tr/shift.json';
 import trSystem from './locales/tr/system.json';
 import trTables from './locales/tr/tables.json';
+import trVerticalProfiles from './locales/tr/verticalProfiles.json';
 
 export const defaultNS = 'common';
 const missingRuntimeKeys = new Set<string>();
@@ -90,14 +102,18 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
   'invoices',
   'license',
   'navigation',
+  'offline',
   'orders',
   'payment',
   'paymentHistory',
   'products',
+  'receipts',
   'reports',
   'settings',
+  'shift',
   'system',
   'tables',
+  'verticalProfiles',
 ] as const;
 
 export const resources = {
@@ -111,14 +127,18 @@ export const resources = {
     invoices: enInvoices,
     license: enLicense,
     navigation: enNavigation,
+    offline: enOffline,
     orders: enOrders,
     payment: enPayment,
     paymentHistory: enPaymentHistory,
     products: enProducts,
+    receipts: enReceipts,
     reports: enReports,
     settings: enSettings,
+    shift: enShift,
     system: enSystem,
     tables: enTables,
+    verticalProfiles: enVerticalProfiles,
   },
   de: {
     auth: deAuth,
@@ -130,14 +150,18 @@ export const resources = {
     invoices: deInvoices,
     license: deLicense,
     navigation: deNavigation,
+    offline: deOffline,
     orders: deOrders,
     payment: dePayment,
     paymentHistory: dePaymentHistory,
     products: deProducts,
+    receipts: deReceipts,
     reports: deReports,
     settings: deSettings,
+    shift: deShift,
     system: deSystem,
     tables: deTables,
+    verticalProfiles: deVerticalProfiles,
   },
   tr: {
     auth: trAuth,
@@ -149,14 +173,18 @@ export const resources = {
     invoices: trInvoices,
     license: trLicense,
     navigation: trNavigation,
+    offline: trOffline,
     orders: trOrders,
     payment: trPayment,
     paymentHistory: trPaymentHistory,
     products: trProducts,
+    receipts: trReceipts,
     reports: trReports,
     settings: trSettings,
+    shift: trShift,
     system: trSystem,
     tables: trTables,
+    verticalProfiles: trVerticalProfiles,
   },
 } as const;
 

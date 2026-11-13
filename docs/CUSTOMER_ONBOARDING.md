@@ -2,7 +2,7 @@
 
 > **Audience:** Super Admin operators, support, Mandanten-Admins, FA maintainers.  
 > **UI language (operators):** German (de-AT). **Technical/API:** English.  
-> **Related:** [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
+> **Related:** [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`COUNTRIES.md`](COUNTRIES.md), [`POS_PRODUCTION_ARCHITECTURE.md`](POS_PRODUCTION_ARCHITECTURE.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
 
 End-to-end guide from **Super Admin tenant creation** through **Mandanten-Admin first login**, **POS setup**, and **first sale**.
 
@@ -44,8 +44,8 @@ flowchart LR
 1. Login as **SuperAdmin** on `https://admin.regkasse.at`
 2. Open **Mandanten** → `/admin/tenants`
 3. Click **Mandant anlegen** → navigates to `/admin/tenants/create`
-4. Complete the **5-step** `CreateTenantWizard`
-5. Review summary → confirm → wait for processing → copy credentials from the result screen
+4. Complete the **two-step** `CreateTenantWizard` (country → tenant form)
+5. Wait for processing → copy credentials from the result screen
 
 **UI:** `frontend-admin/src/features/super-admin/components/CreateTenantWizard/`  
 **API:** `POST /api/admin/tenants` (Super Admin JWT)  
@@ -53,17 +53,61 @@ flowchart LR
 
 ### Wizard steps
 
+Live UI: `CreateTenantWizard.tsx` — phases `country` → `form` → processing → success. The archived 5-screen flow under `CreateTenantWizard.multistep/` is **not** live.
+
 | Step | UI | What is collected |
 |------|-----|-------------------|
-| **1. Firma** | `Step1TenantInfo` | Company name, slug (auto from name + live availability), contact email, optional phone/address |
-| **2. Administrator** | `Step2AdminUser` | Admin email, password (auto or manual), role fixed **Mandanten-Admin** (`Manager`) |
-| **3. Kasse & Lizenz** | `Step3RegisterLicense` | Register name (default `KASSE-001`), license 30/90/365 days + start date, demo products checkbox |
-| **4. Zusammenfassung** | `Step4Summary` | Read-only review + irreversible warning |
-| **5. Ergebnis** | `Step5Result` | One-time password, login URL, copy / handoff actions |
+| **1. Country** | `CreateTenantCountryStep` | ISO country (AT / DE / CH from `GET /api/admin/countries`) and compatible `vatRegime`. Non-AT banner: RKSV/TSE is not enabled. Defaults AT / `AT_RKSV_STANDARD`. `EU_DEFAULT` is omitted. |
+| **2. Tenant form** | `TenantFormFields` | Company name, slug (live availability), contact email, optional phone/address, Mandanten-Admin credentials, register / license / trial / demo-product toggles |
+| **Processing** | `CreateTenantProcessingView` | Animated provisioning (company → slug → admin → license → register → products → credentials) |
+| **Result** | `OnboardingSuccessModal` | One-time password, login URL, copy / handoff actions |
 
-While create runs, `CreateTenantProcessingView` shows animated provisioning steps (company → slug → admin → license → register → products → credentials).
+**API:** `POST /api/admin/tenants` includes `country` and `vatRegime`. See [`COUNTRIES.md`](COUNTRIES.md) §5.
+
+**Country after create:** Super Admin tenant overview shows the Country & Fiscal Regime card (`PATCH /api/admin/tenants/{id}/country`). Historical invoices keep `CountryCodeAtIssue` — [`COUNTRIES.md`](COUNTRIES.md) §15.
 
 **Rollback:** If provisioning fails after the tenant row is inserted, the transaction is rolled back (no partial customer). UI: `OnboardingErrorModal` with German rollback note.
+
+### Demo-Mandant anlegen
+
+Super Admin operators who need a customer demo do not fill the catalog by hand. **Demo-Mandant anlegen** sits next to **Mandant anlegen** on `/admin/tenants` and is shown only when the signed-in user has `system.critical`.
+
+The button opens the same `CreateTenantWizard` with:
+
+- Country **AT**
+- Trial **14 days** (editable)
+- Name `Demo YYYY-MM-DD` and slug `demo-YYYYMMDDHHmm` (both editable)
+- Hidden `seedDemo: true` on submit
+- Restaurant demo-menu import is not applied. The server also skips the three generic provisioning products, so the catalog is the vertical seed only
+
+After the tenant row exists, `POST /api/admin/tenants` calls `ITenantDemoSeeder` for that tenant. The tenant then has **46 products** (4 per vertical profile, plus `iPhone 15` and `Haarschnitt Damen`), **22 customers** (2 per profile), and one open **KASSE-001**. The success modal shows the tenant name, the one-time admin username, email, and password, and the line `46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+
+`seedDemo` defaults to false. A regular **Mandant anlegen** does not seed this catalog. A caller who is not Super Admin and sends `seedDemo: true` receives **HTTP 403** before the tenant is created. The seed writes audit event `TenantDemoSeeded` (152) with tenant id, added counts, and cash register id. It does not write receipts, TSE signatures, or payments.
+
+### From a demo request to a demo tenant
+
+1. Super Admin opens `/admin/demo-requests` and reads the inbound request (name, email, company, industry, status).
+2. On `/admin/tenants`, Super Admin clicks **Demo-Mandant anlegen**. The industry on the request is the branch to show the customer; the seed still loads all 11 vertical profiles, including that one.
+3. Follow the demo flow: Austria, 14-day trial, then the success line `46 Produkte, 22 Kunden, KASSE-001 ist geöffnet. Demo bereit.`
+
+The demo tenant has one open cash register (`KASSE-001`), four catalog products per profile, two customers per profile, and vertical-specific rows:
+
+| Profile | Demo rows |
+|---------|-----------|
+| `beherbergung` | Rooms `101` (Deluxe, Occupied, folio with one charge `Frühstück`), `102` (Standard, Available), `103` (Standard, Cleaning). Folio balance equals the sum of its items. |
+| `ticket-sales` | Event `Konzert A` (starts in 7 days, venue Wiener Konzerthaus), 20 seats (rows A–B × 10, 2 VIP), prices standard €49 and VIP €89. |
+| `handy-shop` | Product `iPhone 15` (`is_ticket=false`, `imei_tracked=true`) and 3 IMEIs in stock. |
+| `vet` | First customer `clinical_data`: species Hund, breed Labrador, birth date 2020-05-15, vaccines Tollwut and Parvovirose. |
+| `doctor` | First customer `clinical_data`: allergy Penicillin, chronic condition Diabetes Typ 2. |
+| `hair-salon` | Product `Haarschnitt Damen` (`duration_minutes=60`) and two `Waiter` users with `MustChangePasswordOnNextLogin`. |
+| `gastronomy-tables` | No dining-table entity exists (`table_orders` stores orders), so no table rows are added. |
+| `taxi` | Catalog product `Stadtfahrt` price €25.00. |
+| `mobile-services` | First customer `address_data`: Hauptstraße 1, 1010 Wien. |
+| `gastronomy`, `retail` | Catalog products and customers only. |
+
+Clinical and address values use the existing JSON columns (`clinical_data`, `address_data`). Vaccine, allergy, and condition values are stored in those string fields. The seed does not write receipts, TSE signatures, or payments. A failed profile rolls the seed back and writes audit `TenantDemoSeedPartial` (153) with tenant id and the failed profile. Tenant creation still succeeds.
+
+The marketing site at `https://regkasse.at` links to the demo form. That form posts to `POST /api/public/demo-requests`. The write is not a tenant and does not touch receipts, TSE, or payments.
 
 ### Slug check
 

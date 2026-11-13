@@ -77,8 +77,8 @@ export function useLicenseExpiryNotifications(): void {
           switch (days) {
             case 30:
               return t('pushReminders.title30');
-            case 14:
-              return t('pushReminders.title14');
+            case 15:
+              return t('pushReminders.title15');
             case 7:
               return t('pushReminders.title7');
             case 1:

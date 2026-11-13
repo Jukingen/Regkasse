@@ -24,7 +24,7 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public class CashRegisterControllerCreateTests
 {
-    private static readonly Guid PrimaryTenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid PrimaryTenantId = SystemTenantIds.Platform;
     private static readonly Guid OtherTenantId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     private static AppDbContext CreateContext()
@@ -33,7 +33,7 @@ public class CashRegisterControllerCreateTests
             .UseInMemoryDatabase($"CashRegCreate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         ctx.Tenants.AddRange(
             new Tenant { Id = PrimaryTenantId, Name = "Primary", Slug = "primary" },
             new Tenant { Id = OtherTenantId, Name = "Other", Slug = "other" });
@@ -78,9 +78,12 @@ public class CashRegisterControllerCreateTests
                 CashRegisterTestDoubles.NoOpListEnrichment(),
                 new PaymentMethodDefinitionBootstrapService(ctx),
                 TseProvisioningTestDoubles.Successful(),
+                Mock.Of<KasseAPI_Final.Services.Trial.ITrialLimitGuard>(),
+                CashRegisterTestDoubles.PermissiveTenantLimits(),
                 NullLogger<CashRegisterManagementService>.Instance),
             Mock.Of<ICashRegisterListEnrichmentService>(),
-            LocalizationTestDoubles.ApiMessageLocalizer());
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            CashRegisterTestDoubles.PermissiveRegisterPermissions());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -171,7 +174,11 @@ public class CashRegisterControllerCreateTests
 
         Assert.IsType<CreatedAtActionResult>(primaryTenantResult);
 
-        var registers = await ctx.CashRegisters.AsNoTracking().OrderBy(r => r.RegisterNumber).ToListAsync();
+        var registers = await ctx.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .OrderBy(r => r.RegisterNumber)
+            .ToListAsync();
         Assert.Equal(2, registers.Count);
         Assert.Equal(OtherTenantId, registers[0].TenantId);
         Assert.Equal(PrimaryTenantId, registers[1].TenantId);

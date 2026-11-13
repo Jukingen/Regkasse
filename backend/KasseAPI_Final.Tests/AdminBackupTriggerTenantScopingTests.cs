@@ -4,9 +4,12 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +29,7 @@ public sealed class AdminBackupTriggerTenantScopingTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static IOptionsMonitor<T> OptionsMonitor<T>(T value) where T : class
@@ -91,11 +94,16 @@ public sealed class AdminBackupTriggerTenantScopingTests
             Mock.Of<IBackupStorageCostService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
+            Mock.Of<IBackupChecksumVerificationService>(),
+            Mock.Of<IBackupContentValidationService>(),
+            Mock.Of<IRestoreVerificationManualTriggerService>(),
             Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
             Mock.Of<IBackupRunTenantAccessService>(),
             Mock.Of<IBackupArtifactImportService>(),
             Mock.Of<IBackupTimeEstimator>(),
-            Mock.Of<IDownloadSecurityService>());
+            Mock.Of<IDownloadSecurityService>(),
+            Mock.Of<IBackupDownloadTracker>(),
+            Mock.Of<IDownloadHistoryService>());
 
         var http = new DefaultHttpContext
         {
@@ -169,9 +177,56 @@ public sealed class AdminBackupTriggerTenantScopingTests
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
-                It.IsAny<BackupStrategyKind?>(),
-                It.IsAny<bool>(),
+                BackupStrategyKind.System,
+                true,
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Trigger_SuperAdmin_WithAmbientTenant_EnqueuesSystem()
+    {
+        await using var db = CreateDb();
+        var (controller, trigger) = CreateController(db, Roles.SuperAdmin, tenantId: Guid.NewGuid());
+
+        var result = await controller.TriggerManual(null, CancellationToken.None);
+
+        Assert.IsType<AcceptedAtActionResult>(result.Result);
+        trigger.Verify(
+            t => t.RequestManualBackupAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                BackupStrategyKind.System,
+                true,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Trigger_Manager_WhenBackupLimitExceeded_Returns409()
+    {
+        await using var db = CreateDb();
+        var (controller, trigger) = CreateController(db, Roles.Manager, tenantId: Guid.NewGuid());
+        trigger
+            .Setup(t => t.RequestManualBackupAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<BackupStrategyKind?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new LimitExceededException(
+                TenantLimitKeys.MaxBackupsPerTenant,
+                50,
+                50,
+                "Maximum 50 backups per tenant reached"));
+
+        var result = await controller.TriggerManual(null, CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
     }
 }

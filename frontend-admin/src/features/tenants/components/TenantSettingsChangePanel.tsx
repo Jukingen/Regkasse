@@ -19,6 +19,8 @@ import { ImpactSimulator } from '@/components/ImpactSimulator';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { simulateImpact } from '@/features/impact/api/impactSimulation';
 import type { ImpactReport } from '@/features/impact/types';
+import { useCountryVatIdValidation } from '@/features/settings/hooks/useCountryVatIdValidation';
+import { useCountries } from '@/features/tenancy/hooks/useCountries';
 import {
   type CurrentTenantSettings,
   type FiscalSettingsValue,
@@ -54,10 +56,33 @@ const CURRENCY_OPTIONS = [
   { value: 'EUR', labelKey: 'tenants.settingsChange.currencies.EUR' },
 ] as const;
 
-const COUNTRY_OPTIONS = [
-  { value: 'AT', labelKey: 'tenants.settingsChange.countries.AT' },
-  { value: 'DE', labelKey: 'tenants.settingsChange.countries.DE' },
-] as const;
+export type CountryCatalogOption = {
+  code?: string | null;
+  name?: string | null;
+};
+
+/** Country `<Select>` options from `GET /api/admin/countries`. No local AT/DE list. */
+export function countrySelectOptionsFromCatalog(
+  catalog: readonly CountryCatalogOption[],
+  currentCountry: string | undefined,
+  countryLocked: boolean
+): { value: string; label: string; disabled: boolean }[] {
+  const fromCatalog = catalog
+    .filter((row): row is CountryCatalogOption & { code: string } => Boolean(row.code))
+    .map((row) => ({
+      value: row.code,
+      label: row.name ? `${row.code} — ${row.name}` : row.code,
+      disabled: countryLocked && row.code !== currentCountry,
+    }));
+  if (currentCountry && !fromCatalog.some((row) => row.value === currentCountry)) {
+    fromCatalog.push({
+      value: currentCountry,
+      label: currentCountry,
+      disabled: countryLocked,
+    });
+  }
+  return fromCatalog;
+}
 
 const TIMEZONE_OPTIONS = [
   'Europe/Vienna',
@@ -108,10 +133,19 @@ export function TenantSettingsChangePanel({ tenantId }: TenantSettingsChangePane
   const [pendingRequest, setPendingRequest] = useState<RequestFormValues | null>(null);
   const [impactLoading, setImpactLoading] = useState(false);
 
+  const countriesQuery = useCountries();
   const settingsQuery = useQuery({
     queryKey: tenantSettingsQueryKeys.current(tenantId),
     queryFn: () => getTenantSettings(tenantId),
     enabled: Boolean(tenantId),
+  });
+  const { rules: vatIdRules } = useCountryVatIdValidation({
+    country: settingsQuery.data?.country,
+    required: true,
+    messages: {
+      required: t('tenants.settingsChange.validation.taxNumberRequired'),
+      invalidAt: t('tenants.settingsChange.validation.taxNumberFormat'),
+    },
   });
 
   const historyQuery = useQuery({
@@ -366,23 +400,11 @@ export function TenantSettingsChangePanel({ tenantId }: TenantSettingsChangePane
       ? [{ value: settings.currency, label: `${settings.currency} (legacy)` }]
       : []),
   ];
-  const countryOptions = [
-    ...COUNTRY_OPTIONS.map((o) => ({
-      value: o.value,
-      label: t(o.labelKey),
-      disabled: countryLocked && o.value !== settings?.country,
-    })),
-    ...(settings?.country &&
-    !COUNTRY_OPTIONS.some((o) => o.value === settings.country)
-      ? [
-          {
-            value: settings.country,
-            label: `${settings.country} (legacy)`,
-            disabled: countryLocked,
-          },
-        ]
-      : []),
-  ];
+  const countryOptions = countrySelectOptionsFromCatalog(
+    countriesQuery.data ?? [],
+    settings?.country,
+    countryLocked
+  );
 
   return (
     <Space orientation="vertical" size="large" style={{ width: '100%' }}>
@@ -573,16 +595,7 @@ export function TenantSettingsChangePanel({ tenantId }: TenantSettingsChangePane
                 <Form.Item
                   name="companyTaxNumber"
                   label={t('tenants.settingsChange.fields.taxNumber')}
-                  rules={[
-                    {
-                      required: true,
-                      message: t('tenants.settingsChange.validation.taxNumberRequired'),
-                    },
-                    {
-                      pattern: /^ATU\d{8}$/i,
-                      message: t('tenants.settingsChange.validation.taxNumberFormat'),
-                    },
-                  ]}
+                  rules={vatIdRules}
                 >
                   <Input maxLength={20} placeholder="ATU12345678" />
                 </Form.Item>

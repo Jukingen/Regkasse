@@ -83,7 +83,10 @@ export function pickOperationalCashRegisterId(
     return null;
   }
 
-  const open = scoped.filter((row) => row.status === REGISTER_STATUS.open);
+  const operational = scoped.filter((row) => row.status !== REGISTER_STATUS.decommissioned);
+  const pool = operational.length > 0 ? operational : scoped;
+
+  const open = pool.filter((row) => row.status === REGISTER_STATUS.open);
   const normalizedPreferred = preferredId?.trim();
   if (normalizedPreferred) {
     const preferred = scoped.find((row) => row.id === normalizedPreferred);
@@ -96,8 +99,8 @@ export function pickOperationalCashRegisterId(
     }
   }
 
-  if (scoped.length === 1) {
-    return scoped[0]?.id ?? null;
+  if (pool.length === 1) {
+    return pool[0]?.id ?? null;
   }
 
   if (open.length === 1) {
@@ -108,10 +111,10 @@ export function pickOperationalCashRegisterId(
     return open.find((row) => row.isDefaultForTenant === true)?.id ?? open[0]?.id ?? null;
   }
 
-  const defaultRegister = scoped.find((row) => row.isDefaultForTenant === true);
+  const defaultRegister = pool.find((row) => row.isDefaultForTenant === true);
   if (defaultRegister?.id) {
     return defaultRegister.id;
   }
 
-  return scoped[0]?.id ?? null;
+  return pool[0]?.id ?? null;
 }

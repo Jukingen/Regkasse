@@ -11,6 +11,7 @@ import {
   getLicenseStatusMessage,
   resolveDeploymentLicenseStatus,
   resolveTenantLicenseFromPublicStatus,
+  resolveTenantLockFlags,
   resolveTenantRowLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
@@ -37,12 +38,6 @@ export interface LicenseStatus {
   message: string;
 }
 
-function isExpiredKind(kind: LicenseStatusKind): boolean {
-  return (
-    kind === 'grace_write' || kind === 'grace_readonly' || kind === 'lockdown' || kind === 'expired'
-  );
-}
-
 function mapTenantLicenseStatus(
   t: ReturnType<typeof useI18n>['t'],
   currentTenant: ReturnType<typeof useCurrentTenant>,
@@ -63,12 +58,7 @@ function mapTenantLicenseStatus(
       licenseDaysRemaining: currentTenant.licenseDaysRemaining,
     });
 
-  const isLocked =
-    publicDto?.isLocked === true || status.kind === 'lockdown' || status.kind === 'expired';
-  const isExpired =
-    publicDto?.isExpired === true ||
-    publicDto?.isInGracePeriod === true ||
-    isExpiredKind(status.kind);
+  const { isLocked, isExpired } = resolveTenantLockFlags(status, publicDto);
   const daysRemainingInGrace =
     status.kind === 'grace_write'
       ? clampTenantGraceRemaining(

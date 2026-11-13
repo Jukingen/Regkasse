@@ -65,6 +65,7 @@ public sealed class ReportPdfCaptureService : IReportPdfCaptureService
                 return;
 
             using var scope = _scopeFactory.CreateScope();
+            BindTenant(scope, closing.TenantId);
             var closingReportService = scope.ServiceProvider.GetRequiredService<IDailyClosingReportService>();
             var pdf = await closingReportService.TryGenerateClosingReportPdfAsync(
                 closingId,
@@ -110,6 +111,7 @@ public sealed class ReportPdfCaptureService : IReportPdfCaptureService
             var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
 
             using var scope = _scopeFactory.CreateScope();
+            BindTenant(scope, tenantId);
             var receiptPdfService = scope.ServiceProvider.GetRequiredService<IReceiptPdfService>();
             var pdf = await receiptPdfService.GeneratePdfAsync(
                 paymentId,
@@ -134,6 +136,15 @@ public sealed class ReportPdfCaptureService : IReportPdfCaptureService
         {
             _logger.LogWarning(ex, "Failed to capture receipt report PDF for paymentId={PaymentId}", paymentId);
         }
+    }
+
+    private static void BindTenant(IServiceScope scope, Guid tenantId)
+    {
+        if (tenantId == Guid.Empty)
+            return;
+
+        var accessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
+        accessor.TenantId = tenantId;
     }
 
     private static Guid ParseActorUserId(string actorUserId) =>

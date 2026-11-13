@@ -1,0 +1,84 @@
+{
+  "title": "Online ödemeler",
+  "subtitle": "Kart ve PayPal intent'lerini görüntüleyin ve test webhook'larını tetikleyin. Mali POS fişi değildir.",
+  "tabs": {
+    "transactions": "İşlemler",
+    "testConsole": "Test konsolu"
+  },
+  "empty": "Henüz online ödeme yok",
+  "loadError": "Online ödemeler yüklenemedi.",
+  "forbidden": "Online ödemeleri yönetme izniniz yok.",
+  "actions": {
+    "refresh": "Yenile",
+    "viewDetails": "Ayrıntıları göster"
+  },
+  "columns": {
+    "createdAt": "Zaman",
+    "amount": "Tutar",
+    "status": "Durum",
+    "tenant": "Kiracı",
+    "method": "Ödeme yöntemi",
+    "provider": "Sağlayıcı",
+    "actions": "İşlem"
+  },
+  "status": {
+    "PENDING": "Beklemede",
+    "AWAITING_PAYMENT_GATEWAY": "Ağ geçidi bekleniyor",
+    "GATEWAY_SUCCEEDED": "Ağ geçidi başarılı",
+    "COMPLETED": "Tamamlandı",
+    "FAILED": "Başarısız",
+    "REFUNDED": "İade edildi",
+    "Created": "Oluşturuldu",
+    "Pending": "Beklemede",
+    "Succeeded": "Başarılı",
+    "Failed": "Başarısız",
+    "Cancelled": "İptal edildi",
+    "Expired": "Süresi doldu",
+    "Refunded": "İade edildi"
+  },
+  "source": {
+    "synthetic": "Test",
+    "live": "Canlı"
+  },
+  "drawer": {
+    "title": "Online ödeme",
+    "id": "ID",
+    "tenant": "Kiracı",
+    "amount": "Tutar",
+    "status": "Durum",
+    "method": "Ödeme yöntemi",
+    "provider": "Sağlayıcı",
+    "paymentIntentId": "PaymentIntent",
+    "createdAt": "Oluşturuldu",
+    "completedAt": "Tamamlandı",
+    "webhookEvent": "Son webhook olayı",
+    "error": "Hata",
+    "synthetic": "Kaynak"
+  },
+  "console": {
+    "title": "Test konsolu",
+    "intro": "Test online ödemesi oluşturur ve ağ geçidi webhook'larını simüle eder. Mali POS fişi yoktur.",
+    "amount": "Tutar",
+    "method": "Ödeme yöntemi",
+    "sendPayment": "Test ödemesi gönder",
+    "webhookSuccess": "Başarılı webhook simüle et",
+    "webhookFailure": "Başarısız webhook simüle et",
+    "webhookExpire": "Süresi dolmuş webhook simüle et",
+    "confirmExpireTitle": "Süresi dolmuş webhook gönderilsin mi?",
+    "confirmExpireBody": "Seçilen test ödemesi süresi dolmuş olarak işaretlenir (sentetik payment_intent.canceled).",
+    "webhookExpireToast": "Süresi dolmuş webhook simüle edildi.",
+    "lastPayment": "Son test ödemesi: {id}",
+    "noPaymentYet": "Önce bir test ödemesi gönderin.",
+    "confirmSuccessTitle": "Başarılı webhook simüle edilsin mi?",
+    "confirmSuccessBody": "Seçilen test ödemesi başarılı olarak işaretlenir (sentetik payment_intent.succeeded).",
+    "confirmFailureTitle": "Başarısız webhook simüle edilsin mi?",
+    "confirmFailureBody": "Seçilen test ödemesi başarısız olarak işaretlenir (sentetik payment_intent.payment_failed).",
+    "createSuccess": "Test ödemesi oluşturuldu.",
+    "webhookSuccessToast": "Başarılı webhook simüle edildi.",
+    "webhookFailureToast": "Başarısız webhook simüle edildi.",
+    "methods": {
+      "card": "Kart",
+      "paypal": "PayPal"
+    }
+  }
+}

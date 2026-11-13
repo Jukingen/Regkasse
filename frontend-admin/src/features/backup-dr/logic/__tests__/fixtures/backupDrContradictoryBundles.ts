@@ -12,11 +12,11 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupRunResponseDtoStatus,
-  BackupVerificationResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupRunStatus,
+  BackupVerificationStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
-import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
+import { BackupArtifactType } from '@/api/generated/model/backupArtifactType';
 import type { ExternalCopyVariant } from '@/features/backup-dr/logic/backupDrMappers';
 import type { BuildBackupOperatorTruthModelParams } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import type { BackupExecutionModeResponseDto } from '@/features/backup-dr/logic/backupExecutionModeApi';
@@ -73,7 +73,7 @@ function baseParams(
 export function bundleLatestSuccessWeakLastKnownGoodProof(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-latest-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
   } as BackupRunResponseDto;
 
@@ -88,11 +88,11 @@ export function bundleLatestSuccessWeakLastKnownGoodProof(): BuildBackupOperator
     latest,
     detailForPipeline: null,
     restoreLatest: {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       id: 'drill-ok',
     } as RestoreVerificationRunResponseDto,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-latest-1',
     } as BackupVerificationResponseDto,
     recoverabilitySummary: {
@@ -116,17 +116,17 @@ export function bundleLatestSuccessWeakLastKnownGoodProof(): BuildBackupOperator
 export function bundleLatestSuccessFailedLatestDrill(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-good-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
   } as BackupRunResponseDto;
 
   const detailWithLogicalDump = {
     id: 'run-good-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
     artifacts: [
       {
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
     ],
@@ -143,11 +143,11 @@ export function bundleLatestSuccessFailedLatestDrill(): BuildBackupOperatorTruth
     latest,
     detailForPipeline: detailWithLogicalDump,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-good-1',
     } as BackupVerificationResponseDto,
     restoreLatest: {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      status: RestoreVerificationStatus.Failed,
       failureCode: 'E_DRILL',
       failureDetail: 'drill boom',
     } as RestoreVerificationRunResponseDto,
@@ -171,7 +171,7 @@ export function bundleLatestSuccessFailedLatestDrill(): BuildBackupOperatorTruth
 export function bundleSimulatedSuccessHealthyApiCapsReadiness(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-fake-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'Fake',
   } as BackupRunResponseDto;
 
@@ -209,7 +209,7 @@ export function bundleSimulatedSuccessHealthyApiCapsReadiness(): BuildBackupOper
 export function bundleExternalLifecycleOkButRecoverabilityProofGaps(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-ext-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
   } as BackupRunResponseDto;
 
@@ -224,11 +224,11 @@ export function bundleExternalLifecycleOkButRecoverabilityProofGaps(): BuildBack
     latest,
     detailForPipeline: null,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-ext-1',
     } as BackupVerificationResponseDto,
     restoreLatest: {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
     } as RestoreVerificationRunResponseDto,
     recoverabilitySummary: {
       realPostgreSqlLogicalDumpConfigured: true,
@@ -250,17 +250,17 @@ export function bundleExternalLifecycleOkButRecoverabilityProofGaps(): BuildBack
 export function bundleProofGapsAndFailedDrill(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-both-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
   } as BackupRunResponseDto;
 
   const detailWithLogicalDump = {
     id: 'run-both-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
     artifacts: [
       {
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
     ],
@@ -277,11 +277,11 @@ export function bundleProofGapsAndFailedDrill(): BuildBackupOperatorTruthModelPa
     latest,
     detailForPipeline: detailWithLogicalDump,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-both-1',
     } as BackupVerificationResponseDto,
     restoreLatest: {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      status: RestoreVerificationStatus.Failed,
       failureCode: 'E_FAIL',
       failureDetail: 'x',
     } as RestoreVerificationRunResponseDto,
@@ -305,7 +305,7 @@ export function bundleProofGapsAndFailedDrill(): BuildBackupOperatorTruthModelPa
 export function bundleVerificationRunMismatch(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-new',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
   } as BackupRunResponseDto;
 
@@ -320,7 +320,7 @@ export function bundleVerificationRunMismatch(): BuildBackupOperatorTruthModelPa
     latest,
     detailForPipeline: null,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-old',
     } as BackupVerificationResponseDto,
     restoreLatest: undefined,
@@ -344,7 +344,7 @@ export function bundleVerificationRunMismatch(): BuildBackupOperatorTruthModelPa
 export function bundleEmptyEffectiveAdapterKind(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-unk',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: undefined,
   } as BackupRunResponseDto;
 
@@ -382,7 +382,7 @@ export function bundleEmptyEffectiveAdapterKind(): BuildBackupOperatorTruthModel
 export function bundleUnknownAdapterKindPartialDto(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-unknown-adapter-1',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'VendorExperimental_Unknown',
     isSimulatedExecution: undefined,
   } as BackupRunResponseDto;
@@ -426,7 +426,7 @@ export function bundleUnknownAdapterKindPartialDto(): BuildBackupOperatorTruthMo
 export function bundleStaleLatestVersusDetailRunId(): BuildBackupOperatorTruthModelParams {
   const latest = {
     id: 'run-latest-window-a',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
     requestedAt: '2026-01-10T12:00:00Z',
     completedAt: '2026-01-10T12:10:00Z',
@@ -434,13 +434,13 @@ export function bundleStaleLatestVersusDetailRunId(): BuildBackupOperatorTruthMo
 
   const detailStaleOtherRun = {
     id: 'run-detail-window-b',
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     adapterKind: 'PgDump',
     requestedAt: '2026-01-01T00:00:00Z',
     completedAt: '2026-01-01T00:15:00Z',
     artifacts: [
       {
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
     ],
@@ -457,11 +457,11 @@ export function bundleStaleLatestVersusDetailRunId(): BuildBackupOperatorTruthMo
     latest,
     detailForPipeline: detailStaleOtherRun,
     verification: {
-      status: BackupVerificationResponseDtoStatus.NUMBER_1,
+      status: BackupVerificationStatus.Passed,
       backupRunId: 'run-latest-window-a',
     } as BackupVerificationResponseDto,
     restoreLatest: {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       id: 'drill-ok',
       pgRestoreListExitCode: 0,
     } as RestoreVerificationRunResponseDto,

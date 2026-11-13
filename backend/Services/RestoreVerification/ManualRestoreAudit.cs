@@ -8,19 +8,19 @@ namespace KasseAPI_Final.Services.RestoreVerification;
 /// <summary>
 /// Typed audit trail for Super Admin validation-only manual restore workflow.
 /// Always stamps an explicit audit <c>tenantId</c> (source backup tenant when set; otherwise
-/// <see cref="LegacyDefaultTenantIds.Primary"/> as the platform/system convention) so ambient
+/// <see cref="SystemTenantIds.Platform"/> as the platform/system convention) so ambient
 /// impersonation cannot mis-attribute restore events.
 /// </summary>
 internal static class ManualRestoreAudit
 {
     /// <summary>
-    /// Platform restore / deployment-wide dump: audit row uses the legacy system tenant id
+    /// Platform restore / deployment-wide dump: audit row uses the platform system tenant id
     /// (non-nullable <c>audit_logs.tenant_id</c>) while <c>requestData.SourceBackupTenantId</c> stays null.
     /// </summary>
     public static Guid ResolveRestoreAuditTenantId(Guid? sourceBackupTenantId) =>
         sourceBackupTenantId is Guid tid && tid != Guid.Empty
             ? tid
-            : LegacyDefaultTenantIds.Primary;
+            : SystemTenantIds.Platform;
 
     public static string ResolveRestoreScope(Guid? sourceBackupTenantId) =>
         sourceBackupTenantId is Guid tid && tid != Guid.Empty
@@ -37,12 +37,18 @@ internal static class ManualRestoreAudit
         string? notes = null)
     {
         var recordedAtUtc = DateTime.UtcNow;
+        var description = requiresApproval
+            ? $"Manual restore request {entity.Id} pending approval (validation-only)."
+            : $"Manual restore request {entity.Id} auto-approved in Development (validation-only).";
+        var complianceNotes = requiresApproval
+            ? RksvComplianceNotes
+            : RksvComplianceNotesDevAutoApprove;
         return audit.LogSystemOperationAsync(
             AuditLogActions.RESTORE_REQUESTED,
             AuditLogEntityTypes.MANUAL_RESTORE_REQUEST,
             actorUserId,
             Roles.SuperAdmin,
-            description: $"Manual restore request {entity.Id} pending approval (validation-only).",
+            description: description,
             notes: notes,
             requestData: new
             {
@@ -56,7 +62,7 @@ internal static class ManualRestoreAudit
                 Reason = entity.Reason,
                 RequestedAtUtc = entity.RequestedAt,
                 AuditRecordedAtUtc = recordedAtUtc,
-                RksvCompliance = RksvComplianceNotes
+                RksvCompliance = complianceNotes
             },
             correlationIdOverride: correlationId,
             impersonationSnapshot: null,
@@ -180,4 +186,7 @@ internal static class ManualRestoreAudit
     /// </summary>
     private const string RksvComplianceNotes =
         "validation_only;isolated_target;no_production_write;no_fiscal_timestamp_rewrite;dual_superadmin_approval";
+
+    private const string RksvComplianceNotesDevAutoApprove =
+        "validation_only;isolated_target;no_production_write;no_fiscal_timestamp_rewrite;dev_superadmin_auto_approve";
 }

@@ -5,11 +5,36 @@
   },
   "build": {
     "production": {
+      "channel": "production",
       "developmentClient": false,
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "channel": "production-apk",
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "credentialsSource": "local"
+        "buildType": "apk"
+      }
+    },
+    "gastronomy-production": {
+      "extends": "production",
+      "channel": "gastronomy-production",
+      "env": {
+        "EXPO_PUBLIC_BRAND": "gastronomy"
+      }
+    },
+    "gastronomy-production-apk": {
+      "extends": "production-apk",
+      "channel": "gastronomy-production-apk",
+      "env": {
+        "EXPO_PUBLIC_BRAND": "gastronomy"
       }
     }
   }

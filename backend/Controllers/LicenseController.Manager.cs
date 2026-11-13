@@ -1,5 +1,6 @@
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.License;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,45 +33,19 @@ public partial class LicenseController
         return Ok(status);
     }
 
-    /// <summary>Activate a billing-format license key for the current tenant.</summary>
-    /// <remarks>
-    /// Route is <c>POST /api/license/billing/activate</c> so unified anonymous
-    /// <c>POST /api/license/activate</c> (deployment + optional billing branch) stays unchanged for POS/FA.
-    /// </remarks>
+    /// <summary>
+    /// Deprecated. Use <c>POST /api/license/activate</c> (unified server + tenant activation).
+    /// </summary>
+    [Obsolete("Use POST /api/license/activate.")]
     [Authorize]
     [HttpPost("billing/activate")]
-    [ProducesResponseType(typeof(ActivationResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActivateBillingLicense(
-        [FromBody] MandantLicenseKeyRequest request,
-        CancellationToken ct)
+    [ProducesResponseType(StatusCodes.Status308PermanentRedirect)]
+    public IActionResult ActivateBillingLicense([FromBody] MandantLicenseKeyRequest? request)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        if (!TryResolveTenantId(out var tenantError, out var tenantId))
-            return tenantError!;
-
-        if (!TryResolveActorUserId(out var userError, out var userId))
-            return userError!;
-
-        try
-        {
-            var result = await _tenantLicenseService
-                .ActivateLicenseAsync(tenantId, request.LicenseKey.Trim(), userId, ct)
-                .ConfigureAwait(false);
-
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
-            return Ok(result);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        _logger.LogInformation(
+            "Deprecated POST /api/license/billing/activate redirected to {Target}",
+            UnifiedLicenseRoutes.Activate);
+        return RedirectToUnifiedActivate();
     }
 
     /// <summary>Extend the current tenant mandant license via a new billing sale key.</summary>

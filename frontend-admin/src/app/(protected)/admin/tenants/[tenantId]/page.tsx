@@ -38,6 +38,11 @@ import { TenantDetailCashRegistersTab } from '@/features/super-admin/components/
 import { TenantDetailLicenseTab } from '@/features/super-admin/components/TenantDetailLicenseTab';
 import { TenantDetailOverviewTab } from '@/features/super-admin/components/TenantDetailOverviewTab';
 import { TenantDetailSettingsTab } from '@/features/super-admin/components/TenantDetailSettingsTab';
+import { TenantVerticalProfileEditor } from '@/features/super-admin/components/TenantVerticalProfileEditor';
+import { KitchenWorkspace } from '@/features/kitchen/KitchenWorkspace';
+import { LodgingWorkspace } from '@/features/lodging/LodgingWorkspace';
+import { getApiAdminTenantsTenantIdVerticalProfile } from '@/api/generated/admin/admin';
+import { TenantLimitsSettings } from '@/features/tenants/components/TenantLimitsSettings';
 import {
   TENANT_DETAIL_LEGACY_USERS_TAB,
   TENANT_DETAIL_TAB_KEYS,
@@ -49,13 +54,13 @@ import {
   invalidateTenantLifecycleQueries,
 } from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 import { buildTenantDeletePreparationHref } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
-import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { isTenantRemovedStatus, tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { DemoImportModal } from '@/features/tenants/components/DemoImportModal';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useKeyboardShortcutListener } from '@/hooks/useKeyboardShortcutListener';
 import { useI18n } from '@/i18n';
-import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import { KEYBOARD_SHORTCUT_EVENTS, type NavigateTabDetail } from '@/shared/keyboardShortcuts';
 
@@ -82,6 +87,14 @@ export default function SuperAdminTenantDetailPage() {
     queryFn: () => getAdminTenantById(tenantId),
     enabled: canAccess && !!tenantId,
   });
+
+  const verticalProfileQuery = useQuery({
+    queryKey: ['admin', 'tenants', tenantId, 'vertical-profile'],
+    queryFn: () => getApiAdminTenantsTenantIdVerticalProfile(tenantId),
+    enabled: canAccess && !!tenantId,
+  });
+  const kitchenDisplayEnabled = hasKitchenDisplay(verticalProfileQuery.data?.posFeatures);
+  const roomTrackingEnabled = hasRoomTracking(verticalProfileQuery.data?.posFeatures);
 
   const invalidateTenant = useCallback(() => {
     invalidateTenantLifecycleQueries(queryClient, tenantId);
@@ -198,6 +211,34 @@ export default function SuperAdminTenantDetailPage() {
         children: <TenantDetailLicenseTab tenant={tenant} onUpdated={invalidateTenant} />,
       },
       {
+        key: 'verticalProfile',
+        label: t('tenants.detail.tabs.verticalProfile'),
+        children: <TenantVerticalProfileEditor tenantId={tenantId} />,
+      },
+      {
+        key: 'limits',
+        label: t('tenants.detail.tabs.limits'),
+        children: <TenantLimitsSettings tenantId={tenantId} />,
+      },
+      ...(kitchenDisplayEnabled
+        ? [
+            {
+              key: 'kitchen',
+              label: t('tenants.detail.tabs.kitchen'),
+              children: <KitchenWorkspace tenantId={tenantId} requireKitchenDisplay={false} />,
+            },
+          ]
+        : []),
+      ...(roomTrackingEnabled
+        ? [
+            {
+              key: 'rooms',
+              label: t('tenants.detail.tabs.rooms'),
+              children: <LodgingWorkspace />,
+            },
+          ]
+        : []),
+      {
         key: 'settings',
         label: t('tenants.detail.tabs.settings'),
         children: (
@@ -226,6 +267,8 @@ export default function SuperAdminTenantDetailPage() {
     invalidateTenant,
     router,
     displayTab,
+    kitchenDisplayEnabled,
+    roomTrackingEnabled,
   ]);
 
   if (!canAccess) {
@@ -250,19 +293,17 @@ export default function SuperAdminTenantDetailPage() {
 
   const tenant = tenantQuery.data;
   const title = tenant ? `${tenant.name} (${tenant.slug})` : tenantId;
-  const showDevelopmentHardDeleteEntry = isDevelopment() && tenant?.status !== 'deleted';
+  const showDevelopmentHardDeleteEntry = isDevelopment() && !isTenantRemovedStatus(tenant?.status);
 
   return (
     <AdminPageShell>
       {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
       <AdminPageHeader
         title={title}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', [
           { title: t('tenants.page.title'), href: '/admin/tenants' },
-          { title, href: `/admin/tenants/${tenantId}` },
-        ]}
+          { title },
+        ])}
         actions={
           <Space wrap>
             <Link href="/admin/tenants">
@@ -276,7 +317,7 @@ export default function SuperAdminTenantDetailPage() {
                 <Button>{t('tenants.deleteDependencies.checkDependencies')}</Button>
               </Link>
             ) : null}
-            {tenant && tenant.status !== 'deleted' ? (
+            {tenant && !isTenantRemovedStatus(tenant.status) ? (
               <>
                 <Button icon={<ImportOutlined />} onClick={() => setDemoImportOpen(true)}>
                   Demo Produkte importieren
@@ -353,7 +394,16 @@ export default function SuperAdminTenantDetailPage() {
       ) : null}
 
       <Card loading={tenantQuery.isLoading && !tenant}>
-        <Tabs activeKey={displayTab} onChange={setTab} items={tabItems} />
+        <Tabs
+          activeKey={
+            (displayTab === 'kitchen' && !kitchenDisplayEnabled) ||
+            (displayTab === 'rooms' && !roomTrackingEnabled)
+              ? 'overview'
+              : displayTab
+          }
+          onChange={setTab}
+          items={tabItems}
+        />
       </Card>
 
       {!tenantQuery.isLoading && !tenant && !tenantQuery.isError ? (
@@ -377,4 +427,19 @@ export default function SuperAdminTenantDetailPage() {
       ) : null}
     </AdminPageShell>
   );
+}
+
+function hasKitchenDisplay(posFeatures: unknown): boolean {
+  return featureOn(posFeatures, 'kitchenDisplay');
+}
+
+function hasRoomTracking(posFeatures: unknown): boolean {
+  return featureOn(posFeatures, 'roomTracking');
+}
+
+function featureOn(posFeatures: unknown, key: string): boolean {
+  if (!posFeatures || typeof posFeatures !== 'object' || Array.isArray(posFeatures)) {
+    return false;
+  }
+  return (posFeatures as Record<string, unknown>)[key] === true;
 }

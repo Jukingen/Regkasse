@@ -7,16 +7,19 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import React, { useState } from 'react';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { CardSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAdminUserSessionActions } from '@/features/sessions/hooks/useAdminSessions';
 import { adminUsersQueryKeys, getAdminUserById } from '@/features/users/api/users';
 import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
 import { UserActivityTimeline } from '@/features/users/components/UserActivityTimeline';
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -40,6 +43,7 @@ function displayName(
 
 export function AdminUserDetailPage() {
   const { t, formatLocale } = useI18n();
+  const notify = useNotify();
   const params = useParams();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -47,8 +51,15 @@ export function AdminUserDetailPage() {
   const userId = typeof params.id === 'string' ? params.id : '';
 
   const [usernameModalOpen, setUsernameModalOpen] = useState(false);
+  const [sessionConfirm, setSessionConfirm] = useState<'terminateAll' | 'forceLogout' | null>(
+    null
+  );
 
   const canAccess = policy.canView && isSuperAdmin(currentUser?.role);
+  const { terminateAll: terminateUserSessions, forceLogout } = useAdminUserSessionActions(
+    userId,
+    canAccess && !!userId
+  );
 
   const userQuery = useQuery({
     queryKey: adminUsersQueryKeys.detail(userId),
@@ -179,6 +190,26 @@ export function AdminUserDetailPage() {
             </Descriptions>
           </Card>
 
+          <Card title={t('users.sessions.cardTitle')}>
+            <Space wrap>
+              <Button
+                danger
+                loading={terminateUserSessions.isPending}
+                onClick={() => setSessionConfirm('terminateAll')}
+              >
+                {t('users.sessions.terminateUserSessions')}
+              </Button>
+              <Button
+                danger
+                type="primary"
+                loading={forceLogout.isPending}
+                onClick={() => setSessionConfirm('forceLogout')}
+              >
+                {t('users.sessions.forceLogout')}
+              </Button>
+            </Space>
+          </Card>
+
           <Card
             title={t('users.activity.tabLabel')}
             extra={
@@ -212,6 +243,45 @@ export function AdminUserDetailPage() {
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={sessionConfirm === 'terminateAll'}
+        title={t('users.sessions.terminateUserSessionsConfirmTitle')}
+        message={t('users.sessions.terminateUserSessionsConfirmContent')}
+        type="danger"
+        confirmText={t('users.sessions.terminateUserSessions')}
+        loading={terminateUserSessions.isPending}
+        onConfirm={() => {
+          void terminateUserSessions
+            .mutateAsync()
+            .then((result) => {
+              notify.success(
+                t('users.sessions.terminatedCount', { count: String(result.terminatedCount) })
+              );
+              setSessionConfirm(null);
+            })
+            .catch(() => notify.errorKey('users.sessions.terminateFailed'));
+        }}
+        onCancel={() => setSessionConfirm(null)}
+      />
+      <ConfirmDialog
+        open={sessionConfirm === 'forceLogout'}
+        title={t('users.sessions.forceLogoutConfirmTitle')}
+        message={t('users.sessions.forceLogoutConfirmContent')}
+        type="danger"
+        confirmText={t('users.sessions.forceLogout')}
+        loading={forceLogout.isPending}
+        onConfirm={() => {
+          void forceLogout
+            .mutateAsync()
+            .then(() => {
+              notify.successKey('users.sessions.forceLogoutSuccess');
+              setSessionConfirm(null);
+            })
+            .catch(() => notify.errorKey('users.sessions.forceLogoutFailed'));
+        }}
+        onCancel={() => setSessionConfirm(null)}
+      />
     </AdminPageShell>
   );
 }

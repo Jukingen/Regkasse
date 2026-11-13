@@ -198,7 +198,7 @@ public sealed class DigitalServiceRequestServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var publisher = activity ?? Mock.Of<IActivityEventPublisher>();
         var statuses = new TenantServiceStatusService(
             db,

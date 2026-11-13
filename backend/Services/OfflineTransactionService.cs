@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Limits;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -30,6 +31,7 @@ public class OfflineTransactionService : IOfflineTransactionService
     private readonly ICoreMetrics? _metrics;
     private readonly IDataProtector _offlineFullPayloadProtector;
     private readonly IOptionsMonitor<OfflineVoucherEncryptionOptions>? _offlineVoucherEncryption;
+    private readonly ITenantLimitGuard? _tenantLimitGuard;
 
     public OfflineTransactionService(
         AppDbContext context,
@@ -39,7 +41,8 @@ public class OfflineTransactionService : IOfflineTransactionService
         IDataProtectionProvider dataProtectionProvider,
         IOptions<OfflineReplayOptions>? replayOptions = null,
         ICoreMetrics? metrics = null,
-        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
+        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null,
+        ITenantLimitGuard? tenantLimitGuard = null)
     {
         _context = context;
         _paymentService = paymentService;
@@ -49,6 +52,7 @@ public class OfflineTransactionService : IOfflineTransactionService
         _metrics = metrics;
         _offlineFullPayloadProtector = OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider);
         _offlineVoucherEncryption = offlineVoucherEncryption;
+        _tenantLimitGuard = tenantLimitGuard;
     }
 
     /// <summary>Optional AES layer for voucher-bearing offline payloads (before Data Protection seal).</summary>
@@ -259,16 +263,30 @@ public class OfflineTransactionService : IOfflineTransactionService
                             if (offline == null)
                             {
                                 // 5) Create new offline transaction row.
-                                offline = await CreateOfflineTransactionRowAsync(
-                                        item,
-                                        payloadPrepared,
-                                        userId,
-                                        userRole,
-                                        replayBatchCorrelationId,
-                                        replayBatchAuditKey)
-                                    .ConfigureAwait(false);
-
-                                createdThisCall = true;
+                                try
+                                {
+                                    offline = await CreateOfflineTransactionRowAsync(
+                                            item,
+                                            payloadPrepared,
+                                            userId,
+                                            userRole,
+                                            replayBatchCorrelationId,
+                                            replayBatchAuditKey)
+                                        .ConfigureAwait(false);
+                                    createdThisCall = true;
+                                }
+                                catch (LimitExceededException ex)
+                                {
+                                    _metrics?.RecordReplayFailed(1);
+                                    results.Add(FailedLocalItem(
+                                        requestedId: item.OfflineTransactionId,
+                                        resolvedId: item.OfflineTransactionId,
+                                        errorCode: LimitExceededException.ErrorCodeValue,
+                                        message: ex.Message,
+                                        retryCount: 0,
+                                        replayBatchCorrelationId));
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -411,12 +429,15 @@ public class OfflineTransactionService : IOfflineTransactionService
                         if (paymentRequest.CashRegisterId != offline.CashRegisterId)
                             throw new InvalidOperationException("Offline payload CashRegisterId does not match the OfflineTransaction CashRegisterId.");
 
-                        // CreatePaymentAsync generates receipt + signature only for the canonical fiscal flow.
-                        var paymentResult = await _paymentService.CreatePaymentAsync(
-                            paymentRequest,
-                            userId,
-                            offlineTransactionId: offline.Id,
-                            offlineReplayBatchCorrelationId: replayBatchCorrelationId).ConfigureAwait(false);
+                        // Permanent catalog/register failures must not retry. PaymentService stays the fiscal writer.
+                        var paymentResult = await TryDeterministicReplayRejectionAsync(paymentRequest).ConfigureAwait(false)
+                            ?? await _paymentService.CreatePaymentAsync(
+                                paymentRequest,
+                                userId,
+                                offlineTransactionId: offline.Id,
+                                offlineReplayBatchCorrelationId: replayBatchCorrelationId).ConfigureAwait(false);
+                        if (!paymentResult.Success && IsDeterministicReplayFailure(paymentResult))
+                            paymentResult.IsDeterministicFailure = true;
 
                         // CreatePaymentAsync may call ChangeTracker.Clear() on fiscal rollback; re-load so offline row updates persist.
                         offline = await _context.OfflineTransactions
@@ -567,6 +588,23 @@ public class OfflineTransactionService : IOfflineTransactionService
         Guid replayBatchCorrelationId,
         string replayBatchAuditKey)
     {
+        if (_tenantLimitGuard != null)
+        {
+            var tenantId = await _context.CashRegisters
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(r => r.Id == item.CashRegisterId)
+                .Select(r => r.TenantId)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+            if (tenantId != Guid.Empty)
+            {
+                await _tenantLimitGuard
+                    .EnsureCanQueueOfflineTransactionAsync(tenantId)
+                    .ConfigureAwait(false);
+            }
+        }
+
         var now = DateTime.UtcNow;
         var offlineCreatedAtUtc = NormalizeUtc(item.CreatedAtUtc);
 
@@ -854,6 +892,72 @@ public class OfflineTransactionService : IOfflineTransactionService
         var exp = Math.Max(0, retryCount - 1);
         var seconds = (int)(BackoffBaseSeconds * Math.Pow(2, exp));
         return Math.Min(BackoffMaxSeconds, Math.Max(0, seconds));
+    }
+
+    /// <summary>
+    /// Replay must stop on inactive/archived products and a closed register.
+    /// Price mismatch and insufficient stock are classified from the payment result.
+    /// </summary>
+    private async Task<PaymentResult?> TryDeterministicReplayRejectionAsync(CreatePaymentRequest request)
+    {
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == request.CashRegisterId)
+            .ConfigureAwait(false);
+        if (register is { Status: RegisterStatus.Closed })
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Cash register is closed",
+                Errors = { "Cash register is closed" },
+                DiagnosticCode = "CASH_REGISTER_CLOSED",
+                IsDeterministicFailure = true
+            };
+        }
+
+        var productIds = request.Items?.Select(i => i.ProductId).Distinct().ToList() ?? [];
+        if (productIds.Count == 0)
+            return null;
+
+        var products = await _context.Products.AsNoTracking()
+            .Where(p => productIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.IsActive, p.ArchivedAt })
+            .ToListAsync()
+            .ConfigureAwait(false);
+        if (products.Any(p => !p.IsActive || p.ArchivedAt != null))
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Product is inactive or archived",
+                Errors = { "Product is inactive or archived" },
+                DiagnosticCode = "PRODUCT_INACTIVE",
+                IsDeterministicFailure = true
+            };
+        }
+
+        return null;
+    }
+
+    internal static bool IsDeterministicReplayFailure(PaymentResult paymentResult)
+    {
+        if (paymentResult.IsDeterministicFailure)
+            return true;
+
+        var code = paymentResult.DiagnosticCode?.Trim() ?? string.Empty;
+        if (code is "CASH_REGISTER_CLOSED" or "PRICE_MISMATCH" or "PRODUCT_INACTIVE" or "PRODUCT_ARCHIVED" or "INSUFFICIENT_STOCK")
+            return true;
+
+        var message = paymentResult.Message ?? string.Empty;
+        if (message.Contains("Insufficient stock", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (message.Contains("Total amount mismatch", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (message.Contains("inactive", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("archived", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
     }
 
     private (string Code, string SafeMessage) MapPaymentFailure(PaymentResult paymentResult)

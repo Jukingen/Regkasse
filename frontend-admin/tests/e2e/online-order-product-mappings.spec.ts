@@ -1,0 +1,259 @@
+import { expect, test, type Page } from '@playwright/test';
+
+import { expectAuthenticatedShell, injectAdminSession, loginAsAdmin, preparePage } from './helpers/auth';
+import { isLiveE2E } from './helpers/env';
+import { makeE2eJwt } from './helpers/jwt';
+
+const PROFILE_SIMULATION_KEY = 'regkasse.admin.profileSimulation';
+
+const MAPPINGS_PATH = '/api/admin/online-order-integrations/product-mappings';
+const PRODUCTS_PATH = '/api/admin/products';
+const PRODUCT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const EXTERNAL_ID = 'plu-e2e-pizza';
+
+type MappingRow = {
+  id: string;
+  provider: string;
+  externalProductId: string;
+  productId: string;
+  productName: string;
+  createdAt: string;
+  updatedAt: string | null;
+};
+
+async function installProductMappingMocks(page: Page) {
+  const store: MappingRow[] = [];
+
+  await page.route(`**${PRODUCTS_PATH}*`, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: [{ id: PRODUCT_ID, name: 'Pizza', isActive: true }],
+        page: 1,
+        pageSize: 100,
+        totalCount: 1,
+      }),
+    });
+  });
+
+  await page.route(`**${MAPPINGS_PATH}*`, async (route) => {
+    const request = route.request();
+    if (request.method() === 'GET') {
+      const provider = new URL(request.url()).searchParams.get('provider')?.trim().toLowerCase();
+      const items = provider
+        ? store.filter((row) => row.provider === provider)
+        : store;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items }),
+      });
+      return;
+    }
+
+    if (request.method() === 'PUT') {
+      const body = request.postDataJSON() as {
+        provider?: string;
+        externalProductId?: string;
+        productId?: string;
+      };
+      const row: MappingRow = {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        provider: (body.provider ?? 'deliverect').trim().toLowerCase(),
+        externalProductId: (body.externalProductId ?? '').trim(),
+        productId: body.productId ?? PRODUCT_ID,
+        productName: 'Pizza',
+        createdAt: '2026-10-28T22:00:00.000Z',
+        updatedAt: '2026-10-28T22:00:00.000Z',
+      };
+      const existing = store.findIndex(
+        (item) =>
+          item.provider === row.provider && item.externalProductId === row.externalProductId
+      );
+      if (existing >= 0) store[existing] = row;
+      else store.unshift(row);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: row.id }),
+      });
+      return;
+    }
+
+    await route.fallback();
+  });
+}
+
+async function pinVerticalProfile(page: Page, profileId: string) {
+  await page.addInitScript((key) => {
+    window.localStorage.setItem(key, 'actual');
+  }, PROFILE_SIMULATION_KEY);
+  await page.route('**/api/admin/vertical-profile', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        profileId,
+        name: profileId,
+        posLayout: profileId === 'hair-salon' ? 'appointment' : 'standard',
+        posFeatures: {},
+      }),
+    });
+  });
+}
+
+test.describe('Marketplace product mapping', () => {
+  test('saves a mapping and shows it after reload', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
+    await installProductMappingMocks(page);
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expectAuthenticatedShell(page);
+
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('table')).toBeVisible();
+
+    await page.getByRole('textbox', { name: 'Externe Produktnummer' }).fill(EXTERNAL_ID);
+    await page.getByRole('combobox', { name: 'Katalogprodukt' }).click();
+    await page.locator('.ant-select-item-option').filter({ hasText: 'Pizza' }).click();
+    await page.getByRole('button', { name: 'Zuordnung speichern' }).click();
+
+    await expect(page.getByRole('table').getByText(EXTERNAL_ID)).toBeVisible({ timeout: 15_000 });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('table').getByText(EXTERNAL_ID)).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Pizza', exact: true })).toBeVisible();
+  });
+
+  test('saves a wolt provider mapping', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
+    await installProductMappingMocks(page);
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expectAuthenticatedShell(page);
+
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('textbox', { name: 'Anbieter' }).fill('wolt');
+    await page.getByRole('textbox', { name: 'Externe Produktnummer' }).fill('wolt-sku-1');
+    await page.getByRole('combobox', { name: 'Katalogprodukt' }).click();
+    await page.locator('.ant-select-item-option').filter({ hasText: 'Pizza' }).click();
+    await page.getByRole('button', { name: 'Zuordnung speichern' }).click();
+
+    await expect(page.getByRole('table').getByText('wolt-sku-1')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('cell', { name: 'wolt', exact: true })).toBeVisible();
+  });
+
+  test('hides marketplace settings for a non-gastronomy tenant', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'hair-salon');
+    await installProductMappingMocks(page);
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await expectAuthenticatedShell(page);
+    await expect(page.locator('a[href="/admin/online-order-integrations"]')).toHaveCount(0);
+
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Zugriff verweigert')).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole('heading', { name: 'Marktplatz-Produktzuordnung' })
+    ).toHaveCount(0);
+  });
+
+  test('gastronomy super admin sees partner credentials and tenant admin does not', async ({ page }) => {
+    await preparePage(page);
+    await pinVerticalProfile(page, 'gastronomy');
+    await installProductMappingMocks(page);
+    await page.route('**/api/admin/online-order-integrations/providers**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith('/status')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            provider: 'wolt',
+            enabled: true,
+            credentialStatus: 'configured',
+            connected: false,
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          provider: 'wolt',
+          enabled: true,
+          credentialStatus: 'configured',
+        }),
+      });
+    });
+    if (!isLiveE2E()) {
+      await injectAdminSession(page);
+    } else {
+      await loginAsAdmin(page);
+    }
+    await page.goto('/admin/online-order-integrations', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByLabel('Client-Secret')).toBeVisible({ timeout: 20_000 });
+
+    await page.route('**/api/Auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '33333333-3333-4333-8333-333333333333',
+          userName: 'manager1',
+          email: 'manager@example.test',
+          firstName: 'Mandant',
+          lastName: 'Admin',
+          role: 'Manager',
+          roles: ['Manager'],
+          permissions: ['digital.orders.manage', 'user.view', 'settings.view'],
+          isActive: true,
+          mustChangePasswordOnNextLogin: false,
+          tenantId: '22222222-2222-4222-8222-222222222222',
+          tenantSlug: 'dev',
+          tenantDisplayName: 'Dev Tenant',
+          appContext: 'admin',
+        }),
+      });
+    });
+    await injectAdminSession(page, makeE2eJwt({ role: 'Manager', sub: 'e2e-manager' }));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: 'Eigenes Konto verbinden' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByLabel('Client-Secret')).toHaveCount(0);
+  });
+});

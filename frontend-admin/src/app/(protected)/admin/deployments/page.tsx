@@ -18,7 +18,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const QUERY_KEY = ['admin', 'deployments'] as const;
@@ -69,11 +69,9 @@ export default function DeploymentsAdminPage() {
   const queryClient = useQueryClient();
   const [stageFilter, setStageFilter] = useState<DeploymentStage | 'all'>('all');
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t('nav.administration'), href: '/admin' },
-    { title: t('nav.deployments') },
-  ];
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'deploymentSystem', {
+    title: t('nav.deployments'),
+  });
 
   const listQuery = useQuery({
     queryKey: [...QUERY_KEY, stageFilter],
@@ -232,6 +230,7 @@ export default function DeploymentsAdminPage() {
           <Space orientation="vertical">
             <Typography.Text>{t('deployments.pipelineHint')}</Typography.Text>
             <Link href="/admin/deployments/tenants">{t('nav.deploymentTenants')}</Link>
+            <Link href="/admin/deployments/go-live">{t('nav.deploymentGoLive')}</Link>
             <Link href="/admin/deployments/compliance">{t('nav.deploymentCompliance')}</Link>
           </Space>
         }

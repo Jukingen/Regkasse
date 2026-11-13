@@ -1,8 +1,4 @@
-import {
-  postApiCashRegisterIdClose,
-  postApiCashRegisterIdOpen,
-} from '@/api/generated/cash-register/cash-register';
-import { listCashRegistersByTenant } from '@/features/cash-registers/api/cashRegisters';
+import { listCashRegistersByTenant, closeCashRegister, openCashRegister } from '@/features/cash-registers/api/cashRegisters';
 import { REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
 
 export type ShiftStatusDto = {
@@ -35,9 +31,9 @@ export async function fetchShiftStatus(registerId: string): Promise<ShiftStatusD
 }
 
 export async function openCashRegisterShift(registerId: string) {
-  return postApiCashRegisterIdOpen(registerId.trim(), { openingBalance: 0 });
+  return openCashRegister(registerId.trim(), { openingBalance: 0 });
 }
 
 export async function closeCashRegisterShift(registerId: string, closingBalance: number) {
-  return postApiCashRegisterIdClose(registerId.trim(), { closingBalance });
+  return closeCashRegister(registerId.trim(), { closingBalance });
 }

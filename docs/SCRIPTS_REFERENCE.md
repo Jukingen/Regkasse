@@ -629,13 +629,13 @@ Done!
 ### generate-dep-export.bat
 
 **Path:** [`./scripts/rksv/generate-dep-export.bat`](../scripts/rksv/generate-dep-export.bat)  
-**PowerShell:** [`./scripts/generate-dep-export-fixtures.ps1`](../scripts/generate-dep-export-fixtures.ps1)
+**PowerShell:** [`./scripts/rksv/generate-dep-export-fixtures.ps1`](../scripts/rksv/generate-dep-export-fixtures.ps1)
 
 **Purpose:** Generates DEP (Datenerfassungsprotokoll) export **test fixtures** for BMF Prüftool (`dep-export.json`, `crypto-material.json`, `qr-code-rep.json`).
 
 **When to use:** When testing / verifying RKSV DEP export functionality (after format changes, before Prüftool).
 
-**Prerequisites:** .NET SDK 10+. Runs `dotnet test --filter RksvDepPrueftoolFixtureTests` (does **not** require a live API).
+**Prerequisites:** .NET SDK 10+. Runs `dotnet test --filter RksvDepPrueftoolFixtureTests` (does **not** require a live API). The script sets `REGKASSE_UPDATE_BASELINE=1` so the committed JSON files under `backend/Tests/fixtures/prueftool/` are rewritten. A plain test run without that switch leaves them untouched.
 
 **Example:**
 
@@ -785,6 +785,21 @@ Edit that file to set DEFAULT_TEST_EMAIL / BASE_URL.
 
 ## 🚢 Deployment Scripts
 
+### pre-flight-cutover.mjs
+
+**Path:** [`../scripts/pre-flight-cutover.mjs`](../scripts/pre-flight-cutover.mjs)
+
+**Purpose:** Manual production cutover pre-flight. Prints PASS/FAIL for required environment variables, FA/POS build env, `/api/health/live` and `/api/health/ready`, and `dotnet ef migrations list` (`pendingCount=0`). Exits 1 on any FAIL. Not a CI job.
+
+**When to use:** On the target host, or a shell that already has that host's environment, before [`PRODUCTION_CUTOVER.md`](PRODUCTION_CUTOVER.md) D-1 / D-0.
+
+**Example:**
+
+```bash
+node scripts/pre-flight-cutover.mjs --help
+node scripts/pre-flight-cutover.mjs --api-base https://api.regkasse.at --admin-base https://admin.regkasse.at --pos-base https://pos.regkasse.at
+```
+
 ### deploy.bat
 
 **Path:** [`./scripts/ops/deploy.DANGER.bat`](../scripts/ops/deploy.DANGER.bat)
@@ -816,6 +831,23 @@ deploy.bat
 5. Health check `http://127.0.0.1:5184/api/health/live`
 
 **Error handling:** Any failed step aborts with non-zero exit; health failure invokes `rollback.bat` (git-oriented — confirm intent).
+
+---
+
+### test-alertmanager-routing.ps1
+
+**Path:** [`./scripts/ops/test-alertmanager-routing.ps1`](../scripts/ops/test-alertmanager-routing.ps1)  
+**Windows:** [`./scripts/ops/test-alertmanager-routing.bat`](../scripts/ops/test-alertmanager-routing.bat)
+
+**Purpose:** POST a synthetic alert to a local or host Alertmanager to verify routing.
+
+**When to use:** After changing Alertmanager routes or during ops smoke checks.
+
+**Example:**
+
+```powershell
+pwsh ./scripts/ops/test-alertmanager-routing.ps1
+```
 
 **CI/CD alternative:** GitHub Actions — [`docs/CI_CD.md`](CI_CD.md) (`ci.yml`, `deploy.yml`, `deploy-production.yml`).
 

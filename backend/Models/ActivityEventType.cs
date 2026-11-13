@@ -2,6 +2,7 @@ namespace KasseAPI_Final.Models;
 
 /// <summary>
 /// Admin activity feed / notification event kinds (FA bell, email, webhook).
+/// <see cref="DTOs.ActivityDto.Type"/> serializes the member name (<c>UserCreated</c>).
 /// </summary>
 public enum ActivityEventType
 {
@@ -11,13 +12,23 @@ public enum ActivityEventType
     CashRegisterOpened = 10,
     CashRegisterClosed = 11,
     CashRegisterDecommissioned = 12,
+    /// <summary>Cashier requested Mandanten-Admin to open a closed cash register.</summary>
+    CashRegisterOpenRequested = 13,
+    /// <summary>Mandanten-Admin approved a cash register open request (register opened for the cashier).</summary>
+    CashRegisterOpenRequestApproved = 14,
+    /// <summary>Mandanten-Admin denied a cash register open request.</summary>
+    CashRegisterOpenRequestDenied = 15,
     LicenseExpiringSoon = 20,
     LicenseExpired = 21,
     OfflineQueueGrowing = 30,
     OfflineOrdersBacklogGrowing = 31,
     OfflineOrdersExpiringSoon = 32,
     OfflineSyncStalled = 33,
+    /// <summary>TSE offline intent queue is at or above 80% of <c>maxOfflineTransactions</c>.</summary>
+    OfflineQueueApproachingLimit = 34,
     FinanzOnlineSubmissionFailed = 40,
+    /// <summary>More than five FinanzOnline outbox rows failed in the last hour.</summary>
+    FinanzOnlineOutboxFailureSpike = 41,
     BackupFailed = 50,
     BackupSucceeded = 51,
     RestoreDrillFailed = 52,
@@ -29,8 +40,28 @@ public enum ActivityEventType
     SuspiciousSameCardMultiple = 64,
     SuspiciousRapidTransactions = 65,
     DailyClosingBackdatedCreated = 70,
-    /// <summary>Evening reminder: Tagesabschluss still pending (no auto-close).</summary>
+    /// <summary>Evening reminder: Tagesabschluss still pending (fallback auto-close may follow).</summary>
     DailyClosingPendingReminder = 71,
+    /// <summary>Automatic Tagesabschluss fallback created the Daily closing.</summary>
+    DailyClosingAutoCreated = 72,
+    /// <summary>Open tables/orders existed when automatic Tagesabschluss ran (warning, still closed or blocked).</summary>
+    DailyClosingOpenOrdersWarning = 73,
+    /// <summary>Daily reminder: previous-month Monatsbeleg is still missing.</summary>
+    MonatsbelegMissingReminder = 75,
+    /// <summary>Optional Auto-Monatsbeleg created the previous-month TSE receipt (legacy alias of MonatsbelegCreated).</summary>
+    MonatsbelegAutoCreated = 76,
+    /// <summary>Cashier asked Mandanten-Admin to create a missing Monatsbeleg.</summary>
+    MonatsbelegManagerContacted = 77,
+    /// <summary>TSE-signed Monatsbeleg (or December Jahresbeleg) was created, including Auto-Monatsbeleg.</summary>
+    MonatsbelegCreated = 78,
+    /// <summary>Auto-Monatsbeleg exhausted retries for a register/month.</summary>
+    MonatsbelegAutoCreateFailed = 79,
+    /// <summary>Jahresbeleg exists but FinanzOnline Belegcheck is still pending (deadline 15 February).</summary>
+    JahresbelegFonReminder = 84,
+    /// <summary>1 December warning: Jahresbeleg for the Vienna year is due by 31 January.</summary>
+    JahresbelegDeadlineReminder = 86,
+    /// <summary>Auto-Monatsbeleg catch-up window closed and the previous-month receipt is still missing.</summary>
+    MonatsbelegAutoCreateMissed = 85,
     /// <summary>Online order materialized into a POS cart (FA / kitchen alert).</summary>
     OnlineOrderPushedToPos = 80,
     /// <summary>Online order payment succeeded (Stripe / mock gateway).</summary>
@@ -45,6 +76,9 @@ public enum ActivityEventType
     DataAccessDeleteRequested = 91,
     /// <summary>GDPR data export ZIP is ready; download link issued (7-day expiry).</summary>
     DataExportReady = 92,
+
+    /// <summary>CH canary MWST QR payload built. No secrets.</summary>
+    ChMwstQrBuilt = 110,
 
     /// <summary>Custom role created (permission management).</summary>
     RoleCreated = 100,
@@ -187,4 +221,107 @@ public enum ActivityEventType
 
     /// <summary>Canary tenant failed-audit rate exceeded threshold during soak.</summary>
     CanaryTenantHighErrorRate = 211,
+
+    /// <summary>SaaS trial started or restarted for a mandant.</summary>
+    TrialStarted = 220,
+    /// <summary>SaaS trial ends soon (7 / 3 / 1 day anchors).</summary>
+    TrialExpiringSoon = 221,
+    /// <summary>SaaS trial ended; grace period started.</summary>
+    TrialExpired = 222,
+    /// <summary>SaaS trial converted to a paid license sale.</summary>
+    TrialConverted = 223,
+    /// <summary>SaaS trial soft-archived (cleanup or Super Admin).</summary>
+    TrialDeleted = 224,
+    /// <summary>SaaS trial end date extended by Super Admin.</summary>
+    TrialExtended = 225,
+    /// <summary>Mandanten-Admin opened a support ticket.</summary>
+    SupportTicketCreated = 230,
+    /// <summary>Super Admin replied to a support ticket.</summary>
+    SupportTicketStaffReplied = 231,
+    /// <summary>Mandanten-Admin replied to a support ticket.</summary>
+    SupportTicketTenantReplied = 232,
+    /// <summary>Support ticket marked resolved by Super Admin.</summary>
+    SupportTicketResolved = 233,
+    /// <summary>Support ticket closed.</summary>
+    SupportTicketClosed = 234,
+
+    /// <summary>A tenant operational cap is at or above 80% of the configured limit.</summary>
+    LimitApproaching = 240,
+    /// <summary>A tenant operational cap is at or above 100% of the configured limit.</summary>
+    LimitExceeded = 241,
+
+    /// <summary>Super Admin changed instance-wide RKSV Demo/Production overlay.</summary>
+    RksvRuntimeConfigChanged = 250,
+
+    /// <summary>Super Admin changed a mandant's operating country and/or VAT regime.</summary>
+    TenantCountryChanged = 251,
+
+    /// <summary>DE KassenSicherheit transaction finished. Declared here; fired from the fiscal signature router.</summary>
+    KsDeTxFinished = 252,
+
+    /// <summary>CH QR-Rechnung payload built. Metadata is a hash, not the SPC text.</summary>
+    QrRechnungPayloadBuilt = 253,
+
+    /// <summary>CH QR-Rechnung PDF rendered. Metadata is a relative path, not the PDF bytes.</summary>
+    QrRechnungPdfGenerated = 254,
+
+    /// <summary>
+    /// Country change left historical invoices, receipts, and payments stamped with the issue-time country.
+    /// Audit counterpart is <c>AuditEventType.TenantCountryChangedHistoricalPreserved</c> (98).
+    /// </summary>
+    TenantCountryChangedHistoricalPreserved = 255,
+
+    /// <summary>EN 16931 Schematron passed. Audit counterpart is 108.</summary>
+    EinvoiceValidated = 256,
+
+    /// <summary>Access point accepted the invoice. Audit counterpart is 109. Does not open Peppol HTTP by itself.</summary>
+    EinvoiceSubmitted = 257,
+
+    /// <summary>Schematron or access point rejected the invoice. Audit counterpart is 110.</summary>
+    EinvoiceSubmissionFailed = 258,
+
+    /// <summary>Super Admin stored a Peppol participant id. No credential. Audit counterpart is 113.</summary>
+    PeppolParticipantRegistered = 259,
+
+    /// <summary>
+    /// Operator acknowledged open CH QR print gaps. Audit counterpart is 114.
+    /// This is not a compliance claim.
+    /// </summary>
+    ChQrKnownGapsAccepted = 260,
+
+    /// <summary>
+    /// An invoice was built while one or more open CH QR print gaps were not in the tenant acceptance.
+    /// The invoice is not blocked.
+    /// </summary>
+    ChQrKnownGapsOutstanding = 261,
+
+    /// <summary>
+    /// Canary e-invoice was acknowledged by the Access Point. Audit counterpart is 115.
+    /// This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceAckReceived = 262,
+
+    /// <summary>
+    /// A transient Storecove ACK read will be tried again. Audit counterpart is 118.
+    /// Severity is Warning. This is not a Peppol compliance claim.
+    /// </summary>
+    EinvoiceSubmissionRetry = 263,
+
+    /// <summary>
+    /// Anonymous marketing-site demo request. Metadata is request id, email, and industry.
+    /// The raw message is stored on <c>demo_requests</c> only, never in the activity payload.
+    /// </summary>
+    DemoRequestReceived = 265,
+
+    /// <summary>
+    /// Marketplace integration row reached a terminal failure (total mismatch, missing fee product, or sixth attempt).
+    /// Metadata is ids and a short reason. The raw webhook body is not included.
+    /// </summary>
+    OnlineOrderIntegrationFailed = 266,
+
+    /// <summary>
+    /// force=true signed a new Monatsbeleg for a month that already had one.
+    /// Metadata is register, period, the kept payment id, and the new receipt number. No JWS.
+    /// </summary>
+    MonatsbelegReissued = 267,
 }

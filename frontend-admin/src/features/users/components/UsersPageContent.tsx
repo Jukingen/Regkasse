@@ -30,6 +30,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { LimitWarning } from '@/features/tenants/components/LimitWarning';
 import { useTenant } from '@/features/tenancy/providers/TenantProvider';
 import {
   createPlatformUser,
@@ -75,6 +76,7 @@ import { useCreateRoleMutation } from '@/features/users/hooks/useCreateRoleMutat
 import { useRoles } from '@/features/users/hooks/useRoles';
 import { useUpdateUserRole } from '@/features/users/hooks/useUpdateUserRole';
 import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
+import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { shouldUseTenantRoleChangeApi } from '@/features/users/utils/roleChangeTenantApi';
 import {
   CANONICAL_ROLE_NAMES,
@@ -82,9 +84,10 @@ import {
 } from '@/features/users/utils/roleDisplayLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { toastLimitExceededOrFallback } from '@/shared/errors/limitExceededMessage';
 
 function fullName(record: UserInfo): string {
   const first = record.firstName ?? '';
@@ -270,15 +273,13 @@ export default function UsersPage() {
   const modalRules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
 
   // Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.
-  const roleOptions = useMemo(
-    () =>
-      roles?.map((r) => ({ value: r, label: roleDisplayLabel(r) })) ??
-      CANONICAL_ROLE_NAMES.map((value) => ({
-        value,
-        label: roleDisplayLabel(value),
-      })),
-    [roles, t, roleDisplayLabel]
-  );
+  const roleOptions = useMemo(() => {
+    const names = roles ?? [...CANONICAL_ROLE_NAMES];
+    const visible = isSuperAdminLayout
+      ? names
+      : names.filter((name) => !isPlatformUserRole(name));
+    return visible.map((value) => ({ value, label: roleDisplayLabel(value) }));
+  }, [roles, isSuperAdminLayout, roleDisplayLabel]);
 
   const [createPlatformMode, setCreatePlatformMode] = useState(false);
 
@@ -317,7 +318,12 @@ export default function UsersPage() {
       setCreatePlatformMode(false);
     },
     onError: (e: unknown) => {
-      message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
+      toastLimitExceededOrFallback(
+        message,
+        t,
+        e,
+        normalizeError(e, t('users.messages.errorGeneric')).message
+      );
     },
   });
   const updateUserRoleMutation = useUpdateUserRole();
@@ -527,7 +533,9 @@ export default function UsersPage() {
       <AdminPageShell>
         <AdminPageHeader
           title={t('users.page.title')}
-          breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
+          breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'administration', {
+            title: t('users.page.title'),
+          })}
         />
         <Alert
           type="warning"
@@ -544,15 +552,16 @@ export default function UsersPage() {
       {!isSuperAdminLayout ? <AccessSecondaryNav /> : null}
       <AdminPageHeader
         title={t('users.page.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          ...(isSuperAdminLayout
-            ? [{ title: t('users.page.title') }]
+        breadcrumbs={buildPlatformAdminBreadcrumbs(
+          t,
+          'administration',
+          isSuperAdminLayout
+            ? { title: t('users.page.title') }
             : [
                 { title: t('access.hub.pageTitle'), href: '/admin/access' },
                 { title: t('users.page.title') },
-              ]),
-        ]}
+              ]
+        )}
         actions={
           <Space wrap>
             {policy.canCreateRole && (
@@ -581,6 +590,8 @@ export default function UsersPage() {
       </AdminPageHeader>
 
       <UsersPageActiveTenantContext />
+
+      {!isSuperAdminLayout ? <LimitWarning limitKey="maxUsersPerTenant" /> : null}
 
       {isSuperAdminLayout ? (
         <UnifiedAdminUsersView
@@ -704,6 +715,7 @@ export default function UsersPage() {
         policy.useGeneratedPasswordReset ? (
           <ResetPasswordModal
             open
+            tenantId={currentTenantId ?? ''}
             user={resetPasswordUser}
             onClose={() => setResetPasswordUser(null)}
             onSuccess={() => {

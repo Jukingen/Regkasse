@@ -23,6 +23,7 @@ const SETTINGS_FIELD_LABEL_KEYS: Record<string, string> = {
   companyPhone: 'settings.companyPage.phone',
   companyEmail: 'settings.companyPage.email',
   companyDescription: 'settings.companyPage.receiptFooter',
+  thankYouMessage: 'settings.companyPage.receiptFooter',
   defaultLanguage: 'settings.form.localization.defaultLanguage',
   defaultCurrency: 'settings.form.localization.defaultCurrency',
   defaultTimeZone: 'settings.form.localization.defaultTimeZone',

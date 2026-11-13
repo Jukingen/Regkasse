@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class PosPaymentHistoryServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
     private const string CashierId = "cashier-history";
 
     private static (AppDbContext Context, IDbContextFactory<AppDbContext> Factory) CreateContextWithFactory()

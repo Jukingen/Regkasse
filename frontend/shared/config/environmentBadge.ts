@@ -9,7 +9,7 @@ import {
   normalizeReleaseStage,
   type EnvironmentBadgeColor,
   type ReleaseStage,
-} from '../../../shared/constants/environment';
+} from '../constants/environment';
 
 function resolveReleaseStage(): ReleaseStage {
   const fromEnv = normalizeReleaseStage(process.env.EXPO_PUBLIC_RELEASE_STAGE);

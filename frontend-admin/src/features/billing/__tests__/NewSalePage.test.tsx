@@ -17,6 +17,23 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => ({
+    isAuthInitializing: false,
+    isAuthenticated: true,
+    user: { id: 'admin-1', role: 'SuperAdmin' },
+  }),
+}));
+
+vi.mock('@/hooks/useNotify', () => ({
+  useNotify: () => ({
+    successKey: vi.fn(),
+    apiError: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  }),
+}));
+
 vi.mock('@/features/billing/hooks/useBillingAccess', () => ({
   useBillingAccess: () => true,
 }));
@@ -128,7 +145,7 @@ describe('NewBillingSalePage', () => {
   it('renders the form with all fields', async () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { name: 'Neuer Lizenzverkauf' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Neuer Lizenzverkauf' })).toBeInTheDocument();
     expect(screen.getByText('Vorschau erstellen')).toBeInTheDocument();
     expect(screen.getByText('Verkauf abschließen')).toBeInTheDocument();
 

@@ -1,4 +1,5 @@
 import { customInstance } from '@/lib/axios';
+import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
 
 import type {
   CreateTseBackupRequest,
@@ -15,6 +16,23 @@ import type {
   TseDeviceFleetItem,
   TseFleetOverview,
 } from '../types';
+
+function tenantOverrideHeaders(tenantSlug?: string): Record<string, string> | undefined {
+  const slug = tenantSlug?.trim();
+  return slug ? { [TENANT_HTTP_HEADER]: slug } : undefined;
+}
+
+function tenantOverrideParams(
+  tenantSlug?: string,
+  extra?: Record<string, string>
+): Record<string, string> | undefined {
+  const slug = tenantSlug?.trim();
+  if (!slug && !extra) return undefined;
+  return {
+    ...(extra ?? {}),
+    ...(slug ? { tenant: slug } : {}),
+  };
+}
 
 export async function getTseFleetOverview(signal?: AbortSignal): Promise<TseFleetOverview> {
   return customInstance<TseFleetOverview>({
@@ -54,25 +72,29 @@ export async function revokeTse(deviceId: string, signal?: AbortSignal): Promise
 
 export async function createTseBackup(
   body: CreateTseBackupRequest,
-  signal?: AbortSignal
+  options?: { tenantSlug?: string; signal?: AbortSignal }
 ): Promise<CreateTseBackupResponse> {
   return customInstance<CreateTseBackupResponse>({
     url: '/api/admin/tse-management/backups',
     method: 'POST',
     data: body,
-    signal,
+    headers: tenantOverrideHeaders(options?.tenantSlug),
+    // Dev interceptor appends ?tenant= only when unset — set selected mandant slug explicitly.
+    params: tenantOverrideParams(options?.tenantSlug),
+    signal: options?.signal,
   });
 }
 
 export async function listTseBackups(
   tenantId?: string,
-  signal?: AbortSignal
+  options?: { tenantSlug?: string; signal?: AbortSignal }
 ): Promise<TseBackupListItem[]> {
   return customInstance<TseBackupListItem[]>({
     url: '/api/admin/tse-management/backups',
     method: 'GET',
-    params: tenantId ? { tenantId } : undefined,
-    signal,
+    headers: tenantOverrideHeaders(options?.tenantSlug),
+    params: tenantOverrideParams(options?.tenantSlug, tenantId ? { tenantId } : undefined),
+    signal: options?.signal,
   });
 }
 

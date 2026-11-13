@@ -41,6 +41,13 @@ public sealed class AutomaticCleanupServiceTests
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddSingleton(audit.Object);
+        services.AddScoped<IBackupRetentionPolicyService>(_ =>
+        {
+            var policy = new Mock<IBackupRetentionPolicyService>();
+            policy.Setup(x => x.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(BackupRetentionPolicySnapshot.Defaults);
+            return policy.Object;
+        });
         var sp = services.BuildServiceProvider();
         return (sp, sp.GetRequiredService<AppDbContext>(), audit);
     }
@@ -138,8 +145,8 @@ public sealed class AutomaticCleanupServiceTests
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = "Fake",
             Strategy = BackupStrategyKind.System,
-            RequestedAt = DateTime.UtcNow.AddDays(-10),
-            CompletedAt = DateTime.UtcNow.AddDays(-10),
+            RequestedAt = DateTime.UtcNow.AddDays(-40),
+            CompletedAt = DateTime.UtcNow.AddDays(-40),
         });
         db.BackupArtifacts.Add(new BackupArtifact
         {
@@ -149,7 +156,7 @@ public sealed class AutomaticCleanupServiceTests
             StorageDescriptor = "x.dump",
             ByteSize = 1024,
             StorageTier = BackupStorageTier.Hot,
-            CreatedAt = DateTime.UtcNow.AddDays(-10),
+            CreatedAt = DateTime.UtcNow.AddDays(-40),
         });
         await db.SaveChangesAsync();
 

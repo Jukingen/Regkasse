@@ -20,9 +20,9 @@ export type UseBackupProgressOptions = {
 
 function isInProgress(status: number | undefined): boolean {
   return (
-    status === BackupRunStatus.NUMBER_0 ||
-    status === BackupRunStatus.NUMBER_1 ||
-    status === BackupRunStatus.NUMBER_2
+    status === BackupRunStatus.Queued ||
+    status === BackupRunStatus.Running ||
+    status === BackupRunStatus.AwaitingVerification
   );
 }
 

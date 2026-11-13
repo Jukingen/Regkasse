@@ -14,6 +14,7 @@ import {
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { customInstance, refreshAccessToken } from '@/lib/axios';
+import { clearCsrfTokenCache } from '@/lib/csrf';
 import type { AuthUser } from '@/shared/auth/types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -22,23 +23,33 @@ export const AUTH_KEYS = {
   user: ['auth', 'me'] as const,
 };
 
-/** Brief pause after persisting tokens so storage/cookie sync completes before parallel API calls. */
+/** Brief pause after marking the Edge session so Set-Cookie / cookie jar can settle. */
 export const POST_LOGIN_TOKEN_SETTLE_MS = 100;
 
-/** Clears stale credentials and in-flight `/me` before a fresh login attempt. */
+/** Clears stale client session metadata and in-flight `/me` before a fresh login attempt. */
 export function clearStaleAuthBeforeLogin(queryClient: QueryClient): void {
   authStorage.removeToken();
   queryClient.removeQueries({ queryKey: AUTH_KEYS.user });
 }
 
-/** Persists login tokens then waits so interceptors and Edge cookie see the new session. */
+/**
+ * Marks the FA Edge session (non-secret cookie). JWTs stay in HttpOnly API cookies.
+ * Optional access token is decoded for expiry / impersonation metadata only.
+ */
 export async function persistLoginTokensAndSettle(
-  accessToken: string,
-  refreshToken?: string | null
+  accessToken?: string | null,
+  refreshToken?: string | null,
+  expiresAt?: string | Date | null
 ): Promise<void> {
-  authStorage.setToken(accessToken);
-  if (refreshToken) {
-    authStorage.setRefreshToken(refreshToken);
+  if (accessToken?.trim()) {
+    const tokens: { accessToken: string; refreshToken?: string | null; expiresAt?: string | Date | null } =
+      { accessToken, refreshToken };
+    if (expiresAt) {
+      tokens.expiresAt = expiresAt;
+    }
+    authStorage.setTokens(tokens);
+  } else {
+    authStorage.markSession(expiresAt);
   }
   await new Promise<void>((resolve) => {
     setTimeout(resolve, POST_LOGIN_TOKEN_SETTLE_MS);
@@ -70,6 +81,48 @@ export async function fetchAuthUser(): Promise<AuthUser> {
   return mapMeResponseToAuthUser(res);
 }
 
+const POST_LOGIN_ME_RETRY_DELAY_MS = 300;
+
+/**
+ * Post-login `/me` bootstrap with short 401 retries.
+ * Used when a concurrent stale request briefly races the fresh session token.
+ *
+ * Do not pass this function directly as a React Query `queryFn` — RQ supplies a
+ * QueryFunctionContext as the first argument. Use `() => fetchAuthUserWithRetry()`.
+ */
+export async function fetchAuthUserWithRetry(
+  retries = 3,
+  delayMs = POST_LOGIN_ME_RETRY_DELAY_MS
+): Promise<AuthUser> {
+  const maxAttempts = typeof retries === 'number' && Number.isFinite(retries) ? retries : 3;
+  const baseDelayMs =
+    typeof delayMs === 'number' && Number.isFinite(delayMs) ? delayMs : POST_LOGIN_ME_RETRY_DELAY_MS;
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        technicalConsole.devDebug(`[API] /me bootstrap attempt ${attempt}/${maxAttempts}`);
+      }
+      return await fetchAuthUser();
+    } catch (error) {
+      lastError = error;
+      const status = getAuthHttpStatus(error);
+      const stillHasSession = Boolean(authStorage.hasToken());
+      if (status !== 401 || !stillHasSession || attempt >= maxAttempts) {
+        throw error;
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, Math.round(baseDelayMs * 1.5 ** (attempt - 1)));
+      });
+    }
+  }
+
+  throw lastError ?? new Error('fetchAuthUserWithRetry failed without an error');
+}
+
 export enum AuthStatus {
   Loading = 'loading',
   Authenticated = 'authenticated',
@@ -88,7 +141,6 @@ export const useAuth = () => {
     () => true,
     () => false
   );
-  const hasCredentials = isBrowser && authStorage.hasToken();
 
   const {
     data: user,
@@ -106,17 +158,19 @@ export const useAuth = () => {
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    enabled: isBrowser && hasCredentials,
+    // Cookie session: always probe /me in the browser. 401 → unauthenticated.
+    enabled: isBrowser,
   });
 
-  const effectiveUser = hasCredentials ? user : undefined;
-  const querySettled = isFetched || isError || (isBrowser && !hasCredentials);
+  const effectiveUser = user;
+  const querySettled = isFetched || isError || !isBrowser;
 
   const transientRecoveryAttempted = useRef(false);
 
   useEffect(() => {
     if (effectiveUser) {
       transientRecoveryAttempted.current = false;
+      authStorage.markSession();
       tenantStorage.persistBootstrap({
         tenantId: effectiveUser.tenantId,
         tenantSlug: effectiveUser.tenantSlug,
@@ -128,7 +182,7 @@ export const useAuth = () => {
     if (!isBrowser || !isError || !error) {
       return;
     }
-    if (!hasCredentials || isAuthHttpError(error)) {
+    if (isAuthHttpError(error)) {
       return;
     }
     if (transientRecoveryAttempted.current) {
@@ -136,7 +190,7 @@ export const useAuth = () => {
     }
     transientRecoveryAttempted.current = true;
     void refetch();
-  }, [isBrowser, isError, hasCredentials, error, refetch]);
+  }, [isBrowser, isError, error, refetch]);
 
   const { mutateAsync: logoutMutation } = usePostApiAuthLogout();
 
@@ -157,6 +211,7 @@ export const useAuth = () => {
       } catch (logoutError) {
         technicalConsole.error('Logout request failed', logoutError);
       } finally {
+        clearCsrfTokenCache();
         authStorage.removeToken();
         queryClient.setQueryData(AUTH_KEYS.user, null);
         queryClient.clear();
@@ -170,8 +225,8 @@ export const useAuth = () => {
   );
 
   /**
-   * Rotates the refresh token. Pass `tenantId` after a header tenant switch so JWT `tenant_id` matches.
-   * @returns true when a new access token was stored.
+   * Rotates the refresh token (HttpOnly cookie). Pass `tenantId` after a header tenant switch so JWT `tenant_id` matches.
+   * @returns true when refresh succeeded.
    */
   const refreshToken = useCallback(
     async (tenantId?: string | null): Promise<boolean> => {
@@ -190,21 +245,19 @@ export const useAuth = () => {
 
   let authStatus: AuthStatus = AuthStatus.Loading;
 
-  const meInFlightWithCredentials =
-    hasCredentials && !effectiveUser && (isFetching || fetchStatus === 'fetching');
+  const meInFlight =
+    !effectiveUser && (isFetching || fetchStatus === 'fetching');
 
   if (effectiveUser) {
     authStatus = AuthStatus.Authenticated;
   } else if (!querySettled) {
     authStatus = AuthStatus.Loading;
-  } else if (meInFlightWithCredentials) {
-    // After login or token change: prior /me error can stay until refetch completes — avoid flashing Unauthenticated.
+  } else if (meInFlight) {
+    // After login: prior /me error can stay until refetch completes — avoid flashing Unauthenticated.
     authStatus = AuthStatus.Loading;
-  } else if (isError && hasCredentials && !isAuthHttpError(error)) {
+  } else if (isError && !isAuthHttpError(error)) {
     authStatus = AuthStatus.Loading;
   } else if (isError && isAuthHttpError(error)) {
-    authStatus = AuthStatus.Unauthenticated;
-  } else if (isError && !hasCredentials) {
     authStatus = AuthStatus.Unauthenticated;
   } else {
     authStatus = AuthStatus.Unauthenticated;
@@ -213,8 +266,8 @@ export const useAuth = () => {
   const isAuthInitializing =
     !isBrowser ||
     !querySettled ||
-    Boolean(isError && hasCredentials && !isAuthHttpError(error)) ||
-    Boolean(meInFlightWithCredentials);
+    Boolean(isError && !isAuthHttpError(error)) ||
+    Boolean(meInFlight);
 
   const isInitialized = !isAuthInitializing;
 
@@ -222,7 +275,7 @@ export const useAuth = () => {
 
   if (process.env.NODE_ENV === 'development' && lastLoggedStatus.current !== authStatus) {
     technicalConsole.devLog(
-      `[useAuth] authStatus=${authStatus} isAuthInitializing=${isAuthInitializing} fetchStatus=${fetchStatus} isFetching=${isFetching} hasCredentials=${hasCredentials}`
+      `[useAuth] authStatus=${authStatus} isAuthInitializing=${isAuthInitializing} fetchStatus=${fetchStatus} isFetching=${isFetching}`
     );
     lastLoggedStatus.current = authStatus;
   }

@@ -119,7 +119,7 @@ public class AdminRksvDepExportController : ControllerBase
                     .ValidateExportFormatAsync(exportJson, cancellationToken)
                     .ConfigureAwait(false);
 
-                await RecordCompletedExportAsync(
+                var history = await RecordCompletedExportAsync(
                         tenantId.Value,
                         cashRegisterId,
                         fromUtc,
@@ -128,8 +128,12 @@ public class AdminRksvDepExportController : ControllerBase
                         includeDailyClosings,
                         build.Root,
                         fileName,
-                        cancellationToken)
+                        cancellationToken,
+                        isSimulated: build.IsSimulated,
+                        simulationNote: build.SimulationNote)
                     .ConfigureAwait(false);
+
+                ApplyDownloadMetadataHeaders(history);
 
                 return Ok(new RksvDepExportEnvelopeDto
                 {
@@ -142,6 +146,8 @@ public class AdminRksvDepExportController : ControllerBase
                     FromUtc = build.FromUtc,
                     ToUtc = build.ToUtc,
                     IsDemo = build.IsDemo,
+                    IsSimulated = build.IsSimulated,
+                    SimulationNote = build.SimulationNote,
                     Environment = build.Environment,
                     FormatValidated = build.FormatValidated,
                     FormatValidation = validation,
@@ -149,6 +155,12 @@ public class AdminRksvDepExportController : ControllerBase
                     F5CompliantJwsCount = build.F5CompliantJwsCount,
                     LegacyJwsWarning = build.LegacyJwsWarning,
                     PrueftoolCompatible = build.PrueftoolCompatible,
+                    ExportId = history.Id,
+                    HistoryId = history.Id,
+                    FileName = history.FileName,
+                    DownloadUrl = $"/api/admin/rksv/dep-export/download/{history.Id:D}",
+                    ExpiresAt = history.ExpiresAt,
+                    FileSizeBytes = history.FileSizeBytes,
                 });
             }
 
@@ -161,7 +173,7 @@ public class AdminRksvDepExportController : ControllerBase
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            await RecordCompletedExportAsync(
+            var recorded = await RecordCompletedExportAsync(
                     tenantId.Value,
                     cashRegisterId,
                     fromUtc,
@@ -172,6 +184,9 @@ public class AdminRksvDepExportController : ControllerBase
                     fileName,
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            // Bare BMF JSON body stays Prüftool-compatible; download metadata goes on response headers.
+            ApplyDownloadMetadataHeaders(recorded);
 
             return Ok(export);
         }
@@ -271,16 +286,82 @@ public class AdminRksvDepExportController : ControllerBase
         [FromQuery] Guid? cashRegisterId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] int? limit = null,
         CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantAccessor.TenantId;
         if (tenantId is null)
             return NotFound();
 
+        // Convenience: ?limit=N returns the N most recent rows (same fields as paged list items).
+        if (limit is int take)
+        {
+            var recent = await _historyService
+                .GetRecentExportsAsync(tenantId.Value, take, cashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            return Ok(new DepExportHistoryListResponse
+            {
+                Items = recent,
+                TotalCount = recent.Count,
+            });
+        }
+
         var result = await _historyService
             .ListAsync(tenantId.Value, cashRegisterId, page, pageSize, cancellationToken)
             .ConfigureAwait(false);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Latest completed DEP export for the ambient tenant (compliance UX — last export date).
+    /// Cross-tenant / missing tenant → HTTP 404.
+    /// </summary>
+    [HttpGet("last-export")]
+    [ProducesResponseType(typeof(DepExportLastExportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLastExport(
+        [FromQuery] Guid? cashRegisterId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId is null)
+            return NotFound();
+
+        var last = await _historyService
+            .GetLastExportAsync(tenantId.Value, cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(last);
+    }
+
+    /// <summary>
+    /// Current RKSV/TSE simulation flag plus last-export summary (FA warning banner).
+    /// Cross-tenant / missing tenant → HTTP 404.
+    /// </summary>
+    [HttpGet("status")]
+    [ProducesResponseType(typeof(DepExportStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetExportStatus(
+        [FromQuery] Guid? cashRegisterId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId is null)
+            return NotFound();
+
+        var isSimulated = _rksvEnv.IsDemoMode() || _rksvEnv.IsTseSimulated();
+        var last = await _historyService
+            .GetLastExportAsync(tenantId.Value, cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(new DepExportStatusResponse
+        {
+            IsSimulated = isSimulated,
+            Environment = isSimulated ? "Demo" : "Production",
+            SimulationNote = isSimulated ? RksvDepExportService.SimulationNoteEn : null,
+            HasExport = last.HasExport,
+            LastExportAt = last.LastExportAt,
+            LastExportWasSimulated = last.HasExport ? last.IsSimulated : null,
+        });
     }
 
     [HttpGet("history/{id:guid}")]
@@ -295,35 +376,271 @@ public class AdminRksvDepExportController : ControllerBase
         return row is null ? NotFound() : Ok(row);
     }
 
-    [HttpGet("history/{id:guid}/download")]
+    /// <summary>
+    /// Soft-delete a recent export: removes hot download file / tokens.
+    /// Failed rows are hard-deleted; archived fiscal copies are retained.
+    /// </summary>
+    [HttpDelete("history/{id:guid}")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteHistory(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (_tenantAccessor.TenantId is null)
+            return NotFound();
+
+        var deleted = await _historyService
+            .DeleteRecentExportAsync(id, User.GetActorUserId() ?? "unknown", cancellationToken)
+            .ConfigureAwait(false);
+        return deleted ? NoContent() : NotFound();
+    }
+
+    /// <summary>
+    /// Download a stored DEP export JSON by history id.
+    /// Requires <see cref="AppPermissions.ReportExport"/> (+ AuditView on controller).
+    /// Cross-tenant → HTTP 404. Every attempt is audited (<see cref="AuditEventType.RksvDepExportDownloaded"/>).
+    /// Canonical alias of <c>GET history/{id}/download</c>.
+    /// </summary>
+    [HttpGet("download/{exportId:guid}")]
+    [HasPermission(AppPermissions.ReportExport)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DownloadHistory(Guid id, CancellationToken cancellationToken = default)
+    public Task<IActionResult> DownloadExport(
+        Guid exportId,
+        CancellationToken cancellationToken = default) =>
+        DownloadStoredExportAsync(
+            exportId,
+            downloadUrl: $"/api/admin/rksv/dep-export/download/{exportId}",
+            cancellationToken);
+
+    [HttpGet("history/{id:guid}/download")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public Task<IActionResult> DownloadHistory(Guid id, CancellationToken cancellationToken = default) =>
+        DownloadStoredExportAsync(
+            id,
+            downloadUrl: $"/api/admin/rksv/dep-export/history/{id}/download",
+            cancellationToken);
+
+    /// <summary>Issue or rotate a short-lived (default 24h) opaque download token for a completed export.</summary>
+    [HttpPost("download/{exportId:guid}/token")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(typeof(DepExportDownloadTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateDownloadToken(
+        Guid exportId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_tenantAccessor.TenantId is null)
+            return NotFound();
+
+        var token = await _historyService
+            .IssueDownloadTokenAsync(exportId, cancellationToken)
+            .ConfigureAwait(false);
+        if (token is null)
+            return NotFound(new
+            {
+                message = "Export not found or stored file not available.",
+                code = "RKSV_DEP_EXPORT_FILE_NOT_FOUND",
+            });
+
+        return Ok(token);
+    }
+
+    /// <summary>
+    /// Download by opaque token (JWT + ReportExport still required).
+    /// Token TTL defaults to 24h; expired / cross-tenant → HTTP 404.
+    /// </summary>
+    [HttpGet("download/token/{token}")]
+    [HasPermission(AppPermissions.ReportExport)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadExportByToken(
+        string token,
+        CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantAccessor.TenantId;
         if (tenantId is null)
             return NotFound();
 
-        var file = await _historyService.TryOpenDownloadAsync(id, cancellationToken).ConfigureAwait(false);
-        if (file is null)
-            return NotFound(new { message = "Stored export file not available.", code = "RKSV_DEP_EXPORT_FILE_NOT_FOUND" });
+        var attempt = await _historyService
+            .TryOpenDownloadByTokenAsync(token, tenantId.Value, cancellationToken)
+            .ConfigureAwait(false);
 
-        var (stream, fileName, contentType) = file.Value;
+        return await FinalizeDownloadAttemptAsync(
+                tenantId.Value,
+                attempt,
+                downloadUrl: $"/api/admin/rksv/dep-export/download/token/{token}",
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<IActionResult> DownloadStoredExportAsync(
+        Guid exportId,
+        string downloadUrl,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId is null)
+            return NotFound();
+
+        var attempt = await _historyService
+            .TryOpenDownloadAsync(exportId, tenantId.Value, cancellationToken)
+            .ConfigureAwait(false);
+
+        return await FinalizeDownloadAttemptAsync(
+                tenantId.Value,
+                attempt,
+                downloadUrl,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<IActionResult> FinalizeDownloadAttemptAsync(
+        Guid tenantId,
+        DepExportDownloadAttempt attempt,
+        string downloadUrl,
+        CancellationToken cancellationToken)
+    {
+        if (attempt.Open is { } open)
+        {
+            await LogDownloadAttemptAsync(
+                    tenantId,
+                    open.ExportId,
+                    open.FileName,
+                    open.Stream,
+                    downloadUrl,
+                    success: true,
+                    outcome: "success",
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            try
+            {
+                await _historyService.MarkDownloadedAsync(open.ExportId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                // Download must still succeed if stamp write fails.
+            }
+
+            return File(open.Stream, open.ContentType, open.FileName);
+        }
+
+        var failure = attempt.Failure ?? DepExportDownloadFailureKind.NotFound;
+        // Never reveal cross-tenant existence — map ForbiddenTenant to NotFound.
+        if (failure == DepExportDownloadFailureKind.HotExpired)
+        {
+            await LogDownloadAttemptAsync(
+                    tenantId,
+                    attempt.ExportId,
+                    attempt.FileName ?? "dep-export.json",
+                    stream: null,
+                    downloadUrl,
+                    success: false,
+                    outcome: failure.ToString(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return BadRequest(new
+            {
+                message = "Export has expired.",
+                code = "RKSV_DEP_EXPORT_EXPIRED",
+            });
+        }
+
+        var httpNotFoundCode = failure switch
+        {
+            DepExportDownloadFailureKind.TokenExpired => "RKSV_DEP_EXPORT_TOKEN_EXPIRED",
+            DepExportDownloadFailureKind.FileMissing => "RKSV_DEP_EXPORT_FILE_NOT_FOUND",
+            DepExportDownloadFailureKind.Purged => "RKSV_DEP_EXPORT_PURGED",
+            _ => "RKSV_DEP_EXPORT_NOT_FOUND",
+        };
+
+        var message = failure switch
+        {
+            DepExportDownloadFailureKind.TokenExpired => "Download token is invalid or has expired.",
+            DepExportDownloadFailureKind.FileMissing => "Stored export file not available.",
+            DepExportDownloadFailureKind.Purged => "Export archive was purged.",
+            _ => "Export not found.",
+        };
+
+        await LogDownloadAttemptAsync(
+                tenantId,
+                attempt.ExportId,
+                attempt.FileName ?? "dep-export.json",
+                stream: null,
+                downloadUrl,
+                success: false,
+                outcome: failure.ToString(),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return NotFound(new { message, code = httpNotFoundCode });
+    }
+
+    /// <summary>
+    /// Logs every download attempt (success and failure) to DEP audit trail + fiscal
+    /// <see cref="AuditEventType.RksvDepExportDownloaded"/> mirror, plus download history on success.
+    /// </summary>
+    private async Task LogDownloadAttemptAsync(
+        Guid tenantId,
+        Guid? exportId,
+        string fileName,
+        Stream? stream,
+        string downloadUrl,
+        bool success,
+        string outcome,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = User.GetActorUserId() ?? "unknown";
+        var actorRole = User.GetActorRole() ?? "Unknown";
+
+        try
+        {
+            await _depExportAudit.LogExportActionAsync(
+                    new DepExportAuditEntry
+                    {
+                        TenantId = tenantId,
+                        Action = DepExportAuditActions.Downloaded,
+                        ExportName = fileName,
+                        ExportHistoryId = exportId,
+                        UserId = actorUserId,
+                        UserRole = actorRole,
+                        UserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value,
+                        IpAddress = ResolveClientIpAddress(),
+                        UserAgent = ResolveUserAgent(),
+                        Details =
+                            $"outcome={outcome}; success={success}; exportId={exportId}; url={downloadUrl}",
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // Download response must still proceed if audit write fails.
+        }
+
+        if (!success || stream is null)
+            return;
+
         try
         {
             await _downloadHistory.RecordAsync(
                     new DownloadHistoryRecordRequest
                     {
-                        TenantId = tenantId.Value,
-                        UserId = User.GetActorUserId() ?? "unknown",
+                        TenantId = tenantId,
+                        UserId = actorUserId,
                         FileName = fileName,
                         FileType = "json",
                         FileSize = stream.CanSeek ? stream.Length : null,
-                        DownloadUrl = $"/api/admin/rksv/dep-export/history/{id}/download",
+                        DownloadUrl = downloadUrl,
                         IpAddress = ResolveClientIpAddress(),
                         UserAgent = ResolveUserAgent(),
                         SourceKind = "dep-export",
-                        SourceId = id,
+                        SourceId = exportId,
                     },
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -332,31 +649,6 @@ public class AdminRksvDepExportController : ControllerBase
         {
             // Download must still succeed if history write fails.
         }
-
-        try
-        {
-            await _depExportAudit.LogExportActionAsync(
-                    new DepExportAuditEntry
-                    {
-                        TenantId = tenantId.Value,
-                        Action = DepExportAuditActions.Downloaded,
-                        ExportName = fileName,
-                        ExportHistoryId = id,
-                        UserId = User.GetActorUserId() ?? "unknown",
-                        UserRole = User.GetActorRole() ?? "Unknown",
-                        UserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value,
-                        IpAddress = ResolveClientIpAddress(),
-                        UserAgent = ResolveUserAgent(),
-                    },
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            // Download must still succeed if audit write fails.
-        }
-
-        return File(stream, contentType, fileName);
     }
 
     [HttpPost("schedule")]
@@ -753,7 +1045,7 @@ public class AdminRksvDepExportController : ControllerBase
         return NoContent();
     }
 
-    private async Task RecordCompletedExportAsync(
+    private async Task<DepExportHistory> RecordCompletedExportAsync(
         Guid tenantId,
         Guid cashRegisterId,
         DateTime fromUtc,
@@ -762,9 +1054,11 @@ public class AdminRksvDepExportController : ControllerBase
         bool includeDailyClosings,
         RksvDepExportRootDto export,
         string fileName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool? isSimulated = null,
+        string? simulationNote = null)
     {
-        await _historyService.RecordCompletedAsync(
+        return await _historyService.RecordCompletedAsync(
                 new DepExportHistoryRecordRequest
                 {
                     TenantId = tenantId,
@@ -776,10 +1070,28 @@ public class AdminRksvDepExportController : ControllerBase
                     IncludeSpecialReceipts = includeSpecialReceipts,
                     IncludeDailyClosings = includeDailyClosings,
                     FileName = fileName,
+                    IsSimulated = isSimulated,
+                    SimulationNote = simulationNote,
                 },
                 cancellationToken)
             .ConfigureAwait(false);
-        // Lifecycle audit (Created / Validated / Archived) is written inside history/archive services.
+        // Persist + 24h download token + ExpiresAt happen inside RecordCompletedAsync.
+    }
+
+    /// <summary>
+    /// Exposes download metadata without polluting the BMF JSON body (Prüftool-safe).
+    /// </summary>
+    private void ApplyDownloadMetadataHeaders(DepExportHistory history)
+    {
+        Response.Headers["X-Regkasse-Dep-Export-Id"] = history.Id.ToString("D");
+        Response.Headers["X-Regkasse-Dep-Export-Download"] =
+            $"/api/admin/rksv/dep-export/download/{history.Id:D}";
+        if (!string.IsNullOrWhiteSpace(history.FileName))
+            Response.Headers["X-Regkasse-Dep-Export-FileName"] = history.FileName;
+        if (history.ExpiresAt is { } expires)
+            Response.Headers["X-Regkasse-Dep-Export-Expires"] = expires.ToString("O");
+        if (history.IsSimulated)
+            Response.Headers["X-Regkasse-Dep-Export-Simulated"] = "true";
     }
 
     private static DepExportScheduleResponse ToScheduleDto(DepExportSchedule schedule) =>

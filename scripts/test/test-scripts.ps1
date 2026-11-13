@@ -136,7 +136,7 @@ $rootBats = @(
 
 foreach ($item in $rootBats) {
     $snippets = @('@echo off')
-    $base = [IO.Path]::GetFileName($item.Path)
+    $base = [IO.Path]::GetFileName($item.Path.Replace('\', '/'))
     if ($base -ne 'clean-all.DANGER.bat' -and $base -ne 'start.bat') {
         $snippets += 'ERRORLEVEL'
     }

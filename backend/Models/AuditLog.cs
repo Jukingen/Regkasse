@@ -207,12 +207,18 @@ namespace KasseAPI_Final.Models
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
         public const string USER_TENANT_MEMBERSHIP_CHANGED = "USER_TENANT_MEMBERSHIP_CHANGED";
         public const string USER_NAME_CHANGE = "USER_NAME_CHANGE";
+        /// <summary>Super Admin force logout (security stamp rotation + all sessions).</summary>
+        public const string USER_FORCE_LOGOUT = "USER_FORCE_LOGOUT";
+        /// <summary>Super Admin terminated one or more auth sessions.</summary>
+        public const string USER_SESSION_TERMINATED = "USER_SESSION_TERMINATED";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
         public const string TSE_STATUS_CHECK = "TSE_STATUS_CHECK";
         public const string BACKUP_CREATE = "BACKUP_CREATE";
         public const string SYSTEM_MAINTENANCE = "SYSTEM_MAINTENANCE";
+        /// <summary>Super Admin cleared application cache (troubleshooting).</summary>
+        public const string SYSTEM_CACHE_CLEARED = "SYSTEM_CACHE_CLEARED";
 
         // Generic CRUD operations
         public const string CREATE = "CREATE";
@@ -261,6 +267,12 @@ namespace KasseAPI_Final.Models
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
 
+        /// <summary>Cashier assigned to a cash register (POST /api/admin/cash-registers/{id}/assign).</summary>
+        public const string CASH_REGISTER_ASSIGNED = "CASH_REGISTER_ASSIGNED";
+
+        /// <summary>Cashier assignment removed from a cash register (POST /api/admin/cash-registers/{id}/assign with null user).</summary>
+        public const string CASH_REGISTER_UNASSIGNED = "CASH_REGISTER_UNASSIGNED";
+
         /// <summary>Reversible admin operation undone via operation log.</summary>
         public const string OPERATION_UNDONE = "OPERATION_UNDONE";
 
@@ -281,6 +293,11 @@ namespace KasseAPI_Final.Models
 
         /// <summary>FA renewal UI (page/modal) viewed — license renewal funnel analytics.</summary>
         public const string LICENSE_RENEWAL_PAGE_VIEWED = "LICENSE_RENEWAL_PAGE_VIEWED";
+
+        public const string LICENSE_ACTIVATED = "LICENSE_ACTIVATED";
+        public const string LICENSE_REVOKED = "LICENSE_REVOKED";
+        public const string LICENSE_ACTIVATION_FAILED = "LICENSE_ACTIVATION_FAILED";
+        public const string LICENSE_PREVIEWED = "LICENSE_PREVIEWED";
 
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
@@ -307,6 +324,24 @@ namespace KasseAPI_Final.Models
         public const string DEPLOYMENT_FAILED = "DEPLOYMENT_FAILED";
         public const string DEPLOYMENT_ROLLBACK = "DEPLOYMENT_ROLLBACK";
         public const string DEPLOYMENT_COMPLIANCE_APPROVED = "DEPLOYMENT_COMPLIANCE_APPROVED";
+
+        /// <summary>POS/FA storno signed at fiskaly SIGN AT as CANCELLATION.</summary>
+        public const string FISKALY_CANCELLATION_RECEIPT_SIGNED = "FISKALY_CANCELLATION_RECEIPT_SIGNED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation failed.</summary>
+        public const string FISKALY_RECEIPT_OPERATION_FAILED = "FISKALY_RECEIPT_OPERATION_FAILED";
+
+        /// <summary>SuperAdmin Fiskaly receipt operation succeeded.</summary>
+        public const string FISKALY_RECEIPT_SIGNED = "FISKALY_RECEIPT_SIGNED";
+
+        /// <summary>Failed Fiskaly operation retried from FA history.</summary>
+        public const string FISKALY_OPERATION_RETRIED = "FISKALY_OPERATION_RETRIED";
+
+        /// <summary>FA Fiskaly batch (storno / Sonderbelege / DEP ZIP) completed.</summary>
+        public const string FISKALY_BATCH_COMPLETED = "FISKALY_BATCH_COMPLETED";
+
+        /// <summary>Failed Fiskaly error marked resolved / known issue / reopened.</summary>
+        public const string FISKALY_ERROR_REVIEWED = "FISKALY_ERROR_REVIEWED";
     }
 
     // Entity types for audit logging

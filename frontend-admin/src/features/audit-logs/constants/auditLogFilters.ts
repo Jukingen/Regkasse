@@ -47,9 +47,9 @@ export function toAuditLogStatusUrlParam(status: AuditLogStatusFilter): string {
 }
 
 const AUDIT_LOG_STATUS_FILTER_TO_API: Record<AuditLogStatusFilter, AuditLogStatus> = {
-  Success: AuditLogStatusEnum.NUMBER_0,
-  Failed: AuditLogStatusEnum.NUMBER_1,
-  Warning: AuditLogStatusEnum.NUMBER_9,
+  Success: AuditLogStatusEnum.Success,
+  Failed: AuditLogStatusEnum.Failed,
+  Warning: AuditLogStatusEnum.Warning,
 };
 
 export function toAuditLogStatusApiParam(

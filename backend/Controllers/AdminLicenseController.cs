@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +40,7 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
     private readonly IAuditLogService _auditLogService;
     private readonly ILicenseExportService _licenseExport;
+    private readonly IUnifiedLicenseService _unifiedLicenseService;
     private readonly ILogger<AdminLicenseController> _logger;
 
     public AdminLicenseController(
@@ -55,6 +57,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
         IAuditLogService auditLogService,
         ILicenseExportService licenseExport,
+        IUnifiedLicenseService unifiedLicenseService,
         ILogger<AdminLicenseController> logger)
     {
         _licenseService = licenseService;
@@ -70,6 +73,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
         _auditLogService = auditLogService;
         _licenseExport = licenseExport;
+        _unifiedLicenseService = unifiedLicenseService;
         _logger = logger;
     }
 
@@ -119,7 +123,11 @@ public sealed partial class AdminLicenseController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<LicenseStatusResponse>> GetStatus(CancellationToken cancellationToken)
     {
-        var status = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var unified = await _unifiedLicenseService
+            .GetUnifiedStatusAsync(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var status = unified.DeploymentSnapshot
+            ?? await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var reminders = _licenseReminderNotificationStore.GetReminders();
         return Ok(status with { Reminders = reminders });
     }
@@ -180,7 +188,8 @@ public sealed partial class AdminLicenseController : ControllerBase
 
     /// <summary>
     /// Paged list of issued licenses (<c>issued_licenses</c>). JWT is never returned.
-    /// <c>licenseKey</c> is masked as REGK-****-****- plus the real final segment only.
+    /// Super Admin / <c>system.critical</c> receives the full <c>licenseKey</c> for support.
+    /// Other callers with <c>settings.manage</c> get REGK-****-****- plus the real final segment only.
     /// Optional <paramref name="machineFingerprint"/> filters rows that have a matching <c>activated_licenses</c> machine hash substring.
     /// </summary>
     [HttpGet("list")]
@@ -289,7 +298,9 @@ public sealed partial class AdminLicenseController : ControllerBase
             return new IssuedLicenseListItemDto
             {
                 Id = r.Id,
-                LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
+                LicenseKey = CanRevealIssuedLicenseKeys()
+                    ? r.LicenseKey.Trim().ToUpperInvariant()
+                    : MaskIssuedLicenseKey(r.LicenseKey),
                 CustomerName = r.CustomerName,
                 ExpiryAtUtc = r.ExpiryAtUtc,
                 RequireFingerprint = r.RequireFingerprint,
@@ -665,26 +676,29 @@ public sealed partial class AdminLicenseController : ControllerBase
             return BadRequest(new { message = "licenseKey is required." });
 
         var normalizedKey = body.LicenseKey.Trim();
-        var row = await _db.IssuedLicenses
-            .FirstOrDefaultAsync(
-                il => EF.Functions.ILike(il.LicenseKey, normalizedKey),
+        Guid? actorUserId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsed)
+            ? parsed
+            : null;
+
+        var result = await _unifiedLicenseService
+            .DeactivateLicenseAsync(
+                normalizedKey,
+                new UnifiedLicenseDeactivationContext(actorUserId, body.Reason),
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (row is null)
-            return NotFound(new { message = "No issued license matches this license key." });
-
-        if (row.IsRevoked)
-            return BadRequest(new { message = "This license is already revoked." });
-
-        ApplyRevocationToRow(row, body.Reason);
-
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (!result.Success)
+        {
+            if (string.Equals(result.Message, "No issued license matches this license key.", StringComparison.Ordinal))
+                return NotFound(new { message = result.Message });
+            return BadRequest(new { message = result.Message });
+        }
 
         _logger.LogInformation(
-            "Issued license revoked: keyPrefix={Prefix} revokedBy={UserId}",
+            "License deactivated: keyPrefix={Prefix} kind={Kind} revokedBy={UserId}",
             normalizedKey.Length <= 14 ? normalizedKey : normalizedKey[..14] + "…",
-            row.RevokedByUserId ?? "(anonymous)");
+            result.LicenseKind,
+            actorUserId?.ToString("D") ?? "(anonymous)");
 
         return Ok();
     }
@@ -769,6 +783,17 @@ public sealed partial class AdminLicenseController : ControllerBase
 
         error = "expiryDate must be a valid date (YYYY-MM-DD).";
         return false;
+    }
+
+    /// <summary>
+    /// Full keys are for Super Admin support only. List responses still omit JWT.
+    /// </summary>
+    private bool CanRevealIssuedLicenseKeys()
+    {
+        if (User.IsInRole(Roles.SuperAdmin))
+            return true;
+
+        return User.HasClaim(PermissionCatalog.PermissionClaimType, AppPermissions.SystemCritical);
     }
 
     /// <summary>REGK-****-****- plus last segment only; non-standard shapes are fully redacted.</summary>
@@ -916,7 +941,7 @@ public sealed class IssuedLicensesListResponse
     public IReadOnlyList<IssuedLicenseListItemDto> Items { get; set; } = Array.Empty<IssuedLicenseListItemDto>();
 }
 
-/// <summary>One masked row from <c>issued_licenses</c> (no JWT).</summary>
+/// <summary>One issued-license row from <c>issued_licenses</c> (no JWT). Full key for Super Admin; otherwise masked.</summary>
 public sealed class IssuedLicenseListItemDto
 {
     public Guid Id { get; set; }

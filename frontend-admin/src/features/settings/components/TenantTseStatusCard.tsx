@@ -12,7 +12,6 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import { useState } from 'react';
 
 import {
@@ -21,6 +20,7 @@ import {
   type TenantTseDeviceStatus,
   type TenantTseHealthHistoryPoint,
 } from '@/features/settings/api/tenantTseClient';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { useI18n } from '@/i18n';
 
 const STATUS_KEY = ['tenant', 'tse', 'status'] as const;
@@ -28,6 +28,7 @@ const HISTORY_KEY = ['tenant', 'tse', 'health-history'] as const;
 
 export function TenantTseStatusCard() {
   const { t } = useI18n();
+  const { formatDate, formatDateTime } = useCountryFormatting();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const statusQuery = useQuery({
@@ -84,7 +85,7 @@ export function TenantTseStatusCard() {
       render: (d: number | null | undefined, row) =>
         d == null
           ? row.expiresAt
-            ? dayjs(row.expiresAt).format('DD.MM.YYYY')
+            ? formatDate(row.expiresAt)
             : '—'
           : t('settings.manager.tsePortal.daysValue', { days: d }),
     },
@@ -95,7 +96,7 @@ export function TenantTseStatusCard() {
       title: t('settings.manager.tsePortal.colTime'),
       dataIndex: 'checkedAtUtc',
       key: 'time',
-      render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm'),
+      render: (v: string) => formatDateTime(v),
     },
     {
       title: t('settings.manager.tsePortal.colSerial'),

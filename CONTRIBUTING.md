@@ -46,11 +46,15 @@ npm run verify:api-client   # Orval / OpenAPI drift check
 
 **Husky pre-commit** (`.husky/pre-commit` → `scripts/git-hooks/pre-commit.mjs`):
 
-1. API client verify (`--openapi-only`, or full if `swagger.json` / generated client staged)
-2. `lint` / `typecheck` only for **packages with staged files** (keeps commits fast)
-3. Tests **off** by default — set `HUSKY_RUN_TESTS=1` for fast contract tests
+1. **Secret scan** (`scripts/git-hooks/scan-secrets.mjs`) — blocks sensitive filenames and high-confidence secrets
+2. API client verify **only** when `backend/swagger.json` or `frontend-admin/src/api/generated/**` is staged (full Orval drift check). `HUSKY_FULL_VERIFY=1` forces that check
+3. `lint` for packages with staged files. The backend build runs only when `backend/**` is staged
+4. `typecheck` follows the staged source tree: `frontend-admin/src/**` for admin, `frontend/src/**` or `frontend/app/**` for POS, any staged `frontend-sites/**` for sites
+5. Tests **off** by default — set `HUSKY_RUN_TESTS=1` for fast contract tests on staged admin and POS packages
 
-Skip: `SKIP_PRECOMMIT=1`, `SKIP_API_CLIENT_VERIFY=1`, `SKIP_PRECOMMIT_LINT=1`, `SKIP_PRECOMMIT_TYPECHECK=1`.
+Skip: `SKIP_PRECOMMIT=1`, `SKIP_SECRET_SCAN=1`, `SKIP_API_CLIENT_VERIFY=1`, `SKIP_PRECOMMIT_LINT=1`. Emergency typecheck skip: `SKIP_PRECOMMIT_TYPECHECK=1`.
+
+Secrets policy: [`SECURITY.md`](SECURITY.md). Manual scan of tracked files: `npm run verify:secrets`.
 
 ## Daily development
 
@@ -58,7 +62,10 @@ From the **repository root**:
 
 | Command | What it runs |
 |---------|----------------|
-| `npm run dev` | **All** app servers in parallel (backend, POS, admin, sites) |
+| `npm run dev` | **Default (RAM-safe):** backend + admin in parallel; cleans orphan Next/Expo workers first |
+| `npm run dev:all` | Full stack in parallel (backend, admin, POS, sites) — high RAM |
+| `npm run dev:cleanup` | Kill leftover Regkasse Next/Expo `node` workers (Windows RAM leak) |
+| `npm run dev:cleanup:orphans` | Kill only `.next/dev/build` workers (safe while Admin/POS already run) |
 | `npm run dev:workspaces` | Native `npm run dev --workspaces` (sequential; blocks on first server) |
 | `npm run build` / `test` / `lint` | All workspaces via `npm run … --workspaces --if-present` |
 | `make <target>` / `just <recipe>` | Same orchestration — [`Makefile`](Makefile) / [`Justfile`](Justfile) (`dev`, `build`, `test`, `lint`, `clean`, `docker-up`, …) |
@@ -92,7 +99,8 @@ On Windows, prefer root / `scripts\` **`.bat`** helpers instead of typing long n
 
 | Script | What it does |
 |--------|----------------|
-| `scripts\dev\start-dev.bat` | Full stack (`npm run dev`) — API + Admin + POS + Sites |
+| `scripts\dev\start-dev.bat` | Default stack (`npm run dev`) — API + Admin |
+| `scripts\dev\start-dev-all.bat` | Full stack (`npm run dev:all`) — API + Admin + POS + Sites |
 | `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface |
 | `scripts\test\test-all.bat` | Sequential Backend → Admin → POS tests |
 | `scripts\dev\clean-all.DANGER.bat` | Confirm + clean build artifacts |
@@ -159,7 +167,11 @@ Treat with extra care (tests + review): payments, TSE/RKSV signature chain, vouc
 1. Read nearby code and the package README before editing.
 2. Prefer minimal diffs; do not mix unrelated refactors.
 3. Keep schema changes additive; never edit committed EF migrations.
-4. After OpenAPI changes: regenerate FA client (`npm run generate:api` in `frontend-admin`, then `npm run verify:api-client` from root).
+4. After OpenAPI changes: regenerate `backend/swagger.json` (`node scripts/generate-backend-openapi.mjs`) before the FA client (`npm run generate:api` in `frontend-admin`, then `npm run verify:api-client` from root). Backend route or DTO changes must refresh swagger first; generating the client against a stale swagger leaves CI drift.
+
+### API client (OpenAPI → Orval)
+
+When adding a C# enum that appears in the API, ensure it has `x-enum-varnames` emitted by `EnumVarnamesSchemaFilter`; the CI test `GeneratedOpenApi_EveryCSharpEnum_HasEnumVarnames` fails otherwise.
 5. For medium/large work: short plan, affected files, risks, compatibility, test strategy.
 
 ## Validation before PR
@@ -196,10 +208,10 @@ cd frontend && npm run lint && npm run typecheck
 
 ## Why npm workspaces (with care)?
 
-Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `localization`.
+Root `package.json` declares workspaces: `backend`, `frontend`, `frontend-admin`, `frontend-sites`, `frontend-marketing`, `localization`.
 
 - **`build` / `test` / `lint`:** `npm run <script> --workspaces --if-present`
-- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) — npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
+- **`dev`:** parallel runner (`scripts/dev-workspaces.mjs`) defaults to **backend + admin**; use `npm run dev:all` for POS, sites, and marketing too. Pre-start orphan cleanup avoids Next.js Turbopack worker leaks on Windows. Admin/Sites cap webpack workers (`experimental.cpus: 2`) so 24-thread hosts do not exhaust RAM. npm’s native `--workspaces` is **sequential** and would block on the first long-running server; use `npm run dev:workspaces` if you want that behavior
 - **`.npmrc`:** `legacy-peer-deps=true` for Expo / TypeScript peer ranges
 - Apps may still keep local `node_modules`; prefer `npm install` from the repo root after clone
 
@@ -207,7 +219,7 @@ Do not add `pnpm-workspace.yaml` unless the team migrates package managers expli
 
 ## Further reading
 
-- [`AGENTS.md`](AGENTS.md) — always-applied development rules
+- [`AGENTS.md`](AGENTS.md) — index of development rules; detail in [`.cursor/rules/`](.cursor/rules/)
 - [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) — product/architecture brief
 - [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md) — Windows scripts reference
 - [`docs/SCRIPTS_ECOSYSTEM.md`](docs/SCRIPTS_ECOSYSTEM.md) — which script for which task

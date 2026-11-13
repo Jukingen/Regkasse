@@ -21,7 +21,7 @@ docker compose -f monitoring/docker-compose.monitoring.yml up -d
 
 Open Grafana: `http://127.0.0.1:3002` (default user `admin` / set `GRAFANA_ADMIN_PASSWORD`).
 
-Enable Slack routing: copy `alertmanager/alertmanager.yml.example` → `alertmanager.yml` and substitute webhook URLs (do not commit secrets).
+Enable real routing: render `alertmanager/alertmanager.yml.example` (Slack + email + optional PagerDuty) with `pwsh ./monitoring/alertmanager/render-alertmanager-config.ps1`. Mount the **rendered** file; do not commit secrets. The tracked `alertmanager.yml` stays a **null** receiver.
 
 ## Layout
 

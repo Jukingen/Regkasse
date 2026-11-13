@@ -23,7 +23,7 @@ public sealed class TenantSettingsNotificationServiceTests
             .UseInMemoryDatabase($"TenantSettingsNotify_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(null));
+        return new AppDbContext(options, new FixedTenantAccessor(TenantId));
     }
 
     private sealed class FixedTenantAccessor(Guid? tenantId) : ICurrentTenantAccessor

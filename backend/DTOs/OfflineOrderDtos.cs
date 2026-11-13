@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.DTOs;
 
 public record OfflineOrderRequest
@@ -75,4 +77,22 @@ public sealed class PosOfflineSyncHealthDto
     public bool IsHealthy { get; set; }
     public string Status { get; set; } = "healthy";
     public DateTime? LastSyncAt { get; set; }
+
+    /// <summary>Live TSE offline intent count from <c>tenant_limits</c> (not order snapshots).</summary>
+    public int CurrentOfflineTransactions { get; set; }
+
+    /// <summary>Cap from <c>tenant_limits.max_offline_transactions</c> (default 50).</summary>
+    public int MaxOfflineTransactions { get; set; } = 50;
+}
+
+/// <summary>
+/// POS TSE-offline capacity snapshot. Display-only; HTTP 409 enforcement is unchanged.
+/// <see cref="CurrentOfflineTransactions"/> is pending intents plus pending order snapshots.
+/// </summary>
+public sealed class PosOfflineLimitDto
+{
+    public int MaxOfflineTransactions { get; set; } = TenantLimits.DefaultMaxOfflineTransactions;
+    public int CurrentOfflineTransactions { get; set; }
+    public bool ApproachingLimit { get; set; }
+    public bool LimitReached { get; set; }
 }

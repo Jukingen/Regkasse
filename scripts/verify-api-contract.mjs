@@ -20,6 +20,9 @@ const ENDPOINTS = [
   { path: '/api/admin/tenants', methods: ['get'] },
   { path: '/api/rksv/status', methods: ['get'] },
   { path: '/api/license/status', methods: ['get'] },
+  { path: '/api/license/activate', methods: ['post'] },
+  { path: '/api/license/validate', methods: ['post'] },
+  { path: '/api/license/info', methods: ['get'] },
 ];
 
 /**

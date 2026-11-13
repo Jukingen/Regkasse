@@ -254,7 +254,7 @@ public sealed class AuthControllerTwoFactorTests
                 Guid.NewGuid().ToString("N")));
 
         var snapshot = new AuthTenantSnapshot(
-            TenantId: LegacyDefaultTenantIds.Primary.ToString(),
+            TenantId: SystemTenantIds.Platform.ToString(),
             TenantDisplayName: "Dev",
             TenantSlug: "dev",
             BranchId: null,

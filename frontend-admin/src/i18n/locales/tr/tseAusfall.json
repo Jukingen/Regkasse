@@ -36,5 +36,6 @@
   "successTrigger": "Episode oluşturuldu",
   "openOutbox": "Outbox'ı aç",
   "empty": "Episode yok",
-  "demoNote": "Demo/Soft TSE modunda FON bildirimi oluşturulmaz."
+  "demoNote": "Demo/Soft TSE modunda FON bildirimi oluşturulmaz.",
+  "emptySelect": "Ausfall episode'larını görmek için mandant seçin."
 }

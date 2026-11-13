@@ -6,6 +6,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Extensions;
 using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
@@ -30,6 +31,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ICustomerExportService _customerExport;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly IOperationLogService _operationLogs;
+        private readonly ITenantExtensionRegistry? _extensions;
 
         public CustomerController(
             AppDbContext context,
@@ -40,7 +42,8 @@ namespace KasseAPI_Final.Controllers
             ICustomerExportService customerExport,
             ISettingsTenantResolver settingsTenantResolver,
             IOperationLogService operationLogs,
-            ILogger<CustomerController> logger) : base(customerRepository, logger)
+            ILogger<CustomerController> logger,
+            ITenantExtensionRegistry? extensions = null) : base(customerRepository, logger)
         {
             _context = context;
             _customerRepository = customerRepository;
@@ -50,9 +53,33 @@ namespace KasseAPI_Final.Controllers
             _customerExport = customerExport;
             _settingsTenantResolver = settingsTenantResolver;
             _operationLogs = operationLogs;
+            _extensions = extensions;
         }
 
         private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
+
+        private async Task<IActionResult?> RunCustomerHookAsync(Guid customerId, bool isUpdate)
+        {
+            try
+            {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                await TenantExtensionRunner.RunAsync(
+                    _extensions,
+                    tenantId,
+                    TenantExtensionHooks.CustomerBeforeSave,
+                    new Dictionary<string, object?>
+                    {
+                        ["customerId"] = customerId,
+                        ["isUpdate"] = isUpdate,
+                    },
+                    CancellationToken.None);
+                return null;
+            }
+            catch (ExtensionFailedException ex)
+            {
+                return ErrorResponse(ex.Message, 400, new { code = ExtensionFailedException.ErrorCode });
+            }
+        }
 
         private async Task<IActionResult?> RejectSystemCustomerMutationAsync(Guid customerId)
         {
@@ -265,6 +292,10 @@ namespace KasseAPI_Final.Controllers
 
                 customer.IsSystem = false;
 
+                var hookError = await RunCustomerHookAsync(customer.Id, isUpdate: false);
+                if (hookError is not null)
+                    return hookError;
+
                 var createdCustomer = await _customerRepository.AddAsync(customer);
 
                 return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id },
@@ -315,6 +346,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var before = OperationSnapshots.FromCustomer(existingCustomer);
+                var hookError = await RunCustomerHookAsync(customer.Id, isUpdate: true);
+                if (hookError is not null)
+                    return hookError;
+
                 var updatedCustomer = await _customerRepository.UpdateAsync(customer);
 
                 var userId = GetCurrentUserId();

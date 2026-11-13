@@ -18,6 +18,8 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ISmartRetentionService _smartRetention;
     private readonly IStorageTierService _storageTier;
+    private readonly IBackupRetentionPolicyService _retentionPolicy;
+    private readonly IBackupColdArchiveService _coldArchive;
     private readonly ILogger<BackupPostSuccessOrchestrationHook> _logger;
 
     public BackupPostSuccessOrchestrationHook(
@@ -25,12 +27,16 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
         IHostEnvironment hostEnvironment,
         ISmartRetentionService smartRetention,
         IStorageTierService storageTier,
+        IBackupRetentionPolicyService retentionPolicy,
+        IBackupColdArchiveService coldArchive,
         ILogger<BackupPostSuccessOrchestrationHook> logger)
     {
         _backupOptions = backupOptions;
         _hostEnvironment = hostEnvironment;
         _smartRetention = smartRetention;
         _storageTier = storageTier;
+        _retentionPolicy = retentionPolicy;
+        _coldArchive = coldArchive;
         _logger = logger;
     }
 
@@ -78,12 +84,17 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
 
         try
         {
+            await _retentionPolicy.ApplyDefaultLegalHoldIfRequiredAsync(run, "system", cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+
             var tenantRetention = await ResolveTenantRetentionDaysAsync(db, cancellationToken);
             var systemRetention = await ResolveSystemRetentionDaysAsync(db, cancellationToken);
+            var legalPolicy = await _retentionPolicy.GetSnapshotAsync(cancellationToken);
             _logger.LogInformation(
-                "Backup retention: tenantWindow={TenantDays}d, systemWindow={SystemDays}d",
+                "Backup retention: tenantWindow={TenantDays}d, systemWindow={SystemDays}d, legalYears={LegalYears}",
                 tenantRetention,
-                systemRetention);
+                systemRetention,
+                legalPolicy.ColdRetentionYears);
             var removed = await BackupSucceededRunRetentionCleaner.DeleteExpiredSucceededRunsAsync(
                 db,
                 _backupOptions.CurrentValue,
@@ -92,7 +103,8 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
                 tenantRetentionDays: tenantRetention,
                 systemRetentionDays: systemRetention,
                 cancellationToken,
-                _smartRetention);
+                _smartRetention,
+                legalPolicy);
             if (removed > 0)
             {
                 _logger.LogInformation("Backup retention staged removal of {Removed} expired succeeded run row(s)", removed);
@@ -109,7 +121,9 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
         {
             try
             {
-                var tiered = await _storageTier.ApplyOptimalTiersForSucceededRunsAsync(db, cancellationToken);
+                var legalPolicy = await _retentionPolicy.GetSnapshotAsync(cancellationToken);
+                var tiered = await _storageTier.ApplyOptimalTiersForSucceededRunsAsync(
+                    db, cancellationToken, windows: legalPolicy.Windows);
                 if (tiered > 0)
                 {
                     _logger.LogInformation(
@@ -117,6 +131,9 @@ public sealed class BackupPostSuccessOrchestrationHook : IBackupPostSuccessOrche
                         tiered);
                     await db.SaveChangesAsync(cancellationToken);
                 }
+
+                if (legalPolicy.ColdStorageEnabled)
+                    await _coldArchive.ArchiveAgedSucceededRunsAsync(cancellationToken);
             }
             catch (Exception ex)
             {

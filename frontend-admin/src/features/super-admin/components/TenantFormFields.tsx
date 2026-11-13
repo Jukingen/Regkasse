@@ -4,11 +4,11 @@
  * Super-admin tenant create form: operator-friendly fields, live subdomain check, automation toggles.
  */
 import type { FormInstance } from 'antd';
-import { Checkbox, Collapse, Divider, Form, Input, Space } from 'antd';
+import { Checkbox, Collapse, Divider, Form, Input, Select } from 'antd';
 import React from 'react';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
-import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantWizard/types';
+import type { CreateTenantFormValues } from '@/features/super-admin/components/createTenantFormTypes';
 import { TenantSlugFieldExtras } from '@/features/super-admin/components/TenantSlugFieldExtras';
 import type { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
 import styles from '@/styles/tenant-form.module.css';
@@ -28,6 +28,8 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     slugFieldStatus,
     slugAvailabilityUi,
     portalPreviewUrl,
+    slugSuggestions,
+    applySlugSuggestion,
     nameRules,
     nameFieldStatus,
     emailRules,
@@ -40,6 +42,16 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     handleSlugBlur,
     handleNameBlur,
   } = fieldState;
+
+  const grantTrial = Form.useWatch('grantTrialLicense', form) ?? true;
+
+  const slugHint =
+    slugWatch?.trim() && slugAvailabilityUi === 'available'
+      ? t('tenants.create.fields.slug.subdomainHint', {
+          slug: slugWatch.trim(),
+          domain: baseDomain,
+        })
+      : t('tenants.create.fields.slug.hint');
 
   return (
     <>
@@ -96,28 +108,28 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
         name="slug"
         label={t('tenants.create.fields.slug.label')}
         tooltip={t('tenants.create.fields.slug.tooltip')}
-        hint={t('tenants.create.fields.slug.hint')}
+        hint={slugHint}
         required
         validateTrigger={['onChange', 'onBlur']}
         validateStatus={slugFieldStatus}
         rules={slugRules}
       >
-        <Space orientation="vertical" style={{ width: '100%' }} size={0}>
-          <Input
-            placeholder={t('tenants.create.fields.slug.placeholder')}
-            onChange={handleSlugChange}
-            onBlur={handleSlugBlur}
-            addonAfter={`.${baseDomain}`}
-            autoComplete="off"
-          />
-          <TenantSlugFieldExtras
-            slugValue={slugWatch}
-            baseDomain={baseDomain}
-            portalUrl={portalPreviewUrl}
-            availabilityUi={slugAvailabilityUi}
-          />
-        </Space>
+        <Input
+          placeholder={t('tenants.create.fields.slug.placeholder')}
+          onChange={handleSlugChange}
+          onBlur={handleSlugBlur}
+          addonAfter={`.${baseDomain}`}
+          autoComplete="off"
+        />
       </CreateTenantFormField>
+      <TenantSlugFieldExtras
+        slugValue={slugWatch}
+        baseDomain={baseDomain}
+        portalUrl={portalPreviewUrl}
+        availabilityUi={slugAvailabilityUi}
+        suggestions={slugSuggestions}
+        onSelectSuggestion={applySlugSuggestion}
+      />
 
       <Divider style={{ margin: '4px 0 12px' }} />
 
@@ -132,16 +144,23 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
         </Checkbox>
       </Form.Item>
 
-      <Form.Item
-        name="autoDemoSetup"
-        valuePropName="checked"
-        tooltip={t('tenants.create.fields.autoDemoSetup.tooltip')}
-        style={{ marginBottom: 4 }}
-      >
-        <Checkbox disabled>
-          <span>{t('tenants.create.fields.autoDemoSetup.label')}</span>
-        </Checkbox>
-      </Form.Item>
+      {grantTrial ? (
+        <Form.Item
+          name="trialDurationDays"
+          label={t('tenants.create.fields.trialDuration.label')}
+          tooltip={t('tenants.create.fields.trialDuration.tooltip')}
+          style={{ marginBottom: 8 }}
+        >
+          <Select
+            options={[
+              { value: 14, label: t('tenants.create.fields.trialDuration.days_14') },
+              { value: 30, label: t('tenants.create.fields.trialDuration.days_30') },
+              { value: 60, label: t('tenants.create.fields.trialDuration.days_60') },
+              { value: 90, label: t('tenants.create.fields.trialDuration.days_90') },
+            ]}
+          />
+        </Form.Item>
+      ) : null}
 
       <Form.Item
         name="importDemoProducts"

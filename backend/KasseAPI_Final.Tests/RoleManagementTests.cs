@@ -31,7 +31,7 @@ public class RoleManagementTests
         var catalog = roleMgmt.Object.GetPermissionsCatalog();
         Assert.NotEmpty(catalog);
         Assert.Contains(catalog, c => c.Key == AppPermissions.UserView && c.Resource == "user" && c.Action == "view");
-        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Product");
+        Assert.Contains(catalog, c => c.Key == AppPermissions.ProductView && c.Group == "Sortiment & Preise");
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsSystemRole_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -311,7 +311,7 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsDemo_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -360,6 +360,7 @@ public class RoleManagementTests
     public void ClientAppPolicy_CanLoginToPos_Cashier_ReturnsTrue()
     {
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Cashier));
+        Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Kitchen));
         Assert.True(ClientAppPolicy.CanLoginToPos(Roles.SuperAdmin));
         Assert.False(ClientAppPolicy.CanLoginToPos(Roles.Manager));
     }
@@ -399,7 +400,11 @@ public class RoleManagementTests
         Assert.Equal("backup_disaster_recovery", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsBackup));
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalView));
         Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.DigitalOrdersManage));
+        Assert.Equal("digitale_dienste", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.OnlinePaymentsManage));
         Assert.Equal("zahlung", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.VoucherRead));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsView));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyOperationsConfig));
+        Assert.Equal("rksv_finanzonline", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.FiskalyHistoryView));
         Assert.Equal("einstellungen", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.SettingsView));
     }
 
@@ -511,7 +516,7 @@ public class RoleManagementTests
     private static async Task<(AppDbContext, UserManager<ApplicationUser>, RoleManager<IdentityRole>)> CreateInMemorySetupAsync()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()).Options;
-        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var store = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.UserStore<ApplicationUser, IdentityRole, AppDbContext>(context, null);
         var userManager = new UserManager<ApplicationUser>(store, null!, null!, null!, null!, null!, null!, null!, null!);
         var roleStore = new Microsoft.AspNetCore.Identity.EntityFrameworkCore.RoleStore<IdentityRole>(context);

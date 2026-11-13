@@ -25,15 +25,15 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export const postApiTestQuickPayment = (
     params?: PostApiTestQuickPaymentParams,
  options?: SecondParameter<typeof customInstance>,) => {
-      
-      
+
+
       return customInstance<void>(
       {url: `/api/Test/quick-payment`, method: 'POST',
         params
     },
       options);
     }
-  
+
 
 
 export const getPostApiTestQuickPaymentMutationOptions = <TError = unknown,
@@ -41,7 +41,7 @@ export const getPostApiTestQuickPaymentMutationOptions = <TError = unknown,
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiTestQuickPayment>>, TError,{params?: PostApiTestQuickPaymentParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
-      
+
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiTestQuickPayment>>, {params?: PostApiTestQuickPaymentParams}> = (props) => {
@@ -50,13 +50,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
           return  postApiTestQuickPayment(params,requestOptions)
         }
 
-        
+
 
 
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiTestQuickPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof postApiTestQuickPayment>>>
-    
+
     export type PostApiTestQuickPaymentMutationError = unknown
 
     export const usePostApiTestQuickPayment = <TError = unknown,
@@ -72,4 +72,3 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    

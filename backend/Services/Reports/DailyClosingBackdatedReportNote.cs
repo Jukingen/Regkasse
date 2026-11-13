@@ -13,6 +13,9 @@ public static class DailyClosingBackdatedReportNote
 {
     private static readonly CultureInfo DeAt = CultureInfo.GetCultureInfo("de-AT");
 
+    /// <summary>ASCII rule. Box-drawing U+2550 is not in the bundled Lato face.</summary>
+    private const string Rule = "===========================================";
+
     public static string? TryFormat(DailyClosing closing)
     {
         ArgumentNullException.ThrowIfNull(closing);
@@ -32,12 +35,12 @@ public static class DailyClosingBackdatedReportNote
         var grund = string.IsNullOrWhiteSpace(reason) ? "—" : reason.Trim();
 
         var builder = new StringBuilder();
-        builder.AppendLine("═══════════════════════════════════════════");
+        builder.AppendLine(Rule);
         builder.AppendLine("Hinweis: Dieser Tagesabschluss wurde verspätet erstellt.");
         builder.AppendLine($"Ursprüngliches Datum: {originalLocal.ToString("dd.MM.yyyy", DeAt)}");
         builder.AppendLine($"Erstellt am: {createdLocal.ToString("dd.MM.yyyy", DeAt)}");
         builder.AppendLine($"Grund: {grund}");
-        builder.Append("═══════════════════════════════════════════");
+        builder.Append(Rule);
         return builder.ToString();
     }
 }

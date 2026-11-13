@@ -91,6 +91,10 @@ if ($Docker) {
     if (-not $env:POS_API_URL) { $env:POS_API_URL = 'http://127.0.0.1:5184/api' }
     if (-not $env:NEXT_PUBLIC_RKSV_ENVIRONMENT) { $env:NEXT_PUBLIC_RKSV_ENVIRONMENT = 'TEST' }
     if (-not $env:IMAGE_TAG) { $env:IMAGE_TAG = $Tag }
+    if (-not $env:POSTGRES_USER) { $env:POSTGRES_USER = 'ci' }
+    if (-not $env:POSTGRES_PASSWORD) { $env:POSTGRES_PASSWORD = 'ci-not-for-production' }
+    if (-not $env:POSTGRES_DB) { $env:POSTGRES_DB = 'kasse_db' }
+    if (-not $env:JWT_SECRET_KEY) { $env:JWT_SECRET_KEY = 'ci-jwt-secret-not-for-production-use-32' }
 
     $composeArgs = @('compose', '-f', 'docker-compose.prod.yml')
     $prodEnv = Join-Path $repoRoot '.env.production'
@@ -115,7 +119,7 @@ if ($Docker) {
             throw 'Push requested but Registry / DOCKER_REGISTRY is empty'
         }
         Write-Host "=== CI: push to $Registry (tag=$Tag) ===" -ForegroundColor Cyan
-        & (Join-Path $PSScriptRoot 'docker-push-prod.ps1') -Registry $Registry -Tag $Tag -Profile $Profiles
+        & (Join-Path $PSScriptRoot '..\docker\docker-push-prod.ps1') -Registry $Registry -Tag $Tag -Profile $Profiles
         if ($LASTEXITCODE -ne 0) { throw "docker-push-prod failed ($LASTEXITCODE)" }
     }
     elseif ($Push -and $NoPush) {

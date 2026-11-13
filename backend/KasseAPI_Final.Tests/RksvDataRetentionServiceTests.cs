@@ -153,7 +153,7 @@ public sealed class RksvDataRetentionServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
             .Options;
-        return (new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)), new Factory(options));
+        return (new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)), new Factory(options));
     }
 
     private sealed class Factory : IDbContextFactory<AppDbContext>
@@ -165,6 +165,6 @@ public sealed class RksvDataRetentionServiceTests
         public AppDbContext CreateDbContext() => new(_options);
 
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            new(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 }

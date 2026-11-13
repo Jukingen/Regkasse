@@ -1,10 +1,10 @@
-# GET /api/UserManagement/{id} – Response & userToFormValues mapping
+# GET /api/UserManagement/{id} — response and userToFormValues mapping
 
-## 1. Backend response (gerçek şekil)
+## 1. Backend response (actual shape)
 
 Backend `UserInfo` DTO (C#): `Id`, `UserName`, `FirstName`, `LastName`, `Email`, `EmployeeNumber`, `Role`, `TaxNumber`, `Notes`, `IsActive`, `CreatedAt`, `LastLoginAt`.
 
-`Program.cs` içinde `PropertyNamingPolicy = JsonNamingPolicy.CamelCase` **açıksa** HTTP body **camelCase** gelir:
+If `Program.cs` sets `PropertyNamingPolicy = JsonNamingPolicy.CamelCase`, the HTTP body is **camelCase**:
 
 ```json
 {
@@ -23,7 +23,7 @@ Backend `UserInfo` DTO (C#): `Id`, `UserName`, `FirstName`, `LastName`, `Email`,
 }
 ```
 
-Eğer bir sebeple **PascalCase** dönüyorsa (policy kapalı/override edilmişse) body şöyle olur:
+If **PascalCase** is returned (policy off/overridden), the body looks like:
 
 ```json
 {
@@ -42,16 +42,16 @@ Eğer bir sebeple **PascalCase** dönüyorsa (policy kapalı/override edilmişse
 }
 ```
 
-Axios `response.data` ile bu obje doğrudan gelir; ek `data`/`result` sarmalayıcısı yok.
+Axios `response.data` is this object directly; there is no extra `data`/`result` wrapper.
 
 ---
 
-## 2. Gateway: normalizeUserInfo çıktısı (drawer’a giden `user`)
+## 2. Gateway: normalizeUserInfo output (`user` passed to the drawer)
 
-`getUserById` → `normalizeUserInfo(raw)` hem camelCase hem PascalCase key’leri okuyor. Drawer’a giden `user` her iki durumda da **aynı camelCase şekilde**:
+`getUserById` → `normalizeUserInfo(raw)` reads both camelCase and PascalCase keys. The `user` passed to the drawer is **the same camelCase shape** in both cases:
 
 ```js
-// user (normalizeUserInfo sonrası – drawer’a gelen prop)
+// user (after normalizeUserInfo — prop into the drawer)
 {
   id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   userName: "jdoe",
@@ -70,14 +70,14 @@ Axios `response.data` ile bu obje doğrudan gelir; ek `data`/`result` sarmalayı
 
 ---
 
-## 3. userToFormValues(user) çıktısı (form’a verilen obje)
+## 3. userToFormValues(user) output (object given to the form)
 
-Mapper, `UserFormDrawer` içinde `userToFormValues(user)` ile form alanlarına birebir gidecek objeyi üretir. Form.Item `name`’leri: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes`.
+Inside `UserFormDrawer`, `userToFormValues(user)` builds the object that maps 1:1 onto form fields. Form.Item `name`s: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes`.
 
-Yukarıdaki `user` ile:
+For the `user` above:
 
 ```js
-// userToFormValues(user) sonucu – form.setFieldsValue(...) / initialValues
+// userToFormValues(user) result — form.setFieldsValue(...) / initialValues
 {
   firstName: "John",
   lastName: "Doe",
@@ -89,10 +89,10 @@ Yukarıdaki `user` ile:
 }
 ```
 
-Eğer backend bazı alanları null/boş gönderirse mapper boş string döner:
+If the backend sends some fields null/empty, the mapper returns empty strings:
 
 ```js
-// Örnek: email ve notes yok, taxNumber null
+// Example: email and notes missing, taxNumber null
 {
   firstName: "John",
   lastName: "Doe",
@@ -106,13 +106,13 @@ Eğer backend bazı alanları null/boş gönderirse mapper boş string döner:
 
 ---
 
-## 4. Olası bug noktaları
+## 4. Likely bug points
 
-| Sorun                                     | Kontrol                                                                                                                                       |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend gerçekten camelCase mi dönüyor?   | Tarayıcı Network → GET `/api/UserManagement/{id}` → Response body’de key’ler `firstName` mi `FirstName` mi?                                   |
-| `user` drawer’a undefined/boş mu geliyor? | `UsersPage` içinde `user={editUserFull ?? undefined}`; `editUserFull` aynı GET cevabından gelmeli.                                            |
-| Form key’leri uyuşuyor mu?                | Form.Item `name`: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes` ↔ `userToFormValues` çıktısı aynı key’ler. |
-| Role string mi?                           | Backend `Role` string (örn. `"Admin"`); Select `options={roleOptions}` value’lar da string; mapper `role` string veriyor.                     |
+| Issue | Check |
+|-------|-------|
+| Does the backend really return camelCase? | Browser Network → GET `/api/UserManagement/{id}` → are keys `firstName` or `FirstName`? |
+| Is `user` undefined/empty in the drawer? | On `UsersPage`, `user={editUserFull ?? undefined}`; `editUserFull` must come from the same GET. |
+| Do form keys match? | Form.Item `name`: `firstName`, `lastName`, `email`, `employeeNumber`, `role`, `taxNumber`, `notes` ↔ same keys from `userToFormValues`. |
+| Is role a string? | Backend `Role` is a string (for example `"Admin"`); Select `options={roleOptions}` values are strings; mapper supplies `role` as string. |
 
-Network’te body PascalCase ise gateway `normalizeUserInfo` ile yine camelCase `user` üretmeli; buna rağmen form boşsa, `user` prop’unun gerçekten dolu gelip gelmediği ve `userToFormValues(user)` çıktısının console ile doğrulanması gerekir.
+If Network shows PascalCase, the gateway `normalizeUserInfo` should still produce camelCase `user`. If the form is still empty, confirm the `user` prop is actually populated and inspect `userToFormValues(user)` in the console.

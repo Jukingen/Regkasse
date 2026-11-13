@@ -31,7 +31,7 @@ describe('exitImpersonation', () => {
   it('clears session and redirects to admin tenants in production', () => {
     exitImpersonation();
 
-    expect(authStorage.getToken()).toBeNull();
+    expect(authStorage.hasToken()).toBe(false);
     expect(localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)).toBeNull();
     expect(assign).toHaveBeenCalledWith(`${buildAdminPlatformOrigin('https')}/admin/tenants`);
   });

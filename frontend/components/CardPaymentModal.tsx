@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { confirmCardPayment, createCardPaymentIntent } from '../services/api/cardPaymentService';
+import { createOnlinePaymentReturnUrl } from '../services/payment/openOnlinePaymentHostedPage';
 
 export type CardPaymentModalProps = {
   visible: boolean;
@@ -71,6 +72,7 @@ export function CardPaymentModal({
         amount,
         cashRegisterId,
         receiptNumber,
+        returnUrl: createOnlinePaymentReturnUrl(),
       });
 
       const confirm = await confirmCardPayment({

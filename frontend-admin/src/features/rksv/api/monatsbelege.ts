@@ -1,0 +1,97 @@
+import { customInstance } from '@/lib/axios';
+
+export const monatsbelegeListQueryKey = ['admin', 'rksv', 'monatsbelege'] as const;
+
+export type MonatsbelegListStatusFilter = 'all' | 'created' | 'failed' | 'fonPending';
+
+export type MonatsbelegListRow = {
+  paymentId?: string | null;
+  cashRegisterId: string;
+  registerNumber: string;
+  registerLocation?: string | null;
+  year: number;
+  month: number;
+  period: string;
+  createdAtUtc?: string | null;
+  createdBy: string;
+  createdByUserId: string;
+  tseSignature: string;
+  depStatus: string;
+  fonStatus: string;
+  isJahresbeleg: boolean;
+  autoCreated: boolean;
+  status: string;
+  lastError?: string | null;
+  attemptCount: number;
+  correlationId?: string | null;
+};
+
+export type MonatsbelegListResponse = {
+  year: number;
+  total: number;
+  hasFailedAutoCreates: boolean;
+  hasMissedAutoCreates: boolean;
+  items: MonatsbelegListRow[];
+};
+
+export type FetchMonatsbelegeParams = {
+  year?: number;
+  cashRegisterId?: string;
+  status?: MonatsbelegListStatusFilter;
+  pageNumber?: number;
+  pageSize?: number;
+};
+
+export type PeriodSalesSummaryResponse = {
+  periodLabel: string;
+  receiptCount: number;
+  totalRevenue: number;
+  netAmount: number;
+  vat10: number;
+  vat20: number;
+  grossAmount: number;
+  zeroSales: boolean;
+  paymentId?: string | null;
+};
+
+export function fetchMonatsbelegSalesSummary(
+  params: { cashRegisterId: string; year: number; month?: number },
+  signal?: AbortSignal
+): Promise<PeriodSalesSummaryResponse> {
+  return customInstance<PeriodSalesSummaryResponse>({
+    url: '/api/admin/rksv/monatsbelege/sales-summary',
+    method: 'GET',
+    params: {
+      cashRegisterId: params.cashRegisterId,
+      year: params.year,
+      month: params.month,
+    },
+    signal,
+  });
+}
+
+export function fetchMonatsbelege(
+  params: FetchMonatsbelegeParams,
+  signal?: AbortSignal
+): Promise<MonatsbelegListResponse> {
+  return customInstance<MonatsbelegListResponse>({
+    url: '/api/admin/rksv/monatsbelege',
+    method: 'GET',
+    params: {
+      year: params.year,
+      cashRegisterId: params.cashRegisterId,
+      status: params.status === 'all' ? undefined : params.status,
+      pageNumber: params.pageNumber,
+      pageSize: params.pageSize,
+    },
+    signal,
+  }).then((dto) => ({
+    year: dto.year,
+    total: dto.total ?? 0,
+    hasFailedAutoCreates: Boolean(dto.hasFailedAutoCreates),
+    hasMissedAutoCreates: Boolean(
+      (dto as { hasMissedAutoCreates?: boolean }).hasMissedAutoCreates
+    ),
+    items: Array.isArray(dto.items) ? dto.items : [],
+  }));
+}

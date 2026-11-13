@@ -29,5 +29,13 @@
   "colDuration": "Süre",
   "noSamples": "Henüz API örneği yok — metrik toplamak için admin arayüzünü kullanın.",
   "externalLinks": "Problar ve dışa aktarımlar",
-  "grafanaHint": "FA stdout toplanıyorsa monitoring/grafana-fa-dashboard.json dosyasını Grafana'ya içe aktarın."
+  "grafanaHint": "FA stdout toplanıyorsa monitoring/grafana-fa-dashboard.json dosyasını Grafana'ya içe aktarın.",
+  "apiHealthTitle": "API sağlığı",
+  "apiLive": "API canlı",
+  "apiReady": "API hazır",
+  "recentDrills": "Son geri yükleme tatbikatları",
+  "noDrills": "Tatbikat yok",
+  "lastDrillReport": "Son haftalık rapor",
+  "sentryEnvironment": "Sentry ortamı: {{env}}",
+  "sentryDsnMissing": "NEXT_PUBLIC_SENTRY_DSN değerini ayarlayın"
 }

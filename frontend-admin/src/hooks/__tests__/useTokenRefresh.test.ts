@@ -19,7 +19,7 @@ vi.mock('@/features/auth/hooks/useAuth', () => ({
 
 vi.mock('@/features/auth/services/authStorage', () => ({
   authStorage: {
-    getToken: vi.fn(),
+    getAccessExpiresAtMs: vi.fn(),
   },
 }));
 
@@ -66,12 +66,12 @@ describe('useTokenRefresh', () => {
     mockRefreshToken.mockReset();
     mockRefreshToken.mockImplementation(async () => {
       // Simulate rotated access token with a fresh 24h lifetime.
-      vi.mocked(authStorage.getToken).mockReturnValue(
-        tokenWithExp(Math.floor(Date.now() / 1000) + 24 * 60 * 60)
+      vi.mocked(authStorage.getAccessExpiresAtMs).mockReturnValue(
+        Date.now() + 24 * 60 * 60 * 1000
       );
       return true;
     });
-    vi.mocked(authStorage.getToken).mockReset();
+    vi.mocked(authStorage.getAccessExpiresAtMs).mockReset();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
   });
@@ -82,7 +82,7 @@ describe('useTokenRefresh', () => {
 
   it('refreshes immediately when token is near expiry', async () => {
     const now = Date.now();
-    vi.mocked(authStorage.getToken).mockReturnValue(tokenWithExp(Math.floor(now / 1000) + 2 * 60));
+    vi.mocked(authStorage.getAccessExpiresAtMs).mockReturnValue(now + 2 * 60 * 1000);
 
     renderHook(() => useTokenRefresh(true));
 
@@ -96,9 +96,7 @@ describe('useTokenRefresh', () => {
   it('refreshes after the scheduled delay without user interaction', async () => {
     const now = Date.now();
     const expInMs = 10 * 60 * 1000;
-    vi.mocked(authStorage.getToken).mockReturnValue(
-      tokenWithExp(Math.floor((now + expInMs) / 1000))
-    );
+    vi.mocked(authStorage.getAccessExpiresAtMs).mockReturnValue(now + expInMs);
 
     renderHook(() => useTokenRefresh(true));
 
@@ -117,7 +115,7 @@ describe('useTokenRefresh', () => {
 
   it('does not schedule when disabled', () => {
     const now = Date.now();
-    vi.mocked(authStorage.getToken).mockReturnValue(tokenWithExp(Math.floor(now / 1000) + 2 * 60));
+    vi.mocked(authStorage.getAccessExpiresAtMs).mockReturnValue(now + 2 * 60 * 1000);
 
     renderHook(() => useTokenRefresh(false));
 

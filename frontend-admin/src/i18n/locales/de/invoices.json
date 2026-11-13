@@ -245,5 +245,31 @@
     "formEmailLabel": "Empfänger-E-Mail",
     "formEmailPlaceholder": "kunde@beispiel.at",
     "formEmailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben."
+  },
+  "chQr": {
+    "download": "QR-Rechnung-PDF herunterladen",
+    "markUploaded": "Als bei der Bank hochgeladen markieren",
+    "modalTitle": "Upload im Bankportal",
+    "bankReference": "Bankreferenz",
+    "bankReferenceRequired": "Bitte die Bankreferenz eingeben.",
+    "confirm": "Speichern",
+    "cancel": "Abbrechen",
+    "downloaded": "QR-Rechnung-PDF heruntergeladen.",
+    "uploaded": "Upload im Bankportal erfasst.",
+    "downloadFailed": "Die QR-Rechnung-PDF konnte nicht heruntergeladen werden.",
+    "uploadFailed": "Der Upload-Hinweis konnte nicht gespeichert werden.",
+    "outstandingWarning": "Diese Druckfunktionen sind nicht Teil der aktuellen QR-Rechnung-Ausgabe. Der Betreiber muss bestätigen, dass sie für diesen Mandanten akzeptabel sind, bevor die PDF heruntergeladen werden kann.",
+    "gapWarning": {
+      "title": "QR-Rechnung: akzeptierte Druckfunktionen unvollständig",
+      "description": "Diese Druckfunktionen sind nicht Teil der aktuellen QR-Rechnung-Ausgabe. Die Rechnung wird nicht blockiert.",
+      "link": "Lückenbestätigung öffnen",
+      "gap": {
+        "officialSwissCross": "Offizielles 7-mm-Schweizerkreuz mit weißem Rand",
+        "fontEmbeddingLiberationArial": "Eingebettete Schrift Liberation Sans oder Arial",
+        "pain001": "pain.001-Überweisungsdatei",
+        "bankScan": "Bankscan der gedruckten Rechnung",
+        "perforationLine": "Perforationsmarke zwischen Empfangsschein und Zahlteil"
+      }
+    }
   }
 }

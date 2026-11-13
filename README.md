@@ -5,7 +5,8 @@ RKSV-compliant multi-tenant POS platform for Austrian cash registers (Registrier
 | Surface | Local | Production |
 |---------|-------|------------|
 | POS | http://localhost:8081 | https://pos.regkasse.at |
-| Admin (FA) | http://localhost:3000 | https://admin.regkasse.at |
+| Admin (FA) | http://admin.regkasse.local:3000 (same Next dev server as http://localhost:3000) | https://admin.regkasse.at |
+| Marketing | http://localhost:3002 | https://regkasse.at |
 | Tenant sites | http://localhost:3001 | `/[slug]` storefronts (+ optional custom domains) |
 | API | http://localhost:5184 | https://api.regkasse.at |
 
@@ -16,13 +17,17 @@ RKSV-compliant multi-tenant POS platform for Austrian cash registers (Registrier
 Regkasse is an npm-workspace monorepo for:
 
 - **POS** — cashier operations (cart, payment, receipts, offline queues); UI copy in **German (de-DE)**
-- **Admin (FA)** — Mandanten-Admin and Super Admin back office (users, RKSV, backup, billing, digital services); **i18n de/en/tr**
+- **Admin (FA)** — Mandanten-Admin and Super Admin back office (users, RKSV, backup, billing, trials, self-service portal, support tickets, digital services); **i18n de/en/tr**
 - **Tenant websites** — shared Next.js storefronts and online-order intake (`frontend-sites`; not fiscal POS)
 - **API** — ASP.NET Core multi-tenant backend with RKSV/TSE, FinanzOnline outbox, backup/DR, and licensing
+- **Fiskaly BYOK** — each mandant stores its own SIGN AT API key, secret, and SCU on `tenant_fiskaly_credentials` (FA `/settings`). Production does not share one Fiskaly organization.
+- **Marketplace orders** — Wolt (OAuth), Foodora (client credentials), and Lieferando (JET Connect) post into `online_orders`. FA: `/admin/online-order-integrations`. Not a receipt until POS payment.
 
 **Single POS UI:** production POS is one shared host (`pos.regkasse.at`); tenant comes from JWT `tenant_id` after login — not `{slug}.regkasse.at` as the POS entry point. See [`docs/POS_PRODUCTION_ARCHITECTURE.md`](docs/POS_PRODUCTION_ARCHITECTURE.md).
 
-**Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**.
+**Boundaries:** POS → `/api/pos/*`; Admin → `/api/admin/*`; Sites → `/api/public/*` + `/api/sites/*`. Cross-tenant access returns **HTTP 404**. Removed aliases `/api/Payment|/api/Cart|/api/Product` (use `/api/pos/*`).
+
+**SaaS extras:** Super Admin trial dashboard (`/admin/trials`); Mandanten-Admin self-service hub Mein Konto (`/tenant/portal` — license, invoices, profile, support tickets). Unified license keys: `REGK-yyyyMMdd-{slug}-{8}`.
 
 **Windows?** Prefer [`scripts/dev/start.bat`](scripts/dev/start.bat) (Legacy or Docker) — [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md) · [`docs/GETTING_STARTED_SCRIPTS.md`](docs/GETTING_STARTED_SCRIPTS.md) · [`docs/SCRIPTS_REFERENCE.md`](docs/SCRIPTS_REFERENCE.md).
 
@@ -59,7 +64,10 @@ cd ..
 ### Run everything
 
 ```bash
-npm run dev                 # parallel: API + POS + Admin + Sites
+npm run dev                 # parallel RAM-safe: API + Admin (cleanup orphans first)
+npm run dev:all             # parallel full: API + Admin + POS + Sites + Marketing
+npm run dev:cleanup         # kill leftover Next/Expo node workers (RAM leak)
+npm run dev:cleanup:orphans # kill only `.next/dev/build` workers (safe while Admin/POS run)
 ```
 
 **Windows modes** (pick one):
@@ -80,7 +88,7 @@ Comparison + rollback: [`docs/DOCKER_VS_LEGACY.md`](docs/DOCKER_VS_LEGACY.md). S
 | Project | Command | URL |
 |---------|---------|-----|
 | API | `npm run dev:backend` | http://localhost:5184 |
-| Admin | `npm run dev:admin` | http://localhost:3000 |
+| Admin | `npm run dev:admin` | http://localhost:3000 — prefer http://admin.regkasse.local:3000 (`127.0.0.1 admin.regkasse.local` in the hosts file). Next still binds port 3000. |
 | POS | `npm run dev:pos` | http://localhost:8081 (Expo) |
 | Sites | `npm run dev:sites` | http://localhost:3001 |
 
@@ -153,7 +161,7 @@ Host processes (separate windows). Needs Node, .NET, Postgres, Redis on the mach
 
 | Script | Description |
 |--------|-------------|
-| `scripts\legacy\start-all.bat` | Redis + Backend + POS + Admin |
+| `scripts\legacy\start-all.bat` | Redis + Backend + Admin + POS |
 | `scripts\legacy\start-backend.bat` / `start-frontend.bat` / `start-frontend-admin.bat` / `start-redis.bat` | Single surface |
 | `scripts\legacy\kill-ports.bat` | Free `:5184` / `:8081` / `:3000` / `:6379` |
 
@@ -163,7 +171,8 @@ Host processes (separate windows). Needs Node, .NET, Postgres, Redis on the mach
 
 | Script | Description |
 |--------|-------------|
-| `scripts\dev\start-dev.bat` | Start API + Admin + POS + Sites (`npm run dev`) in one terminal |
+| `scripts\dev\start-dev.bat` | Start API + Admin (`npm run dev`) in one terminal — RAM-safe default |
+| `scripts\dev\start-dev-all.bat` | Start API + Admin + POS + Sites (`npm run dev:all`) |
 | `scripts\dev\start-backend.bat` / `start-admin.bat` / `start-pos.bat` / `start-sites.bat` | Single surface (`:5184` / `:3000` / `:8081` / `:3001`) |
 | `scripts\test\test-all.bat` | Backend → Admin → POS tests (sequential; stops on first failure) |
 | `scripts\dev\clean-all.DANGER.bat` | Confirm + remove build artifacts (`bin` / `obj` / `.next` / `.expo` / …) |
@@ -269,7 +278,7 @@ Day-to-day coding with hot reload on the host:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d   # or: just docker-up-dev
-npm run dev
+npm run dev          # API + Admin (default). Full stack: npm run dev:all
 ```
 
 Configure backend connection to `localhost:5432` and Redis `localhost:6379` (user-secrets / `appsettings.Development.json`).
@@ -360,6 +369,7 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`frontend/`](frontend/) | Mobile POS (Expo) — cashier UI |
 | [`frontend-admin/`](frontend-admin/) | Admin panel (Next.js) |
 | [`frontend-sites/`](frontend-sites/) | Shared tenant websites / online-order UI |
+| [`frontend-marketing/`](frontend-marketing/) | Marketing site (Next.js, port 3002, de/en/tr) |
 | [`localization/`](localization/) | i18n import/export/validation and CI budgets |
 | [`scripts/`](scripts/) | OpenAPI verify, seeds, git hooks, SQL helpers — [`scripts/README.md`](scripts/README.md) |
 | [`tools/`](tools/) | License generator + wrappers — [`tools/README.md`](tools/README.md) |
@@ -396,6 +406,10 @@ Stack pins are also summarized in [`AGENTS.md`](AGENTS.md) § Updated Stack Vers
 | [`docs/BILLING_TENANT_LICENSE.md`](docs/BILLING_TENANT_LICENSE.md) | Mandant license sales |
 | [`docs/AUTH_TWO_FACTOR.md`](docs/AUTH_TWO_FACTOR.md) | SuperAdmin 2FA |
 | [`docs/WORKING_HOURS.md`](docs/WORKING_HOURS.md) | Website hours (never gates POS/FA) |
+| [`docs/COUNTRIES.md`](docs/COUNTRIES.md) | Multi-country fiscal hub (AT production; DE/CH/EU planned) |
+| [`docs/FISCAL_GERMANY.md`](docs/FISCAL_GERMANY.md) | Germany KassenSicherheit stub (not production-ready) |
+| [`docs/FISCAL_SWITZERLAND.md`](docs/FISCAL_SWITZERLAND.md) | Switzerland MWST / QR-Rechnung stub (not production-ready) |
+| [`docs/EINVOICING_EU.md`](docs/EINVOICING_EU.md) | EU EN 16931 / ViDA readiness stub (no submission) |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting & developer security practices |
 
 Package READMEs: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md), [`frontend-admin/README.md`](frontend-admin/README.md), [`frontend-sites/README.md`](frontend-sites/README.md).

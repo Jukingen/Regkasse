@@ -12,6 +12,7 @@ import { downloadAdminLogExport } from '@/features/errors/api/downloadAdminLogEx
 import { type ElmahErrorRow, useElmahErrors } from '@/features/errors/hooks/useElmahErrors';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { customInstance } from '@/lib/axios';
 
 export default function ElmahErrorsPage() {
@@ -110,7 +111,10 @@ export default function ElmahErrorsPage() {
 
   return (
     <AdminPageShell>
-      <AdminPageHeader title={t('nav.errorLogs')} />
+      <AdminPageHeader
+        title={t('nav.errorLogs')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'monitoringLogs', { title: t('nav.errorLogs') })}
+      />
       <Card
         title={t('nav.errorLogs')}
         extra={

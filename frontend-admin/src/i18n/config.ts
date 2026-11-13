@@ -1,14 +1,17 @@
 import deAccess from './locales/de/access.json';
+import deAdmin from './locales/de/admin.json';
 import deActivity from './locales/de/activity.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deAdminShell from './locales/de/admin-shell.json';
 import deBackupDr from './locales/de/backupDr.json';
+import deBackup from './locales/de/backup.json';
 import deBenefits from './locales/de/benefits.json';
 import deBilling from './locales/de/billing.json';
 import deCalendar from './locales/de/calendar.json';
 import deCardTransactions from './locales/de/cardTransactions.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deCommon from './locales/de/common.json';
+import deCommunication from './locales/de/communication.json';
 import deCustomers from './locales/de/customers.json';
 import deDashboard from './locales/de/dashboard.json';
 import deDataManagement from './locales/de/dataManagement.json';
@@ -17,6 +20,7 @@ import deDigital from './locales/de/digital.json';
 import deErrors from './locales/de/errors.json';
 import deFeedback from './locales/de/feedback.json';
 import deFeatureFlags from './locales/de/featureFlags.json';
+import dePeppol from './locales/de/peppol.json';
 import deDeployments from './locales/de/deployments.json';
 import deDatabaseMigrations from './locales/de/databaseMigrations.json';
 import deMaintenance from './locales/de/maintenance.json';
@@ -32,6 +36,7 @@ import deTseCost from './locales/de/tseCost.json';
 import deTseDr from './locales/de/tseDr.json';
 import deTseLogs from './locales/de/tseLogs.json';
 import deTseDeveloperTools from './locales/de/tseDeveloperTools.json';
+import deTseFiskaly from './locales/de/tseFiskaly.json';
 import deTseCompliance from './locales/de/tseCompliance.json';
 import deSignaturkarteProgram from './locales/de/signaturkarteProgram.json';
 import deTseAusfall from './locales/de/tseAusfall.json';
@@ -49,6 +54,7 @@ import deTseWebhooks from './locales/de/tseWebhooks.json';
 import deTseBlockchain from './locales/de/tseBlockchain.json';
 import deTseTraining from './locales/de/tseTraining.json';
 import deImpactSimulator from './locales/de/impactSimulator.json';
+import deFinanzOnline from './locales/de/finanzOnline.json';
 import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
 import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
@@ -58,6 +64,7 @@ import deLicense from './locales/de/license.json';
 import deModifierGroups from './locales/de/modifierGroups.json';
 import deNav from './locales/de/nav.json';
 import deOnlineOrders from './locales/de/onlineOrders.json';
+import deOnlinePayments from './locales/de/onlinePayments.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
 import dePayments from './locales/de/payments.json';
 import deProducts from './locales/de/products.json';
@@ -67,6 +74,7 @@ import deReceiptTemplates from './locales/de/receiptTemplates.json';
 import deReceipts from './locales/de/receipts.json';
 import deReporting from './locales/de/reporting.json';
 import deRksvHub from './locales/de/rksvHub.json';
+import deRksvRuntimeConfig from './locales/de/rksvRuntimeConfig.json';
 import deSettings from './locales/de/settings.json';
 import deShifts from './locales/de/shifts.json';
 import deStaff from './locales/de/staff.json';
@@ -74,6 +82,11 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deTenants from './locales/de/tenants.json';
+import deTenantCountry from './locales/de/tenantCountry.json';
+import deVerticalProfiles from './locales/de/verticalProfiles.json';
+import deTrials from './locales/de/trials.json';
+import deTenantPortal from './locales/de/tenantPortal.json';
+import deSupport from './locales/de/support.json';
 import deTimeSync from './locales/de/timeSync.json';
 import deUsers from './locales/de/users.json';
 import deVouchers from './locales/de/vouchers.json';
@@ -82,12 +95,14 @@ import enActivity from './locales/en/activity.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enBackupDr from './locales/en/backupDr.json';
+import enBackup from './locales/en/backup.json';
 import enBenefits from './locales/en/benefits.json';
 import enBilling from './locales/en/billing.json';
 import enCalendar from './locales/en/calendar.json';
 import enCardTransactions from './locales/en/cardTransactions.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enCommon from './locales/en/common.json';
+import enCommunication from './locales/en/communication.json';
 import enCustomers from './locales/en/customers.json';
 import enDashboard from './locales/en/dashboard.json';
 import enDataManagement from './locales/en/dataManagement.json';
@@ -96,6 +111,8 @@ import enDigital from './locales/en/digital.json';
 import enErrors from './locales/en/errors.json';
 import enFeedback from './locales/en/feedback.json';
 import enFeatureFlags from './locales/en/featureFlags.json';
+import enAdmin from './locales/en/admin.json';
+import enPeppol from './locales/en/peppol.json';
 import enDeployments from './locales/en/deployments.json';
 import enDatabaseMigrations from './locales/en/databaseMigrations.json';
 import enMaintenance from './locales/en/maintenance.json';
@@ -111,6 +128,7 @@ import enTseCost from './locales/en/tseCost.json';
 import enTseDr from './locales/en/tseDr.json';
 import enTseLogs from './locales/en/tseLogs.json';
 import enTseDeveloperTools from './locales/en/tseDeveloperTools.json';
+import enTseFiskaly from './locales/en/tseFiskaly.json';
 import enTseCompliance from './locales/en/tseCompliance.json';
 import enSignaturkarteProgram from './locales/en/signaturkarteProgram.json';
 import enTseAusfall from './locales/en/tseAusfall.json';
@@ -128,6 +146,7 @@ import enTseWebhooks from './locales/en/tseWebhooks.json';
 import enTseBlockchain from './locales/en/tseBlockchain.json';
 import enTseTraining from './locales/en/tseTraining.json';
 import enImpactSimulator from './locales/en/impactSimulator.json';
+import enFinanzOnline from './locales/en/finanzOnline.json';
 import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
 import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
@@ -137,6 +156,7 @@ import enLicense from './locales/en/license.json';
 import enModifierGroups from './locales/en/modifierGroups.json';
 import enNav from './locales/en/nav.json';
 import enOnlineOrders from './locales/en/onlineOrders.json';
+import enOnlinePayments from './locales/en/onlinePayments.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enPayments from './locales/en/payments.json';
 import enProducts from './locales/en/products.json';
@@ -146,6 +166,7 @@ import enReceiptTemplates from './locales/en/receiptTemplates.json';
 import enReceipts from './locales/en/receipts.json';
 import enReporting from './locales/en/reporting.json';
 import enRksvHub from './locales/en/rksvHub.json';
+import enRksvRuntimeConfig from './locales/en/rksvRuntimeConfig.json';
 import enSettings from './locales/en/settings.json';
 import enShifts from './locales/en/shifts.json';
 import enStaff from './locales/en/staff.json';
@@ -153,6 +174,11 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enTenants from './locales/en/tenants.json';
+import enTenantCountry from './locales/en/tenantCountry.json';
+import enVerticalProfiles from './locales/en/verticalProfiles.json';
+import enTrials from './locales/en/trials.json';
+import enTenantPortal from './locales/en/tenantPortal.json';
+import enSupport from './locales/en/support.json';
 import enTimeSync from './locales/en/timeSync.json';
 import enUsers from './locales/en/users.json';
 import enVouchers from './locales/en/vouchers.json';
@@ -161,12 +187,14 @@ import trActivity from './locales/tr/activity.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trBackupDr from './locales/tr/backupDr.json';
+import trBackup from './locales/tr/backup.json';
 import trBenefits from './locales/tr/benefits.json';
 import trBilling from './locales/tr/billing.json';
 import trCalendar from './locales/tr/calendar.json';
 import trCardTransactions from './locales/tr/cardTransactions.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trCommon from './locales/tr/common.json';
+import trCommunication from './locales/tr/communication.json';
 import trCustomers from './locales/tr/customers.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trDataManagement from './locales/tr/dataManagement.json';
@@ -175,6 +203,8 @@ import trDigital from './locales/tr/digital.json';
 import trErrors from './locales/tr/errors.json';
 import trFeedback from './locales/tr/feedback.json';
 import trFeatureFlags from './locales/tr/featureFlags.json';
+import trAdmin from './locales/tr/admin.json';
+import trPeppol from './locales/tr/peppol.json';
 import trDeployments from './locales/tr/deployments.json';
 import trDatabaseMigrations from './locales/tr/databaseMigrations.json';
 import trMaintenance from './locales/tr/maintenance.json';
@@ -190,6 +220,7 @@ import trTseCost from './locales/tr/tseCost.json';
 import trTseDr from './locales/tr/tseDr.json';
 import trTseLogs from './locales/tr/tseLogs.json';
 import trTseDeveloperTools from './locales/tr/tseDeveloperTools.json';
+import trTseFiskaly from './locales/tr/tseFiskaly.json';
 import trTseCompliance from './locales/tr/tseCompliance.json';
 import trSignaturkarteProgram from './locales/tr/signaturkarteProgram.json';
 import trTseAusfall from './locales/tr/tseAusfall.json';
@@ -207,6 +238,7 @@ import trTseWebhooks from './locales/tr/tseWebhooks.json';
 import trTseBlockchain from './locales/tr/tseBlockchain.json';
 import trTseTraining from './locales/tr/tseTraining.json';
 import trImpactSimulator from './locales/tr/impactSimulator.json';
+import trFinanzOnline from './locales/tr/finanzOnline.json';
 import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
 import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
@@ -216,6 +248,7 @@ import trLicense from './locales/tr/license.json';
 import trModifierGroups from './locales/tr/modifierGroups.json';
 import trNav from './locales/tr/nav.json';
 import trOnlineOrders from './locales/tr/onlineOrders.json';
+import trOnlinePayments from './locales/tr/onlinePayments.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trPayments from './locales/tr/payments.json';
 import trProducts from './locales/tr/products.json';
@@ -225,6 +258,7 @@ import trReceiptTemplates from './locales/tr/receiptTemplates.json';
 import trReceipts from './locales/tr/receipts.json';
 import trReporting from './locales/tr/reporting.json';
 import trRksvHub from './locales/tr/rksvHub.json';
+import trRksvRuntimeConfig from './locales/tr/rksvRuntimeConfig.json';
 import trSettings from './locales/tr/settings.json';
 import trShifts from './locales/tr/shifts.json';
 import trStaff from './locales/tr/staff.json';
@@ -232,6 +266,11 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trTenants from './locales/tr/tenants.json';
+import trTenantCountry from './locales/tr/tenantCountry.json';
+import trVerticalProfiles from './locales/tr/verticalProfiles.json';
+import trTrials from './locales/tr/trials.json';
+import trTenantPortal from './locales/tr/tenantPortal.json';
+import trSupport from './locales/tr/support.json';
 import trTimeSync from './locales/tr/timeSync.json';
 import trUsers from './locales/tr/users.json';
 import trVouchers from './locales/tr/vouchers.json';
@@ -256,9 +295,11 @@ const catalogs = {
     users: deUsers,
     settings: deSettings,
     products: deProducts,
+    finanzOnline: deFinanzOnline,
     finanzOnlineOutbox: deFinanzOnlineOutbox,
     finanzOnlineReconciliation: deFinanzOnlineReconciliation,
     rksvHub: deRksvHub,
+    rksvRuntimeConfig: deRksvRuntimeConfig,
     receipts: deReceipts,
     receiptTemplates: deReceiptTemplates,
     payments: dePayments,
@@ -266,7 +307,10 @@ const catalogs = {
     reporting: deReporting,
     errors: deErrors,
     feedback: deFeedback,
+    communication: deCommunication,
     featureFlags: deFeatureFlags,
+    admin: deAdmin,
+    peppol: dePeppol,
     deployments: deDeployments,
     databaseMigrations: deDatabaseMigrations,
     maintenance: deMaintenance,
@@ -282,6 +326,7 @@ const catalogs = {
     tseDr: deTseDr,
     tseLogs: deTseLogs,
     tseDeveloperTools: deTseDeveloperTools,
+    tseFiskaly: deTseFiskaly,
     tseCompliance: deTseCompliance,
     signaturkarteProgram: deSignaturkarteProgram,
     tseAusfall: deTseAusfall,
@@ -307,11 +352,17 @@ const catalogs = {
     invoices: deInvoices,
     license: deLicense,
     backupDr: deBackupDr,
+    backup: deBackup,
     timeSync: deTimeSync,
     vouchers: deVouchers,
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    tenantCountry: deTenantCountry,
+    verticalProfiles: deVerticalProfiles,
+    trials: deTrials,
+    tenantPortal: deTenantPortal,
+    support: deSupport,
     superadmin: deSuperadmin,
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
@@ -325,6 +376,7 @@ const catalogs = {
     suspiciousAlerts: deSuspiciousAlerts,
     quickActions: deQuickActions,
     onlineOrders: deOnlineOrders,
+    onlinePayments: deOnlinePayments,
     digital: deDigital,
     dataManagement: deDataManagement,
     keyboardShortcuts: deKeyboardShortcuts,
@@ -337,9 +389,11 @@ const catalogs = {
     users: enUsers,
     settings: enSettings,
     products: enProducts,
+    finanzOnline: enFinanzOnline,
     finanzOnlineOutbox: enFinanzOnlineOutbox,
     finanzOnlineReconciliation: enFinanzOnlineReconciliation,
     rksvHub: enRksvHub,
+    rksvRuntimeConfig: enRksvRuntimeConfig,
     receipts: enReceipts,
     receiptTemplates: enReceiptTemplates,
     payments: enPayments,
@@ -347,7 +401,10 @@ const catalogs = {
     reporting: enReporting,
     errors: enErrors,
     feedback: enFeedback,
+    communication: enCommunication,
     featureFlags: enFeatureFlags,
+    admin: enAdmin,
+    peppol: enPeppol,
     deployments: enDeployments,
     databaseMigrations: enDatabaseMigrations,
     maintenance: enMaintenance,
@@ -363,6 +420,7 @@ const catalogs = {
     tseDr: enTseDr,
     tseLogs: enTseLogs,
     tseDeveloperTools: enTseDeveloperTools,
+    tseFiskaly: enTseFiskaly,
     tseCompliance: enTseCompliance,
     signaturkarteProgram: enSignaturkarteProgram,
     tseAusfall: enTseAusfall,
@@ -388,11 +446,17 @@ const catalogs = {
     invoices: enInvoices,
     license: enLicense,
     backupDr: enBackupDr,
+    backup: enBackup,
     timeSync: enTimeSync,
     vouchers: enVouchers,
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    tenantCountry: enTenantCountry,
+    verticalProfiles: enVerticalProfiles,
+    trials: enTrials,
+    tenantPortal: enTenantPortal,
+    support: enSupport,
     superadmin: enSuperadmin,
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
@@ -406,6 +470,7 @@ const catalogs = {
     suspiciousAlerts: enSuspiciousAlerts,
     quickActions: enQuickActions,
     onlineOrders: enOnlineOrders,
+    onlinePayments: enOnlinePayments,
     digital: enDigital,
     dataManagement: enDataManagement,
     keyboardShortcuts: enKeyboardShortcuts,
@@ -418,9 +483,11 @@ const catalogs = {
     users: trUsers,
     settings: trSettings,
     products: trProducts,
+    finanzOnline: trFinanzOnline,
     finanzOnlineOutbox: trFinanzOnlineOutbox,
     finanzOnlineReconciliation: trFinanzOnlineReconciliation,
     rksvHub: trRksvHub,
+    rksvRuntimeConfig: trRksvRuntimeConfig,
     receipts: trReceipts,
     receiptTemplates: trReceiptTemplates,
     payments: trPayments,
@@ -428,7 +495,10 @@ const catalogs = {
     reporting: trReporting,
     errors: trErrors,
     feedback: trFeedback,
+    communication: trCommunication,
     featureFlags: trFeatureFlags,
+    admin: trAdmin,
+    peppol: trPeppol,
     deployments: trDeployments,
     databaseMigrations: trDatabaseMigrations,
     maintenance: trMaintenance,
@@ -444,6 +514,7 @@ const catalogs = {
     tseDr: trTseDr,
     tseLogs: trTseLogs,
     tseDeveloperTools: trTseDeveloperTools,
+    tseFiskaly: trTseFiskaly,
     tseCompliance: trTseCompliance,
     signaturkarteProgram: trSignaturkarteProgram,
     tseAusfall: trTseAusfall,
@@ -469,11 +540,17 @@ const catalogs = {
     invoices: trInvoices,
     license: trLicense,
     backupDr: trBackupDr,
+    backup: trBackup,
     timeSync: trTimeSync,
     vouchers: trVouchers,
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    tenantCountry: trTenantCountry,
+    verticalProfiles: trVerticalProfiles,
+    trials: trTrials,
+    tenantPortal: trTenantPortal,
+    support: trSupport,
     superadmin: trSuperadmin,
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,
@@ -487,6 +564,7 @@ const catalogs = {
     suspiciousAlerts: trSuspiciousAlerts,
     quickActions: trQuickActions,
     onlineOrders: trOnlineOrders,
+    onlinePayments: trOnlinePayments,
     digital: trDigital,
     dataManagement: trDataManagement,
     keyboardShortcuts: trKeyboardShortcuts,

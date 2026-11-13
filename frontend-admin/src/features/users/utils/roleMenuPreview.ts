@@ -13,10 +13,11 @@ import {
   type SidebarPermissionContext,
   filterSidebarMenuItems,
 } from '@/shared/adminSidebarNavigation';
-import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { tryRegistryMenuVisibility } from '@/shared/auth/menuPermissionRegistry';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
+import type { VerticalProfileMenuScope } from '@/shared/sidebarVerticalProfile';
 
 export type MenuPreviewVisibility = 'visible' | 'hidden' | 'partial';
 
@@ -48,7 +49,10 @@ function buildSidebarCtx(role: string, permissions: readonly string[]): SidebarP
   };
 }
 
-function extractLabel(node: { label?: unknown; title?: unknown; key?: string }, t: (k: string) => string): string {
+function extractLabel(
+  node: { label?: unknown; title?: unknown; key?: string },
+  t: (k: string) => string
+): string {
   if (typeof node.label === 'string') return node.label;
   if (typeof node.title === 'string') return node.title;
   if (typeof node.key === 'string') return node.key;
@@ -119,14 +123,15 @@ function collectVisibleLeafKeys(items: MenuProps['items'] | undefined, into: Set
 export function buildRoleMenuPreview(
   roleName: string,
   permissions: readonly string[],
-  t: (key: string) => string
+  t: (key: string) => string,
+  verticalProfile?: VerticalProfileMenuScope
 ): MenuPreviewNode[] {
   const { menuItems: allItems } = buildAdminSidebarMenuItems({
     t,
     verificationNavLabel: OPERATOR_VERIFICATIONS_COPY.navMenuLabel,
+    verticalProfile,
   });
-  const filtered =
-    filterSidebarMenuItems(allItems, buildSidebarCtx(roleName, permissions)) ?? [];
+  const filtered = filterSidebarMenuItems(allItems, buildSidebarCtx(roleName, permissions)) ?? [];
   const visibleKeys = new Set<string>();
   collectVisibleLeafKeys(filtered, visibleKeys);
   return walkFullTree(allItems, visibleKeys, t);

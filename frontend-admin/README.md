@@ -9,10 +9,10 @@ Versions below match `package.json` / monorepo baselines (`AGENTS.md`). Installe
 
 | Component | Version / notes |
 | --------- | --------------- |
-| **Next.js** | `^16.2.10` (App Router, Turbopack in `next build` / `next dev`) |
+| **Next.js** | `^16.2.10` (App Router; **webpack** via `next dev --webpack` / `next build --webpack` — Turbopack opted out for Windows monorepo RAM stability; `experimental.cpus: 2` + `webpackMemoryOptimizations` cap local RAM) |
 | **React / React DOM** | `^19.2.7` — types via `@types/react` / `@types/react-dom` (React does not ship types) |
 | **Ant Design** | `^6.4.3` (+ `@ant-design/nextjs-registry`, icons, cssinjs) |
-| **TanStack Query** | `^5.101.3` (Orval-generated hooks) |
+| **TanStack Query** | `^5.101.3` (Orval-generated hooks). Align `staleTime` with backend `CacheSettings` TTLs (license ~5m, products ~15m, permissions ~30m) where the same entities are cached server-side — prevents FA showing stale data while Redis still holds a fresh snapshot (or vice versa). When backend cache is cleared (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), React Query caches in open browsers may need manual invalidation via `queryClient.invalidateQueries()` (or a hard refresh). Optional UX: a Super Admin “Clear Cache” control that calls the backend endpoint and then invalidates matching React Query keys. |
 | **Zustand** | `^5.0.14` — **only** ephemeral UI prefs (`src/stores/`); never auth/API/fiscal state |
 | **Recharts** | `^3.10.0` (page-local / dynamic import; `d3-*` are transitive — do not add as direct deps) |
 | **Axios / SignalR** | `axios`, `@microsoft/signalr` |
@@ -89,7 +89,7 @@ High-level FA changes (see git history / PRs for full detail):
 | **Login** | Single field: email **or** username → `loginIdentifier` on `POST /api/Auth/login`. |
 | **RKSV environment** | `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST\|PROD` is **build-time**; `/rksv` badge; production build fails if unset/invalid (`next.config.mjs`, `assertRksvPublicEnvironmentForBuild.mjs`). |
 | **Security headers / CSP** | Pragmatic CSP + security headers in `next.config.mjs` (`connect-src` includes API + Sentry ingest). |
-| **React Query** | Shared cache policy (`src/lib/query/queryCachePolicy.ts`): static / dynamic / volatile / realtime. |
+| **React Query** | Shared cache policy (`src/lib/query/queryCachePolicy.ts`): static / dynamic / volatile / realtime. Align policy windows with backend `CacheSettings`. When backend cache is cleared, call `queryClient.invalidateQueries()` (open sessions are not flushed by Redis clear alone). Super Admin cache flush: Systemwartung → Cache leeren → `POST /api/admin/cache/clear`. |
 | **API errors** | `translateApiError` maps backend `code` → i18n; no stack traces in toasts. |
 | **Code splitting** | `next/dynamic` for large hubs (`/backup`, `/rksv`, users/tenants); keep `recharts` / `jszip` out of the shared chunk. |
 | **Client state** | Server data → TanStack Query; auth → `AuthProvider` + `authStorage`; UI prefs → ThemeProvider / personalization **and** narrow Zustand stores (`uiPreferencesStore`, `siderWidthStore`). |
@@ -248,7 +248,16 @@ Zustand **is** a dependency (`zustand` in `package.json`) and lives under `src/s
 | App language / format locale | `languageStorage` + `I18nProvider` | `localStorage` only for prefs. |
 | Lists, forms, backups, RKSV | TanStack Query | Server state — invalidate/refetch. |
 
-Repo-wide rule: `AGENTS.md` → Frontend-Admin conventions.
+#### Cache Alignment
+
+React Query cache TTLs should align with backend `CacheSettings` TTLs to prevent stale data issues:
+
+- `staleTime` should be **less than or equal to** the matching backend TTL (license ~5m, products ~15m Production default / ~30m Staging example, permissions ~30m).
+- `gcTime` should be **greater than** the backend TTL so the client can still serve while a soft refetch runs after `staleTime`.
+- After backend cache clear (`POST /api/admin/cache/clear` / Systemwartung → Cache leeren), call `queryClient.invalidateQueries()` for affected queries (open browsers are not flushed by Redis clear alone).
+- Consider adding a Super Admin **Clear Cache** control in admin settings that calls the backend endpoint and then invalidates matching React Query keys.
+
+Shared policy: `src/lib/query/queryCachePolicy.ts`. Repo-wide rule: `AGENTS.md` → Frontend-Admin conventions + Caching (Backend).
 
 ### Diagnostics logging
 
@@ -279,7 +288,7 @@ logger.error(err, { code: 'PAYMENT_LIST_FAILED' });
 | Permissions    | `PermissionRouteGuard` + `routePermissions.ts` | Fail-closed permission check; insufficient → inline **403** (`ForbiddenAccessView`).                                                                      |
 
 - **Do not** add `middleware.ts` — Next.js 16 uses `proxy.ts` (named export `proxy`).
-- Access token cookie name must stay aligned: `rk_admin_access_token` (`authStorage` ↔ `proxy.ts`).
+- Access token cookie names: backend HttpOnly `rk_admin_access_token` (readable by Edge when `AuthCookies:Domain` is set), compact `rk_admin_edge_session` (`authStorage` ↔ `proxy.ts`), and legacy `access_token` during rollout. POS uses `rk_pos_*` so sessions do not collide in the same browser.
 - Signature verification remains on the API; the proxy only does optimistic expiry/shape checks.
 
 ### API error messages (user-facing)
@@ -314,10 +323,16 @@ Content-Type: application/json
 
 ### Session after login
 
-1. Tokens stored via `authStorage` (`localStorage` + mirror cookie `rk_admin_access_token` for `proxy.ts`).
-2. Session user/permissions from **`GET /api/Auth/me`** (`useAuth` / `AuthProvider`).
+1. HttpOnly `rk_admin_access_token` / `rk_admin_refresh_token` cookies set by the API; FA marks a compact Edge session cookie (`rk_admin_edge_session`) for `proxy.ts`.
+2. Session user/permissions from **`GET /api/Auth/me`** (`useAuth` / `AuthProvider`) — cookies sent via `withCredentials`.
 3. Forced password change → `/force-password-change` when `mustChangePasswordOnNextLogin` (JWT claim and/or `/me`).
 4. **SuperAdmin 2FA** (TOTP) when enabled — see [`docs/AUTH_TWO_FACTOR.md`](../docs/AUTH_TWO_FACTOR.md); Dev may bypass.
+
+### Logout
+
+`POST /api/Auth/logout` with cookies (`withCredentials`, `X-App-Context: admin`). HttpOnly JWTs are cleared by the API; `useAuth.logout` then clears Edge session, tenant bootstrap, theme/preferences, React Query, and redirects to `/login`.
+
+Security details (cookie families, SecurityStamp, CSRF): [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
 
 ### Route protection (layers)
 
@@ -476,10 +491,10 @@ Optional **custom website domains** map Host → tenant via verified `TenantDoma
 
 ### Tenant identification (API)
 
-| Environment     | Mechanism                                                      |
-| --------------- | -------------------------------------------------------------- |
-| **Production**  | JWT `tenant_id` after auth; Host reserved labels are not slugs |
-| **Development** | `X-Tenant-Id: {slug}` and/or `?tenant={slug}` (slug, not UUID) |
+| Environment     | Mechanism                                                                 |
+| --------------- | ------------------------------------------------------------------------- |
+| **Production**  | JWT `tenant_id` after auth; Host reserved labels are not slugs            |
+| **Development** | Prefer `X-Tenant-Id: {slug}`; `?tenant={slug}` is backend fallback only |
 
 ### Data isolation
 
@@ -493,7 +508,7 @@ Optional **custom website domains** map Host → tenant via verified `TenantDoma
 
 - Local FA: often `http://admin.regkasse.local:3000` with hosts-file entry
 - Dev tenant selector in the header: `HeaderDevTenantSwitch` → `GET /api/tenants/switcher`
-- Selection persists slug (`localStorage` / `dev_tenant_id`) and sets **`X-Tenant-Id`** on API calls, then reloads
+- Selection persists slug (`localStorage` / `dev_tenant_id`) and sets **`X-Tenant-Id`** on API calls (FA does **not** auto-inject `?tenant=`), then reloads
 - Backend must be `ASPNETCORE_ENVIRONMENT=Development` for header/query resolution
 
 See [Tenant Switching](#tenant-switching) and [`docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md).
@@ -669,7 +684,7 @@ Full guide: [`docs/MONITORING.md`](docs/MONITORING.md). Alert recipes: [`monitor
 | **FA process health** | `/api/monitoring/health` (uptime, memory, Sentry flag) | Probe + `/admin/monitoring` |
 | **Web Vitals** | See [Performance monitoring](#performance-monitoring) | LCP > 2.5 s |
 
-**In-app dashboard (Super Admin):** `/admin/monitoring` — live error rate, p50/p95/p99, health probe, recent sanitized API calls.
+**In-app dashboard (Super Admin):** `/admin/monitoring` — live error rate, p50/p95/p99, health probe, recent sanitized API calls, and a Health card for API live/ready, the last five restore drills, the last `BackupDrillReportSent` audit row, and the Sentry environment.
 
 ```bash
 curl -sS http://localhost:3000/health
@@ -704,7 +719,7 @@ npm run test -- src/lib/monitoring/__tests__/webVitalsBudgets.test.ts
 | `/rksv` shows **INVALID** | Value not `TEST`/`PROD` | Fix env and restart/rebuild; production `next build` fails on invalid values. |
 | Env changes ignored | `.env.local` at **repo root** or only runtime env after image build | Place env in **`frontend-admin/.env.local`**; `NEXT_PUBLIC_*` must exist **before** `next build` / `next dev` compile. |
 | **API client out of sync** / Orval types wrong | `swagger.json` or `src/api/generated` drifted | From repo root: `node scripts/generate-backend-openapi.mjs` → `cd frontend-admin && npm run generate:api` → `node scripts/verify-api-client.mjs`. CI: `api-client-alignment.yml`. |
-| Redirect loop / always `/login` | Missing/expired JWT cookie | Clear site data; log in again; confirm `authStorage` writes `rk_admin_access_token` cookie for `proxy.ts`. |
+| Redirect loop / always `/login` | Missing/expired session cookie | Clear site data; log in again; confirm API set HttpOnly `rk_admin_access_token` and FA wrote `rk_admin_edge_session`. |
 | Inline **403** with sidebar visible | Authenticated but missing route permission | Expected (`PermissionRouteGuard`). Check role matrix / `ROUTE_PERMISSIONS`. |
 | Wrong tenant data in **Development** | Stale `dev_tenant_id` / switcher | Use header tenant switcher; confirm `X-Tenant-Id` on requests; backend must be Development. |
 | Production tenant header ignored | `X-Tenant-Id` not used in Production | Correct — use JWT / impersonation. See [`docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md). |
@@ -723,6 +738,29 @@ npm run test -- src/lib/monitoring/__tests__/webVitalsBudgets.test.ts
 | No Speed Insights data | Not on Vercel, or insights disabled | Vercel-hosted only for that dashboard; use Sentry Web Vitals elsewhere. Set `NEXT_PUBLIC_SPEED_INSIGHTS=true` only if needed locally (still needs Vercel backend). |
 | Web Vitals beacon 404 | `NEXT_PUBLIC_WEB_VITALS_BEACON` not `true` at build | Rebuild with the flag; see [`docs/PERFORMANCE_MONITORING.md`](docs/PERFORMANCE_MONITORING.md). |
 
+## Self-service portal (Mein Konto)
+
+Mandanten-Admin hub (`license.manage`). Super Admin uses the same pages with `system.critical`.
+
+| Page | Route | Notes |
+|------|-------|-------|
+| Mein Konto | `/tenant/portal` | License snapshot, invoices count, onboarding, links |
+| License | `/tenant/license` | Activate / extend unified REGK key (`POST /api/license/activate`) |
+| Invoices | `/tenant/invoices` | Tenant billing invoices + PDF download |
+| Profile | `/tenant/profile` | Own-tenant country card, read-only (`GET /api/company/settings`). User account stays on `/profile`. |
+| Support | `/tenant/support` | Own tickets: `GET/POST /api/admin/support/tickets` |
+
+Logic helpers: `src/features/tenant-portal/utils/tenantPortalDisplay.ts`. Trial banner: `src/features/trial/components/TrialStatusBanner.tsx` (layout-wide).
+
+## Support tickets
+
+| Actor | Route | API |
+|-------|-------|-----|
+| Mandanten-Admin | `/tenant/support` | `/api/admin/support/tickets` |
+| Super Admin inbox | `/admin/support` | `/api/admin/support/admin/tickets` |
+
+Cross-tenant ticket IDs → HTTP 404. Internal staff notes are hidden from tenant GET. Notifications: activity feed + Super Admin email.
+
 ## Super Admin Features
 
 Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperAdmin`** or `system.critical`.
@@ -734,6 +772,8 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | Impersonate (“Login as”)                       | list / detail / home selector | `impersonateAdminTenant`, `ImpersonationRedirectOverlay`                                                                       |
 | Platform home (pick tenant)                    | `/admin`                      | `SuperAdminTenantSelector`                                                                                                     |
 | Server license (On-Premise)                    | `/admin/license`              | `api/manual/adminLicense.ts` — **Server-Lizenz**; not Mandantenlizenz (see header badge)                                       |
+| Trial dashboard                                | `/admin/trials`               | `GET /api/admin/trials`, grant/extend/convert (`system.critical`)                                                              |
+| Support inbox                                  | `/admin/support`              | `/api/admin/support/admin/tickets`                                                                                             |
 | Billing tenant license (docs)                  | —                             | [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md); Mandanten-Admin API `POST /api/admin/license/extend` |
 
 **Create tenant** runs backend `TenantProvisioningService` (cash register, demo products, owner admin, optional 30-day trial). Success modal shows one-time credentials.
@@ -749,6 +789,18 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 **Customer onboarding:** `CreateTenantWizard` on tenant list — see [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md).
 
 **Impersonation (production):** redirect to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` — [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
+
+### Profile simulation
+
+The header select **Profil simulieren** (`SuperAdminProfileSimulationSelect`) is Super Admin only and is hidden during impersonation. It filters the admin sidebar. It does not write `company_settings.vertical_profile_id`.
+
+| Option | Sidebar |
+| ------ | ------- |
+| Alle Profile | Every profile menu |
+| Aktuelles Mandantenprofil | The ambient tenant profile (the seeded `dev` mandant is gastronomy) |
+| A catalog profile (for example Tierarztpraxis) | Menus for that profile only |
+
+The choice is stored in `localStorage` and the sidebar re-renders immediately. Changing a tenant's saved profile is a separate action on the tenant editor: `GET /api/admin/tenants/{id}/profile-impact` lists hidden historical rows, the editor asks for confirmation, then the PUT refreshes the sidebar without waiting for the profile query cache. See [`../docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md).
 
 **Docs index:** [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/BILLING_TENANT_LICENSE.md`](../docs/BILLING_TENANT_LICENSE.md), [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md), [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md), [`../docs/CASH_REGISTER_LIFECYCLE.md`](../docs/CASH_REGISTER_LIFECYCLE.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md), [`../docs/BACKUP_SYSTEM.md`](../docs/BACKUP_SYSTEM.md).
 

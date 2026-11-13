@@ -4,6 +4,24 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-08-08 — Production readiness wave (Audit / DEP / Dashboard widgets)
+
+**Reference:** [`RELEASE_NOTES_2026-08-08.md`](RELEASE_NOTES_2026-08-08.md) · [`FIXES.md`](FIXES.md) · [`../DEPLOYMENT.md`](../DEPLOYMENT.md)
+
+### Fixes / features
+
+- AuditLog Manager 500 (ignored `User` navigation)
+- DEP Soft TSE cert fallback (demo/sim only) + history status string enum
+- Manager dashboard widgets into existing DnD preferences pipeline (Handlungsbedarf pinned)
+- EF snapshot-only sync migration for clean `has-pending-model-changes`
+
+### Ops
+
+- Expanded Production config checklist + Staging→Canary→Production deploy notes in `DEPLOYMENT.md`
+- Pre-deploy: migrations list, snapshot gate, smoke after cutover
+
+---
+
 ## 2026-07-29 — Production Docker, CI/CD docs, monitoring stack
 
 **Reference:** [`DOCKER_PRODUCTION.md`](DOCKER_PRODUCTION.md) · [`DOCKER_PRODUCTION_READINESS.md`](DOCKER_PRODUCTION_READINESS.md) · [`CI_CD.md`](CI_CD.md) · [`MONITORING.md`](MONITORING.md)

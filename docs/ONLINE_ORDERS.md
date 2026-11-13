@@ -1,7 +1,7 @@
 # Online Orders — User & Operator Guide
 
 > **Scope:** Customer orders from a tenant website, PWA, or native app.  
-> **Not in scope:** POS carts as the Manager fulfillment path, TSE signing, RKSV receipts, `payment_details` fiscal chain.
+> **Not in scope:** POS carts as the Manager fulfillment path, TSE signing, RKSV receipts, `payment_details` fiscal chain. POS **Kreditkarte / PayPal** gateway checkout is documented in [`ONLINE_PAYMENTS.md`](ONLINE_PAYMENTS.md).
 
 **Last updated:** 2026-07-19
 

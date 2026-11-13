@@ -155,7 +155,7 @@ public sealed class SubscriptionServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var audit = new Mock<IBillingAuditService>();
         audit.Setup(a => a.LogAsync(
                 It.IsAny<string>(),

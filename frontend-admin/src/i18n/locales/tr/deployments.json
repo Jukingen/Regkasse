@@ -109,5 +109,40 @@
       "success": "Kiracı rollback tetiklendi.",
       "failed": "Kiracı rollback başarısız."
     }
+  },
+  "goLive": {
+    "pageTitle": "Production Readiness",
+    "accessDenied": "Go-live durumunu yalnızca Super Admin görebilir.",
+    "introBody": "Fiskaly, yapılandırma, FinanzOnline, yedek, monitoring ve imza için otomatik GO/NO-GO.",
+    "verdict": "Durum",
+    "statusGo": "GO",
+    "statusNoGo": "NO-GO",
+    "statusUnknown": "Bilinmiyor",
+    "notReady": "Production HAZIR DEĞİL",
+    "ready": "Tüm koşullar karşılandı",
+    "recheck": "Yeniden kontrol et",
+    "loadFailed": "Go-live durumu yüklenemedi.",
+    "checkedAt": "Kontrol: {{when}}",
+    "missingCount": "{{count}} koşul eksik.",
+    "humanNote": "Host kanıtı ve insan imzaları (GO_LIVE_CHECKLIST §8) bu servis tarafından sahte üretilemez.",
+    "linkDashboard": "Deployment panosu",
+    "noChecks": "Henüz kontrol yok",
+    "passed": "Geçti",
+    "failed": "Kaldı",
+    "columns": {
+      "name": "Kontrol",
+      "category": "Kategori",
+      "passed": "Sonuç",
+      "details": "Ayrıntılar",
+      "remediation": "Düzeltme"
+    },
+    "checks": {
+      "fiskaly": "Fiskaly LIVE",
+      "configuration": "Yapılandırma",
+      "fon": "FinanzOnline",
+      "backup": "Yedek",
+      "monitoring": "Monitoring",
+      "signOff": "İmza"
+    }
   }
 }

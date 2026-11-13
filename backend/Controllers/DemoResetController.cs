@@ -227,7 +227,7 @@ public sealed class DemoResetController : ControllerBase
         _db.Customers.Add(new Customer
         {
             Id = DemoGuestCustomerId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = DemoGuestCustomerName,
             CustomerNumber = "GUEST-0001",
             Email = "guest@demo.local",

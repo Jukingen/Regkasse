@@ -90,7 +90,7 @@ public sealed class TagesabschlussReportService : ITagesabschlussReportService
     public string GetRksvFooter(IHostEnvironment env)
     {
         ArgumentNullException.ThrowIfNull(env);
-        return RksvEnvironmentService.FormatFooter(env.IsDevelopment() || env.IsStaging());
+        return _rksvEnvironment.GetRksvFooter();
     }
 
     /// <inheritdoc />

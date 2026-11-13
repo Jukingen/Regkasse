@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -41,6 +42,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IOperationLogService _operationLogs;
         private readonly IProductPriceHistoryService _priceHistoryService;
         private readonly IPriceChangeService _priceChangeService;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
 
         public AdminProductsController(
             AppDbContext context,
@@ -57,7 +59,8 @@ namespace KasseAPI_Final.Controllers
             IProductExportService productExport,
             IOperationLogService operationLogs,
             IProductPriceHistoryService priceHistoryService,
-            IPriceChangeService priceChangeService)
+            IPriceChangeService priceChangeService,
+            ITenantLimitGuard? tenantLimitGuard = null)
             : base(logger)
         {
             _context = context;
@@ -74,6 +77,7 @@ namespace KasseAPI_Final.Controllers
             _operationLogs = operationLogs;
             _priceHistoryService = priceHistoryService;
             _priceChangeService = priceChangeService;
+            _tenantLimitGuard = tenantLimitGuard;
         }
 
         /// <summary>
@@ -260,6 +264,9 @@ namespace KasseAPI_Final.Controllers
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
+                product.HasVariants = await _context.ProductVariants
+                    .AsNoTracking()
+                    .AnyAsync(variant => variant.ProductId == product.Id);
                 return SuccessResponse(AdminProductDto.FromProduct(product), "Product retrieved");
             }
             catch (Exception ex)
@@ -272,21 +279,58 @@ namespace KasseAPI_Final.Controllers
         /// Ürün ara (name, category adı). GET api/admin/products/search
         /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? name = null, [FromQuery] string? category = null)
+        public async Task<IActionResult> Search(
+            [FromQuery] string? name = null,
+            [FromQuery] string? category = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 100);
+
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var useILike = _context.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
                 if (!string.IsNullOrWhiteSpace(name))
-                    query = query.Where(p => p.Name.ToLower().Contains(name.Trim().ToLower()));
-                if (!string.IsNullOrWhiteSpace(category))
-                    query = query.Where(p => p.Category != null && p.Category.ToLower().Contains(category.Trim().ToLower()));
+                {
+                    var term = name.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => EF.Functions.ILike(p.Name, pattern))
+                        : query.Where(p => p.Name.ToLower().Contains(term.ToLower()));
+                }
 
-                var products = await query.OrderBy(p => p.Name).ToListAsync();
+                if (!string.IsNullOrWhiteSpace(category))
+                {
+                    var term = category.Trim();
+                    var pattern = $"%{term}%";
+                    query = useILike
+                        ? query.Where(p => p.Category != null && EF.Functions.ILike(p.Category, pattern))
+                        : query.Where(p => p.Category != null && p.Category.ToLower().Contains(term.ToLower()));
+                }
+
+                var totalCount = await query.CountAsync();
+                var products = await query
+                    .OrderBy(p => p.Name)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
                 var items = products.Select(AdminProductDto.FromProduct).ToList();
-                _logger.LogInformation("Admin products search: found {Count} products", items.Count);
-                return SuccessResponse(items, $"Found {items.Count} products");
+                var payload = new
+                {
+                    items,
+                    pagination = new
+                    {
+                        pageNumber = page,
+                        pageSize,
+                        totalCount,
+                        totalPages = pageSize == 0 ? 0 : (int)Math.Ceiling((double)totalCount / pageSize),
+                    },
+                };
+                _logger.LogInformation("Admin products search: page {Page}, total {Total}", page, totalCount);
+                return SuccessResponse(payload, $"Found {totalCount} products");
             }
             catch (Exception ex)
             {
@@ -318,6 +362,22 @@ namespace KasseAPI_Final.Controllers
                     return ProductAnnotationValidationErrorResponse(product.Id, annotationErrors, "create");
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: null);
+                if (barcodeError != null)
+                    return barcodeError;
+
+                if (_tenantLimitGuard != null)
+                {
+                    try
+                    {
+                        await _tenantLimitGuard.EnsureCanCreateProductAsync(tenantId);
+                    }
+                    catch (LimitExceededException ex)
+                    {
+                        return Conflict(ex.ToConflictBody());
+                    }
+                }
 
                 var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
                 if (!taxGroupResult.IsValid)
@@ -403,6 +463,10 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Product not found", 404);
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
+                var barcodeError = await NormalizeProductBarcodeAsync(product, tenantId, exceptProductId: id);
+                if (barcodeError != null)
+                    return barcodeError;
 
                 var taxGroupResult = await ApplyTaxGroupAsync(product, tenantId);
                 if (!taxGroupResult.IsValid)
@@ -566,6 +630,10 @@ namespace KasseAPI_Final.Controllers
             existing.StockQuantity = incoming.StockQuantity;
             existing.MinStockLevel = incoming.MinStockLevel;
             existing.Unit = incoming.Unit;
+            existing.DurationMinutes = incoming.DurationMinutes;
+            existing.StaffId = incoming.StaffId;
+            existing.ImeiTracked = incoming.ImeiTracked;
+            existing.IsTicket = incoming.IsTicket;
             existing.Cost = incoming.Cost;
             existing.Barcode = incoming.Barcode;
             existing.ImageUrl = incoming.ImageUrl;
@@ -628,7 +696,7 @@ namespace KasseAPI_Final.Controllers
                 innerMessage);
 
             if (IsBarcodeDuplicateViolation(ex))
-                return ErrorResponse("A product with this barcode already exists for this tenant.", 409);
+                return BarcodeDuplicateResponse();
 
             if (IsNotNullColumnViolation(ex, "description"))
                 return ErrorResponse("Product description cannot be empty.", 400);
@@ -648,8 +716,38 @@ namespace KasseAPI_Final.Controllers
 
         private const int ProductNameMaxLength = 200;
         private const int ProductDescriptionMaxLength = 2000;
-        private const int ProductBarcodeMaxLength = 50;
         private const int ProductImageUrlMaxLength = 500;
+
+        private async Task<IActionResult?> NormalizeProductBarcodeAsync(
+            Product product,
+            Guid tenantId,
+            Guid? exceptProductId)
+        {
+            var prepared = await _productService.PrepareBarcodeAsync(tenantId, product.Barcode, exceptProductId);
+            if (prepared is null)
+            {
+                product.Barcode = ProductBarcodeRules.Normalize(product.Barcode);
+                return null;
+            }
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Invalid)
+                return ErrorResponse(prepared.Message ?? "Barcode is invalid.", 400);
+
+            if (prepared.Status == ProductBarcodeWriteStatus.Duplicate)
+                return BarcodeDuplicateResponse();
+
+            product.Barcode = prepared.Barcode;
+            return null;
+        }
+
+        private IActionResult BarcodeDuplicateResponse() =>
+            Conflict(new
+            {
+                success = false,
+                code = ProductBarcodeWriteResult.DuplicateCode,
+                message = "A product with this barcode already exists for this tenant.",
+                timestamp = DateTime.UtcNow,
+            });
 
         private static string? GetProductFieldLengthViolation(Product product)
         {
@@ -672,8 +770,8 @@ namespace KasseAPI_Final.Controllers
             if (ExceedsMaxLength(product.DescriptionTr, ProductDescriptionMaxLength))
                 return $"Turkish description must be at most {ProductDescriptionMaxLength} characters.";
 
-            if (product.Barcode.Length > ProductBarcodeMaxLength)
-                return $"Barcode must be at most {ProductBarcodeMaxLength} characters.";
+            if (ExceedsMaxLength(product.Barcode, ProductBarcodeRules.MaxLength))
+                return $"Barcode must be at most {ProductBarcodeRules.MaxLength} characters.";
 
             if (ExceedsMaxLength(product.ImageUrl, ProductImageUrlMaxLength))
                 return $"Image URL must be at most {ProductImageUrlMaxLength} characters.";

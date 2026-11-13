@@ -22,7 +22,10 @@ public interface ICoreMetrics
     void SetPayloadHashCompletionPercent(double percent);
     void RecordFinanzOnlineSubmit(int count = 1);
     void RecordFinanzOnlineFailed(FinanzOnlineFailureKind kind, int count = 1);
-    /// <summary>Legacy alias route hits: <paramref name="legacyFamily"/> is payment|cart|product; <paramref name="routePattern"/> is normalized request path (GUIDs as {id}).</summary>
+    /// <summary>
+    /// Historical counter for removed <c>/api/Payment|/api/Cart|/api/Product</c> aliases (always zero after 2026-08-13).
+    /// Kept so existing Grafana dashboards do not break.
+    /// </summary>
     void RecordLegacyRouteHit(string legacyFamily, string routePattern, string httpMethod, int count = 1);
 }
 
@@ -95,7 +98,7 @@ public sealed class CoreMetrics : ICoreMetrics
 
         _legacyRouteHitsTotal = global::Prometheus.Metrics.CreateCounter(
             "legacy_route_hits_total",
-            "Total number of requests hitting deprecated legacy API aliases (/api/Payment, /api/Cart, /api/Product).",
+            "Removed alias hits (/api/Payment, /api/Cart, /api/Product). Expected zero after 2026-08-13 hard-remove.",
             new CounterConfiguration { LabelNames = ["legacy_family", "route_pattern", "http_method"] });
     }
 

@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { Alert } from 'react-native';
 
+import i18n from '../i18n';
 import {
   areLicenseChecksBypassedInDevelopment,
   ensureLicenseAllowsCriticalAction,
@@ -21,7 +22,10 @@ export async function checkLicenseBeforePayment(t: TFunction): Promise<boolean> 
   const status = getCachedLicenseStatus();
 
   if (status && isLicenseExpiredForCriticalActions(status)) {
-    Alert.alert('Lizenz abgelaufen', 'Bitte kontaktieren Sie Ihren Administrator');
+    Alert.alert(
+      i18n.t('payment:errors.licenseLockedTitle'),
+      i18n.t('payment:errors.licenseLocked')
+    );
     return false;
   }
 

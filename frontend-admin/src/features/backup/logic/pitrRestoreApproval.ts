@@ -31,7 +31,8 @@ export function buildPitrRestoreReason(params: {
 }
 
 /**
- * Queues validation-only restore using the PITR base backup — second Super Admin approval required.
+ * Queues validation-only restore using the PITR base backup.
+ * Development Super Admin auto-executes; otherwise second Super Admin approval is required.
  */
 export async function triggerPitrRestoreWithApproval(params: {
   targetTime: Date;

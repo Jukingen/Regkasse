@@ -27,12 +27,15 @@ public sealed class DemoProductImportServiceTests
         throw new InvalidOperationException("Could not locate backend/Data/demo-products.json for tests.");
     }
 
+    /// <summary>Ambient tenant must be the tenant being imported, otherwise EF global filters hide the seeded rows.</summary>
+    private static readonly Guid DemoTenantId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddd0001");
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"demo_import_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(DemoTenantId));
     }
 
     private static DemoProductImportService CreateService(AppDbContext db)
@@ -50,7 +53,7 @@ public sealed class DemoProductImportServiceTests
     {
         var tenant = new Tenant
         {
-            Id = Guid.NewGuid(),
+            Id = DemoTenantId,
             Name = "Pizzeria Demo",
             Slug = "pizzeria-demo",
             Status = TenantStatuses.Active,
@@ -221,7 +224,7 @@ public sealed class DemoProductImportServiceTests
         Skip.If(string.IsNullOrWhiteSpace(cs), "Set ConnectionStrings__DefaultConnection for local PG verification.");
 
         var options = new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options;
-        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        await using var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var tenantId = DemoTenantIds.Prod;
         Skip.If(!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == tenantId), "Cafe tenant missing; run migrations first.");
 

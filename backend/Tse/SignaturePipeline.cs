@@ -176,25 +176,40 @@ namespace KasseAPI_Final.Tse
                 return steps;
             }
 
-            var parts = compactJws.Split('.');
+            var parsed = JwsParser.Parse(compactJws);
+            var useNormalizedJws = parsed.Success
+                && parsed.Format is JwsWireFormat.FiskalyMachineCode or JwsWireFormat.RksvQrWithCompactJws;
+            var jwsForCrypto = useNormalizedJws ? parsed.CompactJws : compactJws.Trim();
+            var parts = useNormalizedJws
+                ? parsed.CompactJws.Split('.')
+                : compactJws.Trim().Split('.');
 
             // Step 2: JWS format (3 parts)
-            var (step2Status, step2Evidence) = CheckJwsFormat(parts);
+            var (step2Status, step2Evidence) = parsed.Success
+                ? CheckJwsFormat(parts)
+                : ("FAIL", parsed.Error ?? $"Expected 3 parts, got {parts.Length}");
+            if (step2Status == "PASS" && parsed.Format == JwsWireFormat.FiskalyMachineCode)
+                step2Evidence = "header.payload.signature reconstructed from Fiskaly RKSV QR";
+            else if (step2Status == "PASS" && parsed.Format == JwsWireFormat.RksvQrWithCompactJws)
+                step2Evidence = "header.payload.signature extracted from RKSV QR wire";
             steps.Add(new SignatureDiagnosticStep(2, "JWS format", step2Status, step2Evidence));
 
             // Step 5: Base64URL padding (check before decode)
             var (step5Status, step5Evidence) = CheckBase64UrlPadding(parts);
+            if (step5Status == "PASS" && parsed.Format == JwsWireFormat.FiskalyMachineCode)
+                step5Evidence = "Normalized Fiskaly Base64 Sig-Wert to Base64URL (no padding)";
             steps.Add(new SignatureDiagnosticStep(5, "Base64URL padding", step5Status, step5Evidence));
 
             byte[]? signatureBytes = null;
-            var signingInput = parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : string.Empty;
+            var cryptoParts = jwsForCrypto.Split('.');
+            var signingInput = cryptoParts.Length >= 2 ? $"{cryptoParts[0]}.{cryptoParts[1]}" : string.Empty;
 
             // Step 3: Hash
-            if (parts.Length == 3 && step5Status == "PASS")
+            if (cryptoParts.Length == 3 && step5Status == "PASS" && parsed.Success)
             {
                 try
                 {
-                    signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(parts[2]);
+                    signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(cryptoParts[2]);
                     _ = TseCryptoHelper.Sha256Hash(signingInput);
                     steps.Add(new SignatureDiagnosticStep(3, "Hash", "PASS", $"SHA-256({signingInput.Length} chars)"));
                 }
@@ -317,7 +332,13 @@ namespace KasseAPI_Final.Tse
             correlationId ??= Guid.NewGuid().ToString("N")[..12];
             _logger.LogInformation("SignaturePipeline.Verify started, correlationId={CorrelationId}, step=init", correlationId);
 
-            var parts = compactJws.Split('.');
+            var parsed = JwsParser.Parse(compactJws);
+            var toVerify = parsed.Success
+                && parsed.Format is JwsWireFormat.FiskalyMachineCode or JwsWireFormat.RksvQrWithCompactJws
+                    ? parsed.CompactJws
+                    : compactJws;
+
+            var parts = toVerify.Split('.');
             if (parts.Length != 3)
             {
                 _logger.LogWarning("SignaturePipeline.Verify correlationId={CorrelationId}, step=fail, reason=invalid_parts_count", correlationId);

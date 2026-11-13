@@ -1,12 +1,45 @@
 {
   "pageTitle": "Schichten & Tagesabschlüsse",
   "intro": "Operative POS-Schichten des Mandanten: aktive Schichten, Verlauf und verknüpfte Tagesabschlüsse (Kassenzählung + fiskalischer Abschluss).",
+  "userId": "Benutzer-ID",
   "filters": {
     "register": "Kasse",
     "allRegisters": "Alle Kassen",
     "from": "Von",
     "to": "Bis",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "cashier": "Kassierer",
+    "allCashiers": "Alle Kassierer",
+    "status": "Status",
+    "allStatuses": "Alle Status",
+    "searchPlaceholder": "Suche: Kasse oder Name"
+  },
+  "grouping": {
+    "registerHeader": "{{register}} ({{count}} Schichten)"
+  },
+  "summary": {
+    "filteredTotal": "Summe (gefiltert)",
+    "shiftCount": "Schichten",
+    "totalSales": "Umsatz",
+    "totalCash": "Bar",
+    "totalCard": "Karte",
+    "totalDifference": "Differenz"
+  },
+  "tooltips": {
+    "cashierName": "Name",
+    "registerNumber": "Kassennummer",
+    "registerId": "Kassen-ID"
+  },
+  "details": {
+    "title": "Schichtdetails",
+    "close": "Schließen",
+    "paymentBreakdown": "Zahlungsaufschlüsselung",
+    "differenceExplanation": "Differenz-Erklärung",
+    "differenceBalanced": "Keine Differenz: gezähltes Bargeld entspricht dem erwarteten Bestand.",
+    "differenceDiscrepancy": "Differenz erkannt: gezähltes Bargeld weicht vom erwarteten Bestand ab.",
+    "differenceOther": "Differenz aus Start-/Endbestand und gezähltem Bargeld.",
+    "notes": "Notizen",
+    "openDailyClosing": "Zum Tagesabschluss"
   },
   "sections": {
     "active": "Aktive Schichten",
@@ -35,7 +68,7 @@
     "fiscalStatus": "Fiskalstatus"
   },
   "status": {
-    "Active": "Aktiv",
+    "Active": "Offen",
     "Completed": "Abgeschlossen",
     "Discrepancy": "Differenz",
     "RegisterOpen": "Kasse geöffnet"
@@ -49,7 +82,8 @@
     "forceCloseTitle": "Schicht erzwingen schließen?",
     "forceCloseConfirm": "Die Kasse wird geschlossen und aktive Schichtzeilen beendet. Verwenden Sie dies nur, wenn die Schicht hängen geblieben ist.",
     "forceCloseSuccess": "Schicht/Kasse wurde geschlossen.",
-    "forceCloseFailed": "Schicht konnte nicht geschlossen werden."
+    "forceCloseFailed": "Schicht konnte nicht geschlossen werden.",
+    "details": "Details"
   },
   "warnings": {
     "staleShiftsTitle": "Lange offene Schichten",

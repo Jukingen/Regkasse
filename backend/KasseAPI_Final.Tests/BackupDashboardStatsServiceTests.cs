@@ -1,5 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
@@ -123,6 +124,59 @@ public sealed class BackupDashboardStatsServiceTests
         var stats = await sut.GetAsync();
 
         Assert.Equal(20, stats.RtoMinutes);
+        Assert.Equal(completed, stats.LastSuccessfulRestoreDrillAtUtc);
+    }
+
+    [Fact]
+    public async Task GetAsync_ManualRestoreSuccess_DoesNotSetScheduledDrillProof()
+    {
+        var now = new DateTime(2026, 5, 27, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_ManualRestoreSuccess_DoesNotSetScheduledDrillProof), now);
+        var scheduledAt = now.AddDays(-3);
+        var manualAt = now.AddHours(-1);
+
+        db.RestoreVerificationRuns.AddRange(
+            new RestoreVerificationRun
+            {
+                Status = RestoreVerificationStatus.Succeeded,
+                TriggerSource = RestoreVerificationTriggerSource.Scheduled,
+                RequestedAt = scheduledAt.AddMinutes(-5),
+                StartedAt = scheduledAt.AddMinutes(-5),
+                CompletedAt = scheduledAt,
+            },
+            new RestoreVerificationRun
+            {
+                Status = RestoreVerificationStatus.Succeeded,
+                TriggerSource = RestoreVerificationTriggerSource.Manual,
+                RequestedAt = manualAt.AddMinutes(-10),
+                StartedAt = manualAt.AddMinutes(-10),
+                CompletedAt = manualAt,
+            });
+        await db.SaveChangesAsync();
+
+        var stats = await sut.GetAsync();
+
+        Assert.Equal(scheduledAt, stats.LastSuccessfulRestoreDrillAtUtc);
+    }
+
+    [Fact]
+    public async Task GetAsync_OnlyManualRestoreSuccess_LeavesDrillProofEmpty()
+    {
+        var now = new DateTime(2026, 5, 27, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_OnlyManualRestoreSuccess_LeavesDrillProofEmpty), now);
+
+        db.RestoreVerificationRuns.Add(new RestoreVerificationRun
+        {
+            Status = RestoreVerificationStatus.Succeeded,
+            TriggerSource = RestoreVerificationTriggerSource.Manual,
+            RequestedAt = now.AddHours(-1),
+            CompletedAt = now.AddHours(-1),
+        });
+        await db.SaveChangesAsync();
+
+        var stats = await sut.GetAsync();
+
+        Assert.Null(stats.LastSuccessfulRestoreDrillAtUtc);
     }
 
     [Fact]
@@ -162,6 +216,79 @@ public sealed class BackupDashboardStatsServiceTests
         Assert.Equal(1, stats.TerminalRuns30Days);
         Assert.Equal(1, stats.SucceededRuns30Days);
         Assert.Single(stats.History30Days);
+    }
+
+    [Fact]
+    public async Task GetAsync_ComputesHealthScoreAndRpoStatus()
+    {
+        var now = new DateTime(2026, 8, 11, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_ComputesHealthScoreAndRpoStatus), now);
+
+        db.BackupRuns.Add(new BackupRun
+        {
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = "PgDump",
+            Strategy = BackupStrategyKind.System,
+            RequestedAt = now.AddHours(-3),
+            StartedAt = now.AddHours(-3),
+            CompletedAt = now.AddHours(-3).AddMinutes(4),
+            Artifacts =
+            {
+                new BackupArtifact
+                {
+                    ArtifactType = BackupArtifactType.LogicalDump,
+                    StorageDescriptor = "ok.dump",
+                    ByteSize = 2048,
+                }
+            }
+        });
+        await db.SaveChangesAsync();
+
+        var stats = await sut.GetAsync();
+
+        Assert.Equal("Healthy", stats.RpoStatus);
+        Assert.InRange(stats.HealthScore, 50, 100);
+        Assert.Contains(stats.HealthLevel, new[] { "healthy", "warning", "critical" });
+        Assert.NotNull(stats.ContentValidationSummary);
+        Assert.Equal("available", stats.ContentValidationSummary!.Status);
+
+        var health = await sut.GetHealthAsync();
+        Assert.Equal(stats.HealthScore, health.HealthScore);
+        Assert.Equal(stats.HealthLevel, health.HealthLevel);
+        Assert.Equal("Healthy", health.RpoStatus);
+        Assert.Equal("None", health.VerificationStatus);
+        Assert.Equal("unknown", health.ContentValidationStatus);
+    }
+
+    [Theory]
+    [InlineData(100, "healthy")]
+    [InlineData(80, "healthy")]
+    [InlineData(79, "warning")]
+    [InlineData(50, "warning")]
+    [InlineData(49, "critical")]
+    [InlineData(0, "critical")]
+    public void MapHealth_UsesScoreBands(int score, string expectedLevel)
+    {
+        var health = BackupDashboardStatsService.MapHealth(new BackupDashboardStatsResponseDto
+        {
+            HealthScore = score,
+            HealthLevel = "ignored",
+            RpoStatus = "Healthy",
+            ConfigurationHealth = new BackupConfigurationHealthResponseDto { Level = "Healthy" },
+            ArtifactPipelinePolicy = new BackupArtifactPipelinePolicyResponseDto(),
+            ContentValidationSummary = new BackupDashboardContentValidationSummaryDto
+            {
+                Status = "passed",
+                Summary = "ok",
+            },
+            LastVerificationStatus = BackupVerificationStatus.Passed,
+        });
+
+        Assert.Equal(expectedLevel, health.HealthLevel);
+        Assert.Equal("Passed", health.VerificationStatus);
+        Assert.Equal("passed", health.ContentValidationStatus);
+        Assert.Equal("Healthy", health.RpoStatus);
     }
 
     private sealed class FakeTimeProvider(DateTime utcNow) : TimeProvider

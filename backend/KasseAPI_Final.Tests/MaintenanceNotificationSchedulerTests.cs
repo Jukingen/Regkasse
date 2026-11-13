@@ -33,6 +33,14 @@ public sealed class MaintenanceNotificationSchedulerTests
             Events.Add((tenantId, type, dedupKey));
             return Task.CompletedTask;
         }
+
+        public Task TryPublishAsync(
+            ActivityEventPublishRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Events.Add((request.TenantId, request.Type, request.DedupKey));
+            return Task.CompletedTask;
+        }
     }
 
     private static (MaintenanceNotificationScheduler Scheduler, AppDbContext Db, CapturingActivityPublisher Activity)

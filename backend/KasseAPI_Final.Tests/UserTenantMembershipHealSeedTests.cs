@@ -24,9 +24,9 @@ public sealed class UserTenantMembershipHealSeedTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
         });
@@ -41,7 +41,7 @@ public sealed class UserTenantMembershipHealSeedTests
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "manager1",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
         });
@@ -61,7 +61,7 @@ public sealed class UserTenantMembershipHealSeedTests
             .Where(m => m.UserId == "manager1")
             .OrderBy(m => m.TenantId)
             .ToListAsync();
-        Assert.False(rows.Single(m => m.TenantId == LegacyDefaultTenantIds.Primary).IsActive);
+        Assert.False(rows.Single(m => m.TenantId == SystemTenantIds.Platform).IsActive);
         Assert.True(rows.Single(m => m.TenantId == DemoTenantIds.Dev).IsActive);
     }
 
@@ -71,16 +71,16 @@ public sealed class UserTenantMembershipHealSeedTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
         });
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "demo@demo.com",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
         });
@@ -99,9 +99,9 @@ public sealed class UserTenantMembershipHealSeedTests
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
         {
-            Id = LegacyDefaultTenantIds.Primary,
+            Id = SystemTenantIds.Platform,
             Name = "Default",
-            Slug = LegacyDefaultTenantIds.PrimarySlug,
+            Slug = SystemTenantIds.PlatformSlug,
             Status = TenantStatuses.Active,
             IsActive = true,
         });
@@ -116,7 +116,7 @@ public sealed class UserTenantMembershipHealSeedTests
         db.UserTenantMemberships.Add(new UserTenantMembership
         {
             UserId = "cashier1",
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
         });

@@ -11,9 +11,9 @@ Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` 
 
 | Layer | Package / tool | Version (approx.) |
 | ----- | -------------- | ----------------- |
-| Runtime | Expo | `~56.0.18` |
+| Runtime | Expo | `~56.0.23` |
 | UI | React / React Native | `19.2.3` / `0.85.3` |
-| Navigation | `expo-router` | `~56.2.17` |
+| Navigation | `expo-router` | `~56.2.21` |
 | Screens | `react-native-screens` | `~4.26.0` |
 | Language | TypeScript | `~6.0.3` (`strict`, `jsx: react-jsx`) |
 | Bundler | Metro (`expo/metro-config`) | via Expo 56 |
@@ -23,8 +23,9 @@ Versions from `package.json` (Expo SDK **56**). Prefer `npx expo install <pkg>` 
 | UI state | `zustand` | `^5` (ephemeral checkout UI only) |
 | Animations | `react-native-reanimated` + worklets | `4.3.1` / `0.8.3` |
 | Camera / QR | `expo-camera` | `~56.0.8` |
-| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.23` |
-| Build props | `expo-build-properties` | `~56.0.24` |
+| Print / share | `expo-print` / `expo-sharing` | `~56.0.4` / `~56.0.26` |
+| Build props | `expo-build-properties` | `~56.0.27` |
+| OTA | `expo-updates` | `~56.0.28` (`checkAutomatically`: `ON_LOAD`) |
 | Lint / format | ESLint 9 flat + `eslint-config-universe` / Prettier | `^9.39` / `^16` / `^3.9` |
 | Tests | Jest + `jest-expo` + RNTL | `^29` / `~56.0.5` / `^14` |
 
@@ -64,6 +65,7 @@ Copy from `.env.example`. Common keys:
 | `EXPO_PUBLIC_API_BASE_URL` | API base including `/api` (e.g. `http://localhost:5184/api`) |
 | `EXPO_PUBLIC_DEV_TENANT_ID` | Dev tenant slug (`dev` by default in `__DEV__`) |
 | `EXPO_PUBLIC_ADMIN_BASE_URL` | Optional FA base for “extend license” deep links |
+| `EXPO_PUBLIC_SENTRY_DSN` | POS error reporting. Leave empty to keep Sentry off. |
 
 Restart Metro after changing `.env`.
 
@@ -155,6 +157,23 @@ Conventions:
 - Prefer testing-library queries over implementation details.
 - Mock `utils/storage` / `sessionManager` / `apiClient` at module boundaries; do not invent parallel offline queues.
 - Fiscal / payment tests must not assert on voucher plaintext in storage.
+
+## Offline queue UX
+
+POS keeps **two** local queues (`offline_orders` snapshots and `offline_transactions` payment intents). Persistence is unchanged by the header indicator.
+
+| Piece | Path |
+| ----- | ---- |
+| Header dot | `components/OfflineQueueIndicator.tsx` (tabs header) |
+| Detail screen | `app/(screens)/offline-queue.tsx` + `components/OfflineQueuePanel.tsx` |
+| TSE cap bar | `components/OfflineQueueLimitBar.tsx` (`GET /api/pos/offline-limit`) |
+| Cap modal | `components/OfflineLimitReachedModal.tsx` (`offline.limit.*`) |
+| Color rules | `utils/offlineQueueIndicator.ts` |
+| Cap math | `utils/offlineQueueLimit.ts` |
+
+Dot colors: green (online, empty), yellow (online, N syncing/pending), orange (offline, N queued), red (failed/stuck). Tap opens the queue. Fiscal items cannot be deleted; only local payment intents with `tseRequired === false` show **Löschen**.
+
+The queue panel shows tenant TSE-offline usage (`X von 50 Offline-Transaktionen verwendet`) from `GET /api/pos/offline-limit` (`currentOfflineTransactions` / `maxOfflineTransactions`, plus `approachingLimit` / `limitReached`; default cap 50). Local pending intents are merged with the server count. The bar is green 0–79%, yellow (`limitWarning`) 80–99%, and red (`limitExceeded`) at 100%. At the cap, or when payment returns HTTP 409 `LIMIT_EXCEEDED` (`limitKey=maxOfflineTransactions`), POS shows a dismissible modal (*Offline-Limit erreicht. Verkäufe blockiert, bis die Synchronisierung abgeschlossen ist.*) with **Jetzt synchronisieren** and **Abbrechen**. Cancel does not trap the sale UI — the queue remains reachable. POS maps 409 to `payment:errors.limitOfflineQueue`. At ≥80% the activity feed publishes **`OfflineQueueApproachingLimit`** once per crossing. See [`docs/TENANT_LIMITS.md`](../docs/TENANT_LIMITS.md). Hub: [`docs/OFFLINE_SYSTEM_INDEX.md`](../docs/OFFLINE_SYSTEM_INDEX.md).
 
 ## Troubleshooting
 
@@ -253,6 +272,61 @@ posCheckoutUiActions.setSelectedPaymentMethodType('cash');
 
 Primary Zustand consumer today: `components/PaymentModal.tsx`.
 
+## Deep links and onboarding
+
+`app.json` `scheme` is `cashregister` and `regkasse`.
+
+| Link | Result |
+| ---- | ------ |
+| `regkasse://tenant/{slug}` | POS stores the slug. Signed out → login with that mandant prefilled. Signed in → cash register. |
+| `cashregister://tenant/{slug}` | Same route as `regkasse://tenant/{slug}`. |
+| Web `http://localhost:8081/tenant/{slug}` | Same handoff in the browser (`/login?tenant={slug}`). |
+
+Login can show `Regkasse — {industry}` from the public tenant profile before authentication. After the first successful login, `app/(auth)/onboarding.tsx` shows two or three profile slides (skip, next, done). The seen flag is `pos_onboarding_seen_v1`. Customer-surface builds still open `/customer`. Payment return stays `regkasse://payment-result`.
+
+One install handles every profile. Details: [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (Single Universal App vs. Per-Industry Binaries).
+
+## Vertical profiles
+
+After an authenticated POS session is restored or created, `VerticalProfileProvider`
+loads `GET /api/pos/vertical-profile`. The effective profile is cached under a
+tenant-scoped key through `secureStorage` (SecureStore on native, localStorage on web),
+so a previously loaded profile remains available offline without crossing tenant
+boundaries. Native builds stay a **single binary**; the profile is not an EAS flavor
+(see [Native build](#native-build)).
+
+Provider and hooks:
+
+```tsx
+import { IfVerticalFeature } from '@/components/IfVerticalFeature';
+import { DynamicField } from '@/components/DynamicField';
+import { useVerticalFeatures } from '@/contexts/VerticalProfileContext';
+
+const { posFeatures, requiredFields, optionalFields, posLayout } =
+  useVerticalFeatures();
+
+<IfVerticalFeature feature="patientRecord">
+  <DynamicField name="petName" entity="customer" />
+</IfVerticalFeature>;
+```
+
+Current web/POS behavior:
+
+- `tables`: table selector and table-order view.
+- `kitchenDisplay`: kitchen tab backed by carts currently loaded on this POS device.
+- `patientRecord`: patient-record tab; customer/pet data is saved through
+  `POST /api/pos/customers`.
+- `appointment`: appointment tab; `posLayout=appointment` opens it by default and
+  bookings are cached per tenant for the web-first phase.
+- `imeiTracking`: profile-driven IMEI/serial-number field in the product area.
+- `routeTracking`: profile-driven route field in the order area.
+- `posLayout=tables`: opens the table-order view by default.
+
+Rezept persistence, appointment server synchronization, staff-directory selection,
+IMEI/route persistence, and a shared multi-device kitchen lifecycle require dedicated
+backend contracts in a follow-up. No native binary regeneration is required for this
+TypeScript-only phase.
+
 ## Camera / QR scanning (expo-camera)
 
 | Item | Detail |
@@ -272,7 +346,7 @@ Device test: run on a physical iOS/Android device (simulators often lack a real 
 
 | Item | Detail |
 | ---- | ------ |
-| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.23 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
+| Versions | `expo-print` ~56.0.4, `expo-sharing` ~56.0.26 (Expo SDK 56 — keep via `npx expo install expo-print expo-sharing`) |
 | HTML receipts | `services/receiptFormatter.ts` → thermal layout (`max-width: 300px`), viewport meta, escaped text, RKSV QR as `data:image/png;base64,…` |
 | Print entry | `services/receiptPrinter.ts` → `utils/expoPrintShare.printHtmlAsync` (native print preview; PDF fallback if HTML print fails) |
 | Tagesabschluss | `utils/dailyClosingReportPrint.ts` (HTML + server PDF URI) |
@@ -289,13 +363,13 @@ Device smoke (physical tablet recommended):
 
 | Item | Detail |
 | ---- | ------ |
-| Version | `expo-build-properties` ~56.0.24 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
+| Version | `expo-build-properties` ~56.0.27 (Expo SDK 56 — keep via `npx expo install expo-build-properties`; do **not** jump to 57.x while on SDK 56) |
 | Plugin | `app.json` → `plugins[]` entry for `expo-build-properties` |
 | Android cleartext | `usesCleartextTraffic: true` — required for LAN/`http://` API bases in development and optional on-device API IP (`ApiSettingsModal`) |
 | Android SDK pins | `minSdkVersion` 24, `compileSdkVersion` / `targetSdkVersion` 36, `buildToolsVersion` `36.0.0` (Expo SDK 56 defaults) |
 | iOS | `deploymentTarget` `16.4`; ATS cleartext for localhost/LAN also in `ios.infoPlist.NSAppTransportSecurity` |
-| EAS | `eas.json` production Android APK (`distribution: internal`) |
-| Runtime | `runtimeVersion.policy: sdkVersion` in `app.json` |
+| EAS | Single `production` profile in `eas.json` (internal Android APK). One binary for all verticals — see [Native build](#native-build) |
+| Runtime | `runtimeVersion.policy: sdkVersion` in `app.json`. OTA updates use the same policy so a JS update only applies to binaries built with this SDK. |
 
 After changing this plugin: `npx expo prebuild --clean`, then native build (`eas build` or local Gradle/Xcode). JS-only Metro reload does **not** apply cleartext / SDK pins.
 
@@ -340,7 +414,9 @@ The login field accepts both formats. Usernames are generated automatically when
 1. Cashier enters email **or** username in the login field (`frontend/app/(auth)/login.tsx`).
 2. App calls `POST /api/Auth/login` with `loginIdentifier` (and legacy `email` for compatibility) plus `clientApp: "pos"` (`frontend/services/api/authService.ts`, `contexts/AuthContext.tsx`).
 3. Backend resolves the user by email, then by username, validates password and POS role policy.
-4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap.
+4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap in **SecureStore** (native) / localStorage (web). Backend also sets HttpOnly `rk_pos_*` cookies (distinct from FA `rk_admin_*`) so a shared browser does not collide.
+
+**Logout:** `POST /api/Auth/logout` with Bearer from SecureStore; backend expires `rk_pos_*` cookies, revokes POS refresh sessions, and rotates `SecurityStamp`. The app then clears SecureStore and offline queues. See [`docs/AUTH_LOGOUT.md`](../docs/AUTH_LOGOUT.md).
 
 **Examples:**
 
@@ -467,7 +543,108 @@ Full guide: `REGKASSE_AI_ONBOARDING.md`.
 - **Production:** JWT `tenant_id` on shared API host.
 - **Development:** `X-Tenant-Id: {slug}` or `?tenant={slug}`.
 
-## Native Android / iOS workflow (CNG)
+## Native build
+
+### Single binary (default)
+
+Regkasse POS ships **one** native binary for every mandant. [`app.json`](app.json) is the base identity (`name`: Cash Register, Android `package` / iOS `bundleIdentifier`: `com.registrierkasse.cashregister`, one `version`). After login, `VerticalProfileProvider` loads `GET /api/pos/vertical-profile`. Super Admin can reassign gastronomy, vet, hair-salon, and the other catalog profiles without a new binary.
+
+This matches [`docs/POS_PRODUCTION_ARCHITECTURE.md`](../docs/POS_PRODUCTION_ARCHITECTURE.md): tenant identity is the JWT `tenant_id` claim, not a branded package name.
+
+[`app.config.js`](app.config.js) returns that identity when `EXPO_PUBLIC_BRAND` is unset. Do not set the variable for daily `expo start`. Do not add `EXPO_PUBLIC_VERTICAL` or bake feature flags into a binary. A cashier can still serve more than one mandant from the universal app.
+
+### EAS profiles
+
+The default build is the universal app. [`eas.json`](eas.json) (`appVersionSource: local` — version is not auto-bumped):
+
+| Profile | Artifact | Identity |
+| ------- | -------- | -------- |
+| `production` | Play App Bundle (AAB) and App Store IPA (`distribution: store`) | Universal (`app.json`). **Default release.** |
+| `production-apk` | Sideload APK (`distribution: internal`). Same EAS cloud Android credentials as `production`. | Universal |
+
+`gastronomy-production` and `gastronomy-production-apk` are **future / experimental**. They set `EXPO_PUBLIC_BRAND=gastronomy` and are not a shipped industry binary. Use them only for a white-label trial or after the exception in [`docs/VERTICAL_PROFILES.md`](../docs/VERTICAL_PROFILES.md) (about 10,000 tenants in one industry, or a white-label request). They override `name`, `slug`, `icon`, splash, `android.package`, and `ios.bundleIdentifier`. Version stays the `app.json` version. Replacement art, if a trial needs it, goes under `assets/brands/gastronomy/` (`icon.png`, `adaptive-icon.png`, `splash.png`).
+
+```bash
+cd frontend
+# Default: universal store binary (same version, every tenant)
+npx eas build --platform android --profile production
+npx eas build --platform ios --profile production
+npx eas build --platform all --profile production
+
+# Universal sideload APK (EAS cloud credentials; see Android build credentials below)
+npx eas build --platform android --profile production-apk
+
+# Future / experimental only — not a release profile
+# npx eas build --platform all --profile gastronomy-production
+# npx eas build --platform android --profile gastronomy-production-apk
+```
+
+### Android build credentials
+
+Android signing defaults to **EAS cloud credentials**. No `credentials.json` and no keystore live in this repo. `production` and `production-apk` omit `android.credentialsSource`, so EAS stores the upload keystore on Expo's servers and signs both the Play App Bundle and the sideload APK with it. `gastronomy-production` and `gastronomy-production-apk` inherit that behavior. The first cloud build for the Android package asks you to generate or reuse that keystore; later builds reuse it.
+
+```bash
+cd frontend
+npx eas-cli login
+npx eas credentials --platform android
+```
+
+Use **local credentials** only when you must hold the keystore yourself (offline backup, or the manual `jarsigner` flow in [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md)).
+
+1. Create a release keystore outside git. Steps and the `credentials.json` shape are in that signing guide. `frontend/.gitignore` already ignores `credentials.json` and `*.keystore`.
+2. From `frontend/`, run the interactive helper. Do not run it in CI:
+
+   ```bash
+   npx eas credentials:configure-build --platform android
+   ```
+
+   It can generate a keystore and writes `frontend/credentials.json`. Do not commit either file.
+3. Opt that profile into the file by adding `"credentialsSource": "local"` under its `android` block. Without this flag, EAS ignores `credentials.json`. With the flag and no file, the build fails with `credentials.json does not exist in the project root directory`.
+
+`production-apk` does not set that flag. A sideload APK uses the same cloud keystore as the store build.
+
+GitHub Actions: [`.github/workflows/frontend-eas-build.yml`](../.github/workflows/frontend-eas-build.yml) (`workflow_dispatch` only). The release input is `profile=universal`. `profile=gastronomy` is future / experimental. The workflow runs `eas build` and does not submit or commit binaries.
+
+Repo-wide notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md), [`docs/ANDROID_RELEASE_SIGNING.md`](../docs/ANDROID_RELEASE_SIGNING.md).
+
+### Local release measurement
+
+| Check | Result |
+| ----- | ------ |
+| Android APK | `app-release.apk` is about **131 MiB** (137,631,483 bytes). One APK contains every ABI (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`). A Play device download from the `production` AAB is smaller. |
+| iOS archive | Requires **macOS** and `xcodebuild`. Windows `expo prebuild` skips the `ios/` tree, and this repo was measured on Windows. |
+| `npx expo-doctor` | **21/22** checks passed on Expo SDK 56. The remaining failure is Hermes V1 `250829098.0.10` (memory regression). The fix is Hermes V1 `250829098.0.16`, which ships with Expo SDK 57 (`expo@57.0.9` or later) and React Native 0.86.2. Stay on SDK 56 until that upgrade is planned. |
+
+### OTA updates (`expo-updates`)
+
+JS and asset changes can ship without a store binary. [`app.json`](app.json) sets `runtimeVersion.policy` to `sdkVersion` and `updates.checkAutomatically` to `ON_LOAD` (the Expo default: check when the app loads).
+
+`updates.url` is `https://u.expo.dev/60f5039c-20d6-4ebc-adc7-221311f5236c`. `extra.eas.projectId` in [`app.json`](app.json) is the same id. `eas init` still needs an Expo login on this machine before the CLI can confirm the remote binding.
+
+[`eas.json`](eas.json) sets one channel per build profile. A binary only receives updates published on the branch linked to its channel. The first `eas build` for a profile creates that link when the channel name matches the branch name.
+
+| Profile | Channel / branch |
+| ------- | ---------------- |
+| `production` | `production` |
+| `production-apk` | `production-apk` |
+| `gastronomy-production` | `gastronomy-production` |
+| `gastronomy-production-apk` | `gastronomy-production-apk` |
+
+Publish a JavaScript or asset update to the universal store binary:
+
+```bash
+cd frontend
+npx eas-cli update --branch production --message "Describe the JS change"
+```
+
+Use the matching branch for the other profiles (`production-apk`, `gastronomy-production`, `gastronomy-production-apk`).
+
+| Change | What to ship |
+| ------ | ------------ |
+| JavaScript, images, and other assets only | `eas update --branch production --message "..."`. No native rebuild. |
+| Native config (`plugins`, `android`, `ios`, new native modules, `runtimeVersion`) | A new binary (`eas build` or local Gradle/Xcode). An OTA update cannot apply those changes. |
+
+### CNG (prebuild)
 
 This project uses **Continuous Native Generation (prebuild-only)**. The `android/` and `ios/` folders are **not** committed — they are generated from `app.json` when needed.
 
@@ -476,6 +653,8 @@ This project uses **Continuous Native Generation (prebuild-only)**. The `android
 | Generate native projects | `cd frontend && npx expo prebuild` |
 | Clean regenerate | `cd frontend && npx expo prebuild --clean` |
 | Run on Android (Expo Go / dev client) | `npm run android` |
+| Universal store AAB (all profiles) | `cd frontend && npx eas build --platform android --profile production` |
+| Universal sideload APK | `cd frontend && npx eas build --platform android --profile production-apk` |
 
 After changing `plugins`, `android`, `ios`, splash, or icon entries in `app.json`, run **`npx expo prebuild --clean`** locally before native builds or EAS Build.
 

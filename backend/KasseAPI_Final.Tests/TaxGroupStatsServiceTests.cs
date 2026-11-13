@@ -21,7 +21,7 @@ public sealed class TaxGroupStatsServiceTests
     [Fact]
     public async Task GetStatsAsync_ComputesProductShareAndRevenueByRate()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         db.Tenants.Add(new Tenant { Id = tenantId, Name = "Legacy", Slug = "legacy", IsActive = true });
 

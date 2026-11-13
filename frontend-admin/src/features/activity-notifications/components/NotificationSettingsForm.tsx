@@ -9,8 +9,11 @@ import {
   ACTIVITY_EVENT_DEFAULT_ENABLED,
   ACTIVITY_EVENT_TYPES,
   ACTIVITY_SEVERITIES,
+  CATALOG_ACTIVITY_GROUPS,
   PERMISSION_NOTIFY_GROUPS,
+  isCatalogActivityType,
   type ActivityEventTypeName,
+  type CatalogActivityGroupKey,
   type PermissionNotifyGroupKey,
 } from '@/features/activity-notifications/activityTypes';
 import {
@@ -41,7 +44,30 @@ const PERMISSION_EVENT_SET = new Set<string>([
   ...PERMISSION_NOTIFY_GROUPS.systemChanges,
 ]);
 
-const OTHER_EVENT_TYPES = ACTIVITY_EVENT_TYPES.filter((type) => !PERMISSION_EVENT_SET.has(type));
+function eventToggleLabel(eventType: string, t: (key: string) => string): string {
+  return isCatalogActivityType(eventType)
+    ? t(`activity.events.${eventType}.title`)
+    : t(`activityNotifications.eventTypes.${eventType}`);
+}
+
+const CATALOG_EVENT_SET = new Set<string>([
+  ...CATALOG_ACTIVITY_GROUPS.countryFiscal,
+  ...CATALOG_ACTIVITY_GROUPS.eInvoicing,
+  ...CATALOG_ACTIVITY_GROUPS.peppol,
+]);
+
+const OTHER_EVENT_TYPES = ACTIVITY_EVENT_TYPES.filter(
+  (type) => !PERMISSION_EVENT_SET.has(type) && !CATALOG_EVENT_SET.has(type)
+);
+
+const CATALOG_SECTIONS: ReadonlyArray<{
+  group: CatalogActivityGroupKey;
+  labelKey: string;
+}> = [
+  { group: 'countryFiscal', labelKey: 'activityNotifications.settings.countryFiscalSection' },
+  { group: 'eInvoicing', labelKey: 'activityNotifications.settings.eInvoicingSection' },
+  { group: 'peppol', labelKey: 'activityNotifications.settings.peppolSection' },
+];
 
 function groupChecked(
   enabledEvents: Record<string, boolean> | undefined,
@@ -226,6 +252,25 @@ export function NotificationSettingsForm() {
       ))}
 
       <Divider titlePlacement="left">{t('activityNotifications.settings.eventsSection')}</Divider>
+      {CATALOG_SECTIONS.map((section) => (
+        <div key={section.group}>
+          <Divider titlePlacement="left">{t(section.labelKey)}</Divider>
+          <Form.Item label={t('activityNotifications.settings.enabledEvents')}>
+            <Space orientation="vertical" style={{ width: '100%' }}>
+              {CATALOG_ACTIVITY_GROUPS[section.group].map((eventType) => (
+                <Form.Item
+                  key={eventType}
+                  name={['enabledEvents', eventType]}
+                  valuePropName="checked"
+                  style={{ marginBottom: 0 }}
+                >
+                  <Checkbox>{eventToggleLabel(eventType, t)}</Checkbox>
+                </Form.Item>
+              ))}
+            </Space>
+          </Form.Item>
+        </div>
+      ))}
       <Form.Item label={t('activityNotifications.settings.enabledEvents')}>
         <Space orientation="vertical" style={{ width: '100%' }}>
           {OTHER_EVENT_TYPES.map((eventType) => (
@@ -235,7 +280,7 @@ export function NotificationSettingsForm() {
               valuePropName="checked"
               style={{ marginBottom: 0 }}
             >
-              <Checkbox>{t(`activityNotifications.eventTypes.${eventType}`)}</Checkbox>
+              <Checkbox>{eventToggleLabel(eventType, t)}</Checkbox>
             </Form.Item>
           ))}
         </Space>
@@ -247,7 +292,7 @@ export function NotificationSettingsForm() {
             <Form.Item
               key={`sev-${eventType}`}
               name={['severityThreshold', eventType]}
-              label={t(`activityNotifications.eventTypes.${eventType}`)}
+              label={eventToggleLabel(eventType, t)}
               style={{ marginBottom: 8 }}
             >
               <Select

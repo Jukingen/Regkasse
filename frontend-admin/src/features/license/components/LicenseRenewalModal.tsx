@@ -1,7 +1,6 @@
 'use client';
 
 import { LockOutlined } from '@ant-design/icons';
-import { useQueryClient } from '@tanstack/react-query';
 import { Flex, Modal, Typography } from 'antd';
 
 import { LicenseRenewalFlow } from '@/features/license/components/LicenseRenewalFlow';
@@ -10,9 +9,9 @@ import {
   getRenewalModalStatusSummary,
   renewalModalIconColor,
 } from '@/features/license/utils/renewalModalStatusSummary';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import type { LicenseStatusView } from '@/hooks/useLicenseStatus';
-import { tenantLicenseUnifiedQueryKey } from '@/hooks/useTenantLicense';
-import { formatDate, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -35,12 +34,11 @@ export function LicenseRenewalModal({
   onClose,
   onSuccess,
 }: LicenseRenewalModalProps) {
-  const { t, formatLocale } = useI18n();
-  const queryClient = useQueryClient();
+  const { t } = useI18n();
   useLicenseRenewalFunnelPageView(open);
 
   const summary = status ? getRenewalModalStatusSummary(status) : null;
-  const dateLabel = status?.expiredAt ? formatDate(status.expiredAt, formatLocale) : '—';
+  const dateLabel = formatLicenseValidUntil(status?.expiredAt);
   const statusTextType =
     summary?.tone === 'danger' ? 'danger' : summary?.tone === 'success' ? 'success' : undefined;
 
@@ -102,7 +100,6 @@ export function LicenseRenewalModal({
           compact
           redirectAfterSuccess
           onSuccess={() => {
-            void queryClient.invalidateQueries({ queryKey: tenantLicenseUnifiedQueryKey });
             onSuccess?.();
           }}
           onLeaveAfterSuccess={onClose}

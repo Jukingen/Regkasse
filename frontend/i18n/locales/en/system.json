@@ -8,14 +8,43 @@
   "update": "Update",
   "maintenance": "Maintenance",
   "tseStatus": "TSE Status",
+  "tse": {
+    "indicator": {
+      "active": "TSE active",
+      "activeTest": "TSE active (TEST)",
+      "degraded": "TSE degraded",
+      "inactive": "TSE inactive",
+      "checking": "TSE …"
+    },
+    "tooltip": {
+      "title": "TSE status",
+      "hint": "Show details",
+      "status": "Status",
+      "environment": "Environment",
+      "message": "Note",
+      "lastCheck": "Last check",
+      "scuId": "SCU ID",
+      "certificateUntil": "Certificate valid until",
+      "cached": "Cached status (last known check)",
+      "na": "—"
+    }
+  },
   "printerStatus": "Printer Status",
   "maintenanceNotice": {
     "modalTitle": "System maintenance",
     "windowLabel": "Maintenance window:",
     "countdownLabel": "Time until maintenance:",
+    "countdownEndsLabel": "Estimated time remaining",
     "forceNotice": "This maintenance window cannot be dismissed. The system may be temporarily unavailable.",
     "starts": "Starts",
+    "scheduledEnd": "Scheduled end",
+    "note": "Thank you for your understanding.",
     "dismiss": "Dismiss",
-    "paymentBlocked": "Payments are temporarily disabled during system maintenance. Please try again later."
+    "paymentBlocked": "Payments are temporarily disabled during system maintenance. Please try again later.",
+    "superAdminBannerTitle": "Maintenance mode is active",
+    "superAdminBannerDescription": "The system is under maintenance. You can continue working as Super Admin.",
+    "endMaintenance": "End maintenance",
+    "disabling": "Ending…",
+    "endFailed": "Could not end maintenance. Please try again."
   }
 }

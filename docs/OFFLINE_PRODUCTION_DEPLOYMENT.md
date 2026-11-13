@@ -153,10 +153,11 @@ export EXPO_PUBLIC_API_BASE_URL=https://api.regkasse.at/api
 
 npm ci
 
-# Mobile — production binary (EAS; see frontend/eas.json)
+# Mobile — universal production binary (EAS; see frontend/eas.json)
 npx eas build --platform android --profile production
-# npx eas build --platform ios --profile production
-# Deploy APK/IPA to registers or app store / internal distribution
+npx eas build --platform ios --profile production
+# Sideload APK: --profile production-apk
+# Optional Gastronomie listing: --profile gastronomy-production
 
 # Web — static export (if hosting POS as web)
 npx expo export -p web

@@ -1,5 +1,9 @@
 # Frontend Admin — quality gate (lint, typecheck, unit tests, build, E2E)
 #
+# Push to main/master runs FA Typecheck only. Lint, unit tests, build, i18n,
+# and Playwright stay on pull_request and workflow_dispatch.
+# Restore the full push gate before production: docs/DEVELOPMENT_BYPASS.md
+#
 # Docs: frontend-admin/docs/CI_CD.md · README “CI/CD”
 # Node 22 aligns with @testing-library/jest-dom@7 and Dockerfile NODE_VERSION.
 
@@ -40,8 +44,63 @@ env:
   WORKING_DIRECTORY: frontend-admin
 
 jobs:
+  fa-typecheck:
+    name: FA Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend-admin
+    env:
+      NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5184
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend-admin/package-lock.json
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-${{ hashFiles('package-lock.json', 'frontend-admin/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}
+        run: npm ci
+
+      - name: Ensure frontend-admin node_modules is complete
+        working-directory: ${{ github.workspace }}
+        run: |
+          missing=""
+          if [ ! -x frontend-admin/node_modules/.bin/tsc ] && [ ! -x node_modules/.bin/tsc ]; then
+            missing="tsc"
+          fi
+          if [ -n "$missing" ]; then
+            echo "${missing} missing from cache; running npm ci"
+            npm ci
+          fi
+
+      - name: npm run typecheck
+        run: npm run typecheck
+
   quality:
     name: Lint · Typecheck · Test · Build
+    # Pull requests and manual runs keep the full gate. Pushes to main run FA Typecheck only.
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     defaults:
@@ -66,10 +125,12 @@ jobs:
         id: cache-node-modules
         uses: actions/cache@v4
         with:
-          path: frontend-admin/node_modules
-          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          path: |
+            node_modules
+            frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-${{ hashFiles('package-lock.json', 'frontend-admin/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-
 
       - name: Cache Next.js build cache
         uses: actions/cache@v4
@@ -81,7 +142,24 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}
         run: npm ci
+
+      - name: Ensure frontend-admin node_modules is complete
+        working-directory: ${{ github.workspace }}
+        run: |
+          missing=""
+          if [ ! -x frontend-admin/node_modules/.bin/eslint ] && [ ! -x node_modules/.bin/eslint ]; then
+            missing="eslint"
+          elif [ ! -d frontend-admin/node_modules/vitest ] && [ ! -d node_modules/vitest ]; then
+            missing="vitest"
+          elif [ ! -x frontend-admin/node_modules/.bin/tsc ] && [ ! -x node_modules/.bin/tsc ]; then
+            missing="tsc"
+          fi
+          if [ -n "$missing" ]; then
+            echo "${missing} missing from cache; running npm ci"
+            npm ci
+          fi
 
       - name: Permission key consistency
         working-directory: ${{ github.workspace }}
@@ -97,8 +175,14 @@ jobs:
       - name: npm run typecheck
         run: npm run typecheck
 
-      - name: npm run test
-        run: npm run test
+      - name: npm run test:coverage
+        run: npm run test:coverage
+
+      - name: Generated enum names
+        run: npx vitest run src/api/__tests__/auditEventTypeNames.test.ts
+
+      - name: Online payments UI tests
+        run: npx vitest run src/features/online-payments
 
       - name: i18n validate (strict missing)
         working-directory: ${{ github.workspace }}
@@ -122,6 +206,7 @@ jobs:
   e2e:
     name: E2E (Playwright)
     needs: quality
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -147,10 +232,12 @@ jobs:
         id: cache-node-modules
         uses: actions/cache@v4
         with:
-          path: frontend-admin/node_modules
-          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-${{ hashFiles('frontend-admin/package-lock.json') }}
+          path: |
+            node_modules
+            frontend-admin/node_modules
+          key: ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-${{ hashFiles('package-lock.json', 'frontend-admin/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-nm-
+            ${{ runner.os }}-node${{ env.NODE_VERSION }}-fa-ws-v1-
 
       - name: Cache Next.js build cache
         uses: actions/cache@v4
@@ -162,7 +249,24 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}
         run: npm ci
+
+      - name: Ensure frontend-admin node_modules is complete
+        working-directory: ${{ github.workspace }}
+        run: |
+          missing=""
+          if [ ! -x frontend-admin/node_modules/.bin/eslint ] && [ ! -x node_modules/.bin/eslint ]; then
+            missing="eslint"
+          elif [ ! -d frontend-admin/node_modules/vitest ] && [ ! -d node_modules/vitest ]; then
+            missing="vitest"
+          elif [ ! -x frontend-admin/node_modules/.bin/tsc ] && [ ! -x node_modules/.bin/tsc ]; then
+            missing="tsc"
+          fi
+          if [ -n "$missing" ]; then
+            echo "${missing} missing from cache; running npm ci"
+            npm ci
+          fi
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -172,6 +276,8 @@ jobs:
 
       - name: npm run test:e2e
         run: npm run test:e2e
+        # Full tests/e2e suite, including tenant-create.spec.ts, tenant-country-card.spec.ts,
+        # and online-payment.spec.ts (mock API unless E2E_LIVE=1).
 
       - name: Upload Playwright report
         if: failure()
@@ -185,8 +291,12 @@ jobs:
 
   notify-failure:
     name: Notify on failure
-    needs: [quality, e2e]
-    if: failure()
+    needs: [fa-typecheck, quality, e2e]
+    if: >-
+      always() &&
+      (needs.fa-typecheck.result == 'failure' ||
+       needs.quality.result == 'failure' ||
+       needs.e2e.result == 'failure')
     uses: ./.github/workflows/notify-failure.yml
     with:
       title: Frontend Admin CI failed

@@ -15,7 +15,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class DepExportPushNotificationServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateDb()
     {
@@ -39,7 +39,7 @@ public sealed class DepExportPushNotificationServiceTests
 
     private static async Task SeedManagerAsync(AppDbContext db, string userId = "mgr-1")
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         db.Users.Add(new ApplicationUser
         {
             Id = userId,
@@ -162,7 +162,7 @@ public sealed class DepExportPushNotificationServiceTests
     public async Task SaveSettingsAsync_PersistsViaNotificationConfig()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         await db.SaveChangesAsync();
 
         var notificationConfig = new NotificationConfigService(db);

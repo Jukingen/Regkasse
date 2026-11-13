@@ -1,8 +1,11 @@
+using System.Security.Claims;
 using System.Text;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -55,6 +58,56 @@ public sealed class LicenseMiddlewareTests
         return mock;
     }
 
+    private static Mock<IUnifiedLicenseService> CreateUnifiedLicenseService(
+        LicenseStatusResponse deploymentSnapshot,
+        LicenseStatusInfo? tenantStatus = null)
+    {
+        var tenant = tenantStatus ?? new LicenseStatusInfo
+        {
+            CanAccess = true,
+            CanTransact = true,
+            DaysRemaining = 30,
+            StatusMessage = "Lizenz gültig bis 30.06.2026",
+        };
+        var systemActive = (deploymentSnapshot.IsValid && !deploymentSnapshot.IsTrial)
+            || (deploymentSnapshot.IsTrial && !deploymentSnapshot.IsExpired);
+        var tenantActive = tenant.CanAccess && !tenant.IsLocked;
+        var dto = new UnifiedLicenseStatusDto
+        {
+            IsActive = systemActive || tenantActive,
+            LicenseType = tenantActive ? LicenseKeyKinds.Tenant : LicenseKeyKinds.System,
+            IsSystemLicense = systemActive,
+            IsTenantLicense = tenantActive,
+            Status = tenantActive && tenant.IsInGracePeriod
+                ? "grace"
+                : systemActive || tenantActive ? "active" : "expired",
+            ValidUntil = tenant.ValidUntil ?? deploymentSnapshot.ExpiryDate,
+            SystemLicense = new UnifiedLicenseLayerStatusDto
+            {
+                IsActive = systemActive,
+                Status = systemActive ? "active" : "expired",
+                ValidUntil = deploymentSnapshot.ExpiryDate,
+            },
+            TenantLicense = new UnifiedLicenseLayerStatusDto
+            {
+                IsActive = tenantActive,
+                Status = tenantActive && tenant.IsInGracePeriod
+                    ? "grace"
+                    : tenantActive
+                        ? "active"
+                        : tenant.IsLocked ? "locked" : "expired",
+                ValidUntil = tenant.ValidUntil,
+            },
+            DeploymentSnapshot = deploymentSnapshot,
+            MandantSnapshot = tenant,
+        };
+
+        var mock = new Mock<IUnifiedLicenseService>();
+        mock.Setup(x => x.GetUnifiedStatusAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto);
+        return mock;
+    }
+
     private static ICurrentTenantAccessor CreateTenantAccessor(Guid? tenantId = null)
     {
         var accessor = new CurrentTenantAccessor { TenantId = tenantId ?? TenantId };
@@ -84,19 +137,25 @@ public sealed class LicenseMiddlewareTests
         LicenseMiddleware sut,
         DefaultHttpContext context,
         Mock<ILicenseService> licenseService,
+        LicenseStatusInfo? tenantStatus = null,
         bool isDevelopment = false,
         string tseMode = "Device",
         bool bypassLicense = false,
-        bool licenseEnabled = true) =>
-        sut.InvokeAsync(
+        bool licenseEnabled = true)
+    {
+        var snapshot = licenseService.Object.GetDeploymentStatus();
+        var unified = CreateUnifiedLicenseService(snapshot, tenantStatus);
+        return sut.InvokeAsync(
             context,
             licenseService.Object,
+            unified.Object,
             new DeploymentLicenseValidator(),
             CreateTenantAccessor(),
             CreateHostEnvironment(isDevelopment),
             CreateTseOptions(tseMode),
             CreateLicenseOptions(licenseEnabled),
             CreateDevelopmentMode(bypassLicense));
+    }
 
     [Fact]
     public async Task InvokeAsync_DeploymentGraceReadOnly_BlocksWriteRoutes()
@@ -112,7 +171,13 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await InvokeMiddlewareAsync(sut, context, licenseService);
+        var expiredTenant = new LicenseStatusInfo
+        {
+            CanAccess = false,
+            IsLocked = true,
+            RequiresRenewal = true,
+        };
+        await InvokeMiddlewareAsync(sut, context, licenseService, expiredTenant);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -165,6 +230,26 @@ public sealed class LicenseMiddlewareTests
         Assert.True(nextCalled);
     }
 
+    [Theory]
+    [InlineData("/api/license/validate", "POST")]
+    [InlineData("/api/license/info", "GET")]
+    public async Task InvokeAsync_DeploymentLockdown_AllowsUnifiedLicenseLookup(string path, string method)
+    {
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, Now.AddDays(-70), "machine");
+        var licenseService = CreateLicenseService(snapshot);
+        var context = CreateContext(path, method);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService);
+
+        Assert.True(nextCalled);
+    }
+
     [Fact]
     public async Task InvokeAsync_Development_SkipsAllLicenseEnforcement()
     {
@@ -198,7 +283,7 @@ public sealed class LicenseMiddlewareTests
             RequiresRenewal = true,
             ValidUntil = Now.AddDays(-30),
             DaysOverdue = 30,
-            StatusMessage = "Lizenz abgelaufen! POS ist gesperrt. Nur Super-Administrator kann entsperren.",
+            StatusMessage = "Mandant gesperrt — bitte Mandanten-Lizenz aktivieren.",
             StatusMessageKey = "license.status.locked",
         };
         var licenseService = CreateLicenseService(snapshot, tenantStatus);
@@ -210,14 +295,88 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await InvokeMiddlewareAsync(sut, context, licenseService);
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
         Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
         Assert.Contains(LicenseMiddleware.LicenseLockedCode, body, StringComparison.Ordinal);
         Assert.Contains("\"success\":false", body, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("POS ist gesperrt", body, StringComparison.Ordinal);
+        Assert.Contains("System aktiv, Mandant gesperrt", body, StringComparison.Ordinal);
+        Assert.Contains("system_active_tenant_locked", body, StringComparison.Ordinal);
+        Assert.Contains("systemLicense", body, StringComparison.Ordinal);
+        Assert.Contains("tenantLicense", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantLicenseLocked_SuperAdminPos_Allows()
+    {
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = false,
+            IsLocked = true,
+            RequiresRenewal = true,
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/pos/cart", HttpMethods.Post);
+        context.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.SuperAdmin)], "Test"));
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public void IsLicenseValidForRequest_SuperAdmin_SystemOnly_ReturnsTrue()
+    {
+        var context = CreateContext("/api/admin/products", HttpMethods.Get);
+        context.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.SuperAdmin)], "Test"));
+        var status = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = false,
+            IsActive = true,
+        };
+
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(context, status, TenantId));
+    }
+
+    [Fact]
+    public void IsLicenseValidForRequest_ManagerOrCashier_SystemOnly_RequiresTenantLicense()
+    {
+        var managerContext = CreateContext("/api/admin/products", HttpMethods.Get);
+        managerContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Manager)], "Test"));
+        var cashierContext = CreateContext("/api/pos/cart", HttpMethods.Post);
+        cashierContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Cashier)], "Test"));
+        var systemOnly = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = false,
+            IsActive = true,
+        };
+        var bothActive = new UnifiedLicenseStatusDto
+        {
+            IsSystemLicense = true,
+            IsTenantLicense = true,
+            IsActive = true,
+        };
+
+        Assert.False(LicenseMiddleware.IsLicenseValidForRequest(managerContext, systemOnly, TenantId));
+        Assert.False(LicenseMiddleware.IsLicenseValidForRequest(cashierContext, systemOnly, TenantId));
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(managerContext, bothActive, TenantId));
+        Assert.True(LicenseMiddleware.IsLicenseValidForRequest(cashierContext, bothActive, TenantId));
     }
 
     [Fact]
@@ -242,7 +401,33 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await InvokeMiddlewareAsync(sut, context, licenseService);
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
+
+        Assert.True(nextCalled);
+        Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantLicenseActive_AllowsWritesWhenSystemExpired()
+    {
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, DateTime.UtcNow.AddDays(-20), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = true,
+            CanTransact = true,
+            DaysRemaining = 40,
+            ValidUntil = DateTime.UtcNow.AddDays(40),
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/admin/products", HttpMethods.Post);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
 
         Assert.True(nextCalled);
         Assert.NotEqual(StatusCodes.Status403Forbidden, context.Response.StatusCode);
@@ -272,7 +457,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await InvokeMiddlewareAsync(sut, context, licenseService);
+        await InvokeMiddlewareAsync(sut, context, licenseService, tenantStatus);
 
         Assert.True(nextCalled);
         Assert.Equal(tenantStatus.StatusMessage, context.Response.Headers[LicenseMiddleware.LicenseStatusHeaderName].ToString());

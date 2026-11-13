@@ -11,6 +11,10 @@ import {
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { showAntdError } from '@/lib/antdAppBridge';
 import {
+  readAxiosHeader,
+  shouldClearStoredTokenAfterPublicAuth401,
+} from '@/lib/axiosRequestAuth';
+import {
   CSRF_HEADER,
   applyCsrfHeaders,
   clearCsrfTokenCache,
@@ -28,6 +32,10 @@ import {
 } from '@/shared/errors/forbiddenMessages';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+/** Disambiguates FA vs POS HttpOnly cookies when both are on the API parent domain. */
+const APP_CONTEXT_HEADER = 'X-App-Context';
+const APP_CONTEXT_ADMIN = 'admin';
 
 /** Request start times for latency metrics (no PII). */
 const apiRequestStarts = new WeakMap<object, number>();
@@ -135,27 +143,23 @@ let refreshPromise: Promise<string | null> | null = null;
 export async function refreshAccessToken(
   options?: RefreshAccessTokenOptions
 ): Promise<string | null> {
-  const refreshToken = authStorage.getRefreshToken();
   const clearOnFailure = options?.clearOnFailure !== false;
-  if (!refreshToken) {
-    if (clearOnFailure) {
-      authStorage.removeToken();
-    }
-    return null;
-  }
 
   const tenantId = options?.tenantId?.trim();
-  const body: { refreshToken: string; tenantId?: string } = { refreshToken };
+  const body: { refreshToken?: string; tenantId?: string; clientApp: 'admin' } = {
+    clientApp: 'admin',
+  };
   if (tenantId) {
     body.tenantId = tenantId;
   }
 
   try {
     // Raw axios — bypass response interceptor to avoid nested refresh on this call.
-    // Refresh is CSRF-exempt on the API; still send token when cookie is present.
+    // Refresh is CSRF-exempt; HttpOnly rk_admin_refresh_token cookie is sent via withCredentials.
     const csrfHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept-Language': getStoredLanguage(),
+      [APP_CONTEXT_HEADER]: APP_CONTEXT_ADMIN,
     };
     const cookieToken = cookieService.getCsrfToken();
     if (cookieToken) {
@@ -171,12 +175,20 @@ export async function refreshAccessToken(
     );
     const nextAccessToken = refreshResponse.data?.token;
     const nextRefreshToken = refreshResponse.data?.refreshToken;
+    const expiresAt =
+      (refreshResponse.data as { expiresAt?: string } | undefined)?.expiresAt ?? null;
+    authStorage.markSession(expiresAt);
     if (nextAccessToken) {
-      authStorage.setToken(nextAccessToken);
-      if (nextRefreshToken) {
-        authStorage.setRefreshToken(nextRefreshToken);
-      }
+      // Decode expiry/impersonation metadata only — JWT stays in the HttpOnly cookie.
+      authStorage.setTokens({
+        accessToken: nextAccessToken,
+        refreshToken: nextRefreshToken,
+        expiresAt,
+      });
       return nextAccessToken;
+    }
+    if (refreshResponse.status >= 200 && refreshResponse.status < 300) {
+      return 'cookie';
     }
     if (clearOnFailure) {
       authStorage.removeToken();
@@ -215,7 +227,7 @@ function getOrCreateRefreshPromise(): Promise<string | null> {
 const createAxiosInstance = () => {
   const instance = axios.create({
     baseURL: baseURL,
-    // JWT via Authorization; credentials so XSRF-TOKEN cookie is stored/sent with API calls.
+    // JWT via HttpOnly cookies (withCredentials); XSRF-TOKEN cookie is stored/sent with API calls.
     withCredentials: true,
     headers: {
       'Content-Type': 'application/json',
@@ -234,32 +246,25 @@ const createAxiosInstance = () => {
       }
       if (tenantSlug) {
         config.headers = config.headers ?? {};
-        config.headers[TENANT_HTTP_HEADER] = tenantSlug;
-        if (isDev && config.url) {
-          const params = config.params ?? {};
-          if (typeof params === 'object' && params !== null && !Array.isArray(params)) {
-            const record = params as Record<string, unknown>;
-            if (record.tenant == null) {
-              config.params = { ...record, tenant: tenantSlug };
-            }
-          } else if (config.params == null) {
-            config.params = { tenant: tenantSlug };
-          }
+        // Prefer X-Tenant-Id over ?tenant= (REST-friendly, less cacheable). Backend still accepts
+        // ?tenant= as Development fallback when the header is absent — do not auto-inject query here.
+        // Preserve an explicit per-request override (e.g. Super Admin TSE backup modal).
+        const existingTenantHeader = config.headers[TENANT_HTTP_HEADER];
+        const hasExplicitTenant =
+          typeof existingTenantHeader === 'string'
+            ? existingTenantHeader.trim().length > 0
+            : existingTenantHeader != null && String(existingTenantHeader).trim().length > 0;
+        if (!hasExplicitTenant) {
+          config.headers[TENANT_HTTP_HEADER] = tenantSlug;
         }
       }
 
       config.headers = config.headers ?? {};
       // Synced with I18nProvider via languageStorage — backend returns localized API errors.
       config.headers['Accept-Language'] = getStoredLanguage();
+      config.headers[APP_CONTEXT_HEADER] = APP_CONTEXT_ADMIN;
 
-      const token = authStorage.getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-
-        if (isDev) {
-          technicalConsole.devDebug(`[API] Attaching bearer token to ${config.url}`);
-        }
-      }
+      // Auth: HttpOnly cookies are sent via withCredentials. Do not attach Bearer from storage.
 
       // CSRF: skip GET/HEAD/OPTIONS; cookieService holds XSRF-TOKEN for header mirror.
       if (requestNeedsCsrf(config.method, config.url)) {
@@ -418,13 +423,30 @@ const createAxiosInstance = () => {
         !String(url).includes('/api/Auth/refresh')
       ) {
         if (suppressLogin401Noise) {
-          authStorage.removeToken();
+          // Do not wipe a freshly marked login session when a stale pre-login /me 401 arrives late.
+          const requestAuthorization = readAxiosHeader(originalRequest.headers, 'Authorization');
+          if (
+            shouldClearStoredTokenAfterPublicAuth401({
+              requestAuthorizationHeader: requestAuthorization,
+              currentAccessToken: authStorage.hasToken() ? 'session' : null,
+            })
+          ) {
+            authStorage.removeToken();
+          } else if (isDev) {
+            technicalConsole.devDebug(
+              '[API] Skipping session clear on login-page 401 — Edge session already present'
+            );
+          }
         } else {
           originalRequest._retry = true;
-          const nextAccessToken = await getOrCreateRefreshPromise();
-          if (nextAccessToken) {
+          const refreshed = await getOrCreateRefreshPromise();
+          if (refreshed) {
             originalRequest.headers = originalRequest.headers ?? {};
-            originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+            if (refreshed !== 'cookie') {
+              originalRequest.headers.Authorization = `Bearer ${refreshed}`;
+            } else {
+              delete originalRequest.headers.Authorization;
+            }
             return instance(originalRequest);
           }
         }

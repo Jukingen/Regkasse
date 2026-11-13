@@ -45,16 +45,17 @@ describe('resolveTenantLicenseLabel', () => {
     expect(result.daysRemaining).toBeGreaterThan(7);
   });
 
-  it('prefers server-computed days remaining when provided', () => {
+  it('calculates days remaining from validUntil instead of stale server days', () => {
     const result = resolveTenantLicenseLabel('2026-08-31T00:00:00Z', 'KEY', now, 42);
-    expect(result.daysRemaining).toBe(42);
+    expect(result.daysRemaining).toBe(103);
     expect(result.kind).toBe('valid');
+    expect(result.label).toBe('31.08.2026');
   });
 
-  it('uses server days remaining for expired classification', () => {
+  it('does not treat a future validUntil as expired because of stale server days', () => {
     const result = resolveTenantLicenseLabel('2026-08-31T00:00:00Z', 'KEY', now, -3);
-    expect(result.kind).toBe('expired');
-    expect(result.daysRemaining).toBe(-3);
+    expect(result.kind).toBe('valid');
+    expect(result.daysRemaining).toBe(103);
   });
 
   it('returns valid when server days remain without end date (dev bypass)', () => {

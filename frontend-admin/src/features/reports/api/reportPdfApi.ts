@@ -7,7 +7,9 @@ export type ReportPdfType =
   | 'startbeleg'
   | 'nullbeleg'
   | 'schlussbeleg'
-  | 'receipt';
+  | 'receipt'
+  | 'tagesbericht'
+  | 'jahresbericht';
 
 export type DownloadReportPdfOptions = {
   language?: string;

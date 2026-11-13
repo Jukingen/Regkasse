@@ -6,6 +6,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,11 +31,11 @@ public sealed class AdminLicenseDashboardTests
             .UseInMemoryDatabase($"LicDash_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        // License audit rows are stamped with LegacyDefaultTenantIds.Primary; ambient must match
+        // License audit rows are stamped with SystemTenantIds.Platform; ambient must match
         // so fail-closed tenant filters expose them to dashboard queries.
         return new AppDbContext(
             options,
-            new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary });
+            new CurrentTenantAccessor { TenantId = SystemTenantIds.Platform });
     }
 
     private static AdminLicenseController CreateController(AppDbContext db, string actorId, string actorRole)
@@ -53,6 +54,7 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>
@@ -90,6 +92,7 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILicenseExportService>(),
+            Mock.Of<IUnifiedLicenseService>(),
             NullLogger<AdminLicenseController>.Instance);
 
         var claims = new List<Claim>
@@ -396,7 +399,7 @@ public sealed class AdminLicenseDashboardTests
         db.AuditLogs.Add(new AuditLog
         {
             Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SessionId = Guid.NewGuid().ToString(),
             UserId = "admin-1",
             UserRole = Roles.SuperAdmin,

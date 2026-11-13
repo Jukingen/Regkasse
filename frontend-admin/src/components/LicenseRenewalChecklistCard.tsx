@@ -13,8 +13,9 @@ import {
 } from '@/features/license/utils/licenseRenewalChecklist';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
-import { FORMAT_EMPTY_DISPLAY, formatDate, useI18n } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 type ChecklistRow = {
@@ -28,7 +29,7 @@ type ChecklistRow = {
  * Mandant renewal preparation checklist (persisted per tenant in localStorage).
  */
 export function LicenseRenewalChecklistCard() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const tenant = useCurrentTenant();
   const { status, isLoading } = useLicenseStatus();
   const { isAuthorized: canView } = useAuthorizationGate({
@@ -46,9 +47,7 @@ export function LicenseRenewalChecklistCard() {
     setCompleted(loadLicenseRenewalChecklistCompleted(tenant.tenantId));
   }, [tenant.tenantId]);
 
-  const validUntilLabel = status?.expiredAt
-    ? formatDate(status.expiredAt, formatLocale)
-    : FORMAT_EMPTY_DISPLAY;
+  const validUntilLabel = formatLicenseValidUntil(status?.expiredAt);
 
   const rows = useMemo<ChecklistRow[]>(() => {
     return LICENSE_RENEWAL_CHECKLIST_ITEM_IDS.map((id) => {

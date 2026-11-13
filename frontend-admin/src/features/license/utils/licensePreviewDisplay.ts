@@ -62,11 +62,17 @@ export function mapPreviewErrorMessage(
 ): string {
   switch (errorCode) {
     case 'invalid_key':
+    case 'invalid_format':
+    case 'INVALID_LICENSE_FORMAT':
     case 'not_found':
+    case 'LICENSE_NOT_FOUND':
       return t('license.extendModal.previewError');
     case 'expired':
       return t('license.extendModal.previewErrorExpired');
     case 'wrong_tenant':
+    case 'slug_mismatch':
+    case 'TENANT_LICENSE_EXPECTED':
+    case 'SYSTEM_LICENSE_EXPECTED':
       return t('license.extendModal.previewErrorWrongTenant');
     default:
       return fallback?.trim() ? fallback : t('license.extendModal.error');

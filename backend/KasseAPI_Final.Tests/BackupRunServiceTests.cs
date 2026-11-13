@@ -297,6 +297,6 @@ public sealed class BackupRunServiceTests
             .UseInMemoryDatabase($"backup_run_svc_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(opts, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 }

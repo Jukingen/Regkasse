@@ -110,3 +110,14 @@ export function patchStoredPersonalization(
   writeStoredPersonalization(next);
   return next;
 }
+
+/** Removes theme / preference blobs so the next login does not inherit the previous user. */
+export function clearStoredPersonalization(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(PERSONALIZATION_STORAGE_KEY);
+    window.localStorage.removeItem(THEME_MODE_STORAGE_KEY);
+  } catch {
+    /* restricted storage */
+  }
+}

@@ -19,7 +19,6 @@ import {
   putApiUserManagementId,
   putApiUserManagementIdResetPassword,
 } from '@/api/generated/user-management/user-management';
-import { authStorage } from '@/features/auth/services/authStorage';
 import { customInstance } from '@/lib/axios';
 
 import {
@@ -115,18 +114,10 @@ export async function updateUser(id: string, data: UpdateUserRequest): Promise<v
   return putApiUserManagementId(id, data);
 }
 
-/** Reset password (admin): ensures Bearer token is sent; fails fast if not authenticated. */
+/** Reset password (admin). Session is the HttpOnly cookie (withCredentials). */
 export async function resetPassword(id: string, data: ResetPasswordRequest): Promise<void> {
-  const token = typeof window !== 'undefined' ? authStorage.getToken() : null;
-  if (!token) {
-    return Promise.reject(
-      Object.assign(new Error('Nicht angemeldet. Bitte erneut anmelden.'), {
-        response: { status: 401, data: { message: 'Nicht angemeldet. Bitte erneut anmelden.' } },
-      })
-    );
-  }
   return putApiUserManagementIdResetPassword(id, data, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -139,21 +130,39 @@ export interface TemporaryPasswordResponse {
   forcePasswordChangeOnNextLogin: boolean;
 }
 
+function tenantUserPasswordUrl(
+  tenantId: string,
+  userId: string,
+  action: 'reset-password' | 'generate-temporary-password'
+): string {
+  const user = userId.trim();
+  if (!user) {
+    throw new Error('userId is required');
+  }
+  const tenant = tenantId.trim();
+  if (!tenant) {
+    return `/api/admin/users/${encodeURIComponent(user)}/${action}`;
+  }
+  return `/api/admin/tenants/${encodeURIComponent(tenant)}/users/${encodeURIComponent(user)}/${action}`;
+}
+
 export async function generateTemporaryPassword(
+  tenantId: string,
   userId: string
 ): Promise<TemporaryPasswordResponse> {
   return customInstance<TemporaryPasswordResponse>({
-    url: `/api/admin/users/${userId}/generate-temporary-password`,
+    url: tenantUserPasswordUrl(tenantId, userId, 'generate-temporary-password'),
     method: 'POST',
   });
 }
 
 /** Manager tenant-scoped password reset — generates password once; user must change on next login. */
 export async function resetUserPasswordWithGeneration(
+  tenantId: string,
   userId: string
 ): Promise<TemporaryPasswordResponse> {
   return customInstance<TemporaryPasswordResponse>({
-    url: `/api/admin/users/${userId}/reset-password`,
+    url: tenantUserPasswordUrl(tenantId, userId, 'reset-password'),
     method: 'POST',
   });
 }
@@ -162,7 +171,8 @@ export function useGenerateTemporaryPasswordMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: generateTemporaryPassword,
+    mutationFn: ({ tenantId, userId }: { tenantId: string; userId: string }) =>
+      generateTemporaryPassword(tenantId, userId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       void queryClient.invalidateQueries({ queryKey: listQueryKey });

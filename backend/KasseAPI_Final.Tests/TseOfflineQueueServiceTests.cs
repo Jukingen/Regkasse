@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Limits;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -19,12 +20,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task GetQueueStatusAsync_FlagsWarningAndCriticalByTenantTotals()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K01", now));
 
         for (var i = 0; i < 30; i++)
@@ -61,12 +62,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task SoftClearQueueAsync_RequiresConfirmToken_AndMarksFailed()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K02", now));
         ctx.OfflineTransactions.Add(NonFiscal(tenantId, registerId, now));
         ctx.OfflineTransactions.Add(new OfflineTransaction
@@ -127,12 +128,12 @@ public sealed class TseOfflineQueueServiceTests
     [Fact]
     public async Task SendQueueAlertAsync_PublishesWhenAboveWarning()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var registerId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         ctx.CashRegisters.Add(Register(tenantId, registerId, "Q-K03", now));
         for (var i = 0; i < 31; i++)
             ctx.OfflineTransactions.Add(NonFiscal(tenantId, registerId, now.AddMinutes(-i)));
@@ -171,8 +172,10 @@ public sealed class TseOfflineQueueServiceTests
         IActivityEventPublisher activity,
         IAuditLogService audit)
     {
-        var tse = new Mock<IOptionsMonitor<TseOptions>>();
-        tse.Setup(o => o.CurrentValue).Returns(new TseOptions { MaxOfflineTransactionsPerCashRegister = 50 });
+        var limits = new Mock<ITenantLimitService>();
+        limits
+            .Setup(s => s.GetLimitValueAsync(It.IsAny<Guid>(), TenantLimitKeys.MaxOfflineTransactions, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(50);
         var monitoring = new Mock<IOptionsMonitor<OfflineMonitoringOptions>>();
         monitoring.Setup(o => o.CurrentValue).Returns(new OfflineMonitoringOptions
         {
@@ -185,7 +188,7 @@ public sealed class TseOfflineQueueServiceTests
             ctx,
             activity,
             audit,
-            tse.Object,
+            limits.Object,
             monitoring.Object,
             NullLogger<TseOfflineQueueService>.Instance);
     }

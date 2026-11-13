@@ -199,6 +199,9 @@ namespace KasseAPI_Final.Controllers
 
                 var normalizedName = request.Name.Trim();
 
+                if (!TryResolveAppearance(request.Color, request.Icon, out var color, out var icon, out var appearanceError))
+                    return BadRequest(new { message = appearanceError });
+
                 var key = string.IsNullOrWhiteSpace(request.Key)
 
                     ? CategoryKey.FromDisplayName(normalizedName)
@@ -265,9 +268,9 @@ namespace KasseAPI_Final.Controllers
 
                     Description = request.Description,
 
-                    Color = request.Color,
+                    Color = color,
 
-                    Icon = request.Icon,
+                    Icon = icon,
 
                     SortOrder = request.SortOrder,
 
@@ -307,11 +310,22 @@ namespace KasseAPI_Final.Controllers
                     }
                 }
 
-                var dto = await QueryCategoryDtos(tenantId)
-
-                    .FirstAsync(c => c.Id == category.Id);
-
-
+                var dto = new CategoryDto
+                {
+                    Id = category.Id,
+                    Key = category.Key,
+                    Name = category.Name,
+                    Description = category.Description,
+                    Icon = category.Icon,
+                    Color = category.Color,
+                    SortOrder = category.SortOrder,
+                    ProductCount = 0,
+                    DefaultTaxRate = category.VatRate,
+                    FiscalCategory = category.FiscalCategory,
+                    IsSystemCategory = category.IsSystemCategory,
+                    OriginalDemoName = category.OriginalDemoName,
+                    IsActive = category.IsActive,
+                };
 
                 return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, dto);
 
@@ -351,7 +365,8 @@ namespace KasseAPI_Final.Controllers
 
                 }
 
-
+                if (!TryResolveAppearance(request.Color, request.Icon, out var color, out var icon, out var appearanceError))
+                    return BadRequest(new { message = appearanceError });
 
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
@@ -415,9 +430,9 @@ namespace KasseAPI_Final.Controllers
 
                 category.Description = request.Description;
 
-                category.Color = request.Color;
+                category.Color = color;
 
-                category.Icon = request.Icon;
+                category.Icon = icon;
 
                 category.SortOrder = request.SortOrder;
 
@@ -795,6 +810,17 @@ namespace KasseAPI_Final.Controllers
 
 
 
+        private static bool TryResolveAppearance(
+            string? color,
+            string? icon,
+            out string? normalizedColor,
+            out string? normalizedIcon,
+            out string? error)
+        {
+            normalizedIcon = CategoryAppearance.NormalizeIcon(icon);
+            return CategoryAppearance.TryNormalizeColor(color, out normalizedColor, out error);
+        }
+
         private IQueryable<CategoryDto> QueryCategoryDtos(Guid tenantId) =>
 
             from c in _context.Categories.IgnoreQueryFilters().AsNoTracking()
@@ -964,7 +990,7 @@ namespace KasseAPI_Final.Controllers
 
 
         [MaxLength(20)]
-
+        [RegularExpression(@"^$|^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", ErrorMessage = "Color must be a hex value such as #E53935.")]
         public string? Color { get; set; }
 
 
@@ -1024,7 +1050,7 @@ namespace KasseAPI_Final.Controllers
 
 
         [MaxLength(20)]
-
+        [RegularExpression(@"^$|^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", ErrorMessage = "Color must be a hex value such as #E53935.")]
         public string? Color { get; set; }
 
 

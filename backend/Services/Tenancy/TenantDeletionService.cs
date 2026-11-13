@@ -37,12 +37,12 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
         bool forceDelete = false,
         CancellationToken ct = default)
     {
-        if (tenantId == LegacyDefaultTenantIds.Primary)
+        if (SystemTenantIds.IsPlatformTenantId(tenantId))
         {
             return Task.FromResult<(bool, string?, string?)>((
                 false,
                 TenantPermanentDeleteFailureCodes.LegacyDefaultTenant,
-                "The legacy default tenant cannot be permanently deleted."));
+                "The platform tenant cannot be permanently deleted."));
         }
 
         return WithDbAsync<(bool Success, string? ErrorCode, string? ErrorMessage)>(
@@ -57,15 +57,15 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
                         "Tenant not found.");
                 }
 
-                if (string.Equals(tenant.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.Ordinal))
+                if (SystemTenantIds.IsPlatformSlug(tenant.Slug))
                 {
                     return (
                         false,
                         TenantPermanentDeleteFailureCodes.LegacyDefaultTenant,
-                        "The legacy default tenant cannot be permanently deleted.");
+                        "The platform tenant cannot be permanently deleted.");
                 }
 
-                if (tenant.Status != TenantStatuses.Deleted)
+                if (!TenantStatuses.IsRemoved(tenant.Status))
                 {
                     return (
                         false,
@@ -120,13 +120,13 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
         string? failureCode = null;
         string? failureMessage = null;
 
-        if (tenant.Id == LegacyDefaultTenantIds.Primary
-            || string.Equals(tenant.Slug, LegacyDefaultTenantIds.PrimarySlug, StringComparison.Ordinal))
+        if (SystemTenantIds.IsPlatformTenantId(tenant.Id)
+            || SystemTenantIds.IsPlatformSlug(tenant.Slug))
         {
             failureCode = TenantPermanentDeleteFailureCodes.LegacyDefaultTenant;
-            failureMessage = "The legacy default tenant cannot be permanently deleted.";
+            failureMessage = "The platform tenant cannot be permanently deleted.";
         }
-        else if (tenant.Status != TenantStatuses.Deleted)
+        else if (!TenantStatuses.IsRemoved(tenant.Status))
         {
             failureCode = TenantPermanentDeleteFailureCodes.NotSoftDeleted;
             failureMessage = "Tenant must be soft-deleted before permanent deletion.";
@@ -170,7 +170,7 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
     {
         var blockers = new List<TenantDeleteDependencyBlockerDto>(policyBlockers);
 
-        if (tenant.Status != TenantStatuses.Deleted)
+        if (!TenantStatuses.IsRemoved(tenant.Status))
         {
             blockers.Add(new TenantDeleteDependencyBlockerDto(
                 TenantPermanentDeleteFailureCodes.NotSoftDeleted,
@@ -217,7 +217,7 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
     {
         var steps = new List<string>();
 
-        if (tenant.Status != TenantStatuses.Deleted)
+        if (!TenantStatuses.IsRemoved(tenant.Status))
             steps.Add("soft_delete_archive");
 
         if (hasFiscalFootprint || counts.Payments > 0)
@@ -235,7 +235,7 @@ public sealed partial class TenantDeletionService : ITenantDeletionService
         if (blockers.Any(b => b.Severity == "compliance"))
             steps.Add("retain_for_rksv_retention");
 
-        if (steps.Count == 0 && tenant.Status == TenantStatuses.Deleted)
+        if (steps.Count == 0 && TenantStatuses.IsRemoved(tenant.Status))
             steps.Add("eligible_for_dev_permanent_delete");
 
         return steps;

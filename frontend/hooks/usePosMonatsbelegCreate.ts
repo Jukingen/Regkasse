@@ -8,13 +8,17 @@ import {
   alertPosMonatsbelegCreateSuccess,
   createPosMonatsbelegAndPrint,
   requestPosMonatsbelegCreate,
+  type CreatePosMonatsbelegResult,
 } from '../utils/createPosMonatsbeleg';
 import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
+import { isMonatsbelegForceRequired } from '../utils/readPosApiErrorMessage';
 
 export type PosMonatsbelegCreateArgs = {
   cashRegisterId: string;
   year: number;
   month: number;
+  /** Past Vienna months require backend `?force=true`. */
+  force?: boolean;
   /** Called after successful create + readiness refresh (e.g. reload banner status). */
   onAfterSuccess?: () => void | Promise<void>;
 };
@@ -43,11 +47,25 @@ export function usePosMonatsbelegCreate() {
 
       setBusy(true);
       try {
-        const result = await createPosMonatsbelegAndPrint({
-          cashRegisterId: registerId,
-          year: args.year,
-          month: args.month,
-        });
+        let result: CreatePosMonatsbelegResult;
+        try {
+          result = await createPosMonatsbelegAndPrint({
+            cashRegisterId: registerId,
+            year: args.year,
+            month: args.month,
+            force: args.force,
+          });
+        } catch (firstError: unknown) {
+          if (args.force === true || !isMonatsbelegForceRequired(firstError)) {
+            throw firstError;
+          }
+          result = await createPosMonatsbelegAndPrint({
+            cashRegisterId: registerId,
+            year: args.year,
+            month: args.month,
+            force: true,
+          });
+        }
         await refreshAsync();
         await args.onAfterSuccess?.();
         alertPosMonatsbelegCreateSuccess(result);

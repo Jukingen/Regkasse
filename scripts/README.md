@@ -19,6 +19,7 @@ Windows `.bat` UI strings in this tree are **English**.
 | CI | [`ci/`](ci/) |
 | RKSV / fiscal | [`rksv/`](rksv/) |
 | Test / smoke | [`test/`](test/) |
+| POS load test | [`load-test/`](load-test/) |
 | Ops / deploy | [`ops/`](ops/) |
 | Lib / gates | [`lib/`](lib/) |
 
@@ -113,6 +114,7 @@ Also: root [`Makefile`](../Makefile) / [`Justfile`](../Justfile) for `dev`, `bui
 | [`verify-api-contract.mjs`](verify-api-contract.mjs) | Lightweight swagger endpoint presence smoke | Optional; used by `run-all-tests.sh` |
 | [`verify-bat-ps1-pairing.mjs`](verify-bat-ps1-pairing.mjs) | `.bat` / `.ps1` pairing allowlists | `scripts-bat-ps1-pairing.yml`, `npm run verify:bat-ps1` |
 | [`generate-backend-openapi.mjs`](generate-backend-openapi.mjs) | Regenerate `backend/swagger.json` (do **not** hand-edit swagger) | Docs / regen workflow |
+| [`pre-flight-cutover.mjs`](pre-flight-cutover.mjs) | Manual cutover checks (env, health, `pendingCount=0`). Not a CI job | `npm run validate:scripts` documents the filename; run by hand against a host |
 
 ```bash
 node scripts/verify-api-client.mjs
@@ -188,12 +190,12 @@ node scripts/seed-test-data.mjs --help
 
 | Script | Purpose |
 |--------|---------|
-| [`ensure-bmf-prueftool.ps1`](ensure-bmf-prueftool.ps1) | Download official BMF Prüftool V1.1.1 ZIP into `backend/Tests/` |
-| [`verify-rksv-dep-export.ps1`](verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP format verify (JDK + jar) |
-| [`generate-dep-export-fixtures.ps1`](generate-dep-export-fixtures.ps1) (+ `.bat`) | Generate Prüftool fixtures |
-| [`verify-rksv-receipt-qr.ps1`](verify-rksv-receipt-qr.ps1) | Receipt QR verify |
-| [`run-verify-dep-export-complete.ps1`](run-verify-dep-export-complete.ps1) (+ `.bat`) | Combined DEP runner |
-| [`run_fiscal_go_live_validation.sh`](run_fiscal_go_live_validation.sh) / [`.ps1`](run_fiscal_go_live_validation.ps1) | Fiscal SQL gate — CI `fiscal-validation.yml` |
+| [`rksv/ensure-bmf-prueftool.ps1`](rksv/ensure-bmf-prueftool.ps1) | Download official BMF Prüftool V1.1.1 ZIP into `backend/Tests/` |
+| [`rksv/verify-rksv-dep-export.ps1`](rksv/verify-rksv-dep-export.ps1) (+ `.bat`) | BMF DEP format verify (JDK + jar) |
+| [`rksv/generate-dep-export-fixtures.ps1`](rksv/generate-dep-export-fixtures.ps1) (+ `.bat`) | Generate Prüftool fixtures (`REGKASSE_UPDATE_BASELINE=1`) |
+| [`rksv/verify-rksv-receipt-qr.ps1`](rksv/verify-rksv-receipt-qr.ps1) | Receipt QR verify |
+| [`rksv/run-verify-dep-export-complete.ps1`](rksv/run-verify-dep-export-complete.ps1) (+ `.bat`) | Combined DEP runner |
+| [`rksv/run_fiscal_go_live_validation.sh`](rksv/run_fiscal_go_live_validation.sh) / [`.ps1`](rksv/run_fiscal_go_live_validation.ps1) | Fiscal SQL gate — CI `fiscal-validation.yml` |
 | [`sql/fiscal_go_live_validation.sql`](sql/fiscal_go_live_validation.sql) | Queries for fiscal go-live |
 
 Requires JDK 17+ for Prüftool scripts. See `docs/DEP_EXPORT_DEVELOPMENT.md`, `AGENTS.md`.
@@ -221,9 +223,13 @@ Requires JDK 17+ for Prüftool scripts. See `docs/DEP_EXPORT_DEVELOPMENT.md`, `A
 
 | Script | Purpose |
 |--------|---------|
+| [`ops/preflight-production.sh`](ops/preflight-production.sh) | Production host checks (pg_dump, backup dirs, env hints) |
+| [`ops/deploy-production.sh`](ops/deploy-production.sh) | Confirm-gated publish + migrate + systemd restart + smoke |
 | [`prepare-rollback-backup.sh`](prepare-rollback-backup.sh) | Pre-deploy backup prep |
 | [`rollback-production.sh`](rollback-production.sh) | Production rollback helper |
 | [`document-rollback.sh`](document-rollback.sh) | Rollback documentation helper |
+
+**Runbook:** [`docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`](../docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md).
 
 **Do not** use these to roll back EF migrations casually. Prefer forward-fix migrations. See `docs/` backup/restore hubs for data restore policy (no production restore via API).
 
@@ -262,7 +268,7 @@ Run only after review. Prefer checked-in EF migrations for schema changes.
 - Do not commit secrets (`dev-mail.local.env` is gitignored).
 - Destructive DB scripts must be Development-only and clearly named.
 - Prefer idempotent scripts where possible.
-- Do not extend legacy `/api/Payment`, `/api/Cart`, `/api/Product` for new features.
+- Do not reintroduce removed `/api/Payment`, `/api/Cart`, `/api/Product` aliases.
 - Keep `.bat` / `.ps1` pairing green (`npm run verify:bat-ps1`).
 
 ## Related

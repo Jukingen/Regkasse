@@ -31,6 +31,14 @@
   "reorderLevel": "Nachbestellungsgrenze",
   "currentStock": "Aktueller Bestand",
   "a11y": {
-    "selected": "ausgewählt"
-  }
+    "selected": "ausgewählt",
+    "chipView": "Kategorien als Liste",
+    "gridView": "Kategorien als Kacheln"
+  },
+  "viewChips": "Liste",
+  "viewGrid": "Kacheln",
+  "variantPickerTitle": "Variante wählen",
+  "variantOutOfStock": "Nicht auf Lager",
+  "variantAllOutOfStock": "Alle Varianten sind ausverkauft.",
+  "variantRequired": "Bitte wählen Sie eine Variante."
 }

@@ -9,9 +9,9 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import { mapDumpInspectionTriState } from '@/features/backup-dr/logic/backupDrMappers';
 import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
@@ -81,7 +81,7 @@ function logicalDumpPass(
   detail: BackupRunResponseDto | null | undefined
 ): boolean {
   const arts = detail?.artifacts ?? latest?.artifacts ?? [];
-  const row = arts.find((a) => a.artifactType === BackupArtifactResponseDtoArtifactType.NUMBER_0);
+  const row = arts.find((a) => a.artifactType === BackupArtifactType.LogicalDump);
   if (row?.isFilePresentForDownload === true) return true;
   return false;
 }
@@ -99,7 +99,7 @@ function verificationPass(
 }
 
 function drillSucceeded(restore: RestoreVerificationRunResponseDto | undefined): boolean {
-  return restore?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_2;
+  return restore?.status === RestoreVerificationStatus.Succeeded;
 }
 
 function fiscalProven(restore: RestoreVerificationRunResponseDto | undefined): boolean {
@@ -190,7 +190,7 @@ export function buildDrProofPresentationModel(params: {
   } = params;
 
   const simulated = truth.run.simulatedEvidence;
-  const technicalOk = latest?.status === BackupRunResponseDtoStatus.NUMBER_3;
+  const technicalOk = latest?.status === BackupRunStatus.Succeeded;
   const latestId = latest?.id?.trim();
   const dumpListOk = mapDumpInspectionTriState(restoreLatest) === true;
   const l3 = restoreLevel3Proven(restoreLatest, restoreExtended, dumpListOk);
@@ -217,7 +217,7 @@ export function buildDrProofPresentationModel(params: {
   const l5 = !simulated && l4 && restoredDbApplicationSmokeProven(restoreExtended);
 
   const latestDrillFailed =
-    restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3;
+    restoreLatest?.status === RestoreVerificationStatus.Failed;
 
   let highest: DrProofLevelIndex = 0;
   if (l5) highest = 5;
@@ -485,12 +485,12 @@ export function buildDrProofScanTags(params: {
 
   const st = restoreLatest?.status;
   const drillFailed =
-    st === RestoreVerificationRunResponseDtoStatus.NUMBER_3 ||
+    st === RestoreVerificationStatus.Failed ||
     truth.restore.latestDrillFailed === true;
-  const drillSucceeded = st === RestoreVerificationRunResponseDtoStatus.NUMBER_2;
+  const drillSucceeded = st === RestoreVerificationStatus.Succeeded;
   const drillRunning =
-    st === RestoreVerificationRunResponseDtoStatus.NUMBER_0 ||
-    st === RestoreVerificationRunResponseDtoStatus.NUMBER_1;
+    st === RestoreVerificationStatus.Queued ||
+    st === RestoreVerificationStatus.Running;
 
   if (drillFailed) {
     tags.push({ labelKey: 'backupDr.scan.drill.latestFailed', tone: 'error' });

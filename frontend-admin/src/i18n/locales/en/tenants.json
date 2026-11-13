@@ -45,6 +45,197 @@
     "title": "Access denied",
     "body": "Only super administrators may open this page."
   },
+  "limits": {
+    "title": "Tenant limits",
+    "maxActiveRegistersPerUser": "Max. active registers per user",
+    "maxProductsPerTenant": "Max. products per tenant",
+    "maxUsersPerTenant": "Max. users per tenant",
+    "dailyMaxTransactions": "Max. transactions per day",
+    "maxTransactionAmount": "Max. amount per transaction",
+    "dailyMaxRevenue": "Max. daily revenue",
+    "maxBackupsPerTenant": "Max. backups per tenant",
+    "maxBackupSizeMB": "Max. backup size (cumulative, MB)",
+    "maxOfflineTransactions": "Max. offline transactions (tenant)",
+    "save": "Save limits",
+    "reset": "Reset to defaults",
+    "resetConfirm": "Are you sure? All limits will be reset to defaults.",
+    "saved": "Limits saved successfully",
+    "error": "Failed to save limits",
+    "required": "Please enter a value.",
+    "overrideNote": "Only SuperAdmin can override cash-register assignment (max active registers per user) with force=true. Other limits have no override.",
+    "warningUsage": "{{current}} / {{limit}} — {{name}}",
+    "warningReached": "Limit reached. No further entries are possible.",
+    "warningRemaining": "{{remaining}} remaining.",
+    "dashboard": {
+      "title": "Limit dashboard",
+      "pageTitle": "Limit dashboard",
+      "subtitle": "Current usage, critical users, and limit alerts.",
+      "lastUpdated": "Last updated",
+      "allTenants": "All tenants",
+      "context": {
+        "tenant": "Tenant",
+        "register": "Cash register",
+        "cashier": "Cashier",
+        "allRegisters": "All registers",
+        "noTenant": "No tenant selected",
+        "tenantValue": "{{name}} ({{slug}})",
+        "mandantLine": "Tenant: {{name}} ({{slug}})",
+        "signedIn": "Signed in as: {{name}} ({{userName}})",
+        "roleTenant": "Role: {{role}} | Tenant: {{slug}}"
+      },
+      "refresh": "Refresh",
+      "exportCsv": "Export CSV",
+      "exportEmpty": "No rows to export.",
+      "exported": "Exported {{count}} limits.",
+      "approaching": "Approaching limit",
+      "violations": "Limit exceeded",
+      "newAlerts": "New alerts",
+      "limitsTitle": "Limits",
+      "criticalUsersTitle": "Critical users",
+      "recentLogsTitle": "Recent limit events",
+      "limit": "Limit",
+      "usage": "Usage",
+      "status": {
+        "Healthy": "Healthy",
+        "Warning": "Warning",
+        "Critical": "Critical",
+        "Approaching": "Approaching",
+        "Full": "Full",
+        "Exceeded": "Exceeded"
+      },
+      "statusOk": "OK",
+      "statusApproaching": "Warning (≥80%)",
+      "statusExceeded": "Exceeded",
+      "tenant": "Tenant",
+      "user": "User",
+      "tenantWide": "Tenant-wide",
+      "when": "Time",
+      "event": "Event",
+      "message": "Message",
+      "emptyLimits": "No limits for this filter.",
+      "emptyUsers": "No users approaching or exceeding a limit.",
+      "emptyLogs": "No limit events.",
+      "loadFailed": "Could not load limit data",
+      "loadFailedHint": "Please try again later.",
+      "filter": {
+        "all": "All",
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "critical": "Critical"
+      },
+      "summary": {
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "critical": "Critical",
+        "total": "Total"
+      },
+      "alerts": {
+        "criticalLimit": "{{name}} is critical ({{percent}}%).",
+        "warningLimit": "{{name}} is approaching the limit ({{percent}}%).",
+        "criticalUser": "{{user}} — {{name}} ({{percent}}%)."
+      },
+      "trend": {
+        "Increasing": "Increasing",
+        "Stable": "Stable",
+        "Decreasing": "Decreasing"
+      },
+      "csv": {
+        "current": "Current",
+        "cap": "Limit",
+        "percentage": "Percent"
+      },
+      "limits": {
+        "title": "Limits",
+        "trend": "Trend",
+        "change": "Change (7 days)",
+        "changeUnit": "Unit",
+        "openDetail": "Open details",
+        "maxProductsPerTenant": "Max. products per tenant",
+        "maxUsersPerTenant": "Max. users per tenant",
+        "dailyMaxTransactions": "Max. transactions per day",
+        "maxTransactionAmount": "Max. amount per transaction",
+        "dailyMaxRevenue": "Max. daily revenue",
+        "maxActiveRegistersPerUser": "Max. registers per cashier",
+        "maxBackupsPerTenant": "Max. backups per tenant",
+        "maxBackupSizeMB": "Max. backup size",
+        "maxOfflineTransactions": "Max. offline transactions"
+      },
+      "users": {
+        "title": "Users approaching limits",
+        "user": "User",
+        "limit": "Limit",
+        "usage": "Usage",
+        "status": "Status",
+        "action": "Action"
+      },
+      "activity": {
+        "title": "Limit activity log",
+        "time": "Time",
+        "limit": "Limit",
+        "status": "Status",
+        "description": "Description"
+      }
+    },
+    "errors": {
+      "generic": "Tenant limit reached ({{current}}/{{limit}}). Please contact an administrator.",
+      "maxProductsPerTenant": "Maximum product count ({{limit}}) reached. Current: {{current}}. Please delete unused products or contact an administrator.",
+      "maxUsersPerTenant": "Maximum user count ({{limit}}) reached. Current: {{current}}. Please deactivate unused users or contact an administrator.",
+      "maxActiveRegistersPerUser": "Maximum registers per cashier ({{limit}}) reached. Current: {{current}}. Please unassign unused registers.",
+      "maxBackupsPerTenant": "Maximum backup count ({{limit}}) reached. Current: {{current}}. Please delete old backups.",
+      "maxBackupSizeMB": "Maximum backup size ({{limit}} MB) reached. Current: {{current}} MB. Please delete old backups.",
+      "dailyMaxTransactions": "Daily transaction limit ({{limit}}) reached. Current: {{current}}. Please wait until tomorrow.",
+      "maxTransactionAmount": "Maximum transaction amount ({{limit}} €) exceeded. Please reduce the amount.",
+      "dailyMaxRevenue": "Daily revenue limit ({{limit}} €) reached. Current: {{current}} €. Please wait until tomorrow.",
+      "maxOfflineTransactions": "Offline queue is full ({{current}}/{{limit}}). Please synchronize the queue."
+    },
+    "devPanel": {
+      "title": "Limit test",
+      "alertTitle": "🧪 Development Limit Test Panel",
+      "alertDescription": "Development only (Super Admin). Caps are moved relative to current usage — no fiscal test data is created.",
+      "productionBlocked": "The limit test panel is disabled in production.",
+      "selectTenant": "Tenant",
+      "selectTenantPlaceholder": "Select a tenant…",
+      "noTenantSelected": "Please select a tenant first.",
+      "contextTenantHint": "Current context: {{name}} ({{slug}})",
+      "statusTitle": "Usage vs limits",
+      "quickEditTitle": "Quick limit edit",
+      "scenariosTitle": "One-click scenarios",
+      "scenariosHint": "Scenarios move the caps (near ≈ 80%, at = current usage, tiny = 1). The next real action triggers the limit error.",
+      "eventLogTitle": "Limit events",
+      "usage": "{{current}} / {{limit}}",
+      "limit": "Limit",
+      "value": "Value",
+      "apply": "Apply",
+      "resetAll": "Reset all",
+      "resetConfirm": "Reset all limits for this tenant to defaults?",
+      "clearCache": "Clear cache",
+      "cacheCleared": "Limit cache cleared.",
+      "saved": "Limit updated.",
+      "error": "The limit could not be updated.",
+      "loadFailed": "Could not load test data",
+      "loadFailedHint": "Please try again later.",
+      "scenarioSuccess": "Scenario applied.",
+      "refresh": "Refresh",
+      "allKeys": "All limits",
+      "logEmpty": "No events in this session yet.",
+      "logClear": "Clear log",
+      "logTime": "Time",
+      "logAction": "Action",
+      "logDetail": "Detail",
+      "scenario": {
+        "near": "Near limit (~80%)",
+        "at": "At limit (next action blocked)",
+        "tiny": "Minimum (1)",
+        "reset": "Defaults"
+      },
+      "logActions": {
+        "set": "Set",
+        "reset": "Reset",
+        "scenario": "Scenario",
+        "cache": "Cache"
+      }
+    }
+  },
   "domainManagement": {
     "pageTitle": "Custom domain",
     "openAction": "Domain",
@@ -371,19 +562,80 @@
     "pendingBody": "A website request is already pending review.",
     "pendingBodyWithNote": "A website request is already pending review ({{note}})."
   },
+  "verticalProfile": {
+    "pageTitle": "POS profile",
+    "subtitle": "Configure POS capabilities and optional data fields for this tenant.",
+    "accessDenied": "Only Super Administrators may manage POS profiles.",
+    "selectorTitle": "Select profile",
+    "selectorHelp": "The profile provides the default capabilities and POS layout.",
+    "profileLabel": "POS profile",
+    "profilePlaceholder": "Select a profile",
+    "overrideTitle": "Tenant overrides",
+    "posFeaturesTitle": "POS features",
+    "customFieldsTitle": "Optional data fields",
+    "customerFields": "Customer fields",
+    "productFields": "Product fields",
+    "customerFieldPlaceholder": "Add customer field",
+    "productFieldPlaceholder": "Add product field",
+    "addField": "Add",
+    "noCustomFields": "No additional fields.",
+    "noFeatures": "This profile has no POS features.",
+    "save": "Save profile",
+    "saveSuccess": "POS profile saved.",
+    "saveError": "Could not save the POS profile.",
+    "impactTitle": "Historical data is kept",
+    "impactIntro": "Changing the profile hides these rows. Invoices, receipts, and stored rows are not deleted or rewritten.",
+    "impactConfirmTitle": "Change the profile anyway?",
+    "impactConfirmBody": "Historical data stays stored and is only hidden.",
+    "impactConfirmOk": "Save anyway",
+    "impactConfirmCancel": "Cancel",
+    "impactCustomersWithPetData": "{{count}} customers with pet data",
+    "impactPaymentsWithPrescriptionReference": "{{count}} payments with a prescription reference",
+    "impactPaymentsWithRouteFrom": "{{count}} payments with a taxi route",
+    "impactSoldImeis": "{{count}} sold IMEIs",
+    "impactAppointments": "{{count}} appointments",
+    "impactRooms": "{{count}} rooms",
+    "impactFolios": "{{count}} folios",
+    "impactTickets": "{{count}} tickets",
+    "loadError": "Could not load the POS profile.",
+    "features": {
+      "tables": "Tables",
+      "kitchenDisplay": "Kitchen display",
+      "patientRecord": "Patient record",
+      "serviceDuration": "Service duration",
+      "appointment": "Appointments",
+      "imeiTracking": "IMEI tracking",
+      "routeTracking": "Route tracking",
+      "roomTracking": "Room/seat tracking",
+      "ticketScan": "Ticket scan",
+      "prescription": "Prescription required"
+    },
+    "taxiTariffTitle": "Taxi tariff",
+    "taxiTariffHelp": "Per-kilometre tariff used as a POS fare suggestion. The fiscal receipt amount remains the cart service line.",
+    "taxiTariffLabel": "Tariff per kilometre (EUR)"
+  },
   "columns": {
     "name": "Tenant",
     "slug": "Subdomain",
+    "profile": "Profile",
     "email": "Contact email",
     "status": "Status",
     "adminUser": "Admin user",
     "license": "License",
+    "licenseType": "Package",
+    "registers": "Registers",
+    "users": "Users",
+    "lastActivity": "Last activity",
     "created": "Created",
     "actions": "Actions"
   },
   "status": {
+    "lead": "Lead",
+    "in_onboarding": "Onboarding",
     "active": "Active",
     "suspended": "Suspended",
+    "cancelled": "Cancelled",
+    "archived": "Archived",
     "deleted": "Archived"
   },
   "fields": {
@@ -426,6 +678,24 @@
     "title": "Add new customer (tenant)",
     "subtitle": "Technical setup (register, demo data, administrator) runs automatically.",
     "submit": "Create customer",
+    "fiscal": {
+      "rksv": {
+        "title": "RKSV / TSE",
+        "helper": "Locked on for Austria. This switch cannot be turned off."
+      },
+      "kassenSicherheit": {
+        "title": "KassenSicherheit",
+        "helper": "German cash-register module. The switch can be changed per tenant."
+      },
+      "qrRechnung": {
+        "title": "QR-Rechnung",
+        "helper": "Swiss QR bill. The switch can be changed per tenant."
+      },
+      "en16931": {
+        "title": "E-invoice (EN 16931)",
+        "helper": "UBL sketch for the EU default profile. No network submission."
+      }
+    },
     "wizard": {
       "next": "Next",
       "back": "Back",
@@ -507,7 +777,7 @@
         "admin": "Creating administrator …",
         "adminDone": "Administrator access created",
         "license": "Activating demo license …",
-        "licenseDone": "Demo license (30 days) activated",
+        "licenseDone": "Demo license (trial) activated",
         "register": "Setting up register …",
         "registerDone": "Register \"Hauptkasse\" ready",
         "products": "Creating demo products …",
@@ -523,7 +793,7 @@
         "placeholder": "Café Example",
         "hint": "Shown on receipts",
         "errors": {
-          "required": "Please enter a company name.",
+          "required": "Please enter a company name",
           "tooShort": "Company name must be at least 2 characters.",
           "tooLong": "Company name must be at most 200 characters."
         }
@@ -533,14 +803,16 @@
         "tooltip": "Web address for the customer's register and admin",
         "placeholder": "cafe-example",
         "hint": "Suggested automatically from the company name",
+        "subdomainHint": "Used for the subdomain: {{slug}}.{{domain}}",
         "availableShort": "Available",
-        "takenShort": "Already taken",
+        "takenShort": "Not available",
         "checkingShort": "Checking availability …",
+        "suggestionsLabel": "Suggestions:",
         "success": "This address is available.",
         "errors": {
           "required": "Please enter a subdomain (e.g. cafe-example).",
-          "pattern": "Only lowercase letters, digits, and hyphens are allowed",
-          "invalid": "Only lowercase letters, digits, and hyphens; do not paste the full domain.",
+          "pattern": "Slug can only contain lowercase letters, numbers, and hyphens",
+          "invalid": "Slug can only contain lowercase letters, numbers, and hyphens; do not paste the full domain.",
           "reserved": "This subdomain is reserved (e.g. admin, www).",
           "taken": "This subdomain is already taken.",
           "checking": "Checking availability …",
@@ -551,10 +823,10 @@
         "label": "Email (contact)",
         "tooltip": "Also used as the administrator sign-in email",
         "placeholder": "owner@cafe-example.at",
-        "hint": "For invoices, support, and administrator sign-in",
+        "hint": "This email is used for the admin user",
         "errors": {
-          "required": "Please enter a valid email address.",
-          "invalid": "Please enter a valid email address."
+          "required": "Please enter a valid email",
+          "invalid": "Please enter a valid email"
         }
       },
       "phone": {
@@ -584,12 +856,16 @@
         "copy": "Copy email"
       },
       "grantTrialLicense": {
-        "label": "Enable 30-day demo license (free)",
-        "tooltip": "30 days free trial, renewal available afterwards"
+        "label": "Enable demo license (trial)",
+        "tooltip": "Configurable trial length (default 14 days); renewal or paid upgrade afterwards"
       },
-      "autoDemoSetup": {
-        "label": "Create demo products and register automatically",
-        "tooltip": "Creates main register and three demo products (recommended)"
+      "trialDuration": {
+        "label": "Trial duration",
+        "tooltip": "Super Admin chooses the trial length",
+        "days_14": "14 days",
+        "days_30": "30 days",
+        "days_60": "60 days",
+        "days_90": "90 days"
       },
       "importDemoProducts": {
         "label": "Import demo products automatically",
@@ -608,10 +884,14 @@
     "successTitle": "Tenant created",
     "successHeadline": "Customer “{{name}}” was created successfully!",
     "demoMenuImported": "Demo menu imported: {{count}} products across demo categories.",
+    "demoReady": "46 products, 22 customers, KASSE-001 is open. Demo ready.",
     "missingWarning": "Automatic setup could not be confirmed. Please verify the tenant or contact support.",
     "passwordWarning": "This password is shown only NOW, once!",
     "credentialsTitle": "Credentials (one-time display!)",
     "adminEmailLabel": "Admin email",
+    "usernameLabel": "Username",
+    "loginUrlLabel": "Login URL",
+    "tenantPortalLabel": "Tenant portal",
     "password": "Password",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
@@ -623,14 +903,20 @@
       "good": "Good",
       "strong": "Very strong"
     },
-    "firstStepsTitle": "First steps",
+    "firstStepsTitle": "Next steps",
     "firstStepLogin": "Customer sign-in:",
     "firstStepChangePassword": "Change password",
     "firstStepProducts": "Adjust products",
     "firstStepPrinter": "Connect register to printer",
     "firstStepTestSale": "Run a test transaction",
+    "firstStepLoginAdmin": "Sign in to the admin panel",
+    "firstStepCompanySettings": "Configure company settings (tax number, address)",
+    "firstStepCashRegister": "Set up and connect the cash register",
+    "firstStepStartPos": "Start using POS and run a test sale",
     "emailSent": "An email with the credentials was sent to {{email}}.",
     "emailNotSent": "SMTP is not configured or delivery failed. Please share the credentials manually with {{email}}.",
+    "emailCredentials": "Email credentials",
+    "emailCredentialsDisabled": "Welcome email is attempted automatically on create (SMTP).",
     "forcePasswordChange": "The customer must change the password on first sign-in.",
     "createAnother": "Add another customer",
     "switchToTenant": "Switch to customer",
@@ -641,11 +927,27 @@
     "copyFailed": "Copy failed"
   },
   "filters": {
-    "includeDeleted": "Include deleted"
+    "includeDeleted": "Include deleted",
+    "searchPlaceholder": "Search name or subdomain",
+    "statusPlaceholder": "Status",
+    "licenseTypePlaceholder": "License type",
+    "sortByPlaceholder": "Sort by",
+    "allStatuses": "All statuses",
+    "allLicenseTypes": "All license types",
+    "sortName": "Name",
+    "sortCreated": "Created",
+    "sortLicenseDays": "License days left",
+    "sortRegisters": "Register count",
+    "sortUsers": "User count",
+    "sortLastActivity": "Last activity"
   },
   "actions": {
     "create": "Create tenant",
+    "createDemo": "Create demo tenant",
     "edit": "Edit",
+    "exportCsv": "Export CSV",
+    "exportSuccess": "Export started.",
+    "exportFailed": "CSV export failed.",
     "decommission": "Decommission tenant",
     "delete": "Delete",
     "archive": "Archive",
@@ -657,7 +959,26 @@
     "manageLicense": "License",
     "suspend": "Suspend",
     "reactivate": "Reactivate",
-    "view": "Details"
+    "view": "Details",
+    "changeStatus": "Change status"
+  },
+  "analytics": {
+    "title": "Customer overview",
+    "totalTenants": "Total tenants",
+    "activeTenants": "Active",
+    "expiringSoon": "Expiring soon",
+    "mrr": "MRR",
+    "loadFailed": "Could not load analytics.",
+    "churnRate": "Monthly churn",
+    "arpu": "ARPU",
+    "paidTenants": "Paid",
+    "trialTenants": "Trial",
+    "ltv": "LTV",
+    "planDistribution": "Plan distribution",
+    "planTrial": "Trial",
+    "planStarter": "Starter",
+    "planBusiness": "Business",
+    "planPlus": "Plus"
   },
   "detail": {
     "demoPreset": "Demo tenant",
@@ -666,6 +987,10 @@
       "users": "Users",
       "registers": "Registers",
       "license": "License",
+      "verticalProfile": "POS profile",
+      "limits": "Limits",
+      "kitchen": "Kitchen",
+      "rooms": "Rooms",
       "settings": "Settings"
     },
     "overview": {
@@ -1424,5 +1749,70 @@
   },
   "list": {
     "pageTitle": "Tenants"
+  },
+  "chQrGaps": {
+    "title": "QR-Rechnung print gaps",
+    "description": "Record which open print gaps are acceptable for this tenant. This record does not change the PDF and does not enable bank submission.",
+    "save": "Save",
+    "saved": "Gap acceptance saved.",
+    "invalidGaps": "One or more gap ids are not in the known catalog.",
+    "loadFailed": "Could not load QR print-gap acceptance.",
+    "outstandingWarning": "These print features are not part of the current QR-Rechnung output. The operator must confirm they are acceptable for this tenant.",
+    "gap": {
+      "officialSwissCross": "Official 7 mm Swiss cross with a white border",
+      "fontEmbeddingLiberationArial": "Embedded Liberation Sans or Arial",
+      "pain001": "pain.001 credit-transfer file",
+      "bankScan": "Bank scan of the printed bill",
+      "perforationLine": "Perforation mark between receipt and payment part"
+    }
+  },
+  "kitchen": {
+    "title": "Kitchen",
+    "subtitle": "Kitchen orders and display settings for this tenant.",
+    "unavailable": "The current POS profile has no kitchen display.",
+    "settingsTitle": "Settings",
+    "autoClear": "Auto-clear (minutes)",
+    "autoClearHelp": "How long ready tickets may stay visible before they can be hidden.",
+    "sound": "Sound on new order",
+    "soundHelp": "The KDS may play a cue when the device allows it.",
+    "save": "Save",
+    "saved": "Kitchen settings saved.",
+    "saveFailed": "Kitchen settings could not be saved.",
+    "readOnly": "Read-only — settings.manage is required to save.",
+    "liveTitle": "Open kitchen orders",
+    "empty": "No kitchen orders.",
+    "colTable": "Table",
+    "colStatus": "Status",
+    "colNotes": "Notes",
+    "colItems": "Items",
+    "takeAway": "Take away",
+    "analyticsTitle": "Analytics",
+    "avgPrep": "Average prep time",
+    "avgPrepValue": "{{minutes}} min",
+    "ordersPerHour": "Orders per hour (24h)",
+    "lastHour": "Orders in the last hour",
+    "status": {
+      "Pending": "Pending",
+      "InPreparation": "In preparation",
+      "Ready": "Ready",
+      "Served": "Served",
+      "Cancelled": "Cancelled"
+    }
+  },
+  "demoRequests": {
+    "title": "Demo requests",
+    "empty": "No demo requests.",
+    "loadError": "Demo requests could not be loaded.",
+    "statusNew": "New",
+    "statusContacted": "Contacted",
+    "statusClosed": "Closed",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "industry": "Industry",
+      "status": "Status",
+      "created": "Received"
+    }
   }
 }

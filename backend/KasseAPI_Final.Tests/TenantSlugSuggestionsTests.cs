@@ -13,6 +13,7 @@ public sealed class TenantSlugSuggestionsTests
     [InlineData("pos", false)]
     [InlineData("api", false)]
     [InlineData("mail", false)]
+    [InlineData("system", false)]
     public void IsValidSlug_RejectsReservedPlatformAndMailLabels(string slug, bool expected)
     {
         Assert.Equal(expected, TenantSlugSuggestions.IsValidSlug(slug));

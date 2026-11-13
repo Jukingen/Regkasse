@@ -1,18 +1,22 @@
 'use client';
 
-import { Alert, Button, Card, Col, Progress, Row, Spin, Statistic, Tag, Timeline } from 'antd';
-import dayjs from 'dayjs';
+import { ReloadOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Flex, Progress, Row, Spin, Statistic, Tag, Timeline } from 'antd';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { LockedLicenseDataRightsCard } from '@/features/data-management/components/LockedLicenseDataRightsCard';
 import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
+import { useLicensePageRefresh } from '@/features/license/hooks/useLicensePageRefresh';
 import { useLicenseRenewalFunnelPageView } from '@/features/license/hooks/useLicenseRenewalFunnelPageView';
 import { openLicenseRenewalModal } from '@/features/license/stores/licenseRenewalModalStore';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
   getLicenseHistoryEventLabel,
   getLicenseHistoryEventTagColor,
 } from '@/features/license/utils/licenseHistoryLabels';
-import { useLicenseStatus } from '@/hooks/useLicenseStatus';
+import { formatLicenseValidUntil } from '@/features/license/utils/licenseValidUntil';
+import { useLicenseStatus, shouldShowSystemLockedAlertFromView } from '@/hooks/useLicenseStatus';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
@@ -54,12 +58,18 @@ function progressPercent(args: {
 
 export default function LicenseStatusDashboard() {
   const { t } = useI18n();
-  const { status, history, isLoading } = useLicenseStatus();
+  const { formatDateTime } = useCountryFormatting();
+  const tenant = useCurrentTenant();
+  const { status, history, isLoading, isFetching } = useLicenseStatus();
+  const { refresh, isFetching: isRefreshing } = useLicensePageRefresh({
+    tenantId: tenant.tenantId,
+  });
   useLicenseRenewalFunnelPageView(Boolean(status));
 
   const isActive = status?.state === 'Active';
   const isGrace = status?.state === 'Grace';
   const isLocked = status?.state === 'Locked' || status?.state === 'Archived';
+  const showSystemLockedAlert = Boolean(status && shouldShowSystemLockedAlertFromView(status));
   const daysLeft = status?.daysUntilExpiry ?? 0;
   const daysOverdue = status?.daysOverdue ?? 0;
   const graceDaysRemaining = status?.graceDaysRemaining ?? 0;
@@ -78,9 +88,7 @@ export default function LicenseStatusDashboard() {
 
   const daysValue = isActive ? daysLeft : isGrace ? graceDaysRemaining : daysOverdue;
 
-  const validUntilLabel = status?.expiredAt
-    ? dayjs(status.expiredAt).format('DD.MM.YYYY')
-    : '—';
+  const validUntilLabel = formatLicenseValidUntil(status?.expiredAt);
 
   const timelineItems = (history ?? []).slice(0, 12).map((item, index) => {
     const colorToken = getLicenseHistoryEventTagColor(item.eventType);
@@ -100,7 +108,7 @@ export default function LicenseStatusDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
             <span>{getLicenseHistoryEventLabel(item.eventType, t)}</span>
             <span style={{ fontSize: 12, opacity: 0.65 }}>
-              {dayjs(item.atUtc).format('DD.MM.YYYY HH:mm')}
+              {formatDateTime(item.atUtc)}
             </span>
           </div>
           {item.summary ? (
@@ -128,20 +136,29 @@ export default function LicenseStatusDashboard() {
           adminOverviewCrumb(t),
           {
             title: t('nav.licenseManagement'),
-            href: '/admin/license',
+            href: '/admin/license-management',
           },
           { title: t('license.statusDashboard.title') },
         ]}
         extra={
-          <Button
-            type={isLocked || isGrace ? 'primary' : 'default'}
-            danger={isLocked}
-            onClick={() => openLicenseRenewalModal()}
-          >
-            {isLocked
-              ? t('license.statusDashboard.renewLocked')
-              : t('license.statusDashboard.renew')}
-          </Button>
+          <Flex gap={8} wrap="wrap">
+            <Button
+              icon={<ReloadOutlined />}
+              loading={isRefreshing || isFetching}
+              onClick={() => void refresh()}
+            >
+              {t('common.buttons.refresh')}
+            </Button>
+            <Button
+              type={isLocked || isGrace ? 'primary' : 'default'}
+              danger={isLocked}
+              onClick={() => openLicenseRenewalModal()}
+            >
+              {isLocked
+                ? t('license.statusDashboard.renewLocked')
+                : t('license.statusDashboard.renew')}
+            </Button>
+          </Flex>
         }
       />
 
@@ -205,7 +222,7 @@ export default function LicenseStatusDashboard() {
         </div>
       </Card>
 
-      {isLocked ? (
+      {showSystemLockedAlert ? (
         <Alert
           type="error"
           showIcon

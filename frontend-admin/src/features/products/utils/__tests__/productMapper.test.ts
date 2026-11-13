@@ -49,4 +49,34 @@ describe('mapUiProductToApi', () => {
     expect(payload.descriptionDe).toBe('mit Dressing');
     expect(payload.descriptionEn).toBeNull();
   });
+
+  it('maps durationMinutes and staffId onto the API payload', () => {
+    const payload = mapUiProductToApi({
+      id: 'p1',
+      name: 'Schnitt',
+      nameDe: 'Schnitt',
+      price: 25,
+      categoryId: 'cat-1',
+      category: 'Services',
+      durationMinutes: 45,
+      staffId: 'staff-1',
+    } as never);
+
+    expect(payload.durationMinutes).toBe(45);
+    expect(payload.staffId).toBe('staff-1');
+  });
+
+  it('maps isTicket onto the API payload', () => {
+    const payload = mapUiProductToApi({
+      id: 'p1',
+      name: 'Konzert',
+      nameDe: 'Konzert',
+      price: 35,
+      categoryId: 'cat-1',
+      category: 'Tickets',
+      isTicket: true,
+    } as never);
+
+    expect(payload.isTicket).toBe(true);
+  });
 });

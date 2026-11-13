@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,10 @@ public class FiscalExportIntegrityMetricsTests
             .UseInMemoryDatabase(databaseName: $"FiscalExportIntegrity_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var ctx = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
+        ctx.SaveChanges();
+        return ctx;
     }
 
     [Fact]
@@ -29,7 +33,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -177,6 +181,7 @@ public class FiscalExportIntegrityMetricsTests
             {
                 ReceiptId = receipt1Id,
                 PaymentId = payment1Id,
+                TenantId = SystemTenantIds.Platform,
                 CashRegisterId = cashRegisterId,
                 ReceiptNumber = "AT-KASSE-01-20260318-1",
                 IssuedAt = fromUtc.AddMinutes(10),
@@ -191,6 +196,7 @@ public class FiscalExportIntegrityMetricsTests
             {
                 ReceiptId = receipt2Id,
                 PaymentId = payment2Id,
+                TenantId = SystemTenantIds.Platform,
                 CashRegisterId = cashRegisterId,
                 ReceiptNumber = "AT-KASSE-01-20260318-2",
                 IssuedAt = fromUtc.AddMinutes(20),
@@ -198,7 +204,7 @@ public class FiscalExportIntegrityMetricsTests
                 TaxTotal = 0.2m,
                 GrandTotal = 2.2m,
                 SignatureValue = "sig2",
-                PrevSignatureValue = "sig1",
+                PrevSignatureValue = RksvChainingValue.Compute("sig1", string.Empty),
                 CreatedAt = fromUtc.AddMinutes(20)
             });
 
@@ -229,7 +235,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -372,7 +378,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "K-01",
             Location = "T",
@@ -472,7 +478,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

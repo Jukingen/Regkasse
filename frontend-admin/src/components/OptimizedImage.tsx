@@ -30,7 +30,8 @@ export function OptimizedImage({
   width,
   height,
   className,
-  loading = 'lazy',
+  loading,
+  priority,
   placeholder = 'blur',
   blurDataURL = DEFAULT_BLUR,
   unoptimized,
@@ -38,6 +39,7 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const skipBlur = isDataOrBlobSrc(src) || isSvgSrc(src);
   const forceUnoptimized = isDataOrBlobSrc(src) || isSvgSrc(src);
+  const resolvedLoading = priority ? undefined : (loading ?? 'lazy');
 
   return (
     <Image
@@ -46,7 +48,8 @@ export function OptimizedImage({
       width={width}
       height={height}
       className={className}
-      loading={loading}
+      loading={resolvedLoading}
+      priority={priority}
       placeholder={skipBlur ? 'empty' : placeholder}
       blurDataURL={skipBlur ? undefined : blurDataURL}
       unoptimized={forceUnoptimized || unoptimized}

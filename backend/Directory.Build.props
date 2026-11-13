@@ -20,6 +20,6 @@
     <!-- Proprietary product — see repository root LICENSE (All rights reserved). -->
     <Copyright>Copyright (c) Regkasse. All rights reserved.</Copyright>
     <Company>Regkasse</Company>
-    <Authors>Regkasse</Authors>
+    <!-- CS0618 no longer needed after LegacyDefaultTenantIds removal. -->
   </PropertyGroup>
 </Project>

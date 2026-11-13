@@ -17,7 +17,18 @@
   "loadFailed": "Mandantenliste konnte nicht geladen werden.",
   "tenantCreate": {
     "slugExample": "cafe-example",
-    "urlPreviewHint": "Die vollständige Adresse wird aus Kürzel und Domain gebildet."
+    "urlPreviewHint": "Die vollständige Adresse wird aus Kürzel und Domain gebildet.",
+    "countryStep": {
+      "title": "Land",
+      "tenantFormTitle": "Mandant",
+      "countryLabel": "Land",
+      "vatRegimeLabel": "Umsatzsteuer-Regime",
+      "nonAtBanner": "Nicht-AT-Mandanten aktivieren RKSV/TSE nicht. Siehe docs/COUNTRIES.md.",
+      "next": "Weiter",
+      "back": "Zurück",
+      "requiredCountry": "Bitte ein Land wählen.",
+      "requiredVatRegime": "Bitte ein Umsatzsteuer-Regime wählen."
+    }
   },
   "digital": {
     "pageTitle": "Digitale Dienste — Verwaltung",
@@ -85,6 +96,14 @@
       "websitePrice": "Preis (Web)",
       "appPrice": "Preis (App)",
       "status": "Status"
+    }
+  },
+  "validation": {
+    "vatId": {
+      "invalid": {
+        "DE": "Format: DE + 9 Ziffern (z. B. DE123456789).",
+        "CH": "Format: CHE-123.456.789 (optional MWST/TVA/IVA)."
+      }
     }
   }
 }

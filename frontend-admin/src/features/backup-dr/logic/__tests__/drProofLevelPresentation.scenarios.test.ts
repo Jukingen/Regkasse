@@ -10,9 +10,9 @@ import type {
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  BackupArtifactResponseDtoArtifactType,
-  BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
+  BackupArtifactType,
+  BackupRunStatus,
+  RestoreVerificationStatus,
 } from '@/api/generated/model';
 import type { BackupOperatorTruthModel } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import {
@@ -39,10 +39,10 @@ function truth(p: {
 function pgDumpLatest(id: string): BackupRunResponseDto {
   return {
     id,
-    status: BackupRunResponseDtoStatus.NUMBER_3,
+    status: BackupRunStatus.Succeeded,
     artifacts: [
       {
-        artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
+        artifactType: BackupArtifactType.LogicalDump,
         isFilePresentForDownload: true,
       },
     ],
@@ -61,7 +61,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_1,
+        status: RestoreVerificationStatus.Running,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -72,7 +72,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('restore drill succeeded but dump list not OK: L3 partial, not full', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: false,
       pgRestoreListExitCode: 2,
     };
@@ -92,7 +92,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('restore + isolated pass + post-restore SQL pass: L4 even if fiscal SQL failed', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -119,7 +119,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('L4 post-restore SQL pass: L5 partial (restored-DB smoke not configured), L6 gap without external evidence', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -155,7 +155,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
         lastSuccessfulBackupRunId: 'older-good',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -174,7 +174,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
         lastSuccessfulBackupAt: '2026-01-01T00:00:00Z',
       } as BackupRecoverabilitySummaryResponseDto,
       restoreLatest: {
-        status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+        status: RestoreVerificationStatus.Succeeded,
       } as RestoreVerificationRunResponseDto,
       restoreExtended: {},
     });
@@ -198,7 +198,7 @@ describe('buildDrProofPresentationModel — contradictory / edge scenarios', () 
   it('strongWithinApi success strip does not use fake healthy wording', () => {
     const latest = pgDumpLatest('r1');
     const restore: RestoreVerificationRunResponseDto = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_2,
+      status: RestoreVerificationStatus.Succeeded,
       dumpInspectionPassed: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
@@ -256,7 +256,7 @@ describe('buildDrProofScanTags — operator scan ribbon', () => {
   it('failed latest drill: error tone and dominant over scope hints', () => {
     const tr = truth({ simulated: false, realPg: true, hasProofGaps: false });
     const restoreFailed = {
-      status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+      status: RestoreVerificationStatus.Failed,
     } as RestoreVerificationRunResponseDto;
     const m = buildDrProofPresentationModel({
       truth: tr,

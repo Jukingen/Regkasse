@@ -6,7 +6,7 @@ namespace KasseAPI_Final.Rksv;
 
 /// <summary>
 /// Pure RKSV QR string parser (no DB, no signature cryptography).
-/// Prefers BMF §9 <see cref="RksvQrPayloadLayout.StandardRksvV1"/> (11 body fields + JWS),
+/// Prefers BMF §9 <see cref="RksvQrPayloadLayout.StandardRksvV1"/> (11 body fields + Sig-Wert or compact JWS),
 /// with legacy <see cref="RksvQrPayloadLayout.InternalCompact"/> fallback during transition.
 /// </summary>
 public static class RksvQrParser
@@ -36,7 +36,8 @@ public static class RksvQrParser
     /// </summary>
     public static bool IsStandardRksvV1Format(string? qrPayload) =>
         TryResolvePrefix(qrPayload, out _, out var remainder)
-        && TrySplitBodyAndJws(remainder, StandardRksvV1BodySegmentCount, out _, out _, out _);
+        && (TrySplitBodyAndJws(remainder, StandardRksvV1BodySegmentCount, out _, out _, out _)
+            || TrySplitBodyAndSigWert(remainder, StandardRksvV1BodySegmentCount, out _, out _));
 
     /// <summary>
     /// Returns true when the payload can be split into 6 legacy internal-compact body segments followed by a compact JWS.
@@ -67,13 +68,21 @@ public static class RksvQrParser
             return RksvQrParseResult.Fail(errors);
         }
 
-        // Prefer BMF §9 (11 body segments + compact JWS) during transition.
+        // Prefer BMF §9: 11 body segments + compact JWS (legacy printed QR) or standard-Base64 Sig-Wert.
         if (TrySplitBodyAndJws(remainder, StandardRksvV1BodySegmentCount, out var standardBody, out var standardSignature, out _))
         {
             if (!IsJwsShell(standardSignature, out var jwsErrors))
                 return RksvQrParseResult.Fail(jwsErrors);
 
             return ParseStandardRksvV1(algorithmId, standardBody, standardSignature);
+        }
+
+        if (TrySplitBodyAndSigWert(remainder, StandardRksvV1BodySegmentCount, out var sigWertBody, out var sigWert))
+        {
+            if (!TryReconstructCompactJws(algorithmId, sigWertBody, sigWert, out var reconstructed, out var reconstructError))
+                return RksvQrParseResult.Fail(new List<string> { reconstructError ?? "Sig-Wert could not be converted to compact JWS." });
+
+            return ParseStandardRksvV1(algorithmId, sigWertBody, reconstructed);
         }
 
         // Legacy internal compact (6 body segments + compact JWS).
@@ -266,6 +275,91 @@ public static class RksvQrParser
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// BMF CheckSingleReceipt layout: 11 body fields + standard-Base64 Sig-Wert (no '.' and no extra '_').
+    /// </summary>
+    private static bool TrySplitBodyAndSigWert(
+        string remainder,
+        int requiredBodySegmentCount,
+        out string body,
+        out string sigWert)
+    {
+        body = string.Empty;
+        sigWert = string.Empty;
+
+        var parts = remainder.Split('_');
+        if (parts.Length != requiredBodySegmentCount + 1)
+            return false;
+
+        var last = parts[^1];
+        if (string.IsNullOrWhiteSpace(last) || last.Contains('.', StringComparison.Ordinal))
+            return false;
+
+        if (!IsPlausibleSigWert(last))
+            return false;
+
+        body = string.Join("_", parts.Take(requiredBodySegmentCount));
+        sigWert = last;
+        return true;
+    }
+
+    private static bool IsPlausibleSigWert(string value)
+    {
+        if (value.Length < 16)
+            return false;
+
+        foreach (var c in value)
+        {
+            if (char.IsLetterOrDigit(c) || c is '+' or '/' or '=' or '-' or '_')
+                continue;
+            return false;
+        }
+
+        try
+        {
+            return TseCryptoHelper.FromBase64UrlOrStd(value).Length > 0;
+        }
+        catch (TsePipelineException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReconstructCompactJws(
+        string algorithmId,
+        string body,
+        string sigWert,
+        out string compactJws,
+        out string? error)
+    {
+        compactJws = string.Empty;
+        error = null;
+
+        byte[] signatureBytes;
+        try
+        {
+            signatureBytes = TseCryptoHelper.FromBase64UrlOrStd(sigWert);
+        }
+        catch (TsePipelineException ex)
+        {
+            error = $"Sig-Wert is not valid Base64/Base64URL: {ex.Message}";
+            return false;
+        }
+
+        if (signatureBytes.Length == 0)
+        {
+            error = "Sig-Wert decoded to an empty signature.";
+            return false;
+        }
+
+        var machineCode = "_" + algorithmId + "_" + body;
+        var headerB64 = TseCryptoHelper.ToBase64UrlNoPadding(JwsParser.RksvJwsHeaderUtf8);
+        var payloadB64 = TseCryptoHelper.ToBase64UrlNoPadding(Encoding.UTF8.GetBytes(machineCode));
+        var signatureB64 = TseCryptoHelper.ToBase64UrlNoPadding(signatureBytes);
+        compactJws = $"{headerB64}.{payloadB64}.{signatureB64}";
+        return true;
     }
 
     /// <summary>

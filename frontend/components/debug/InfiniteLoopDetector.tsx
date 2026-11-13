@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { safeLog } from '../../utils/loggingUtils';
 
 // Türkçe Açıklama: Infinite loop tespiti için debug component'i
 // RKSV uyumlu güvenlik kontrolü ile birlikte render count tracking
@@ -64,7 +65,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
                 setIsLoopDetected(false);
                 setStatus('normal');
                 lastCheckTimeRef.current = Date.now();
-                console.log('🔄 Loop detector reset');
+                safeLog('🔄 Loop detector reset');
               },
             },
           ]
@@ -78,7 +79,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
 
     // Her 10 saniyede bir log yaz (debug için)
     if (timeSinceLastCheck > 10000) {
-      console.log('🔍 Loop Detector Stats:', {
+      safeLog('🔍 Loop Detector Stats:', {
         renderCount: currentCount,
         renderRate: currentCount / (timeSinceLastCheck / 1000),
         status,
@@ -95,7 +96,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
     setIsLoopDetected(false);
     setStatus('normal');
     lastCheckTimeRef.current = Date.now();
-    console.log('🔄 Loop detector manually reset');
+    safeLog('🔄 Loop detector manually reset');
   };
 
   // Style belirleme

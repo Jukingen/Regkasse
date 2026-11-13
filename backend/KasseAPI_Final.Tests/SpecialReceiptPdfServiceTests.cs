@@ -74,9 +74,9 @@ public sealed class SpecialReceiptPdfServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"SpecialReceiptPdf_{Guid.NewGuid():N}")
             .Options;
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var context = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(tenantId));
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
 
         var registerId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();

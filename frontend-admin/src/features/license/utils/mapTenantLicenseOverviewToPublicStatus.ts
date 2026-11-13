@@ -37,7 +37,9 @@ export function mapTenantLicenseOverviewToPublicStatus(
     canAccess: resolved.canAccess,
     canTransact: resolved.canWrite,
     isInGracePeriod,
+    isLocked: isExpired,
     gracePeriodRemaining,
+    lockDate: null,
     requiresRenewal: resolved.kind === 'lockdown',
   };
 }

@@ -13,28 +13,33 @@ public interface IActivityEventService
         int limit,
         int offset,
         string? severityFilter,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false);
 
     Task<ActivitiesUnreadCountDto> GetUnreadCountAsync(
         string userId,
         Guid tenantId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false);
 
     Task<ActivityDto?> MarkEventReadAsync(
         string userId,
         Guid tenantId,
         Guid activityId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false);
 
     Task<int> MarkAllReadAsync(
         string userId,
         Guid tenantId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false);
 
     Task<bool> DeleteAsync(
         Guid tenantId,
         Guid activityId,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool restrictToTenantStaff = false);
 
     /// <summary>Removes events older than configured retention (all tenants).</summary>
     Task<int> PurgeExpiredAsync(CancellationToken cancellationToken = default);

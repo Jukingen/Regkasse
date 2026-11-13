@@ -6,12 +6,11 @@ echo ========================================
 echo  Regkasse Development Environment
 echo ========================================
 echo.
-echo Starting all services...
+echo Default (RAM-safe): API + Admin
+echo Full stack:         use start-dev-all.bat or npm run dev:all
 echo.
 echo   API:   http://localhost:5184
 echo   Admin: http://localhost:3000
-echo   POS:   http://localhost:8081
-echo   Sites: http://localhost:3001
 echo.
 echo Press Ctrl+C to stop all services
 echo ========================================

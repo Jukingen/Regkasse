@@ -28,7 +28,7 @@ public class PaymentModifierValidationIntegrationTests
             .UseInMemoryDatabase(databaseName: $"PaymentModifier_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static (AppDbContext Context, Guid CustomerId, Guid ProductId, Guid ModifierId, decimal ProductPrice, decimal ModifierPrice, Guid CashRegisterId) SeedData(AppDbContext context)
@@ -42,12 +42,12 @@ public class PaymentModifierValidationIntegrationTests
         var productPrice = 6.90m;
         var modifierPrice = 0.30m;
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
-        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsurePlatformTenant(context);
+        context.Categories.Add(new Category { TenantId = SystemTenantIds.Platform, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Döner",
             Price = productPrice,
             CategoryId = categoryId,
@@ -66,7 +66,7 @@ public class PaymentModifierValidationIntegrationTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test Kunde", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -77,12 +77,12 @@ public class PaymentModifierValidationIntegrationTests
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = SystemTenantIds.Platform, Name = "Saucen", SortOrder = 0 });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = productId,
             ModifierGroupId = groupId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             SortOrder = 0
         });
         context.SaveChanges();

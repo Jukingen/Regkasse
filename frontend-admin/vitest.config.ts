@@ -14,7 +14,13 @@ export default defineConfig({
     // Mirrors tsconfig paths: `@/*` -> `./src/*`
     alias: {
       '@': path.resolve(rootDir, './src'),
+      // Workspace can install react in both root and frontend-admin; pin one copy for jsdom.
+      react: path.resolve(rootDir, '../node_modules/react'),
+      'react-dom': path.resolve(rootDir, '../node_modules/react-dom'),
+      'react/jsx-runtime': path.resolve(rootDir, '../node_modules/react/jsx-runtime.js'),
+      'react/jsx-dev-runtime': path.resolve(rootDir, '../node_modules/react/jsx-dev-runtime.js'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   // Prefer Oxc (Vitest 4 default). JSX runtime comes from tsconfig `jsx: "react-jsx"`.
   oxc: {
@@ -31,12 +37,16 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       'tests/e2e/**',
+      '**/_archive/**',
       '**/.next/**',
       '**/node_modules/**',
       '**/coverage/**',
       '**/playwright-report/**',
       '**/test-results/**',
     ],
+    // Two jsdom workers. Four Ant Design suites (tenant page, wizard, users, vertical profiles)
+    // exceed the 15s default when they share a machine with other workers.
+    maxWorkers: 2,
     testTimeout: 15_000,
     hookTimeout: 15_000,
     clearMocks: true,

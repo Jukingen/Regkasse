@@ -109,5 +109,40 @@
       "success": "Tenant rollback invoked.",
       "failed": "Tenant rollback failed."
     }
+  },
+  "goLive": {
+    "pageTitle": "Production Readiness",
+    "accessDenied": "Only Super Administrators can view go-live status.",
+    "introBody": "Automated GO/NO-GO for Fiskaly, configuration, FinanzOnline, backup, monitoring, and sign-off.",
+    "verdict": "Status",
+    "statusGo": "GO",
+    "statusNoGo": "NO-GO",
+    "statusUnknown": "Unknown",
+    "notReady": "Production is NOT ready",
+    "ready": "All conditions met",
+    "recheck": "Re-check",
+    "loadFailed": "Could not load go-live status.",
+    "checkedAt": "Checked: {{when}}",
+    "missingCount": "{{count}} conditions missing.",
+    "humanNote": "Host evidence and human signatures (GO_LIVE_CHECKLIST §8) cannot be forged by this service.",
+    "linkDashboard": "Deployment dashboard",
+    "noChecks": "No checks yet",
+    "passed": "Passed",
+    "failed": "Failed",
+    "columns": {
+      "name": "Check",
+      "category": "Category",
+      "passed": "Result",
+      "details": "Details",
+      "remediation": "Remediation"
+    },
+    "checks": {
+      "fiskaly": "Fiskaly LIVE",
+      "configuration": "Configuration",
+      "fon": "FinanzOnline",
+      "backup": "Backup",
+      "monitoring": "Monitoring",
+      "signOff": "Sign-off"
+    }
   }
 }

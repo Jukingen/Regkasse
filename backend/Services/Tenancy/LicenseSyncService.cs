@@ -193,7 +193,7 @@ public sealed class LicenseSyncService : ILicenseSyncService
 
     private static bool ShouldSyncTenantFromIssued(Tenant tenant)
     {
-        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        if (TenantStatuses.IsRemoved(tenant.Status))
             return false;
 
         var key = tenant.LicenseKey?.Trim();

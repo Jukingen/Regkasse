@@ -1,59 +1,60 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Billing;
 
 public class ReminderService : IReminderService, IBillingReminderService
 {
     private const int MaxPageSize = 100;
-    private const int ExpiringScanDays = 30;
-
-    private static readonly (int Days, string Type)[] ReminderAnchors =
-    [
-        (30, LicenseReminderTypes.Expiry),
-        (15, LicenseReminderTypes.Expiry),
-        (7, LicenseReminderTypes.Expiry),
-        (3, LicenseReminderTypes.Expiry),
-        (1, LicenseReminderTypes.Expiry),
-    ];
+    private static readonly int[] DefaultReminderAnchors = [30, 15, 7, 3, 1];
 
     private readonly AppDbContext _dbContext;
     private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly IOptions<BillingOptions> _billingOptions;
     private readonly ILogger<ReminderService> _logger;
 
     public ReminderService(
         AppDbContext dbContext,
         ITenantLicenseService tenantLicenseService,
+        IOptions<BillingOptions> billingOptions,
         ILogger<ReminderService> logger)
     {
         _dbContext = dbContext;
         _tenantLicenseService = tenantLicenseService;
+        _billingOptions = billingOptions;
         _logger = logger;
     }
 
     public async Task CheckAndCreateRemindersAsync(CancellationToken ct = default)
     {
         var db = _dbContext;
+        var anchors = ResolveReminderAnchors();
+        var scanDays = anchors.Length == 0 ? 30 : Math.Max(anchors.Max(), 1);
 
         var now = DateTime.UtcNow;
-        var expiring = await _tenantLicenseService.GetExpiringLicensesAsync(ExpiringScanDays, ct)
+        var expiring = await _tenantLicenseService.GetExpiringLicensesAsync(scanDays, ct)
             .ConfigureAwait(false);
 
         var created = 0;
 
         foreach (var license in expiring)
         {
-            foreach (var (days, type) in ReminderAnchors)
+            var daysRemaining = (int)Math.Ceiling((license.ValidUntilUtc - now).TotalDays);
+            foreach (var days in anchors)
             {
-                if (license.DaysRemaining > days)
+                // Exact calendar-day match (same rule as mandant LicenseReminderService).
+                if (daysRemaining != days)
                     continue;
 
+                var reminderDate = license.ValidUntilUtc.Date.AddDays(-days);
                 var exists = await db.LicenseReminders
                     .AnyAsync(
                         r => r.LicenseSaleId == license.LicenseSaleId
-                             && r.ReminderType == type
-                             && r.ReminderDateUtc == now.AddDays(days).Date,
+                             && r.ReminderType == LicenseReminderTypes.Expiry
+                             && r.ReminderDateUtc == reminderDate,
                         ct)
                     .ConfigureAwait(false);
 
@@ -65,17 +66,17 @@ public class ReminderService : IReminderService, IBillingReminderService
                     Id = Guid.NewGuid(),
                     TenantId = license.TenantId,
                     LicenseSaleId = license.LicenseSaleId,
-                    ReminderDateUtc = now.Date,
-                    ReminderType = type,
+                    ReminderDateUtc = reminderDate,
+                    ReminderType = LicenseReminderTypes.Expiry,
                     Status = LicenseReminderStatuses.Pending,
                 });
                 created++;
 
                 _logger.LogDebug(
-                    "Created reminder for tenant {TenantSlug}: {Type} at {Date}",
+                    "Created reminder for tenant {TenantSlug}: expiry-{Days}d at {Date}",
                     license.TenantSlug,
-                    type,
-                    now.Date);
+                    days,
+                    reminderDate);
             }
         }
 
@@ -107,7 +108,7 @@ public class ReminderService : IReminderService, IBillingReminderService
             reminder.Status = LicenseReminderStatuses.Sent;
 
             _logger.LogInformation(
-                "Reminder sent for tenant {TenantSlug}: {Type}",
+                "Reminder marked sent (no email path) for tenant {TenantSlug}: {Type}",
                 reminder.Tenant?.Slug,
                 reminder.ReminderType);
         }
@@ -179,7 +180,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
         var created = 0;
 
-        foreach (var (days, type) in ReminderAnchors)
+        foreach (var days in ResolveReminderAnchors())
         {
             var reminderDate = sale.ValidUntilUtc.Date.AddDays(-days);
             if (reminderDate <= now.Date)
@@ -188,7 +189,7 @@ public class ReminderService : IReminderService, IBillingReminderService
             var exists = await db.LicenseReminders
                 .AnyAsync(
                     r => r.LicenseSaleId == sale.Id
-                         && r.ReminderType == type
+                         && r.ReminderType == LicenseReminderTypes.Expiry
                          && r.ReminderDateUtc == reminderDate,
                     ct)
                 .ConfigureAwait(false);
@@ -202,7 +203,7 @@ public class ReminderService : IReminderService, IBillingReminderService
                 TenantId = sale.TenantId,
                 LicenseSaleId = sale.Id,
                 ReminderDateUtc = reminderDate,
-                ReminderType = type,
+                ReminderType = LicenseReminderTypes.Expiry,
                 Status = LicenseReminderStatuses.Pending,
             });
             created++;
@@ -300,6 +301,15 @@ public class ReminderService : IReminderService, IBillingReminderService
             PageSize = pageSize,
             TotalPages = totalPages,
         };
+    }
+
+    private int[] ResolveReminderAnchors()
+    {
+        var configured = _billingOptions.Value.ReminderDaysBeforeExpiry;
+        if (configured is { Length: > 0 })
+            return configured.Where(d => d > 0).Distinct().OrderByDescending(d => d).ToArray();
+
+        return DefaultReminderAnchors;
     }
 
     private static async Task EnrichMissingSalesAsync(

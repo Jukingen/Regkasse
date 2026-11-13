@@ -5,6 +5,7 @@ import { resolveActiveTenantId, tenantSlugsMatch } from '../resolveActiveTenantI
 describe('resolveActiveTenantIdentity', () => {
   it('matches canonical dev tenant slug aliases', () => {
     expect(tenantSlugsMatch('dev', 'test_cafe')).toBe(true);
+    // Legacy `default` must not match `dev` — JWT tenant_id would be the wrong Guid.
     expect(tenantSlugsMatch('default', 'dev')).toBe(false);
   });
 
@@ -12,8 +13,8 @@ describe('resolveActiveTenantIdentity', () => {
     expect(
       resolveActiveTenantId({
         resolvedRowId: 'dev-tenant-id',
-        jwtTenantId: 'default-tenant-id',
-        jwtTenantSlug: 'default',
+        jwtTenantId: 'other-tenant-id',
+        jwtTenantSlug: 'acme',
         activeTenantSlug: 'dev',
       })
     ).toBe('dev-tenant-id');
@@ -30,12 +31,12 @@ describe('resolveActiveTenantIdentity', () => {
     ).toBe('dev-tenant-id');
   });
 
-  it('does not fall back to JWT default id when active slug is dev', () => {
+  it('does not fall back to JWT platform id when active slug is dev', () => {
     expect(
       resolveActiveTenantId({
         resolvedRowId: null,
         jwtTenantId: '9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c',
-        jwtTenantSlug: 'default',
+        jwtTenantSlug: 'platform',
         activeTenantSlug: 'dev',
       })
     ).toBeNull();

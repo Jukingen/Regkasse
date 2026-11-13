@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Globalization;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -10,7 +11,9 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.HealthChecks;
 using KasseAPI_Final.Hubs;
+using KasseAPI_Final.Logging;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.ModelBinding;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
@@ -23,13 +26,15 @@ using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.Billing;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
+using KasseAPI_Final.Services.Countries;
 using KasseAPI_Final.Services.CriticalActions;
 using KasseAPI_Final.Services.Operations;
 using KasseAPI_Final.Services.GracePeriods;
 using KasseAPI_Final.Services.DataDeletion;
 using KasseAPI_Final.Services.DataExport;
 using KasseAPI_Final.Services.DataRetention;
+using KasseAPI_Final.Services.DemoRequests;
 using KasseAPI_Final.Services.DigitalServices;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
@@ -39,8 +44,11 @@ using KasseAPI_Final.Services.License;
 using KasseAPI_Final.Services.LicenseTest;
 using KasseAPI_Final.Services.Loyalty;
 using KasseAPI_Final.Services.Metrics;
+using KasseAPI_Final.Services.Monitoring;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.Order;
+using KasseAPI_Final.Services.Preorder;
+using KasseAPI_Final.Services.OnlinePayments;
 using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Reports;
@@ -49,6 +57,7 @@ using KasseAPI_Final.Services.Rksv;
 using KasseAPI_Final.Services.Security;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Services.Website;
 using KasseAPI_Final.Sites;
@@ -74,7 +83,6 @@ using Microsoft.OpenApi;
 using Npgsql;
 using Prometheus;
 using QuestPDF.Infrastructure;
-using StackExchange.Redis;
 using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 using BillingTenantLicenseService = KasseAPI_Final.Services.Billing.TenantLicenseService;
 using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
@@ -235,6 +243,16 @@ internal static class ApplicationHost
         }
     }
 
+    /// <summary>
+    /// <see cref="WebApplication.CreateBuilder(string[])"/> already adds user secrets in Development
+    /// (before environment variables). Staging local runs must opt in; Production must not.
+    /// </summary>
+    internal static bool ShouldAddUserSecretsAfterDefaultHostConfig(IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        return environment.IsStaging();
+    }
+
     public static WebApplication CreateWebApplication(string[] args)
     {
         WebApplicationBuilder builder;
@@ -251,9 +269,19 @@ internal static class ApplicationHost
         else
         {
             builder = WebApplication.CreateBuilder(args);
+            // CreateBuilder loads user secrets only when Environment is Development.
+            // Local Staging (launchSettings) still needs ConnectionStrings / JWT from the same store.
+            // Production keeps env-vars / vault; the secrets file is optional and absent on servers.
+            if (ShouldAddUserSecretsAfterDefaultHostConfig(builder.Environment))
+                builder.Configuration.AddUserSecrets(typeof(ApplicationHost).Assembly, optional: true);
         }
 
         var isDevelopment = builder.Environment.IsDevelopment();
+        builder.UseRegkasseSentry();
+
+        // Invariant number parsing so Range("0.01") and decimal binders work on de-AT hosts.
+        // Do not set DefaultThreadCurrentUICulture — LanguageMiddleware still localizes messages (de/en/tr).
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
         // On Windows, EventLog provider can throw ObjectDisposedException during shutdown races
         // when background services still emit logs. Keep other providers active and mute EventLog.
@@ -262,6 +290,9 @@ internal static class ApplicationHost
             builder.Logging.AddFilter<EventLogLoggerProvider>(null, LogLevel.None);
         }
 
+        // Development-friendly single-line console; Production keeps FormatterName=json (Promtail/Loki).
+        builder.Logging.AddConsoleFormatter<ReadableConsoleFormatter, ReadableConsoleFormatterOptions>();
+
         // Configuration Binding
         builder.Services.AddScoped<ICompanyProfileProvider, CompanyProfileProvider>();
         builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection(ProductMediaOptions.SectionName));
@@ -269,7 +300,10 @@ internal static class ApplicationHost
         builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
         builder.Services.Configure<MonitoringOptions>(builder.Configuration.GetSection(MonitoringOptions.SectionName));
         builder.Services.Configure<CsrfOptions>(builder.Configuration.GetSection(CsrfOptions.SectionName));
-        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton â€” Scoped service is fine).
+        builder.Services.AddSingleton<IPostConfigureOptions<CsrfOptions>, ProductionCsrfPostConfigure>();
+        if (builder.Environment.IsProduction() && !OpenApiExportMode.IsEnabled)
+            ProductionRuntimeConfigurationGuard.ThrowIfUnsafe(builder.Environment, builder.Configuration);
+        // CSRF double-submit tokens (cache-backed; IMemoryCache is singleton — Scoped service is fine).
         builder.Services.AddScoped<ICsrfTokenService, CsrfTokenService>();
         builder.Services.AddScoped<WebsiteGeneratorService>();
         builder.Services.AddScoped<IWebsiteGeneratorService>(sp => sp.GetRequiredService<WebsiteGeneratorService>());
@@ -280,14 +314,42 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAppGeneratorService>(sp => sp.GetRequiredService<AppGeneratorService>());
         builder.Services.AddScoped<ITenantAppGenerator, TenantAppGenerator>();
         builder.Services.AddScoped<IPublicTenantCatalogService, PublicTenantCatalogService>();
+        builder.Services.AddSingleton<DemoRequestRateLimiter>();
+        builder.Services.AddScoped<IDemoRequestService, DemoRequestService>();
         builder.Services.AddScoped<ITenantWebsiteService, TenantWebsiteService>();
         builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
         builder.Services.AddSingleton<IDigitalServicePricingService, DigitalServicePricingService>();
         builder.Services.AddScoped<ITenantServiceStatusService, TenantServiceStatusService>();
         builder.Services.AddScoped<IDigitalServiceRequestService, DigitalServiceRequestService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Feedback.IAdminFeedbackService, KasseAPI_Final.Services.Feedback.AdminFeedbackService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Support.ISupportTicketNotificationService, KasseAPI_Final.Services.Support.SupportTicketNotificationService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Support.ISupportTicketService, KasseAPI_Final.Services.Support.SupportTicketService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsService, KasseAPI_Final.Services.TenantSettings.TenantSettingsService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.TenantSettings.ITenantSettingsNotificationService, KasseAPI_Final.Services.TenantSettings.TenantSettingsNotificationService>();
+        builder.Services.AddScoped<IVerticalProfileRegistry, VerticalProfileRegistry>();
+        builder.Services.AddScoped<IVerticalProfileService, VerticalProfileService>();
+        builder.Services.AddScoped<IVerticalProfileGuard, VerticalProfileGuard>();
+        builder.Services.AddScoped<IVerticalProfileCatalogService, VerticalProfileCatalogService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Appointments.IAppointmentService, KasseAPI_Final.Services.Appointments.AppointmentService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderService, KasseAPI_Final.Services.Kitchen.KitchenOrderService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IKitchenOrderBroadcaster, KasseAPI_Final.Services.Kitchen.KitchenOrderBroadcaster>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Kitchen.IAdminKitchenService, KasseAPI_Final.Services.Kitchen.AdminKitchenService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Imei.IProductImeiService, KasseAPI_Final.Services.Imei.ProductImeiService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Products.IProductVariantService, KasseAPI_Final.Services.Products.ProductVariantService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketRedemptionService, KasseAPI_Final.Services.Tickets.TicketRedemptionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Tickets.ITicketEventService, KasseAPI_Final.Services.Tickets.TicketEventService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Lodging.ILodgingService, KasseAPI_Final.Services.Lodging.LodgingService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.HairSalonCampaignExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.PrescriptionRequiredExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.VetPrescriptionExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.MinibarAutoChargeExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.BreakfastIncludedExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantFeatureExtension, KasseAPI_Final.Services.Extensions.LateCheckoutFeeExtension>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantExtensionRegistry>(
+            sp => sp.GetRequiredService<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>());
+        builder.Services.AddScoped<KasseAPI_Final.Services.Extensions.ITenantExtensionAdminService>(
+            sp => sp.GetRequiredService<KasseAPI_Final.Services.Extensions.TenantExtensionRegistry>());
         builder.Services.AddScoped<KasseAPI_Final.Services.RiskScoring.IRiskScoringService, KasseAPI_Final.Services.RiskScoring.RiskScoringService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityAnomalyService, KasseAPI_Final.Services.ActivityReports.ActivityAnomalyService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.ActivityReports.IActivityReportService, KasseAPI_Final.Services.ActivityReports.ActivityReportService>();
@@ -309,13 +371,63 @@ internal static class ApplicationHost
         {
             builder.Services.AddSingleton<IValidateOptions<TseOptions>, TseProductionOptionsValidator>();
             builder.Services.AddOptions<TseOptions>().ValidateOnStart();
+
+            builder.Services.Configure<KassenSicherheitOptions>(
+                builder.Configuration.GetSection(KassenSicherheitOptions.SectionName));
+            builder.Services.AddSingleton<IValidateOptions<KassenSicherheitOptions>, KassenSicherheitHostOptionsValidator>();
+            builder.Services.AddOptions<KassenSicherheitOptions>().ValidateOnStart();
+            builder.Services.Configure<MwstOptions>(
+                builder.Configuration.GetSection(MwstOptions.SectionName));
+            builder.Services.Configure<QrRechnungOptions>(
+                builder.Configuration.GetSection(QrRechnungOptions.SectionName));
+            builder.Services.Configure<PeppolOptions>(
+                builder.Configuration.GetSection(PeppolOptions.SectionName));
+            builder.Services.AddSingleton<IValidateOptions<PeppolOptions>, PeppolStorecoveOptionsValidator>();
+            builder.Services.AddOptions<PeppolOptions>().ValidateOnStart();
+            builder.Services.AddOptions<CountryFiscalLockOptions>()
+                .Configure<IConfiguration>((opts, cfg) =>
+                {
+                    cfg.GetSection(KassenSicherheitOptions.SectionName).Bind(opts.KassenSicherheit);
+                    cfg.GetSection(MwstOptions.SectionName).Bind(opts.Mwst);
+                    cfg.GetSection(QrRechnungOptions.SectionName).Bind(opts.QrRechnung);
+                });
+            builder.Services.AddSingleton<IValidateOptions<CountryFiscalLockOptions>, CountryFiscalLockOptionsValidator>();
+            builder.Services.AddOptions<CountryFiscalLockOptions>().ValidateOnStart();
         }
 
         builder.Services.Configure<RksvOptions>(builder.Configuration.GetSection(RksvOptions.SectionName));
+        builder.Services.AddSingleton<IRksvRuntimeConfigService, RksvRuntimeConfigService>();
         builder.Services.AddScoped<IRksvEnvironmentService, RksvEnvironmentService>();
         builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<FiskalyOptions>, FiskalyOptionsFromTseProvidersPostConfigure>();
-        builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            builder.Services.AddSingleton<IValidateOptions<FiskalyOptions>, FiskalyHostOptionsValidator>();
+            builder.Services.AddOptions<FiskalyOptions>().ValidateOnStart();
+        }
+        builder.Services.AddScoped<FiskalyEnabledOverrideCache>();
+        builder.Services.AddSingleton<FiskalyCredentialProtector>();
+        builder.Services.AddScoped<IFiskalyTenantCredentialResolver, FiskalyTenantCredentialResolver>();
+        builder.Services.AddScoped<IFiskalyCredentialAdminService, FiskalyCredentialAdminService>();
+        builder.Services.AddScoped<IFiskalySettingsService, FiskalySettingsService>();
+        builder.Services.AddScoped<IFiskalySetupService, FiskalySetupService>();
+        builder.Services.AddScoped<IFiskalySignTestService, FiskalySignTestService>();
+        builder.Services.AddScoped<IFiskalyReceiptService, FiskalyReceiptService>();
+        builder.Services.AddScoped<FiskalyOperationHistoryWriteScope>();
+        builder.Services.AddSingleton<IFiskalyOperationStatusBroadcaster, FiskalyOperationStatusBroadcaster>();
+        builder.Services.AddScoped<IFiskalyOperationHistoryRecorder, FiskalyOperationHistoryRecorder>();
+        builder.Services.AddScoped<IFiskalyOperationHistoryService, FiskalyOperationHistoryService>();
+        builder.Services.AddScoped<IFiskalyStatisticsService, FiskalyStatisticsService>();
+        builder.Services.AddScoped<IFiskalyErrorService, FiskalyErrorService>();
+        builder.Services.AddScoped<IFiskalyBatchService, FiskalyBatchService>();
+        builder.Services.AddOptions<AuthOptions>()
+            .Bind(builder.Configuration.GetSection(AuthOptions.SectionName))
+            .Validate<IHostEnvironment>(
+                (opts, env) => env.IsDevelopment() || opts.RequireTenantMembershipForLogin,
+                "Auth:RequireTenantMembershipForLogin must be true when ASPNETCORE_ENVIRONMENT is not Development.")
+            .ValidateOnStart();
+        builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection(AuthCookieOptions.SectionName));
+        builder.Services.AddSingleton<IAuthCookieService, AuthCookieService>();
         builder.Services.Configure<SessionPolicyOptions>(builder.Configuration.GetSection(SessionPolicyOptions.SectionName));
         builder.Services.Configure<TemporaryPermissionsOptions>(
             builder.Configuration.GetSection(TemporaryPermissionsOptions.SectionName));
@@ -331,6 +443,13 @@ internal static class ApplicationHost
         builder.Services.Configure<FinanzOnlineRegistrierkassenOptions>(builder.Configuration.GetSection(FinanzOnlineRegistrierkassenOptions.SectionName));
         builder.Services.Configure<FinanzOnlineTransmissionQueryOptions>(builder.Configuration.GetSection(FinanzOnlineTransmissionQueryOptions.SectionName));
         builder.Services.Configure<FinanzOnlineOutboxOptions>(builder.Configuration.GetSection(FinanzOnlineOutboxOptions.SectionName));
+        // Singleton: process-wide overlay + hosted-service consumers. Both caches open an
+        // IServiceScopeFactory scope before resolving the scoped IDbContextFactory.
+        builder.Services.AddSingleton<FinanzOnlineOutboxEnabledOverrideCache>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxSettingsService, FinanzOnlineOutboxSettingsService>();
+        builder.Services.AddSingleton<FinanzOnlineRuntimeOverrideCache>();
+        builder.Services.AddSingleton<FinanzOnlineRuntimeOptionsAccessor>();
+        builder.Services.AddScoped<IFinanzOnlineRuntimeSettingsService, FinanzOnlineRuntimeSettingsService>();
         builder.Services.Configure<FinanzOnlineCutoverGuardOptions>(builder.Configuration.GetSection(FinanzOnlineCutoverGuardOptions.SectionName));
         builder.Services.Configure<FinanzOnlineModeOptions>(builder.Configuration.GetSection(FinanzOnlineModeOptions.SectionName));
         builder.Services.Configure<FinanzOnlineDevTestOptions>(builder.Configuration.GetSection(FinanzOnlineDevTestOptions.SectionName));
@@ -362,6 +481,10 @@ internal static class ApplicationHost
             .AddCheck<FinanzOnlineHealthCheck>(
                 FinanzOnlineHealthCheck.Name,
                 tags: new[] { DatabaseHealthCheck.ReadyTag })
+            .AddCheck<RedisCacheHealthCheck>(
+                RedisCacheHealthCheck.Name,
+                failureStatus: HealthStatus.Degraded,
+                tags: new[] { DatabaseHealthCheck.ReadyTag, DatabaseHealthCheck.DepsTag })
             .AddCheck<BackupHealthCheck>("backup")
             .AddCheck<ElmahHealthCheck>("elmah")
             .AddCheck<EfMigrationsHealthCheck>(
@@ -383,18 +506,82 @@ internal static class ApplicationHost
         });
         builder.Services.Configure<FeatureFlagsOptions>(builder.Configuration.GetSection(FeatureFlagsOptions.SectionName));
         builder.Services.AddScoped<KasseAPI_Final.Services.FeatureFlags.IFeatureFlagService, KasseAPI_Final.Services.FeatureFlags.FeatureFlagService>();
+        // Country profiles / tax-type rates are immutable in-code seeds (no DB, no configuration) — safe as a singleton.
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryProfileRegistry, KasseAPI_Final.Services.Countries.CountryProfileRegistry>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.ICountryTaxTypeRegistry, KasseAPI_Final.Services.Countries.CountryTaxTypeRegistry>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.IChMwstEffectiveRates, KasseAPI_Final.Services.Countries.ChMwstEffectiveRates>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.IOssVatRateRegistry, KasseAPI_Final.Services.Countries.OssVatRateRegistry>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Vat.IViesClient, KasseAPI_Final.Services.Countries.Vat.DisabledViesClient>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Vat.IVatIdValidator, KasseAPI_Final.Services.Countries.Vat.VatIdValidator>();
+        // Country strategies (docs/COUNTRIES.md §3). Call sites resolve through ICountryStrategyContext.
+        // Austria tax is a stateless adapter → singleton (parameterless ctor; do not inject scoped
+        // IVatIdValidator into the singleton). DE/CH/EU tax read feature flags → scoped.
+        // TaxStrategyResolver is scoped so it can consume scoped DE/CH/EU strategies. CountryStrategyContext
+        // is already scoped (AppDbContext) — no captive-dependency clash.
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy>(
+            _ => new KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaTaxStrategy());
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyTaxStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandTaxStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultTaxStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.ITaxStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.TaxStrategyResolver>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitHttpClient, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitHttpClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.SoftKassenSicherheitService>();
+        }
+        else
+        {
+            builder.Services.AddScoped<KasseAPI_Final.Services.Countries.KassenSicherheit.IKassenSicherheitService, KasseAPI_Final.Services.Countries.KassenSicherheit.FiskalyDeKassenSicherheitService>();
+        }
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IZugferdXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedZugferdXmlBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931XmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.En16931UblXmlBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IEn16931InvoiceValidationService, KasseAPI_Final.Services.Countries.EInvoicing.En16931InvoiceValidationService>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionStore, KasseAPI_Final.Services.Countries.EInvoicing.InMemoryPeppolSubmissionStore>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.EInvoicing.MockPeppolAccessPointClient>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>();
+        builder.Services.AddHttpClient<KasseAPI_Final.Services.Countries.EInvoicing.StorecovePeppolAccessPointClient>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolAccessPointClient>(sp =>
+            KasseAPI_Final.Services.Countries.EInvoicing.PeppolAccessPointClientFactory.Select(
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<KasseAPI_Final.Configuration.PeppolOptions>>().Value.Provider,
+                sp.GetRequiredService<KasseAPI_Final.Services.Countries.EInvoicing.HostedPeppolAccessPointClient>(),
+                sp.GetRequiredService<KasseAPI_Final.Services.Countries.EInvoicing.StorecovePeppolAccessPointClient>()));
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IPeppolSubmissionService, KasseAPI_Final.Services.Countries.EInvoicing.PeppolSubmissionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.EInvoicing.IXrechnungXmlBuilder, KasseAPI_Final.Services.Countries.EInvoicing.NotImplementedXrechnungXmlBuilder>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Countries.QrRechnung.ChQrKnownGapCatalog>();
+        builder.Services.AddSingleton<IBackupKnownGapsCatalog, BackupKnownGapsCatalog>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IChQrGapAcceptanceService, KasseAPI_Final.Services.Countries.QrRechnung.ChQrGapAcceptanceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.QrRechnung.IQrRechnungBuilder, KasseAPI_Final.Services.Countries.QrRechnung.QrRechnungBuilder>();
+        builder.Services.AddScoped<KasseAPI_Final.Fiscal.IFiscalSignatureRouter, KasseAPI_Final.Fiscal.FiscalSignatureRouter>();
+        // Invoice strategies depend on scoped services (sequence reservation, receipts) → scoped.
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Austria.AustriaInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.Germany.IDeReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.Germany.DeReceiptSequenceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.Switzerland.IChReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.Switzerland.ChReceiptSequenceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.EuDefault.IEuReceiptSequenceService, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuReceiptSequenceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Germany.GermanyInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.Switzerland.SwitzerlandInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategy, KasseAPI_Final.Services.Countries.Strategies.EuDefault.EuDefaultInvoiceStrategy>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.Strategies.IInvoiceStrategyResolver, KasseAPI_Final.Services.Countries.Strategies.InvoiceStrategyResolver>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Countries.ICountryStrategyContext, KasseAPI_Final.Services.Countries.CountryStrategyContext>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentStatusService, KasseAPI_Final.Services.Deployment.DeploymentStatusService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentRollbackService, KasseAPI_Final.Services.Deployment.DeploymentRollbackService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.ITenantDeploymentService, KasseAPI_Final.Services.Deployment.TenantDeploymentService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentAuditService, KasseAPI_Final.Services.Deployment.DeploymentAuditService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IDeploymentComplianceService, KasseAPI_Final.Services.Deployment.DeploymentComplianceService>();
+        builder.Services.Configure<GoLiveOptions>(builder.Configuration.GetSection(GoLiveOptions.SectionName));
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Deployment.IGoLiveStatusStore, KasseAPI_Final.Services.Deployment.GoLiveStatusStore>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Deployment.IGoLiveCheckService, KasseAPI_Final.Services.Deployment.GoLiveCheckService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Deployment.CanaryTenantMonitorHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Countries.EInvoicing.PeppolAckPollingService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Database.IMigrationStatusService, KasseAPI_Final.Services.Database.MigrationStatusService>();
         builder.Services.AddHttpClient("deployment-rollback");
         builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
         builder.Services.Configure<OfflineVoucherEncryptionOptions>(
             builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
         builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+        builder.Services.Configure<TrialOptions>(builder.Configuration.GetSection(TrialOptions.SectionName));
         builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.SectionName));
         builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSection(LicenseSettingsOptions.SectionName));
         builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
@@ -405,7 +592,9 @@ internal static class ApplicationHost
             builder.Services.Configure<TseOptions>(options =>
             {
                 options.OfflineModeEnabled = true;
+#pragma warning disable CS0618
                 options.MaxOfflineTransactionsPerCashRegister = LicenseEnforcementPolicy.MaxOfflineTransactionsUnlimited;
+#pragma warning restore CS0618
             });
         }
         builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
@@ -431,6 +620,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<ILicenseRenewalFunnelService, LicenseRenewalFunnelService>();
         builder.Services.AddHostedService<LicenseReminderHostedService>();
         builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetSection(LicenseReportEmailOptions.SectionName));
+        builder.Services.Configure<BackupDrillReportOptions>(builder.Configuration.GetSection(BackupDrillReportOptions.SectionName));
         builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
         builder.Services.AddScoped<ILicenseExportService, LicenseExportService>();
         builder.Services.AddHostedService<LicenseScheduledReportsHostedService>();
@@ -453,6 +643,11 @@ internal static class ApplicationHost
             builder.Services.AddOptions<RestoreVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName))
                 .ValidateOnStart();
+
+            builder.Services.AddOptions<BackupReVerificationOptions>()
+                .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupKnownGapsAcceptanceOptions>()
+                .Bind(builder.Configuration.GetSection(BackupKnownGapsAcceptanceOptions.SectionName));
         }
         else
         {
@@ -460,6 +655,10 @@ internal static class ApplicationHost
                 .Bind(builder.Configuration.GetSection(BackupOptions.SectionName));
             builder.Services.AddOptions<RestoreVerificationOptions>()
                 .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupReVerificationOptions>()
+                .Bind(builder.Configuration.GetSection(BackupReVerificationOptions.SectionName));
+            builder.Services.AddOptions<BackupKnownGapsAcceptanceOptions>()
+                .Bind(builder.Configuration.GetSection(BackupKnownGapsAcceptanceOptions.SectionName));
         }
 
         // Local development iÃ§in explicit host binding; production host binding platform tarafÄ±ndan yÃ¶netilmelidir.
@@ -482,7 +681,9 @@ internal static class ApplicationHost
             if (!OpenApiExportMode.IsEnabled)
             {
                 throw new InvalidOperationException(
-                    "ConnectionStrings:DefaultConnection is not configured. Set ConnectionStrings__DefaultConnection or user secrets. See backend/CONFIGURATION.md.");
+                    $"ConnectionStrings:DefaultConnection is not configured (environment: {builder.Environment.EnvironmentName}). " +
+                    "Set ConnectionStrings__DefaultConnection, appsettings.{Environment}.json, or user secrets " +
+                    "(loaded in Development by default and in Staging by ApplicationHost). See backend/CONFIGURATION.md.");
             }
 
             throw new InvalidOperationException(
@@ -594,11 +795,28 @@ internal static class ApplicationHost
                 OnMessageReceived = context =>
                 {
                     var path = context.HttpContext.Request.Path;
-                    if (path.StartsWithSegments("/hubs/demo-import-progress"))
+                    if (path.StartsWithSegments("/hubs"))
                     {
                         var accessToken = context.Request.Query["access_token"];
                         if (!string.IsNullOrEmpty(accessToken))
                             context.Token = accessToken;
+                    }
+
+                    // Prefer Authorization: Bearer when present (POS / explicit header).
+                    // Browser FA sends HttpOnly rk_admin_access_token via withCredentials.
+                    // POS web may send rk_pos_access_token; X-App-Context / Origin picks the right cookie.
+                    if (string.IsNullOrEmpty(context.Token))
+                    {
+                        var authorization = context.Request.Headers.Authorization.ToString();
+                        if (string.IsNullOrEmpty(authorization)
+                            || !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var cookieAuth = context.HttpContext.RequestServices
+                                .GetService<IAuthCookieService>();
+                            var cookieToken = cookieAuth?.ReadAccessToken(context.HttpContext.Request);
+                            if (!string.IsNullOrEmpty(cookieToken))
+                                context.Token = cookieToken;
+                        }
                     }
 
                     return Task.CompletedTask;
@@ -609,24 +827,34 @@ internal static class ApplicationHost
                     var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
                     var userId = context.Principal?.GetActorUserId();
 
-                    var sidRaw = context.Principal?.FindFirst("sid")?.Value;
-                    if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(sidRaw, out var sessionId))
+                    if (!string.IsNullOrWhiteSpace(userId))
                     {
-                        var refreshTokenService = context.HttpContext.RequestServices.GetRequiredService<IRefreshTokenService>();
-                        var isActive = await refreshTokenService.IsSessionActiveAsync(
-                            userId,
-                            sessionId,
-                            context.HttpContext.RequestAborted).ConfigureAwait(false);
-                        if (!isActive)
+                        var sidRaw = context.Principal?.FindFirst("sid")?.Value;
+                        Guid? sessionId = Guid.TryParse(sidRaw, out var parsedSid) ? parsedSid : null;
+                        var stamp = context.Principal?.FindFirst(TokenClaimsService.SecurityStampClaimType)?.Value;
+                        var sessionManagement = context.HttpContext.RequestServices
+                            .GetRequiredService<ISessionManagementService>();
+                        var isValid = await sessionManagement
+                            .IsSessionValidAsync(userId, sessionId, stamp, context.HttpContext.RequestAborted)
+                            .ConfigureAwait(false);
+                        if (!isValid)
                         {
                             context.Fail("Session invalidated");
                             return;
                         }
                     }
-                    logger.LogInformation(
-                        "JWT token validated successfully: userId={UserId}, correlationId={CorrelationId}",
-                        userId,
-                        correlationId);
+                    var email = context.Principal?.GetActorEmail() ?? "-";
+                    var tenantClaim = context.Principal?.FindFirst(ScopeCheckService.TenantIdClaim)?.Value;
+                    var tenantShort = string.IsNullOrWhiteSpace(tenantClaim)
+                        ? "-"
+                        : LogIdFormatting.ShortId(tenantClaim);
+                    // Success path is Debug — every authenticated request hit this; failures stay Warning.
+                    logger.LogDebug(
+                        "[Auth] JWT validated - User: {User}, TenantId: {TenantId}, UserId: {UserId}, Correlation: {CorrelationId}",
+                        email,
+                        tenantShort,
+                        string.IsNullOrWhiteSpace(userId) ? "-" : LogIdFormatting.ShortId(userId),
+                        string.IsNullOrWhiteSpace(correlationId) ? "-" : LogIdFormatting.ShortId(correlationId));
                 },
                 OnAuthenticationFailed = context =>
                 {
@@ -706,13 +934,34 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<RksvDataCleanupHostedService>();
         builder.Services.AddScoped<ITenantService, TenantService>();
         builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+        builder.Services.AddScoped<KasseAPI_Final.Data.Seed.ITenantDemoSeeder, KasseAPI_Final.Data.Seed.TenantDemoSeeder>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitCacheService, KasseAPI_Final.Services.Limits.TenantLimitCacheService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitService, KasseAPI_Final.Services.Limits.TenantLimitService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitGuard, KasseAPI_Final.Services.Limits.TenantLimitGuard>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitDashboardService, KasseAPI_Final.Services.Limits.TenantLimitDashboardService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Limits.ITenantLimitAlertService, KasseAPI_Final.Services.Limits.TenantLimitAlertService>();
+        builder.Services.AddScoped<IAdminTenantCsvExportService, AdminTenantCsvExportService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.ICustomerAnalyticsService, KasseAPI_Final.Services.Analytics.CustomerAnalyticsService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.ITseUsageAnalyticsService, KasseAPI_Final.Services.Analytics.TseUsageAnalyticsService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Analytics.IPaymentVolumeAnalyticsService, KasseAPI_Final.Services.Analytics.PaymentVolumeAnalyticsService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Email.IEmailService, KasseAPI_Final.Services.Email.EmailService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Communication.IBulkEmailService, KasseAPI_Final.Services.Communication.BulkEmailService>();
+        builder.Services.AddSingleton<KasseAPI_Final.Services.Communication.IBulkEmailRateLimiter, KasseAPI_Final.Services.Communication.BulkEmailRateLimiter>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Email.ISubscriptionInvoiceEmailService, KasseAPI_Final.Services.Email.SubscriptionInvoiceEmailService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Billing.ISubscriptionInvoiceService, KasseAPI_Final.Services.Billing.SubscriptionInvoiceService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Onboarding.ITenantOnboardingChecklistService, KasseAPI_Final.Services.Onboarding.TenantOnboardingChecklistService>();
+        builder.Services.AddHostedService<SubscriptionInvoiceHostedService>();
+        builder.Services.AddHostedService<TenantLifecycleArchiveHostedService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IAdminTenantLicenseKeyService, AdminTenantLicenseKeyService>();
         builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
         builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
 
-        // Billing services (scoped â€” injected AppDbContext is request-scoped; do not use Singleton)
+        // Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
+        builder.Services.AddScoped<ILicenseStatusCache, LicenseStatusCache>();
+        builder.Services.AddScoped<ILicenseCacheService, LicenseCacheService>();
         builder.Services.AddScoped<IBillingService, BillingService>();
+        builder.Services.AddScoped<ITenantInvoiceService, TenantInvoiceService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
         builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
         builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
@@ -741,6 +990,11 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
         builder.Services.AddScoped<ICategoryDemoResetService, CategoryDemoResetService>();
         builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialConversionService, KasseAPI_Final.Services.Trial.TrialConversionService>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialLimitGuard, KasseAPI_Final.Services.Trial.TrialLimitGuard>();
+        builder.Services.AddScoped<KasseAPI_Final.Services.Trial.ITrialService, KasseAPI_Final.Services.Trial.TrialService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Trial.TrialReminderHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Trial.TrialCleanupHostedService>();
         builder.Services.AddScoped<ITseProvisioningService, TseProvisioningService>();
         builder.Services.AddScoped<TseBackupService>();
         builder.Services.AddScoped<ITseBackupService>(sp => sp.GetRequiredService<TseBackupService>());
@@ -804,7 +1058,7 @@ internal static class ApplicationHost
         }
         builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
         // ScopeCheckService claim constants are used statically; instance methods unused â€” no DI registration.
-        // Wave 0â€“1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
+        // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else platform sentinel).
         builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
         builder.Services.AddScoped<ILoginTenantResolver, LoginTenantResolver>();
         builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();
@@ -837,7 +1091,12 @@ internal static class ApplicationHost
                     policy.SetIsOriginAllowed(IsTrustedDevelopmentCorsOrigin)
                           .AllowAnyMethod()
                           .AllowAnyHeader()
-                          .AllowCredentials();
+                          .AllowCredentials()
+                          .WithExposedHeaders(
+                              "Content-Disposition",
+                              "X-Regkasse-Batch-Success",
+                              "X-Regkasse-Batch-Failed",
+                              "X-Regkasse-Batch-Id");
                     return;
                 }
 
@@ -851,27 +1110,53 @@ internal static class ApplicationHost
                 policy.SetIsOriginAllowed(origin => IsTrustedProductionCorsOrigin(origin, allowed))
                       .AllowAnyMethod()
                       .AllowAnyHeader()
-                      .AllowCredentials();
+                      .AllowCredentials()
+                      .WithExposedHeaders(
+                          "Content-Disposition",
+                          "X-Regkasse-Batch-Success",
+                          "X-Regkasse-Batch-Failed",
+                          "X-Regkasse-Batch-Id");
             });
         });
 
         // Memory cache for QR image, lockout, rate limits (process-local; not ICacheService)
         builder.Services.AddMemoryCache();
 
-        // Redis connection for distributed ICacheService read-through caching
+        // Domain ICacheService: Memory in Development (default); Redis when Redis:Enabled=true
         builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection(RedisOptions.SectionName));
-        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        builder.Services.Configure<CacheSettings>(builder.Configuration.GetSection(CacheSettings.SectionName));
+        var redisOptions = builder.Configuration.GetSection(RedisOptions.SectionName).Get<RedisOptions>()
+            ?? new RedisOptions();
+        var redisEnabledExplicit = builder.Configuration.GetValue<bool?>("Redis:Enabled");
+        var useRedisCache = redisEnabledExplicit ?? !isDevelopment;
+
+        if (useRedisCache)
         {
-            var options = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
-            var connectionString = string.IsNullOrWhiteSpace(options.ConnectionString)
+            var redisConnection = string.IsNullOrWhiteSpace(redisOptions.ConnectionString)
                 ? "localhost:6379"
-                : options.ConnectionString;
-            return ConnectionMultiplexer.Connect(connectionString);
-        });
-        builder.Services.AddScoped<ICacheService, RedisCacheService>();
+                : redisOptions.ConnectionString;
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnection;
+                options.InstanceName = string.IsNullOrWhiteSpace(redisOptions.InstanceName)
+                    ? "Regkasse:"
+                    : redisOptions.InstanceName.TrimEnd(':') + ":";
+            });
+            builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+        }
+        else
+        {
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
+        }
+
+        builder.Services.AddScoped<ICacheManagementService, CacheManagementService>();
 
         // API servisleri
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options =>
+        {
+            options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
+        })
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // GET /api/UserManagement/{id} etc. return camelCase for frontend
@@ -911,6 +1196,7 @@ internal static class ApplicationHost
 
             c.SchemaFilter<KasseAPI_Final.Swagger.TaxTypeSchemaFilter>();
             c.SchemaFilter<KasseAPI_Final.Swagger.TagesabschlussSchemaRequiredFilter>();
+            c.SchemaFilter<KasseAPI_Final.Swagger.EnumVarnamesSchemaFilter>();
             c.OperationFilter<SignatureDebugSwaggerExamples>();
             c.OperationFilter<KasseAPI_Final.Swagger.PosAdminTagsAndDeprecationFilter>();
             c.OperationFilter<KasseAPI_Final.Swagger.SingleJsonContentTypeOperationFilter>();
@@ -935,15 +1221,24 @@ internal static class ApplicationHost
 
         // RKSV SignaturePipeline (Checklist 1-5)
         // Use hardware TSE (fiskaly) in production; software TSE for dev/test.
+        builder.Services.AddHttpClient<IFiskalyConnectionProbe, FiskalyConnectionProbe>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        builder.Services.AddSingleton<FiskalyAccessTokenCache>();
+        builder.Services.AddHttpClient<IFiskalyClient, FiskalyHttpClient>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        builder.Services.AddScoped<IFiskalyTseService, FiskalyTseService>();
         if (builder.Environment.IsProduction())
         {
-            builder.Services.AddHttpClient<IFiskalyClient, FiskalyHttpClient>((sp, client) =>
-            {
-                var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
-                if (!string.IsNullOrWhiteSpace(options.BaseUrl))
-                    client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
-                client.Timeout = TimeSpan.FromSeconds(30);
-            });
             builder.Services.AddSingleton<ITseKeyProvider, FiskalyTseKeyProvider>();
         }
         else
@@ -955,6 +1250,7 @@ internal static class ApplicationHost
 
         // Closing-flow signing: Fake (dev) vs Real (SignaturePipeline). Multi-vendor via ITseProviderFactory.
         builder.Services.AddScoped<FakeTseProvider>();
+        builder.Services.AddScoped<ISoftTseService, SoftTseService>();
         builder.Services.AddScoped<RealTseProvider>();
         builder.Services.AddScoped<ITseProviderFactory, TseProviderFactory>();
         var tseOpts = builder.Configuration.GetSection(TseOptions.SectionName).Get<TseOptions>() ?? new TseOptions();
@@ -982,7 +1278,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<SimulatedFinanzOnlineSessionClient>();
         builder.Services.AddScoped<IFinanzOnlineSessionClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().Session;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineSessionClient>()
                 : sp.GetRequiredService<CachedFinanzOnlineSessionClient>();
@@ -996,7 +1292,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<TestModeFinanzOnlineRegistrierkassenClient>();
         builder.Services.AddScoped<IFinanzOnlineRegistrierkassenClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().Registrierkassen;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineRegistrierkassenClient>()
                 : sp.GetRequiredService<TestModeFinanzOnlineRegistrierkassenClient>();
@@ -1012,7 +1308,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<TestModeFinanzOnlineTransmissionQueryClient>();
         builder.Services.AddScoped<IFinanzOnlineTransmissionQueryClient>(sp =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
+            var options = sp.GetRequiredService<FinanzOnlineRuntimeOptionsAccessor>().TransmissionQuery;
             return options.UseSimulation
                 ? sp.GetRequiredService<SimulatedFinanzOnlineTransmissionQueryClient>()
                 : sp.GetRequiredService<TestModeFinanzOnlineTransmissionQueryClient>();
@@ -1020,6 +1316,10 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFinanzOnlineCommandMapper, DefaultFinanzOnlineCommandMapper>();
         builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
         builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxActionService, FinanzOnlineOutboxActionService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxMonitoringService, FinanzOnlineOutboxMonitoringService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxOpsAlert, FinanzOnlineOutboxOpsAlert>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxFailureMonitor, FinanzOnlineOutboxFailureMonitor>();
         builder.Services.AddScoped<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<RksvAusfallFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<IRksvAusfallEpisodeService, RksvAusfallEpisodeService>();
@@ -1071,12 +1371,15 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
         builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
         builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
+        builder.Services.AddScoped<ICashRegisterOpenRequestService, CashRegisterOpenRequestService>();
         builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
         builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagementService>();
+        builder.Services.AddScoped<ICashRegisterPermissionService, CashRegisterPermissionService>();
         builder.Services.AddScoped<ICashRegisterHealthService, CashRegisterHealthService>();
         builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListEnrichmentService>();
         builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
         builder.Services.AddScoped<IPosStatusService, PosStatusService>();
+        builder.Services.AddScoped<IPosTseStatusService, PosTseStatusService>();
         builder.Services.AddScoped<IPosShiftService, PosShiftService>();
         builder.Services.AddScoped<IPosDailyClosingService, PosDailyClosingService>();
         builder.Services.AddScoped<IPosCartTableOpsService, PosCartTableOpsService>();
@@ -1095,10 +1398,13 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
         builder.Services.AddScoped<IAdminShiftManagementService, AdminShiftManagementService>();
         builder.Services.AddScoped<IShiftAutoCloseService, ShiftAutoCloseService>();
+        builder.Services.AddScoped<IAutoTagesabschlussService, AutoTagesabschlussService>();
         builder.Services.Configure<ShiftAutoCloseOptions>(
             builder.Configuration.GetSection(ShiftAutoCloseOptions.SectionName));
         builder.Services.Configure<TagesabschlussReminderOptions>(
             builder.Configuration.GetSection(TagesabschlussReminderOptions.SectionName));
+        builder.Services.Configure<AutoTagesabschlussOptions>(
+            builder.Configuration.GetSection(AutoTagesabschlussOptions.SectionName));
         builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
         builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
         builder.Services.AddScoped<ITaxRegulationService, TaxRegulationService>();
@@ -1128,6 +1434,7 @@ internal static class ApplicationHost
             builder.Services.AddSingleton<IPaymentGateway, StripeCardGateway>();
         }
         builder.Services.AddScoped<ICardPaymentService, CardPaymentService>();
+        builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
         builder.Services.AddScoped<IAdminCardTransactionListService, AdminCardTransactionListService>();
         builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
@@ -1143,23 +1450,55 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
         builder.Services.AddScoped<IMonatsbelegReminderService, MonatsbelegReminderService>();
         builder.Services.AddScoped<IRksvReminderService, RksvReminderService>();
+        builder.Services.AddScoped<IMonatsbelegOpsService, MonatsbelegOpsService>();
+        builder.Services.AddScoped<IRksvMonatsbelegService, RksvMonatsbelegService>();
+        builder.Services.Configure<MonatsbelegOpsOptions>(
+            builder.Configuration.GetSection(MonatsbelegOpsOptions.SectionName));
         builder.Services.AddSingleton<IRksvReceiptQrPayloadFormatValidator, RksvReceiptQrPayloadFormatValidator>();
         builder.Services.AddScoped<IRksvComplianceReportService, RksvComplianceReportService>();
         builder.Services.AddScoped<IRksvEvidenceBundleService, RksvEvidenceBundleService>();
         builder.Services.AddScoped<IQrImageService, QrImageService>();
         // TableOrderService: constructed in tests; POS cart recovery uses IPosCartTableOpsService / CartController.
         builder.Services.AddScoped<IOrderIntegrationService, OrderIntegrationService>();
+        builder.Services.AddScoped<IPreorderService, PreorderService>();
         builder.Services.AddScoped<IOnlineOrderQueryService, OnlineOrderQueryService>();
         builder.Services.AddScoped<IOnlineOrderNotificationService, OnlineOrderNotificationService>();
         builder.Services.AddScoped<IOnlineOrderPushSender, LoggingOnlineOrderPushSender>();
         builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
         builder.Services.AddScoped<IOnlineOrderLoyaltyService, OnlineOrderLoyaltyService>();
         builder.Services.AddScoped<IOnlineOrderTrackingService, OnlineOrderTrackingService>();
-        builder.Services.AddScoped<IOnlineOrderStatusService, OnlineOrderStatusService>();
+        builder.Services.AddScoped<WoltOrderStatusSync>();
+        builder.Services.AddScoped<FoodoraOrderStatusSync>();
+        builder.Services.AddScoped<OnlineOrderStatusService>();
+        builder.Services.AddScoped<IOnlineOrderStatusService>(sp => sp.GetRequiredService<OnlineOrderStatusService>());
         builder.Services.AddScoped<IOnlineOrderPaymentService, OnlineOrderPaymentService>();
+        builder.Services.AddScoped<IOnlinePaymentAdminService, OnlinePaymentAdminService>();
         builder.Services.AddScoped<IOnlineOrderIntakeService, OnlineOrderIntakeService>();
+        builder.Services.Configure<KasseAPI_Final.Configuration.OnlineOrderIntegrationOptions>(
+            builder.Configuration.GetSection(KasseAPI_Final.Configuration.OnlineOrderIntegrationOptions.SectionName));
+        builder.Services.AddScoped<IOnlineOrderIntegrationProcessor, OnlineOrderIntegrationProcessor>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationWebhookService, OnlineOrderIntegrationWebhookService>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationLocationService, OnlineOrderIntegrationLocationService>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationProductMappingService, OnlineOrderIntegrationProductMappingService>();
+        builder.Services.AddHttpClient(WoltOAuthClient.HttpClientName);
+        builder.Services.AddHttpClient(FoodoraAuthClient.HttpClientName);
+        builder.Services.AddSingleton<OnlineOrderIntegrationTokenProtector>();
+        builder.Services.AddScoped<IWoltOAuthClient, WoltOAuthClient>();
+        builder.Services.AddScoped<IWoltAccessTokenSource, WoltAccessTokenSource>();
+        builder.Services.AddScoped<IWoltOrderNotificationService, WoltOrderNotificationService>();
+        builder.Services.AddScoped<IFoodoraAuthClient, FoodoraAuthClient>();
+        builder.Services.AddScoped<IFoodoraAccessTokenSource, FoodoraAccessTokenSource>();
+        builder.Services.AddScoped<IFoodoraOrderNotificationService, FoodoraOrderNotificationService>();
+        builder.Services.AddScoped<IFoodoraTenantCredentialService, FoodoraTenantCredentialService>();
+        builder.Services.AddScoped<ILieferandoOrderNotificationService, LieferandoOrderNotificationService>();
+        builder.Services.AddScoped<ILieferandoTenantCredentialService, LieferandoTenantCredentialService>();
+        builder.Services.AddScoped<FoodoraAckDeadlineScanner>();
+        builder.Services.AddScoped<IOnlineOrderIntegrationProviderService, OnlineOrderIntegrationProviderService>();
+        builder.Services.AddScoped<IWoltIntegrationConnectService, WoltIntegrationConnectService>();
+        if (!OpenApiExportMode.IsEnabled)
+            builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OnlineOrderIntegrationRetryHostedService>();
         builder.Services.AddScoped<IPublicCustomerDashboardService, PublicCustomerDashboardService>();
-        builder.Services.AddScoped<LegacyRouteDeprecationFilter>();
+        builder.Services.AddSingleton<PublicCustomerLookupRateLimiter>();
 
         // Register repositories
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -1187,7 +1526,9 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
         builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
         builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
+        builder.Services.AddSingleton<IFinanzOnlineOutboxWorkerSignal, FinanzOnlineOutboxWorkerSignal>();
         builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
+        builder.Services.AddHostedService<FinanzOnlineOutboxAlertHostedService>();
         builder.Services.AddHostedService<NtpTimeSyncService>();
 
         // ðŸš€ AkÄ±llÄ± Sepet YaÅŸam DÃ¶ngÃ¼sÃ¼ Service'i
@@ -1198,6 +1539,7 @@ internal static class ApplicationHost
         // Audit log service
         builder.Services.AddScoped<ITenantSessionPolicyService, TenantSessionPolicyService>();
         builder.Services.AddScoped<IUserSessionService, UserSessionService>();
+        builder.Services.AddScoped<ISessionManagementService, SessionManagementService>();
         builder.Services.AddScoped<ISessionService, SessionService>();
         builder.Services.AddScoped<KasseAPI_Final.Services.Session.IDeviceSessionService, KasseAPI_Final.Services.Session.DeviceSessionService>();
         builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();
@@ -1255,8 +1597,22 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IBackupTimeEstimator, BackupTimeEstimator>();
         builder.Services.AddSingleton<ISmartRetentionService, SmartRetentionService>();
         builder.Services.AddSingleton<IStorageTierService, StorageTierService>();
-        // IBackupService / IIncrementalBackupService: kept as types for unit tests; production uses
-        // IBackupManualTriggerService + orchestrator / run pipeline (see docs/BACKUP_SYSTEM.md).
+        builder.Services
+            .AddHttpClient(CloudStorageService.HttpClientName)
+            .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromMinutes(10));
+        builder.Services.AddSingleton<FilesystemWormCloudStorageProvider>();
+        builder.Services.AddSingleton<AzureArchiveCloudStorageProvider>(sp =>
+            new AzureArchiveCloudStorageProvider(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(CloudStorageService.HttpClientName),
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<BackupOptions>>()));
+        builder.Services.AddSingleton<ICloudStorageService, CloudStorageService>();
+        builder.Services.AddScoped<IBackupRetentionPolicyService, BackupRetentionPolicyService>();
+        builder.Services.AddScoped<IBackupColdArchiveService, BackupColdArchiveService>();
+        // IBackupService remains a test-only facade. Incremental enqueue is registered for daily
+        // tenant deltas + PITR planning; worker still exports via IBackupManualTriggerService.
+        builder.Services.AddScoped<IIncrementalBackupService, IncrementalBackupService>();
+        builder.Services.AddSingleton<IWalArchiveService, WalArchiveService>();
+        builder.Services.AddScoped<IBackupChainService, BackupChainService>();
         builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
@@ -1269,10 +1625,15 @@ internal static class ApplicationHost
         builder.Services.AddSingleton<IBackupStagingDiskMonitor, BackupStagingDiskMonitor>();
         builder.Services.AddSingleton<IBackupEncryptionService, BackupEncryptionService>();
         builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
+        builder.Services.AddSingleton<RestoreDrillPdfRenderer>();
+        builder.Services.AddScoped<IBackupKnownGapAcceptanceService, BackupKnownGapAcceptanceService>();
+        builder.Services.AddScoped<IBackupKnownGapStatusService, BackupKnownGapStatusService>();
         builder.Services.AddScoped<IBackupComplianceStatusService, BackupComplianceStatusService>();
         builder.Services.AddScoped<IBackupStorageCostService, BackupStorageCostService>();
         builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
         builder.Services.AddScoped<IBackupVerificationReportService, BackupVerificationReportService>();
+        builder.Services.AddScoped<IBackupChecksumVerificationService, BackupChecksumVerificationService>();
+        builder.Services.AddScoped<IBackupContentValidationService, BackupContentValidationService>();
         builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
         builder.Services.AddSingleton<IBackupPostgresClientToolingProbeState, BackupPostgresClientToolingProbeState>();
         builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalReadinessService>();
@@ -1286,7 +1647,12 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<BackupSchedulerService>();
         builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>();
         builder.Services.AddHostedService<StorageAlertService>();
+        builder.Services.AddHostedService<BackupReVerificationHostedService>();
+        builder.Services.AddHostedService<BackupRpoOverdueAlertService>();
+        builder.Services.AddHostedService<BackupDrillReportHostedService>();
         builder.Services.AddHostedService<AutomaticCleanupService>();
+        builder.Services.AddHostedService<WalArchiveRetentionHostedService>();
+        builder.Services.AddHostedService<IncrementalBackupScheduledEnqueueService>();
 
         builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
         builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
@@ -1320,6 +1686,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IValidationRestoreExecutionService, ValidationRestoreExecutionService>();
         builder.Services.AddScoped<IRestoreVerificationSchedulingQueryService, RestoreVerificationSchedulingQueryService>();
         builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
+        builder.Services.AddScoped<IRestoreVerificationReportService, RestoreVerificationReportService>();
         builder.Services.AddScoped<IRestoreProofMilestonesQueryService, RestoreProofMilestonesQueryService>();
         builder.Services.AddHostedService<RestoreVerificationOrchestratorHostedService>();
         builder.Services.AddHostedService<StaleRunReaperHostedService>();
@@ -1336,9 +1703,14 @@ internal static class ApplicationHost
             builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineAlertRules.SectionName));
         builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OrphanIntentCleanupService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
+        builder.Services.AddScoped<IJahresbelegReminderService, JahresbelegReminderService>();
+        builder.Services.AddHostedService<JahresbelegReminderHostedService>();
+        builder.Services.AddHostedService<MonatsbelegSchedulerHostedService>();
+        builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.AutoTagesabschlussHostedService>();
         builder.Services.AddSingleton<TseHealthStateStore>();
         builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
         builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();
@@ -1374,6 +1746,8 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IDepExportValidationService, DepExportValidationService>();
         builder.Services.Configure<DepExportArchiveOptions>(
             builder.Configuration.GetSection(DepExportArchiveOptions.SectionName));
+        builder.Services.Configure<DepExportStorageOptions>(
+            builder.Configuration.GetSection(DepExportStorageOptions.SectionName));
         builder.Services.AddScoped<IDepExportArchiveService, DepExportArchiveService>();
         builder.Services.Configure<DepExportReminderOptions>(
             builder.Configuration.GetSection(DepExportReminderOptions.SectionName));
@@ -1383,6 +1757,7 @@ internal static class ApplicationHost
             KasseAPI_Final.Services.Push.LoggingPushNotificationService>();
         builder.Services.AddHostedService<DepExportSchedulerHostedService>();
         builder.Services.AddHostedService<DepExportReminderHostedService>();
+        builder.Services.AddHostedService<DepExportCleanupHostedService>();
         builder.Services.AddHostedService<DepExportArchiveHostedService>();
         builder.Services.Configure<SignaturkarteProgramOptions>(
             builder.Configuration.GetSection(SignaturkarteProgramOptions.SectionName));
@@ -1394,6 +1769,7 @@ internal static class ApplicationHost
         builder.Services.Configure<DownloadHistoryOptions>(
             builder.Configuration.GetSection(DownloadHistoryOptions.SectionName));
         builder.Services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
+        builder.Services.AddScoped<IBackupDownloadTracker, BackupDownloadTracker>();
         builder.Services.AddHostedService<DownloadHistoryCleanupHostedService>();
         builder.Services.Configure<ExportEmailOptions>(
             builder.Configuration.GetSection(ExportEmailOptions.SectionName));
@@ -1426,7 +1802,21 @@ internal static class ApplicationHost
 
         var app = builder.Build();
 
+        if (!OpenApiExportMode.IsEnabled)
+        {
+            var fiskalyHost = app.Services.GetRequiredService<IOptions<FiskalyOptions>>().Value.BaseUrl;
+            var deHost = app.Services.GetRequiredService<IOptions<KassenSicherheitOptions>>().Value.ApiBaseUrl;
+            app.Logger.LogInformation(
+                "Fiskaly AT host = {FiskalyHost}; KassenSicherheit DE host = {KassenSicherheitHost}",
+                string.IsNullOrWhiteSpace(fiskalyHost) ? "(unset)" : fiskalyHost,
+                string.IsNullOrWhiteSpace(deHost) ? "(unset)" : deHost);
+        }
+
         QuestPDF.Settings.License = LicenseType.Community;
+        // QuestPDF 2026.9 throws when a family or glyph is missing and no longer reads system fonts.
+        // Match the test fallback: missing faces render with the bundled Lato face.
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
+        QuestPDF.Settings.ThrowOnMissingTextGlyphs = false;
 
         // Swashbuckle CLI calls SwaggerHostFactory.CreateHost() and never runs RunAsync; without mapped endpoints
         // the API explorer yields an empty document. Only the tooling path registers the minimal endpoint graph.
@@ -1512,6 +1902,9 @@ internal static class ApplicationHost
             app.Urls.Add($"http://localhost:{devListenPort}");
         }
 
+        // Capture unhandled exceptions for Sentry, then rethrow so response bodies stay unchanged.
+        app.UseMiddleware<SentryExceptionCaptureMiddleware>();
+
         // Middleware pipeline â€” Swagger UI at /swagger (JSON at /swagger/v1/swagger.json).
         if (app.Environment.IsDevelopment())
         {
@@ -1551,6 +1944,7 @@ internal static class ApplicationHost
             app.UseMiddleware<KasseAPI_Final.Middleware.MetricsMiddleware>();
         if (prometheusEnabled)
         {
+            app.UseMiddleware<KasseAPI_Final.Middleware.PrometheusMetricsAccessMiddleware>();
             var metricsPath = string.IsNullOrWhiteSpace(monitoringOptions.MetricsEndpoint)
                 ? "/metrics"
                 : monitoringOptions.MetricsEndpoint.Trim();
@@ -1616,6 +2010,8 @@ internal static class ApplicationHost
         app.UseMiddleware<KasseAPI_Final.Middleware.TokenValidationMiddleware>();
         app.UseAuthentication();
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
+        // Push Tenant/User/Role/CorrelationId into logging scopes for subsequent middleware + controllers.
+        app.UseMiddleware<KasseAPI_Final.Middleware.RequestLoggingScopeMiddleware>();
         // Fail-closed: tenant-scoped API paths return 404 when ICurrentTenantAccessor.TenantId is unset.
         app.UseMiddleware<KasseAPI_Final.Middleware.TenantValidationMiddleware>();
         app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
@@ -1643,11 +2039,15 @@ internal static class ApplicationHost
         {
             // CreateWebApplication (OpenAPI / integration-test host) already mapped controllers, metrics, and liveness probes.
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+            app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
+            app.MapHub<KasseAPI_Final.Hubs.KitchenHub>(KasseAPI_Final.Hubs.KitchenHub.HubPath);
         }
         else
         {
             app.MapControllers();
             app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+            app.MapHub<FiskalyOperationStatusHub>(FiskalyOperationStatusHub.HubPath);
+            app.MapHub<KasseAPI_Final.Hubs.KitchenHub>(KasseAPI_Final.Hubs.KitchenHub.HubPath);
 
             // Prometheus /metrics endpoint for scraping (Grafana dashboards)
             if (prometheusEnabled)
@@ -1723,22 +2123,18 @@ internal static class ApplicationHost
                 [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
             },
         }).AllowAnonymous();
-        app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>
+        app.MapGet("/api/health/license", async (
+            ILicenseService lic,
+            ILicenseReminderNotificationStore licenseReminders,
+            AppDbContext db,
+            CancellationToken cancellationToken) =>
         {
-            var status = lic.GetStatus();
-            var headerStatus = LicenseMiddleware.ResolveLicenseHeaderStatus(status, lic.IsLicenseSnapshotInitialized);
-            var reminders = licenseReminders.GetReminders();
-            return Results.Json(new
-            {
-                headerStatus,
-                isValid = status.IsValid,
-                isTrial = status.IsTrial,
-                isExpired = status.IsExpired,
-                daysRemaining = status.DaysRemaining,
-                expiryDate = status.ExpiryDate,
-                machineHash = status.MachineHash,
-                reminders,
-            });
+            var result = await LicenseHealthProbe
+                .CheckAsync(lic, licenseReminders, db, cancellationToken)
+                .ConfigureAwait(false);
+            return result.Status == LicenseHealthProbe.Unhealthy
+                ? Results.Json(result, statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Json(result);
         }).AllowAnonymous();
         app.MapGet("/health/auth-schema", async (AppDbContext db) =>
         {

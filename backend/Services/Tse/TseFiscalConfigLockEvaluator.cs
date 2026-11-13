@@ -14,6 +14,8 @@ public static class TseFiscalConfigLockEvaluator
     public const string ReasonProviderNotRealVendor =
         "Tse:Provider must be a real vendor in Production (fiskaly, epson, or swissbit).";
     public const string ReasonSimulatedDailyClosing = "Tse:AllowSimulatedDailyClosing must be false in Production.";
+    public const string ReasonFallbackEnabled = "Tse:FallbackEnabled must be false in Production (Development-only Soft TSE fallback).";
+    public const string ReasonSoftTseEnabled = "Tse:SoftTseEnabled must be false in Production.";
     public const string ReasonRksvTseSimulation = "RKSV:TseMode=Simulation is forbidden in Production.";
     public const string ReasonRksvModeNotProduction = "RKSV:Mode must be Production in Production.";
     public const string ReasonFinanzOnlineSimulation =
@@ -38,10 +40,14 @@ public static class TseFiscalConfigLockEvaluator
         return false;
     }
 
+    /// <summary>Optional RKSV overlay for lock evaluation (DB runtime config wins over appsettings keys).</summary>
+    public readonly record struct RksvLockOverlay(string Mode, string TseMode, bool FinanzOnlineSimulated);
+
     public static Result Evaluate(
         IHostEnvironment environment,
         IConfiguration configuration,
-        TseOptions options)
+        TseOptions options,
+        RksvLockOverlay? rksvOverlay = null)
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -56,7 +62,7 @@ public static class TseFiscalConfigLockEvaluator
                 Reasons: Array.Empty<string>());
         }
 
-        var reasons = CollectViolations(configuration, options);
+        var reasons = CollectViolations(configuration, options, rksvOverlay);
         var escape = options.AllowUnsafeFiscalModesInProduction;
         var safe = reasons.Count == 0;
         return new Result(
@@ -90,7 +96,10 @@ public static class TseFiscalConfigLockEvaluator
         return string.Equals(mode, "Simulation", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static List<string> CollectViolations(IConfiguration configuration, TseOptions options)
+    public static List<string> CollectViolations(
+        IConfiguration configuration,
+        TseOptions options,
+        RksvLockOverlay? rksvOverlay = null)
     {
         var reasons = new List<string>();
 
@@ -109,13 +118,22 @@ public static class TseFiscalConfigLockEvaluator
         if (options.AllowSimulatedDailyClosing)
             reasons.Add(ReasonSimulatedDailyClosing);
 
-        if (string.Equals(configuration["RKSV:TseMode"], "Simulation", StringComparison.OrdinalIgnoreCase))
+        if (options.FallbackEnabled)
+            reasons.Add(ReasonFallbackEnabled);
+
+        if (options.SoftTseEnabled)
+            reasons.Add(ReasonSoftTseEnabled);
+
+        var rksvTseMode = rksvOverlay?.TseMode ?? configuration["RKSV:TseMode"];
+        if (string.Equals(rksvTseMode, "Simulation", StringComparison.OrdinalIgnoreCase))
             reasons.Add(ReasonRksvTseSimulation);
 
-        if (!string.Equals(configuration["RKSV:Mode"], "Production", StringComparison.OrdinalIgnoreCase))
+        var rksvMode = rksvOverlay?.Mode ?? configuration["RKSV:Mode"];
+        if (!string.Equals(rksvMode, "Production", StringComparison.OrdinalIgnoreCase))
             reasons.Add(ReasonRksvModeNotProduction);
 
-        if (IsFinanzOnlineSimulated(configuration))
+        var fonSimulated = rksvOverlay?.FinanzOnlineSimulated == true || IsFinanzOnlineSimulated(configuration);
+        if (fonSimulated)
             reasons.Add(ReasonFinanzOnlineSimulation);
 
         return reasons;

@@ -1,6 +1,10 @@
 -- ElmahCore.Postgresql schema (PgsqlErrorLog).
 -- Table is auto-created when Elmah starts with CreateTablesIfNotExist (default for PgsqlErrorLog).
 -- Run manually only when you need explicit DDL before first deploy.
+--
+-- CRITICAL: the user column MUST be quoted PascalCase "User".
+-- ElmahCore INSERT uses ""User""; PostgreSQL treats "User" and "user" as different columns.
+-- See migration 20260827170615_AddElmahUserColumn.
 
 CREATE SEQUENCE IF NOT EXISTS elmah_error_sequence;
 
@@ -12,7 +16,7 @@ CREATE TABLE IF NOT EXISTS elmah_error
     type VARCHAR(100) NOT NULL,
     source VARCHAR(60) NOT NULL,
     message VARCHAR(500) NOT NULL,
-    "user" VARCHAR(50) NOT NULL,
+    "User" text NULL,
     statuscode INT NOT NULL,
     timeutc TIMESTAMP NOT NULL,
     sequence INT NOT NULL DEFAULT NEXTVAL('elmah_error_sequence'),

@@ -15,7 +15,6 @@ import {
 import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
 import {
   cashRegisterPersistFailureAlertDe,
-  isCashRegisterAssignmentRejectedByBackend,
   shouldRetainOptimisticCashRegisterAfterPersistFailure,
 } from '../utils/cashRegisterAssignmentPersistPolicy';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
@@ -181,7 +180,10 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
         setRegisterPicklist(rows);
         setRegisterListEmptyReason(emptyReason);
         setRegisterListFailureKind(null);
-        debugPosPaymentTrace('register_list_loaded', { count: rows.length, emptyReason });
+        debugPosPaymentTrace('register_list_loaded', {
+          count: rows.length,
+          emptyReason,
+        });
 
         // Single selectable row from /pos/cash-register/selectable → safe implicit assignment after persist.
         if (rows.length !== 1) return;

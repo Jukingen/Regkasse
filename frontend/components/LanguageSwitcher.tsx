@@ -1,3 +1,4 @@
+import { safeLog } from '../utils/loggingUtils';
 /**
  * LanguageSwitcher - Dil değiştirme komponenti
  *
@@ -66,7 +67,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ onLanguageChange })
         onLanguageChange(languageCode);
       }
 
-      console.log(`🌍 Language changed to: ${languageCode} (${selectedLanguage?.name})`);
+      safeLog(`🌍 Language changed to: ${languageCode} (${selectedLanguage?.name})`);
     } catch (error) {
       console.error('Language change failed:', error);
       Alert.alert('Hata / Error', 'Dil değiştirilemedi / Language could not be changed');

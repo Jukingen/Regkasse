@@ -29,6 +29,8 @@ export type ReportFiltersProps = {
   loading?: boolean;
   registerRequired?: boolean;
   registerAllowClear?: boolean;
+  /** Include decommissioned registers in the filter (historical reports). */
+  includeDecommissioned?: boolean;
   pickerMode?: 'date' | 'month' | 'year';
   /** Page-specific filters rendered inside the same form row. */
   extra?: ReactNode;
@@ -61,6 +63,7 @@ export function ReportFilters({
   registerAllowClear = false,
   pickerMode = 'date',
   extra,
+  includeDecommissioned = false,
   cardTitle,
   cardStyle,
   showExport = false,
@@ -115,6 +118,7 @@ export function ReportFilters({
           autoSelect={registerRequired}
           persistSelection
           allowClear={registerAllowClear}
+          includeDecommissioned={includeDecommissioned}
           placeholder={registerAllowClear ? t('adminShell.reporting.registerAll') : undefined}
           style={{ minWidth: 200 }}
         />

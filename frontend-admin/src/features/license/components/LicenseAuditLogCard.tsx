@@ -1,14 +1,36 @@
 'use client';
 
-import { Card, Empty, Table, Tag, Typography } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { Button, Card, DatePicker, Empty, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import React, { useMemo, useState } from 'react';
 
 import { dateColumnRender } from '@/components/DateColumn';
-import type { LicenseAuditLogItem } from '@/api/manual/adminLicense';
+import {
+  type LicenseAuditLogItem,
+  downloadLicenseAuditLogCsv,
+} from '@/api/manual/adminLicense';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
 import { useLicenseAuditLog } from '@/features/license/hooks/useLicenseAuditLog';
+import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
+
+dayjs.extend(utc);
+
+const AUDIT_ACTIONS = [
+  'SALE_CREATED',
+  'SALE_CANCELLED',
+  'SALE_REFUNDED',
+  'LICENSE_ACTIVATED',
+  'LICENSE_EXTENDED',
+  'LICENSE_RENEWED',
+  'LICENSE_UPDATED',
+  'LICENSE_REMINDER_SENT',
+  'LICENSE_RENEWAL_PAGE_VIEWED',
+] as const;
 
 function formatStatusLabel(
   t: (key: string) => string,
@@ -27,9 +49,10 @@ function statusTagColor(status: string | null | undefined): string {
     case 'Grace':
       return 'gold';
     case 'Expired':
+      return 'red';
     case 'Locked':
     case 'Archived':
-      return 'red';
+      return 'default';
     default:
       return 'default';
   }
@@ -49,11 +72,29 @@ function actionTagColor(action: string): string {
  */
 export function LicenseAuditLogCard() {
   const { t } = useI18n();
+  const notify = useNotify();
   const canAccess = useBillingAccess();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [action, setAction] = useState<string | undefined>();
+  const [userSearch, setUserSearch] = useState('');
+  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  const auditQuery = useLicenseAuditLog({ page, pageSize }, canAccess);
+  const fromUtc = range?.[0]?.utc().startOf('day').toISOString();
+  const toUtc = range?.[1]?.utc().endOf('day').toISOString();
+
+  const auditQuery = useLicenseAuditLog(
+    {
+      page,
+      pageSize,
+      action,
+      userSearch: userSearch.trim() || undefined,
+      fromUtc,
+      toUtc,
+    },
+    canAccess
+  );
 
   const columns = useMemo<ColumnsType<LicenseAuditLogItem>>(
     () => [
@@ -76,11 +117,11 @@ export function LicenseAuditLogCard() {
         dataIndex: 'action',
         key: 'action',
         width: 180,
-        render: (action: string) => {
-          const key = `license.auditLog.actions.${action}`;
+        render: (rowAction: string) => {
+          const key = `license.auditLog.actions.${rowAction}`;
           const label = t(key);
           return (
-            <Tag color={actionTagColor(action)}>{label === key ? action : label}</Tag>
+            <Tag color={actionTagColor(rowAction)}>{label === key ? rowAction : label}</Tag>
           );
         },
       },
@@ -135,11 +176,80 @@ export function LicenseAuditLogCard() {
     setPageSize(pagination.pageSize ?? 10);
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadLicenseAuditLogCsv({
+        action,
+        userSearch: userSearch.trim() || undefined,
+        fromUtc,
+        toUtc,
+      });
+    } catch (err) {
+      notify.apiError(err, {
+        logContext: 'LicenseAuditLogCard.export',
+        fallbackKey: 'license.auditLog.empty',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <Card title={t('license.auditLog.title')} style={{ marginTop: 16 }}>
+    <Card
+      title={t('license.auditLog.title')}
+      style={{ marginTop: 16 }}
+      extra={
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exporting}
+          onClick={() => void handleExport()}
+        >
+          {t('license.auditLog.exportCsv')}
+        </Button>
+      }
+    >
       <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
         {t('license.auditLog.subtitle')}
       </Typography.Paragraph>
+
+      <Space wrap style={{ marginBottom: 12 }}>
+        <Select
+          allowClear
+          placeholder={t('license.auditLog.filters.actionAll')}
+          aria-label={t('license.auditLog.filters.action')}
+          style={{ minWidth: 220 }}
+          value={action}
+          onChange={(value) => {
+            setAction(value);
+            setPage(1);
+          }}
+          options={AUDIT_ACTIONS.map((item) => ({
+            value: item,
+            label: t(`license.auditLog.actions.${item}`),
+          }))}
+        />
+        <Input.Search
+          allowClear
+          placeholder={t('license.auditLog.filters.userPlaceholder')}
+          aria-label={t('license.auditLog.filters.user')}
+          style={{ width: 240 }}
+          onSearch={(value) => {
+            setUserSearch(value);
+            setPage(1);
+          }}
+        />
+        <DatePicker.RangePicker
+          placeholder={[
+            t('license.auditLog.filters.dateRange'),
+            t('license.auditLog.filters.dateRange'),
+          ]}
+          onChange={(dates) => {
+            setRange(dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null);
+            setPage(1);
+          }}
+        />
+      </Space>
 
       <Table<LicenseAuditLogItem>
         rowKey="id"

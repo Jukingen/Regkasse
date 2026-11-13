@@ -28,7 +28,7 @@ public sealed class AdminShiftManagementServiceTests
     [Fact]
     public async Task ForceCloseRegisterAsync_ClosesOpenRegisterHeldByOtherUser()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
         var regId = Guid.NewGuid();
         var ownerId = "owner-user";
@@ -50,9 +50,15 @@ public sealed class AdminShiftManagementServiceTests
         });
         await ctx.SaveChangesAsync();
 
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(
+            userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManager
+            .Setup(m => m.FindByIdAsync(actorId))
+            .ReturnsAsync(new ApplicationUser { Id = actorId, UserName = "manager", IsActive = true });
         var shiftSvc = new CashRegisterShiftService(
             ctx,
-            Mock.Of<UserManager<ApplicationUser>>(),
+            userManager.Object,
             Mock.Of<ILogger<CashRegisterShiftService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             RksvStartbelegTestDoubles.GateOff(),
@@ -85,7 +91,7 @@ public sealed class ShiftAutoCloseServiceTests
     [Fact]
     public async Task CloseStaleOpenRegistersAsync_ClosesRegisterOlderThanMaxHours()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ShiftAutoClose_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
@@ -157,7 +163,7 @@ public sealed class ShiftAutoCloseServiceTests
     [Fact]
     public async Task CloseStaleOpenRegistersAsync_SoftClosesOrphanActiveShift()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ShiftAutoCloseOrphan_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))

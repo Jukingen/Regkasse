@@ -52,10 +52,10 @@ public sealed class BackupImportWebApplicationFactory : WebApplicationFactory<Pr
 
     protected override void Dispose(bool disposing)
     {
-        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, _previousOpenApiExportFlag);
         Environment.SetEnvironmentVariable(
             OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable,
-            null);
+            _previousInMemoryDbName);
         try
         {
             if (Directory.Exists(_stagingRoot))

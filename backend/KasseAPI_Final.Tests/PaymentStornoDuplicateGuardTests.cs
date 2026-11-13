@@ -27,7 +27,7 @@ public sealed class PaymentStornoDuplicateGuardTests
             .UseInMemoryDatabase($"StornoDup_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, IHttpContextAccessor httpAccessor)
@@ -112,7 +112,7 @@ public sealed class PaymentStornoDuplicateGuardTests
 
     private static async Task<(Guid registerId, string receiptNumber)> SeedSaleWithExistingStornoAsync(AppDbContext ctx)
     {
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         if (!await ctx.Customers.AnyAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId))
         {
             ctx.Customers.Add(new Customer
@@ -129,7 +129,7 @@ public sealed class PaymentStornoDuplicateGuardTests
         var registerId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = registerId,
             RegisterNumber = "KASSE-TEST",
             Location = "Test",

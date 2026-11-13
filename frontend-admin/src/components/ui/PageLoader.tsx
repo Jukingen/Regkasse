@@ -1,7 +1,10 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+/** How long the top bar stays visible after a client-side route change. */
+export const PAGE_LOADER_VISIBLE_MS = 250;
 
 /**
  * Thin top bar shown briefly on client-side route changes (App Router).
@@ -12,10 +15,15 @@ export function PageLoader() {
   const searchParams = useSearchParams();
   const searchKey = searchParams.toString();
   const [active, setActive] = useState(false);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setActive(true);
-    const timer = window.setTimeout(() => setActive(false), 400);
+    const timer = window.setTimeout(() => setActive(false), PAGE_LOADER_VISIBLE_MS);
     return () => window.clearTimeout(timer);
   }, [pathname, searchKey]);
 
@@ -24,6 +32,7 @@ export function PageLoader() {
   return (
     <div
       role="progressbar"
+      data-page-loader
       aria-hidden
       className="fa-page-loader"
       style={{

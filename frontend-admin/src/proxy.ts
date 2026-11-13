@@ -5,8 +5,12 @@ import {
   VOLUNTARY_CHANGE_PASSWORD_PATH,
 } from '@/features/auth/constants/changePasswordRoute';
 
-/** Same name as client `authStorage` access key so HttpOnly migration stays aligned. */
+/** Same name as backend HttpOnly admin access cookie (`AuthCookies` + FA Edge). */
 export const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
+/** Legacy shared cookie name; still accepted during rollout. */
+export const API_ACCESS_TOKEN_COOKIE = 'access_token';
+/** Compact presence cookie when the JWT cookie is dropped (browser ~4KB limit). */
+export const EDGE_SESSION_COOKIE = 'rk_admin_edge_session';
 
 const PUBLIC_PATHS = new Set([
   '/login',
@@ -57,15 +61,29 @@ function stripBearer(value: string): string {
   return v.toLowerCase().startsWith('bearer ') ? v.slice(7).trim() : v;
 }
 
+function hasEdgeSessionCookie(request: NextRequest): boolean {
+  return request.cookies.get(EDGE_SESSION_COOKIE)?.value === '1';
+}
+
 function getRawToken(request: NextRequest): string | null {
   const auth = request.headers.get('authorization');
   if (auth) {
     const t = stripBearer(auth);
     if (t) return t;
   }
-  const fromCookie = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const fromCookie =
+    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ??
+    request.cookies.get(API_ACCESS_TOKEN_COOKIE)?.value;
   if (fromCookie) {
-    const t = stripBearer(fromCookie);
+    // Prefer value as returned by Next (already decoded). Fall back if still percent-encoded.
+    let t = stripBearer(fromCookie);
+    if (t.includes('%2') || t.includes('%3')) {
+      try {
+        t = stripBearer(decodeURIComponent(t));
+      } catch {
+        // keep stripBearer(fromCookie)
+      }
+    }
     if (t) return t;
   }
   return null;
@@ -144,6 +162,16 @@ function isApiPath(pathname: string): boolean {
   return pathname === '/api' || pathname.startsWith('/api/');
 }
 
+/** App Router Flight/prefetch — do not 307 these; it poisons the login RSC cache and loops compile. */
+export function isRouterFlightRequest(request: NextRequest): boolean {
+  return (
+    request.headers.get('rsc') === '1' ||
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.has('next-router-segment-prefetch') ||
+    request.headers.has('next-router-state-tree')
+  );
+}
+
 function withForwardedToken(request: NextRequest, token: string): NextResponse {
   const requestHeaders = new Headers(request.headers);
   const bearer = `Bearer ${token}`;
@@ -176,7 +204,12 @@ export function proxy(request: NextRequest) {
 
   const rawToken = getRawToken(request);
   const jwtResult = rawToken ? validateJwtStructureAndExpiry(rawToken) : null;
-  const authenticated = jwtResult?.ok === true;
+  const jwtAuthenticated = jwtResult?.ok === true;
+  const jwtExpired = jwtResult?.ok === false && jwtResult.reason === 'expired';
+  // Compact cookie gates pages when the JWT cookie is missing, truncated, or unreadable.
+  // Expired JWTs stay fail-closed (re-login) even if the compact cookie remains.
+  const edgeFallback = hasEdgeSessionCookie(request) && !jwtAuthenticated && !jwtExpired;
+  const authenticated = jwtAuthenticated || edgeFallback;
   const userMustChangePassword = jwtResult?.ok === true && jwtResult.mustChangePassword;
 
   // Forced change (temporary password): only when JWT claim is present.
@@ -201,7 +234,15 @@ export function proxy(request: NextRequest) {
   }
 
   if (isPublicPath(pathname)) {
-    if (authenticated && rawToken) {
+    if (
+      jwtAuthenticated &&
+      rawToken &&
+      (pathname === '/login' || pathname.startsWith('/login/')) &&
+      !isRouterFlightRequest(request)
+    ) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    if (jwtAuthenticated && rawToken) {
       return withForwardedToken(request, rawToken);
     }
     return NextResponse.next();
@@ -223,14 +264,17 @@ export function proxy(request: NextRequest) {
   }
 
   if (isProtectedPath(pathname)) {
-    if (!authenticated || !rawToken) {
+    if (!authenticated) {
       const login = new URL('/login', request.url);
       return NextResponse.redirect(login);
     }
-    return withForwardedToken(request, rawToken);
+    if (jwtAuthenticated && rawToken) {
+      return withForwardedToken(request, rawToken);
+    }
+    return NextResponse.next();
   }
 
-  if (authenticated && rawToken) {
+  if (jwtAuthenticated && rawToken) {
     return withForwardedToken(request, rawToken);
   }
   return NextResponse.next();

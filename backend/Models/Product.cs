@@ -83,6 +83,34 @@ namespace KasseAPI_Final.Models
         [MaxLength(20)]
         public string Unit { get; set; } = string.Empty;
 
+        /// <summary>Optional service duration used by appointment-oriented verticals.</summary>
+        [Column("duration_minutes")]
+        [Range(1, 1440)]
+        public int? DurationMinutes { get; set; }
+
+        /// <summary>
+        /// Optional default staff Identity id for this service. Kept as a scalar reference:
+        /// staff membership/tenant authorization is resolved at booking time.
+        /// </summary>
+        [Column("staff_id")]
+        [MaxLength(450)]
+        public string? StaffId { get; set; }
+
+        /// <summary>When true, each sold unit must pick a unique IMEI from <see cref="Imeis"/>.</summary>
+        [Column("imei_tracked")]
+        public bool ImeiTracked { get; set; }
+
+        /// <summary>When true, a ticket-sales sale issues a redeemable ticket code (hash stored only).</summary>
+        [Column("is_ticket")]
+        public bool IsTicket { get; set; }
+
+        /// <summary>
+        /// When true, a sale of this product needs a prescription reference.
+        /// Enforced only by <c>prescription_required</c> when that extension is enabled.
+        /// </summary>
+        [Column("requires_prescription")]
+        public bool RequiresPrescription { get; set; }
+
         [Column("cost")]
         [Range(0, double.MaxValue, ErrorMessage = "Cost cannot be negative")]
         public decimal Cost { get; set; }
@@ -95,10 +123,10 @@ namespace KasseAPI_Final.Models
         [Column("tax_group_id")]
         public Guid TaxGroupId { get; set; }
 
-        [Required]
+        /// <summary>Optional retail lookup code. Not part of RKSV, TSE, or DEP.</summary>
         [Column("barcode")]
-        [MaxLength(50)]
-        public string Barcode { get; set; } = string.Empty;
+        [MaxLength(64)]
+        public string? Barcode { get; set; }
 
         [Column("category_id")]
         public Guid CategoryId { get; set; }
@@ -159,6 +187,14 @@ namespace KasseAPI_Final.Models
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
         /// <summary>Bu ürüne atanmış modifier grupları (Extra Zutaten).</summary>
         public virtual ICollection<ProductModifierGroupAssignment> ModifierGroupAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
+
+        public virtual ICollection<ProductImei> Imeis { get; set; } = new List<ProductImei>();
+
+        public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+
+        /// <summary>List payload only. Not stored. Detail variants stay on the variants endpoint.</summary>
+        [NotMapped]
+        public bool HasVariants { get; set; }
     }
 
     /// <summary>

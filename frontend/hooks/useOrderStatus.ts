@@ -12,7 +12,7 @@ export function useOrderStatus() {
   const [notFound, setNotFound] = useState(false);
 
   const fetchOrder = useCallback(async (tenant: string, orderNumber: string, phone?: string) => {
-    if (!tenant.trim() || !orderNumber.trim()) {
+    if (!tenant.trim() || !orderNumber.trim() || !phone?.trim()) {
       setError('missing_params');
       setOrder(null);
       return null;

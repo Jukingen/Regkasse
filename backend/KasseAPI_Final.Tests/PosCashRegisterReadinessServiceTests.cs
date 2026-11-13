@@ -22,7 +22,7 @@ public class PosCashRegisterReadinessServiceTests
             .UseInMemoryDatabase($"PosReady_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static ClaimsPrincipal CashierPrincipal() =>
@@ -64,9 +64,9 @@ public class PosCashRegisterReadinessServiceTests
         mock.Setup(s => s.AutoOpenShiftAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<Guid>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CashierShiftDto());
+            .ReturnsAsync(ShiftAutoOpenResult.Opened(new CashierShiftDto()));
         return mock.Object;
     }
 
@@ -77,7 +77,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -133,7 +133,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -195,7 +195,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -251,13 +251,132 @@ public class PosCashRegisterReadinessServiceTests
     }
 
     [Fact]
+    public async Task SoleClosed_MonatsbelegMissing_WarningOnly_OpensAndReady()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var startPol = RksvStartbelegTestDoubles.GateOnHasStartbeleg();
+        var monthPol = RksvMonatsbelegTestDoubles.GateOnMissingAllowSales();
+        var shift = new CashRegisterShiftService(
+            ctx,
+            mgr,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features, startPol, monthPol);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("ready", dto.NextAction);
+        Assert.True(dto.AutoOpened);
+        Assert.False(dto.MonatsbelegSalesBlocked);
+        Assert.True(dto.MonatsbelegCanContinueWithWarning);
+        Assert.Equal(MonatsbelegBlockingModeNames.WarningOnly, dto.MonatsbelegBlockingMode);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+    }
+
+    [Fact]
+    public async Task SoleClosed_MonatsbelegGatePreviousMonthPresent_OpensAndReady()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = SystemTenantIds.Platform,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var startPol = RksvStartbelegTestDoubles.GateOnHasStartbeleg();
+        var monthPol = RksvMonatsbelegTestDoubles.GateOnHasPreviousMonthOnly();
+        var shift = new CashRegisterShiftService(
+            ctx,
+            mgr,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features, startPol, monthPol);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("ready", dto.NextAction);
+        Assert.True(dto.AutoOpened);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+    }
+
+    [Fact]
     public async Task SoleClosed_WithMaintenanceRow_StillAutoOpens_WhenSingleOperational()
     {
         await using var ctx = CreateContext();
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -270,7 +389,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -322,7 +441,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -383,7 +502,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -434,7 +553,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -471,7 +590,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -510,7 +629,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -560,7 +679,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rTaken,
             RegisterNumber = "K1",
             Location = "L",
@@ -574,7 +693,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = rOther,
             RegisterNumber = "K2",
             Location = "L",
@@ -630,7 +749,7 @@ public class PosCashRegisterReadinessServiceTests
         var otherId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = otherId,
             RegisterNumber = "K-OTHER",
             Location = "Bar",
@@ -644,7 +763,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = defaultId,
             RegisterNumber = "KASSE-001",
             Location = "Haupt",
@@ -683,7 +802,7 @@ public class PosCashRegisterReadinessServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = Guid.NewGuid(),
             RegisterNumber = "D1",
             Location = "L",
@@ -712,7 +831,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -758,7 +877,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = reg1,
             RegisterNumber = "K1",
             Location = "L",
@@ -771,7 +890,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = reg2,
             RegisterNumber = "K2",
             Location = "L",
@@ -836,7 +955,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regOpen,
             RegisterNumber = "K1",
             Location = "L",
@@ -850,7 +969,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regAssignedClosed,
             RegisterNumber = "K2",
             Location = "L",
@@ -903,7 +1022,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

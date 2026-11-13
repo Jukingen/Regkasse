@@ -2,7 +2,7 @@ using System.Text;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -15,7 +15,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using StackExchange.Redis;
 
 namespace KasseAPI_Final.Tests;
 
@@ -52,8 +51,8 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
 
     protected override void Dispose(bool disposing)
     {
-        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, null);
-        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, null);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.EnvironmentVariableName, _previousOpenApiExportFlag);
+        Environment.SetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable, _previousInMemoryDbName);
         base.Dispose(disposing);
     }
 
@@ -84,10 +83,10 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
                 options.TokenValidationParameters.ValidAudience = JwtAudience;
             });
 
-            // Avoid Redis Connect during isolation tests (products path uses ICacheService).
-            services.RemoveAll<IConnectionMultiplexer>();
+            // Force in-process memory cache for isolation tests (products path uses ICacheService).
             services.RemoveAll<ICacheService>();
-            services.AddScoped<ICacheService, MemoryCacheService>();
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ICacheService, MemoryCacheService>();
 
             ReplaceWithInMemoryDatabase(services);
         });
@@ -144,9 +143,9 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
         db.Tenants.AddRange(
             new Tenant
             {
-                Id = LegacyDefaultTenantIds.Primary,
+                Id = SystemTenantIds.Platform,
                 Name = "Default Legacy",
-                Slug = LegacyDefaultTenantIds.PrimarySlug,
+                Slug = SystemTenantIds.PlatformSlug,
                 Status = TenantStatuses.Active,
                 IsActive = true,
                 CreatedAt = now,
@@ -260,7 +259,7 @@ public sealed class TenantIsolationWebApplicationFactory : WebApplicationFactory
             new UserTenantMembership
             {
                 UserId = superAdmin.Id,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 IsActive = true,
                 IsOwner = true,
                 CreatedAtUtc = now,

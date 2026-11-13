@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -469,6 +469,91 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Appointment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<DateTime>("EndUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_utc");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid?>("ServiceProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_product_id");
+
+                    b.Property<string>("StaffId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("staff_id");
+
+                    b.Property<DateTime>("StartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ServiceProductId");
+
+                    b.HasIndex("StartUtc")
+                        .HasDatabaseName("ix_appointments_start_utc");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_appointments_tenant_id");
+
+                    b.HasIndex("TenantId", "StaffId", "StartUtc")
+                        .IsUnique()
+                        .HasDatabaseName("ux_appointments_tenant_staff_start")
+                        .HasFilter("staff_id IS NOT NULL AND status IN (0, 1)");
+
+                    b.ToTable("appointments", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.ApprovalRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -549,312 +634,6 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_approval_requests_requester_action_tenant");
 
                     b.ToTable("approval_requests", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePool", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("PoolType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("pool_type");
-
-                    b.Property<int>("TotalCapacity")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_capacity");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .HasDatabaseName("idx_tse_resource_pools_name");
-
-                    b.HasIndex("PoolType")
-                        .HasDatabaseName("idx_tse_resource_pools_type");
-
-                    b.ToTable("tse_resource_pools", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolAssignment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("assigned_at");
-
-                    b.Property<string>("AssignedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("assigned_by");
-
-                    b.Property<Guid>("PoolId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("pool_id");
-
-                    b.Property<int>("ReservedCapacity")
-                        .HasColumnType("integer")
-                        .HasColumnName("reserved_capacity");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PoolId")
-                        .HasDatabaseName("idx_tse_resource_pool_assignments_pool_id");
-
-                    b.HasIndex("TenantId")
-                        .IsUnique()
-                        .HasDatabaseName("idx_tse_resource_pool_assignments_tenant_id");
-
-                    b.ToTable("tse_resource_pool_assignments", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolRule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_enabled");
-
-                    b.Property<Guid>("PoolId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("pool_id");
-
-                    b.Property<string>("RuleType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("rule_type");
-
-                    b.Property<string>("RuleValue")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("rule_value");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PoolId")
-                        .HasDatabaseName("idx_tse_resource_pool_rules_pool_id");
-
-                    b.ToTable("tse_resource_pool_rules", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("description");
-
-                    b.Property<DateTime>("DetectedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("detected_at");
-
-                    b.Property<Guid?>("DeviceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("device_id");
-
-                    b.Property<string>("Resolution")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("resolution");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("resolved_at");
-
-                    b.Property<string>("Severity")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("severity");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("title");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DeviceId")
-                        .HasDatabaseName("idx_tse_incidents_device_id");
-
-                    b.HasIndex("Severity")
-                        .HasDatabaseName("idx_tse_incidents_severity");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("idx_tse_incidents_status");
-
-                    b.HasIndex("TenantId", "DetectedAt")
-                        .HasDatabaseName("idx_tse_incidents_tenant_detected");
-
-                    b.ToTable("tse_incidents", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentAction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("action_type");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("description");
-
-                    b.Property<Guid>("IncidentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("incident_id");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_completed");
-
-                    b.Property<DateTime>("PerformedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("performed_at");
-
-                    b.Property<string>("PerformedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("performed_by");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IncidentId")
-                        .HasDatabaseName("idx_tse_incident_actions_incident_id");
-
-                    b.ToTable("tse_incident_actions", (string)null);
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ActorUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("actor_user_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("event_type");
-
-                    b.Property<Guid>("IncidentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("incident_id");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("message");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IncidentId")
-                        .HasDatabaseName("idx_tse_incident_logs_incident_id");
-
-                    b.ToTable("tse_incident_logs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.AuditLog", b =>
@@ -1233,6 +1012,20 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("byte_size");
 
+                    b.Property<string>("CloudLocator")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("cloud_locator");
+
+                    b.Property<string>("CloudProvider")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cloud_provider");
+
+                    b.Property<long?>("CompressedByteSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("compressed_byte_size");
+
                     b.Property<string>("ContentHashSha256")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -1242,10 +1035,18 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DeduplicatedFromArtifactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deduplicated_from_artifact_id");
+
                     b.Property<string>("ExternalRedactedLocator")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
                         .HasColumnName("external_redacted_locator");
+
+                    b.Property<DateTime?>("ImmutableUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("immutable_until_utc");
 
                     b.Property<int>("LifecycleState")
                         .HasColumnType("integer")
@@ -1254,6 +1055,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("MetadataJson")
                         .HasColumnType("text")
                         .HasColumnName("metadata_json");
+
+                    b.Property<DateTime?>("MovedToColdAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("moved_to_cold_at_utc");
 
                     b.Property<string>("StorageDescriptor")
                         .IsRequired()
@@ -1269,10 +1074,60 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("BackupRunId");
 
+                    b.HasIndex("ContentHashSha256")
+                        .HasDatabaseName("ix_backup_artifacts_content_hash")
+                        .HasFilter("content_hash_sha256 IS NOT NULL");
+
                     b.HasIndex("StorageTier")
                         .HasDatabaseName("ix_backup_artifacts_storage_tier");
 
                     b.ToTable("backup_artifacts", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRetentionPolicySettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CloudProvider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cloud_provider");
+
+                    b.Property<int>("ColdRetentionYears")
+                        .HasColumnType("integer")
+                        .HasColumnName("cold_retention_years");
+
+                    b.Property<bool>("ColdStorageEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cold_storage_enabled");
+
+                    b.Property<int>("HotRetentionDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("hot_retention_days");
+
+                    b.Property<bool>("LegalRetentionEnforced")
+                        .HasColumnType("boolean")
+                        .HasColumnName("legal_retention_enforced");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<int>("WarmRetentionDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("warm_retention_days");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("backup_retention_policy_settings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRun", b =>
@@ -1314,6 +1169,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("correlation_id");
 
+                    b.Property<int>("DownloadCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("download_count");
+
                     b.Property<string>("FailureCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -1342,6 +1203,28 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lease_expires_at_utc");
 
+                    b.Property<bool>("LegalHold")
+                        .HasColumnType("boolean")
+                        .HasColumnName("legal_hold");
+
+                    b.Property<string>("LegalHoldReason")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("legal_hold_reason");
+
+                    b.Property<DateTime?>("LegalHoldSetAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("legal_hold_set_at_utc");
+
+                    b.Property<string>("LegalHoldSetByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("legal_hold_set_by_user_id");
+
+                    b.Property<DateTime?>("LegalHoldUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("legal_hold_until_utc");
+
                     b.Property<DateTime?>("NextRetryAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("next_retry_at_utc");
@@ -1358,6 +1241,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("requested_by_user_id");
+
+                    b.Property<string>("RequestedFromIp")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("requested_from_ip");
 
                     b.Property<DateTime?>("StaleRecoveredAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -1397,6 +1285,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("LeaseExpiresAtUtc")
                         .HasDatabaseName("ix_backup_runs_lease_expires_stale_reaper")
                         .HasFilter("status IN (1, 2)");
+
+                    b.HasIndex("LegalHold")
+                        .HasDatabaseName("ix_backup_runs_legal_hold")
+                        .HasFilter("legal_hold = TRUE");
 
                     b.HasIndex("NextRetryAtUtc")
                         .HasDatabaseName("ix_backup_runs_next_retry_at")
@@ -1929,6 +1821,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("CaptureMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("automatic")
+                        .HasColumnName("capture_mode");
+
                     b.Property<string>("CardBrand")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1938,6 +1838,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("character varying(4)")
                         .HasColumnName("card_last4");
+
+                    b.Property<Guid?>("CartSnapshotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cart_snapshot_id");
 
                     b.Property<Guid>("CashRegisterId")
                         .HasColumnType("uuid")
@@ -1979,6 +1883,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("text")
                         .HasColumnName("error_message");
 
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
                     b.Property<string>("Gateway")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1995,18 +1903,38 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("gateway_transaction_id");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
+
+                    b.Property<string>("LastWebhookEventId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("last_webhook_event_id");
 
                     b.Property<string>("MetadataJson")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("metadata_json");
 
+                    b.Property<string>("MethodCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("method_code");
+
                     b.Property<Guid?>("PaymentId")
                         .HasColumnType("uuid")
                         .HasColumnName("payment_id");
+
+                    b.Property<string>("RedirectUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("redirect_url");
 
                     b.Property<decimal?>("RefundedAmount")
                         .HasColumnType("decimal(18,2)")
@@ -2015,6 +1943,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("RefundedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("refunded_at_utc");
+
+                    b.Property<string>("ReturnUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("return_url");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2041,13 +1974,20 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("GatewayPaymentIntentId");
+
                     b.HasIndex("PaymentId");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("card_payment_transactions", (string)null);
+                    b.HasIndex("TenantId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gateway_payment_intents_tenant_idempotency")
+                        .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.ToTable("gateway_payment_intents", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Cart", b =>
@@ -2228,6 +2168,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AssignedUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("assigned_user_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -2315,6 +2260,8 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedUserId");
+
                     b.HasIndex("CurrentUserId");
 
                     b.HasIndex("Status");
@@ -2327,6 +2274,75 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.ToTable("cash_registers");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterOpenRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("RequestedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("resolution_note");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("ResolvedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .HasDatabaseName("idx_cash_register_open_requests_register_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_cash_register_open_requests_tenant_id");
+
+                    b.HasIndex("Status", "RequestedAt")
+                        .HasDatabaseName("idx_cash_register_open_requests_status_requested");
+
+                    b.HasIndex("TenantId", "CashRegisterId", "RequestedByUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_cash_register_open_requests_pending_register_user")
+                        .HasFilter("status = 'Pending'");
+
+                    b.ToTable("cash_register_open_requests", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterSettings", b =>
@@ -2698,12 +2714,115 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("categories");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.ChReceiptSequence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("NextSequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_sequence");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ch_receipt_sequences_cash_register_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_ch_receipt_sequences_tenant_id");
+
+                    b.ToTable("ch_receipt_sequences", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.CommunicationLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SentAt");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("communication_log", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<bool>("AutoMonatsbelegEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("auto_monatsbeleg_enabled");
+
+                    b.Property<string>("AutoTagesabschluss")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("auto_tagesabschluss")
+                        .HasDefaultValueSql("'{}'::jsonb");
 
                     b.Property<string>("BankAccountNumber")
                         .HasMaxLength(50)
@@ -2720,6 +2839,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("BankSwiftCode")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("BillingCountry")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("billing_country");
 
                     b.Property<string>("BusinessHours")
                         .IsRequired()
@@ -2807,6 +2931,16 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("DeClientId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("de_client_id");
+
+                    b.Property<string>("DeTssId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("de_tss_id");
+
                     b.Property<int>("DecimalPlaces")
                         .HasColumnType("integer");
 
@@ -2863,6 +2997,18 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<int>("KitchenOrderAutoClearMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30)
+                        .HasColumnName("kitchen_order_auto_clear_minutes");
+
+                    b.Property<bool>("KitchenOrderSound")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("kitchen_order_sound");
+
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -2871,12 +3017,37 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("LastFinanzOnlineSync")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MonatsbelegBlockingMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Strict")
+                        .HasColumnName("monatsbeleg_blocking_mode");
+
+                    b.Property<int>("MonatsbelegRetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3)
+                        .HasColumnName("monatsbeleg_retry_count");
+
                     b.Property<string>("PaymentTerms")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
                     b.Property<int?>("PendingInvoices")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PreorderCancellationPolicyText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("preorder_cancellation_policy_text");
+
+                    b.Property<int>("PreorderPickupDeadlineWeeks")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4)
+                        .HasColumnName("preorder_pickup_deadline_weeks");
 
                     b.Property<string>("ReceiptNumbering")
                         .IsRequired()
@@ -2888,9 +3059,24 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<bool>("TaxExempt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("tax_exempt");
+
+                    b.Property<decimal?>("TaxiTariffPerKm")
+                        .HasColumnType("decimal(8,2)")
+                        .HasColumnName("taxi_tariff_per_km");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
+
+                    b.Property<string>("ThankYouMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("thank_you_message");
 
                     b.Property<string>("TimeFormat")
                         .IsRequired()
@@ -2921,6 +3107,19 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("use_december_monatsbeleg_as_jahresbeleg");
 
+                    b.Property<string>("VatRegime")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("AT_RKSV_STANDARD")
+                        .HasColumnName("vat_regime");
+
+                    b.Property<string>("VerticalProfileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("vertical_profile_id");
+
                     b.Property<string>("WorkingHours")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -2932,6 +3131,9 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId")
                         .IsUnique();
+
+                    b.HasIndex("VerticalProfileId")
+                        .HasDatabaseName("idx_company_settings_vertical_profile_id");
 
                     b.HasIndex("TenantId", "CompanyRegistrationNumber")
                         .IsUnique();
@@ -2957,6 +3159,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
+
+                    b.Property<string>("AddressData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("address_data");
 
                     b.Property<string>("ApplicationUserId")
                         .HasMaxLength(450)
@@ -3030,6 +3236,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("notes");
 
+                    b.Property<string>("PetData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("clinical_data");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -3094,6 +3304,19 @@ namespace KasseAPI_Final.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("CashCount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("cash_count");
+
+                    b.Property<string>("CashCountNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("cash_count_note");
+
+                    b.Property<decimal?>("CashDifference")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("cash_difference");
+
                     b.Property<Guid>("CashRegisterId")
                         .HasMaxLength(50)
                         .HasColumnType("uuid");
@@ -3126,6 +3349,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DayKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("normal")
+                        .HasColumnName("day_kind");
+
                     b.Property<string>("Environment")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -3141,6 +3372,25 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("FinanzOnlineStatus")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("FiskalyError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("fiskaly_error");
+
+                    b.Property<string>("FiskalyReceiptId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("fiskaly_receipt_id");
+
+                    b.Property<string>("FiskalyStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("fiskaly_status");
+
+                    b.Property<DateTime?>("FiskalySubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fiskaly_submitted_at_utc");
 
                     b.Property<bool>("IsBackdated")
                         .ValueGeneratedOnAdd()
@@ -3164,6 +3414,18 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("late_creation_reason");
+
+                    b.Property<int>("OpenOrdersCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("open_orders_count");
+
+                    b.Property<bool>("OpenOrdersForced")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("open_orders_forced");
 
                     b.Property<string>("PreviousSignature")
                         .HasColumnType("text");
@@ -3203,6 +3465,14 @@ namespace KasseAPI_Final.Migrations
                     b.Property<int>("TransactionCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Manual")
+                        .HasColumnName("trigger");
+
                     b.Property<string>("TseSignature")
                         .HasColumnType("text");
 
@@ -3226,6 +3496,9 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "FiskalyStatus")
+                        .HasDatabaseName("IX_DailyClosings_tenant_id_fiskaly_status");
 
                     b.HasIndex("CashRegisterId", "ClosingDate", "ClosingType")
                         .IsUnique()
@@ -3270,7 +3543,7 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("dashboard_preferences");
                 });
 
-            modelBuilder.Entity("KasseAPI_Final.Models.DepExportHistory", b =>
+            modelBuilder.Entity("KasseAPI_Final.Models.DeReceiptSequence", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -3281,9 +3554,417 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("cash_register_id");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("NextSequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_sequence");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_de_receipt_sequences_cash_register_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_de_receipt_sequences_tenant_id");
+
+                    b.ToTable("de_receipt_sequences", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DeTseSignature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CertificateSerial")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("certificate_serial");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("PaymentDetailsId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_details_id");
+
+                    b.Property<string>("Signature")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("signature");
+
+                    b.Property<string>("SignatureAlgorithm")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("signature_algorithm");
+
+                    b.Property<DateTime>("SignedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("signed_at_utc");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("transaction_id");
+
+                    b.Property<string>("TssId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tss_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentDetailsId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_de_tse_signatures_payment_details_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_de_tse_signatures_tenant_id");
+
+                    b.ToTable("de_tse_signatures", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DemoRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Company")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("company");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Industry")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("industry");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "CreatedAtUtc" }, "ix_demo_requests_created_at_utc");
+
+                    b.ToTable("demo_requests");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportAuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<DateTime>("ActionAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("action_at");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text")
+                        .HasColumnName("details");
+
+                    b.Property<Guid?>("ExportHistoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("export_history_id");
+
+                    b.Property<string>("ExportName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("export_name");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("user_agent");
+
+                    b.Property<string>("UserEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("user_email");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("UserRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("user_role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExportHistoryId");
+
+                    b.HasIndex("TenantId", "Action");
+
+                    b.HasIndex("TenantId", "ActionAt");
+
+                    b.ToTable("dep_export_audit_entries");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportCompliancePeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("exported_at");
+
+                    b.Property<string>("ExportedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("exported_by");
+
+                    b.Property<string>("FileHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("file_hash");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("file_name");
+
+                    b.Property<Guid?>("HistoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("history_id");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<string>("PeriodType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("period_type");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HistoryId")
+                        .HasFilter("\"history_id\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("TenantId", "PeriodType", "PeriodStart", "PeriodEnd")
+                        .IsUnique();
+
+                    b.ToTable("dep_export_compliance_periods");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportComplianceScoreSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("calculated_at");
+
+                    b.Property<string>("CriticalIssuesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("critical_issues_json");
+
+                    b.Property<string>("FactorsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("factors_json");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)")
+                        .HasColumnName("grade");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("warnings_json");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CalculatedAt");
+
+                    b.ToTable("dep_export_compliance_scores");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ArchiveChecksum")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("archive_checksum");
+
+                    b.Property<string>("ArchivePath")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("archive_path");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<int>("DownloadCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("download_count");
+
+                    b.Property<string>("DownloadToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("download_token");
+
+                    b.Property<DateTime?>("DownloadTokenExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("download_token_expires_at_utc");
+
+                    b.Property<DateTime?>("DownloadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("downloaded_at");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text")
                         .HasColumnName("error_message");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
 
                     b.Property<DateTime>("ExportedAt")
                         .HasColumnType("timestamp with time zone")
@@ -3321,6 +4002,29 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("include_special_receipts");
 
+                    b.Property<bool>("IsSimulated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_simulated");
+
+                    b.Property<int>("LegacyJwsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("legacy_jws_count");
+
+                    b.Property<string>("PurgeReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("purge_reason");
+
+                    b.Property<DateTime?>("PurgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("purged_at");
+
+                    b.Property<DateTime?>("RetentionUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retention_until");
+
                     b.Property<Guid?>("ScheduleId")
                         .HasColumnType("uuid")
                         .HasColumnName("schedule_id");
@@ -3329,6 +4033,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("signature_count");
 
+                    b.Property<string>("SimulationNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("simulation_note");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -3336,8 +4045,8 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("status");
 
                     b.Property<string>("StoragePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
                         .HasColumnName("storage_path");
 
                     b.Property<Guid>("TenantId")
@@ -3348,10 +4057,38 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("to_utc");
 
+                    b.Property<DateTime?>("ValidatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("validated_at");
+
+                    b.Property<string>("ValidationReportJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("validation_report_json");
+
+                    b.Property<string>("ValidationStatus")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("validation_status");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DownloadToken")
+                        .IsUnique()
+                        .HasFilter("\"download_token\" IS NOT NULL");
+
+                    b.HasIndex("ExportedAt");
+
+                    b.HasIndex("RetentionUntil")
+                        .HasFilter("\"retention_until\" IS NOT NULL AND \"purged_at\" IS NULL");
 
                     b.HasIndex("ScheduleId")
                         .HasFilter("\"schedule_id\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "ArchivedAt");
+
+                    b.HasIndex("TenantId", "ExpiresAt");
+
+                    b.HasIndex("TenantId", "ValidationStatus");
 
                     b.HasIndex("TenantId", "CashRegisterId", "ExportedAt");
 
@@ -3418,6 +4155,157 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("dep_export_schedules");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.DeploymentComplianceSignoff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChecklistJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("checklist_json");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<string>("GitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("git_sha");
+
+                    b.Property<string>("ImageTag")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("image_tag");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTime>("SignedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("signed_at_utc");
+
+                    b.Property<string>("SignedByDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("signed_by_display_name");
+
+                    b.Property<string>("SignedByRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("signed_by_role");
+
+                    b.Property<string>("SignedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("signed_by_user_id");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("stage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageTag", "Stage", "SignedAtUtc");
+
+                    b.ToTable("deployment_compliance_signoffs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DeploymentRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("GitRef")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("git_ref");
+
+                    b.Property<string>("GitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("git_sha");
+
+                    b.Property<string>("ImageTag")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("image_tag");
+
+                    b.Property<string>("PreviousImageTag")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("previous_image_tag");
+
+                    b.Property<string>("RunUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("run_url");
+
+                    b.Property<bool?>("SmokePassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("smoke_passed");
+
+                    b.Property<string>("SmokeSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("smoke_summary");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("stage");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TenantIdsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("tenant_ids_json");
+
+                    b.Property<string>("TriggeredBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("triggered_by");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunUrl", "Stage");
+
+                    b.HasIndex("Stage", "UpdatedAtUtc");
+
+                    b.ToTable("deployment_runs", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.DevelopmentModeSettings", b =>
                 {
                     b.Property<int>("Id")
@@ -3475,7 +4363,7 @@ namespace KasseAPI_Final.Migrations
                             Id = 1,
                             BypassLicense = true,
                             BypassNtpCheck = true,
-                            BypassTseCheck = true,
+                            BypassTseCheck = false,
                             Enabled = true,
                             Features = "[]",
                             ForceOnline = true,
@@ -3673,6 +4561,117 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("download_security_tickets");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.EinvoiceSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("AckedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acked_at_utc");
+
+                    b.Property<DateTime?>("AttemptedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("attempted_at_utc");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<int>("ProviderAttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("provider_attempt_count");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<string>("ProviderStatus")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("provider_status");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId")
+                        .HasDatabaseName("IX_einvoice_submissions_correlation_id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_einvoice_submissions_invoice_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_einvoice_submissions_tenant_id");
+
+                    b.ToTable("einvoice_submissions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.EuReceiptSequence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("NextSequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_sequence");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_eu_receipt_sequences_cash_register_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_eu_receipt_sequences_tenant_id");
+
+                    b.ToTable("eu_receipt_sequences", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ExportEmailDelivery", b =>
@@ -3953,6 +4952,17 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ResolutionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResolvedByUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -4027,6 +5037,184 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("FinanzOnlineSubmissions");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.FiskalyOperationHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<string>("CashRegisterName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("cash_register_name");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("ErrorReviewStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("open")
+                        .HasColumnName("error_review_status");
+
+                    b.Property<DateTime?>("ErrorReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("error_reviewed_at_utc");
+
+                    b.Property<string>("ErrorReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("error_reviewed_by_user_id");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("operation_type");
+
+                    b.Property<string>("ReceiptId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("receipt_number");
+
+                    b.Property<string>("RequestPayloadJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("request_payload_json");
+
+                    b.Property<string>("ResponsePayloadJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("response_payload_json");
+
+                    b.Property<Guid?>("RetriedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("retried_from_id");
+
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("retry_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TenantName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("tenant_name");
+
+                    b.Property<string>("UserDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("user_display_name");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiptNumber");
+
+                    b.HasIndex("RetriedFromId");
+
+                    b.HasIndex("TenantId", "CreatedAtUtc");
+
+                    b.HasIndex("TenantId", "ErrorReviewStatus", "CreatedAtUtc");
+
+                    b.HasIndex("TenantId", "OperationType", "CreatedAtUtc");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAtUtc");
+
+                    b.ToTable("fiskaly_operation_history");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GatewayWebhookEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("applied");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid?>("IntentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("intent_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTime>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at_utc");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntentId");
+
+                    b.HasIndex("Provider", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_gateway_webhook_events_provider_event");
+
+                    b.ToTable("gateway_webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.GeneratedReceipt", b =>
@@ -4178,6 +5366,181 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_grace_period_pendings_tenant_action_entity_status");
 
                     b.ToTable("grace_period_pendings", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GuestFolio", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("balance");
+
+                    b.Property<DateTime>("CheckIn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in");
+
+                    b.Property<DateTime?>("CheckOut")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_out");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("ix_guest_folios_customer_id");
+
+                    b.HasIndex("RoomId")
+                        .HasDatabaseName("ix_guest_folios_room_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_guest_folios_tenant_id");
+
+                    b.HasIndex("TenantId", "RoomId")
+                        .HasDatabaseName("ix_guest_folios_tenant_room");
+
+                    b.ToTable("guest_folios", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GuestFolioItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("FolioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folio_id");
+
+                    b.Property<Guid?>("PaymentDetailId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_detail_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FolioId")
+                        .HasDatabaseName("ix_guest_folio_items_folio_id");
+
+                    b.HasIndex("PaymentDetailId")
+                        .HasDatabaseName("ix_guest_folio_items_payment_detail_id");
+
+                    b.ToTable("guest_folio_items", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.HairSalonCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.PrimitiveCollection<string>("AppliesToProductIds")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("applies_to_product_ids");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("discount_percent");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("ValidFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from_utc");
+
+                    b.Property<DateTime>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_hair_salon_campaigns_tenant_id");
+
+                    b.ToTable("hair_salon_campaigns", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryItem", b =>
@@ -4350,6 +5713,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("CountryCodeAtIssue")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code_at_issue");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -4388,6 +5756,15 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool?>("EinvoiceValidationPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("einvoice_validation_passed");
+
+                    b.Property<string>("EinvoiceValidationRuleIds")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("einvoice_validation_rule_ids");
+
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -4396,8 +5773,8 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -4490,6 +5867,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
 
+                    b.Property<string>("VatRegimeAtIssue")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("vat_regime_at_issue");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyName")
@@ -4508,10 +5890,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique()
-                        .HasDatabaseName("ix_invoices_invoice_number_trgm");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("InvoiceNumber"), "GIN");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("InvoiceNumber"), new[] { "gin_trgm_ops" });
+                        .HasDatabaseName("ix_invoices_invoice_number");
 
                     b.HasIndex("SourcePaymentId")
                         .IsUnique()
@@ -4524,6 +5903,11 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Status", "InvoiceDate")
                         .IsDescending(false, true);
+
+                    b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm"), "GIN");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "InvoiceNumber" }, "ix_invoices_invoice_number_trgm"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("invoices");
                 });
@@ -4930,6 +6314,145 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("jahresbericht_reports", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.KitchenOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid?>("CartId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cart_id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("priority");
+
+                    b.Property<DateTime?>("ReadyAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ready_at_utc");
+
+                    b.Property<DateTime?>("ServedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("served_at_utc");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TableNumber")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("table_number");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CartId")
+                        .HasDatabaseName("ix_kitchen_orders_cart_id");
+
+                    b.HasIndex("CashRegisterId")
+                        .HasDatabaseName("ix_kitchen_orders_cash_register_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_kitchen_orders_status");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_kitchen_orders_tenant_id");
+
+                    b.ToTable("kitchen_orders", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.KitchenOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("KitchenOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kitchen_order_id");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("product_name");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KitchenOrderId")
+                        .HasDatabaseName("ix_kitchen_order_items_kitchen_order_id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_kitchen_order_items_product_id");
+
+                    b.ToTable("kitchen_order_items", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.LegalHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5027,6 +6550,57 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("license_activation_attempts", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.LicenseKeyMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("LicenseKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("license_kind");
+
+                    b.Property<string>("NewLicenseKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("new_license_key");
+
+                    b.Property<string>("OldLicenseKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("old_license_key");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("SourceTable")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source_table");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewLicenseKey")
+                        .HasDatabaseName("idx_license_key_mappings_new_license_key");
+
+                    b.HasIndex("OldLicenseKey")
+                        .IsUnique()
+                        .HasDatabaseName("idx_license_key_mappings_old_license_key");
+
+                    b.ToTable("license_key_mappings", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.LicenseReminder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5107,6 +6681,12 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("cancelled_by_user_id");
 
+                    b.Property<bool>("ConvertedFromTrial")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("converted_from_trial");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -5155,6 +6735,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("license_plan");
 
+                    b.Property<int?>("LicenseType")
+                        .HasColumnType("integer")
+                        .HasColumnName("license_type");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
@@ -5166,6 +6750,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("PriceNet")
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("price_net");
+
+                    b.Property<int?>("RemainingTrialDaysAdded")
+                        .HasColumnType("integer")
+                        .HasColumnName("remaining_trial_days_added");
 
                     b.Property<DateTime>("SoldAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -5188,6 +6776,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("TrialConvertedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_converted_at_utc");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -5594,6 +7186,85 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ix_monatsbeleg_per_register_month");
 
                     b.ToTable("monatsbeleg", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.MonatsbelegAutoRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<DateTime?>("LastAttemptUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_attempt_utc");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer")
+                        .HasColumnName("month");
+
+                    b.Property<DateTime?>("NextRetryUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_retry_utc");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .HasDatabaseName("idx_monatsbeleg_auto_runs_register_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_monatsbeleg_auto_runs_tenant_id");
+
+                    b.HasIndex("TenantId", "CashRegisterId", "Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("ux_monatsbeleg_auto_runs_register_period");
+
+                    b.ToTable("monatsbeleg_auto_runs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
@@ -6190,6 +7861,388 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("online_orders", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalChannel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("external_channel");
+
+                    b.Property<string>("ExternalLocationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<string>("ExternalOrderId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_order_id");
+
+                    b.Property<string>("FoodoraTransportType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("foodora_transport_type");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<Guid?>("OnlineOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("online_order_id");
+
+                    b.Property<string>("PayloadSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("payload_sha256");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("text")
+                        .HasColumnName("raw_payload");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("received")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<bool?>("WoltSelfDelivery")
+                        .HasColumnType("boolean")
+                        .HasColumnName("wolt_self_delivery");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OnlineOrderId")
+                        .HasDatabaseName("idx_online_order_integrations_online_order_id");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("idx_online_order_integrations_status_next_attempt");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integrations_tenant_provider_external");
+
+                    b.HasIndex("TenantId", "Status", "ReceivedAt")
+                        .HasDatabaseName("idx_online_order_integrations_tenant_status_received");
+
+                    b.ToTable("online_order_integrations");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClaimingUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("claiming_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DeliveryFeeProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("delivery_fee_product_id");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("ExternalLocationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid?>("ServiceFeeProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_fee_product_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimingUserId")
+                        .HasDatabaseName("idx_online_order_integration_locations_claiming_user");
+
+                    b.HasIndex("DeliveryFeeProductId")
+                        .HasDatabaseName("idx_online_order_integration_locations_delivery_product");
+
+                    b.HasIndex("ServiceFeeProductId")
+                        .HasDatabaseName("idx_online_order_integration_locations_service_product");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("Provider", "ExternalLocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_locations_provider_location");
+
+                    b.ToTable("online_order_integration_locations");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationOAuthToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("access_token");
+
+                    b.Property<DateTime>("AccessTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("access_token_expires_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalLocationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_location_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalLocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_oauth_tokens_tenant_provider_location");
+
+                    b.ToTable("online_order_integration_oauth_tokens");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_secret");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CredentialOwner")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("deployment")
+                        .HasColumnName("credential_owner");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("enabled");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_providers_provider");
+
+                    b.ToTable("online_order_integration_providers");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationTenantCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccessToken")
+                        .HasColumnType("text")
+                        .HasColumnName("access_token");
+
+                    b.Property<DateTime?>("AccessTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("access_token_expires_at");
+
+                    b.Property<string>("ChainId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("chain_id");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecret")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_secret");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("WebhookToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("webhook_token");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_integration_tenant_credentials_tenant_provider");
+
+                    b.ToTable("online_order_integration_tenant_credentials");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6271,6 +8324,59 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_online_order_item_modifiers_item_id");
 
                     b.ToTable("online_order_item_modifiers", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderProductMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalProductId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_product_id");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("idx_online_order_product_mappings_product");
+
+                    b.HasIndex("TenantId", "Provider", "ExternalProductId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_online_order_product_mappings_tenant_provider_external");
+
+                    b.ToTable("online_order_product_mappings");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderStatusChange", b =>
@@ -6530,6 +8636,20 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsPreorder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_preorder");
+
+                    b.Property<Guid?>("LastPreorderPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_preorder_payment_id");
+
+                    b.Property<string>("LocationData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("location_data");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -6542,6 +8662,53 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime?>("PreorderCollectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_collected_at");
+
+                    b.Property<string>("PreorderCustomerNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("preorder_customer_notes");
+
+                    b.Property<string>("PreorderNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("preorder_number");
+
+                    b.Property<decimal>("PreorderPaidAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("preorder_paid_amount");
+
+                    b.Property<DateTime?>("PreorderPickupDeadline")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_pickup_deadline");
+
+                    b.Property<int>("PreorderPickupWeeks")
+                        .HasColumnType("integer")
+                        .HasColumnName("preorder_pickup_weeks");
+
+                    b.Property<DateTime?>("PreorderReadyAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preorder_ready_at");
+
+                    b.Property<decimal>("PreorderRemainingAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("preorder_remaining_amount");
+
+                    b.Property<string>("PreorderStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("preorder_status");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("receipt_number");
+
+                    b.Property<Guid?>("SourcePaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_payment_id");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -6553,6 +8720,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<decimal>("TaxAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -6579,6 +8750,19 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
                         .HasFilter("\"idempotency_key\" IS NOT NULL");
+
+                    b.HasIndex("SourcePaymentId")
+                        .IsUnique()
+                        .HasFilter("\"source_payment_id\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "PreorderNumber")
+                        .IsUnique()
+                        .HasFilter("\"is_preorder\" = TRUE AND \"preorder_number\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "ReceiptNumber")
+                        .HasFilter("\"is_preorder\" = TRUE AND \"receipt_number\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "IsPreorder", "PreorderStatus");
 
                     b.ToTable("orders");
                 });
@@ -6683,6 +8867,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("CashGiven")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("cash_given");
+
                     b.Property<Guid>("CashRegisterId")
                         .HasColumnType("uuid")
                         .HasColumnName("cash_register_id");
@@ -6697,6 +8885,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("certificate_thumbprint");
 
+                    b.Property<decimal?>("ChangeDue")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("change_due");
+
                     b.Property<string>("CompanyAddress")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -6709,6 +8901,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("correlation_id");
+
+                    b.Property<string>("CountryCodeAtIssue")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code_at_issue");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -6820,6 +9017,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying")
                         .HasColumnName("PaymentMethod");
 
+                    b.Property<string>("PrescriptionReference")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("prescription_reference");
+
                     b.Property<string>("PrevSignatureValueUsed")
                         .HasColumnType("text");
 
@@ -6858,6 +9060,20 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("rksv_special_receipt_year");
 
+                    b.Property<string>("RouteFrom")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("route_from");
+
+                    b.Property<decimal?>("RouteKm")
+                        .HasColumnType("decimal(8,2)")
+                        .HasColumnName("route_km");
+
+                    b.Property<string>("RouteTo")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("route_to");
+
                     b.Property<string>("SignatureFormat")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -6871,6 +9087,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<int?>("StornoReason")
                         .HasColumnType("integer")
                         .HasColumnName("storno_reason");
+
+                    b.Property<string>("SwissQrText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("swiss_qr_text");
 
                     b.Property<int>("TableNumber")
                         .HasColumnType("integer");
@@ -6893,6 +9114,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("TripStartedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taxi_trip_started_at_utc");
+
                     b.Property<string>("TseSignature")
                         .IsRequired()
                         .HasColumnType("text");
@@ -6908,6 +9133,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
+
+                    b.Property<string>("VatRegimeAtIssue")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("vat_regime_at_issue");
 
                     b.HasKey("Id");
 
@@ -6936,13 +9166,18 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("OfflineTransactionId");
 
+                    b.HasIndex("OriginalPaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_one_storno_per_original")
+                        .HasFilter("\"IsStorno\" = true AND \"OriginalPaymentId\" IS NOT NULL");
+
                     b.HasIndex("OriginalReceiptId");
 
                     b.HasIndex("PaymentMethodRaw");
 
                     b.HasIndex("ReceiptNumber")
                         .IsUnique()
-                        .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
+                        .HasFilter("\"ReceiptNumber\" IS NOT NULL AND \"ReceiptNumber\" <> ''");
 
                     b.HasIndex("TseSignature");
 
@@ -7501,6 +9736,61 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("PaymentSessions");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.PeppolParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApEnvironment")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("ap_environment");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("EIdentifierScheme")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("eidentifier_scheme");
+
+                    b.Property<string>("EIdentifierValue")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("eidentifier_value");
+
+                    b.Property<string>("LegalEntityId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("legal_entity_id");
+
+                    b.Property<string>("ParticipantId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("participant_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "ParticipantId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_peppol_participants_tenant_id_participant_id");
+
+                    b.ToTable("peppol_participants", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.PeriodenberichtRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7962,10 +10252,13 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
                     b.Property<string>("Barcode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
                         .HasColumnName("barcode");
 
                     b.Property<string>("Category")
@@ -8011,6 +10304,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description_tr");
 
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_minutes");
+
                     b.Property<string>("FiscalCategoryCode")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
@@ -8020,6 +10317,12 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("image_url");
+
+                    b.Property<bool>("ImeiTracked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("imei_tracked");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -8038,6 +10341,12 @@ namespace KasseAPI_Final.Migrations
                     b.Property<bool>("IsTaxable")
                         .HasColumnType("boolean")
                         .HasColumnName("is_taxable");
+
+                    b.Property<bool>("IsTicket")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_ticket");
 
                     b.Property<int?>("MaxStockLevel")
                         .HasColumnType("integer")
@@ -8068,15 +10377,30 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name_tr");
 
+                    b.Property<Guid?>("OriginalProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("original_product_id");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
+
+                    b.Property<bool>("RequiresPrescription")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("requires_prescription");
 
                     b.Property<string>("RksvProductType")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("rksv_product_type");
+
+                    b.Property<string>("StaffId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("staff_id");
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer")
@@ -8086,6 +10410,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("tax_exemption_reason");
+
+                    b.Property<Guid>("TaxGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tax_group_id");
 
                     b.Property<decimal>("TaxRate")
                         .HasColumnType("decimal(5,2)")
@@ -8114,13 +10442,31 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("updated_by");
 
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("ImeiTracked")
+                        .HasDatabaseName("idx_products_imei_tracked")
+                        .HasFilter("imei_tracked = TRUE");
+
+                    b.HasIndex("IsTicket")
+                        .HasDatabaseName("idx_products_is_ticket")
+                        .HasFilter("is_ticket = TRUE");
+
                     b.HasIndex("Name");
+
+                    b.HasIndex("OriginalProductId");
+
+                    b.HasIndex("TaxGroupId");
 
                     b.HasIndex("TaxType");
 
@@ -8130,14 +10476,22 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId", "Barcode")
                         .IsUnique()
-                        .HasFilter("barcode IS NOT NULL AND barcode <> ''");
+                        .HasFilter("barcode IS NOT NULL");
 
                     b.HasIndex("TenantId", "Name")
                         .HasDatabaseName("idx_products_tenant_name");
 
+                    b.HasIndex("TenantId", "StaffId")
+                        .HasDatabaseName("idx_products_tenant_staff_id")
+                        .HasFilter("staff_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "OriginalProductId", "Version");
+
                     b.ToTable("products", null, t =>
                         {
                             t.HasCheckConstraint("CK_products_cost_non_negative", "cost >= 0");
+
+                            t.HasCheckConstraint("CK_products_duration_minutes_range", "duration_minutes IS NULL OR (duration_minutes >= 1 AND duration_minutes <= 1440)");
 
                             t.HasCheckConstraint("CK_products_min_stock_level_non_negative", "min_stock_level >= 0");
 
@@ -8147,6 +10501,69 @@ namespace KasseAPI_Final.Migrations
 
                             t.HasCheckConstraint("CK_products_tax_rate_range", "tax_rate >= 0 AND tax_rate <= 100");
                         });
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductImei", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Imei")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("imei");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<DateTime?>("SoldAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sold_at_utc");
+
+                    b.Property<Guid?>("SoldPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sold_payment_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("WarrantyMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("warranty_months");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SoldPaymentId");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_product_imeis_tenant_id");
+
+                    b.HasIndex("TenantId", "Imei")
+                        .IsUnique()
+                        .HasDatabaseName("ux_product_imeis_tenant_imei");
+
+                    b.HasIndex("TenantId", "ProductId", "Status")
+                        .HasDatabaseName("ix_product_imeis_tenant_product_status");
+
+                    b.ToTable("product_imeis", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ProductModifierGroup", b =>
@@ -8240,6 +10657,246 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("product_modifier_group_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductPriceHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_to");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsRksvCompliant")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_rksv_compliant");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("new_price");
+
+                    b.Property<Guid>("NewTaxGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("new_tax_group_id");
+
+                    b.Property<decimal>("NewTaxRate")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("new_tax_rate");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("old_price");
+
+                    b.Property<Guid>("OldTaxGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("old_tax_group_id");
+
+                    b.Property<decimal>("OldTaxRate")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("old_tax_rate");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RksvNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("rksv_note");
+
+                    b.Property<DateTime?>("RksvVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rksv_verified_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewTaxGroupId");
+
+                    b.HasIndex("OldTaxGroupId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId", "EffectiveFrom");
+
+                    b.HasIndex("TenantId", "ProductId", "EffectiveFrom");
+
+                    b.HasIndex("TenantId", "ProductId", "IsActive");
+
+                    b.ToTable("product_price_history", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductPriceVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsCurrent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_current");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<Guid>("TaxGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tax_group_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_to");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("text")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsCurrent")
+                        .HasDatabaseName("idx_product_price_versions_is_current");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("idx_product_price_versions_product_id");
+
+                    b.HasIndex("TaxGroupId");
+
+                    b.HasIndex("TenantId", "ProductId", "IsCurrent");
+
+                    b.HasIndex("TenantId", "ProductId", "ValidFrom");
+
+                    b.ToTable("product_price_versions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductVariant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("PriceDelta")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("price_delta");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sku");
+
+                    b.Property<int>("Stock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("stock");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("VariantLabel")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("variant_label");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_product_variants_product_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_product_variants_tenant_id");
+
+                    b.HasIndex("ProductId", "VariantLabel")
+                        .IsUnique()
+                        .HasDatabaseName("ux_product_variants_product_label");
+
+                    b.HasIndex("TenantId", "Sku")
+                        .IsUnique()
+                        .HasDatabaseName("ux_product_variants_tenant_sku");
+
+                    b.ToTable("product_variants", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Receipt", b =>
                 {
                     b.Property<Guid>("ReceiptId")
@@ -8260,6 +10917,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("correlation_id");
+
+                    b.Property<string>("CountryCodeAtIssue")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code_at_issue");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -8327,6 +10989,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
+
+                    b.Property<string>("VatRegimeAtIssue")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("vat_regime_at_issue");
 
                     b.HasKey("ReceiptId");
 
@@ -9139,6 +11806,128 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("risk_scores", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.RksvAusfallEpisode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at_utc");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("approved_by");
+
+                    b.Property<DateTimeOffset?>("BeginnUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("beginn_utc");
+
+                    b.Property<string>("Begruendung")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("begruendung");
+
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<string>("CertificateSerial")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("certificate_serial");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTimeOffset?>("EndeUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ende_utc");
+
+                    b.Property<string>("EpisodeType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("episode_type");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("external_reference");
+
+                    b.Property<string>("KassenId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("kassen_id");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("last_error_code");
+
+                    b.Property<string>("LastErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error_message");
+
+                    b.Property<string>("OperationKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("operation_kind");
+
+                    b.Property<string>("OperatorNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("operator_note");
+
+                    b.Property<Guid?>("OutboxMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("outbox_message_id");
+
+                    b.Property<Guid?>("RelatedAusfallEpisodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("related_ausfall_episode_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("OutboxMessageId");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.ToTable("rksv_ausfall_episodes");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.RksvColdArchiveItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9232,6 +12021,51 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_rksv_cold_archive_runs_created_at");
 
                     b.ToTable("rksv_cold_archive_runs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RksvRuntimeConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("BypassTseInDevelopment")
+                        .HasColumnType("boolean")
+                        .HasColumnName("bypass_tse_in_development");
+
+                    b.Property<string>("FinanzOnlineMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("finanz_online_mode");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("mode");
+
+                    b.Property<bool>("ShowDemoLabel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_demo_label");
+
+                    b.Property<string>("TseMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tse_mode");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("rksv_runtime_config", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.RksvSpecialReceiptFinanzOnlineSubmission", b =>
@@ -9358,6 +12192,150 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("role_permission_packages", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Room", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("number");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_rooms_tenant_id");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ux_rooms_tenant_number");
+
+                    b.ToTable("rooms", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RoomMinibarItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime?>("ChargedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("charged_at_utc");
+
+                    b.Property<Guid?>("ChargedFolioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("charged_folio_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("unit_price");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargedFolioId")
+                        .HasDatabaseName("ix_room_minibar_items_charged_folio_id");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_room_minibar_items_product_id");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("TenantId", "Id")
+                        .IsUnique()
+                        .HasDatabaseName("ux_room_minibar_items_tenant_id");
+
+                    b.HasIndex("TenantId", "RoomId", "Status")
+                        .HasDatabaseName("ix_room_minibar_items_tenant_room_status");
+
+                    b.ToTable("room_minibar_items", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.SensitiveExportApproval", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9447,7 +12425,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("last_turnover_counter_cents");
 
                     b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c"))
                         .HasColumnName("tenant_id");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -9670,6 +12650,274 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_digital_service_subscriptions_tenant_service_status");
 
                     b.ToTable("digital_service_subscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SubscriptionInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AmountGross")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount_gross");
+
+                    b.Property<decimal>("AmountNet")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount_net");
+
+                    b.Property<decimal>("AmountVat")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount_vat");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime?>("EmailSentAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_sent_at_utc");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at_utc");
+
+                    b.Property<int>("LicenseType")
+                        .HasColumnType("integer")
+                        .HasColumnName("license_type");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at_utc");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("payment_method");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("payment_reference");
+
+                    b.Property<string>("PdfPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("pdf_path");
+
+                    b.Property<DateTime>("PeriodEndUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end_utc");
+
+                    b.Property<DateTime>("PeriodStartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("VatRate")
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("vat_rate");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("void_reason");
+
+                    b.Property<DateTime?>("VoidedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "PeriodStartUtc", "PeriodEndUtc")
+                        .IsUnique();
+
+                    b.ToTable("subscription_invoices", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SupportTicket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AssignedToDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("assigned_to_display_name");
+
+                    b.Property<string>("AssignedToUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("assigned_to_user_id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedByDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("created_by_display_name");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("priority");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TicketNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("ticket_number");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("idx_support_tickets_created_at");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_support_tickets_status");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_support_tickets_tenant_id");
+
+                    b.HasIndex("TicketNumber")
+                        .IsUnique()
+                        .HasDatabaseName("idx_support_tickets_ticket_number");
+
+                    b.HasIndex("Status", "CreatedAtUtc")
+                        .HasDatabaseName("idx_support_tickets_status_created");
+
+                    b.ToTable("support_tickets", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SupportTicketMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthorDisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("author_display_name");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<bool>("IsInternal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_internal");
+
+                    b.Property<bool>("IsStaffReply")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_staff_reply");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_support_ticket_messages_tenant_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("idx_support_ticket_messages_ticket_id");
+
+                    b.ToTable("support_ticket_messages", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SuspiciousTransactionAlert", b =>
@@ -10304,6 +13552,174 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tagesbericht_reports", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TaxGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AustrianCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("austrian_code");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<int?>("GroupType")
+                        .HasColumnType("integer")
+                        .HasColumnName("group_type");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("icon");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_default");
+
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_system");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("rate");
+
+                    b.Property<Guid?>("ReplacedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaced_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_to");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplacedBy");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "AustrianCode")
+                        .IsUnique()
+                        .HasFilter("austrian_code IS NOT NULL");
+
+                    b.HasIndex("TenantId", "IsActive", "IsDefault");
+
+                    b.ToTable("tax_groups", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_tax_groups_rate_range", "rate >= 0 AND rate <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TaxHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<decimal>("NewRate")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("new_rate");
+
+                    b.Property<decimal>("OldRate")
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("old_rate");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TaxGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tax_group_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TaxGroupId");
+
+                    b.HasIndex("TenantId", "ChangedAt");
+
+                    b.HasIndex("TenantId", "ProductId", "ChangedAt");
+
+                    b.ToTable("tax_history", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10431,6 +13847,63 @@ namespace KasseAPI_Final.Migrations
                         .HasDefaultValue("active")
                         .HasColumnName("status");
 
+                    b.Property<DateTime?>("TrialConvertedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_converted_at_utc");
+
+                    b.Property<DateTime?>("TrialDeletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_deleted_at_utc");
+
+                    b.Property<DateTime?>("TrialEndsAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_ends_at_utc");
+
+                    b.Property<DateTime?>("TrialGracePeriodEndsAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_grace_period_ends_at_utc");
+
+                    b.Property<bool>("TrialReminder1dSent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("trial_reminder_1d_sent");
+
+                    b.Property<bool>("TrialReminder3dSent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("trial_reminder_3d_sent");
+
+                    b.Property<bool>("TrialReminder7dSent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("trial_reminder_7d_sent");
+
+                    b.Property<DateTime?>("TrialStartedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_started_at_utc");
+
+                    b.Property<string>("TrialStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("trial_status");
+
+                    b.Property<DateTime?>("TseProvisionedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tse_provisioned_at_utc");
+
+                    b.Property<string>("TseScuId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tse_scu_id");
+
+                    b.Property<string>("TseStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tse_status");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -10455,6 +13928,12 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TrialEndsAtUtc")
+                        .HasDatabaseName("IX_tenants_trial_ends_at");
+
+                    b.HasIndex("TrialStatus")
+                        .HasDatabaseName("IX_tenants_trial_status");
 
                     b.ToTable("tenants", (string)null);
                 });
@@ -10753,6 +14232,85 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_data_rights_requests", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantDeploymentHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DeployedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deployed_at_utc");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("GitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("git_sha");
+
+                    b.Property<string>("PreviousVersion")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("previous_version");
+
+                    b.Property<string>("RunUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("run_url");
+
+                    b.Property<bool?>("SmokePassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("smoke_passed");
+
+                    b.Property<DateTime?>("SoakUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soak_until_utc");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("stage");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TriggeredBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("triggered_by");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Stage", "Status");
+
+                    b.HasIndex("TenantId", "DeployedAtUtc");
+
+                    b.ToTable("deployment_history", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantDomain", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10825,6 +14383,171 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_domains", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantFiskalyCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApiKeyHint")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("api_key_hint");
+
+                    b.Property<string>("ApiKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("api_key_protected");
+
+                    b.Property<string>("ApiSecretProtected")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("api_secret_protected");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("TEST")
+                        .HasColumnName("environment");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.PrimitiveCollection<string>("IssuerCertificatesDerBase64")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("issuer_certificates_der_base64");
+
+                    b.Property<string>("ScuId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("scu_id");
+
+                    b.Property<string>("SigningCertificateDerBase64")
+                        .HasColumnType("text")
+                        .HasColumnName("signing_certificate_der_base64");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_fiskaly_credentials_tenant_id");
+
+                    b.ToTable("tenant_fiskaly_credentials");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<decimal>("DailyMaxRevenue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(50000m)
+                        .HasColumnName("daily_max_revenue");
+
+                    b.Property<int>("DailyMaxTransactions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1000)
+                        .HasColumnName("daily_max_transactions");
+
+                    b.Property<int>("MaxActiveRegistersPerUser")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("max_active_registers_per_user");
+
+                    b.Property<int>("MaxBackupSizeMb")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(500)
+                        .HasColumnName("max_backup_size_mb");
+
+                    b.Property<int>("MaxBackupsPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_backups_per_tenant");
+
+                    b.Property<int>("MaxOfflineTransactions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_offline_transactions");
+
+                    b.Property<int>("MaxProductsPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10000)
+                        .HasColumnName("max_products_per_tenant");
+
+                    b.Property<decimal>("MaxTransactionAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(10000m)
+                        .HasColumnName("max_transaction_amount");
+
+                    b.Property<int>("MaxUsersPerTenant")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50)
+                        .HasColumnName("max_users_per_tenant");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_limits_tenant_id");
+
+                    b.ToTable("tenant_limits", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantNotificationConfig", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -10844,6 +14567,52 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("TenantId");
 
                     b.ToTable("tenant_notification_configs");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantOnboardingStatus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CompletedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("completed_by_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_completed");
+
+                    b.Property<string>("Step")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("step");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Step")
+                        .IsUnique();
+
+                    b.ToTable("tenant_onboarding_status", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TenantServiceStatus", b =>
@@ -10957,6 +14726,49 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_service_statuses", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique()
+                        .HasFilter("tenant_id IS NOT NULL");
+
+                    b.ToTable("tenant_settings", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantSettingsHistory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11042,6 +14854,485 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tenant_settings_history", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantVerticalOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("OverridesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("overrides_json");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_tenant_vertical_overrides_tenant_id");
+
+                    b.ToTable("tenant_vertical_overrides", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("EndAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at_utc");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("StageEdge")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("top")
+                        .HasColumnName("stage_edge");
+
+                    b.Property<DateTime>("StartAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at_utc");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Venue")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("venue");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ticket_events_tenant_id");
+
+                    b.ToTable("ticket_events", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEventCategoryPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_ticket_event_category_prices_category_id");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_event_category_prices_event_id");
+
+                    b.HasIndex("EventId", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ticket_event_category_prices_event_category");
+
+                    b.ToTable("ticket_event_category_prices", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketPriceCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ticket_price_categories_tenant_id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ticket_price_categories_tenant_code");
+
+                    b.ToTable("ticket_price_categories", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<Guid?>("PaymentDetailId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_detail_id");
+
+                    b.Property<DateTime?>("RedeemedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("redeemed_at_utc");
+
+                    b.Property<string>("RedeemedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("redeemed_by_user_id");
+
+                    b.Property<Guid?>("SeatId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("seat_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TicketCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ticket_code");
+
+                    b.Property<string>("TicketCodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("ticket_code_hash");
+
+                    b.Property<DateTime?>("ValidFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from_utc");
+
+                    b.Property<DateTime?>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_redemptions_event_id");
+
+                    b.HasIndex("PaymentDetailId")
+                        .HasDatabaseName("ix_ticket_redemptions_payment_detail_id");
+
+                    b.HasIndex("SeatId")
+                        .HasDatabaseName("ix_ticket_redemptions_seat_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ticket_redemptions_tenant_id");
+
+                    b.HasIndex("TicketCode")
+                        .HasDatabaseName("ix_ticket_redemptions_ticket_code");
+
+                    b.HasIndex("TenantId", "TicketCodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ticket_redemptions_tenant_code_hash");
+
+                    b.ToTable("ticket_redemptions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<Guid?>("CompanionOfSeatId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("companion_of_seat_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<int?>("GridColumn")
+                        .HasColumnType("integer")
+                        .HasColumnName("grid_column");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("number");
+
+                    b.Property<string>("ReservedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("reserved_by_user_id");
+
+                    b.Property<DateTime?>("ReservedUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reserved_until_utc");
+
+                    b.Property<string>("Row")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("row");
+
+                    b.Property<int>("SeatRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("seat_role");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("section");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_ticket_seats_category_id");
+
+                    b.HasIndex("CompanionOfSeatId")
+                        .HasDatabaseName("ix_ticket_seats_companion_of_seat_id");
+
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_ticket_seats_event_id");
+
+                    b.HasIndex("EventId", "Row", "Number", "Section")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ticket_seats_event_place");
+
+                    b.ToTable("ticket_seats", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseAnomaly", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double>("CurrentValue")
+                        .HasColumnType("double precision")
+                        .HasColumnName("current_value");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<double>("DeviationPercent")
+                        .HasColumnType("double precision")
+                        .HasColumnName("deviation_percent");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<double>("ExpectedValue")
+                        .HasColumnType("double precision")
+                        .HasColumnName("expected_value");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_resolved");
+
+                    b.Property<string>("MetricName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("metric_name");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("ResolvedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("resolved_by");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("SuggestedAction")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("suggested_action");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("TenantId", "DetectedAt")
+                        .HasDatabaseName("idx_tse_anomalies_tenant_detected");
+
+                    b.HasIndex("TenantId", "IsResolved", "Severity")
+                        .HasDatabaseName("idx_tse_anomalies_tenant_open_severity");
+
+                    b.HasIndex("TenantId", "MetricName", "DeviceId", "IsResolved")
+                        .HasDatabaseName("idx_tse_anomalies_dedup");
+
+                    b.ToTable("tse_anomalies", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseBackupRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11106,6 +15397,128 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("idx_tse_backups_tenant_created");
 
                     b.ToTable("tse_backups", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseBlockchainLedgerState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CurrentBlockNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("current_block_number");
+
+                    b.Property<bool>("IsConnected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_connected");
+
+                    b.Property<string>("NetworkName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("network_name");
+
+                    b.Property<string>("TipBlockHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("tip_block_hash");
+
+                    b.Property<long>("TotalTransactions")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_transactions");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tse_blockchain_ledger_state", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseBlockchainRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BlockHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("block_hash");
+
+                    b.Property<long>("BlockNumber")
+                        .HasColumnType("bigint")
+                        .HasColumnName("block_number");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsSimulated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_simulated");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_verified");
+
+                    b.Property<string>("NetworkName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("network_name");
+
+                    b.Property<string>("SignatureHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("signature_hash");
+
+                    b.Property<string>("SignaturePreview")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("signature_preview");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("source_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TransactionHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("transaction_hash");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("idx_tse_blockchain_records_tenant_created");
+
+                    b.HasIndex("TenantId", "SignatureHash")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_blockchain_records_tenant_sig");
+
+                    b.ToTable("tse_blockchain_records", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>
@@ -11239,8 +15652,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("IssuedAt");
 
-                    b.Property<Guid>("KassenId")
-                        .HasColumnType("uuid")
+                    b.Property<string>("KassenId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("KassenId");
 
                     b.Property<DateTime>("LastConnectionTime")
@@ -11306,6 +15721,20 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("SerialNumber");
+
+                    b.Property<DateTime?>("SignaturkarteProgramCompliantAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("SignaturkarteProgramCompliantAtUtc");
+
+                    b.Property<string>("SignaturkarteProgramCompliantBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("SignaturkarteProgramCompliantBy");
+
+                    b.Property<string>("SignaturkarteProgramNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("SignaturkarteProgramNote");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid")
@@ -11410,6 +15839,149 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tse_device_health_samples", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TseDrRunbook", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ActualRtoMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("actual_rto_minutes");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("EstimatedRtoMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("estimated_rto_minutes");
+
+                    b.Property<bool>("IsDrill")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_drill");
+
+                    b.Property<DateTime?>("LastTestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_tested_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Scenario")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("scenario");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("summary");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_tse_dr_runbooks_status");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("idx_tse_dr_runbooks_tenant_created");
+
+                    b.ToTable("tse_dr_runbooks", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseDrStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("action");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error");
+
+                    b.Property<bool>("IsAutomated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_automated");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_completed");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("step_order");
+
+                    b.Property<string>("Result")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("result");
+
+                    b.Property<Guid>("RunbookId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("runbook_id");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunbookId")
+                        .HasDatabaseName("idx_tse_dr_steps_runbook_id");
+
+                    b.ToTable("tse_dr_steps", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseFailoverLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11500,6 +16072,269 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tse_failover_logs", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TseGatewayConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("HealthCheckIntervalSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("health_check_interval_seconds");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("retry_count");
+
+                    b.Property<string>("Strategy")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("strategy");
+
+                    b.Property<int>("TimeoutMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("timeout_ms");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tse_gateway_configs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseGatewayEndpoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ConfigId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("config_id");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("EndpointUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("endpoint_url");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer")
+                        .HasColumnName("weight");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfigId")
+                        .HasDatabaseName("idx_tse_gateway_endpoints_config");
+
+                    b.HasIndex("ConfigId", "Provider")
+                        .HasDatabaseName("idx_tse_gateway_endpoints_config_provider");
+
+                    b.ToTable("tse_gateway_endpoints", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowAutoFailover")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_auto_failover");
+
+                    b.Property<int>("CooldownMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("cooldown_minutes");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("MaxAutoHealAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_auto_heal_attempts");
+
+                    b.Property<bool>("NotifyOnHeal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_on_heal");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_healing_configurations_tenant");
+
+                    b.ToTable("tse_healing_configurations", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("applied");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("Condition")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("condition");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<int?>("HealthScoreAfter")
+                        .HasColumnType("integer")
+                        .HasColumnName("health_score_after");
+
+                    b.Property<int>("HealthScoreBefore")
+                        .HasColumnType("integer")
+                        .HasColumnName("health_score_before");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "StartedAt")
+                        .HasDatabaseName("idx_tse_healing_history_device_started");
+
+                    b.HasIndex("TenantId", "StartedAt")
+                        .HasDatabaseName("idx_tse_healing_history_tenant_started");
+
+                    b.ToTable("tse_healing_history", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("condition");
+
+                    b.Property<Guid>("ConfigurationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("configuration_id");
+
+                    b.Property<DateTime?>("LastTriggeredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_triggered_at");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfigurationId")
+                        .HasDatabaseName("idx_tse_healing_rules_config");
+
+                    b.ToTable("tse_healing_rules", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseHealthAuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11525,6 +16360,657 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("tse_health_audit_logs");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("resolution");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId")
+                        .HasDatabaseName("idx_tse_incidents_device_id");
+
+                    b.HasIndex("Severity")
+                        .HasDatabaseName("idx_tse_incidents_severity");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_tse_incidents_status");
+
+                    b.HasIndex("TenantId", "DetectedAt")
+                        .HasDatabaseName("idx_tse_incidents_tenant_detected");
+
+                    b.ToTable("tse_incidents", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("action_type");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_completed");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("performed_at");
+
+                    b.Property<string>("PerformedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("performed_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("idx_tse_incident_actions_incident_id");
+
+                    b.ToTable("tse_incident_actions", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("message");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("idx_tse_incident_logs_incident_id");
+
+                    b.ToTable("tse_incident_logs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseKnowledgeArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("body");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsFaq")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_faq");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating_count");
+
+                    b.Property<int>("RatingSum")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating_sum");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("view_count");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_knowledge_articles_slug");
+
+                    b.HasIndex("IsPublished", "IsFaq", "ViewCount")
+                        .HasDatabaseName("idx_tse_knowledge_articles_published_faq_views");
+
+                    b.ToTable("tse_knowledge_articles", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseKnowledgeFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("idx_tse_knowledge_feedback_article");
+
+                    b.ToTable("tse_knowledge_feedback", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseRecommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<string>("AppliedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("applied_by");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dismissed_at");
+
+                    b.Property<string>("DismissedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("dismissed_by");
+
+                    b.Property<int>("EffortScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("effort_score");
+
+                    b.Property<int>("EstimatedSavings")
+                        .HasColumnType("integer")
+                        .HasColumnName("estimated_savings");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("impact");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_applied");
+
+                    b.Property<bool>("IsDismissed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_dismissed");
+
+                    b.Property<DateTime?>("RatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rated_at");
+
+                    b.Property<string>("RatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("rated_by");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("idx_tse_recommendations_tenant_created");
+
+                    b.HasIndex("TenantId", "Code", "IsApplied", "IsDismissed")
+                        .HasDatabaseName("idx_tse_recommendations_tenant_open_code");
+
+                    b.ToTable("tse_recommendations", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePool", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PoolType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("pool_type");
+
+                    b.Property<int>("TotalCapacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_capacity");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("idx_tse_resource_pools_name");
+
+                    b.HasIndex("PoolType")
+                        .HasDatabaseName("idx_tse_resource_pools_type");
+
+                    b.ToTable("tse_resource_pools", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<string>("AssignedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("assigned_by");
+
+                    b.Property<Guid>("PoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pool_id");
+
+                    b.Property<int>("ReservedCapacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("reserved_capacity");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PoolId")
+                        .HasDatabaseName("idx_tse_resource_pool_assignments_pool_id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_resource_pool_assignments_tenant_id");
+
+                    b.ToTable("tse_resource_pool_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<Guid>("PoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pool_id");
+
+                    b.Property<string>("RuleType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("rule_type");
+
+                    b.Property<string>("RuleValue")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("rule_value");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PoolId")
+                        .HasDatabaseName("idx_tse_resource_pool_rules_pool_id");
+
+                    b.ToTable("tse_resource_pool_rules", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseScalingHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("applied");
+
+                    b.Property<DateTime>("EvaluatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("evaluated_at");
+
+                    b.Property<int>("FromDevices")
+                        .HasColumnType("integer")
+                        .HasColumnName("from_devices");
+
+                    b.Property<double>("LoadPercent")
+                        .HasColumnType("double precision")
+                        .HasColumnName("load_percent");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<bool>("SimulationOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("simulation_only");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("ToDevices")
+                        .HasColumnType("integer")
+                        .HasColumnName("to_devices");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "EvaluatedAt")
+                        .HasDatabaseName("idx_tse_scaling_history_tenant_evaluated");
+
+                    b.ToTable("tse_scaling_history", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseScalingPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutoProvision")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_provision");
+
+                    b.Property<int>("CooldownMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("cooldown_minutes");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("MaxDevices")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_devices");
+
+                    b.Property<int>("MinDevices")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_devices");
+
+                    b.Property<double>("ScaleDownThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("scale_down_threshold");
+
+                    b.Property<double>("ScaleUpThreshold")
+                        .HasColumnType("double precision")
+                        .HasColumnName("scale_up_threshold");
+
+                    b.Property<int>("TargetTransactionsPerDevice")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_transactions_per_device");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_scaling_policies_tenant");
+
+                    b.ToTable("tse_scaling_policies", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseSignature", b =>
@@ -11612,6 +17098,312 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CashRegisterId", "CreatedAt");
 
                     b.ToTable("TseSignatures");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseTrainingProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_completed");
+
+                    b.Property<bool>("IsStarted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_started");
+
+                    b.Property<string>("ModuleId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("module_id");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ModuleId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_training_progress_user_module");
+
+                    b.ToTable("tse_training_progress", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseUpdateHistoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AppliedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("applied_by");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DevicesTouched")
+                        .HasColumnType("integer")
+                        .HasColumnName("devices_touched");
+
+                    b.Property<string>("FromVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("from_version");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("RiskLevel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("risk_level");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("ToVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("to_version");
+
+                    b.Property<string>("UpdateType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("update_type");
+
+                    b.Property<bool>("ZeroDowntime")
+                        .HasColumnType("boolean")
+                        .HasColumnName("zero_downtime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "StartedAt")
+                        .HasDatabaseName("idx_tse_update_history_tenant_started");
+
+                    b.ToTable("tse_update_history", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseUpdateState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CurrentVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("current_version");
+
+                    b.Property<DateTime?>("LastAppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_applied_at");
+
+                    b.Property<DateTime?>("LastCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_checked_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("UpdateType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("update_type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "UpdateType")
+                        .IsUnique()
+                        .HasDatabaseName("idx_tse_update_states_tenant_type");
+
+                    b.ToTable("tse_update_states", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseWebhookDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delivered_at");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("http_status");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("payload_json");
+
+                    b.Property<string>("ResponseSnippet")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("response_snippet");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean")
+                        .HasColumnName("success");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("WebhookId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("webhook_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WebhookId", "DeliveredAt")
+                        .HasDatabaseName("idx_tse_webhook_deliveries_webhook_delivered");
+
+                    b.ToTable("tse_webhook_deliveries", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseWebhookRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("consecutive_failures");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("EventsCsv")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("events");
+
+                    b.Property<DateTime?>("LastDeliveryAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_delivery_at");
+
+                    b.Property<bool?>("LastDeliverySuccess")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_delivery_success");
+
+                    b.Property<string>("Secret")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("secret");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_tse_webhooks_tenant");
+
+                    b.ToTable("tse_webhooks", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.UserPermissionOverride", b =>
@@ -11973,6 +17765,257 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("user_username_history", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.VerticalProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OptionalFields")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("optional_fields");
+
+                    b.Property<string>("PosFeatures")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pos_features");
+
+                    b.Property<string>("PosLayout")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("pos_layout");
+
+                    b.Property<string>("RequiredFields")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("required_fields");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("idx_vertical_profiles_is_active");
+
+                    b.ToTable("vertical_profiles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "gastronomy",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.gastronomy.name",
+                            OptionalFields = "{\"customer\":[\"name\",\"phone\",\"email\"],\"product\":[\"description\",\"category\",\"stock\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":true,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "standard",
+                            RequiredFields = "{\"customer\":[],\"product\":[\"name\",\"price\",\"taxGroup\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "gastronomy-tables",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.gastronomyTables.name",
+                            OptionalFields = "{\"customer\":[\"name\",\"phone\",\"email\"],\"product\":[\"description\",\"category\",\"stock\"]}",
+                            PosFeatures = "{\"tables\":true,\"kitchenDisplay\":true,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "tables",
+                            RequiredFields = "{\"customer\":[],\"product\":[\"name\",\"price\",\"taxGroup\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "hair-salon",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.hairSalon.name",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"notes\"],\"product\":[\"description\",\"category\",\"staffId\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":true,\"appointment\":true,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "appointment",
+                            RequiredFields = "{\"customer\":[\"name\"],\"product\":[\"name\",\"price\",\"durationMinutes\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "vet",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.vet.name",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"petSpecies\",\"petBreed\",\"petBirthDate\",\"vaccines\",\"patientNotes\"],\"product\":[\"description\",\"category\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":true,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "standard",
+                            RequiredFields = "{\"customer\":[\"name\",\"petName\"],\"product\":[\"name\",\"price\",\"taxGroup\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "doctor",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.doctor.name",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"birthDate\",\"allergies\",\"chronicConditions\",\"insurance\"],\"product\":[\"description\",\"category\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":true,\"prescription\":true,\"serviceDuration\":true,\"appointment\":true,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"ticketScan\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "appointment",
+                            RequiredFields = "{\"customer\":[\"name\"],\"product\":[\"name\",\"price\",\"durationMinutes\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "mobile-services",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.mobileServices.name",
+                            OptionalFields = "{\"customer\":[\"email\",\"notes\",\"street\",\"postalCode\",\"city\"],\"product\":[\"description\",\"category\"],\"order\":[\"location\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":true,\"appointment\":true,\"imeiTracking\":false,\"routeTracking\":true,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "appointment",
+                            RequiredFields = "{\"customer\":[\"name\",\"phone\",\"address\"],\"product\":[\"name\",\"price\",\"serviceDuration\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "handy-shop",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.handyShop.name",
+                            OptionalFields = "{\"customer\":[\"name\",\"phone\",\"email\"],\"product\":[\"description\",\"category\",\"stock\",\"imei\",\"serialNumber\",\"brand\",\"model\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":true,\"routeTracking\":false,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "standard",
+                            RequiredFields = "{\"customer\":[],\"product\":[\"name\",\"price\",\"taxGroup\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "taxi",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.taxi.name",
+                            OptionalFields = "{\"customer\":[\"name\",\"phone\",\"pickupAddress\",\"destinationAddress\"],\"product\":[\"description\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":true,\"roomTracking\":false,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "taxi",
+                            RequiredFields = "{\"customer\":[],\"product\":[\"name\",\"price\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "ticket-sales",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.ticketSales.name",
+                            OptionalFields = "{\"customer\":[\"name\",\"phone\",\"email\"],\"product\":[\"description\",\"category\",\"room\",\"seat\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"ticketScan\":true,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "ticket",
+                            RequiredFields = "{\"customer\":[],\"product\":[\"name\",\"price\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "beherbergung",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.beherbergung.name",
+                            OptionalFields = "{\"customer\":[\"phone\",\"email\",\"notes\"],\"product\":[\"description\",\"category\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":true,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":true,\"variants\":false,\"barcodeScan\":false}",
+                            PosLayout = "rooms",
+                            RequiredFields = "{\"customer\":[\"name\"],\"product\":[\"name\",\"price\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = "retail",
+                            CreatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "verticalProfiles.retail.name",
+                            OptionalFields = "{\"customer\":[\"email\",\"phone\"],\"product\":[\"category\",\"stock\"]}",
+                            PosFeatures = "{\"tables\":false,\"kitchenDisplay\":false,\"patientRecord\":false,\"serviceDuration\":false,\"appointment\":false,\"imeiTracking\":false,\"routeTracking\":false,\"roomTracking\":false,\"ticketScan\":false,\"variants\":true,\"lotTracking\":false,\"multiBranch\":false,\"barcodeScan\":true}",
+                            PosLayout = "standard",
+                            RequiredFields = "{\"customer\":[\"name\"],\"product\":[\"sku\",\"name\",\"price\"]}",
+                            UpdatedAtUtc = new DateTime(2026, 9, 30, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.VerticalProfileOverride", b =>
+                {
+                    b.Property<string>("ProfileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("profile_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OptionalFieldsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("optional_fields_json");
+
+                    b.Property<string>("PosFeaturesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pos_features_json");
+
+                    b.Property<string>("PosLayout")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("pos_layout");
+
+                    b.Property<string>("RequiredFieldsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("required_fields_json");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("ProfileId");
+
+                    b.ToTable("vertical_profile_overrides", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Voucher", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12319,6 +18362,31 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Appointment", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", "ServiceProduct")
+                        .WithMany()
+                        .HasForeignKey("ServiceProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("ServiceProduct");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.AuditLog", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
@@ -12520,6 +18588,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegister", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("KasseAPI_Final.Models.ApplicationUser", "CurrentUser")
                         .WithMany("CashRegisters")
                         .HasForeignKey("CurrentUserId")
@@ -12531,7 +18604,28 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("AssignedUser");
+
                     b.Navigation("CurrentUser");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterOpenRequest", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("Tenant");
                 });
@@ -12622,6 +18716,36 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.ChReceiptSequence", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.CommunicationLog", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
@@ -12630,7 +18754,14 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("KasseAPI_Final.Models.VerticalProfile", "VerticalProfile")
+                        .WithMany()
+                        .HasForeignKey("VerticalProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Tenant");
+
+                    b.Navigation("VerticalProfile");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Customer", b =>
@@ -12687,6 +18818,68 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.DeReceiptSequence", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DeTseSignature", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentDetailsId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportAuditEntry", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportCompliancePeriod", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.DepExportHistory", null)
+                        .WithMany()
+                        .HasForeignKey("HistoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportComplianceScoreSnapshot", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.DigitalServiceRequest", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
@@ -12694,6 +18887,40 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.EinvoiceSubmission", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.EuReceiptSequence", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("Tenant");
                 });
@@ -12718,6 +18945,14 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.FiskalyOperationHistory", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.FiskalyOperationHistory", null)
+                        .WithMany()
+                        .HasForeignKey("RetriedFromId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.GeneratedReceipt", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.ReceiptTemplate", "Template")
@@ -12730,6 +18965,61 @@ namespace KasseAPI_Final.Migrations
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.GracePeriodPending", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GuestFolio", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Room", "Room")
+                        .WithMany("Folios")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Room");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.GuestFolioItem", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.GuestFolio", "Folio")
+                        .WithMany("Items")
+                        .HasForeignKey("FolioId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", "PaymentDetail")
+                        .WithMany()
+                        .HasForeignKey("PaymentDetailId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Folio");
+
+                    b.Navigation("PaymentDetail");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.HairSalonCampaign", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
@@ -12819,13 +19109,56 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("CashRegister");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.KitchenOrder", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Cart", "Cart")
+                        .WithMany()
+                        .HasForeignKey("CartId")
+                        .HasPrincipalKey("Id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.KitchenOrderItem", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.KitchenOrder", "KitchenOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("KitchenOrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("KitchenOrder");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.LicenseReminder", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.LicenseSale", "LicenseSale")
                         .WithMany()
                         .HasForeignKey("LicenseSaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
@@ -12843,7 +19176,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Tenant");
@@ -12892,6 +19225,25 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("CashRegister");
 
                     b.Navigation("DailyClosing");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.MonatsbelegAutoRun", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("Tenant");
                 });
@@ -12953,6 +19305,62 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegration", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.OnlineOrder", null)
+                        .WithMany()
+                        .HasForeignKey("OnlineOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationLocation", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ClaimingUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("DeliveryFeeProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceFeeProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationOAuthToken", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderIntegrationTenantCredential", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderItem", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.OnlineOrder", "OnlineOrder")
@@ -12975,6 +19383,21 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("OnlineOrderItem");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderProductMapping", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OnlineOrderStatusChange", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.OnlineOrder", "OnlineOrder")
@@ -12995,76 +19418,6 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolAssignment", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.TseResourcePool", "Pool")
-                        .WithMany("Assignments")
-                        .HasForeignKey("PoolId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pool");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolRule", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.TseResourcePool", "Pool")
-                        .WithMany("Rules")
-                        .HasForeignKey("PoolId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pool");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.TseDevice", "Device")
-                        .WithMany()
-                        .HasForeignKey("DeviceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Device");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentAction", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.TseIncident", "Incident")
-                        .WithMany("Actions")
-                        .HasForeignKey("IncidentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Incident");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentLog", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.TseIncident", "Incident")
-                        .WithMany("Logs")
-                        .HasForeignKey("IncidentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Incident");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Order", b =>
@@ -13103,8 +19456,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("KasseAPI_Final.Models.OfflineTransaction", "OfflineTransaction")
                         .WithMany()
@@ -13186,6 +19538,15 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Invoice");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.PeppolParticipant", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.PeriodenberichtRun", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
@@ -13216,6 +19577,17 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.Product", "OriginalProduct")
+                        .WithMany()
+                        .HasForeignKey("OriginalProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "TaxGroup")
+                        .WithMany()
+                        .HasForeignKey("TaxGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -13230,6 +19602,36 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("CategoryNavigation");
+
+                    b.Navigation("OriginalProduct");
+
+                    b.Navigation("TaxGroup");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductImei", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany("Imeis")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", "SoldPayment")
+                        .WithMany()
+                        .HasForeignKey("SoldPaymentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SoldPayment");
 
                     b.Navigation("Tenant");
                 });
@@ -13264,6 +19666,87 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("ModifierGroup");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductPriceHistory", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "NewTaxGroup")
+                        .WithMany()
+                        .HasForeignKey("NewTaxGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "OldTaxGroup")
+                        .WithMany()
+                        .HasForeignKey("OldTaxGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NewTaxGroup");
+
+                    b.Navigation("OldTaxGroup");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductPriceVersion", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "TaxGroup")
+                        .WithMany()
+                        .HasForeignKey("TaxGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("TaxGroup");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.ProductVariant", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Receipt", b =>
@@ -13420,6 +19903,50 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Package");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Room", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RoomMinibarItem", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.GuestFolio", "ChargedFolio")
+                        .WithMany()
+                        .HasForeignKey("ChargedFolioId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChargedFolio");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Room");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.SignatureChainState", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
@@ -13479,6 +20006,45 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SubscriptionInvoice", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SupportTicket", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SupportTicketMessage", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.SupportTicket", "Ticket")
+                        .WithMany("Messages")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SystemSettings", b =>
@@ -13548,6 +20114,51 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("CashRegister");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TaxGroup", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "ReplacedByGroup")
+                        .WithMany()
+                        .HasForeignKey("ReplacedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReplacedByGroup");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TaxHistory", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.TaxGroup", "TaxGroup")
+                        .WithMany()
+                        .HasForeignKey("TaxGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("TaxGroup");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Tenant", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.LicenseSale", "CurrentLicenseSale")
@@ -13598,7 +20209,49 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantDeploymentHistory", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantDomain", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantFiskalyCredential", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantLimits", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantOnboardingStatus", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
@@ -13620,6 +20273,14 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantSetting", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TenantSettingsHistory", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
@@ -13631,7 +20292,142 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TenantVerticalOverride", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEventCategoryPrice", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TicketPriceCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.TicketEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketPriceCategory", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketRedemption", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TicketEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", "PaymentDetail")
+                        .WithMany()
+                        .HasForeignKey("PaymentDetailId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.TicketSeat", "Seat")
+                        .WithMany()
+                        .HasForeignKey("SeatId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("PaymentDetail");
+
+                    b.Navigation("Seat");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketSeat", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TicketPriceCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.TicketSeat", "CompanionOfSeat")
+                        .WithMany()
+                        .HasForeignKey("CompanionOfSeatId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.TicketEvent", "Event")
+                        .WithMany("Seats")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Category");
+
+                    b.Navigation("CompanionOfSeat");
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseAnomaly", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseDevice", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseBackupRecord", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseBlockchainRecord", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
@@ -13684,6 +20480,28 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TseDrRunbook", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseDrStep", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseDrRunbook", "Runbook")
+                        .WithMany("Steps")
+                        .HasForeignKey("RunbookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Runbook");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseFailoverLog", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.TseDevice", "BackupDevice")
@@ -13717,6 +20535,172 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TseGatewayEndpoint", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseGatewayConfig", "Config")
+                        .WithMany("Endpoints")
+                        .HasForeignKey("ConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Config");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingConfiguration", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingHistoryEntry", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseDevice", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingRule", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseHealingConfiguration", "Configuration")
+                        .WithMany("Rules")
+                        .HasForeignKey("ConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Configuration");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseDevice", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentAction", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseIncident", "Incident")
+                        .WithMany("Actions")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Incident");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncidentLog", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseIncident", "Incident")
+                        .WithMany("Logs")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Incident");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseKnowledgeFeedback", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseKnowledgeArticle", "Article")
+                        .WithMany("Feedback")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseRecommendation", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolAssignment", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseResourcePool", "Pool")
+                        .WithMany("Assignments")
+                        .HasForeignKey("PoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pool");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePoolRule", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseResourcePool", "Pool")
+                        .WithMany("Rules")
+                        .HasForeignKey("PoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pool");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseScalingHistoryEntry", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseScalingPolicy", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseSignature", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
@@ -13740,6 +20724,50 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("TseDevice");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseUpdateHistoryEntry", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseUpdateState", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseWebhookDelivery", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.TseWebhookRegistration", "Webhook")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("WebhookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Webhook");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseWebhookRegistration", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.UserPermissionOverride", b =>
@@ -13975,9 +21003,19 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Orders");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.GuestFolio", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryItem", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.KitchenOrder", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.MaintenanceNotification", b =>
@@ -14011,7 +21049,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
                 {
+                    b.Navigation("Imeis");
+
                     b.Navigation("ModifierGroupAssignments");
+
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ProductModifierGroup", b =>
@@ -14033,9 +21075,19 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Room", b =>
+                {
+                    b.Navigation("Folios");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.SplitSession", b =>
                 {
                     b.Navigation("SplitItems");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SupportTicket", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrder", b =>
@@ -14048,9 +21100,41 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Modifiers");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TicketEvent", b =>
+                {
+                    b.Navigation("Seats");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>
                 {
                     b.Navigation("BackupDevices");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseDrRunbook", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseGatewayConfig", b =>
+                {
+                    b.Navigation("Endpoints");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseHealingConfiguration", b =>
+                {
+                    b.Navigation("Rules");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
+                {
+                    b.Navigation("Actions");
+
+                    b.Navigation("Logs");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TseKnowledgeArticle", b =>
+                {
+                    b.Navigation("Feedback");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseResourcePool", b =>
@@ -14060,11 +21144,9 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Rules");
                 });
 
-            modelBuilder.Entity("KasseAPI_Final.Models.TseIncident", b =>
+            modelBuilder.Entity("KasseAPI_Final.Models.TseWebhookRegistration", b =>
                 {
-                    b.Navigation("Actions");
-
-                    b.Navigation("Logs");
+                    b.Navigation("Deliveries");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Voucher", b =>

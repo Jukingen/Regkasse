@@ -42,20 +42,29 @@ public static class LicenseEnforcementPolicy
     }
 
     /// <summary>
-    /// Resolves the NonFiscalPending queue cap for a cash register.
-    /// Development/Demo hosts use <see cref="MaxOfflineTransactionsUnlimited"/>; production uses configured TSE options (default 50).
+    /// When true, skip <c>tenant_limits.max_offline_transactions</c> (Development / Demo / license-disabled).
     /// </summary>
+    public static bool ShouldSkipOfflineQueueCaps(
+        IHostEnvironment? environment,
+        TseOptions? tseOptions = null,
+        IDevelopmentModeService? developmentMode = null,
+        LicenseOptions? licenseOptions = null) =>
+        ShouldDisableEnforcement(environment, tseOptions, developmentMode, licenseOptions);
+
+    /// <summary>
+    /// Obsolete: queue size lives on <c>tenant_limits</c>. Returns unlimited when enforcement is skipped,
+    /// otherwise the production default (50) for leftover monitoring callers.
+    /// </summary>
+    [Obsolete("Use ITenantLimitService / TenantLimitGuard.EnsureCanQueueOfflineTransactionAsync.")]
     public static int GetMaxOfflineTransactionsPerCashRegister(
         IHostEnvironment? environment,
         TseOptions? tseOptions = null,
         IDevelopmentModeService? developmentMode = null,
         LicenseOptions? licenseOptions = null)
     {
-        if (ShouldDisableEnforcement(environment, tseOptions, developmentMode, licenseOptions))
+        if (ShouldSkipOfflineQueueCaps(environment, tseOptions, developmentMode, licenseOptions))
             return MaxOfflineTransactionsUnlimited;
 
-        var configured = tseOptions?.MaxOfflineTransactionsPerCashRegister
-                         ?? MaxOfflineTransactionsProductionDefault;
-        return Math.Clamp(configured, 1, 10_000);
+        return MaxOfflineTransactionsProductionDefault;
     }
 }

@@ -26,7 +26,7 @@ public class RksvMonatsbelegServiceTests
             .Options;
         return new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -71,7 +71,7 @@ public class RksvMonatsbelegServiceTests
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<IReceiptSequenceService> Seq)> SeedAsync(AppDbContext context)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -83,7 +83,7 @@ public class RksvMonatsbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -175,20 +175,36 @@ public class RksvMonatsbelegServiceTests
         var (regId, service, _) = await SeedAsync(context);
         var (y, m) = GetPreviousViennaMonth();
         var req = new CreateMonatsbelegRequest { CashRegisterId = regId, Year = y, Month = m };
-        await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
+        var first = await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
 
-        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
-            service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true));
         if (m == 12)
         {
+            var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
+                service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true));
             Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
             Assert.Contains("Jahresbeleg", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
         }
-        else
-        {
-            Assert.Equal(RksvGuardErrorCodes.DuplicateMonatsbeleg, ex.ErrorCode);
-            Assert.Contains("Monatsbeleg already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
-        }
+
+        var second = await service.CreateMonatsbelegAsync(req, "u1", forcePastMonth: true);
+        Assert.True(second.Reissued);
+        Assert.Equal(first.PaymentId, second.SupersededPaymentId);
+        Assert.NotEqual(first.PaymentId, second.PaymentId);
+        Assert.NotEqual(first.ReceiptNumber, second.ReceiptNumber);
+
+        var rows = await context.PaymentDetails
+            .Where(p => p.CashRegisterId == regId &&
+                        p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg)
+            .ToListAsync();
+        Assert.Equal(2, rows.Count);
+        Assert.Single(rows, p => p.IsActive);
+        var prior = Assert.Single(rows, p => p.Id == first.PaymentId);
+        Assert.False(prior.IsActive);
+        Assert.Equal(first.ReceiptNumber, prior.ReceiptNumber);
+        Assert.False(string.IsNullOrWhiteSpace(prior.TseSignature));
+        var current = Assert.Single(rows, p => p.Id == second.PaymentId);
+        Assert.True(current.IsActive);
+        Assert.False(string.IsNullOrWhiteSpace(current.TseSignature));
     }
 
     [Fact]
@@ -278,7 +294,7 @@ public class RksvMonatsbelegServiceTests
     public async Task GetStaffPerformanceAsync_ExcludesMonatsbelegFromRowCount()
     {
         await using var context = CreateContext();
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         context.Customers.Add(new Customer
         {
             Id = WalkInCustomerConstants.GuestCustomerId,
@@ -290,7 +306,7 @@ public class RksvMonatsbelegServiceTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = regId,
             RegisterNumber = "R1",
             Location = "L",

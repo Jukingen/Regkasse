@@ -1,0 +1,9 @@
+{
+  "limit": {
+    "used": "{{current}} of {{limit}} offline transactions used",
+    "title": "Offline limit reached",
+    "body": "Offline limit reached. Sales blocked until synchronization is complete.",
+    "retryNow": "Retry sync now",
+    "cancel": "Cancel"
+  }
+}

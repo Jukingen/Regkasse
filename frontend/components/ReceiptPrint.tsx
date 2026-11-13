@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
-import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { RECEIPT_FONT_FAMILY } from '../constants/fonts';
+import {
+  DEFAULT_THANK_YOU_MESSAGE,
+  RECEIPT_SEP_DOUBLE,
+  RECEIPT_SEP_SINGLE,
+  formatPaymentMethodLabel,
+  formatTseSignatureDisplay,
+} from '../services/receiptFormatter';
 import { Invoice, InvoiceItem } from '../types/invoice';
 import { formatUserDate, formatUserTime } from '../utils/dateFormatter';
 
@@ -12,125 +18,185 @@ interface ReceiptPrintProps {
   isPreview?: boolean;
 }
 
+function formatMoney(value: number | undefined | null): string {
+  if (value == null || Number.isNaN(Number(value))) return '0,00';
+  return Number(value).toFixed(2).replace('.', ',');
+}
+
+function buildMwstRows(invoice: Invoice, items: InvoiceItem[]) {
+  const summary = invoice.taxSummary;
+  const fromSummary = [
+    {
+      rate: 20,
+      net: summary.standardTaxBase,
+      tax: summary.standardTaxAmount,
+      gross: summary.standardTaxBase + summary.standardTaxAmount,
+    },
+    {
+      rate: 13,
+      net: summary.specialTaxBase,
+      tax: summary.specialTaxAmount,
+      gross: summary.specialTaxBase + summary.specialTaxAmount,
+    },
+    {
+      rate: 10,
+      net: summary.reducedTaxBase,
+      tax: summary.reducedTaxAmount,
+      gross: summary.reducedTaxBase + summary.reducedTaxAmount,
+    },
+  ].filter((row) => row.net !== 0 || row.tax !== 0 || row.gross !== 0);
+
+  if (fromSummary.length > 0) return fromSummary;
+
+  const grouped = new Map<number, { net: number; tax: number; gross: number }>();
+  for (const item of items) {
+    const rate = Number(item.taxType) || 0;
+    const current = grouped.get(rate) ?? { net: 0, tax: 0, gross: 0 };
+    const gross = item.totalAmount ?? 0;
+    const tax = item.taxAmount ?? 0;
+    current.gross += gross;
+    current.tax += tax;
+    current.net += gross - tax;
+    grouped.set(rate, current);
+  }
+
+  return [...grouped.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([rate, row]) => ({ rate, ...row }));
+}
+
 const ReceiptPrint: React.FC<ReceiptPrintProps> = ({ invoice, items, isPreview = true }) => {
-  const formatDate = (date: Date) => formatUserDate(date);
-
-  const formatTime = (date: Date) => formatUserTime(date, { includeSeconds: true });
-
-  const calculateTaxAmount = (items: InvoiceItem[], taxType: number) => {
-    return items
-      .filter((item) => item.taxType === taxType)
-      .reduce((sum, item) => sum + item.taxAmount, 0);
-  };
-
-  const standardTaxItems = items.filter((item) => item.taxType === 20);
-  const reducedTaxItems = items.filter((item) => item.taxType === 10);
-  const specialTaxItems = items.filter((item) => item.taxType === 13);
-
-  const standardTaxAmount = calculateTaxAmount(items, 20);
-  const reducedTaxAmount = calculateTaxAmount(items, 10);
-  const specialTaxAmount = calculateTaxAmount(items, 13);
-
+  const brutto = invoice.taxSummary.totalAmount ?? 0;
+  const mwst = invoice.taxSummary.totalTaxAmount ?? 0;
+  const netto = brutto - mwst;
+  const mwstRows = useMemo(() => buildMwstRows(invoice, items), [invoice, items]);
+  const paymentMethod = formatPaymentMethodLabel(
+    invoice.paymentDetails?.paymentMethod || invoice.paymentMethod
+  );
+  const paymentAmount = invoice.paymentDetails?.amount ?? brutto;
+  const given = invoice.paymentDetails?.cashAmount;
+  const change = invoice.paymentDetails?.changeAmount;
+  const thankYou =
+    invoice.thankYouMessage?.trim() ||
+    invoice.footerText?.trim() ||
+    DEFAULT_THANK_YOU_MESSAGE;
+  const companyDescription = invoice.companyDescription?.trim();
+  const showCompanyDescription =
+    !!companyDescription && companyDescription !== thankYou;
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, !isPreview && styles.printContainer]}
+      showsVerticalScrollIndicator={false}>
       <View style={styles.receipt}>
-        {/* Header */}
+        <Text style={styles.sep}>{RECEIPT_SEP_DOUBLE}</Text>
         <View style={styles.header}>
           <Text style={styles.companyName}>{invoice.customerDetails?.companyName || ''}</Text>
           <Text style={styles.address}>{invoice.customerDetails?.address || ''}</Text>
-          <Text style={styles.taxNumber}>
-            {invoice.customerDetails?.taxNumber ? `UID: ${invoice.customerDetails.taxNumber}` : ''}
-          </Text>
+          {invoice.customerDetails?.taxNumber ? (
+            <Text style={styles.taxNumber}>UID: {invoice.customerDetails.taxNumber}</Text>
+          ) : null}
         </View>
+        <Text style={styles.sep}>{RECEIPT_SEP_DOUBLE}</Text>
 
-        <View style={styles.separator} />
-
-        {/* Receipt Info */}
-        <View style={styles.receiptInfo}>
-          <Text style={styles.receiptTitle}>KASSA BELEG</Text>
-          <Text style={styles.receiptNumber}>Beleg-Nr: {invoice.receiptNumber}</Text>
-          <Text style={styles.receiptDate}>
+        <View style={styles.metaBlock}>
+          <Text style={styles.metaText}>Beleg: {invoice.receiptNumber}</Text>
+          <Text style={styles.metaText}>
             Datum:{' '}
             {invoice.createdAt
-              ? formatDate(new Date(invoice.createdAt))
+              ? `${formatUserDate(new Date(invoice.createdAt))} ${formatUserTime(new Date(invoice.createdAt), { includeSeconds: true })}`
               : formatUserDate(new Date())}
           </Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              Kasse: {invoice.kasseId || 'N/A'} | Kassierer: {invoice.cashierName || 'N/A'}
-            </Text>
+          {invoice.branchName ? (
+            <Text style={styles.metaText}>Filiale: {invoice.branchName}</Text>
+          ) : null}
+          <Text style={styles.metaText}>Kassen-ID: {invoice.kasseId || 'N/A'}</Text>
+          {invoice.terminalNumber ? (
+            <Text style={styles.metaText}>Terminal: {invoice.terminalNumber}</Text>
+          ) : null}
+          <Text style={styles.metaText}>Kassierer: {invoice.cashierName || 'N/A'}</Text>
+        </View>
+
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.cellName, styles.bold]}>Artikel</Text>
+          <Text style={[styles.cellQty, styles.bold]}>Menge</Text>
+          <Text style={[styles.cellNum, styles.bold]}>Einh.</Text>
+          <Text style={[styles.cellNum, styles.bold]}>Betrag</Text>
+        </View>
+        {items.map((item, index) => (
+          <View key={item.id || index} style={styles.tableRow}>
+            <Text style={styles.cellName}>{item.productName}</Text>
+            <Text style={styles.cellQty}>{item.quantity}</Text>
+            <Text style={styles.cellNum}>{formatMoney(item.unitPrice)}</Text>
+            <Text style={styles.cellNum}>{formatMoney(item.totalAmount)}</Text>
           </View>
+        ))}
+
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Netto:</Text>
+          <Text style={styles.summaryValue}>{formatMoney(netto)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>MwSt:</Text>
+          <Text style={styles.summaryValue}>{formatMoney(mwst)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, styles.bold]}>SUMME / Brutto:</Text>
+          <Text style={[styles.summaryValue, styles.bold]}>EUR {formatMoney(brutto)}</Text>
         </View>
 
-        <View style={styles.separator} />
-
-        {/* Items */}
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>ARTIKEL</Text>
-          {items.map((item, index) => (
-            <View key={index} style={styles.itemRow}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.productName}</Text>
-                <Text style={styles.itemDetails}>
-                  {item.quantity} x €{item.unitPrice.toFixed(2)}
-                </Text>
-              </View>
-              <Text style={styles.itemTotal}>€{item.totalAmount.toFixed(2)}</Text>
-            </View>
-          ))}
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.cellMwst, styles.bold]}>MwSt%</Text>
+          <Text style={[styles.cellMwst, styles.bold]}>Netto</Text>
+          <Text style={[styles.cellMwst, styles.bold]}>MwSt</Text>
+          <Text style={[styles.cellMwst, styles.bold]}>Brutto</Text>
         </View>
-
-        <View style={styles.separator} />
-
-        {/* Tax Summary */}
-        <View style={styles.taxSection}>
-          <Text style={styles.sectionTitle}>STEUERÜBERSICHT</Text>
-          {/* Fallback tax display if breakdown not available */}
-          <View style={styles.taxRow}>
-            <Text style={styles.taxLabel}>Steuer Gesamt:</Text>
-            <Text style={styles.taxAmount}>
-              €{invoice.taxSummary.totalTaxAmount?.toFixed(2) || '0.00'}
-            </Text>
+        {mwstRows.map((row) => (
+          <View key={row.rate} style={styles.tableRow}>
+            <Text style={styles.cellMwst}>{formatMoney(row.rate)}%</Text>
+            <Text style={styles.cellMwst}>{formatMoney(row.net)}</Text>
+            <Text style={styles.cellMwst}>{formatMoney(row.tax)}</Text>
+            <Text style={styles.cellMwst}>{formatMoney(row.gross)}</Text>
           </View>
+        ))}
+
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>{paymentMethod}:</Text>
+          <Text style={styles.summaryValue}>{formatMoney(paymentAmount)}</Text>
         </View>
-
-        <View style={styles.separator} />
-
-        {/* Total */}
-        <View style={styles.totalSection}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>GESAMT:</Text>
-            <Text style={styles.totalAmount}>€{invoice.taxSummary.totalAmount.toFixed(2)}</Text>
+        {given != null ? (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Gegeben:</Text>
+            <Text style={styles.summaryValue}>{formatMoney(given)}</Text>
           </View>
-        </View>
+        ) : null}
+        {change != null ? (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Rückgeld:</Text>
+            <Text style={styles.summaryValue}>{formatMoney(change)}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.separator} />
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <Text style={styles.sectionTitle}>Registrierkassensicherheitsverordnung</Text>
+        <Text style={styles.tseInfo}>TSE-Seriennummer: {invoice.tseSerialNumber || '—'}</Text>
+        <Text style={styles.tseInfo}>{formatTseSignatureDisplay(invoice.tseSignature)}</Text>
+        <Text style={styles.tseInfo}>
+          TSE-Zeitstempel:{' '}
+          {invoice.tseTime
+            ? `${formatUserDate(new Date(invoice.tseTime))} ${formatUserTime(new Date(invoice.tseTime), { includeSeconds: true })}`
+            : '—'}
+        </Text>
 
-        {/* TSE Information */}
-        <View style={styles.tseSection}>
-          <Text style={styles.sectionTitle}>TSE INFORMATIONEN</Text>
-          <Text style={styles.tseInfo}>TSE-Seriennummer: {invoice.tseSerialNumber}</Text>
-          <Text style={styles.tseInfo}>TSE-Signatur: {invoice.tseSignature}</Text>
-          <Text style={styles.tseInfo}>
-            TSE-Zeitstempel:{' '}
-            {invoice.tseTime
-              ? formatDate(new Date(invoice.tseTime)) + ' ' + formatTime(new Date(invoice.tseTime))
-              : '-'}
-          </Text>
-          <Text style={styles.tseInfo}>TSE-Prozessart: {invoice.tseProcessType}</Text>
-        </View>
-
-        <View style={styles.separator} />
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {(invoice as any).footerText || 'Vielen Dank für Ihren Einkauf!'}
-          </Text>
-          <Text style={styles.footerText}>Bitte bewahren Sie diesen Beleg auf.</Text>
-        </View>
-
-        <View style={styles.separator} />
+        <Text style={styles.sep}>{RECEIPT_SEP_SINGLE}</Text>
+        <Text style={styles.footerText}>{thankYou}</Text>
+        {showCompanyDescription ? (
+          <Text style={styles.footerText}>{companyDescription}</Text>
+        ) : null}
+        <Text style={styles.sep}>{RECEIPT_SEP_DOUBLE}</Text>
       </View>
     </ScrollView>
   );
@@ -139,167 +205,121 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({ invoice, items, isPreview =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#f4f4f4',
+  },
+  printContainer: {
+    backgroundColor: '#fff',
   },
   receipt: {
-    padding: Spacing.md,
-    backgroundColor: 'white',
-    margin: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    margin: 8,
+  },
+  sep: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 11,
+    textAlign: 'center',
+    marginVertical: 6,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.sm,
   },
   companyName: {
     fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   address: {
     fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
   },
   taxNumber: {
     fontFamily: RECEIPT_FONT_FAMILY,
     fontSize: 12,
     textAlign: 'center',
+    marginTop: 2,
   },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.light.border,
-    marginVertical: Spacing.sm,
-  },
-  receiptInfo: {
-    marginBottom: Spacing.sm,
-  },
-  receiptTitle: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  receiptNumber: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 12,
-    marginBottom: Spacing.xs,
-  },
-  receiptDate: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 12,
-    marginBottom: Spacing.xs,
-  },
-  receiptTime: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: Spacing.xs,
+  metaBlock: {
+    marginBottom: 2,
   },
   metaText: {
     fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 10,
-    color: Colors.light.textSecondary,
+    fontSize: 12,
+    marginBottom: 1,
   },
-  itemsSection: {
-    marginBottom: Spacing.sm,
+  tableHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 4,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 3,
+  },
+  cellName: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 11,
+    flex: 1.6,
+    paddingRight: 4,
+  },
+  cellQty: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 11,
+    width: 40,
+    textAlign: 'center',
+  },
+  cellNum: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 11,
+    width: 56,
+    textAlign: 'right',
+  },
+  cellMwst: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 11,
+    flex: 1,
+    textAlign: 'right',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 12,
+  },
+  summaryValue: {
+    fontFamily: RECEIPT_FONT_FAMILY,
+    fontSize: 12,
+    textAlign: 'right',
+    minWidth: 72,
   },
   sectionTitle: {
     fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: Spacing.xs,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.xs,
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  itemDetails: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 10,
-    color: Colors.light.textSecondary,
-  },
-  itemTotal: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  taxSection: {
-    marginBottom: Spacing.sm,
-  },
-  taxRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
-  taxLabel: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 11,
-  },
-  taxAmount: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  totalSection: {
-    marginBottom: Spacing.sm,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  totalAmount: {
-    fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  tseSection: {
-    marginBottom: Spacing.sm,
+    marginBottom: 4,
   },
   tseInfo: {
     fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 10,
-    marginBottom: Spacing.xs,
-  },
-  footer: {
-    alignItems: 'center',
+    fontSize: 9,
+    lineHeight: 13,
+    marginBottom: 4,
   },
   footerText: {
     fontFamily: RECEIPT_FONT_FAMILY,
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
+    marginVertical: 4,
+  },
+  bold: {
+    fontWeight: 'bold',
   },
 });
 

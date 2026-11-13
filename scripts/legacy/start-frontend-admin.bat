@@ -31,16 +31,29 @@ echo ========================================
 echo.
 echo Project path: %PROJECT_PATH%
 echo Log file: %LOG_FILE%
-echo.
+echo Dev mode: webpack ^(cpus=2, heap=4096, avoids Turbopack monorepo RAM leak^)
 echo ========================================
 echo.
+
+REM Only leaked Turbopack workers — do not kill a live POS / Expo session.
+echo [1/2] Cleanup leaked .next/dev/build workers ^(orphans-only^)...
+echo %date% %time% - Cleanup orphans-only Next workers... >> "%LOG_FILE%"
+pushd "%REPO_ROOT%"
+call npm run dev:cleanup:orphans
+popd
+
+REM Next.js 16 webpack persists its filesystem cache under .next\dev.
+REM Do not delete it on every start — that forces a full recompile and HMR
+REM chunk timeouts ("network errors"). Use `npm run dev:clean` when needed.
 
 if not exist "node_modules" (
     echo [WARN] node_modules not found!
     echo %date% %time% - WARNING: node_modules not found >> "%LOG_FILE%"
 )
 
-echo %date% %time% - Starting admin... >> "%LOG_FILE%"
+echo [2/2] Starting admin ^(next dev --webpack^)...
+echo %date% %time% - Starting admin (webpack)... >> "%LOG_FILE%"
+set "NODE_OPTIONS=--max-old-space-size=4096"
 npm run dev >> "%LOG_FILE%" 2>&1
 
 if %errorlevel% neq 0 (

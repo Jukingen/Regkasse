@@ -1,4 +1,11 @@
 {
+  "emptyDayWarning": "Keine Transaktionen für diesen Tag gefunden. Möchten Sie einen leeren Tagesabschluss erstellen?",
+  "emptyDayConfirm": "Keine Transaktionen für diesen Tag gefunden. Möchten Sie einen leeren Tagesabschluss erstellen?",
+  "emptyDaySuccess": "Leerer Tagesabschluss erstellt. Keine Transaktionen.",
+  "normalDaySuccess": "Tagesabschluss erfolgreich erstellt. {{count}} Transaktionen.",
+  "type": "Typ",
+  "typeNormal": "Normal",
+  "typeEmpty": "Leer (0 Transaktionen)",
   "page": {
     "intro": "Operativer Kassenabschluss (TSE/RKSV): Prüfung ausführen und Abschluss auslösen. Den formalen Tagesbericht (Dokument, Finalisierung, FinanzOnline) finden Sie unter „Formaler Tagesbericht“."
   },
@@ -44,8 +51,24 @@
     "lastMonthlyClosing": "Letzter Monatsabschluss",
     "lastYearlyClosing": "Letzter Jahresabschluss",
     "paymentsWithoutInvoice": "Zahlungen ohne Rechnung (gewählter Tag)",
+    "transactionCount": "Transaktionen (gewählter Tag)",
     "hint": "Hinweis",
     "backendHint": "Hinweis vom Server (Sprache nicht garantiert)"
+  },
+  "autoClose": {
+    "title": "Automatischer Tagesabschluss",
+    "intro": "Wenn der Kassierer den Tagesabschluss nicht bis zur konfigurierten Uhrzeit (Europe/Vienna) durchführt und an diesem Tag Transaktionen vorliegen, erstellt das System einen TSE-signierten Fallback für den vorherigen Geschäftstag.",
+    "enabled": "Automatischen Fallback aktivieren",
+    "hour": "Stunde (Wien)",
+    "minute": "Minute",
+    "openOrdersPolicy": "Offene Tische / Bestellungen",
+    "openOrdersForce": "Mit Warnung schließen (Standard)",
+    "openOrdersNotify": "Benachrichtigen und trotzdem schließen",
+    "openOrdersBlock": "Blockieren, bis Tische geschlossen sind",
+    "promptCashCount": "POS-Hinweis „Kasse zählen“ vor dem Fallback",
+    "save": "Einstellungen speichern",
+    "saveSuccess": "Automatischer Tagesabschluss gespeichert.",
+    "saveError": "Einstellungen konnten nicht gespeichert werden."
   },
   "backdated": {
     "dateLabel": "Abschlussdatum",
@@ -102,6 +125,9 @@
     "colDate": "Datum",
     "colCreatedAt": "Erstellt am",
     "colType": "Typ",
+    "filterAll": "Alle",
+    "filterNormal": "Normal",
+    "filterEmpty": "Leer",
     "colLateReason": "Grund (nachträglich)",
     "colGross": "Brutto",
     "colTax": "Steuer",
@@ -109,6 +135,12 @@
     "colStatus": "Status",
     "colFinanzOnline": "FinanzOnline",
     "colPdf": "PDF",
+    "colFiskaly": "Fiskaly",
+    "colTrigger": "Auslöser",
+    "filterAutomatic": "Automatisch",
+    "filterManual": "Manuell",
+    "triggerAutomatic": "System",
+    "triggerManual": "Benutzer",
     "closingTypes": {
       "Daily": "Täglich",
       "Monthly": "Monatlich",
@@ -128,6 +160,8 @@
   },
   "messages": {
     "successDaily": "Tagesabschluss (täglich) ausgeführt.",
+    "successDailyEmpty": "Leerer Tagesabschluss erstellt. Keine Transaktionen.",
+    "successDailyNormal": "Tagesabschluss erfolgreich erstellt. {{count}} Transaktionen.",
     "successDailyBackdated": "Nachträglicher Tagesabschluss für {{date}} ausgeführt.",
     "successMonthly": "Monatsabschluss ausgeführt.",
     "successYearly": "Jahresabschluss ausgeführt.",
@@ -141,6 +175,21 @@
     "warningYearlyAlreadyClosed": "Jahresabschluss für {{dateTime}} bereits durchgeführt.",
     "pdfUnavailable": "Für diesen Eintrag ist kein PDF verfügbar.",
     "pdfAutoDownloadFailed": "Abschluss erfolgreich, aber PDF konnte nicht heruntergeladen werden."
+  },
+  "fiskaly": {
+    "colStatus": "Fiskaly",
+    "send": "An Fiskaly senden",
+    "sendSuccess": "Tagesabschluss an Fiskaly übermittelt.",
+    "sendFailed": "Übermittlung an Fiskaly fehlgeschlagen.",
+    "notSent": "Noch nicht gesendet",
+    "receiptId": "Fiskaly-Beleg-ID",
+    "hint": "SIGN AT hat keinen eigenen Tagesabschluss-Typ. Der Abschluss wird als 0,00-€-Beleg mit dem Text „Tagesabschluss“ übermittelt. Die lokale TSE-Signatur bleibt unverändert.",
+    "status": {
+      "Submitted": "Übermittelt",
+      "Failed": "Fehlgeschlagen",
+      "Pending": "Ausstehend",
+      "Skipped": "Übersprungen"
+    }
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
@@ -156,6 +205,65 @@
     "registerUnavailable": "Kasse ist für den Tagesabschluss nicht verfügbar (fehlt oder außer Betrieb).",
     "tseNotConnected": "TSE ist nicht verbunden. Tagesabschluss kann nicht durchgeführt werden.",
     "tenantContextRequired": "Mandantenkontext fehlt. Bitte zuerst einen Mandanten wählen.",
-    "noRegister": "Keine Kasse für diesen Mandanten gefunden."
+    "noRegister": "Keine Kasse für diesen Mandanten gefunden.",
+    "loadCalendarTitle": "Kalender konnte nicht geladen werden"
+  },
+  "calendar": {
+    "viewCalendar": "Kalender",
+    "viewList": "Liste",
+    "prevMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
+    "gridLabel": "Tagesabschluss-Kalender {{month}}",
+    "loadErrorTitle": "Kalender konnte nicht geladen werden",
+    "txCount": "{{count}} Transaktionen",
+    "summaryTotal": "Tage im Monat",
+    "summaryClosed": "Geschlossen",
+    "summaryOpen": "Offen",
+    "summaryNoTx": "Ohne Transaktionen",
+    "summaryEmpty": "Leere Abschlüsse",
+    "bulkClose": "Alle offenen Tage schließen",
+    "bulkCloseConfirmTitle": "Offene Tage schließen?",
+    "bulkCloseConfirm": "{{count}} offene Tage werden nacheinander geschlossen. Vergangene Tage gelten als nachträglich (TSE/RKSV).",
+    "bulkCloseSuccess": "{{done}} von {{total}} Tagen geschlossen.",
+    "bulkClosePartial": "{{done}} von {{total}} Tagen geschlossen. {{failed}} fehlgeschlagen.",
+    "bulkCloseNone": "Keine offenen Tage in diesem Monat.",
+    "exportMonth": "Monat exportieren",
+    "detailsTitle": "Tagesabschluss {{date}}",
+    "weekdays": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "legend": {
+      "closed": "Geschlossen (normal)",
+      "empty": "Geschlossen (leer)",
+      "open": "Offen",
+      "noTransactions": "Keine Transaktionen",
+      "future": "Zukunft",
+      "today": "Heute"
+    },
+    "tooltip": {
+      "closed": "Geschlossen - {{count}} Transaktionen",
+      "empty": "Leer (0 Transaktionen)",
+      "open": "Offen - {{count}} Transaktionen ausstehend",
+      "noTransactions": "Keine Transaktionen - Leerer Abschluss möglich",
+      "future": "Zukünftiges Datum",
+      "today": "Heute"
+    },
+    "menu": {
+      "close": "Abschließen",
+      "details": "Details anzeigen",
+      "export": "Zusammenfassung exportieren"
+    },
+    "csv": {
+      "date": "Datum",
+      "status": "Status",
+      "transactionCount": "Transaktionen",
+      "canClose": "Schließbar"
+    }
   }
 }

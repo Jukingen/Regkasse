@@ -5,6 +5,7 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,8 @@ public class ReportPdfController : ControllerBase
     private readonly IReportPdfCaptureService _capture;
     private readonly IDailyClosingReportService _closingReportService;
     private readonly IReceiptPdfService _receiptPdfService;
+    private readonly ITagesberichtService _tagesberichtService;
+    private readonly IJahresberichtService _jahresberichtService;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentTenantAccessor _tenantAccessor;
 
@@ -36,6 +39,8 @@ public class ReportPdfController : ControllerBase
         IReportPdfCaptureService capture,
         IDailyClosingReportService closingReportService,
         IReceiptPdfService receiptPdfService,
+        ITagesberichtService tagesberichtService,
+        IJahresberichtService jahresberichtService,
         IAuditLogService auditLogService,
         ICurrentTenantAccessor tenantAccessor)
     {
@@ -45,6 +50,8 @@ public class ReportPdfController : ControllerBase
         _capture = capture;
         _closingReportService = closingReportService;
         _receiptPdfService = receiptPdfService;
+        _tagesberichtService = tagesberichtService;
+        _jahresberichtService = jahresberichtService;
         _auditLogService = auditLogService;
         _tenantAccessor = tenantAccessor;
     }
@@ -75,6 +82,37 @@ public class ReportPdfController : ControllerBase
 
         var normalizedType = ReportPdfTypes.Normalize(reportType);
         var normalizedLanguage = DailyClosingReportTemplates.NormalizeLanguage(language ?? "de");
+
+        if (normalizedType is ReportPdfTypes.Monatsbeleg or ReportPdfTypes.Jahresbeleg)
+        {
+            var liveSpecial = await TryGenerateSpecialReceiptPdfAsync(normalizedType, reportId, cancellationToken)
+                .ConfigureAwait(false);
+            if (liveSpecial is { Length: > 0 })
+            {
+                await LogDownloadAuditAsync(normalizedType, reportId, normalizedLanguage, cancellationToken)
+                    .ConfigureAwait(false);
+                var specialFileName = await _storage.ResolveDownloadFileNameAsync(
+                        normalizedType,
+                        reportId,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return File(liveSpecial, "application/pdf", specialFileName);
+            }
+        }
+
+        if (normalizedType is ReportPdfTypes.Tagesbericht or ReportPdfTypes.Jahresbericht)
+        {
+            var generated = normalizedType == ReportPdfTypes.Tagesbericht
+                ? await TryGenerateTagesberichtPdfAsync(reportId, cancellationToken).ConfigureAwait(false)
+                : await TryGenerateJahresberichtPdfAsync(reportId, cancellationToken).ConfigureAwait(false);
+            if (generated is null or { Length: 0 })
+                return NotFound(new { message = "PDF not found" });
+
+            await LogDownloadAuditAsync(normalizedType, reportId, normalizedLanguage, cancellationToken)
+                .ConfigureAwait(false);
+            var periodFileName = ReportPdfStorageService.BuildDownloadFileName(normalizedType, reportId);
+            return File(generated, "application/pdf", periodFileName);
+        }
 
         if (!await VerifyTenantAccessAsync(normalizedType, reportId, cancellationToken).ConfigureAwait(false))
             return NotFound();
@@ -243,6 +281,105 @@ public class ReportPdfController : ControllerBase
                 p => p.ReportType == normalizedType && p.ReportId == reportId,
                 cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private async Task<byte[]?> TryGenerateSpecialReceiptPdfAsync(
+        string normalizedType,
+        Guid reportId,
+        CancellationToken cancellationToken)
+    {
+        if (!await VerifyTenantAccessAsync(normalizedType, reportId, cancellationToken).ConfigureAwait(false))
+            return null;
+
+        var kind = await _db.PaymentDetails.AsNoTracking()
+            .Where(p => p.Id == reportId && p.IsActive)
+            .Select(p => p.RksvSpecialReceiptKind)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var expectedKind = normalizedType == ReportPdfTypes.Monatsbeleg
+            ? RksvSpecialReceiptKinds.Monatsbeleg
+            : RksvSpecialReceiptKinds.Jahresbeleg;
+        if (!string.Equals(kind, expectedKind, StringComparison.Ordinal))
+            return null;
+
+        try
+        {
+            return await _receiptPdfService.GeneratePdfAsync(
+                    reportId,
+                    includeReprintWatermark: false,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (KeyNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<byte[]?> TryGenerateTagesberichtPdfAsync(Guid reportId, CancellationToken cancellationToken)
+    {
+        var report = await _tagesberichtService.GetByIdAsync(reportId, cancellationToken).ConfigureAwait(false);
+        if (report is null)
+            return null;
+
+        var registerVisible = await _db.CashRegisters.AsNoTracking()
+            .AnyAsync(r => r.Id == report.CashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!registerVisible)
+            return null;
+
+        var viennaDay = report.Summary.ViennaBusinessDate != default
+            ? report.Summary.ViennaBusinessDate
+            : report.ViennaBusinessDate;
+        var (fromUtc, toUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaDay);
+        var sales = await PeriodSalesSummaryAggregator.AggregateAsync(
+                _db,
+                report.CashRegisterId,
+                fromUtc,
+                toUtc,
+                PeriodSalesSummaryAggregator.DayLabel(viennaDay),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return TagesberichtPdfGenerator.Generate(
+            report.Id.ToString("N"),
+            report.RegisterNumber ?? report.Summary.RegisterNumber,
+            sales);
+    }
+
+    private async Task<byte[]?> TryGenerateJahresberichtPdfAsync(Guid reportId, CancellationToken cancellationToken)
+    {
+        var report = await _jahresberichtService.GetByIdAsync(reportId, cancellationToken).ConfigureAwait(false);
+        if (report is null)
+            return null;
+
+        if (report.CashRegisterId is Guid registerId)
+        {
+            var registerVisible = await _db.CashRegisters.AsNoTracking()
+                .AnyAsync(r => r.Id == registerId, cancellationToken)
+                .ConfigureAwait(false);
+            if (!registerVisible)
+                return null;
+        }
+
+        var year = report.Summary.ViennaYear > 0
+            ? report.Summary.ViennaYear
+            : report.ViennaYearStart.Year;
+        var (fromUtc, toUtc) = RksvClosingPeriodHelper.YearUtcRange(year);
+        var sales = await PeriodSalesSummaryAggregator.AggregateAsync(
+                _db,
+                report.CashRegisterId,
+                fromUtc,
+                toUtc,
+                PeriodSalesSummaryAggregator.YearLabel(year),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return JahresberichtPdfGenerator.Generate(
+            report.Id.ToString("N"),
+            report.RegisterNumber ?? report.Summary.RegisterNumber,
+            sales);
     }
 
     private async Task LogDownloadAuditAsync(

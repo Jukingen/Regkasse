@@ -21,7 +21,7 @@ public sealed class DepExportArchiveServiceTests
             .UseInMemoryDatabase($"DepExportArchive_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, new FixedTenantAccessor(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, new FixedTenantAccessor(SystemTenantIds.Platform));
     }
 
     private sealed class FixedTenantAccessor(Guid tenantId) : ICurrentTenantAccessor
@@ -62,10 +62,10 @@ public sealed class DepExportArchiveServiceTests
         string? storagePath = null,
         DateTime? fromUtc = null)
     {
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         var row = new DepExportHistory
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CashRegisterId = Guid.NewGuid(),
             FromUtc = fromUtc ?? new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc),
             ToUtc = new DateTime(2025, 3, 31, 0, 0, 0, DateTimeKind.Utc),
@@ -107,7 +107,7 @@ public sealed class DepExportArchiveServiceTests
             Assert.NotNull(row.ArchivedAt);
             Assert.Equal(result.Checksum, row.ArchiveChecksum);
             Assert.Equal(result.ArchivePath, row.ArchivePath);
-            Assert.Contains(Path.Combine(LegacyDefaultTenantIds.Primary.ToString("D"), "2025"), row.ArchivePath);
+            Assert.Contains(Path.Combine(SystemTenantIds.Platform.ToString("D"), "2025"), row.ArchivePath);
         }
         finally
         {
@@ -219,7 +219,7 @@ public sealed class DepExportArchiveServiceTests
             var service = CreateService(db, root);
             await service.ArchiveExportAsync(a.Id, "{}");
 
-            var report = await service.GetArchiveReportAsync(LegacyDefaultTenantIds.Primary);
+            var report = await service.GetArchiveReportAsync(SystemTenantIds.Platform);
 
             Assert.Equal(2, report.TotalCompletedExports);
             Assert.Equal(1, report.ArchivedCount);

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Enums;
 
 namespace KasseAPI_Final.Services.License;
 
@@ -11,7 +12,8 @@ public sealed record LicenseReminderEmailModel(
     int DaysUntilExpiry,
     DateTime? ExpiryDateUtc,
     string RenewalLink,
-    string SupportEmail);
+    string SupportEmail,
+    LicenseType? LicenseType = null);
 
 /// <summary>Composed subject + bodies for a reminder send or FA preview.</summary>
 public sealed record LicenseReminderEmailContent(
@@ -33,7 +35,8 @@ public static class LicenseReminderEmailComposer
         DateTime? expiryDateUtc,
         string? adminName = null,
         string? renewalLink = null,
-        string? supportEmail = null)
+        string? supportEmail = null,
+        LicenseType? licenseType = null)
     {
         return new LicenseReminderEmailModel(
             TenantName: string.IsNullOrWhiteSpace(tenantName) ? "Mandant" : tenantName.Trim(),
@@ -45,7 +48,8 @@ public static class LicenseReminderEmailComposer
                 : renewalLink.Trim(),
             SupportEmail: string.IsNullOrWhiteSpace(supportEmail)
                 ? DefaultSupportEmail
-                : supportEmail.Trim());
+                : supportEmail.Trim(),
+            LicenseType: licenseType);
     }
 
     public static LicenseReminderEmailModel FromTenant(
@@ -53,14 +57,16 @@ public static class LicenseReminderEmailComposer
         int? daysRemaining,
         string? recipientName = null,
         string? adminLicenseUrl = null,
-        string? supportEmail = null) =>
+        string? supportEmail = null,
+        LicenseType? licenseType = null) =>
         CreateModel(
             tenant.Name,
             daysRemaining ?? 0,
             tenant.LicenseValidUntilUtc,
             recipientName,
             adminLicenseUrl,
-            supportEmail);
+            supportEmail,
+            licenseType);
 
     /// <summary>Synthetic sample for Super Admin FA preview (no real tenant PII).</summary>
     public static LicenseReminderEmailModel CreateSample(
@@ -69,7 +75,8 @@ public static class LicenseReminderEmailComposer
         string? adminName = null,
         DateTime? expiryDateUtc = null,
         string? renewalLink = null,
-        string? supportEmail = null)
+        string? supportEmail = null,
+        LicenseType? licenseType = null)
     {
         var expiry = expiryDateUtc
             ?? DateTime.UtcNow.Date.AddDays(Math.Max(daysUntilExpiry, 0));
@@ -79,7 +86,8 @@ public static class LicenseReminderEmailComposer
             expiry,
             adminName,
             renewalLink,
-            supportEmail);
+            supportEmail,
+            licenseType);
     }
 
     public static LicenseReminderEmailContent Build(LicenseReminderEmailModel model) =>
@@ -101,6 +109,7 @@ public static class LicenseReminderEmailComposer
         var validUntil = FormatExpiryLabel(model.ExpiryDateUtc);
         var renewUrl = WebUtility.HtmlEncode(model.RenewalLink);
         var support = WebUtility.HtmlEncode(model.SupportEmail);
+        var packageLine = FormatPackageHtml(model.LicenseType);
         var lead = BuildLeadHtml(model, tenant, validUntil);
 
         return $"""
@@ -121,6 +130,7 @@ public static class LicenseReminderEmailComposer
                         <td style="padding:24px;">
                           <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">{greeting}</p>
                           <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">{lead}</p>
+                          {packageLine}
                           <p style="margin:0 0 24px;text-align:center;">
                             <a href="{renewUrl}" style="display:inline-block;background:{bandAccent};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 20px;border-radius:6px;">Jetzt Lizenz verlängern</a>
                           </p>
@@ -148,17 +158,25 @@ public static class LicenseReminderEmailComposer
     {
         var greeting = $"Liebe/r {model.AdminName},";
         var validUntil = FormatExpiryLabel(model.ExpiryDateUtc);
+        var packagePlain = model.LicenseType.HasValue
+            ? $"Paket: {model.LicenseType.Value}"
+            : null;
 
         if (model.DaysUntilExpiry <= 0)
         {
             var daysOverdue = Math.Abs(model.DaysUntilExpiry);
             var overdueLabel = daysOverdue <= 0 ? "heute" : $"{daysOverdue} Tag(en)";
-
-            return string.Join(Environment.NewLine,
-            [
+            var lines = new List<string>
+            {
                 greeting,
                 string.Empty,
                 $"Ihre Regkasse-Lizenz für \"{model.TenantName}\" ist seit {overdueLabel} abgelaufen ({validUntil}).",
+            };
+            if (packagePlain != null)
+                lines.Add(packagePlain);
+
+            lines.AddRange(
+            [
                 string.Empty,
                 "Das System wurde aus Compliance-Gründen eingeschränkt.",
                 "Bitte verlängern Sie Ihre Lizenz umgehend.",
@@ -170,13 +188,20 @@ public static class LicenseReminderEmailComposer
                 "Mit freundlichen Grüßen",
                 "Ihr Regkasse Team",
             ]);
+            return string.Join(Environment.NewLine, lines);
         }
 
-        return string.Join(Environment.NewLine,
-        [
+        var bodyLines = new List<string>
+        {
             greeting,
             string.Empty,
             $"Ihre Regkasse-Lizenz für \"{model.TenantName}\" läuft in {model.DaysUntilExpiry} Tag(en) ab ({validUntil}).",
+        };
+        if (packagePlain != null)
+            bodyLines.Add(packagePlain);
+
+        bodyLines.AddRange(
+        [
             string.Empty,
             "Bitte verlängern Sie Ihre Lizenz, um alle Funktionen weiterhin nutzen zu können.",
             string.Empty,
@@ -187,6 +212,7 @@ public static class LicenseReminderEmailComposer
             "Mit freundlichen Grüßen",
             "Ihr Regkasse Team",
         ]);
+        return string.Join(Environment.NewLine, bodyLines);
     }
 
     /// <summary>Legacy subject helper — prefer <see cref="BuildSubject"/>.</summary>
@@ -213,6 +239,19 @@ public static class LicenseReminderEmailComposer
         if (daysUntilExpiry <= 7)
             return ("#fff7e6", "#faad14", "#d48806");
         return ("#e6f7ff", "#1890ff", "#1890ff");
+    }
+
+    private static string FormatPackageHtml(LicenseType? licenseType)
+    {
+        if (!licenseType.HasValue)
+            return string.Empty;
+
+        var label = WebUtility.HtmlEncode(licenseType.Value.ToString());
+        return $"""
+            <p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:#595959;">
+              Paket: <strong>{label}</strong>
+            </p>
+            """;
     }
 
     private static string BuildLeadHtml(LicenseReminderEmailModel model, string tenantHtml, string validUntil)

@@ -73,6 +73,7 @@ import {
   buildTenantDecommissionPreflightChecks,
   buildTenantDecommissionRegisterSummary,
 } from '@/features/super-admin/utils/tenantDecommissionWizard';
+import { isTenantRemovedStatus } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { dateColumnRender } from '@/components/DateColumn';
 import { formatDateTime, useI18n } from '@/i18n';
@@ -418,7 +419,7 @@ function DecommissionWizardStep2({
             !canDecommissionCashRegisters ||
             blockedRegisters.length > 0 ||
             registerSummary.readyForDecommission === 0 ||
-            tenant?.status === 'deleted'
+            isTenantRemovedStatus(tenant?.status)
           }
           onClick={onDecommissionAll}
         >
@@ -774,9 +775,9 @@ export function TenantDecommissionWizardPage() {
     !registersQuery.isLoading &&
     !tenantQuery.isError &&
     !registersQuery.isError &&
-    tenant?.status !== 'deleted';
+    !isTenantRemovedStatus(tenant?.status);
 
-  const canProceedToArchive = remainingRegisters.length === 0 && tenant?.status !== 'deleted';
+  const canProceedToArchive = remainingRegisters.length === 0 && !isTenantRemovedStatus(tenant?.status);
   const canAdvanceFromFiscalExport = fiscalExportUrl != null || registers.length === 0;
   const tenantNameMatches = tenant != null && confirmTenantName === tenant.name;
   const archiveReady = canProceedToArchive && tenantNameMatches;
@@ -1171,7 +1172,7 @@ export function TenantDecommissionWizardPage() {
           description={t('tenants.decommission.criticalBody')}
         />
 
-        {tenant?.status === 'deleted' ? (
+        {isTenantRemovedStatus(tenant?.status) ? (
           <Alert
             type="warning"
             showIcon

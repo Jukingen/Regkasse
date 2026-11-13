@@ -47,6 +47,8 @@ services:
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
     volumes:
+      # Default: in-repo null receiver (no spam). For real routing, render
+      # alertmanager.yml.example → alertmanager.rendered.yml and mount that file instead.
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     ports:
       - '${ALERTMANAGER_HOST_BIND:-127.0.0.1}:${ALERTMANAGER_PORT:-9093}:9093'

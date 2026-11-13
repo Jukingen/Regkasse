@@ -17,6 +17,30 @@ interface CashRegisterHeaderProps {
   /** 503/TABLE_ORDERS_MISSING durumunda gösterilecek bilgi mesajı */
   provisioningMessage?: string | null;
   onOpenPaymentHistory?: () => void;
+  onOpenReceiptList?: () => void;
+}
+
+/** Shared table chip: header (on accent) and the order panel (on card). */
+export function CashRegisterTableBadge({
+  tableNumber,
+  tone = 'onAccent',
+}: {
+  tableNumber: number;
+  tone?: 'onAccent' | 'onCard';
+}) {
+  const { t } = useTranslation(['common']);
+  if (tableNumber <= 0) return null;
+
+  return (
+    <View
+      style={[styles.tableBadge, tone === 'onCard' && styles.tableBadgeOnCard]}
+      accessibilityRole="text"
+      accessibilityLabel={`${t('common:table')} ${tableNumber}`}>
+      <Text style={[styles.tableBadgeText, tone === 'onCard' && styles.tableBadgeTextOnCard]}>
+        {t('common:table')} {tableNumber}
+      </Text>
+    </View>
+  );
 }
 
 export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
@@ -24,8 +48,9 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   recoveryLoading,
   provisioningMessage,
   onOpenPaymentHistory,
+  onOpenReceiptList,
 }) => {
-  const { t } = useTranslation(['checkout', 'common', 'paymentHistory']);
+  const { t } = useTranslation(['checkout', 'common', 'paymentHistory', 'receipts']);
 
   return (
     <View
@@ -35,13 +60,7 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
       <View style={styles.headerRow}>
         <Text style={styles.headerEmoji}>☕</Text>
         <Text style={styles.headerTitle}>{t('checkout:title')}</Text>
-        {selectedTable > 0 && (
-          <View style={styles.tableBadge}>
-            <Text style={styles.tableBadgeText}>
-              {t('common:table')} {selectedTable}
-            </Text>
-          </View>
-        )}
+        <CashRegisterTableBadge tableNumber={selectedTable} tone="onAccent" />
         {recoveryLoading && (
           <View style={styles.recoveryBadge} accessibilityLabel={t('common:tableRestoring')}>
             <Text style={styles.recoveryText} accessibilityElementsHidden>
@@ -58,6 +77,19 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
             </Text>
           </View>
         )}
+        {onOpenReceiptList ? (
+          <Pressable
+            onPress={onOpenReceiptList}
+            style={({ pressed }) => [styles.historyButton, pressed && styles.historyButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('receipts:title')}
+            hitSlop={6}>
+            <Text style={styles.historyButtonEmoji} accessibilityElementsHidden>
+              🧾
+            </Text>
+            <Text style={styles.historyButtonText}>{t('receipts:quickAccess')}</Text>
+          </Pressable>
+        ) : null}
         {onOpenPaymentHistory ? (
           <Pressable
             onPress={onOpenPaymentHistory}
@@ -89,6 +121,7 @@ const styles = StyleSheet.create({
     paddingVertical: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.md,
     gap: SoftSpacing.sm,
+    flexWrap: 'wrap',
   },
   headerEmoji: {
     fontSize: 20,
@@ -109,6 +142,12 @@ const styles = StyleSheet.create({
   tableBadgeText: {
     ...SoftTypography.label,
     fontSize: 12,
+    color: SoftColors.textInverse,
+  },
+  tableBadgeOnCard: {
+    backgroundColor: SoftColors.accent,
+  },
+  tableBadgeTextOnCard: {
     color: SoftColors.textInverse,
   },
   recoveryBadge: {

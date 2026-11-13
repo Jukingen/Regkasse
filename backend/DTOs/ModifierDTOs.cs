@@ -67,7 +67,7 @@ namespace KasseAPI_Final.DTOs
 
     /// <summary>
     /// Add modifier to a group. Legacy; yeni akış AddProductToGroupRequest kullanır.
-    /// Phase 2: Creation frozen; endpoint returns 410. Do not use for new code. TODO Phase 2: Remove after migration.
+    /// Phase 2: Creation frozen; endpoint returns 410. Do not use for new code. Remove after cart simplification.
     /// </summary>
     public class CreateModifierRequest
     {

@@ -278,7 +278,7 @@ public sealed class WebsiteGeneratorServiceTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(name + Guid.NewGuid().ToString("N"))
             .Options;
-        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        var db = new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
         var factory = new TestDbContextFactory(options);
 
         var relative = Path.GetFileName(root)!;
@@ -320,7 +320,7 @@ public sealed class WebsiteGeneratorServiceTests
         public AppDbContext CreateDbContext() => new(_options);
 
         public ValueTask<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary)));
+            ValueTask.FromResult(new AppDbContext(_options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform)));
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

@@ -7,4 +7,8 @@ public interface ILicenseAuditQueryService
     Task<LicenseAuditLogListResponse> ListAsync(
         LicenseAuditLogQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<byte[]> ExportCsvAsync(
+        LicenseAuditLogQuery query,
+        CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "gaps": [
+    {
+      "id": "external-archive-not-set",
+      "title": "External archive root is not set",
+      "severity": "warning"
+    },
+    {
+      "id": "scheduled-drill-not-run",
+      "title": "Scheduled restore drill is overdue",
+      "severity": "error"
+    },
+    {
+      "id": "system-legal-hold-not-configured",
+      "title": "System backup legal hold is not configured",
+      "severity": "error"
+    },
+    {
+      "id": "dev-only-fake-adapter",
+      "title": "Development uses the fake backup adapter",
+      "severity": "warning"
+    }
+  ]
+}

@@ -1,60 +1,72 @@
-# Critical: High-risk areas (change only with explicit scope)
+# Critical: high-risk areas (change only with explicit scope)
 
 ## 1) Cart → Payment → Receipt → DailyClosing
-- Bu zincirde davranış değişikliği finansal ve yasal risk üretir.
-- İstenen değişiklik dışında refactor/rewrite yapma.
 
-## 2) TSE ve signature chain
-- TSE imza üretimi, **receipt numbering / sequence** ve **`signature_chain_state`** doğrulama adımları korunmalı.
-- İmza payload alanlarını ve akış sırasını sebepsiz değiştirme; istemci veya flag ile zinciri “atlatma” yok.
-- **Super Admin TSE ops** (`/api/admin/tse/*`, FA `/admin/tse/*`) çoğunlukla diagnostic’tir; DEP / cert / Startbeleg rewrite için kullanılmaz.
-- **Failover / auto-healing** imzalayan cihazı değiştirebilir (fiscal-adjacent) — varsayılan healing kapalı, `AllowAutoFailover` varsayılan false; açık görev olmadan gevşetme.
-- Ops envanteri: `ai/modules/tse_admin_ops.md`; fiscal core: `ai/modules/tse_finanzonline.md`.
+- Behavior changes on this chain create financial and legal risk.
+- Do not refactor or rewrite beyond the requested change.
 
-## 3) RKSV özel fiş yaşam döngüsü
-- Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg: tekillik kuralları, kasa durumu ve TSE kullanılabilirlik koşulları kodda sıkıdır.
-- Schlussbeleg’i günlük kapanışla karıştırma; decommissioned kasa geçişi ile ilişkilidir.
+## 2) TSE and signature chain
+
+- Keep TSE signature production, **receipt numbering / sequence**, and **`signature_chain_state`** validation intact.
+- Do not change signature payload fields or flow order without cause; no client or flag may skip the chain.
+- **Super Admin TSE ops** (`/api/admin/tse/*`, FA `/admin/tse/*`) are mostly diagnostic; they are not for DEP / cert / Startbeleg rewrite.
+- **Failover / auto-healing** can change which device signs (fiscal-adjacent) — default healing is off, `AllowAutoFailover` defaults to false; do not loosen without an explicit task.
+- Ops inventory: `ai/modules/tse_admin_ops.md`; fiscal core: `ai/modules/tse_finanzonline.md`.
+
+## 3) RKSV special-receipt lifecycle
+
+- Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg: uniqueness rules, register state, and TSE availability are strict in code.
+- Do not confuse Schlussbeleg with daily closing; it belongs to decommissioned-register transition.
 
 ## 4) Decommissioned register guardrails
-- **Decommissioned** kasa yeni oturum veya ödeme kabul etmemelidir; bu guard’ları gevşetme veya bypass etme.
 
-## 5) Voucher ledger ve bakiye
-- `Voucher` / `VoucherLedgerEntry` tutarlılığı ve denetim izi; düz metin kod saklama yok.
-- Ledger hareket türleri ve tutarların sıfır altına inmesi gibi kurallar dikkatle ele alınır.
+- A **decommissioned** cash register must not accept a new session or payment. Do not loosen or bypass these guards.
+
+## 5) Voucher ledger and balance
+
+- `Voucher` / `VoucherLedgerEntry` consistency and audit trail; no plaintext code storage.
+- Handle ledger movement types and rules such as going below zero with care.
 
 ## 6) FinanzOnline / outbox / reconciliation
-- Mapping alanları, retry taxonomisi, reconciliation semantiği hassastır.
-- RKSV submission iskeleti üretim-tamamlı değil olsa da outbox satırları ve durum alanları audit için önemlidir.
-- Hata yutma veya audit izini azaltan değişiklik yapılmaz.
 
-## 7) Authorization/RBAC
-- Permission adları, role-permission matrix ve guard akışları hassastır.
-- Endpoint yetkilerini gevşetme; değişim varsa açık migration planı yaz.
+- Mapping fields, retry taxonomy, and reconciliation semantics are sensitive.
+- Even if the RKSV submission skeleton is not production-complete, outbox rows and status fields matter for audit.
+- Do not swallow errors or reduce the audit trail.
+
+## 7) Authorization / RBAC
+
+- Permission names, the role-permission matrix, and guard flows are sensitive.
+- Do not loosen endpoint authorization; if it must change, write an explicit migration plan.
 
 ## 8) Money precision / rounding
-- Para hesaplarında mevcut precision ve rounding davranışını koru.
+
+- Keep existing precision and rounding behavior on money calculations.
 
 ## 9) Tenant isolation / query filters
-- `AppDbContext` global query filter ve `ICurrentTenantAccessor` akışını gevşetme veya kaldırma.
-- Singleton servislerde root `IDbContextFactory` / `AppDbContext` kullanımına geri dönme (`IServiceScopeFactory` pattern’ini bozma — `LicenseService`).
-- `AppDbContext` üzerinde DI’ın çözeceği birden fazla runtime constructor bırakma (`[ActivatorUtilitiesConstructor]` + design-time ctor dışında).
-- `IgnoreQueryFilters()` kullanımını yalnızca bilinçli Super Admin / migration yollarında bırak.
-- Çapraz kiracı 404 semantiğini 403 veya boş 200 ile değiştirme.
-- Middleware sırasını (`TenantResolutionMiddleware` → auth → `TenantContextMiddleware`) sebepsiz değiştirme.
-- Production POS girişini tekrar `{slug}.regkasse.at` yapmak veya reserved `pos`/`api`/`admin` host’larında Host==JWT zorunluluğu uydurmak yok — `docs/POS_PRODUCTION_ARCHITECTURE.md`.
+
+- Do not loosen or remove `AppDbContext` global query filters or the `ICurrentTenantAccessor` flow.
+- Do not go back to root `IDbContextFactory` / `AppDbContext` in singleton services (do not break the `IServiceScopeFactory` pattern — `LicenseService`).
+- Do not leave multiple runtime constructors on `AppDbContext` that DI could resolve (keep `[ActivatorUtilitiesConstructor]` + design-time ctor only).
+- Leave `IgnoreQueryFilters()` only on deliberate Super Admin / migration paths.
+- Do not replace cross-tenant 404 semantics with 403 or an empty 200.
+- Do not change middleware order (`TenantResolutionMiddleware` → auth → `TenantContextMiddleware`) without cause.
+- Do not make Production POS entry `{slug}.regkasse.at` again, and do not invent a Host==JWT requirement on reserved `pos`/`api`/`admin` hosts — `docs/POS_PRODUCTION_ARCHITECTURE.md`.
 
 ## 10) Offline systems (do not merge)
-- Legacy TSE intents (`offline_transactions`) ile full order snapshots (`offline_orders`) **ayrı sistemlerdir**.
-- Tek tablo/UI/API ailesine birleştirme; FA rotaları: `/admin/tse/offline-transactions` vs `/rksv/offline-orders`.
-- Modüller: `ai/modules/offline_transactions_legacy.md`, `ai/modules/offline_orders.md`; hub: `docs/OFFLINE_SYSTEM_INDEX.md`.
+
+- Legacy TSE intents (`offline_transactions`) and full order snapshots (`offline_orders`) are **separate systems**.
+- Do not merge them into one table/UI/API family. FA routes: `/admin/tse/offline-transactions` vs `/rksv/offline-orders`.
+- Modules: `ai/modules/offline_transactions_legacy.md`, `ai/modules/offline_orders.md`; hub: `docs/OFFLINE_SYSTEM_INDEX.md`.
 
 ## 11) Backup / restore
-- Tenant vs System stratejisini karıştırma; Mandanten-Admin System dump’a erişmesin.
-- API üzerinden production DB restore yok (yalnızca isolated validation / drill).
-- Ayrıntı: `docs/BACKUP_SYSTEM.md`, `docs/restore-boundary-notes.md`, `ai/modules/backup_permissions.md`.
+
+- Do not mix Tenant vs System strategy; Mandanten-Admin must not access System dumps.
+- No production DB restore via API (isolated validation / drill only).
+- Detail: `docs/BACKUP_SYSTEM.md`, `docs/restore-boundary-notes.md`, `ai/modules/backup_permissions.md`.
 
 ## 12) Working hours / digital storefront
-- Working hours **asla** POS veya FA / authenticated `/api/pos/*` / `/api/admin/*` kapatmaz; yalnızca website/app online-order intake (`docs/WORKING_HOURS.md`).
-- Storefront (`frontend-sites`) fiscal POS değildir; ödeme/RKSV zincirine bağlama.
 
-> Emin değilsen varsayım yapma: önce kapsamı daralt, risk ve belirsizliği açık yaz. Özet bağlam: `REGKASSE_AI_ONBOARDING.md`.
+- Working hours **never** close POS or FA / authenticated `/api/pos/*` / `/api/admin/*`; they only gate website/app online-order intake (`docs/WORKING_HOURS.md`).
+- The storefront (`frontend-sites`) is not fiscal POS; do not wire it into the payment/RKSV chain.
+
+> If you are unsure, do not assume: narrow the scope and write risks and unknowns explicitly. Summary context: `REGKASSE_AI_ONBOARDING.md`.

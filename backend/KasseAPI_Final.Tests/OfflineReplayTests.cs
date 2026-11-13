@@ -35,7 +35,7 @@ public class OfflineReplayTests
             .UseInMemoryDatabase($"OfflineReplayPack_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static (PaymentService PaymentService, OfflineTransactionService OfflineService) CreateServices(
@@ -149,7 +149,7 @@ public class OfflineReplayTests
 
     private static async Task<(Guid CustomerId, Guid ProductId, Guid CashRegisterId)> SeedCashSaleAsync(AppDbContext context, decimal unitPrice)
     {
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
@@ -157,7 +157,7 @@ public class OfflineReplayTests
 
         context.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -165,7 +165,7 @@ public class OfflineReplayTests
         context.Products.Add(new Product
         {
             Id = productId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Name = "Item",
             Price = unitPrice,
             CategoryId = categoryId,
@@ -184,7 +184,7 @@ public class OfflineReplayTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -207,7 +207,7 @@ public class OfflineReplayTests
         context.Vouchers.Add(new Voucher
         {
             Id = voucherId,
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             CodeHash = hash,
             MaskedCode = "****2345",
             InitialAmount = 100m,
@@ -334,14 +334,14 @@ public class OfflineReplayTests
             FooterText = ""
         };
 
-        TenantTestDoubles.EnsureDefaultTenant(context);
+        TenantTestDoubles.EnsurePlatformTenant(context);
         var categoryId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
         context.Categories.Add(new Category
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -355,7 +355,7 @@ public class OfflineReplayTests
             context.Products.Add(new Product
             {
                 Id = pid,
-                TenantId = LegacyDefaultTenantIds.Primary,
+                TenantId = SystemTenantIds.Platform,
                 Name = $"P-{price}",
                 Price = price,
                 CategoryId = categoryId,
@@ -376,7 +376,7 @@ public class OfflineReplayTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
-            TenantId = LegacyDefaultTenantIds.Primary,
+            TenantId = SystemTenantIds.Platform,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

@@ -8,6 +8,8 @@ using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Countries.Vat;
 using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -32,6 +34,8 @@ namespace KasseAPI_Final.Controllers
         private readonly IApiMessageLocalizer _messages;
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly IFileNamingService _fileNaming;
+        private readonly IVatIdValidator _vatIdValidator;
+        private readonly ICountryStrategyContext _countryStrategyContext;
 
         public InvoiceController(
             AppDbContext context,
@@ -43,7 +47,9 @@ namespace KasseAPI_Final.Controllers
             IInvoicePdfService invoicePdfService,
             IApiMessageLocalizer messages,
             ICurrentTenantAccessor tenantAccessor,
-            IFileNamingService fileNaming)
+            IFileNamingService fileNaming,
+            IVatIdValidator vatIdValidator,
+            ICountryStrategyContext countryStrategyContext)
         {
             _context = context;
             _logger = logger;
@@ -55,6 +61,8 @@ namespace KasseAPI_Final.Controllers
             _messages = messages;
             _tenantAccessor = tenantAccessor;
             _fileNaming = fileNaming;
+            _vatIdValidator = vatIdValidator;
+            _countryStrategyContext = countryStrategyContext;
         }
 
         // GET: api/Invoice/list
@@ -460,7 +468,8 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyNameRequired));
                 if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber))
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberRequired));
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11)
+                var countryBinding = await _countryStrategyContext.LoadAsync();
+                if (!_vatIdValidator.Validate(request.CompanyTaxNumber, countryBinding.Profile).IsValid)
                     return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberInvalidFormat));
                 if (request.CashRegisterId == Guid.Empty)
                     return BadRequest("CashRegisterId is required.");
@@ -507,6 +516,7 @@ namespace KasseAPI_Final.Controllers
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
+                FiscalDocumentCountryStamp.Apply(invoice, countryBinding);
 
                 _context.Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
@@ -661,6 +671,8 @@ namespace KasseAPI_Final.Controllers
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
+                var duplicateBinding = await _countryStrategyContext.LoadAsync();
+                FiscalDocumentCountryStamp.Apply(newInvoice, duplicateBinding);
 
                 _context.Invoices.Add(newInvoice);
                 await _context.SaveChangesAsync();
@@ -776,6 +788,8 @@ namespace KasseAPI_Final.Controllers
                     CreatedBy = userId,
                     IsActive = true
                 };
+                var creditBinding = await _countryStrategyContext.LoadAsync();
+                FiscalDocumentCountryStamp.CopyFromInvoice(creditNote, original, creditBinding);
 
                 _context.Invoices.Add(creditNote);
                 await _context.SaveChangesAsync();
@@ -980,6 +994,8 @@ namespace KasseAPI_Final.Controllers
                             PaymentDate = derived.PaymentDate,
                             InvoiceItems = derived.InvoiceItems,
                             TaxDetails = derived.TaxDetails,
+                            CountryCodeAtIssue = derived.CountryCodeAtIssue,
+                            VatRegimeAtIssue = derived.VatRegimeAtIssue,
                             CreatedAt = DateTime.UtcNow,
                             IsActive = true
                         };

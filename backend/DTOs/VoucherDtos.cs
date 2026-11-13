@@ -43,7 +43,7 @@ public class ValidateVoucherRequest
         }
     }
 
-    [Range(0.01, double.MaxValue)]
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true)]
     public decimal? Amount { get; set; }
 }
 
@@ -129,6 +129,6 @@ public class VoucherRedemptionRequestItem
     public string Code { get; set; } = string.Empty;
 
     [Required]
-    [Range(0.01, double.MaxValue)]
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true)]
     public decimal Amount { get; set; }
 }

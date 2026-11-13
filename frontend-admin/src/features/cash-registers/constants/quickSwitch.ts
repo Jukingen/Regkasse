@@ -53,6 +53,9 @@ export function writeQuickCashRegisterId(
   if (scopedKey) {
     if (!registerId) {
       window.sessionStorage.removeItem(scopedKey);
+      // Drop the transitional global value as well; otherwise the next scoped read migrates it
+      // straight back in and the clear is undone.
+      window.sessionStorage.removeItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY);
       return;
     }
     window.sessionStorage.setItem(scopedKey, registerId);

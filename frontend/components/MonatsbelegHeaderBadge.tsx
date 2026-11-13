@@ -45,6 +45,7 @@ export function MonatsbelegHeaderBadge() {
             cashRegisterId: registerId,
             year,
             month,
+            force: true,
             onAfterSuccess: () => {
               void refresh();
             },

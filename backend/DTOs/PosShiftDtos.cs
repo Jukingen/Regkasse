@@ -15,8 +15,103 @@ public sealed class StartShiftRequest
 
 public sealed class AutoOpenShiftRequest
 {
-    [Required]
-    public Guid CashRegisterId { get; set; }
+    /// <summary>
+    /// Optional register id. When omitted or empty, auto-open resolves
+    /// <see cref="KasseAPI_Final.Models.UserSettings.CashRegisterId"/> for the caller.
+    /// </summary>
+    public string? CashRegisterId { get; set; }
+}
+
+/// <summary>Machine-readable outcomes for <c>POST /api/pos/shift/auto-open</c>.</summary>
+public static class ShiftAutoOpenCodes
+{
+    public const string Success = "SUCCESS";
+    /// <summary>Alias of <see cref="Success"/> for older POS clients.</summary>
+    public const string Ok = Success;
+    public const string NeedRegisterSelection = "NEED_REGISTER_SELECTION";
+    public const string RegisterUnavailable = "REGISTER_UNAVAILABLE";
+    public const string RegisterInactive = "REGISTER_INACTIVE";
+    public const string RegisterMaintenance = "REGISTER_MAINTENANCE";
+    public const string RegisterDisabled = "REGISTER_DISABLED";
+    public const string RegisterAssignedToOtherUser = "REGISTER_ASSIGNED_TO_OTHER_USER";
+    public const string RegisterInvalidState = "REGISTER_INVALID_STATE";
+    public const string RegisterConflictOtherUser = "REGISTER_CONFLICT_OTHER_USER";
+    public const string RegisterActorHasOtherOpen = "REGISTER_ACTOR_HAS_OTHER_OPEN";
+    public const string RegisterStartbelegRequired = "REGISTER_STARTBELEG_REQUIRED";
+    public const string RegisterMonatsbelegRequired = "REGISTER_MONATSBELEG_REQUIRED";
+    public const string RegisterNotFound = "REGISTER_NOT_FOUND";
+    public const string ShiftAlreadyOpen = "SHIFT_ALREADY_OPEN";
+    public const string RegisterDecommissioned = "REGISTER_DECOMMISSIONED";
+    public const string NoActiveRegisters = "NO_ACTIVE_REGISTERS";
+}
+
+/// <summary>German POS-facing copy for auto-open (default locale de-DE).</summary>
+public static class ShiftAutoOpenMessages
+{
+    public const string ShiftOpened = "Schicht erfolgreich geöffnet.";
+    public const string NeedRegisterSelection =
+        "Bitte wählen Sie eine Kasse aus, bevor Sie fortfahren.";
+    public const string RegisterUnavailable =
+        "Die ausgewählte Kasse ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterInactive =
+        "Die Kasse ist inaktiv. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterMaintenance =
+        "Die Kasse ist im Wartungsmodus. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterDisabled =
+        "Die Kasse ist deaktiviert. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterAssignedToOtherUser =
+        "Die Kasse ist einem anderen Kassierer zugewiesen. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterConflictOtherUser =
+        "Die Kasse ist bereits von einem anderen Kassierer geöffnet.";
+    public const string RegisterActorHasOtherOpen =
+        "Sie haben bereits eine andere Kasse geöffnet. Bitte schließen Sie diese zuerst.";
+    public const string RegisterStartbelegRequired =
+        "Startbeleg fehlt. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterMonatsbelegRequired =
+        "Monatsbeleg fehlt. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterInvalidState =
+        "Die Kasse kann in diesem Zustand nicht geöffnet werden. Bitte kontaktieren Sie den Administrator.";
+    public const string RegisterNotFound = "Die ausgewählte Kasse wurde nicht gefunden.";
+    public const string ShiftAlreadyOpen = "Die Schicht ist bereits geöffnet.";
+    public const string RegisterDecommissioned =
+        "Diese Kasse wurde stillgelegt und kann nicht mehr verwendet werden.";
+    public const string NoActiveRegisters =
+        "Keine aktiven Kassen gefunden. Bitte kontaktieren Sie den Administrator.";
+}
+
+/// <summary>
+/// Structured auto-open result. HTTP 200 when <see cref="Success"/> is true
+/// (including <see cref="ShiftAutoOpenCodes.ShiftAlreadyOpen"/>); HTTP 400 otherwise.
+/// </summary>
+public sealed class ShiftAutoOpenResult
+{
+    public bool Success { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+    public CashierShiftDto? Data { get; init; }
+
+    public static ShiftAutoOpenResult Opened(CashierShiftDto shift) => new()
+    {
+        Success = true,
+        Code = ShiftAutoOpenCodes.Success,
+        Message = ShiftAutoOpenMessages.ShiftOpened,
+        Data = shift,
+    };
+
+    public static ShiftAutoOpenResult AlreadyOpen(CashierShiftDto shift) => new()
+    {
+        Success = true,
+        Code = ShiftAutoOpenCodes.ShiftAlreadyOpen,
+        Message = ShiftAutoOpenMessages.ShiftAlreadyOpen,
+        Data = shift,
+    };
+
+    public static ShiftAutoOpenResult Fail(string code, string message) => new()
+    {
+        Success = false,
+        Code = code,
+        Message = message,
+    };
 }
 
 public sealed class EndShiftRequest
@@ -146,6 +241,8 @@ public sealed class PosDailyClosingReportDto
         DailyClosingReportComposer.RksvDailyDisclaimerDe;
     /// <summary>Plain-text late-closing note when <c>DailyClosing.IsBackdated</c>.</summary>
     public string? BackdatedNotice { get; init; }
+    /// <summary>Shown when open tables were forced. Fiscal totals stay paid invoices only.</summary>
+    public string? OpenTablesForcedNotice { get; init; }
     /// <summary>Shown when payment-row Umsatz and signed fiscal gross diverge.</summary>
     public string? SalesFiscalReconciliationNote { get; init; }
     /// <summary>Explains shift-scoped cash difference vs calendar-day cash sales.</summary>

@@ -8,15 +8,30 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Services.Countries;
+using KasseAPI_Final.Services.Extensions;
+using KasseAPI_Final.Services.Countries.Strategies;
+using KasseAPI_Final.Services.Countries.Strategies.EuDefault;
+using KasseAPI_Final.Services.Countries.Strategies.Germany;
+using KasseAPI_Final.Services.Countries.Strategies.Switzerland;
+using KasseAPI_Final.Services.Lodging;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Services.Imei;
+using KasseAPI_Final.Services.Limits;
+using KasseAPI_Final.Services.Preorder;
+using KasseAPI_Final.Services.Tickets;
+using KasseAPI_Final.Services.VerticalProfiles;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
@@ -65,6 +80,20 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentReversalApprovalService _reversalApproval;
         private readonly ICardPaymentService? _cardPaymentService;
         private readonly FeatureFlags.IFeatureFlagService? _featureFlags;
+        private readonly ITenantLimitGuard? _tenantLimitGuard;
+        private readonly IPreorderService? _preorderService;
+        private readonly ICountryStrategyContext _countryStrategyContext;
+        private readonly ITaxStrategyResolver _taxStrategyResolver;
+        private readonly ICountryTaxTypeRegistry _taxTypes;
+        private readonly Fiscal.IFiscalSignatureRouter _fiscalSignatureRouter;
+        private readonly IDeReceiptSequenceService? _deReceiptSequenceService;
+        private readonly IChReceiptSequenceService? _chReceiptSequenceService;
+        private readonly IEuReceiptSequenceService? _euReceiptSequenceService;
+        private readonly IChMwstEffectiveRates? _chMwstRates;
+        private readonly IVerticalProfileService? _verticalProfiles;
+        private readonly IVerticalProfileGuard? _profileGuard;
+        private readonly ITicketRedemptionService? _ticketRedemptions;
+        private readonly ITenantExtensionRegistry? _extensionRegistry;
 
         public PaymentService(
             AppDbContext context,
@@ -102,7 +131,22 @@ namespace KasseAPI_Final.Services
             IOptions<LicenseOptions>? licenseOptions = null,
             IPaymentReversalApprovalService? reversalApproval = null,
             ICardPaymentService? cardPaymentService = null,
-            FeatureFlags.IFeatureFlagService? featureFlags = null)
+            FeatureFlags.IFeatureFlagService? featureFlags = null,
+            ITenantLimitGuard? tenantLimitGuard = null,
+            IPreorderService? preorderService = null,
+            ICountryStrategyContext? countryStrategyContext = null,
+            ITaxStrategyResolver? taxStrategyResolver = null,
+            ICountryProfileRegistry? countryProfileRegistry = null,
+            ICountryTaxTypeRegistry? countryTaxTypeRegistry = null,
+            Fiscal.IFiscalSignatureRouter? fiscalSignatureRouter = null,
+            IDeReceiptSequenceService? deSequenceService = null,
+            IChReceiptSequenceService? chSequenceService = null,
+            IEuReceiptSequenceService? euSequenceService = null,
+            IChMwstEffectiveRates? chMwstRates = null,
+            IVerticalProfileService? verticalProfiles = null,
+            ITicketRedemptionService? ticketRedemptions = null,
+            IVerticalProfileGuard? profileGuard = null,
+            ITenantExtensionRegistry? extensionRegistry = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -140,6 +184,498 @@ namespace KasseAPI_Final.Services
             _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
             _cardPaymentService = cardPaymentService;
             _featureFlags = featureFlags;
+            _tenantLimitGuard = tenantLimitGuard;
+            _preorderService = preorderService;
+            var registry = countryProfileRegistry ?? new CountryProfileRegistry();
+            _countryStrategyContext = countryStrategyContext
+                ?? new CountryStrategyContext(_context, registry, _settingsTenantResolver);
+            _taxStrategyResolver = taxStrategyResolver ?? CountryStrategyWiring.CreateTaxResolver();
+            _taxTypes = countryTaxTypeRegistry ?? new CountryTaxTypeRegistry();
+            _fiscalSignatureRouter = fiscalSignatureRouter
+                ?? new Fiscal.FiscalSignatureRouter(_featureFlags, tse: _tseService);
+            _deReceiptSequenceService = deSequenceService;
+            _chReceiptSequenceService = chSequenceService;
+            _euReceiptSequenceService = euSequenceService;
+            _chMwstRates = chMwstRates;
+            _verticalProfiles = verticalProfiles;
+            _ticketRedemptions = ticketRedemptions;
+            _profileGuard = profileGuard;
+            _extensionRegistry = extensionRegistry;
+        }
+
+        private Task RunPaymentHookAsync(
+            Guid tenantId,
+            string hookName,
+            Guid paymentId,
+            decimal? totalAmount = null,
+            string? receiptNumber = null)
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["paymentId"] = paymentId,
+            };
+            if (totalAmount is decimal amount)
+                payload["totalAmount"] = amount;
+            if (!string.IsNullOrEmpty(receiptNumber))
+                payload["receiptNumber"] = receiptNumber;
+
+            return TenantExtensionRunner.RunAsync(
+                _extensionRegistry,
+                tenantId,
+                hookName,
+                payload,
+                CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sale-path <c>payment.before-sign</c>. When an extension returns adjusted line gross
+        /// totals, those amounts are re-taxed with the existing country strategy and written onto
+        /// the payment before the unchanged <c>SignAsync</c> call. Payloads without a matching
+        /// line list leave the cart as calculated.
+        /// </summary>
+        private async Task<(TaxCalculationResult Tax, Dictionary<string, decimal> Details)> ApplyBeforeSignCartAsync(
+            Guid tenantId,
+            PaymentDetails payment,
+            List<PaymentItem> paymentItems,
+            TaxCalculationResult taxResult,
+            Dictionary<string, decimal> taxDetails,
+            ITaxStrategy taxStrategy,
+            CountryStrategyBinding countryBinding,
+            ICountryTaxTypeRegistry rateCatalog,
+            string? buyerVatId,
+            IReadOnlyDictionary<Guid, bool> requiresPrescriptionByProduct)
+        {
+            var lines = paymentItems.Select(item => new ExtensionCartLine(
+                item.ProductId,
+                item.Quantity,
+                item.TaxType,
+                item.TotalPrice,
+                requiresPrescriptionByProduct.TryGetValue(item.ProductId, out var required) && required)).ToList();
+
+            var payload = new Dictionary<string, object?>
+            {
+                ["paymentId"] = payment.Id,
+                ["totalAmount"] = payment.TotalAmount,
+                ["receiptNumber"] = payment.ReceiptNumber,
+                [ExtensionCart.HasPrescriptionKey] = !string.IsNullOrEmpty(payment.PrescriptionReference),
+                [ExtensionCart.PrescriptionReferenceKey] = payment.PrescriptionReference,
+                [ExtensionCart.LinesKey] = lines,
+            };
+
+            var modified = await TenantExtensionRunner.RunAsync(
+                    _extensionRegistry,
+                    tenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    payload,
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+
+            var adjusted = ExtensionCart.ReadLines(modified);
+            if (adjusted.Count != paymentItems.Count || adjusted.Count != taxResult.Lines.Count)
+                return (taxResult, taxDetails);
+
+            var changed = false;
+            for (var i = 0; i < adjusted.Count; i++)
+            {
+                if (adjusted[i].GrossTotal != paymentItems[i].TotalPrice)
+                {
+                    changed = true;
+                    break;
+                }
+            }
+
+            if (!changed)
+                return (taxResult, taxDetails);
+
+            var inputs = new List<TaxLineItemInput>(adjusted.Count);
+            for (var i = 0; i < adjusted.Count; i++)
+            {
+                inputs.Add(CountryPaymentTaxLineMapper.FromProductTaxType(
+                    countryBinding.Profile,
+                    adjusted[i].GrossTotal,
+                    1,
+                    paymentItems[i].TaxType,
+                    rateCatalog));
+            }
+
+            var recalculated = taxStrategy.CalculateTax(
+                inputs,
+                new TaxCalculationContext
+                {
+                    CountryProfile = countryBinding.Profile,
+                    VatRegime = countryBinding.VatRegime,
+                    TaxExempt = countryBinding.Settings.TaxExempt,
+                    BuyerVatId = buyerVatId,
+                    DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+                        countryBinding.VatRegime,
+                        buyerVatId),
+                    TenantId = countryBinding.Settings.TenantId,
+                });
+
+            for (var i = 0; i < paymentItems.Count && i < recalculated.Lines.Count; i++)
+            {
+                var line = recalculated.Lines[i];
+                var quantity = paymentItems[i].Quantity <= 0 ? 1 : paymentItems[i].Quantity;
+                paymentItems[i].TotalPrice = line.LineGross;
+                paymentItems[i].TaxAmount = line.LineTax;
+                paymentItems[i].LineNet = line.LineNet;
+                paymentItems[i].TaxRate = line.TaxRate;
+                paymentItems[i].TaxType = line.TaxType;
+                paymentItems[i].UnitPrice = quantity == 1
+                    ? line.LineGross
+                    : decimal.Round(line.LineGross / quantity, 2, MidpointRounding.AwayFromZero);
+            }
+
+            var details = recalculated.TaxDetails.ToDictionary(static kv => kv.Key, static kv => kv.Value);
+            payment.TotalAmount = recalculated.Totals.TotalGross;
+            payment.TaxAmount = recalculated.Totals.TotalVat;
+            payment.TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(details));
+            payment.PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems));
+            return (recalculated, details);
+        }
+
+        private static PaymentResult ExtensionRejected(ExtensionFailedException ex) =>
+            new()
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = { ex.Message },
+                IsDeterministicFailure = true,
+                DiagnosticCode = ExtensionFailedException.ErrorCode,
+            };
+
+        private ICountryTaxTypeRegistry TaxTypesFor(CountryStrategyBinding binding)
+        {
+            if (_chMwstRates is null
+                || !string.Equals(binding.Profile.Code, CountryProfileCodes.Switzerland, StringComparison.OrdinalIgnoreCase))
+            {
+                return _taxTypes;
+            }
+
+            return _chMwstRates.ForCalculation(_taxTypes, binding.Settings.TenantId);
+        }
+
+        private static string? NormalizePrescriptionReference(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            return trimmed.Length == 0 ? null : trimmed;
+        }
+
+        private static string? NormalizeTaxiText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            return trimmed.Length == 0 ? null : trimmed;
+        }
+
+        private async Task<bool> TenantIssuesTicketsAsync(CancellationToken cancellationToken) =>
+            await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false);
+
+        private async Task<bool> AllowsFeatureAsync(string feature, CancellationToken cancellationToken)
+        {
+            if (_profileGuard is not null)
+                return await _profileGuard.IsFeatureEnabledAsync(feature, cancellationToken).ConfigureAwait(false);
+
+            if (_verticalProfiles is null)
+                return false;
+
+            var profile = await _verticalProfiles
+                .GetForCurrentTenantAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return profile?.HasPosFeature(feature) == true;
+        }
+
+        private async Task<bool> AllowsTaxiSurfaceAsync(CancellationToken cancellationToken)
+        {
+            if (_profileGuard is not null)
+                return await _profileGuard.IsTaxiSurfaceAsync(cancellationToken).ConfigureAwait(false);
+
+            if (_verticalProfiles is null)
+                return false;
+
+            var profile = await _verticalProfiles
+                .GetForCurrentTenantAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return VerticalProfileGuard.IsTaxiSurface(profile);
+        }
+
+        private PaymentResult ProfileFeatureRejected(string feature)
+        {
+            _logger.LogInformation("PROFILE_FEATURE_REJECTED feature={Feature}", feature);
+            return new PaymentResult
+            {
+                Success = false,
+                Message = FeatureNotEnabledForProfileException.DefaultMessage,
+                Errors = { FeatureNotEnabledForProfileException.Code },
+                DiagnosticCode = FeatureNotEnabledForProfileException.Code,
+                ProfileFeature = feature,
+                IsDeterministicFailure = true,
+            };
+        }
+
+        private async Task<PaymentResult?> RejectDisabledProfileSaleFieldsAsync(
+            CreatePaymentRequest request,
+            CancellationToken cancellationToken)
+        {
+            var hasImei = request.Items?.Any(item =>
+                ProductImeiService.ResolveRequestedImeis(item.Imei, item.Imeis).Count > 0) == true;
+            if (hasImei && !await AllowsFeatureAsync("imeiTracking", cancellationToken).ConfigureAwait(false))
+                return ProfileFeatureRejected("imeiTracking");
+
+            var productIds = request.Items?.Select(item => item.ProductId).Distinct().ToList();
+            if (productIds is not { Count: > 0 })
+                return null;
+
+            var hasTicketProduct = await _context.Products
+                .AsNoTracking()
+                .AnyAsync(
+                    product => productIds.Contains(product.Id) && product.IsTicket,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (hasTicketProduct && !await AllowsFeatureAsync("ticketScan", cancellationToken).ConfigureAwait(false))
+                return ProfileFeatureRejected("ticketScan");
+
+            return null;
+        }
+
+        private static PaymentResult ImeiPaymentFailure(string code, string message) => new()
+        {
+            Success = false,
+            Message = message,
+            Errors = { code },
+            DiagnosticCode = code,
+            IsDeterministicFailure = true,
+        };
+
+        private async Task<PaymentResult?> TryReserveImeisForLineAsync(
+            Product product,
+            PaymentItemRequest itemRequest,
+            List<ProductImei> pendingImeiRows,
+            HashSet<string> reservedImeiCodes,
+            IDbContextTransaction transaction)
+        {
+            var requested = ProductImeiService.ResolveRequestedImeis(itemRequest.Imei, itemRequest.Imeis);
+            if (!product.ImeiTracked)
+            {
+                if (requested.Count == 0)
+                    return null;
+
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return ImeiPaymentFailure(
+                    ProductImeiErrorCodes.NotAllowed,
+                    "IMEI is not allowed for this product.");
+            }
+
+            if (requested.Count != itemRequest.Quantity)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return ImeiPaymentFailure(
+                    ProductImeiErrorCodes.Required,
+                    "Each IMEI-tracked product line must include one IMEI per quantity.");
+            }
+
+            foreach (var imei in requested)
+            {
+                if (!reservedImeiCodes.Add(imei))
+                {
+                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    _context.ChangeTracker.Clear();
+                    return ImeiPaymentFailure(
+                        ProductImeiErrorCodes.Duplicate,
+                        "Duplicate IMEI in this payment.");
+                }
+
+                var row = await _context.ProductImeis
+                    .FirstOrDefaultAsync(item =>
+                        item.ProductId == product.Id
+                        && item.Imei == imei
+                        && item.Status == ProductImeiStatus.InStock)
+                    .ConfigureAwait(false);
+                if (row == null)
+                {
+                    await transaction.RollbackAsync().ConfigureAwait(false);
+                    _context.ChangeTracker.Clear();
+                    return ImeiPaymentFailure(
+                        ProductImeiErrorCodes.NotAvailable,
+                        $"IMEI {imei} is not available for product {product.Name}.");
+                }
+
+                pendingImeiRows.Add(row);
+            }
+
+            return null;
+        }
+
+        private static PaymentResult VariantPaymentFailure(string code, string message) => new()
+        {
+            Success = false,
+            Message = message,
+            Errors = { code },
+            DiagnosticCode = code,
+            IsDeterministicFailure = true,
+        };
+
+        /// <summary>
+        /// Variant stock is an operational side effect inside the payment transaction.
+        /// The variant id is not written onto payment_details, the receipt, or the TSE payload.
+        /// </summary>
+        private async Task<PaymentResult?> TryApplyVariantForLineAsync(
+            Product product,
+            PaymentItemRequest itemRequest,
+            Dictionary<PaymentItemRequest, decimal> variantPriceDeltas,
+            IDbContextTransaction transaction,
+            string userId)
+        {
+            var hasActiveVariant = await _context.ProductVariants
+                .AnyAsync(variant => variant.ProductId == product.Id && variant.IsActive)
+                .ConfigureAwait(false);
+            var variantId = itemRequest.VariantId;
+
+            if (!hasActiveVariant)
+            {
+                if (variantId is null || variantId == Guid.Empty)
+                    return null;
+
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.NotAllowed,
+                    "Variant is not allowed for this product.");
+            }
+
+            if (variantId is null || variantId == Guid.Empty)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.Required,
+                    "A variant is required for this product.");
+            }
+
+            var row = await _context.ProductVariants
+                .FirstOrDefaultAsync(variant =>
+                    variant.Id == variantId
+                    && variant.ProductId == product.Id
+                    && variant.IsActive)
+                .ConfigureAwait(false);
+            if (row == null || row.TenantId != product.TenantId)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.Invalid,
+                    "Variant does not belong to this product.");
+            }
+
+            if (row.Stock < itemRequest.Quantity)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                _context.ChangeTracker.Clear();
+                return VariantPaymentFailure(
+                    ProductVariantSaleCodes.StockInsufficient,
+                    "Variant stock is insufficient.");
+            }
+
+            row.Stock -= itemRequest.Quantity;
+            row.UpdatedAtUtc = DateTime.UtcNow;
+            variantPriceDeltas[itemRequest] = row.PriceDelta;
+
+            try
+            {
+                await _auditLogService.LogSystemOperationAsync(
+                    action: "PRODUCT_VARIANT_STOCK_ADJUSTED",
+                    entityType: "ProductVariant",
+                    userId: string.IsNullOrWhiteSpace(userId) ? "system" : userId,
+                    userRole: "Cashier",
+                    description: "PRODUCT_VARIANT_STOCK_ADJUSTED",
+                    actionType: AuditEventType.ProductVariantStockAdjusted,
+                    entityId: row.Id,
+                    tenantId: product.TenantId,
+                    newValues: new
+                    {
+                        tenantId = product.TenantId,
+                        productId = product.Id,
+                        variantId = row.Id,
+                        delta = -itemRequest.Quantity,
+                        newStock = row.Stock,
+                    }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Variant stock audit failed for {VariantId}", row.Id);
+            }
+
+            return null;
+        }
+
+        private async Task<string> AllocateCountryBelegNrAsync(
+            CountryStrategyBinding countryBinding,
+            IDbContextTransaction transaction,
+            Guid cashRegisterId,
+            string registerNumber)
+        {
+            if (countryBinding.Profile.Code == CountryProfileCodes.EuDefault)
+                return await FormatFromSequenceAsync(
+                    _euReceiptSequenceService,
+                    EuReceiptSequenceService.FormatEuBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber);
+
+            return countryBinding.Profile.FiscalSystem switch
+            {
+                FiscalSystem.RKSV_AT => await _receiptSequenceService
+                    .AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow),
+                FiscalSystem.KASSENSICHERHEIT_DE => await FormatFromSequenceAsync(
+                    _deReceiptSequenceService,
+                    DeReceiptSequenceService.FormatDeBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber),
+                FiscalSystem.MWST_CH => await FormatFromSequenceAsync(
+                    _chReceiptSequenceService,
+                    ChReceiptSequenceService.FormatChBelegNr,
+                    countryBinding,
+                    cashRegisterId,
+                    registerNumber),
+                _ => throw new InvalidOperationException($"No sequence service for {countryBinding.Profile.Code}"),
+            };
+        }
+
+        private async Task<string> FormatFromSequenceAsync(
+            object? sequenceService,
+            Func<string, string, int, string> formatter,
+            CountryStrategyBinding countryBinding,
+            Guid cashRegisterId,
+            string registerNumber)
+        {
+            if (sequenceService is null)
+                throw new InvalidOperationException($"Sequence service missing for {countryBinding.Profile.Code}");
+
+            var tenantId = countryBinding.Settings.TenantId;
+            var seq = await (sequenceService switch
+            {
+                IDeReceiptSequenceService de => de.AllocateNextAsync(tenantId, cashRegisterId),
+                IChReceiptSequenceService ch => ch.AllocateNextAsync(tenantId, cashRegisterId),
+                IEuReceiptSequenceService eu => eu.AllocateNextAsync(tenantId, cashRegisterId),
+                _ => throw new InvalidOperationException("Unknown sequence service type"),
+            });
+
+            var slug = await _context.Tenants.AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(slug))
+                throw new InvalidOperationException($"Tenant slug missing for '{tenantId}'.");
+
+            return formatter(slug, registerNumber, seq);
         }
 
         /// <summary>
@@ -154,6 +690,8 @@ namespace KasseAPI_Final.Services
             try
             {
                 var result = await CreatePaymentCoreAsync(request, userId, offlineTransactionId, offlineReplayBatchCorrelationId);
+                await TryAttachPreorderAfterSaleAsync(request, result, userId);
+                await TryApplyPreorderBalanceAfterSaleAsync(request, result);
                 await _posCriticalAudit.LogPaymentOutcomeAsync(userId, request, result);
                 return result;
             }
@@ -194,7 +732,8 @@ namespace KasseAPI_Final.Services
 
             var tenantStatus = TenantLicenseValidator.GetStatus(tenantLicenseValidUntilUtc);
             if (tenantStatus == TenantLicenseStatus.GraceReadOnly
-                || tenantStatus == TenantLicenseStatus.Lockdown)
+                || tenantStatus == TenantLicenseStatus.Lockdown
+                || tenantStatus == TenantLicenseStatus.Archived)
             {
                 _logger.LogWarning(
                     "Payment blocked: tenant license denies payments (TenantId={TenantId}, Status={Status}, ValidUntilUtc={ValidUntilUtc})",
@@ -230,6 +769,42 @@ namespace KasseAPI_Final.Services
                 "Zahlungen sind deaktiviert. Bitte verlaengern Sie die Lizenz im Admin-Panel.");
         }
 
+        private async Task<PaymentResult?> TryRejectSaleForTenantLimitsAsync(
+            Guid tenantId,
+            decimal totalAmount,
+            Guid? offlineTransactionId,
+            CancellationToken cancellationToken)
+        {
+            if (_tenantLimitGuard is null || tenantId == Guid.Empty || offlineTransactionId.HasValue)
+                return null;
+
+            try
+            {
+                await _tenantLimitGuard
+                    .EnsureSaleWithinLimitsAsync(tenantId, totalAmount, cancellationToken)
+                    .ConfigureAwait(false);
+                return null;
+            }
+            catch (LimitExceededException ex)
+            {
+                _logger.LogWarning(
+                    "Payment blocked by tenant limit TenantId={TenantId} LimitKey={LimitKey} Limit={Limit} Current={Current}",
+                    tenantId,
+                    ex.LimitKey,
+                    ex.LimitAmount,
+                    ex.CurrentAmount);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Errors = { ex.Message },
+                    DiagnosticCode = LimitExceededException.ErrorCodeValue,
+                    LimitError = ex.ToErrorDto(),
+                    IsDeterministicFailure = true,
+                };
+            }
+        }
+
         private async Task<PaymentResult> CreatePaymentCoreAsync(
             CreatePaymentRequest request,
             string userId,
@@ -242,6 +817,33 @@ namespace KasseAPI_Final.Services
             // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
             var licenseCheckCancellation = _httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
             await EnsureLicenseAllowsPaymentAsync(licenseCheckCancellation).ConfigureAwait(false);
+
+            var prescriptionReference = NormalizePrescriptionReference(request.PrescriptionReference);
+            if (prescriptionReference is not null
+                && !await AllowsFeatureAsync("patientRecord", licenseCheckCancellation).ConfigureAwait(false))
+            {
+                return ProfileFeatureRejected("patientRecord");
+            }
+
+            var routeFrom = NormalizeTaxiText(request.RouteFrom);
+            var routeTo = NormalizeTaxiText(request.RouteTo);
+            var routeKm = request.RouteKm;
+            var tripStartedAtUtc = request.TripStartedAtUtc;
+            if ((routeFrom is not null || routeTo is not null || routeKm.HasValue || tripStartedAtUtc.HasValue)
+                && !await AllowsTaxiSurfaceAsync(licenseCheckCancellation).ConfigureAwait(false))
+            {
+                return ProfileFeatureRejected(VerticalProfileGuard.TaxiFeature);
+            }
+
+            if (!request.IsStorno && !request.IsRefund)
+            {
+                var profileFieldRejection = await RejectDisabledProfileSaleFieldsAsync(
+                        request,
+                        licenseCheckCancellation)
+                    .ConfigureAwait(false);
+                if (profileFieldRejection is not null)
+                    return profileFieldRejection;
+            }
 
             var tenantIdForFlags = await _settingsTenantResolver
                 .ResolveEffectiveTenantIdAsync(licenseCheckCancellation)
@@ -493,12 +1095,15 @@ namespace KasseAPI_Final.Services
                 }
 
                 var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+                var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+                var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
 
-                var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer) && IsValidAustrianTaxNumber(request.Steuernummer!)
+                var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer)
+                    && taxStrategy.ValidateVatId(request.Steuernummer, countryBinding.Profile).IsValid
                     ? request.Steuernummer!.Trim()
                     : companyProfile.TaxNumber;
 
-                if (!IsValidAustrianTaxNumber(effectiveSteuernummer))
+                if (!taxStrategy.ValidateVatId(effectiveSteuernummer, countryBinding.Profile).IsValid)
                 {
                     _logger.LogWarning("Resolved Steuernummer invalid (check company settings CompanyTaxNumber): {TaxNumber}", effectiveSteuernummer);
                     return new PaymentResult
@@ -547,7 +1152,8 @@ namespace KasseAPI_Final.Services
 
                 // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
 
-                // TSE modu: Off = globally disables signing. Client must not skip DEP for Gutschein by sending TseRequired=false.
+                // TSE signing is server policy: TseMode Off skips; Demo/Device always sign.
+                // Client TseRequired is a hint only — POS __DEV__ toggles must not skip the chain.
                 var requestPaymentMethodCode = string.IsNullOrWhiteSpace(request.Payment.Method)
                     ? null
                     : request.Payment.Method.Trim().ToLowerInvariant();
@@ -570,8 +1176,13 @@ namespace KasseAPI_Final.Services
                         IsDeterministicFailure = true
                     };
                 }
-                var effectiveTseRequired =
-                    (request.Payment.TseRequired || voucherLikelyFromClientMethod || hasVoucherPayload) && !_tseOptions.IsOff;
+                var effectiveTseRequired = _tseOptions.RequiresFiscalSignature;
+                if (effectiveTseRequired && !request.Payment.TseRequired)
+                {
+                    _logger.LogWarning(
+                        "Client sent TseRequired=false but TseMode={TseMode}; server requires TSE signature.",
+                        _tseOptions.TseMode);
+                }
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var health = _tseHealthMonitor.Snapshot;
@@ -639,7 +1250,9 @@ namespace KasseAPI_Final.Services
 
                 PaymentDetails? committedPayment = null;
                 Invoice? committedInvoice = null;
+                IReadOnlyList<IssuedTicketDto> committedIssuedTickets = [];
                 var paymentStockLinesSkipped = 0;
+                Guid? gatewayIntentId = null;
 
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 var timeSyncWarningForPayment = false;
@@ -708,8 +1321,21 @@ namespace KasseAPI_Final.Services
                     decimal totalTaxAmount = 0;
                     var taxDetails = new Dictionary<string, decimal>();
 
-                    var cartSnapshotPrices = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
+                    var cartSnapshot = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
+                    var cartSnapshotPrices = cartSnapshot?.UnitPrices;
+                    var cartClaim = await TryClaimMatchingCartForPaymentAsync(userId, request.TableNumber, request.Items)
+                        .ConfigureAwait(false);
+                    if (cartClaim != null)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return cartClaim;
+                    }
 
+                    var pricedLines = new List<(PaymentItemRequest Item, Product Product, decimal UnitGross)>();
+                    var pendingImeiRows = new List<ProductImei>();
+                    var reservedImeiCodes = new HashSet<string>(StringComparer.Ordinal);
+                    var variantPriceDeltas = new Dictionary<PaymentItemRequest, decimal>();
                     foreach (var itemRequest in request.Items)
                     {
                         var product = await _context.Products
@@ -740,9 +1366,22 @@ namespace KasseAPI_Final.Services
                             };
                         }
 
+                        if (!request.IsStorno && !request.IsRefund)
+                        {
+                            var variantFailure = await TryApplyVariantForLineAsync(
+                                product,
+                                itemRequest,
+                                variantPriceDeltas,
+                                transaction,
+                                userId).ConfigureAwait(false);
+                            if (variantFailure != null)
+                                return variantFailure;
+                        }
+
                         // Phase 2: Sellable add-ons are product-only payment lines; no stock deduction (stok düşülmez).
+                        // Products with variants keep top-level stock unchanged; the variant row is the stock.
                         // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
-                        if (!product.IsSellableAddOn)
+                        if (!product.IsSellableAddOn && !variantPriceDeltas.ContainsKey(itemRequest))
                         {
                             if (_inventoryOptions.EnforceStockOnSales)
                             {
@@ -772,7 +1411,20 @@ namespace KasseAPI_Final.Services
                             }
                         }
 
-                        // VAT: same RKSV tax type as cart (product.TaxType); single rounding via CartMoneyHelper.
+                        if (!request.IsStorno && !request.IsRefund)
+                        {
+                            var imeiFailure = await TryReserveImeisForLineAsync(
+                                product,
+                                itemRequest,
+                                pendingImeiRows,
+                                reservedImeiCodes,
+                                transaction)
+                                .ConfigureAwait(false);
+                            if (imeiFailure != null)
+                                return imeiFailure;
+                        }
+
+                        // VAT: country strategy (Austria delegates to CartMoneyHelper — same rounding).
                         decimal unitGross;
                         if (cartSnapshotPrices != null && cartSnapshotPrices.TryGetValue(product.Id, out var snapGross))
                         {
@@ -789,14 +1441,54 @@ namespace KasseAPI_Final.Services
                             unitGross = priceRes.UnitPriceGross;
                         }
 
-                        var line = CartMoneyHelper.ComputeLine(unitGross, itemRequest.Quantity, product.TaxType);
-                        totalAmount += line.LineGross;
-                        totalTaxAmount += line.LineTax;
+                        if (variantPriceDeltas.TryGetValue(itemRequest, out var priceDelta))
+                        {
+                            unitGross = decimal.Round(unitGross + priceDelta, 2, MidpointRounding.AwayFromZero);
+                            if (unitGross < 0)
+                            {
+                                await transaction.RollbackAsync().ConfigureAwait(false);
+                                _context.ChangeTracker.Clear();
+                                return VariantPaymentFailure(
+                                    ProductVariantSaleCodes.Invalid,
+                                    "Variant price delta makes the line total negative.");
+                            }
+                        }
 
-                        var paymentItem = new PaymentItem
+                        pricedLines.Add((itemRequest, product, unitGross));
+                    }
+
+                    var rateCatalog = TaxTypesFor(countryBinding);
+                    var taxResult = taxStrategy.CalculateTax(
+                        pricedLines.ConvertAll(l =>
+                            CountryPaymentTaxLineMapper.FromProductTaxType(
+                                countryBinding.Profile,
+                                l.UnitGross,
+                                l.Item.Quantity,
+                                l.Product.TaxType,
+                                rateCatalog)),
+                        new TaxCalculationContext
+                        {
+                            CountryProfile = countryBinding.Profile,
+                            VatRegime = countryBinding.VatRegime,
+                            TaxExempt = countryBinding.Settings.TaxExempt,
+                            BuyerVatId = request.Steuernummer,
+                            DestinationCountry = CountryPaymentTaxLineMapper.ResolveOssDestinationCountry(
+                                countryBinding.VatRegime,
+                                request.Steuernummer),
+                            TenantId = countryBinding.Settings.TenantId,
+                        });
+
+                    for (var i = 0; i < pricedLines.Count; i++)
+                    {
+                        var (itemRequest, product, _) = pricedLines[i];
+                        var line = taxResult.Lines[i];
+                        paymentItems.Add(new PaymentItem
                         {
                             ProductId = product.Id,
-                            ProductName = product.Name,
+                            ProductName = cartSnapshot != null
+                                && cartSnapshot.StayNames.TryGetValue(product.Id, out var stayName)
+                                ? stayName
+                                : product.Name,
                             Quantity = itemRequest.Quantity,
                             UnitPrice = line.UnitPriceGross,
                             TotalPrice = line.LineGross,
@@ -804,17 +1496,13 @@ namespace KasseAPI_Final.Services
                             TaxRate = line.TaxRate,
                             TaxAmount = line.LineTax,
                             LineNet = line.LineNet
-                        };
-
-                        // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
-                        paymentItems.Add(paymentItem);
+                        });
                         productIdToCategoryId[product.Id] = product.CategoryId;
-
-                        var taxKey = line.TaxType.ToString().ToLowerInvariant();
-                        if (!taxDetails.ContainsKey(taxKey))
-                            taxDetails[taxKey] = 0;
-                        taxDetails[taxKey] += line.LineTax;
                     }
+
+                    totalAmount = taxResult.Totals.TotalGross;
+                    totalTaxAmount = taxResult.Totals.TotalVat;
+                    taxDetails = taxResult.TaxDetails.ToDictionary(static kv => kv.Key, static kv => kv.Value);
 
                     var benefitResult = await CalculateBenefitsAsync(
                         customer,
@@ -849,6 +1537,65 @@ namespace KasseAPI_Final.Services
                             Message = "Total amount mismatch between client and server calculation.",
                             Errors = { "Total amount mismatch between client and server calculation." }
                         };
+                    }
+
+                    if (request.PreorderBalanceOrderId is Guid preorderBalanceId && preorderBalanceId != Guid.Empty)
+                    {
+                        if (_preorderService is null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Pre-order balance payment is not available.",
+                                Errors = { "Pre-order balance payment is not available." },
+                                DiagnosticCode = "PREORDER_UNAVAILABLE"
+                            };
+                        }
+
+                        if (request.IsPreorder)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Pre-order create and balance payment cannot be combined.",
+                                Errors = { "IsPreorder and PreorderBalanceOrderId cannot both be set." },
+                                DiagnosticCode = "PREORDER_BALANCE_EXCLUSIVE"
+                            };
+                        }
+
+                        var balanceGuard = await _preorderService.ValidateBalancePaymentAsync(
+                            preorderBalanceId,
+                            totalAmount,
+                            licenseCheckCancellation).ConfigureAwait(false);
+                        if (!balanceGuard.Ok)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = balanceGuard.Message ?? "Pre-order balance payment is not allowed.",
+                                Errors = { balanceGuard.Message ?? "Pre-order balance payment is not allowed." },
+                                DiagnosticCode = balanceGuard.Code
+                            };
+                        }
+                    }
+
+                    var limitRejection = await TryRejectSaleForTenantLimitsAsync(
+                            tenantIdForFlags,
+                            totalAmount,
+                            offlineTransactionId,
+                            licenseCheckCancellation)
+                        .ConfigureAwait(false);
+                    if (limitRejection != null)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return limitRejection;
                     }
 
                     var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(
@@ -892,54 +1639,10 @@ namespace KasseAPI_Final.Services
                         };
                     }
 
-                    CardPaymentTransaction? validatedCardTransaction = null;
-                    if (IsCardLegacyPayment(methodResolution.LegacyRaw) && _cardPaymentService != null)
-                    {
-                        var cardIntentId = request.Payment.CardPaymentIntentId;
-                        if (cardIntentId.HasValue && cardIntentId.Value != Guid.Empty)
-                        {
-                            var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
-                                .ValidateForFiscalPaymentAsync(cardIntentId.Value, totalAmount, cashRegisterId)
-                                .ConfigureAwait(false);
-                            if (!cardOk)
-                            {
-                                await transaction.RollbackAsync();
-                                _context.ChangeTracker.Clear();
-                                return new PaymentResult
-                                {
-                                    Success = false,
-                                    Message = cardErrMsg ?? "Card payment intent validation failed.",
-                                    Errors = { cardErrMsg ?? "Card payment intent validation failed." },
-                                    IsDeterministicFailure = true,
-                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
-                                };
-                            }
-
-                            validatedCardTransaction = cardTxn;
-                        }
-                        else
-                        {
-                            var (cardOk, _, cardErrCode, cardErrMsg) = await _cardPaymentService
-                                .ValidateForFiscalPaymentAsync(Guid.Empty, totalAmount, cashRegisterId)
-                                .ConfigureAwait(false);
-                            if (!cardOk)
-                            {
-                                await transaction.RollbackAsync();
-                                _context.ChangeTracker.Clear();
-                                return new PaymentResult
-                                {
-                                    Success = false,
-                                    Message = cardErrMsg ?? "Card payment requires a confirmed card payment intent.",
-                                    Errors = { cardErrMsg ?? "Card payment requires a confirmed card payment intent." },
-                                    IsDeterministicFailure = true,
-                                    DiagnosticCode = cardErrCode ?? "CARD_INTENT_REQUIRED"
-                                };
-                            }
-                        }
-                    }
-
                     var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
                     var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
+                    // Gateway intents capture the remainder after voucher, never the cart gross.
+                    var expectedGatewayAmount = expectedVoucherTotal;
                     if (!isVoucherMethodResolved && hasVoucherPayload)
                     {
                         if (!request.Payment.Amount.HasValue)
@@ -989,6 +1692,7 @@ namespace KasseAPI_Final.Services
                         }
 
                         expectedVoucherTotal = decimal.Round(totalAmount - settlementAmount, 2, MidpointRounding.AwayFromZero);
+                        expectedGatewayAmount = settlementAmount;
                         if (expectedVoucherTotal <= 0)
                         {
                             await transaction.RollbackAsync();
@@ -1003,11 +1707,48 @@ namespace KasseAPI_Final.Services
                             };
                         }
                     }
+                    else if (request.Payment.Amount.HasValue)
+                    {
+                        expectedGatewayAmount = decimal.Round(
+                            request.Payment.Amount.Value,
+                            2,
+                            MidpointRounding.AwayFromZero);
+                    }
+
+                    CardPaymentTransaction? validatedCardTransaction = null;
+                    gatewayIntentId = request.Payment.CardPaymentIntentId
+                        ?? request.Payment.OnlinePaymentId
+                        ?? request.Payment.GatewayIntentId;
+                    var requiresGatewayIntent = IsCardLegacyPayment(methodResolution.LegacyRaw)
+                        || OnlinePaymentMethods.Normalize(request.Payment.Method) is not null
+                        || gatewayIntentId.HasValue;
+                    if (requiresGatewayIntent && _cardPaymentService != null)
+                    {
+                        var intentToValidate = gatewayIntentId is Guid gid && gid != Guid.Empty ? gid : Guid.Empty;
+                        var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
+                            .ValidateForFiscalPaymentAsync(intentToValidate, expectedGatewayAmount, cashRegisterId)
+                            .ConfigureAwait(false);
+                        if (!cardOk)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = cardErrMsg ?? "Card payment intent validation failed.",
+                                Errors = { cardErrMsg ?? "Card payment intent validation failed." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
+                            };
+                        }
+
+                        validatedCardTransaction = cardTxn;
+                    }
 
                     // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
                     if (isVoucherMethodResolved || hasVoucherPayload)
                     {
-                        effectiveTseRequired = !_tseOptions.IsOff;
+                        effectiveTseRequired = _tseOptions.RequiresFiscalSignature;
                         var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
                             effectiveTenantId,
                             cashRegisterId,
@@ -1063,7 +1804,7 @@ namespace KasseAPI_Final.Services
                     // Sprint 1: Allocate BelegNr within this transaction so it commits or rolls back with payment/invoice/receipt/stock.
                     var preReceiptNumber = !string.IsNullOrWhiteSpace(request.ReservedReceiptNumber)
                         ? request.ReservedReceiptNumber.Trim()
-                        : await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow);
+                        : await AllocateCountryBelegNrAsync(countryBinding, transaction, cashRegisterId, registerNumber);
 
                     if (!string.IsNullOrWhiteSpace(request.ReservedReceiptNumber))
                     {
@@ -1084,6 +1825,22 @@ namespace KasseAPI_Final.Services
                         }
                     }
 
+                    // Cash tender is operational only. It is not part of the RKSV signature or the TSE payload.
+                    decimal? cashGiven = null;
+                    decimal? changeDue = null;
+                    var isCashSale = !request.IsStorno
+                        && !request.IsRefund
+                        && string.Equals(
+                            methodResolution.LegacyRaw,
+                            ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                            StringComparison.Ordinal);
+                    if (isCashSale && request.CashGiven is decimal tendered)
+                    {
+                        cashGiven = decimal.Round(tendered, 2, MidpointRounding.AwayFromZero);
+                        var due = decimal.Round(cashGiven.Value - totalAmount, 2, MidpointRounding.AwayFromZero);
+                        changeDue = due < 0m ? 0m : due;
+                    }
+
                     // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                     payment = new PaymentDetails
                     {
@@ -1092,9 +1849,16 @@ namespace KasseAPI_Final.Services
                         PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems)),
                         TotalAmount = totalAmount,
                         TaxAmount = totalTaxAmount,
+                        CashGiven = cashGiven,
+                        ChangeDue = changeDue,
                         TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
                         PaymentMethodRaw = methodResolution.LegacyRaw,
                         Notes = request.Notes,
+                        PrescriptionReference = prescriptionReference,
+                        RouteFrom = routeFrom,
+                        RouteTo = routeTo,
+                        RouteKm = routeKm,
+                        TripStartedAtUtc = tripStartedAtUtc,
                         CreatedBy = userId,
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true,
@@ -1116,25 +1880,161 @@ namespace KasseAPI_Final.Services
                         TransactionId = validatedCardTransaction?.GatewayTransactionId,
                         Provider = validatedCardTransaction?.Gateway
                     };
+                    FiscalDocumentCountryStamp.Apply(payment, countryBinding);
 
-                    // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
-                    if (effectiveTseRequired)
+                    if (countryBinding.Profile.FiscalSystem == FiscalSystem.MWST_CH)
                     {
                         try
                         {
-                            var sigResult = await FiscalTseSigning.SignAsync(
-                                _tseService,
-                                new FiscalSigningRequest(
-                                    cashRegisterId,
-                                    preReceiptNumber,
+                            var chSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
                                     payment.TotalAmount,
-                                    registerNumber,
+                                    preReceiptNumber));
+                            payment.SwissQrText = chSign.SwissQrText;
+                            _logger.LogInformation(
+                                "CH_MWST QR built. TenantId={TenantId} Receipt={Receipt} Provider={Provider} Vat={Vat}",
+                                countryBinding.Settings.TenantId,
+                                preReceiptNumber,
+                                chSign.Provider,
+                                chSign.TotalVat);
+                            try
+                            {
+                                await _auditLogService.LogSystemOperationAsync(
+                                    action: "CH_MWST_QR_BUILT",
+                                    entityType: "Payment",
+                                    userId: userId,
+                                    userRole: "Cashier",
+                                    description: "CH MWST QR payload built for canary tenant",
+                                    actionType: AuditEventType.ChMwstQrBuilt,
+                                    entityId: payment.Id,
+                                    tenantId: countryBinding.Settings.TenantId);
+                            }
+                            catch (Exception auditEx)
+                            {
+                                _logger.LogWarning(auditEx, "CH_MWST audit write failed for {Receipt}", preReceiptNumber);
+                            }
+                        }
+                        catch (FeatureDisabledException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Swiss MWST is not enabled",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "CH_FLAG_OFF"
+                            };
+                        }
+                        catch (Fiscal.ChMwstCanaryRejectedException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Swiss MWST canary rejected the tenant",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "CH_NOT_CANARY"
+                            };
+                        }
+                    }
+                    else if (countryBinding.Profile.Code == CountryProfileCodes.EuDefault)
+                    {
+                        try
+                        {
+                            var euSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
+                                    payment.TotalAmount,
+                                    preReceiptNumber,
+                                    BuyerVatId: request.Steuernummer));
+                            _logger.LogInformation(
+                                "EN_16931 Peppol path. TenantId={TenantId} Receipt={Receipt} Status={Status}",
+                                countryBinding.Settings.TenantId,
+                                preReceiptNumber,
+                                euSign.PeppolStatus);
+                        }
+                        catch (FeatureDisabledException ex)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "EN 16931 is not enabled",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "EU_FLAG_OFF"
+                            };
+                        }
+                    }
+                    else if (countryBinding.Profile.FiscalSystem == FiscalSystem.RKSV_AT && effectiveTseRequired)
+                    {
+                        var requiresPrescriptionByProduct = new Dictionary<Guid, bool>();
+                        foreach (var priced in pricedLines)
+                            requiresPrescriptionByProduct[priced.Product.Id] = priced.Product.RequiresPrescription;
+
+                        (taxResult, taxDetails) = await ApplyBeforeSignCartAsync(
+                            effectiveTenantId,
+                            payment,
+                            paymentItems,
+                            taxResult,
+                            taxDetails,
+                            taxStrategy,
+                            countryBinding,
+                            rateCatalog,
+                            request.Steuernummer,
+                            requiresPrescriptionByProduct);
+                        totalAmount = payment.TotalAmount;
+                        totalTaxAmount = payment.TaxAmount;
+                        try
+                        {
+                            var atSign = await _fiscalSignatureRouter.SignAsync(
+                                new Fiscal.FiscalSignatureContext(
+                                    countryBinding,
+                                    taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                        line.UnitPriceGross,
+                                        1,
+                                        line.TaxRate * 100m)).ToList(),
+                                    payment.TotalAmount,
+                                    preReceiptNumber,
+                                    CashRegisterId: cashRegisterId,
+                                    RegisterNumber: registerNumber,
                                     TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
                                     DbTransaction: transaction));
-                            payment.TseSignature = sigResult.CompactJws;
-                            payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
-                            payment.CertificateThumbprint = sigResult.CertificateThumbprint;
-                            _logger.LogInformation("TSE signature generated for payment {PaymentId}", payment.Id);
+                            payment.TseSignature = atSign.Signature;
+                            payment.PrevSignatureValueUsed = atSign.PrevSignatureValue;
+                            payment.CertificateThumbprint = atSign.CertificateThumbprint;
+                            _logger.LogInformation(
+                                "TSE signature generated for payment {PaymentId} provider={Provider}",
+                                payment.Id,
+                                atSign.Provider);
+                        }
+                        catch (TseUnavailableException ex)
+                        {
+                            _logger.LogError(
+                                ex,
+                                "TSE unavailable while signing payment (BelegNr={BelegNr}, paymentDraftId={PaymentId}).",
+                                preReceiptNumber,
+                                payment.Id);
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "TSE is not available",
+                                Errors = { ex.Message },
+                                DiagnosticCode = "TSE_UNAVAILABLE"
+                            };
                         }
                         catch (Exception ex)
                         {
@@ -1154,6 +2054,25 @@ namespace KasseAPI_Final.Services
                                 Errors = { "TSE signature generation failed" }
                             };
                         }
+                    }
+                    else if (countryBinding.Profile.FiscalSystem == FiscalSystem.KASSENSICHERHEIT_DE)
+                    {
+                        var deSign = await _fiscalSignatureRouter.SignAsync(
+                            new Fiscal.FiscalSignatureContext(
+                                countryBinding,
+                                taxResult.Lines.Select(line => TaxLineItemInput.FromVatPercent(
+                                    line.UnitPriceGross,
+                                    1,
+                                    line.TaxRate * 100m)).ToList(),
+                                payment.TotalAmount,
+                                preReceiptNumber,
+                                CashRegisterId: cashRegisterId,
+                                RegisterNumber: registerNumber,
+                                TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
+                                PaymentMethodRaw: payment.PaymentMethodRaw,
+                                PaymentId: payment.Id,
+                                DbTransaction: transaction));
+                        payment.CountryCodeAtIssue = "DE";
                     }
 
                     var companyAddress = payment.CompanyAddress
@@ -1190,8 +2109,36 @@ namespace KasseAPI_Final.Services
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     };
+                    FiscalDocumentCountryStamp.CopyFromPayment(posInvoice, payment, countryBinding);
 
                     _context.PaymentDetails.Add(payment);
+                    IReadOnlyList<IssuedTicketDto> issuedTickets = [];
+                    if (_ticketRedemptions is not null
+                        && await TenantIssuesTicketsAsync(CancellationToken.None).ConfigureAwait(false)
+                        && !request.IsStorno
+                        && !request.IsRefund)
+                    {
+                        var ticketLines = pricedLines
+                            .Where(line => line.Product.IsTicket)
+                            .Select(line => (line.Product, line.Item.Quantity))
+                            .ToList();
+                        if (ticketLines.Count > 0)
+                        {
+                            issuedTickets = await _ticketRedemptions
+                                .IssueForSaleAsync(
+                                    effectiveTenantId,
+                                    payment.Id,
+                                    ticketLines,
+                                    CancellationToken.None)
+                                .ConfigureAwait(false);
+                        }
+                    }
+                    foreach (var imeiRow in pendingImeiRows)
+                    {
+                        imeiRow.Status = ProductImeiStatus.Sold;
+                        imeiRow.SoldPaymentId = payment.Id;
+                        imeiRow.SoldAtUtc = DateTime.UtcNow;
+                    }
                     _context.Invoices.Add(posInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
 
@@ -1233,10 +2180,17 @@ namespace KasseAPI_Final.Services
                     // Stock updates: when EnforceStockOnSales is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
 
                     await _context.SaveChangesAsync();
+                    await RunPaymentHookAsync(
+                        effectiveTenantId,
+                        TenantExtensionHooks.PaymentAfterPersist,
+                        payment.Id,
+                        payment.TotalAmount,
+                        payment.ReceiptNumber);
                     await transaction.CommitAsync();
 
                     committedPayment = payment!;
                     committedInvoice = posInvoice!;
+                    committedIssuedTickets = issuedTickets;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1329,6 +2283,16 @@ namespace KasseAPI_Final.Services
                     _logger.LogError(ex, "Fiscal transaction failed for payment; DbUpdateException after rollback");
                     throw;
                 }
+                catch (ExtensionFailedException ex)
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    _logger.LogWarning(
+                        ex,
+                        "Tenant extension {Feature} rejected payment before commit",
+                        ex.FeatureName);
+                    return ExtensionRejected(ex);
+                }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
@@ -1353,11 +2317,63 @@ namespace KasseAPI_Final.Services
 
                     await DispatchPostCommitComplianceAsync(createdPayment, createdInvoice, userId, offlineReplayBatchCorrelationId, effectiveTseRequired);
 
-                    if (_cardPaymentService != null
-                        && request.Payment.CardPaymentIntentId is Guid cardIntentId
-                        && cardIntentId != Guid.Empty)
+                    if (!string.IsNullOrEmpty(createdPayment.PrescriptionReference))
                     {
-                        await _cardPaymentService.LinkToPaymentAsync(cardIntentId, createdPayment.Id).ConfigureAwait(false);
+                        try
+                        {
+                            await _auditLogService.LogSystemOperationAsync(
+                                action: "PAYMENT_WITH_PRESCRIPTION",
+                                entityType: "Payment",
+                                userId: userId,
+                                userRole: "Cashier",
+                                description: "Payment stored a non-fiscal prescription reference",
+                                actionType: AuditEventType.PaymentWithPrescription,
+                                entityId: createdPayment.Id,
+                                tenantId: tenantIdForFlags,
+                                newValues: new { hasPrescription = true });
+                        }
+                        catch (Exception auditEx)
+                        {
+                            _logger.LogWarning(
+                                auditEx,
+                                "PaymentWithPrescription audit write failed for {PaymentId}",
+                                createdPayment.Id);
+                        }
+                    }
+
+                    if (committedIssuedTickets.Count > 0)
+                    {
+                        try
+                        {
+                            await _auditLogService.LogSystemOperationAsync(
+                                action: "TICKET_ISSUED",
+                                entityType: "Payment",
+                                userId: userId,
+                                userRole: "Cashier",
+                                description: "Ticket-sales sale issued redeemable tickets",
+                                actionType: AuditEventType.TicketIssued,
+                                entityId: createdPayment.Id,
+                                tenantId: tenantIdForFlags,
+                                newValues: new { ticketCount = committedIssuedTickets.Count });
+                        }
+                        catch (Exception auditEx)
+                        {
+                            _logger.LogWarning(
+                                auditEx,
+                                "TicketIssued audit write failed for {PaymentId}",
+                                createdPayment.Id);
+                        }
+                    }
+
+                    if (_cardPaymentService != null)
+                    {
+                        var linkedIntentId = request.Payment.CardPaymentIntentId
+                            ?? request.Payment.OnlinePaymentId
+                            ?? request.Payment.GatewayIntentId;
+                        if (linkedIntentId is Guid cardIntentId && cardIntentId != Guid.Empty)
+                        {
+                            await _cardPaymentService.LinkToPaymentAsync(cardIntentId, createdPayment.Id).ConfigureAwait(false);
+                        }
                     }
 
                     var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
@@ -1372,7 +2388,8 @@ namespace KasseAPI_Final.Services
                         IsDemoFiscal = isDemoFiscal,
                         TseProvider = tseProvider,
                         InvoicePersisted = true,
-                        TimeSyncWarning = createdPayment.TimeSyncWarning
+                        TimeSyncWarning = createdPayment.TimeSyncWarning,
+                        IssuedTickets = committedIssuedTickets
                     };
                 }
 
@@ -1404,10 +2421,13 @@ namespace KasseAPI_Final.Services
                 return null;
 
             var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
+            var taxStrategy = _taxStrategyResolver.Resolve(countryBinding.Profile, countryBinding.VatRegime);
             var paymentItems = new List<PaymentItem>();
             var productIdToCategoryId = new Dictionary<Guid, Guid>();
             decimal totalAmount = 0;
 
+            var pricedLines = new List<(BenefitEligibilityPreviewItemRequest Item, Product Product, decimal UnitGross)>();
             foreach (var item in request.Items ?? new List<BenefitEligibilityPreviewItemRequest>())
             {
                 if (item.Quantity < 1)
@@ -1425,7 +2445,31 @@ namespace KasseAPI_Final.Services
                     product.CategoryId,
                     request.CashRegisterId,
                     DateTime.UtcNow);
-                var line = CartMoneyHelper.ComputeLine(priceRes.UnitPriceGross, item.Quantity, product.TaxType);
+                pricedLines.Add((item, product, priceRes.UnitPriceGross));
+            }
+
+            var previewRates = TaxTypesFor(countryBinding);
+            var taxResult = taxStrategy.CalculateTax(
+                pricedLines.ConvertAll(l =>
+                    CountryPaymentTaxLineMapper.FromProductTaxType(
+                        countryBinding.Profile,
+                        l.UnitGross,
+                        l.Item.Quantity,
+                        l.Product.TaxType,
+                        previewRates)),
+                new TaxCalculationContext
+                {
+                    CountryProfile = countryBinding.Profile,
+                    VatRegime = countryBinding.VatRegime,
+                    TaxExempt = countryBinding.Settings.TaxExempt,
+                    DestinationCountry = null,
+                    TenantId = countryBinding.Settings.TenantId,
+                });
+
+            for (var i = 0; i < pricedLines.Count; i++)
+            {
+                var (item, product, _) = pricedLines[i];
+                var line = taxResult.Lines[i];
                 totalAmount += line.LineGross;
                 paymentItems.Add(new PaymentItem
                 {
@@ -1506,7 +2550,13 @@ namespace KasseAPI_Final.Services
             string qrPayload;
             if (!string.IsNullOrEmpty(signatureValue))
             {
-                if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
+                if (LooksLikeFiskalyMachineCode(signatureValue))
+                {
+                    qrPayload = signatureValue.Trim();
+                    tseProvider = "Fiskaly";
+                    isDemoFiscal = false;
+                }
+                else if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
                 {
                     _logger.LogWarning(
                         "Unable to build RKSV §9 QR payload from compact JWS for payment {PaymentId}",
@@ -1521,6 +2571,14 @@ namespace KasseAPI_Final.Services
             }
 
             return Task.FromResult((qrPayload, isDemoFiscal, tseProvider));
+        }
+
+        private static bool LooksLikeFiskalyMachineCode(string signatureValue)
+        {
+            var trimmed = signatureValue.Trim();
+            if (!trimmed.StartsWith("_R1-AT", StringComparison.Ordinal))
+                return false;
+            return trimmed.Split('.').Length != 3;
         }
 
         /// <summary>
@@ -1705,6 +2763,62 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        private async Task TryAttachPreorderAfterSaleAsync(
+            CreatePaymentRequest request,
+            PaymentResult result,
+            string userId)
+        {
+            if (_preorderService is null || !result.Success || result.Payment is null)
+                return;
+            if (!request.IsPreorder || request.IsStorno || request.IsRefund)
+                return;
+
+            try
+            {
+                await _preorderService.TryCreateFromSuccessfulPaymentAsync(result.Payment, request, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder create failed after fiscal payment {PaymentId}", result.Payment.Id);
+            }
+        }
+
+        private async Task TryApplyPreorderBalanceAfterSaleAsync(
+            CreatePaymentRequest request,
+            PaymentResult result)
+        {
+            if (_preorderService is null || !result.Success || result.Payment is null)
+                return;
+            if (request.PreorderBalanceOrderId is not Guid orderId || orderId == Guid.Empty)
+                return;
+            if (request.IsStorno || request.IsRefund || request.IsPreorder)
+                return;
+
+            try
+            {
+                await _preorderService.ApplyBalancePaymentAsync(orderId, result.Payment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder balance apply failed after fiscal payment {PaymentId}", result.Payment.Id);
+            }
+        }
+
+        private async Task TryMarkPreorderCancelledAsync(Guid sourcePaymentId)
+        {
+            if (_preorderService is null || sourcePaymentId == Guid.Empty)
+                return;
+
+            try
+            {
+                await _preorderService.MarkCancelledForPaymentAsync(sourcePaymentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Preorder cancel mark failed for payment {PaymentId}", sourcePaymentId);
+            }
+        }
+
         /// <summary>
         /// Cancel payment via fiscal storno (reversal). Original payment is NEVER modified; a reversal record is created with TSE signature and credit note.
         /// Sprint 6: optional idempotencyKey — retries with same key return existing storno.
@@ -1764,6 +2878,13 @@ namespace KasseAPI_Final.Services
                             };
                         }
                         _logger.LogInformation("Idempotent cancel: returning existing storno {StornoId} for payment {PaymentId} key {Key}", existingStorno.Id, paymentId, key);
+                        await TryMarkPreorderCancelledAsync(paymentId);
+                        var replayRefundFailure = await RefundCardAfterFiscalStornoAsync(
+                                existingStorno.OriginalPaymentId ?? paymentId,
+                                Math.Abs(existingStorno.TotalAmount))
+                            .ConfigureAwait(false);
+                        if (replayRefundFailure != null)
+                            return replayRefundFailure;
                         return new PaymentResult
                         {
                             Success = true,
@@ -1813,12 +2934,17 @@ namespace KasseAPI_Final.Services
                     .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
                 if (alreadyHasStorno)
                 {
+                    var refundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                        .ConfigureAwait(false);
+                    if (refundFailure != null)
+                        return refundFailure;
+
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Payment is already cancelled",
                         Errors = { "A reversal (storno) already exists for this payment" },
-                        DiagnosticCode = "ALREADY_CANCELLED",
+                        DiagnosticCode = "STORNO_ALREADY_EXISTS",
                         IsDeterministicFailure = true
                     };
                 }
@@ -1953,6 +3079,11 @@ namespace KasseAPI_Final.Services
                             existingByKey.Id,
                             paymentId,
                             key);
+                        await TryMarkPreorderCancelledAsync(paymentId);
+                        var replayRefundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                            .ConfigureAwait(false);
+                        if (replayRefundFailure != null)
+                            return replayRefundFailure;
                         return new PaymentResult
                         {
                             Success = true,
@@ -1991,6 +3122,11 @@ namespace KasseAPI_Final.Services
                 .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
             if (alreadyHasStorno)
             {
+                var refundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                    .ConfigureAwait(false);
+                if (refundFailure != null)
+                    return refundFailure;
+
                 return new PaymentResult
                 {
                     Success = false,
@@ -2077,16 +3213,18 @@ namespace KasseAPI_Final.Services
             var stornoTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value);
 
             var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+            var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
             var stornoId = Guid.NewGuid();
             var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             string stornoBelegNr = string.Empty;
             Guid stornoInvoiceId = Guid.Empty;
+            string signingProvider = "local";
 
             await using var dbTx = await _context.Database.BeginTransactionAsync();
             try
             {
                 var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(dbTx, cashRegisterId, registerNumber, DateTime.UtcNow);
+                stornoBelegNr = await AllocateCountryBelegNrAsync(countryBinding, dbTx, cashRegisterId, registerNumber);
 
                 var storno = new PaymentDetails
                 {
@@ -2118,7 +3256,17 @@ namespace KasseAPI_Final.Services
                     CancelIdempotencyKey = cancelIdempotencyKey
                 };
                 CompanyProfileMapper.CopySnapshotFromOriginal(storno, payment, companyProfile);
+                FiscalDocumentCountryStamp.Apply(storno, countryBinding);
 
+                await RunPaymentHookAsync(
+                    effectiveTenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    storno.Id,
+                    storno.TotalAmount,
+                    stornoBelegNr);
+
+                // Fiskaly SIGN AT: negative storno amount is signed as receipt_type=CANCELLATION
+                // (PUT /cash-register/{id}/receipt/{id}) via TseService — same endpoint as the Fiskaly test page.
                 TseSignatureResult sigResult;
                 try
                 {
@@ -2131,6 +3279,7 @@ namespace KasseAPI_Final.Services
                             registerNumber,
                             TaxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails),
                             DbTransaction: dbTx));
+                    signingProvider = sigResult.SigningProvider;
                 }
                 catch (Exception ex)
                 {
@@ -2185,6 +3334,7 @@ namespace KasseAPI_Final.Services
                     CreatedBy = userId,
                     IsActive = true
                 };
+                FiscalDocumentCountryStamp.CopyFromPayment(stornoInvoice, storno, countryBinding);
 
                 _context.PaymentDetails.Add(storno);
                 _context.Invoices.Add(stornoInvoice);
@@ -2234,6 +3384,19 @@ namespace KasseAPI_Final.Services
                 await _context.SaveChangesAsync();
                 await dbTx.CommitAsync();
             }
+            catch (DbUpdateException ex) when (IsStornoUniqueViolation(ex))
+            {
+                await dbTx.RollbackAsync();
+                _logger.LogWarning(ex, "Concurrent storno lost the unique original-payment race for {PaymentId}", paymentId);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Payment is already cancelled",
+                    Errors = { "A reversal (storno) already exists for this payment" },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_ALREADY_EXISTS"
+                };
+            }
             catch (DbUpdateException ex) when (IsCancelIdempotencyKeyViolation(ex))
             {
                 await dbTx.RollbackAsync();
@@ -2253,6 +3416,7 @@ namespace KasseAPI_Final.Services
                             };
                         }
                         _logger.LogInformation("Idempotent cancel (race): returning existing storno {StornoId} for key {Key}", existing.Id, cancelIdempotencyKey);
+                        await TryMarkPreorderCancelledAsync(paymentId);
                         return new PaymentResult
                         {
                             Success = true,
@@ -2262,6 +3426,12 @@ namespace KasseAPI_Final.Services
                     }
                 }
                 throw;
+            }
+            catch (ExtensionFailedException ex)
+            {
+                await dbTx.RollbackAsync();
+                _logger.LogWarning(ex, "Tenant extension {Feature} rejected storno for payment {PaymentId}", ex.FeatureName, paymentId);
+                return ExtensionRejected(ex);
             }
             catch (Exception ex)
             {
@@ -2273,6 +3443,14 @@ namespace KasseAPI_Final.Services
                     Message = "Storno transaction failed",
                     Errors = { ex.Message }
                 };
+            }
+
+            var cardRefundFailure = await RefundCardAfterFiscalStornoAsync(paymentId, payment.TotalAmount)
+                .ConfigureAwait(false);
+            if (cardRefundFailure != null)
+            {
+                cardRefundFailure.PaymentId = stornoId;
+                return cardRefundFailure;
             }
 
             var stornoRow = await _context.PaymentDetails.AsNoTracking()
@@ -2293,9 +3471,18 @@ namespace KasseAPI_Final.Services
                     stornoRow.OriginalPaymentId,
                     stornoRow.OriginalReceiptId,
                     stornoRow.CancellationReason,
-                    CreatedAt = stornoRow.CreatedAt
+                    CreatedAt = stornoRow.CreatedAt,
+                    FiskalyReceiptType = FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+                    SigningProvider = signingProvider
                 });
 
+            await LogFiskalyCancellationAuditAsync(
+                stornoRow,
+                userId,
+                signingProvider,
+                reason);
+
+            await TryMarkPreorderCancelledAsync(paymentId);
             return new PaymentResult
             {
                 Success = true,
@@ -2491,6 +3678,24 @@ namespace KasseAPI_Final.Services
                 var originalInvoiceForRefund = await _context.Invoices.AsNoTracking()
                     .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
 
+                if (_cardPaymentService != null)
+                {
+                    var (gwOk, gwCode, gwMsg) = await _cardPaymentService
+                        .RefundForFiscalPaymentAsync(paymentId, amount)
+                        .ConfigureAwait(false);
+                    if (!gwOk)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = gwMsg ?? "Gateway refund failed.",
+                            Errors = { gwMsg ?? "Gateway refund failed." },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
+                        };
+                    }
+                }
+
                 // Build negated PaymentItems so Receipt totals match (full or partial refund)
                 var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
                 var refundItems = originalItems.Select(i =>
@@ -2532,6 +3737,7 @@ namespace KasseAPI_Final.Services
                 var refundTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value * refundRatio);
 
                 var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+                var countryBinding = await _countryStrategyContext.LoadAsync().ConfigureAwait(false);
                 var refundId = Guid.NewGuid();
                 var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
                 string refundBelegNr = string.Empty;
@@ -2541,7 +3747,7 @@ namespace KasseAPI_Final.Services
                 try
                 {
                     var effectiveTenantIdForRefund = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                    refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(refundTx, refundCashRegisterId, refundRegisterNumber, DateTime.UtcNow);
+                    refundBelegNr = await AllocateCountryBelegNrAsync(countryBinding, refundTx, refundCashRegisterId, refundRegisterNumber);
 
                     var refund = new PaymentDetails
                     {
@@ -2572,6 +3778,14 @@ namespace KasseAPI_Final.Services
                         IdempotencyKey = refundKey
                     };
                     CompanyProfileMapper.CopySnapshotFromOriginal(refund, payment, companyProfile);
+                    FiscalDocumentCountryStamp.Apply(refund, countryBinding);
+
+                    await RunPaymentHookAsync(
+                        effectiveTenantIdForRefund,
+                        TenantExtensionHooks.PaymentBeforeSign,
+                        refund.Id,
+                        refund.TotalAmount,
+                        refundBelegNr);
 
                     TseSignatureResult sigResult;
                     try
@@ -2638,6 +3852,7 @@ namespace KasseAPI_Final.Services
                         CreatedBy = userId,
                         IsActive = true
                     };
+                    FiscalDocumentCountryStamp.CopyFromPayment(refundInvoice, refund, countryBinding);
 
                     _context.PaymentDetails.Add(refund);
                     _context.Invoices.Add(refundInvoice);
@@ -2646,7 +3861,7 @@ namespace KasseAPI_Final.Services
                     if (string.Equals(payment.PaymentMethodRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal))
                     {
                         _logger.LogWarning(
-                            "VOUCHER_REFUND_TODO: Fiscal refund path does not restore stored-value voucher balance. Use full storno (cancellation) for voucher sales or extend RefundPaymentAsync. OriginalPaymentId={PaymentId} RefundId={RefundId}",
+                            "Voucher fiscal refund does not restore stored-value balance. Use full storno (cancellation) for voucher sales. OriginalPaymentId={PaymentId} RefundId={RefundId}",
                             paymentId,
                             refundId);
                     }
@@ -2707,6 +3922,12 @@ namespace KasseAPI_Final.Services
                         }
                     }
                     throw;
+                }
+                catch (ExtensionFailedException ex)
+                {
+                    await refundTx.RollbackAsync();
+                    _logger.LogWarning(ex, "Tenant extension {Feature} rejected refund for payment {PaymentId}", ex.FeatureName, paymentId);
+                    return ExtensionRejected(ex);
                 }
                 catch (Exception ex)
                 {
@@ -2924,6 +4145,14 @@ namespace KasseAPI_Final.Services
                 var regForSign = await _context.CashRegisters.FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {payment.CashRegisterId} not found.");
 
+                var signTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                await RunPaymentHookAsync(
+                    signTenantId,
+                    TenantExtensionHooks.PaymentBeforeSign,
+                    payment.Id,
+                    payment.TotalAmount,
+                    payment.ReceiptNumber);
+
                 var sigResult = await FiscalTseSigning.SignAsync(
                     _tseService,
                     new FiscalSigningRequest(
@@ -2938,6 +4167,10 @@ namespace KasseAPI_Final.Services
                     payment.Id, signature);
 
                 return signature;
+            }
+            catch (ExtensionFailedException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -2989,6 +4222,7 @@ namespace KasseAPI_Final.Services
                     PaymentReference = payment.TransactionId,
                     PaymentDate = payment.CreatedAt
                 };
+                FiscalDocumentCountryStamp.CopyFromPayment(invoice, payment);
 
                 var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice);
 
@@ -3268,6 +4502,50 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Dedicated Fiskaly SIGN AT cancellation audit (receipt_type=CANCELLATION).
+        /// Soft TSE / local signing does not create a Fiskaly dashboard receipt — skip this event then.
+        /// </summary>
+        private async Task LogFiskalyCancellationAuditAsync(
+            PaymentDetails storno,
+            string userId,
+            string signingProvider,
+            string reason)
+        {
+            if (!string.Equals(signingProvider, "fiskaly", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            try
+            {
+                var userRole = await GetUserRoleAsync(userId);
+                await _auditLogService.LogSystemOperationAsync(
+                    action: AuditLogActions.FISKALY_CANCELLATION_RECEIPT_SIGNED,
+                    entityType: "FiskalyReceipt",
+                    userId: userId,
+                    userRole: userRole,
+                    description: "Fiskaly SIGN AT cancellation receipt signed for payment storno.",
+                    status: AuditLogStatus.Success,
+                    actionType: AuditEventType.FiskalyCancellationReceiptSigned,
+                    entityId: storno.Id,
+                    newValues: new
+                    {
+                        storno.Id,
+                        storno.ReceiptNumber,
+                        storno.OriginalPaymentId,
+                        storno.OriginalReceiptId,
+                        FiskalyReceiptType = FiskalyReceiptSchemaMapper.ReceiptTypeCancellation,
+                        Reason = reason
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Fiskaly cancellation audit log write failed for storno {StornoId}; payment operation already committed.",
+                    storno.Id);
+            }
+        }
+
         /// <summary>Nachdruck-Audit (append-only); Fehler beim Schreiben werden geschluckt wie bei anderen Payment-Audits.</summary>
         private async Task<Guid?> LogReceiptReprintAuditAsync(
             string action,
@@ -3301,12 +4579,6 @@ namespace KasseAPI_Final.Services
                 _logger.LogWarning(ex, "Audit log write failed for receipt reprint {Action} PaymentId={PaymentId}", action, paymentId);
                 return null;
             }
-        }
-
-        private bool IsValidAustrianTaxNumber(string taxNumber)
-        {
-            var pattern = @"^ATU\d{8}$";
-            return Regex.IsMatch(taxNumber, pattern);
         }
 
         /// <summary>
@@ -3362,6 +4634,20 @@ namespace KasseAPI_Final.Services
                 {
                     var name = pg.ConstraintName ?? "";
                     if (name.Contains("cancel", StringComparison.OrdinalIgnoreCase) && name.Contains("idempotency", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsStornoUniqueViolation(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505")
+                {
+                    var name = pg.ConstraintName ?? "";
+                    if (name.Contains("one_storno", StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
             }
@@ -3588,9 +4874,123 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
+        /// Marks the matching active cart <see cref="CartStatus.Completed"/> inside the open payment transaction.
+        /// A second request for that cart returns <c>CART_ALREADY_PAID</c> (HTTP 409) instead of another receipt.
+        /// </summary>
+        private async Task<PaymentResult?> TryClaimMatchingCartForPaymentAsync(
+            string userId,
+            int tableNumber,
+            IReadOnlyList<PaymentItemRequest> items)
+        {
+            if (items == null || items.Count == 0)
+                return null;
+
+            var active = await _context.Carts.AsNoTracking()
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                .ConfigureAwait(false);
+            if (active != null && CartLinesMatch(active, items))
+            {
+                var provider = _context.Database.ProviderName ?? string.Empty;
+                if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Single UPDATE holds the row lock until this payment transaction commits.
+                    var claimed = await _context.Carts
+                        .Where(c => c.CartId == active.CartId && c.Status == CartStatus.Active)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(c => c.Status, CartStatus.Completed)
+                            .SetProperty(c => c.UpdatedAt, DateTime.UtcNow))
+                        .ConfigureAwait(false);
+                    if (claimed == 0)
+                        return CartAlreadyPaid();
+                    return null;
+                }
+
+                var tracked = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == active.CartId && c.Status == CartStatus.Active)
+                    .ConfigureAwait(false);
+                if (tracked == null)
+                    return CartAlreadyPaid();
+                tracked.Status = CartStatus.Completed;
+                tracked.UpdatedAt = DateTime.UtcNow;
+                return null;
+            }
+
+            if (active != null)
+                return null;
+
+            var paid = await _context.Carts.AsNoTracking()
+                .Include(c => c.Items)
+                .Where(c => c.UserId == userId && c.TableNumber == tableNumber && c.Status == CartStatus.Completed)
+                .OrderByDescending(c => c.UpdatedAt)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+            if (paid != null && CartLinesMatch(paid, items))
+                return CartAlreadyPaid();
+
+            return null;
+        }
+
+        private static PaymentResult CartAlreadyPaid() => new()
+        {
+            Success = false,
+            Message = "Cart is already paid",
+            Errors = { "This cart was already paid. A second receipt was not created." },
+            IsDeterministicFailure = true,
+            DiagnosticCode = "CART_ALREADY_PAID"
+        };
+
+        private static bool CartLinesMatch(Cart cart, IReadOnlyList<PaymentItemRequest> items)
+        {
+            if (cart.Items == null || cart.Items.Count == 0)
+                return false;
+
+            var reqByProduct = items.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            var cartByProduct = cart.Items.GroupBy(ci => ci.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            if (reqByProduct.Count != cartByProduct.Count)
+                return false;
+            foreach (var kv in reqByProduct)
+            {
+                if (!cartByProduct.TryGetValue(kv.Key, out var qty) || qty != kv.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Card gateway refund runs only after the fiscal storno row has committed.
+        /// Cash sales have no card row and return success without a gateway call.
+        /// </summary>
+        private async Task<PaymentResult?> RefundCardAfterFiscalStornoAsync(Guid originalPaymentId, decimal amount)
+        {
+            if (_cardPaymentService == null)
+                return null;
+
+            var (gwOk, gwCode, gwMsg) = await _cardPaymentService
+                .RefundForFiscalPaymentAsync(originalPaymentId, amount)
+                .ConfigureAwait(false);
+            if (gwOk)
+                return null;
+
+            return new PaymentResult
+            {
+                Success = false,
+                Message = gwMsg ?? "Gateway refund failed.",
+                Errors = { gwMsg ?? "Gateway refund failed." },
+                IsDeterministicFailure = true,
+                DiagnosticCode = gwCode ?? OnlinePaymentErrorCodes.GatewayRefundFailed
+            };
+        }
+
+        /// <summary>
         /// Aktif sepet satırları ödeme kalemleriyle (ürün + miktar) birebir örtüşüyorsa birim brüt fiyatları döndürür; böylece ödeme toplamı sepetteki anlık fiyatla uyumlu kalır.
         /// </summary>
-        private async Task<Dictionary<Guid, decimal>?> TryGetCartSnapshotUnitPricesAsync(
+        private sealed record CartPriceSnapshot(
+            Dictionary<Guid, decimal> UnitPrices,
+            Dictionary<Guid, string> StayNames);
+
+        private async Task<CartPriceSnapshot?> TryGetCartSnapshotUnitPricesAsync(
             string userId,
             int tableNumber,
             IReadOnlyList<PaymentItemRequest> items)
@@ -3612,17 +5012,21 @@ namespace KasseAPI_Final.Services
                     return null;
             }
 
-            var result = new Dictionary<Guid, decimal>();
+            var prices = new Dictionary<Guid, decimal>();
+            var stayNames = new Dictionary<Guid, string>();
             foreach (var g in cart.Items.GroupBy(ci => ci.ProductId))
             {
                 var qty = g.Sum(x => x.Quantity);
                 if (qty <= 0)
                     return null;
                 var weighted = g.Sum(x => x.UnitPrice * x.Quantity);
-                result[g.Key] = Math.Round(weighted / qty, 2, MidpointRounding.AwayFromZero);
+                prices[g.Key] = Math.Round(weighted / qty, 2, MidpointRounding.AwayFromZero);
+                var stay = g.Select(ci => ci.Notes).FirstOrDefault(LodgingStayLine.IsStayLabel);
+                if (stay != null)
+                    stayNames[g.Key] = stay;
             }
 
-            return result;
+            return new CartPriceSnapshot(prices, stayNames);
         }
 
         private record BenefitCalculationResult(

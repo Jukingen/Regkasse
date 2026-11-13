@@ -27,7 +27,7 @@ public sealed class RksvPriceChangeComplianceCheckerTests
     [Fact]
     public async Task Check_WarnsRkSv001_WhenFiscalHistoryAndPriceChanges()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedAsync(db, tenantId, price: 3.5m, taxRate: 20m);
         await AddOrderLineAsync(db, productId);
@@ -47,7 +47,7 @@ public sealed class RksvPriceChangeComplianceCheckerTests
     [Fact]
     public async Task Check_ErrorsRkSv002_WhenTaxRateInvalid()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, _) = await SeedAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -75,7 +75,7 @@ public sealed class RksvPriceChangeComplianceCheckerTests
     [Fact]
     public async Task Check_AddsRkSv003_WhenPriceChanges()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedAsync(db, tenantId, price: 3.5m, taxRate: 20m);
 
@@ -93,7 +93,7 @@ public sealed class RksvPriceChangeComplianceCheckerTests
     [Fact]
     public async Task Check_ForceInPlace_KeepsWarningButNoNewVersion()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var db = CreateDb(tenantId);
         var (productId, taxGroupId) = await SeedAsync(db, tenantId, price: 3.5m, taxRate: 20m);
         await AddOrderLineAsync(db, productId);

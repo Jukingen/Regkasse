@@ -20,6 +20,7 @@ public static class ClientAppPolicy
     private static readonly IReadOnlySet<string> PosAllowedRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Cashier,
+        Roles.Kitchen,
         Roles.SuperAdmin,
     };
 

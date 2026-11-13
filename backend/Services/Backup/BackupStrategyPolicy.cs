@@ -12,6 +12,9 @@ public static class BackupStrategyPolicy
     public const int TenantRetentionDays = 30;
     public const int SystemRetentionDays = 90;
 
+    /// <summary>RKSV / BAO §132 legal retention for System backups (years).</summary>
+    public const int SystemLegalRetentionYears = 7;
+
     /// <summary>AspNet Identity tables — excluded from Tenant strategy dumps; included for System.</summary>
     public static readonly string[] IdentityExcludeTables =
     {

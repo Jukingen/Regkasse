@@ -27,10 +27,14 @@ export interface OfflineOrder {
 export interface IOfflineStorage {
   saveOrder(order: OfflineOrder): Promise<void>;
   getPendingOrders(): Promise<OfflineOrder[]>;
+  /** Read-only listing of every local row (pending, failed, synced). Does not change persistence. */
+  listAll(): Promise<OfflineOrder[]>;
   getOrder(id: string): Promise<OfflineOrder | null>;
   deleteOrder(id: string): Promise<void>;
   updateOrderStatus(id: string, status: string): Promise<void>;
   deleteAllSynced(): Promise<void>;
+  /** Removes every queued order (pending, failed, synced). Used on logout for session isolation. */
+  clearAll(): Promise<void>;
 }
 
 function isOfflineOrderStatus(value: string): value is OfflineOrderStatus {
@@ -67,6 +71,10 @@ export class AsyncStorageAdapter implements IOfflineStorage {
     return sortByCreatedAt(orders.filter((o) => o.status === 'pending'));
   }
 
+  async listAll(): Promise<OfflineOrder[]> {
+    return sortByCreatedAt(await readAllFromAsyncStorage());
+  }
+
   async getOrder(id: string): Promise<OfflineOrder | null> {
     const orders = await readAllFromAsyncStorage();
     return orders.find((o) => o.id === id) ?? null;
@@ -88,6 +96,10 @@ export class AsyncStorageAdapter implements IOfflineStorage {
   async deleteAllSynced(): Promise<void> {
     const orders = await readAllFromAsyncStorage();
     await writeAllToAsyncStorage(orders.filter((o) => o.status !== 'synced'));
+  }
+
+  async clearAll(): Promise<void> {
+    await writeAllToAsyncStorage([]);
   }
 }
 
@@ -175,6 +187,13 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
     });
   }
 
+  async listAll(): Promise<OfflineOrder[]> {
+    return await this.withStore('readonly', async (store) => {
+      const rows = await idbRequest(store.getAll());
+      return sortByCreatedAt(rows as OfflineOrder[]);
+    });
+  }
+
   async getOrder(id: string): Promise<OfflineOrder | null> {
     return await this.withStore('readonly', async (store) => {
       const row = await idbRequest(store.get(id));
@@ -203,6 +222,12 @@ export class IndexedDBStorageAdapter implements IOfflineStorage {
       const index = store.index('status');
       const synced = (await idbRequest(index.getAll('synced'))) as OfflineOrder[];
       await Promise.all(synced.map((order) => idbRequest(store.delete(order.id))));
+    });
+  }
+
+  async clearAll(): Promise<void> {
+    await this.withStore('readwrite', async (store) => {
+      await idbRequest(store.clear());
     });
   }
 }

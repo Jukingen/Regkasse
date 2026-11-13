@@ -12,10 +12,10 @@ const MS_DAY = 86_400_000;
 const THIRTY_DAYS_MS = 30 * MS_DAY;
 
 const TERMINAL_STATUSES = new Set<number>([
-  BackupRunStatus.NUMBER_3,
-  BackupRunStatus.NUMBER_4,
-  BackupRunStatus.NUMBER_5,
-  BackupRunStatus.NUMBER_6,
+  BackupRunStatus.Succeeded,
+  BackupRunStatus.Failed,
+  BackupRunStatus.VerificationFailed,
+  BackupRunStatus.Cancelled,
 ]);
 
 export function mapBackupRunToMetricStatus(
@@ -23,19 +23,19 @@ export function mapBackupRunToMetricStatus(
   options?: { simulated?: boolean; active?: boolean }
 ): MetricStatus | undefined {
   if (status === undefined) return undefined;
-  if (options?.simulated && status === BackupRunStatus.NUMBER_3) return 'warning';
+  if (options?.simulated && status === BackupRunStatus.Succeeded) return 'warning';
   if (
-    status === BackupRunStatus.NUMBER_0 ||
-    status === BackupRunStatus.NUMBER_1 ||
-    status === BackupRunStatus.NUMBER_2
+    status === BackupRunStatus.Queued ||
+    status === BackupRunStatus.Running ||
+    status === BackupRunStatus.AwaitingVerification
   ) {
     return options?.active ? 'info' : 'info';
   }
-  if (status === BackupRunStatus.NUMBER_3) return 'success';
-  if (status === BackupRunStatus.NUMBER_4 || status === BackupRunStatus.NUMBER_5) {
+  if (status === BackupRunStatus.Succeeded) return 'success';
+  if (status === BackupRunStatus.Failed || status === BackupRunStatus.VerificationFailed) {
     return 'error';
   }
-  if (status === BackupRunStatus.NUMBER_6) return 'warning';
+  if (status === BackupRunStatus.Cancelled) return 'warning';
   return 'info';
 }
 
@@ -44,13 +44,13 @@ export function mapRestoreDrillToMetricStatus(
 ): MetricStatus | undefined {
   if (status === undefined) return undefined;
   if (
-    status === RestoreVerificationStatus.NUMBER_0 ||
-    status === RestoreVerificationStatus.NUMBER_1
+    status === RestoreVerificationStatus.Queued ||
+    status === RestoreVerificationStatus.Running
   ) {
     return 'info';
   }
-  if (status === RestoreVerificationStatus.NUMBER_2) return 'success';
-  if (status === RestoreVerificationStatus.NUMBER_3) return 'error';
+  if (status === RestoreVerificationStatus.Succeeded) return 'success';
+  if (status === RestoreVerificationStatus.Failed) return 'error';
   return 'info';
 }
 
@@ -86,7 +86,7 @@ export function computeSuccessRateInWindow(
     const st = run.status;
     if (st === undefined || !TERMINAL_STATUSES.has(st)) continue;
     terminalCount += 1;
-    if (st === BackupRunStatus.NUMBER_3) succeededCount += 1;
+    if (st === BackupRunStatus.Succeeded) succeededCount += 1;
   }
 
   if (terminalCount === 0) {
@@ -150,8 +150,8 @@ export function buildBackupHistory30DayChartData(
         key: run.id ?? completedAt,
         runId: run.id,
         date: formatDate(completedAt),
-        success: st === BackupRunStatus.NUMBER_3 ? 1 : 0,
-        failed: st === BackupRunStatus.NUMBER_4 || st === BackupRunStatus.NUMBER_5 ? 1 : 0,
+        success: st === BackupRunStatus.Succeeded ? 1 : 0,
+        failed: st === BackupRunStatus.Failed || st === BackupRunStatus.VerificationFailed ? 1 : 0,
         duration,
         ts,
       };
@@ -173,7 +173,7 @@ export function buildBackupDurationChartPoints(
   maxPoints = 14
 ): BackupDurationChartPoint[] {
   const points = runs
-    .filter((r) => r.status === BackupRunStatus.NUMBER_3)
+    .filter((r) => r.status === BackupRunStatus.Succeeded)
     .map((r) => {
       const ms = formatRunDurationMs(r.requestedAt, r.completedAt);
       const ts = Date.parse(r.completedAt ?? r.requestedAt ?? '');

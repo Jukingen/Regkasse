@@ -7,7 +7,12 @@ import {
 
 export function useResetUserPassword() {
   return useMutation({
-    mutationFn: (userId: string): Promise<TemporaryPasswordResponse> =>
-      resetUserPasswordWithGeneration(userId),
+    mutationFn: ({
+      tenantId,
+      userId,
+    }: {
+      tenantId: string;
+      userId: string;
+    }): Promise<TemporaryPasswordResponse> => resetUserPasswordWithGeneration(tenantId, userId),
   });
 }

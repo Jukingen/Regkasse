@@ -45,11 +45,13 @@ describe('persistCashRegisterOnTenantSwitch', () => {
     });
 
     await expect(persistCashRegisterOnTenantSwitch('tenant-a')).resolves.toBe('reg-default');
-    expect(sessionStorage.getItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY)).toBe('reg-default');
+    expect(sessionStorage.getItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`)).toBe(
+      'reg-default'
+    );
   });
 
   it('clears selection when multiple registers have no default', async () => {
-    sessionStorage.setItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY, 'stale-register');
+    sessionStorage.setItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`, 'stale-register');
     mockListAdminCashRegisters.mockResolvedValue({
       items: [
         {
@@ -76,6 +78,6 @@ describe('persistCashRegisterOnTenantSwitch', () => {
     });
 
     await expect(persistCashRegisterOnTenantSwitch('tenant-a')).resolves.toBeNull();
-    expect(sessionStorage.getItem(FA_QUICK_CASH_REGISTER_STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(`${FA_QUICK_CASH_REGISTER_STORAGE_KEY}:tenant-a`)).toBeNull();
   });
 });

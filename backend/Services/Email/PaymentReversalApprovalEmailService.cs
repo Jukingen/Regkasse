@@ -77,7 +77,7 @@ public sealed class PaymentReversalApprovalEmailService : IPaymentReversalApprov
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send payment reversal approval email to {Email}", to);
+                _logger.LogWarning(ex, "Failed to send payment reversal approval email to {EmailMasked}", EmailLogMask.Mask(to));
             }
         }
 

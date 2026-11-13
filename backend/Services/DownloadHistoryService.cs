@@ -87,6 +87,19 @@ public interface IDownloadHistoryService
 
     Task<DownloadHistory?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists downloads for one source artifact. Super Admin may pass
+    /// <paramref name="ignoreTenantFilter"/> after an access check (system / cross-tenant runs).
+    /// </summary>
+    Task<DownloadHistoryListResponse> ListBySourceAsync(
+        string sourceKind,
+        Guid sourceId,
+        bool ignoreTenantFilter,
+        Guid? ambientTenantId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Deletes rows older than <paramref name="olderThanUtc"/> across all tenants (hosted retention).</summary>
     Task<int> CleanupOlderThanAsync(DateTime olderThanUtc, CancellationToken cancellationToken = default);
 
@@ -102,15 +115,18 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
     private readonly AppDbContext _db;
     private readonly ILogger<DownloadHistoryService> _logger;
     private readonly IAuditLogService _audit;
+    private readonly TimeProvider _time;
 
     public DownloadHistoryService(
         AppDbContext db,
         ILogger<DownloadHistoryService> logger,
-        IAuditLogService audit)
+        IAuditLogService audit,
+        TimeProvider? time = null)
     {
         _db = db;
         _logger = logger;
         _audit = audit;
+        _time = time ?? TimeProvider.System;
     }
 
     public async Task<DownloadHistory> RecordAsync(
@@ -258,7 +274,7 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
         CancellationToken cancellationToken = default)
     {
         retentionDays = Math.Clamp(retentionDays, 1, 365);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var dailyFrom = todayStart.AddDays(-29);
@@ -542,6 +558,70 @@ public sealed class DownloadHistoryService : IDownloadHistoryService
 
     public Task<DownloadHistory?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _db.DownloadHistories.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+
+    public async Task<DownloadHistoryListResponse> ListBySourceAsync(
+        string sourceKind,
+        Guid sourceId,
+        bool ignoreTenantFilter,
+        Guid? ambientTenantId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var kind = string.IsNullOrWhiteSpace(sourceKind)
+            ? string.Empty
+            : sourceKind.Trim().ToLowerInvariant();
+
+        IQueryable<DownloadHistory> query = _db.DownloadHistories.AsNoTracking();
+        if (ignoreTenantFilter)
+            query = query.IgnoreQueryFilters();
+        else if (ambientTenantId is Guid tid && tid != Guid.Empty)
+            query = query.Where(h => h.TenantId == tid);
+        else
+        {
+            return new DownloadHistoryListResponse
+            {
+                Items = [],
+                TotalCount = 0,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        query = query.Where(h => h.SourceKind == kind && h.SourceId == sourceId);
+        var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+        var items = await query
+            .OrderByDescending(h => h.DownloadedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(h => new DownloadHistoryListItemDto
+            {
+                Id = h.Id,
+                FileName = h.FileName,
+                FileType = h.FileType,
+                FileSize = h.FileSize,
+                DownloadUrl = h.DownloadUrl,
+                DownloadedAt = h.DownloadedAt,
+                UserId = h.UserId,
+                IpAddress = h.IpAddress,
+                UserAgent = h.UserAgent,
+                SourceKind = h.SourceKind,
+                SourceId = h.SourceId,
+                CanRedownload = h.SourceKind != null && h.SourceId != null,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new DownloadHistoryListResponse
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 
     public async Task<int> CleanupOlderThanAsync(DateTime olderThanUtc, CancellationToken cancellationToken = default)
     {

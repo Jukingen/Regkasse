@@ -32,6 +32,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
     private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQueryOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> _simulationDeveloperOptions;
     private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenarioOptions;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public FinanzOnlineReconciliationController(
         AppDbContext context,
@@ -43,7 +44,8 @@ public class FinanzOnlineReconciliationController : ControllerBase
         IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
         IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQueryOptions,
         IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> simulationDeveloperOptions,
-        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions)
+        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _context = context;
         _paymentService = paymentService;
@@ -55,7 +57,13 @@ public class FinanzOnlineReconciliationController : ControllerBase
         _transmissionQueryOptions = transmissionQueryOptions;
         _simulationDeveloperOptions = simulationDeveloperOptions;
         _simulationScenarioOptions = simulationScenarioOptions;
+        _runtime = runtime;
     }
+
+    private bool TransportSimulationActive() =>
+        (_runtime?.Session ?? _sessionOptions.CurrentValue).UseSimulation
+        || (_runtime?.Registrierkassen ?? _registrierkassenOptions.CurrentValue).UseSimulation
+        || (_runtime?.TransmissionQuery ?? _transmissionQueryOptions.CurrentValue).UseSimulation;
 
     /// <summary>
     /// GET: FinanzOnline submit metrics (finanzonline_submit_total, finanzonline_submit_failed_total by FailureKind). Counters reset on app restart.
@@ -129,9 +137,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
 
             await EnrichWithOutboxAsync(items, cancellationToken).ConfigureAwait(false);
 
-            var transportSim = _sessionOptions.CurrentValue.UseSimulation
-                || _registrierkassenOptions.CurrentValue.UseSimulation
-                || _transmissionQueryOptions.CurrentValue.UseSimulation;
+            var transportSim = TransportSimulationActive();
             var devProfile = FinanzOnlineSimulationDeveloperUi.ActiveProfileForAdminList(
                 _hostEnvironment,
                 _simulationScenarioOptions.CurrentValue,
@@ -184,9 +190,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
 
         var paymentToInvoice = invoiceLinks.GroupBy(x => x.PaymentId).ToDictionary(g => g.Key, g => g.First().InvoiceId);
 
-        var anySim = _sessionOptions.CurrentValue.UseSimulation
-            || _registrierkassenOptions.CurrentValue.UseSimulation
-            || _transmissionQueryOptions.CurrentValue.UseSimulation;
+        var anySim = TransportSimulationActive();
 
         foreach (var item in items)
         {

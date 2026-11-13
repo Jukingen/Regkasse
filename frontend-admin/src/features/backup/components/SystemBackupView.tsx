@@ -12,6 +12,7 @@ import { BackupConfigCard } from '@/features/backup/components/BackupConfigCard'
 import { BackupDiffPanel } from '@/features/backup/components/BackupDiffPanel';
 import { BackupList } from '@/features/backup/components/BackupList';
 import { BackupProgress } from '@/features/backup/components/BackupProgress';
+import { RestoreVerificationProgress } from '@/features/backup/components/RestoreVerificationProgress';
 import { BackupStats } from '@/features/backup/components/BackupStats';
 import { useI18n } from '@/i18n';
 import { BACKUP_RUNS_PATH } from '@/shared/backupAreaRoutes';
@@ -29,6 +30,7 @@ export function SystemBackupView() {
       />
       <BackupStats />
       <BackupProgress />
+      <RestoreVerificationProgress />
       <BackupConfigCard />
       <Card
         size="small"

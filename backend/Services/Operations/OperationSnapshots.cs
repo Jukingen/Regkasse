@@ -40,6 +40,11 @@ public static class OperationSnapshots
         StockQuantity = p.StockQuantity,
         MinStockLevel = p.MinStockLevel,
         Unit = p.Unit,
+        DurationMinutes = p.DurationMinutes,
+        StaffId = p.StaffId,
+        ImeiTracked = p.ImeiTracked,
+        IsTicket = p.IsTicket,
+        RequiresPrescription = p.RequiresPrescription,
         Cost = p.Cost,
         Barcode = p.Barcode,
         ImageUrl = p.ImageUrl,
@@ -69,6 +74,11 @@ public static class OperationSnapshots
         target.StockQuantity = s.StockQuantity;
         target.MinStockLevel = s.MinStockLevel;
         target.Unit = s.Unit;
+        target.DurationMinutes = s.DurationMinutes;
+        target.StaffId = s.StaffId;
+        target.ImeiTracked = s.ImeiTracked;
+        target.IsTicket = s.IsTicket;
+        target.RequiresPrescription = s.RequiresPrescription;
         target.Cost = s.Cost;
         target.Barcode = s.Barcode;
         target.ImageUrl = s.ImageUrl;
@@ -88,8 +98,23 @@ public static class OperationSnapshots
         Email = c.Email,
         Phone = c.Phone,
         Address = c.Address,
+        AddressStreet = c.AddressData?.Street,
+        AddressPostalCode = c.AddressData?.PostalCode,
+        AddressCity = c.AddressData?.City,
+        AddressNotes = c.AddressData?.Notes,
         TaxNumber = c.TaxNumber,
         Notes = c.Notes,
+        PetName = c.PetData?.PetName,
+        PetSpecies = c.PetData?.PetSpecies,
+        PetBreed = c.PetData?.PetBreed,
+        PetBirthDate = c.PetData?.PetBirthDate,
+        Species = c.PetData?.Species,
+        Breed = c.PetData?.Breed,
+        BirthDate = c.PetData?.BirthDate,
+        Vaccines = c.PetData?.Vaccines,
+        Allergies = c.PetData?.Allergies,
+        ChronicConditions = c.PetData?.ChronicConditions,
+        Insurance = c.PetData?.Insurance,
         IsVip = c.IsVip,
         IsActive = c.IsActive,
         DiscountPercentage = c.DiscountPercentage,
@@ -102,8 +127,39 @@ public static class OperationSnapshots
         target.Email = s.Email;
         target.Phone = s.Phone;
         target.Address = s.Address;
+        target.AddressData =
+            s.AddressStreet is null
+            && s.AddressPostalCode is null
+            && s.AddressCity is null
+            && s.AddressNotes is null
+                ? null
+                : new CustomerAddressData
+                {
+                    Street = s.AddressStreet,
+                    PostalCode = s.AddressPostalCode,
+                    City = s.AddressCity,
+                    Notes = s.AddressNotes,
+                };
         target.TaxNumber = s.TaxNumber;
         target.Notes = s.Notes;
+        target.PetData = new CustomerPetData
+        {
+            PetName = s.PetName,
+            PetSpecies = s.PetSpecies,
+            PetBreed = s.PetBreed,
+            PetBirthDate = s.PetBirthDate,
+            Species = s.Species,
+            Breed = s.Breed,
+            BirthDate = s.BirthDate,
+            Vaccines = s.Vaccines,
+            Allergies = s.Allergies,
+            ChronicConditions = s.ChronicConditions,
+            Insurance = s.Insurance,
+        };
+        if (!target.PetData.HasContent())
+            target.PetData = null;
+        else
+            target.PetData.AlignLegacyKeys();
         target.IsVip = s.IsVip;
         target.IsActive = s.IsActive;
         target.DiscountPercentage = s.DiscountPercentage;

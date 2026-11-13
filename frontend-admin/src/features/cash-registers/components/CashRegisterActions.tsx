@@ -11,7 +11,7 @@ import {
   UnlockOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { Button, Dropdown } from 'antd';
+import { Button, Dropdown, Tooltip } from 'antd';
 
 import type { CashRegister } from '@/api/generated/model';
 import {
@@ -20,6 +20,7 @@ import {
   isDecommissionedRegister,
   rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
+import { isOpenShiftHeldBy } from '@/features/cash-registers/utils/shiftOccupancy';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -40,7 +41,7 @@ export function CashRegisterActions({
   canOperate = true,
 }: CashRegisterActionsProps) {
   const { t } = useI18n();
-  const { isSuperAdmin, canManageCashRegisters, canDecommissionCashRegisters, hasPermission } =
+  const { isSuperAdmin, canManageCashRegisters, canDecommissionCashRegisters, hasPermission, user } =
     usePermissions();
 
   const registerId = register.id?.trim();
@@ -48,12 +49,32 @@ export function CashRegisterActions({
   const decommissioned = isDecommissionedRegister(status);
   const isOpen = status === REGISTER_STATUS.open;
   const isClosed = status === REGISTER_STATUS.closed;
+  const holdsOpenShift = isOpenShiftHeldBy(register.currentUserId, user?.id);
+  const canForceClose = isSuperAdmin || hasPermission(PERMISSIONS.SHIFT_MANAGE);
+  const canCloseThisShift = isOpen && (holdsOpenShift || canForceClose);
   const canEdit = canManageCashRegisters;
   const canDecommission = canDecommissionCashRegisters;
   const canHardDelete = isSuperAdmin || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
-  if (!registerId || decommissioned || !canOperate) {
+  if (!registerId || !canOperate) {
     return null;
+  }
+
+  if (decommissioned) {
+    return (
+      <Tooltip title={t('cashRegisters.actions.decommissionedCannotOpen')}>
+        <span>
+          <Button
+            size="small"
+            icon={<UnlockOutlined />}
+            disabled
+            aria-label={t('cashRegisters.actions.openRegister')}
+          >
+            {t('cashRegisters.actions.openRegister')}
+          </Button>
+        </span>
+      </Tooltip>
+    );
   }
 
   const items: MenuProps['items'] = [
@@ -65,9 +86,16 @@ export function CashRegisterActions({
     },
     {
       key: 'close-shift',
-      label: t('cashRegisters.actions.closeShift'),
+      label:
+        isOpen && !holdsOpenShift && !canForceClose
+          ? (
+              <Tooltip title={t('cashRegisters.shift.closeHeldByOther')}>
+                <span>{t('cashRegisters.actions.closeShift')}</span>
+              </Tooltip>
+            )
+          : t('cashRegisters.actions.closeShift'),
       icon: <LockOutlined />,
-      disabled: !isOpen,
+      disabled: !canCloseThisShift,
     },
     {
       key: 'daily-closing',

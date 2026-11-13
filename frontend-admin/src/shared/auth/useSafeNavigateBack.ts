@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
+import { rememberRecentAdminMenuPath } from '@/features/dashboard/utils/recentAdminMenuPaths';
+
 const LAST_ALLOWED_ADMIN_PATH_KEY = 'rk_admin_last_allowed_path';
 
 const SKIP_MEMORY_PATHS = new Set(['/403', '/login', '/force-password-change']);
@@ -13,6 +15,7 @@ export function rememberAllowedAdminPath(pathname: string): void {
   const normalized = pathname.replace(/\/$/, '') || '/';
   if (SKIP_MEMORY_PATHS.has(normalized)) return;
   sessionStorage.setItem(LAST_ALLOWED_ADMIN_PATH_KEY, normalized);
+  rememberRecentAdminMenuPath(normalized);
 }
 
 export function useSafeNavigateBack(fallbackPath = '/dashboard') {

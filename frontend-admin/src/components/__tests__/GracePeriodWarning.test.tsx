@@ -77,6 +77,8 @@ function graceStatus(overrides?: Partial<LicenseStatusView>): LicenseStatusView 
     graceEndedAt: '2026-07-27T00:00:00Z',
     canWrite: true,
     kind: 'grace_write',
+    anyActive: true,
+    allActive: false,
     ...overrides,
   };
 }

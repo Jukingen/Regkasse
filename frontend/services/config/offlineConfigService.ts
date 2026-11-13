@@ -1,8 +1,11 @@
+import { isExpoPublicOfflineGutscheinEnabled } from '@/constants/expoPublicEnv';
 import { OFFLINE_CONFIG } from '@/constants/offlineConfig';
 import { storage } from '@/utils/storage';
 
 type OfflineConfigState = {
-  [K in keyof typeof OFFLINE_CONFIG]: (typeof OFFLINE_CONFIG)[K];
+  [K in keyof typeof OFFLINE_CONFIG]: K extends 'ENABLE_OFFLINE_GUTSCHEIN'
+    ? boolean
+    : (typeof OFFLINE_CONFIG)[K];
 };
 
 const USER_CONFIG_STORAGE_KEY = 'offline_user_config';
@@ -12,7 +15,10 @@ export class OfflineConfigService {
   private config: OfflineConfigState;
 
   private constructor() {
-    this.config = { ...OFFLINE_CONFIG };
+    this.config = {
+      ...OFFLINE_CONFIG,
+      ENABLE_OFFLINE_GUTSCHEIN: isExpoPublicOfflineGutscheinEnabled(),
+    };
     void this.loadUserConfig();
   }
 
@@ -24,7 +30,7 @@ export class OfflineConfigService {
   }
 
   /** Get configuration value */
-  get<K extends keyof typeof OFFLINE_CONFIG>(key: K): (typeof OFFLINE_CONFIG)[K] {
+  get<K extends keyof OfflineConfigState>(key: K): OfflineConfigState[K] {
     return this.config[key];
   }
 
@@ -33,16 +39,26 @@ export class OfflineConfigService {
     try {
       const parsed = await storage.getJson<Partial<OfflineConfigState>>(USER_CONFIG_STORAGE_KEY);
       if (parsed) {
-        this.config = { ...this.config, ...parsed };
+        const { ENABLE_OFFLINE_GUTSCHEIN: _ignoredGutschein, ...rest } = parsed;
+        this.config = {
+          ...this.config,
+          ...rest,
+          ENABLE_OFFLINE_GUTSCHEIN: isExpoPublicOfflineGutscheinEnabled(),
+        };
       }
     } catch (error) {
       console.warn('Failed to load user config:', error);
     }
   }
 
-  /** Save user-specific config */
+  /** Save user-specific config. Gutschein offline cannot be enabled via stored user config. */
   async saveUserConfig(config: Partial<typeof OFFLINE_CONFIG>): Promise<void> {
-    this.config = { ...this.config, ...config };
+    const { ENABLE_OFFLINE_GUTSCHEIN: _ignoredGutschein, ...rest } = config;
+    this.config = {
+      ...this.config,
+      ...rest,
+      ENABLE_OFFLINE_GUTSCHEIN: isExpoPublicOfflineGutscheinEnabled(),
+    };
     await storage.setJson(USER_CONFIG_STORAGE_KEY, this.config);
   }
 
@@ -64,5 +80,10 @@ export class OfflineConfigService {
   /** Whether non-fiscal offline payments are enabled */
   isOfflinePaymentsEnabled(): boolean {
     return this.config.ENABLE_OFFLINE_PAYMENTS;
+  }
+
+  /** Whether Gutschein may be queued offline (env only; default false). */
+  isOfflineGutscheinEnabled(): boolean {
+    return isExpoPublicOfflineGutscheinEnabled();
   }
 }

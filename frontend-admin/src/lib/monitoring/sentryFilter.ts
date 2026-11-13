@@ -28,6 +28,79 @@ const NETWORK_ERROR_CODES = new Set([
 const NETWORK_MESSAGE_RE =
   /network error|failed to fetch|load failed|net::err_|timeout|aborterror|the user aborted|request aborted/i;
 
+/** Keep in sync with backend SentryPiiScrubber.DroppedKeys. */
+export const SENTRY_PII_KEYS = new Set([
+  'email',
+  'password',
+  'token',
+  'vouchercode',
+  'tsesignature',
+  'phone',
+  'name',
+  'address',
+  'iban',
+  'authorization',
+  'exception_message',
+  'breadcrumb',
+]);
+
+function isPiiKey(key: string): boolean {
+  return SENTRY_PII_KEYS.has(key.trim().toLowerCase());
+}
+
+function scrubRecord(record: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!record) return record;
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (isPiiKey(key)) continue;
+    next[key] =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? scrubRecord(value as Record<string, unknown>)
+        : value;
+  }
+  return next;
+}
+
+type SentryPiiEvent = {
+  extra?: unknown;
+  user?: unknown;
+  request?: unknown;
+  breadcrumbs?: unknown;
+};
+
+/** Drops the same identity keys the API scrubber removes. */
+export function scrubSentryPii<T extends SentryPiiEvent>(event: T): T {
+  if (event.extra && typeof event.extra === 'object') {
+    event.extra = scrubRecord(event.extra as Record<string, unknown>);
+  }
+  if (event.user && typeof event.user === 'object') {
+    const user = { ...(event.user as Record<string, unknown>) };
+    delete user.email;
+    event.user = user;
+  }
+  if (event.request && typeof event.request === 'object') {
+    const request = { ...(event.request as Record<string, unknown>) };
+    if (request.data && typeof request.data === 'object') {
+      request.data = scrubRecord(request.data as Record<string, unknown>);
+    }
+    if (request.headers && typeof request.headers === 'object') {
+      request.headers = scrubRecord(request.headers as Record<string, unknown>);
+    }
+    event.request = request;
+  }
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map((crumb) => {
+      if (!crumb || typeof crumb !== 'object') return crumb;
+      const copy = { ...(crumb as Record<string, unknown>) };
+      if (copy.data && typeof copy.data === 'object') {
+        copy.data = scrubRecord(copy.data as Record<string, unknown>);
+      }
+      return copy;
+    });
+  }
+  return event;
+}
+
 export type AxiosLikeError = {
   message?: string;
   code?: string;

@@ -329,24 +329,27 @@ public sealed class FinanzOnlineSubmissionService : IFinanzOnlineSubmissionServi
     private readonly IFinanzOnlineRegistrierkassenClient _registrierkassenClient;
     private readonly IFinanzOnlineCommandMapper _commandMapper;
     private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _registrierkassenOptions;
+    private readonly FinanzOnlineRuntimeOptionsAccessor? _runtime;
 
     public FinanzOnlineSubmissionService(
         IFinanzOnlineSessionClient sessionClient,
         IFinanzOnlineRegistrierkassenClient registrierkassenClient,
         IFinanzOnlineCommandMapper commandMapper,
-        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions)
+        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
+        FinanzOnlineRuntimeOptionsAccessor? runtime = null)
     {
         _sessionClient = sessionClient;
         _registrierkassenClient = registrierkassenClient;
         _commandMapper = commandMapper;
         _registrierkassenOptions = registrierkassenOptions;
+        _runtime = runtime;
     }
 
     public async Task<FinanzOnlineRegisterSubmissionResponse> SubmitAsync(FinanzOnlineRegisterSubmissionRequest request, CancellationToken cancellationToken = default)
     {
         var mapped = _commandMapper.MapRegisterSubmission(request);
 
-        var rkOpts = _registrierkassenOptions.CurrentValue;
+        var rkOpts = _runtime?.Registrierkassen ?? _registrierkassenOptions.CurrentValue;
         if (!rkOpts.UseSimulation && rkOpts.EnableRealTestSubmission && request.Mode == FinanzOnlineIntegrationMode.TEST)
         {
             if (!string.IsNullOrWhiteSpace(mapped.RkdbBuildError))

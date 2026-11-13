@@ -18,6 +18,9 @@ public sealed class PaymentGatewayOptions
     /// <summary>When true, POS card payments must include a confirmed <see cref="DTOs.PaymentMethodRequest.CardPaymentIntentId"/>.</summary>
     public bool RequireCardIntentForPosPayments { get; set; }
 
+    /// <summary>Age after which Succeeded intents with no fiscal PaymentId are voided (days).</summary>
+    public int OrphanIntentTtlDays { get; set; } = 7;
+
     /// <summary>Simulated network delay for Mock gateway (milliseconds).</summary>
     public int SimulateDelayMs { get; set; }
 
@@ -32,6 +35,14 @@ public sealed class PaymentGatewayOptions
 
     public bool IsStripeProvider =>
         string.Equals(Provider, "Stripe", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True when Provider is unset or <c>Mock</c>. Production startup rejects this
+    /// (<c>Stripe</c> for card intents, <c>None</c>/<c>Disabled</c> for cash-only).
+    /// </summary>
+    public bool IsMockProvider =>
+        string.IsNullOrWhiteSpace(Provider)
+        || string.Equals(Provider.Trim(), "Mock", StringComparison.OrdinalIgnoreCase);
 
     public string? ResolveStripeApiKey()
     {

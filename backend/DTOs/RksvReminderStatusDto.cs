@@ -42,6 +42,21 @@ public sealed class RksvReminderMonatsbelegDto
 
     /// <summary>German operator hint; null when nothing specific.</summary>
     public string? WarningMessageDe { get; init; }
+
+    /// <summary><c>Strict</c> | <c>GracePeriod</c> | <c>WarningOnly</c>.</summary>
+    public string BlockingMode { get; init; } = "Strict";
+
+    /// <summary>none | yellow | red</summary>
+    public string WarningLevel { get; init; } = "none";
+
+    /// <summary>True when POS shift open / payment must be blocked for this register.</summary>
+    public bool SalesBlocked { get; init; }
+
+    /// <summary>True when POS may continue sales after an explicit cashier warning acknowledgment.</summary>
+    public bool CanContinueWithWarning { get; init; }
+
+    /// <summary>Vienna calendar day of month used for the grace window (1–31).</summary>
+    public int ViennaDayOfMonth { get; init; }
 }
 
 public sealed class RksvReminderJahresbelegDto
@@ -53,4 +68,16 @@ public sealed class RksvReminderJahresbelegDto
 
     /// <summary>ok | upcoming | overdue</summary>
     public required string Status { get; init; }
+
+    /// <summary>True when prior-year Jahresbeleg exists but FinanzOnline Belegcheck is not verified.</summary>
+    public bool FonRequired { get; init; }
+
+    /// <summary>ok | upcoming | overdue for the 15 February FON deadline.</summary>
+    public string FonStatus { get; init; } = "ok";
+
+    /// <summary>Days until 15 February of the year after the Jahresbeleg year; null when not applicable.</summary>
+    public int? FonDaysUntilDeadline { get; init; }
+
+    /// <summary>Stored FON submission status when a Jahresbeleg payment exists.</summary>
+    public string? FonSubmissionStatus { get; init; }
 }

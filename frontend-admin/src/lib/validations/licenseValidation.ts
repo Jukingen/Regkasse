@@ -1,11 +1,10 @@
 /**
  * License key format validation.
  *
- * Two backend formats exist:
- * - Display / issued key: `REGK-XXXXX-XXXXX-XXXXX` (RegkTenantLicenseKeyFormat / LicenseService)
- * - Billing / mandant extend: `REGK-{yyyyMMdd}-{tenantSlug}-{8-char}` (LicenseKeyGenerator)
- *
- * Mandant extend UI should prefer billing; Super Admin edit may accept display keys.
+ * Unified production format: `REGK-{yyyyMMdd}-{slug}-{8-char}`
+ * - Deployment / system: slug `system`
+ * - Mandant billing: tenant slug
+ * Legacy display keys `REGK-XXXXX-XXXXX-XXXXX` remain accepted (mapped server-side).
  */
 import type { Rule } from 'antd/es/form';
 
@@ -58,6 +57,7 @@ export function isValidBillingLicenseKey(value: string | undefined | null): bool
   if (!BILLING_RANDOM_SUFFIX.test(randomPart)) return false;
 
   const slug = parts.slice(2, -1).join('-').toLowerCase();
+  if (slug === 'system') return true;
   return validateTenantSlug(slug) === null;
 }
 

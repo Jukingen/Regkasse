@@ -33,4 +33,20 @@ describe('buildPathBreadcrumbs', () => {
     const crumbs = buildPathBreadcrumbs(`/tenant/${id}/orders`, t);
     expect(crumbs.some((c) => c.title === 'Details')).toBe(true);
   });
+
+  it('injects platform IA group for Super Admin TSE routes', () => {
+    const t2 = (key: string) => {
+      const map: Record<string, string> = {
+        'common.breadcrumb.overview': 'Overview',
+        'nav.securityTse': 'Sicherheit & TSE',
+        'nav.adminTseManagement': 'TSE-Verwaltung',
+      };
+      return map[key] ?? key;
+    };
+    expect(buildPathBreadcrumbs('/admin/tse-management', t2).map((c) => c.title)).toEqual([
+      'Overview',
+      'Sicherheit & TSE',
+      'TSE-Verwaltung',
+    ]);
+  });
 });

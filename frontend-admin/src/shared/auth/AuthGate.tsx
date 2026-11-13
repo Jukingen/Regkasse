@@ -9,6 +9,7 @@ import {
   isChangePasswordPath,
 } from '@/features/auth/constants/changePasswordRoute';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { navigateAfterAuth, resolvePostLoginPath } from '@/features/auth/utils/postLoginPath';
 import { useI18n } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
@@ -82,18 +83,20 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     }
 
     if (isPasswordChangePage) {
-      if (!passwordChangeRequired && alreadyRedirected.current !== '/dashboard') {
-        alreadyRedirected.current = '/dashboard';
-        router.replace('/dashboard');
+      const afterPasswordChange = resolvePostLoginPath(false);
+      if (!passwordChangeRequired && alreadyRedirected.current !== afterPasswordChange) {
+        alreadyRedirected.current = afterPasswordChange;
+        navigateAfterAuth(afterPasswordChange);
       }
       return;
     }
 
-    const target = passwordChangeRequired ? CHANGE_PASSWORD_PATH : '/dashboard';
+    const target = resolvePostLoginPath(passwordChangeRequired);
     if (pathname !== target && alreadyRedirected.current !== target) {
       technicalConsole.devLog(`[AuthGate] public redirect: ${pathname} -> ${target}`);
       alreadyRedirected.current = target;
-      router.replace(target);
+      // Same as LoginForm: full load so proxy cookie + webpack compile are not aborted.
+      navigateAfterAuth(target);
     }
   }, [
     isLoading,

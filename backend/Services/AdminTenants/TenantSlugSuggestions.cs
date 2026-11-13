@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,7 @@ public static class TenantSlugSuggestions
     private static readonly HashSet<string> AdditionalReserved = new(StringComparer.OrdinalIgnoreCase)
     {
         "mail",
+        LicenseKeyKinds.System,
     };
 
     public static string NormalizeSlug(string raw)

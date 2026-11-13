@@ -33,3 +33,10 @@ public sealed class StornoResponse
     public DateTime? ApprovalTokenExpiresAtUtc { get; set; }
     public string? DiagnosticCode { get; set; }
 }
+
+/// <summary>POS Belegliste cancel body. Reason is optional; backend applies a default when empty.</summary>
+public sealed class PosReceiptCancelRequest
+{
+    [MaxLength(500)]
+    public string? Reason { get; set; }
+}

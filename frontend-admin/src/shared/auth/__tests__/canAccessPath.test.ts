@@ -10,8 +10,12 @@ import { canAccessPath } from '@/shared/auth/canAccessPath';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 describe('canAccessPath', () => {
-  it('allows Manager with finanzonline.manage to open Sonderbelege', () => {
-    expect(canAccessPath('/rksv/sonderbelege', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  it('allows Manager Fiskaly history/statistics/errors and denies SuperAdmin Fiskaly TSE pages', () => {
+    expect(canAccessPath('/admin/fiskaly/history', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/fiskaly/statistics', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/fiskaly/errors', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/tse/fiskaly', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+    expect(canAccessPath('/admin/tse/fiskaly/setup', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
   });
 
   it('denies Cashier without finanzonline.manage', () => {
@@ -66,14 +70,30 @@ describe('canAccessPath', () => {
     expect(canAccessPath('/receipts', perms)).toBe(false);
     expect(canAccessPath('/kassenverwaltung', perms)).toBe(false);
     expect(canAccessPath('/admin/license', perms)).toBe(false);
+    expect(canAccessPath('/admin/license-management', perms)).toBe(false);
   });
 
-  it('Manager can access /admin/license with license.manage', () => {
+  it('Manager can access /admin/license-management with license.manage', () => {
+    expect(canAccessPath('/admin/license-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
     expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/admin/limits/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
   });
 
-  it('Manager can access /license/dashboard with license.manage', () => {
-    expect(canAccessPath('/license/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  it('Manager can access /tenant/invoices with license.manage', () => {
+    expect(canAccessPath('/tenant/invoices', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/support', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/dashboard', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/portal', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+    expect(canAccessPath('/tenant/profile', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
+  });
+
+  it('Cashier license.view does not unlock tenant invoices', () => {
+    const cashier = [...CASHIER_ADMIN_PERMISSIONS, PERMISSIONS.LICENSE_VIEW];
+    expect(canAccessPath('/tenant/invoices', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/support', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/dashboard', cashier)).toBe(false);
+    expect(canAccessPath('/tenant/portal', cashier)).toBe(false);
   });
 
   it('Manager can access staff hub sub-routes (user.view / report.view / shift.view, not staff.*)', () => {
@@ -110,8 +130,37 @@ describe('canAccessPath', () => {
     expect(canAccessPath('/admin/data-management', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
   });
 
+  it('Super Admin can access /admin/support; Manager cannot', () => {
+    expect(canAccessPath('/admin/support', [PERMISSIONS.SYSTEM_CRITICAL])).toBe(true);
+    expect(canAccessPath('/admin/support', [...MANAGER_ADMIN_PERMISSIONS])).toBe(false);
+  });
+
   it('staff list requires user.view only', () => {
     expect(canAccessPath('/staff/list', [PERMISSIONS.USER_VIEW])).toBe(true);
     expect(canAccessPath('/staff/list', [PERMISSIONS.REPORT_VIEW])).toBe(false);
+  });
+
+  it('allows Manager cash register detail while blocking the Super Admin list', () => {
+    const perms = [...MANAGER_ADMIN_PERMISSIONS];
+    expect(canAccessPath('/admin/cash-registers', perms)).toBe(false);
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', perms)
+    ).toBe(true);
+  });
+
+  it('allows ReportViewer cash register detail via cash_register.view', () => {
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', [
+        PERMISSIONS.CASHREGISTER_VIEW,
+        PERMISSIONS.REPORT_VIEW,
+        PERMISSIONS.REPORT_EXPORT,
+      ])
+    ).toBe(true);
+    expect(
+      canAccessPath('/admin/cash-registers/11111111-1111-1111-1111-111111111111', [
+        PERMISSIONS.REPORT_VIEW,
+        PERMISSIONS.REPORT_EXPORT,
+      ])
+    ).toBe(false);
   });
 });

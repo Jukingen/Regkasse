@@ -257,6 +257,12 @@
         "suffixes": ["healthy", "degraded", "offline", "notConfigured", "lastCheck"]
       },
       {
+        "id": "cashRegisters.assignment",
+        "description": "Cash register list — assignment badge states",
+        "staticPrefix": "cashRegisters.assignment",
+        "suffixes": ["unassigned", "assignedToMe", "assignedToOther"]
+      },
+      {
         "id": "cashRegisters.shiftGuidance.closedReasons",
         "description": "Cash register closed reason labels",
         "staticPrefix": "cashRegisters.shiftGuidance.closedReasons",
@@ -382,18 +388,225 @@
           "CashRegisterDecommissioned",
           "LicenseExpiringSoon",
           "LicenseExpired",
+          "LimitApproaching",
+          "LimitExceeded",
           "OfflineQueueGrowing",
+          "OfflineQueueApproachingLimit",
           "FinanzOnlineSubmissionFailed",
+          "FinanzOnlineOutboxFailureSpike",
           "BackupFailed",
           "BackupSucceeded",
           "RestoreDrillFailed",
           "RestoreDrillSucceeded",
           "DailyClosingBackdatedCreated",
           "DailyClosingPendingReminder",
+          "DailyClosingAutoCreated",
+          "DailyClosingOpenOrdersWarning",
+          "MonatsbelegMissingReminder",
+          "MonatsbelegAutoCreated",
+          "MonatsbelegCreated",
+          "MonatsbelegAutoCreateFailed",
+          "MonatsbelegAutoCreateMissed",
+          "JahresbelegFonReminder",
+          "MonatsbelegManagerContacted",
           "OnlineOrderPushedToPos",
           "OnlineOrderPaid",
           "OnlineOrderStatusChanged",
+          "OnlineOrderIntegrationFailed",
           "OnlineOrderConfirmed"
+        ]
+      },
+      {
+        "id": "activity.events",
+        "description": "Activity feed titles and descriptions for country, QR-Rechnung, e-invoice, and Peppol events",
+        "staticPrefix": "activity.events",
+        "suffixes": [
+          "unknown.title",
+          "TenantCountryChanged.title",
+          "TenantCountryChanged.description",
+          "TenantCountryChangedHistoricalPreserved.title",
+          "TenantCountryChangedHistoricalPreserved.description",
+          "QrRechnungPayloadBuilt.title",
+          "QrRechnungPayloadBuilt.description",
+          "QrRechnungPdfGenerated.title",
+          "QrRechnungPdfGenerated.description",
+          "PeppolParticipantRegistered.title",
+          "PeppolParticipantRegistered.description",
+          "EinvoiceValidated.title",
+          "EinvoiceValidated.description",
+          "EinvoiceSubmitted.title",
+          "EinvoiceSubmitted.description",
+          "EinvoiceSubmissionFailed.title",
+          "EinvoiceSubmissionFailed.description"
+        ]
+      },
+      {
+        "id": "rksvHub.monatsbelegePage",
+        "description": "FA Monatsbeleg list page (dynamic tp() suffixes)",
+        "staticPrefix": "rksvHub.monatsbelegePage",
+        "suffixes": [
+          "title",
+          "subtitle",
+          "createLink",
+          "refresh",
+          "filterYear",
+          "filterRegister",
+          "filterRegisterAll",
+          "filterStatus",
+          "colMonth",
+          "colRegister",
+          "colCreatedAt",
+          "colCreatedBy",
+          "colTse",
+          "colDep",
+          "colFon",
+          "colStatus",
+          "autoTag",
+          "empty",
+          "failedAlertTitle",
+          "failedAlertBody",
+          "missedAlertTitle",
+          "missedAlertBody",
+          "createNowForce",
+          "missingPreviousTitle",
+          "missingPreviousBody",
+          "forbiddenTitle",
+          "forbiddenDescription",
+          "loadErrorTitle",
+          "status.all",
+          "status.created",
+          "status.failed",
+          "status.fonPending",
+          "dep.InDep",
+          "dep.Missing",
+          "fon.NotRequired",
+          "fon.Pending",
+          "fon.Submitted",
+          "fon.Verified",
+          "fon.Failed",
+          "fon.ManualVerificationRequired"
+        ]
+      },
+      {
+        "id": "tseFiskaly.test.checks",
+        "description": "Fiskaly sign-test receipt validation tags",
+        "staticPrefix": "tseFiskaly.test.checks",
+        "suffixes": [
+          "qrFormatValid",
+          "hasReceiptNumber",
+          "receiptNumberLooksSequential",
+          "hasTimeSignature",
+          "hasCashRegisterSerial",
+          "signed"
+        ]
+      },
+      {
+        "id": "tseFiskaly.test.scenarios",
+        "description": "Fiskaly sign-test scenario labels",
+        "staticPrefix": "tseFiskaly.test.scenarios",
+        "suffixes": [
+          "normal",
+          "cancellation",
+          "training",
+          "mixed_vat",
+          "zero_amount",
+          "raw",
+          "monthly_close",
+          "yearly_close"
+        ]
+      },
+      {
+        "id": "tseFiskaly.test.scenarioHints",
+        "description": "Fiskaly sign-test scenario descriptions",
+        "staticPrefix": "tseFiskaly.test.scenarioHints",
+        "suffixes": [
+          "normal",
+          "cancellation",
+          "training",
+          "mixed_vat",
+          "zero_amount",
+          "raw",
+          "monthly_close",
+          "yearly_close"
+        ]
+      },
+      {
+        "id": "cashRegisters.lifecycle",
+        "description": "Cash register lifecycle labels (grid + table)",
+        "staticPrefix": "cashRegisters.lifecycle",
+        "suffixes": ["active", "inactive", "maintenance", "disabled", "decommissioned"]
+      },
+      {
+        "id": "cashRegisters.shiftOccupancy",
+        "description": "Cash register shift occupancy labels (grid + table)",
+        "staticPrefix": "cashRegisters.shiftOccupancy",
+        "suffixes": ["open", "closed", "none", "unavailable"]
+      },
+      {
+        "id": "cashRegisters.reports.types",
+        "description": "Cash register report type labels",
+        "staticPrefix": "cashRegisters.reports.types",
+        "suffixes": ["revenue", "transactions", "shifts", "specialReceipts"]
+      },
+      {
+        "id": "cashRegisters.shiftGuidance.rksvRules",
+        "description": "RKSV shift guidance table — rule + description per key",
+        "staticPrefix": "cashRegisters.shiftGuidance.rksvRules",
+        "suffixes": [
+          "schlussbeleg.rule",
+          "schlussbeleg.description",
+          "tagesabschluss.rule",
+          "tagesabschluss.description",
+          "startbeleg.rule",
+          "startbeleg.description",
+          "reopenStartbeleg.rule",
+          "reopenStartbeleg.description",
+          "singleCashier.rule",
+          "singleCashier.description"
+        ]
+      },
+      {
+        "id": "cashRegisters.statusBadge.closed",
+        "description": "Closed-register status badge text + tooltip",
+        "staticPrefix": "cashRegisters.statusBadge.closed",
+        "suffixes": [
+          "dailyClosing.text",
+          "dailyClosing.tooltip",
+          "shiftChange.text",
+          "shiftChange.tooltip",
+          "neverOpened.text",
+          "neverOpened.tooltip",
+          "licenseExpired.text",
+          "licenseExpired.tooltip",
+          "generic.text",
+          "generic.tooltip"
+        ]
+      },
+      {
+        "id": "tagesabschluss.backdated.reasons",
+        "description": "Backdated Tagesabschluss reason presets",
+        "staticPrefix": "tagesabschluss.backdated.reasons",
+        "suffixes": ["forgot", "technical", "staff", "other"]
+      },
+      {
+        "id": "peppol.submissions.status",
+        "description": "Peppol outbox status labels",
+        "staticPrefix": "peppol.submissions.status",
+        "suffixes": ["Queued", "Sent", "Ack", "Failed"]
+      },
+      {
+        "id": "peppol.submissions.failure",
+        "description": "Peppol outbox failure_reason hints. Hyphens in the stored code are underscores in the key.",
+        "staticPrefix": "peppol.submissions.failure",
+        "suffixes": [
+          "peppol_reserved",
+          "peppol_participant_not_configured",
+          "peppol_live_not_allowed",
+          "peppol_ack_timeout",
+          "peppol_ack_error",
+          "storecove_http_400",
+          "storecove_http_5xx",
+          "unknown"
         ]
       }
     ]

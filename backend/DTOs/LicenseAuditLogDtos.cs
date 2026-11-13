@@ -24,4 +24,5 @@ public sealed record LicenseAuditLogQuery(
     Guid? TenantId = null,
     string? Action = null,
     DateTime? FromUtc = null,
-    DateTime? ToUtc = null);
+    DateTime? ToUtc = null,
+    string? UserSearch = null);

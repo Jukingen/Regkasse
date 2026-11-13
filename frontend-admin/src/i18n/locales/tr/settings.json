@@ -5,9 +5,10 @@
     "rowSystem": "Sistem (global): vergi oranlari, yedekleme, bildirimler — API `GET/PUT /api/Settings` (SystemSettings). Ayri admin arayuzu yok.",
     "rowCompany": "Sirket ve mali (tenant): ana veri, FinanzOnline, TSE varsayilanlari — `/api/company/settings` (eski: `/api/CompanySettings`).",
     "rowUser": "Kullanici: POS / kasa tercihleri — `GET/PUT /api/user/settings` (UserSettings), tenant geneli degil.",
-    "rowReceipt": "Fis sablonlari ve metinler — Kasse & Belege → Fis sablonlari (`/receipt-templates`).",
+    "rowReceipt": "Fiş teşekkür metni — `/settings/receipt`. Şablonlar — Kasse & Belege → Fiş şablonları (`/receipt-templates`).",
     "rowRksv": "RKSV operasyonu (outbox, butunluk, tani) — RKSV menusu, sirket ayarlari altinda degil.",
     "linkReceiptTemplates": "Fis sablonlarina git",
+    "linkReceiptSettings": "Fiş metnine git",
     "linkRksv": "RKSV'ye git"
   },
   "page": {
@@ -65,7 +66,20 @@
       "connected": "Bagli",
       "disconnected": "Bagli degil",
       "manage": "TSE ayarlarini yonet",
-      "viewRksvStatus": "RKSV durumunu ac"
+      "viewRksvStatus": "RKSV durumunu ac",
+      "credentials": {
+        "apiKey": "API anahtari",
+        "apiSecret": "API sirri",
+        "scuId": "SCU kimligi",
+        "environment": "Ortam",
+        "envTest": "TEST",
+        "envLive": "LIVE",
+        "save": "Fiskaly kaydet",
+        "saveSuccess": "Fiskaly kimlik bilgileri kaydedildi.",
+        "hint": "Kayitli (····{{hint}})",
+        "missing": "Fiskaly kimlik bilgisi yok.",
+        "secretPlaceholder": "Sirri korumak icin bos birakin"
+      }
     },
     "tsePortal": {
       "title": "TSE durumu",
@@ -114,10 +128,25 @@
     "placeholderPhone": "+43 123 456789",
     "placeholderEmail": "info@cafe.at",
     "placeholderWebsite": "https://www.cafe.at",
-    "placeholderReceiptFooter": "Teşekkür ederiz!",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Einkauf!",
+    "receiptSettingsLink": "Önizleme ve fiş metnini fiş ayarlarından düzenleyin",
     "reset": "Sıfırla",
     "advancedHint": "FinanzOnline, TSE, yerelleştirme ve şifre ayarları için",
     "advancedLink": "mali ve entegrasyon ayarları sayfasına gidin"
+  },
+  "receiptPage": {
+    "pageTitle": "Fiş metni",
+    "cardTitle": "Teşekkür mesajı",
+    "saveSuccess": "Teşekkür mesajı kaydedildi.",
+    "infoTitle": "POS fiş alt bilgisi",
+    "infoDescription": "Bu metin her kasa fişinin sonunda görünür. Boş bırakırsanız varsayılan satır kullanılır.",
+    "thankYouLabel": "Teşekkür mesajı",
+    "thankYouHint": "Boş = varsayılan: „Vielen Dank für Ihren Einkauf!“",
+    "thankYouMax": "En fazla 500 karakter.",
+    "previewTitle": "Önizleme",
+    "previewCompany": "Development Company",
+    "previewKassierer": "Kasiyer: kassier1",
+    "reset": "Sıfırla"
   },
   "taxGroups": {
     "pageTitle": "Vergi grupları",
@@ -242,7 +271,7 @@
     "stopOnlineOrdersRequired": "Dakika gerekli",
     "stopOnlineOrdersRange": "Değer 0 ile 180 arasında olmalı",
     "autoClosePosLabel": "Kapanışta POS kapanış uyarısı",
-    "autoClosePosTooltip": "Yalnızca görüntü: Kapanışta POS'ta güçlü uyarı gösterir. Otomatik Tagesabschluss yok; sipariş/ödeme kilidi yok (RKSV).",
+    "autoClosePosTooltip": "Yalnızca görüntü: Kapanışta POS'ta güçlü uyarı gösterir. Sipariş/ödeme kilidi yok. Mali otomatik Tagesabschluss, Operativer Tagesabschluss sayfasında ayrıca ayarlanır.",
     "closedDayMessageLabel": "Kapalı gün müşteri mesajı",
     "closedDayMessageTooltip": "Bugün kapalıyken website/uygulamada gösterilir (POS/Admin değil).",
     "closedDayMessageRequired": "Mesaj gerekli",
@@ -449,6 +478,8 @@
     },
     "tse": {
       "cardTitle": "TSE (Teknik guvenlik cihazi)",
+      "fiskalyEnabled": "Fiskaly TSE etkin",
+      "fiskalyEnabledHint": "Bu mandant icin SIGN AT baglantisi. Varsayilan: acik. API anahtarlari sunucu yapilandirmasinda kalir.",
       "autoConnect": "Baslangicta otomatik baglan",
       "defaultDeviceId": "Varsayilan TSE cihaz kimligi",
       "defaultDeviceIdMax": "En fazla 100 karakter",
@@ -736,6 +767,27 @@
       "timeZone": "Saat dilimi",
       "language": "Dil",
       "use24HourFormat": "24 saat formatı"
+    }
+  },
+  "rksv": {
+    "monatsbelegPolicy": {
+      "title": "Monatsbeleg — POS satış kilidi",
+      "intro": "RKSV, ay sonundan itibaren 7 gün içinde Monatsbeleg oluşturulmasını ister. POS satışını kilitlemek yasal zorunluluk değil, mandant politikasıdır.",
+      "modeLabel": "Kilitleme modu",
+      "modeHelp": "Strict: önceki ay Monatsbeleg'i oluşana kadar satış kilitli. GracePeriod: 14 gün uyarıyla satış, sonra kilit. WarningOnly: satış her zaman açık, uyarı gösterilir.",
+      "modeStrict": "Strict — satışı kilitle (varsayılan)",
+      "modeGracePeriod": "GracePeriod — 14 gün uyarıyla izin ver",
+      "modeWarningOnly": "WarningOnly — yalnızca uyarı, kilit yok",
+      "autoLabel": "Otomatik Monatsbeleg",
+      "autoHelp": "Viyana takviminin 1. günü 00:01'de (7. güne kadar yakalama) önceki ayın Monatsbeleg'i otomatik TSE imzalanır ve DEP'e yazılır. Mandanten-Admin bilgilendirilir.",
+      "retryLabel": "Hata durumunda deneme",
+      "retryHelp": "Otomatik deneme sayısı (1–5, varsayılan 3), üstel bekleme; ardından FA'da kırmızı uyarı.",
+      "openList": "Monatsbeleg listesini aç",
+      "openCreate": "Sonderbelege'de Monatsbeleg oluştur",
+      "saveSuccess": "Monatsbeleg politikası kaydedildi.",
+      "saveFailed": "Monatsbeleg politikası kaydedilemedi.",
+      "loadFailed": "Monatsbeleg politikası yüklenemedi.",
+      "readOnly": "Monatsbeleg politikasını değiştirme yetkiniz yok."
     }
   }
 }

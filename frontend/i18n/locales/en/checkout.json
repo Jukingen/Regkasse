@@ -37,7 +37,8 @@
       "clearAll": "Clear all",
       "a11ySelect": "Select table {{number}}",
       "a11ySelected": "Table {{number}}, selected",
-      "a11yClearAll": "Clear all tables"
+      "a11yClearAll": "Clear all tables",
+      "loadFailed": "Tables could not be loaded. You can still choose a table."
     },
     "summaryStrip": "Table {{table}} · {{itemCount}} items · TOTAL {{total}}",
     "personal": {
@@ -76,14 +77,27 @@
       "tableClearFailed": "Could not clear table {{table}}",
       "tableCleared": "Table {{table}} cleared",
       "tableClearGenericFailed": "Could not clear table",
-      "emptyCart": "Cart is empty. Please add items first."
+      "noOpenTables": "No open tables.",
+      "clearAllConfirmTitle": "Clear all tables?",
+      "clearAllConfirmMessage": "{{count}} open tables will be cleared.",
+      "tablesCleared": "{{count}} tables cleared",
+      "tablesClearedPartial": "{{cleared}} of {{total}} tables cleared",
+      "emptyCart": "Cart is empty. Please add items first.",
+      "noOrderPermission": "No permission to take orders"
     },
     "monatsbelegBanner": {
       "yellow": "Monatsbeleg due in {{days}} days",
       "red": "Monatsbeleg OVERDUE! Please create it immediately",
       "createNow": "Create now",
       "dismissA11y": "Dismiss notice",
-      "loadingHint": "Loading RKSV Monatsbeleg status…"
+      "loadingHint": "Loading RKSV Monatsbeleg status…",
+      "missingTitle": "Monatsbeleg missing",
+      "contactManager": "Contact manager",
+      "continueWithWarning": "Continue with warning",
+      "notifySuccess": "The tenant admin was notified.",
+      "notifyAlready": "The tenant admin was already notified today.",
+      "notifyFailed": "Notification failed. Please try again.",
+      "allowedWithWarning": "Please contact the tenant admin. Sales are allowed with a warning. A missing Monatsbeleg is created automatically at the start of the month."
     },
     "monatsbelegCurrentMonthOverdue": {
       "title": "Monatsbeleg for the current month is overdue!",
@@ -145,14 +159,28 @@
       "cash": {
         "receivedLabel": "Amount received",
         "receivedA11y": "Amount received in euros",
-        "changeLabel": "Change",
-        "placeholder": "0.00"
+        "changeLabel": "Change:",
+        "placeholder": "0.00",
+        "optionalHint": "Optional — leave empty for exact payment",
+        "belowTotalTitle": "Amount too low",
+        "belowTotalMessage": "Amount received must be at least {{amount}}."
       },
       "remainingAmount": "Remaining amount",
       "notes": {
         "title": "Notes",
         "placeholder": "Optional notes…",
         "a11y": "Optional payment notes"
+      },
+      "preorder": {
+        "checkbox": "Vorbestellung (pickup later)",
+        "hint": "Customer pays now. Pickup does not create a second Beleg. Any open amount is paid later as its own fiscal receipt.",
+        "remainingLabel": "Open amount (optional)",
+        "remainingHint": "0.00 = paid in full. Any open amount is recorded later as a separate fiscal Beleg.",
+        "balanceLabel": "Pay remaining amount (Besorgerzettel)",
+        "balancePlaceholder": "BS number or Beleg number",
+        "balanceFound": "{{number}} — open {{amount}}",
+        "balanceNotFound": "Vorbestellung not found.",
+        "balanceZero": "No open amount left."
       },
       "benefits": {
         "previewTitle": "Benefits (preview)",
@@ -168,13 +196,20 @@
         "scanA11y": "Scan voucher"
       },
       "blockedHints": {
+        "noPaymentPermission": "No permission to process payments",
         "timeSyncCritical": "System time invalid — payments blocked. Contact administrator.",
         "methodsLoading": "Loading payment methods…",
         "selectMethod": "Please select a payment method (step 2).",
         "coverageMissing": "Insufficient coverage: voucher + cash do not reach the total.",
         "voucherInvalid": "Invalid voucher — please check and validate.",
-        "tseNotReady": "TSE not ready — fiscal payment not possible.",
-        "voucherOffline": "Voucher is not available offline."
+        "tseNotReady": "TSE is not available. Payment is not possible.",
+        "voucherOffline": "Voucher is not available offline.",
+        "onlinePaymentOffline": "Online payment is not available offline."
+      },
+      "tseGate": {
+        "disabled": "TSE is disabled. Payments are not possible.",
+        "notInitialized": "TSE is not initialized. Please contact an administrator.",
+        "unavailable": "TSE is not available. Payment is not possible."
       },
       "timeSync": {
         "banner": "SYSTEM TIME INVALID – payments blocked! Please contact admin",
@@ -209,12 +244,19 @@
       },
       "registerAssignA11y": "Assign register {{register}}",
       "methodSelectedA11ySuffix": ", selected",
-      "offlineQueued": "Payment saved offline — will be signed automatically when TSE is online again",
-      "tseSimulation": {
-        "title": "TSE simulation",
-        "enabled": "ON (bypass)",
-        "disabled": "OFF (real TSE)"
+      "onlinePayment": {
+        "kreditkarte": "Credit card",
+        "paypal": "PayPal",
+        "offlineDisabled": "Online payment is not available offline.",
+        "offlineAlertTitle": "Offline",
+        "offlineA11ySuffix": ", unavailable offline",
+        "awaitingGateway": "Complete payment in the browser…",
+        "failed": "Online payment failed.",
+        "cancelled": "Online payment cancelled.",
+        "timeout": "Online payment timed out.",
+        "openFailed": "Could not open the payment page."
       },
+      "offlineQueued": "Payment saved offline — will be signed automatically when TSE is online again",
       "operatorWarnings": {
         "largeCashTitle": "Notice",
         "largeCashMessage": "Cash payment from {{threshold}} € — please verify the amount before continuing.",
@@ -338,6 +380,17 @@
         "selectOneLine": "Select at least one line.",
         "submitFailed": "Operation failed."
       }
+    }
+  },
+  "monatsbeleg": {
+    "banner": {
+      "title": "Monatsbeleg missing",
+      "bodyStrict": "The fiscal monthly receipt for the previous completed month is missing. Sales are blocked until it is created.",
+      "bodyGrace": "The fiscal monthly receipt for the previous completed month is missing. Sales are temporarily allowed with a warning.",
+      "bodyWarning": "The fiscal monthly receipt for the previous completed month is missing. Sales are allowed with a warning.",
+      "createNow": "Create Monatsbeleg",
+      "contactManager": "Contact manager",
+      "dismiss": "Dismiss"
     }
   }
 }

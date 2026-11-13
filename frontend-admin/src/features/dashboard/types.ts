@@ -1,5 +1,18 @@
 /** Widget ids — must match backend `DashboardWidgetCatalog`. */
 export const DASHBOARD_WIDGET_IDS = {
+  actionRequired: 'action-required',
+  dailyClosing: 'daily-closing',
+  managerLicenseStatus: 'manager-license-status',
+  managerKpiStrip: 'manager-kpi-strip',
+  managerMonatsbeleg: 'manager-monatsbeleg',
+  managerActivity: 'manager-activity',
+  managerTseHealth: 'manager-tse-health',
+  fiskalyStatus: 'fiskaly-status',
+  managerOfflineQueue: 'manager-offline-queue',
+  managerLicenseChecklist: 'manager-license-checklist',
+  managerLicenseSupport: 'manager-license-support',
+  managerHospitalityLinks: 'manager-hospitality-links',
+  managerExportQuickActions: 'manager-export-quick-actions',
   todaySales: 'today-sales',
   activeCashRegisters: 'active-cash-registers',
   lowStockAlerts: 'low-stock-alerts',
@@ -13,6 +26,8 @@ export const DASHBOARD_WIDGET_IDS = {
   topSellingProducts: 'top-selling-products',
   paymentTrends: 'payment-trends',
   systemMetrics: 'system-metrics',
+  preorderStatus: 'preorder-status',
+  finanzOnlineOutbox: 'finanzonline-outbox',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];
@@ -44,3 +59,4 @@ export type SaveDashboardPreferencesRequest = {
 };
 
 export const DASHBOARD_AUTO_REFRESH_MS = 30_000;
+export const DASHBOARD_DAILY_CLOSING_REFRESH_MS = 5 * 60_000;

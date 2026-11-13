@@ -203,6 +203,9 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Keine geöffnete Kasse';
     }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Keine Kasse zugewiesen';
+    }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Keine freie Kasse';
     }
@@ -224,6 +227,13 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
     ctx.registerListEmptyReason === 'none_open'
   ) {
     return 'Keine geöffnete Kasse';
+  }
+  if (
+    listFetchSucceeded(ctx) &&
+    ctx.registerPicklistCount === 0 &&
+    ctx.registerListEmptyReason === 'none_assigned'
+  ) {
+    return 'Keine Kasse zugewiesen';
   }
   if (
     listFetchSucceeded(ctx) &&
@@ -267,7 +277,7 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return 'Für den aktuellen Kalendermonat fehlt der fiskalische Monatsbeleg (RKSV). Erstellen Sie den Monatsbeleg (Nullbeleg 0 €), danach sind Schicht und Verkäufe wieder möglich.';
+    return 'Für den abgeschlossenen Vormonat fehlt der fiskalische Monatsbeleg (RKSV). Erstellen Sie den Monatsbeleg (Nullbeleg 0 €), danach sind Schicht und Verkäufe wieder möglich.';
   }
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CONFLICT) {
     return 'Diese Kasse ist bereits geöffnet und einer anderen Person zugewiesen (aktive Schicht). Beenden Sie die fremde Schicht nur mit Berechtigung, oder nutzen Sie eine andere Kasse / bitten Sie eine berechtigte Person.';
@@ -281,6 +291,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Es sind Registrierkassen vorhanden, aber keine ist geöffnet. Bitte in der Kassenverwaltung eine Schicht starten oder eine berechtigte Person bitten.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Es sind Registrierkassen vorhanden, aber alle sind anderen Benutzern zugewiesen. Bitten Sie den Administrator, Ihnen eine Kasse zuzuweisen.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht sichtbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um die Berechtigung „Kassenansicht“ bzw. um Zuweisung.';
@@ -314,6 +327,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Es sind Kassen vorhanden, aber keine ist geöffnet. Bitte zuerst in der Kassenverwaltung eine Schicht starten (Kasse öffnen).';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Alle vorhandenen Kassen sind anderen Benutzern zugewiesen. Bitten Sie den Administrator, Ihnen eine Kasse zuzuweisen — danach erscheint sie hier zur Auswahl.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht wählbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um „Kassenansicht“ / Zuweisung durch den Administrator.';
@@ -349,6 +365,9 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return 'Alle Kassen sind geschlossen. Bitte zuerst in der Kassenverwaltung eine Schicht starten; ohne geöffnete Kasse ist keine Auswahl möglich.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return 'Ihnen ist keine Registrierkasse zugewiesen. Alle Kassen gehören anderen Benutzern — bitte den Administrator um eine Zuweisung bitten.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return 'Für Sie ist momentan keine geöffnete Kasse wählbar (fremde Schichten oder fehlende Sicht). Eigene Schicht an freier Kasse starten oder Administrator um Berechtigung / Zuweisung bitten.';
@@ -397,7 +416,7 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return '„Zahlen“ ist deaktiviert: Monatsbeleg fehlt — zuerst Monatsbeleg für den Monat erstellen.';
+    return '„Zahlen“ ist deaktiviert: Monatsbeleg fehlt — zuerst Monatsbeleg für den Vormonat erstellen.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
@@ -405,6 +424,9 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return '„Zahlen“ ist deaktiviert: keine geöffnete Kasse — zuerst Schicht starten.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return '„Zahlen“ ist deaktiviert: keine Kasse zugewiesen — Administrator um Zuweisung bitten.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return '„Zahlen“ ist deaktiviert: keine freie Kasse für Sie — eigene Schicht oder Administrator.';
@@ -433,6 +455,9 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return '„Zahlen“ ist deaktiviert: alle Kassen geschlossen — Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return '„Zahlen“ ist deaktiviert: keine Kasse zugewiesen — Administrator informieren.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return '„Zahlen“ ist deaktiviert: keine freie Kasse (fremde Schicht / keine Sicht).';
@@ -478,7 +503,7 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
     ctx.posReadinessNextAction === 'monatsbeleg_required' ||
     ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
   ) {
-    return 'Monatsbeleg muss für den laufenden Monat erstellt werden, bevor Sie verkaufen oder die Schicht normal nutzen können.';
+    return 'Monatsbeleg muss für den abgeschlossenen Vormonat erstellt werden, bevor Sie verkaufen oder die Schicht normal nutzen können.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
@@ -486,6 +511,9 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
       return 'Bitte zuerst eine Kasse öffnen (Schicht). Ohne geöffnete Kasse ist keine Zuweisung möglich.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+      return 'Ihnen ist keine Kasse zugewiesen. Bitte den Administrator um eine Zuweisung bitten.';
     }
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
       return 'Keine Kasse für Sie wählbar (fremde Schichten). Eigene Schicht starten oder Administrator bitten.';
@@ -509,6 +537,9 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
     return 'Alle Kassen sind geschlossen. Bitte zuerst eine Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_assigned') {
+    return 'Ihnen ist keine Kasse zugewiesen. Bitte Administrator um Zuweisung bitten.';
   }
   if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
     return 'Keine freie Kasse für Sie. Eigene Schicht oder Berechtigung „Kassenansicht“ / Zuweisung.';
@@ -534,7 +565,7 @@ export function mapBackendCashRegisterCodeToGerman(code: string | undefined): st
     case POS_CASH_REGISTER_CODES.STARTBELEG_REQUIRED:
       return 'Startbeleg erforderlich: Bitte zuerst den fiskalischen Startbeleg für diese Kasse erstellen.';
     case POS_CASH_REGISTER_CODES.MONATSBELEG_REQUIRED:
-      return 'Monatsbeleg erforderlich: Bitte den fiskalischen Monatsbeleg für den aktuellen Monat erstellen.';
+      return 'Monatsbeleg erforderlich: Bitte den fiskalischen Monatsbeleg für den Vormonat erstellen.';
     case POS_CASH_REGISTER_CODES.DECOMMISSIONED:
     case POS_CASH_REGISTER_CODES.REGISTER_DECOMMISSIONED_RKSV:
     case POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV:

@@ -1,0 +1,2 @@
+# Written by BaselineFixtureFile when a baseline comparison fails, for local diffing only.
+*.actual.json

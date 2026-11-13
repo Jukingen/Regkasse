@@ -1,6 +1,9 @@
 /**
  * FA smoke E2E: Sortiment, Kunden, Berichte, Backup, Einstellungen
  * Run: node scripts/fa-sections-smoke-e2e.mjs
+ *
+ * Manager password is local-only — set SMOKE_MANAGER_PASSWORD (or LOGIN_PASSWORD).
+ * SuperAdmin uses the Development seed `Admin123!` from UserSeedData.
  */
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'fs';
@@ -12,8 +15,9 @@ const BASE = process.env.FA_BASE || 'http://localhost:3000';
 const API = process.env.API_BASE || 'http://localhost:5184';
 const TENANT = 'dev';
 
+const managerPassword = process.env.SMOKE_MANAGER_PASSWORD || process.env.LOGIN_PASSWORD || '';
 const ACCOUNTS = {
-  manager: { login: 'manager1', password: 'Juke1034#', label: 'Manager' },
+  manager: { login: 'manager1', password: managerPassword, label: 'Manager' },
   superAdmin: { login: 'admin@admin.com', password: 'Admin123!', label: 'SuperAdmin' },
 };
 
@@ -800,6 +804,10 @@ async function testSettings(page, role) {
 async function runAs(browser, accountKey) {
   const acct = ACCOUNTS[accountKey];
   console.log(`\n======== ${acct.label} ========`);
+  if (!acct.password) {
+    record('1.auth', acct.label, 'SKIP', 'login', 'Set SMOKE_MANAGER_PASSWORD (do not commit local passwords)');
+    return;
+  }
   const { token, refreshToken } = await apiLogin(acct.login, acct.password);
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();

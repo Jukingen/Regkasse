@@ -17,6 +17,8 @@ export interface ProductFilters {
   maxStock?: number;
   taxTypes?: number[];
   categoryIds?: string[];
+  /** Shareable category name from `?category=Kebab` (resolved to IDs via the categories list). */
+  categoryName?: string;
   status?: ProductListActiveFilter;
   isTaxable?: boolean;
   createdRange?: [Dayjs, Dayjs] | null;

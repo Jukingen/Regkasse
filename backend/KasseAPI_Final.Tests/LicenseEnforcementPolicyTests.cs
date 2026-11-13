@@ -7,8 +7,13 @@ using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
+[Collection("OpenApiExportWebHost")]
 public sealed class LicenseEnforcementPolicyTests
 {
+    public LicenseEnforcementPolicyTests()
+    {
+        OpenApiExportHostGate.EnsureExportModeDisabled();
+    }
     [Fact]
     public void ShouldDisableEnforcement_WhenLicenseDisabled_ReturnsTrue()
     {
@@ -51,6 +56,7 @@ public sealed class LicenseEnforcementPolicyTests
     }
 
     [Fact]
+#pragma warning disable CS0618
     public void GetMaxOfflineTransactions_InDevelopment_ReturnsUnlimited()
     {
         var env = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development);
@@ -81,4 +87,5 @@ public sealed class LicenseEnforcementPolicyTests
             LicenseEnforcementPolicy.MaxOfflineTransactionsUnlimited,
             LicenseEnforcementPolicy.GetMaxOfflineTransactionsPerCashRegister(env, tse));
     }
+#pragma warning restore CS0618
 }

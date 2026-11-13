@@ -29,7 +29,10 @@ public class Tenant : BaseEntity
     [Column("address")]
     public string? Address { get; set; }
 
-    /// <summary><see cref="TenantStatuses"/> value.</summary>
+    /// <summary>
+    /// Lifecycle status (<see cref="TenantStatuses"/> / <see cref="Enums.TenantStatus"/>).
+    /// Default for seeded operational tenants is Active; new onboarding creates InOnboarding.
+    /// </summary>
     [Required]
     [MaxLength(20)]
     [Column("status")]
@@ -103,4 +106,56 @@ public class Tenant : BaseEntity
     /// <summary>JSON customizations for industry template slots (optional).</summary>
     [Column("industry_template_customizations", TypeName = "jsonb")]
     public string? IndustryTemplateCustomizations { get; set; }
+
+    /// <summary>UTC when SaaS trial started (null when never trialled).</summary>
+    [Column("trial_started_at_utc")]
+    public DateTime? TrialStartedAtUtc { get; set; }
+
+    /// <summary>UTC when SaaS trial ends (synced to <see cref="LicenseValidUntilUtc"/> while trial is open).</summary>
+    [Column("trial_ends_at_utc")]
+    public DateTime? TrialEndsAtUtc { get; set; }
+
+    /// <summary>
+    /// Trial lifecycle (<see cref="TrialStatuses"/>): active / expired / converted / deleted.
+    /// Null when the tenant was never placed on a managed trial.
+    /// </summary>
+    [MaxLength(20)]
+    [Column("trial_status")]
+    public string? TrialStatus { get; set; }
+
+    [Column("trial_reminder_7d_sent")]
+    public bool TrialReminder7dSent { get; set; }
+
+    [Column("trial_reminder_3d_sent")]
+    public bool TrialReminder3dSent { get; set; }
+
+    [Column("trial_reminder_1d_sent")]
+    public bool TrialReminder1dSent { get; set; }
+
+    [Column("trial_converted_at_utc")]
+    public DateTime? TrialConvertedAtUtc { get; set; }
+
+    /// <summary>UTC when expired trial was soft-archived by cleanup (not a fiscal hard-delete).</summary>
+    [Column("trial_deleted_at_utc")]
+    public DateTime? TrialDeletedAtUtc { get; set; }
+
+    [Column("trial_grace_period_ends_at_utc")]
+    public DateTime? TrialGracePeriodEndsAtUtc { get; set; }
+
+    /// <summary>
+    /// Fiskaly SIGN AT Signature Creation Unit id (German TSS analog). UUIDv4, not a REGK-slug id.
+    /// Null when Soft / Fake / pending TSE is used.
+    /// </summary>
+    [MaxLength(64)]
+    [Column("tse_scu_id")]
+    public string? TseScuId { get; set; }
+
+    /// <summary>TSE provisioning outcome (<see cref="TenantTseStatuses"/>).</summary>
+    [MaxLength(32)]
+    [Column("tse_status")]
+    public string? TseStatus { get; set; }
+
+    /// <summary>UTC when Fiskaly SCU or Soft-TSE fallback was last stamped on this tenant.</summary>
+    [Column("tse_provisioned_at_utc")]
+    public DateTime? TseProvisionedAtUtc { get; set; }
 }

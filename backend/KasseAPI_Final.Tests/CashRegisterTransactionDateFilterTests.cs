@@ -20,7 +20,7 @@ public sealed class CashRegisterTransactionDateFilterTests
             .UseInMemoryDatabase($"CashRegTxFilter_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static CashRegisterTransaction Tx(

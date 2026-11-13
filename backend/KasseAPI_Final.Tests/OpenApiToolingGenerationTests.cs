@@ -8,6 +8,7 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// Ensures Swashbuckle CLI host factory path produces a non-empty API description set (regression guard for empty swagger.json).
 /// </summary>
+[Collection("OpenApiExportWebHost")]
 public class OpenApiToolingGenerationTests
 {
     [Fact]
@@ -26,6 +27,7 @@ public class OpenApiToolingGenerationTests
         finally
         {
             OpenApiExportMode.ToolingExportActive = false;
+            host.Dispose();
         }
     }
 }

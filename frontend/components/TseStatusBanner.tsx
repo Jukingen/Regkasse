@@ -1,44 +1,21 @@
 /**
  * Compact TSE status chip for the POS header (always visible).
- * Online / slow / offline with latency; critical offline strip when offline.
+ * Active / Degraded / Inactive with tooltip details.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useTseHealth } from '../hooks/useTseHealth';
 import { formatUserTime } from '../utils/dateFormatter';
+import { TseStatusBadge } from './TseStatusBadge';
 
 /** Operator-facing offline copy — keep in sync with contract test. */
 export const TSE_OFFLINE_BANNER_LABEL = 'OFFLINE MODUS – NUR BARZAHLUNG, KEINE GUTSCHEINE';
 
-/** Compact header chip: green/amber/red dot + TSE status + latency. */
+/** Compact header chip: green/amber/red dot + TSE status. Tap shows details. */
 export function TseStatusBanner() {
-  const { bannerVariant, lastLatencyMs } = useTseHealth();
-
-  const isOffline = bannerVariant === 'offline';
-  const isSlow = bannerVariant === 'slow';
-
-  const dotColor = isOffline ? '#dc2626' : isSlow ? '#ca8a04' : '#16a34a';
-
-  const statusText = isOffline
-    ? 'TSE offline'
-    : isSlow
-      ? lastLatencyMs != null
-        ? `TSE ${Math.round(lastLatencyMs)}ms`
-        : 'TSE langsam'
-      : lastLatencyMs != null
-        ? `TSE ${Math.round(lastLatencyMs)}ms`
-        : 'TSE online';
-
-  return (
-    <View style={styles.chip} accessibilityRole="summary" accessibilityLabel={statusText}>
-      <View style={[styles.dot, { backgroundColor: dotColor }]} />
-      <Text style={styles.chipText} numberOfLines={1}>
-        {statusText}
-      </Text>
-    </View>
-  );
+  return <TseStatusBadge />;
 }
 
 /** Full-width critical strip — only when TSE is offline (Barzahlung-only warning). */
@@ -62,30 +39,6 @@ export function TseOfflineRestrictionBanner() {
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
-    paddingHorizontal: SoftSpacing.xs,
-    borderRadius: SoftRadius.sm,
-    backgroundColor: SoftColors.bgSecondary,
-    flexShrink: 1,
-    minWidth: 0,
-    maxWidth: 120,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  chipText: {
-    ...SoftTypography.caption,
-    fontSize: 10,
-    fontWeight: '600',
-    color: SoftColors.textSecondary,
-    flexShrink: 1,
-  },
   offlineStrip: {
     paddingVertical: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.md,

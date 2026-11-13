@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { Modal } from 'antd';
+import { App, Modal } from 'antd';
 import axios from 'axios';
 import React from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -149,6 +149,10 @@ function t(k: string, options?: Record<string, string | number>): string {
   return k;
 }
 
+function renderCard(ui: React.ReactElement) {
+  return render(<App>{ui}</App>);
+}
+
 describe('BackupExecutionModeCard', () => {
   beforeEach(() => {
     Modal.destroyAll();
@@ -164,7 +168,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('loads and shows requested / effective / default rows', async () => {
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Execution mode')).toBeInTheDocument());
     expect(screen.getByText('Requested')).toBeInTheDocument();
     expect(screen.getByText('Effective')).toBeInTheDocument();
@@ -172,7 +176,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('disables save when canManage is false', async () => {
-    render(<BackupExecutionModeCard canManage={false} t={t} />);
+    renderCard(<BackupExecutionModeCard canManage={false} t={t} />);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled());
     expect(screen.getByText('View only')).toBeInTheDocument();
   });
@@ -180,7 +184,7 @@ describe('BackupExecutionModeCard', () => {
   it('opens confirm modal before save', async () => {
     putMock.mockResolvedValue({ ...baseDto });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() =>
       expect(screen.getByRole('radio', { name: /Inherit/i })).toBeInTheDocument()
     );
@@ -209,7 +213,7 @@ describe('BackupExecutionModeCard', () => {
       storedMode: 'PostgreSqlPgDump',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() =>
       expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeInTheDocument()
     );
@@ -233,7 +237,7 @@ describe('BackupExecutionModeCard', () => {
   });
 
   it('disables radios when canManage is false (cannot change requested mode)', async () => {
-    render(<BackupExecutionModeCard canManage={false} t={t} />);
+    renderCard(<BackupExecutionModeCard canManage={false} t={t} />);
     const card = await waitFor(() => {
       const title = screen.getByText('Execution mode');
       const el = title.closest('.ant-card');
@@ -265,7 +269,7 @@ describe('BackupExecutionModeCard', () => {
       hypotheticalPgDumpHealthLevel: 'Unhealthy',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('BLOCK_REAL_ROW')).toBeInTheDocument());
     expect(screen.getByRole('radio', { name: /PgDump opt/i })).toBeDisabled();
   });
@@ -281,7 +285,7 @@ describe('BackupExecutionModeCard', () => {
       recommendedFallbackUserFacingMode: 'UseConfigurationDefault',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Real blocked title')).toBeInTheDocument());
     expect(screen.getByText('No silent fake')).toBeInTheDocument();
     expect(screen.getByText('Fallback title')).toBeInTheDocument();
@@ -298,7 +302,7 @@ describe('BackupExecutionModeCard', () => {
       effectiveModeResolutionSummaryEnglish: 'Requested=RealPgDump, effective=Fake.',
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => {
       const realTags = screen.getAllByText('Real');
       expect(realTags.length).toBeGreaterThanOrEqual(1);
@@ -313,7 +317,7 @@ describe('BackupExecutionModeCard', () => {
       response: { status: 422, data: { code: 'BACKUP_PG_DUMP_PREREQUISITES_UNHEALTHY' } },
     });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() =>
       expect(screen.getByRole('radio', { name: /Fake opt/i })).toBeInTheDocument()
     );
@@ -333,7 +337,7 @@ describe('BackupExecutionModeCard', () => {
     vi.spyOn(axios, 'isAxiosError').mockReturnValue(true);
     getMock.mockRejectedValue({ response: { status: 403 } });
 
-    render(<BackupExecutionModeCard canManage t={t} />);
+    renderCard(<BackupExecutionModeCard canManage t={t} />);
     await waitFor(() => expect(screen.getByText('Load forbidden')).toBeInTheDocument());
   });
 });

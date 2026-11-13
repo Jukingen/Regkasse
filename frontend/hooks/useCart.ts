@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { safeLog } from '../utils/loggingUtils';
 
 import { useAuth } from '../contexts/AuthContext';
 import { cartService } from '../services/api/cartService';
@@ -55,7 +56,7 @@ export const useCart = () => {
       const currentTime = Math.floor(Date.now() / 1000);
 
       if (payload.exp && payload.exp < currentTime) {
-        console.log('⚠️ Token expired, clearing carts...');
+        safeLog('⚠️ Token expired, clearing carts...');
         return true;
       }
 
@@ -68,7 +69,7 @@ export const useCart = () => {
 
   // 🧹 Tüm sepetleri temizle
   const clearAllCarts = useCallback(() => {
-    console.log('🧹 All carts cleared');
+    safeLog('🧹 All carts cleared');
     setTableCarts(new Map());
     setError(null);
   }, []);
@@ -76,7 +77,7 @@ export const useCart = () => {
   // LOGOUT EVENT DİNLEYİCİSİ - Cache temizleme için (Platform-aware)
   useEffect(() => {
     const handleLogout = () => {
-      console.log('🧹 Logout event received, clearing all carts...');
+      safeLog('🧹 Logout event received, clearing all carts...');
       clearAllCarts();
     };
 
@@ -84,20 +85,20 @@ export const useCart = () => {
     if (typeof window !== 'undefined' && window.addEventListener) {
       try {
         window.addEventListener('logout-clear-cache', handleLogout);
-        console.log('✅ Web platform: logout event listener added');
+        safeLog('✅ Web platform: logout event listener added');
 
         // Cleanup
         return () => {
           if (typeof window !== 'undefined' && window.removeEventListener) {
             window.removeEventListener('logout-clear-cache', handleLogout);
-            console.log('✅ Web platform: logout event listener removed');
+            safeLog('✅ Web platform: logout event listener removed');
           }
         };
       } catch (error) {
         console.warn('⚠️ Failed to add window event listener:', error);
       }
     } else {
-      console.log('📱 Mobile platform: window events not available, using direct method');
+      safeLog('📱 Mobile platform: window events not available, using direct method');
       // Mobile platformda direkt çağrı kullanılabilir (gerekirse)
     }
   }, [clearAllCarts]);
@@ -108,14 +109,14 @@ export const useCart = () => {
 
     const checkTokenAndCleanup = async () => {
       if (!user?.token) {
-        console.log('⚠️ No token found, clearing all carts...');
+        safeLog('⚠️ No token found, clearing all carts...');
         clearAllCarts();
         return;
       }
 
       const expired = await isTokenExpired();
       if (expired) {
-        console.log('⚠️ Token expired, clearing all carts...');
+        safeLog('⚠️ Token expired, clearing all carts...');
         clearAllCarts();
       }
     };
@@ -141,7 +142,7 @@ export const useCart = () => {
 
       // Gece 00:00 kontrolü
       if (currentHour === 0 && currentMinute === 0) {
-        console.log('🌙 Gece 00:00 - Tüm sepetler otomatik sıfırlanıyor...');
+        safeLog('🌙 Gece 00:00 - Tüm sepetler otomatik sıfırlanıyor...');
         clearAllCarts();
         return;
       }
@@ -157,14 +158,14 @@ export const useCart = () => {
           const minutesDiff = Math.floor(timeDiff / (1000 * 60));
 
           if (minutesDiff >= 15) {
-            console.log(`⏰ Masa ${tableNumber} sepeti 15 dakika geçti, sıfırlanıyor...`);
+            safeLog(`⏰ Masa ${tableNumber} sepeti 15 dakika geçti, sıfırlanıyor...`);
             newTableCarts.delete(tableNumber);
             hasExpiredCarts = true;
           }
         }
 
         if (hasExpiredCarts) {
-          console.log('✅ Süresi dolan sepetler temizlendi');
+          safeLog('✅ Süresi dolan sepetler temizlendi');
         }
 
         return newTableCarts;
@@ -212,7 +213,7 @@ export const useCart = () => {
         setLoading(true);
         setError(null);
 
-        console.log('🛒 Ürün sepete ekleniyor:', { item, tableNumber });
+        safeLog('🛒 Ürün sepete ekleniyor:', { item, tableNumber });
 
         // Try to add to backend first
         try {
@@ -230,7 +231,7 @@ export const useCart = () => {
               newTableCarts.set(tableNumber, response.cart);
               return newTableCarts;
             });
-            console.log("✅ Ürün backend'e başarıyla eklendi");
+            safeLog("✅ Ürün backend'e başarıyla eklendi");
             return { success: true, message: 'Item added successfully', cart: response.cart };
           }
         } catch (apiError) {
@@ -336,7 +337,7 @@ export const useCart = () => {
           }
         });
 
-        console.log("✅ Ürün local state'e başarıyla eklendi");
+        safeLog("✅ Ürün local state'e başarıyla eklendi");
         return { success: true, message: 'Item added successfully', cart: updatedCart };
       } catch (error) {
         const errorMessage = 'Failed to add item to cart';
@@ -374,13 +375,13 @@ export const useCart = () => {
       setError(null);
 
       try {
-        console.log('🛒 Masa', tableNumber, 'sepeti yükleniyor...');
+        safeLog('🛒 Masa', tableNumber, 'sepeti yükleniyor...');
 
         // Backend'den sepet yüklemeyi dene
         try {
           const backendCart = await cartService.getCurrentCart(tableNumber);
           if (backendCart) {
-            console.log("📦 Backend'den gelen sepet verileri:", {
+            safeLog("📦 Backend'den gelen sepet verileri:", {
               cartId: backendCart.cartId,
               tableNumber: backendCart.tableNumber,
               itemsCount: backendCart.items?.length || 0,
@@ -403,13 +404,13 @@ export const useCart = () => {
             });
 
             if (backendCart.items && backendCart.items.length > 0) {
-              console.log(
+              safeLog(
                 '✅ Masa',
                 tableNumber,
                 "sepeti backend'den başarıyla yüklendi (items var)"
               );
             } else {
-              console.log(
+              safeLog(
                 '✅ Masa',
                 tableNumber,
                 "sepeti backend'den başarıyla yüklendi (boş sepet)"
@@ -427,12 +428,12 @@ export const useCart = () => {
         // Backend başarısız olursa local sepeti kontrol et
         const localCart = tableCarts.get(tableNumber);
         if (localCart) {
-          console.log('✅ Masa', tableNumber, 'local sepeti yüklendi');
+          safeLog('✅ Masa', tableNumber, 'local sepeti yüklendi');
           return { success: true, cart: localCart };
         }
 
         // Hiç sepet yoksa boş sepet oluştur
-        console.log('✅ Masa', tableNumber, 'için yeni sepet oluşturuldu');
+        safeLog('✅ Masa', tableNumber, 'için yeni sepet oluşturuldu');
         return { success: true, cart: null };
       } catch (error: any) {
         console.error('❌ Masa', tableNumber, 'sepeti yükleme hatası:', error);
@@ -468,13 +469,13 @@ export const useCart = () => {
         setLoading(true);
         setError(null);
 
-        console.log('🔄 Ürün miktarı güncelleniyor:', { tableNumber, itemId, newQuantity });
+        safeLog('🔄 Ürün miktarı güncelleniyor:', { tableNumber, itemId, newQuantity });
 
         // Try to update backend first
         try {
           const response = await cartService.updateCartItem(itemId, { quantity: newQuantity });
           if (response && response.success) {
-            console.log("✅ Ürün miktarı backend'de güncellendi");
+            safeLog("✅ Ürün miktarı backend'de güncellendi");
             // Backend success - reload cart to get updated data
             await loadCartForTable(tableNumber);
             return;
@@ -517,7 +518,7 @@ export const useCart = () => {
           return newTableCarts;
         });
 
-        console.log("✅ Ürün miktarı local state'de güncellendi");
+        safeLog("✅ Ürün miktarı local state'de güncellendi");
       } catch (error) {
         const errorMessage = 'Failed to update item quantity';
         setError(errorMessage);
@@ -551,13 +552,13 @@ export const useCart = () => {
         setLoading(true);
         setError(null);
 
-        console.log('🗑️ Ürün sepetten kaldırılıyor:', { tableNumber, itemId });
+        safeLog('🗑️ Ürün sepetten kaldırılıyor:', { tableNumber, itemId });
 
         // Try to remove from backend first
         try {
           const response = await cartService.removeCartItem(itemId);
           if (response && response.success) {
-            console.log("✅ Ürün backend'den kaldırıldı");
+            safeLog("✅ Ürün backend'den kaldırıldı");
             // Backend success - reload cart to get updated data
             await loadCartForTable(tableNumber);
             return;
@@ -603,7 +604,7 @@ export const useCart = () => {
           return newTableCarts;
         });
 
-        console.log("✅ Ürün local state'den kaldırıldı");
+        safeLog("✅ Ürün local state'den kaldırıldı");
       } catch (error) {
         const errorMessage = 'Failed to remove item from cart';
         setError(errorMessage);
@@ -617,7 +618,7 @@ export const useCart = () => {
 
   // Clear all carts for all tables
   const clearAllTables = useCallback(async () => {
-    console.log('🧹 clearAllTables called');
+    safeLog('🧹 clearAllTables called');
 
     // 🧹 Token expire kontrolü
     const expired = await isTokenExpired();
@@ -632,21 +633,21 @@ export const useCart = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🧹 TÜM MASALAR temizleniyor (DANGEROUS OPERATION)...');
-      console.log('🔍 About to call cartService.clearAllCarts()...');
+      safeLog('🧹 TÜM MASALAR temizleniyor (DANGEROUS OPERATION)...');
+      safeLog('🔍 About to call cartService.clearAllCarts()...');
 
       // Backend'den tüm sepetleri temizle
-      console.log('🚀 Calling cartService.clearAllCarts() now...');
+      safeLog('🚀 Calling cartService.clearAllCarts() now...');
       const response = await cartService.clearAllCarts();
-      console.log('📦 cartService.clearAllCarts() response received:', response);
+      safeLog('📦 cartService.clearAllCarts() response received:', response);
 
       if (response && response.success) {
-        console.log("✅ TÜM MASALAR backend'de temizlendi");
+        safeLog("✅ TÜM MASALAR backend'de temizlendi");
 
         // Local state'i tamamen temizle
         setTableCarts(new Map());
 
-        console.log("✅ TÜM MASALAR local state'de temizlendi");
+        safeLog("✅ TÜM MASALAR local state'de temizlendi");
         return response;
       } else {
         console.error('❌ TÜM MASALAR temizleme başarısız');
@@ -679,7 +680,7 @@ export const useCart = () => {
   // Clear cart for specific table
   const clearCartForTable = useCallback(
     async (tableNumber: number): Promise<{ success: boolean; message: string }> => {
-      console.log('🧹 clearCartForTable called with tableNumber:', tableNumber);
+      safeLog('🧹 clearCartForTable called with tableNumber:', tableNumber);
 
       if (!tableNumber) {
         console.error('❌ Table number is required for clearing cart');
@@ -700,21 +701,21 @@ export const useCart = () => {
         setLoading(true);
         setError(null);
 
-        console.log(
+        safeLog(
           '🧹 SADECE Masa',
           tableNumber,
           'sepeti temizleniyor (diğer masalar korunuyor)...'
         );
-        console.log('🔍 About to call cartService.clearCart()...');
+        safeLog('🔍 About to call cartService.clearCart()...');
 
         // Try to clear backend first
         try {
-          console.log('🚀 Calling cartService.clearCart() for table:', tableNumber);
+          safeLog('🚀 Calling cartService.clearCart() for table:', tableNumber);
           const response = await cartService.clearCart(tableNumber);
-          console.log('📦 cartService.clearCart() response:', response);
+          safeLog('📦 cartService.clearCart() response:', response);
 
           if (response && response.success) {
-            console.log('✅ Masa', tableNumber, "sepeti backend'de temizlendi");
+            safeLog('✅ Masa', tableNumber, "sepeti backend'de temizlendi");
           } else {
             console.warn('⚠️ Backend clear cart response not successful:', response);
           }
@@ -730,7 +731,7 @@ export const useCart = () => {
           return newTableCarts;
         });
 
-        console.log('✅ Masa', tableNumber, "sepeti local state'de temizlendi");
+        safeLog('✅ Masa', tableNumber, "sepeti local state'de temizlendi");
         return { success: true, message: 'Cart cleared successfully' };
       } catch (error) {
         const errorMessage = 'Failed to clear cart';
@@ -760,7 +761,7 @@ export const useCart = () => {
 
   // KAPSAMLI CACHE TEMİZLEME - Logout sırasında çağrılmalı
   // const clearAllCarts = useCallback(() => {
-  //   console.log('🧹 Tüm masa sepetleri temizleniyor...');
+  //   safeLog('🧹 Tüm masa sepetleri temizleniyor...');
   //   setTableCarts(new Map());
   //   setLoading(false);
   //   setError(null);

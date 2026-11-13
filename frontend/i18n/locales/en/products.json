@@ -31,6 +31,14 @@
   "reorderLevel": "Reorder Level",
   "currentStock": "Current Stock",
   "a11y": {
-    "selected": "selected"
-  }
+    "selected": "selected",
+    "chipView": "Categories as list",
+    "gridView": "Categories as tiles"
+  },
+  "viewChips": "List",
+  "viewGrid": "Tiles",
+  "variantPickerTitle": "Choose a variant",
+  "variantOutOfStock": "Out of stock",
+  "variantAllOutOfStock": "All variants are sold out.",
+  "variantRequired": "Please choose a variant."
 }

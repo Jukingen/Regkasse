@@ -4,6 +4,7 @@ import type { SelectProps } from 'antd';
 import { Alert, Form, Select, Skeleton, Space } from 'antd';
 
 import { SelectedCashRegisterCard } from '@/components/SelectedCashRegisterCard';
+import { isDecommissionedRegister } from '@/features/cash-registers/utils/registerStatus';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useI18n } from '@/i18n';
 
@@ -22,6 +23,8 @@ export type CashRegisterSelectorProps = {
   persistSelection?: boolean;
   /** Wrap the select in `Form.Item` when a label is shown (default: true). */
   showFormItem?: boolean;
+  /** Include decommissioned registers (reporting). Default false. */
+  includeDecommissioned?: boolean;
   style?: SelectProps['style'];
   className?: string;
 };
@@ -44,6 +47,7 @@ export function CashRegisterSelector({
   autoSelect,
   persistSelection = true,
   showFormItem = true,
+  includeDecommissioned = false,
   style,
   className,
 }: CashRegisterSelectorProps) {
@@ -68,6 +72,7 @@ export function CashRegisterSelector({
     controlled: onChange !== undefined,
     autoSelect: resolvedAutoSelect,
     persistSelection,
+    includeDecommissioned,
   });
 
   if (isLoading) {
@@ -109,6 +114,13 @@ export function CashRegisterSelector({
     );
   }
 
+  const labeledOptions = registerOptions.map((opt) => ({
+    value: opt.value,
+    label: isDecommissionedRegister(opt.register.status)
+      ? `${opt.label} (${t('cashRegisters.status.decommissioned')})`
+      : opt.label,
+  }));
+
   const select = (
     <Select
       style={{ minWidth: 200, width: '100%', maxWidth: 420 }}
@@ -117,7 +129,7 @@ export function CashRegisterSelector({
       disabled={disabled}
       allowClear={resolvedAllowClear}
       placeholder={resolvedPlaceholder}
-      options={registerOptions}
+      options={labeledOptions}
     />
   );
 

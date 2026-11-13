@@ -65,9 +65,9 @@ public sealed class RksvJahresbelegDomainServiceTests
     [Fact]
     public async Task CreateJahresbelegAsync_AggregatesMonatsbelegRows()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         const int year = 2024;
@@ -116,9 +116,9 @@ public sealed class RksvJahresbelegDomainServiceTests
     [Fact]
     public async Task CreateFromDecemberMonatsbelegAsync_ReusesDecemberSignature()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         const int year = 2024;
@@ -171,9 +171,9 @@ public sealed class RksvJahresbelegDomainServiceTests
     [Fact]
     public async Task JahresbelegExistsAsync_ReturnsTrueWhenPresent()
     {
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         await using var ctx = CreateContext(tenantId);
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
 
         var regId = Guid.NewGuid();
         ctx.Jahresbelege.Add(new Jahresbeleg

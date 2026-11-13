@@ -1,9 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TenantLicenseOverview } from '@/features/license/api/tenantLicense';
 import { mapTenantLicenseOverviewToPublicStatus } from '@/features/license/utils/mapTenantLicenseOverviewToPublicStatus';
 
 describe('mapTenantLicenseOverviewToPublicStatus', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-20T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('maps active tenant overview to public status', () => {
     const overview: TenantLicenseOverview = {
       status: {
@@ -19,11 +28,12 @@ describe('mapTenantLicenseOverviewToPublicStatus', () => {
 
     const mapped = mapTenantLicenseOverviewToPublicStatus(overview);
 
-    expect(mapped.daysRemaining).toBe(1);
+    expect(mapped.daysRemaining).toBe(57);
     expect(mapped.validUntil).toBe('2026-07-16T00:00:00.000Z');
     expect(mapped.canAccess).toBe(true);
     expect(mapped.isValid).toBe(true);
     expect(mapped.isExpired).toBe(false);
+    expect(mapped.isLocked).toBe(false);
   });
 
   it('maps lockdown tenant overview to expired public status', () => {
@@ -42,6 +52,7 @@ describe('mapTenantLicenseOverviewToPublicStatus', () => {
 
     expect(mapped.canAccess).toBe(false);
     expect(mapped.isExpired).toBe(true);
+    expect(mapped.isLocked).toBe(true);
     expect(mapped.requiresRenewal).toBe(true);
   });
 });

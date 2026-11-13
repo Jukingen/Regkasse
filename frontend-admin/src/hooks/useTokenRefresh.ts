@@ -15,21 +15,33 @@ export const TOKEN_REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
  * Returns `null` when the token cannot be scheduled (missing / invalid `exp`).
  * Returns `0` when the token is already within the refresh window (refresh immediately).
  */
+/**
+ * Delay until proactive refresh should run.
+ * Accepts a JWT (legacy) or an expiry timestamp in ms.
+ */
 export function computeTokenRefreshDelayMs(
-  token: string | null,
+  tokenOrExpiresAtMs: string | number | null,
   nowMs: number = Date.now()
 ): number | null {
-  if (!token) {
+  if (tokenOrExpiresAtMs == null) {
     return null;
   }
 
-  const payload = decodeJwtPayload(token);
-  const exp = payload?.exp;
-  if (typeof exp !== 'number' || !Number.isFinite(exp)) {
+  let expiresAtMs: number | null = null;
+  if (typeof tokenOrExpiresAtMs === 'number' && Number.isFinite(tokenOrExpiresAtMs)) {
+    expiresAtMs = tokenOrExpiresAtMs;
+  } else if (typeof tokenOrExpiresAtMs === 'string') {
+    const payload = decodeJwtPayload(tokenOrExpiresAtMs);
+    const exp = payload?.exp;
+    if (typeof exp === 'number' && Number.isFinite(exp)) {
+      expiresAtMs = exp * 1000;
+    }
+  }
+
+  if (expiresAtMs == null) {
     return null;
   }
 
-  const expiresAtMs = exp * 1000;
   const refreshAtMs = expiresAtMs - TOKEN_REFRESH_BEFORE_EXPIRY_MS;
   return Math.max(0, refreshAtMs - nowMs);
 }
@@ -58,7 +70,7 @@ export function useTokenRefresh(enabled = true): void {
     const schedule = () => {
       clearTimer();
 
-      const delay = computeTokenRefreshDelayMs(authStorage.getToken());
+      const delay = computeTokenRefreshDelayMs(authStorage.getAccessExpiresAtMs());
       if (delay === null) {
         return;
       }

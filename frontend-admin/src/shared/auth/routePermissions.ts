@@ -8,6 +8,8 @@
  * matching backend multi-`[HasPermission]` attributes.
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
+import { isCashRegisterDetailPath } from '@/shared/cashRegisterRoutes';
+
 import { ANY_AUTHENTICATED_PERMISSION, AppPermissions, PERMISSIONS } from './permissions';
 
 /**
@@ -28,6 +30,17 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Self-service password change — any authenticated user (header menu). */
   '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/products': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/tickets/redemptions': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/tickets/events': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/rooms': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/folios': PERMISSIONS.PRODUCT_VIEW,
+  '/admin/patients': PERMISSIONS.PATIENT_VIEW,
+  '/admin/appointments': PERMISSIONS.APPOINTMENT_VIEW,
+  '/admin/imeis': PERMISSIONS.IMEI_VIEW,
+  '/admin/taxi-trips': PERMISSIONS.TAXI_TRIP_VIEW,
+  '/admin/customer-addresses': PERMISSIONS.CUSTOMER_VIEW,
+  '/admin/kitchen': PERMISSIONS.SETTINGS_VIEW,
+  '/admin/extensions': PERMISSIONS.SETTINGS_VIEW,
   '/pricing-rules': PERMISSIONS.PRODUCT_VIEW,
   '/categories': PERMISSIONS.CATEGORY_VIEW,
   '/inventory': PERMISSIONS.INVENTORY_VIEW,
@@ -35,6 +48,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/invoices': PERMISSIONS.INVOICE_VIEW,
   '/orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   '/orders/online': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
+  '/orders/preorders': PERMISSIONS.ORDER_VIEW,
   /** Legacy alias → `/orders/online` */
   '/online-orders': [PERMISSIONS.DIGITAL_ORDERS_VIEW, PERMISSIONS.ORDER_VIEW],
   '/payments': PERMISSIONS.PAYMENT_VIEW,
@@ -83,7 +97,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/staff/list': PERMISSIONS.USER_VIEW,
   '/staff/performance': PERMISSIONS.REPORT_VIEW,
   '/staff/shifts': PERMISSIONS.SHIFT_VIEW,
-  '/tagesabschluss': [PERMISSIONS.DAILY_CLOSING_VIEW],
+  '/tagesabschluss': PERMISSIONS.DAILY_CLOSING_VIEW,
   '/tagesabschluss/execute': [PERMISSIONS.DAILY_CLOSING_EXECUTE],
   /** Manager activity log (tenant-scoped audit rows; platform operators hidden on API). Spec alias: activity.view → audit.view. */
   '/audit-logs/activity': PERMISSIONS.AUDIT_VIEW,
@@ -96,6 +110,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/download-history/analytics': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
+  '/admin/sessions': PERMISSIONS.USER_VIEW,
   '/admin/access': PERMISSIONS.USER_VIEW,
   /** Role CRUD + permission editor — Super Admin only (role.manage). */
   '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
@@ -114,6 +129,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/receipt': PERMISSIONS.SETTINGS_VIEW,
   '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
@@ -160,8 +176,14 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
   '/backup/performance': PERMISSIONS.SETTINGS_VIEW,
   '/backup/compliance': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/drills': PERMISSIONS.SETTINGS_VIEW,
   '/backup/costs': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/retention': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/pitr': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/backup-retention': PERMISSIONS.SETTINGS_VIEW,
   '/backup/restore-history': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/restore-verification': PERMISSIONS.SETTINGS_VIEW,
+  '/admin/restore-verification': PERMISSIONS.SETTINGS_VIEW,
   '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
   '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
@@ -175,14 +197,18 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
   '/admin/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
+  '/admin/license-management': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.LICENSE_VIEW, PERMISSIONS.SETTINGS_VIEW],
   '/license/dashboard': [
     PERMISSIONS.LICENSE_MANAGE,
     PERMISSIONS.LICENSE_VIEW,
     PERMISSIONS.SETTINGS_VIEW,
   ],
+  '/admin/limits/dashboard': PERMISSIONS.LICENSE_MANAGE,
   '/admin/license/grace-period': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/license/audit': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/test': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/development/limits': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/license/debug': PERMISSIONS.SYSTEM_CRITICAL,
   /**
    * Platform Super Admin landing (`SuperAdminModeBanner` → Mandant auswählen).
@@ -192,11 +218,15 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/tenants/create': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/trials': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/demo-requests': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/maintenance': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/feature-flags': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/vertical-profiles': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments/tenants': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/deployments/go-live': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/deployments/compliance': PERMISSIONS.DEPLOYMENT_APPROVE,
   '/admin/database/migrations': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/data-management': PERMISSIONS.SYSTEM_CRITICAL,
@@ -216,6 +246,15 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/billing/sales/new': [PERMISSIONS.SYSTEM_CRITICAL],
   /** Sale detail (`/admin/billing/sales/{id}`) — longest-prefix match via `/admin/billing/sales`. */
   '/admin/billing/stats': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/billing/subscription-invoices': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/communication/bulk-email': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/dashboard': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/portal': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/invoices': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/support': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/tenant/profile': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/support': [PERMISSIONS.SYSTEM_CRITICAL],
   '/billing/digital': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/digital': [
     PERMISSIONS.DIGITAL_MANAGE,
@@ -224,10 +263,18 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-order-integrations': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-payments': PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
+  '/admin/payments/gateway-console': PERMISSIONS.ONLINE_PAYMENTS_MANAGE,
   '/admin/feedback': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/monitoring': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/risk-dashboard': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse-management': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/mwst': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/kassensicherheit': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/peppol/submissions': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/peppol/participants': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/failover': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/resource-pools': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/incidents': [PERMISSIONS.SYSTEM_CRITICAL],
@@ -237,8 +284,15 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/tse/disaster-recovery': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/logs': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/developer-tools': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse/fiskaly': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse/fiskaly/setup': [PERMISSIONS.FISKALY_OPERATIONS_CONFIG, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/tse/fiskaly/test': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/fiskaly/history': PERMISSIONS.FISKALY_HISTORY_VIEW,
+  '/admin/fiskaly/statistics': PERMISSIONS.FISKALY_HISTORY_VIEW,
+  '/admin/fiskaly/errors': PERMISSIONS.FISKALY_HISTORY_VIEW,
   '/admin/tse/compliance': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/signaturkarte-program': [PERMISSIONS.SETTINGS_VIEW],
+  '/admin/tse/ausfall': [PERMISSIONS.FINANZONLINE_VIEW],
   '/admin/tse/auto-scaling': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/auto-healing': [PERMISSIONS.SYSTEM_CRITICAL],
   '/admin/tse/knowledge': [PERMISSIONS.SYSTEM_CRITICAL],
@@ -267,6 +321,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   /** Sidebar-only virtual keys: same access as Sonderbelege page (query focus deep links). */
   '/rksv/sb/startbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/monatsbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/monatsbelege': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/admin/rksv/monatsbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/jahresbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/nullbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
@@ -346,6 +402,13 @@ export function getRequiredPermissionForPath(pathname: string): string | string[
   if (ROUTE_PERMISSIONS[normalized] !== undefined) return ROUTE_PERMISSIONS[normalized];
   const tenantScoped = getTenantScopedRoutePermission(normalized);
   if (tenantScoped !== undefined) return tenantScoped;
+  /**
+   * `/admin/cash-registers/{id}` is tenant-scoped detail (cash_register.view), not the Super Admin
+   * platform list (`/admin/cash-registers` → system.critical).
+   */
+  if (isCashRegisterDetailPath(normalized)) {
+    return [AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage];
+  }
   for (const key of ROUTE_KEYS_SORTED) {
     if (normalized === key || normalized.startsWith(key + '/')) return ROUTE_PERMISSIONS[key];
   }

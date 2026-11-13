@@ -31,6 +31,14 @@ const LicenseUsageTrendChart = dynamic(
   }
 );
 
+const LicenseStatusDistributionChart = dynamic(
+  () => import('@/features/license/components/LicenseStatusDistributionChart'),
+  {
+    ssr: false,
+    loading: () => <Skeleton active paragraph={{ rows: 6 }} />,
+  }
+);
+
 function formatPeriodLabel(iso: string, granularity: 'day' | 'week', formatLocale: string): string {
   const d = dayjs.utc(iso);
   if (!d.isValid()) return iso;
@@ -169,6 +177,33 @@ export function LicenseUsageAnalyticsCard() {
                   <LicenseUsageTrendChart data={trendData} />
                 )}
               </>
+            ),
+          },
+          {
+            key: 'distribution',
+            label: t('license.usageAnalytics.tabs.distribution'),
+            children: statsQuery.isLoading ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <LicenseStatusDistributionChart
+                data={[
+                  {
+                    name: t('license.statusBadge.labels.active'),
+                    value: stats?.activeTenantLicenses ?? 0,
+                    color: '#52c41a',
+                  },
+                  {
+                    name: t('license.statusBadge.labels.grace'),
+                    value: stats?.graceTenantLicenses ?? 0,
+                    color: '#faad14',
+                  },
+                  {
+                    name: t('license.statusBadge.labels.expired'),
+                    value: stats?.lockedTenantLicenses ?? stats?.expiredTenantLicenses ?? 0,
+                    color: '#cf1322',
+                  },
+                ].filter((d) => d.value > 0)}
+              />
             ),
           },
           {

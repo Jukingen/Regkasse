@@ -15,7 +15,7 @@ export default function DigitalBillingPage() {
         title={t('billing.digital.pageTitle')}
         breadcrumbs={[
           adminOverviewCrumb(t),
-          { title: t('nav.licenseHubSales'), href: '/admin/billing' },
+          { title: t('nav.licenseHubSales'), href: '/admin/billing/sales' },
           { title: t('billing.digital.pageTitle') },
         ]}
       />

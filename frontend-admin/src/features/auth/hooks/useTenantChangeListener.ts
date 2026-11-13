@@ -5,8 +5,10 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { authStorage } from '@/features/auth/services/authStorage';
 import {
+  DEV_TENANT_BOOTSTRAP_EVENT,
   DEV_TENANT_CHANGED_EVENT,
   DEV_TENANT_LOCAL_STORAGE_KEY,
+  type DevTenantBootstrapDetail,
   type DevTenantChangedDetail,
   getTenantSlugFromSubdomain,
   isDevelopment,
@@ -151,6 +153,15 @@ export function useTenantChangeListener() {
       applyTenantSwitch(next);
     };
 
+    /** Login bootstrap: keep ref in sync without clearing the just-issued JWT. */
+    const handleDevTenantBootstrap = (e: Event) => {
+      const detail = (e as CustomEvent<DevTenantBootstrapDetail>).detail;
+      const next = normalizeTenantSlug(detail?.slug);
+      if (next) {
+        lastDevSlugRef.current = next;
+      }
+    };
+
     const checkHostSlugChange = () => {
       const hostSlug = normalizeTenantSlug(getTenantSlugFromSubdomain());
       const prev = lastHostSlugRef.current;
@@ -187,6 +198,7 @@ export function useTenantChangeListener() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener(DEV_TENANT_CHANGED_EVENT, handleDevTenantChanged);
+    window.addEventListener(DEV_TENANT_BOOTSTRAP_EVENT, handleDevTenantBootstrap);
     window.addEventListener('pageshow', onVisibilityOrFocus);
     window.addEventListener('focus', onVisibilityOrFocus);
     document.addEventListener('visibilitychange', () => {
@@ -199,6 +211,7 @@ export function useTenantChangeListener() {
       clearReloadSafetyTimer();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(DEV_TENANT_CHANGED_EVENT, handleDevTenantChanged);
+      window.removeEventListener(DEV_TENANT_BOOTSTRAP_EVENT, handleDevTenantBootstrap);
       window.removeEventListener('pageshow', onVisibilityOrFocus);
       window.removeEventListener('focus', onVisibilityOrFocus);
     };

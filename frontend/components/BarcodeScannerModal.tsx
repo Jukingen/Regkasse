@@ -1,17 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView } from 'expo-camera';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 
+import { PosCameraView } from './camera/PosCameraView';
+
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
-import { POS_PRODUCT_BARCODE_TYPES } from '../constants/posCameraScan';
+import { POS_PRODUCT_BARCODE_TYPES, POS_RETAIL_BARCODE_TYPES } from '../constants/posCameraScan';
 import { usePosCameraPermission } from '../hooks/usePosCameraPermission';
+
+export type BarcodeScannerMode = 'ticket' | 'product';
 
 export type BarcodeScannerModalProps = {
   visible: boolean;
   title: string;
   hint?: string;
+  /** Ticket keeps the existing symbology list. Product uses EAN-13, EAN-8, Code 128, and QR. */
+  mode?: BarcodeScannerMode;
   onClose: () => void;
   onScan: (payload: string) => void;
 };
@@ -24,6 +29,7 @@ export function BarcodeScannerModal({
   visible,
   title,
   hint,
+  mode = 'ticket',
   onClose,
   onScan,
 }: BarcodeScannerModalProps) {
@@ -99,11 +105,15 @@ export function BarcodeScannerModal({
     if (!visible) return null;
 
     return (
-      <CameraView
+      <PosCameraView
         style={styles.camera}
         facing="back"
         active={visible}
-        barcodeScannerSettings={{ barcodeTypes: [...POS_PRODUCT_BARCODE_TYPES] }}
+        barcodeScannerSettings={{
+          barcodeTypes: [
+            ...(mode === 'product' ? POS_RETAIL_BARCODE_TYPES : POS_PRODUCT_BARCODE_TYPES),
+          ],
+        }}
         onBarcodeScanned={handleBarcode}
         onMountError={() => {
           setCameraError(true);

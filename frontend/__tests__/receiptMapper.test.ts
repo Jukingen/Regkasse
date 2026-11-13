@@ -46,6 +46,7 @@ describe('receiptMapper', () => {
     expect(result.customerDetails?.companyName).toBe(mockReceiptDTO.company.name);
     expect(result.customerDetails?.address).toBe(mockReceiptDTO.company.address);
     expect(result.customerDetails?.taxNumber).toBe(mockReceiptDTO.company.taxNumber);
+    expect(result.thankYouMessage).toBe(mockReceiptDTO.footerText);
 
     // Verify Signature
     expect(result.tseSignature).toBe(mockReceiptDTO.signature.value);

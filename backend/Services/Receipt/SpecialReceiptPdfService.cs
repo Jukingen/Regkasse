@@ -1,4 +1,5 @@
 using System.Globalization;
+using KasseAPI_Final.Services.Reports;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -45,6 +46,9 @@ public sealed class SpecialReceiptPdfData
     public string RksvFooterLabel { get; init; } = "RKSV-konform";
 
     public bool IncludeReprintWatermark { get; init; }
+
+    /// <summary>Optional period sales block. Null leaves Start-/Null-/Schlussbeleg layout unchanged.</summary>
+    public PeriodSalesSummary? PeriodSales { get; init; }
 }
 
 /// <summary>
@@ -110,6 +114,12 @@ public static class SpecialReceiptPdfService
                     column.Item().AlignCenter().Text($"UID: {companyVatId}").FontSize(8).SemiBold();
 
                     column.Item().PaddingTop(2).AlignCenter().Text(receiptType.ToUpperInvariant()).Bold().FontSize(13);
+                    column.Item().AlignCenter().Text($"Beleg-Nr. {receiptNumber}").Bold().FontSize(11);
+                    if (data.PeriodSales is not null && !string.IsNullOrWhiteSpace(data.PeriodSales.PeriodLabel))
+                    {
+                        column.Item().AlignCenter().Text(data.PeriodSales.PeriodLabel).SemiBold().FontSize(10);
+                    }
+
                     column.Item().AlignCenter().Text(footerLabel).FontSize(9).SemiBold()
                         .FontColor(Colors.Grey.Darken2);
 
@@ -140,6 +150,9 @@ public static class SpecialReceiptPdfService
                         Row("Gesamtbetrag", $"€ {data.TotalAmount.ToString("F2", deAt)}");
                         Row("Zahlungsart", paymentMethod);
                     });
+
+                    if (data.PeriodSales is not null)
+                        PeriodSalesPdfSections.Write(column, data.PeriodSales);
 
                     column.Item().PaddingTop(6).Text("TSE-Signatur").Bold().FontSize(8);
                     column.Item().Text(tseSignature).FontSize(6).FontFamily("Courier New");

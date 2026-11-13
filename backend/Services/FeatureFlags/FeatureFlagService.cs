@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Countries;
+using KasseAPI_Final.Services.Countries;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -16,6 +18,8 @@ public sealed class FeatureFlagService : IFeatureFlagService
     private readonly IMemoryCache _cache;
     private readonly IAuditLogService _auditLog;
     private readonly ILogger<FeatureFlagService> _logger;
+    private readonly ICountryProfileRegistry _countries;
+    private readonly IOptions<PeppolOptions>? _peppol;
     private readonly ConcurrentDictionary<string, byte> _cacheKeys = new(StringComparer.Ordinal);
 
     public FeatureFlagService(
@@ -23,13 +27,17 @@ public sealed class FeatureFlagService : IFeatureFlagService
         IOptionsMonitor<FeatureFlagsOptions> options,
         IMemoryCache cache,
         IAuditLogService auditLog,
-        ILogger<FeatureFlagService> logger)
+        ILogger<FeatureFlagService> logger,
+        ICountryProfileRegistry countries,
+        IOptions<PeppolOptions>? peppol = null)
     {
         _dbFactory = dbFactory;
         _options = options;
         _cache = cache;
         _auditLog = auditLog;
         _logger = logger;
+        _countries = countries;
+        _peppol = peppol;
     }
 
     public bool IsEnabled(string featureName, string? tenantId = null)
@@ -43,7 +51,7 @@ public sealed class FeatureFlagService : IFeatureFlagService
         if (_cache.TryGetValue(cacheKey, out bool cached))
             return cached;
 
-        var effective = ResolveEffective(name, tenantGuid);
+        var effective = Resolve(name, tenantGuid, tenantRow: null, globalRow: null, profile: null, loadFromDb: true).Enabled;
         _cache.Set(cacheKey, effective, CacheDuration);
         _cacheKeys.TryAdd(cacheKey, 0);
         return effective;
@@ -61,6 +69,15 @@ public sealed class FeatureFlagService : IFeatureFlagService
             throw new ArgumentException($"Unknown feature flag '{featureName}'.", nameof(featureName));
 
         var tenantGuid = ParseTenantId(tenantId);
+        if (name == FeatureFlagNames.FiscalRksvAt && tenantGuid is Guid rksvTenant)
+        {
+            var profile = await LoadProfileAsync(rksvTenant, cancellationToken).ConfigureAwait(false);
+            if (!enabled && CountryFeatureFlagDefaults.IsRksvAtLocked(name, profile))
+                throw new FeatureFlagLockedException(name);
+            if (enabled && profile.FiscalSystem != FiscalSystem.RKSV_AT)
+                throw new FeatureFlagCountryRejectedException(name, profile.Code);
+        }
+
         var key = FeatureFlagNames.SettingsKey(name);
         var value = enabled ? "true" : "false";
 
@@ -171,40 +188,27 @@ public sealed class FeatureFlagService : IFeatureFlagService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        CountryProfile? profile = null;
+        if (tenantGuid is Guid tid)
+            profile = await LoadProfileAsync(tid, cancellationToken, db).ConfigureAwait(false);
+
         var list = new List<FeatureFlagStatusDto>(FeatureFlagNames.All.Count);
         foreach (var name in FeatureFlagNames.All)
         {
             var key = FeatureFlagNames.SettingsKey(name);
-            var configDefault = GetConfigDefault(name);
-            var tenantOverride = tenantGuid is Guid tid
-                ? rows.FirstOrDefault(r => r.TenantId == tid && r.Key == key)
+            var tenantOverride = tenantGuid is Guid
+                ? rows.FirstOrDefault(r => r.TenantId == tenantGuid && r.Key == key)
                 : null;
             var globalOverride = rows.FirstOrDefault(r => r.TenantId == null && r.Key == key);
-
-            bool? overrideValue = null;
-            string source = "config";
-            bool enabled = configDefault;
-
-            if (tenantOverride is not null && TryParseBool(tenantOverride.Value, out var tVal))
-            {
-                overrideValue = tVal;
-                enabled = tVal;
-                source = "tenant_override";
-            }
-            else if (globalOverride is not null && TryParseBool(globalOverride.Value, out var gVal))
-            {
-                overrideValue = gVal;
-                enabled = gVal;
-                source = "global_override";
-            }
+            var resolved = Resolve(name, tenantGuid, tenantOverride, globalOverride, profile, loadFromDb: false);
 
             list.Add(new FeatureFlagStatusDto
             {
                 Name = name,
-                Enabled = enabled,
-                ConfigDefault = configDefault,
-                OverrideValue = overrideValue,
-                Source = source,
+                Enabled = resolved.Enabled,
+                ConfigDefault = resolved.ConfigDefault,
+                OverrideValue = resolved.OverrideValue,
+                Source = resolved.Source,
                 TenantId = tenantGuid?.ToString("D"),
             });
         }
@@ -212,33 +216,96 @@ public sealed class FeatureFlagService : IFeatureFlagService
         return list;
     }
 
-    private bool ResolveEffective(string canonicalName, Guid? tenantId)
+    internal FlagResolution Resolve(
+        string canonicalName,
+        Guid? tenantId,
+        TenantSetting? tenantRow,
+        TenantSetting? globalRow,
+        CountryProfile? profile,
+        bool loadFromDb)
     {
+        if (FeatureFlagNames.Reserved.Contains(canonicalName, StringComparer.Ordinal))
+            return ResolveReserved(canonicalName, tenantId);
+
         var configDefault = GetConfigDefault(canonicalName);
+        var isExperimental = FeatureFlagNames.IsExperimental(canonicalName);
         var key = FeatureFlagNames.SettingsKey(canonicalName);
 
         try
         {
-            using var db = _dbFactory.CreateDbContext();
-            if (tenantId is Guid tid)
-            {
-                var tenantRow = db.TenantSettings.AsNoTracking()
-                    .FirstOrDefault(s => s.TenantId == tid && s.Key == key);
-                if (tenantRow is not null && TryParseBool(tenantRow.Value, out var tVal))
-                    return tVal;
-            }
+            AppDbContext? db = null;
+            if (loadFromDb)
+                db = _dbFactory.CreateDbContext();
 
-            var globalRow = db.TenantSettings.AsNoTracking()
-                .FirstOrDefault(s => s.TenantId == null && s.Key == key);
-            if (globalRow is not null && TryParseBool(globalRow.Value, out var gVal))
-                return gVal;
+            using (db)
+            {
+                if (loadFromDb && db is not null)
+                {
+                    if (!isExperimental && tenantId is Guid profileTenant)
+                        profile = LoadProfile(db, profileTenant);
+
+                    if (tenantId is Guid tid)
+                    {
+                        tenantRow = db.TenantSettings.AsNoTracking()
+                            .FirstOrDefault(s => s.TenantId == tid && s.Key == key);
+                    }
+
+                    globalRow = db.TenantSettings.AsNoTracking()
+                        .FirstOrDefault(s => s.TenantId == null && s.Key == key);
+                }
+
+                if (!isExperimental && CountryFeatureFlagDefaults.IsRksvAtLocked(canonicalName, profile))
+                {
+                    return new FlagResolution(true, FeatureFlagSources.Locked, OverrideValue: null, configDefault);
+                }
+
+                if (tenantRow is not null && TryParseBool(tenantRow.Value, out var tVal))
+                {
+                    return new FlagResolution(tVal, FeatureFlagSources.TenantOverride, tVal, configDefault);
+                }
+
+                if (!isExperimental
+                    && CountryFeatureFlagDefaults.TryGet(canonicalName, profile, out var countryVal))
+                {
+                    return new FlagResolution(countryVal, FeatureFlagSources.CountryProfile, OverrideValue: null, configDefault);
+                }
+
+                if (globalRow is not null && TryParseBool(globalRow.Value, out var gVal))
+                {
+                    return new FlagResolution(gVal, FeatureFlagSources.GlobalOverride, gVal, configDefault);
+                }
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Feature flag DB lookup failed for {Feature}; using config default", canonicalName);
         }
 
-        return configDefault;
+        return new FlagResolution(configDefault, FeatureFlagSources.Config, OverrideValue: null, configDefault);
+    }
+
+    private async Task<CountryProfile> LoadProfileAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken,
+        AppDbContext? existing = null)
+    {
+        if (existing is not null)
+            return LoadProfile(existing, tenantId);
+
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return LoadProfile(db, tenantId);
+    }
+
+    private CountryProfile LoadProfile(AppDbContext db, Guid tenantId)
+    {
+        // Explicit tenant id: Super Admin may inspect another mandant's flags while ambient
+        // EF filters still bind to the caller's tenant. Constrain by TenantId immediately.
+        var country = db.CompanySettings.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId)
+            .Select(s => s.Country)
+            .FirstOrDefault();
+        return _countries.GetOrDefault(country);
     }
 
     private bool GetConfigDefault(string canonicalName)
@@ -250,6 +317,13 @@ public sealed class FeatureFlagService : IFeatureFlagService
             FeatureFlagNames.EnableDepExportV2 => opts.EnableDepExportV2,
             FeatureFlagNames.EnableOnlineOrdersV2 => opts.EnableOnlineOrdersV2,
             FeatureFlagNames.EnableAutoAusfall => opts.EnableAutoAusfall,
+            FeatureFlagNames.FiscalKassenSicherheitDe => opts.Fiscal?.KassenSicherheitDe ?? false,
+            FeatureFlagNames.FiscalMwstCh => opts.Fiscal?.MwstCh ?? false,
+            FeatureFlagNames.EInvoicingZugferd => opts.EInvoicing?.Zugferd ?? false,
+            FeatureFlagNames.EInvoicingXRechnung => opts.EInvoicing?.XRechnung ?? false,
+            FeatureFlagNames.EInvoicingQrRechnung => opts.EInvoicing?.QrRechnung ?? false,
+            FeatureFlagNames.EInvoicingEn16931 => opts.EInvoicing?.En16931 ?? false,
+            FeatureFlagNames.ViesCheckEnabled => opts.Vies?.CheckEnabled ?? false,
             _ => false,
         };
     }
@@ -258,7 +332,6 @@ public sealed class FeatureFlagService : IFeatureFlagService
     {
         _cache.Remove(CacheKey(canonicalName, tenantId));
         _cache.Remove(CacheKey(canonicalName, null));
-        // Drop related tenant keys for this flag
         foreach (var key in _cacheKeys.Keys.Where(k => k.StartsWith(canonicalName + "|", StringComparison.Ordinal)))
         {
             _cache.Remove(key);
@@ -274,6 +347,26 @@ public sealed class FeatureFlagService : IFeatureFlagService
         if (string.IsNullOrWhiteSpace(tenantId))
             return null;
         return Guid.TryParse(tenantId.Trim(), out var g) && g != Guid.Empty ? g : null;
+    }
+
+    private FlagResolution ResolveReserved(string canonicalName, Guid? tenantId)
+    {
+        if (!string.Equals(canonicalName, FeatureFlagNames.EInvoicingPeppol, StringComparison.Ordinal))
+            return new FlagResolution(false, FeatureFlagSources.Reserved, OverrideValue: null, ConfigDefault: false);
+
+        var exit = _peppol?.Value.ReservedExit;
+        if (exit is not { Enabled: true })
+            return new FlagResolution(false, FeatureFlagSources.Reserved, OverrideValue: null, ConfigDefault: false);
+
+        if (tenantId is Guid tenant
+            && Guid.TryParse(exit.CanaryTenantId, out var canary)
+            && canary != Guid.Empty
+            && canary == tenant)
+        {
+            return new FlagResolution(true, FeatureFlagSources.ReservedExitCanary, OverrideValue: null, ConfigDefault: false);
+        }
+
+        return new FlagResolution(false, FeatureFlagSources.ReservedExit, OverrideValue: null, ConfigDefault: false);
     }
 
     private static bool TryParseBool(string? raw, out bool value)
@@ -297,4 +390,10 @@ public sealed class FeatureFlagService : IFeatureFlagService
 
         return false;
     }
+
+    internal readonly record struct FlagResolution(
+        bool Enabled,
+        string Source,
+        bool? OverrideValue,
+        bool ConfigDefault);
 }

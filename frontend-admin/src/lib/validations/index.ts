@@ -15,20 +15,24 @@ export {
   validateBackupRetentionDays,
 } from '@/lib/validations/backupValidation';
 export {
-  ATU_TAX_NUMBER_PATTERN,
   EMAIL_PATTERN,
-  isValidAtuTaxNumber,
+  compileVatIdPattern,
   isValidEmail,
   isValidUsername,
+  isValidVatId,
   maxLengthRule,
   USERNAME_CHAR_PATTERN,
   USERNAME_MAX_LENGTH,
   USERNAME_MIN_LENGTH,
   USERNAME_PATTERN,
+  vatIdPatternFromCatalog,
+  type CountryVatIdProfile,
   type ValidationTranslate,
 } from '@/lib/validations/common';
 export {
+  createCountryVatIdRules,
   createValidationRules,
+  type CountryVatIdRuleOptions,
   type ValidationRules,
   validationRules,
 } from '@/lib/validations/formRules';

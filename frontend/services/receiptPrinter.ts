@@ -17,7 +17,9 @@ export type { ReversalReceiptSnapshot } from './reversalReceiptFormatter';
 
 /** RKSV fiş print seçenekleri */
 export interface ReceiptPrintOptions {
-  /** Demo/fiscal modda "DEMO" etiketi göster */
+  /**
+   * @deprecated Ignored. Print reads `rksvFooterLabel` / `showDemoLabel` from GET receipt.
+   */
   isDemoFiscal?: boolean;
 }
 
@@ -28,7 +30,7 @@ class ReceiptPrinter {
   /**
    * Print receipt for payment. RKSV QR backend endpoint'ten base64 olarak gömülür.
    */
-  async print(paymentId: string, options?: ReceiptPrintOptions): Promise<void> {
+  async print(paymentId: string, _options?: ReceiptPrintOptions): Promise<void> {
     try {
       const receiptData = (await paymentService.getReceipt(paymentId)) as ReceiptDTO;
 
@@ -47,7 +49,6 @@ class ReceiptPrinter {
       const normalizedData = this.normalizeReceiptDTO(receiptData);
       const html = formatReceiptHtml(normalizedData, {
         qrBase64: qrBase64 ?? undefined,
-        isDemoFiscal: options?.isDemoFiscal ?? false,
         verificationUrl: normalizedData.verificationUrl,
       });
 

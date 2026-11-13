@@ -1,0 +1,45 @@
+import { BackupRunStatus } from '@/api/generated/model/backupRunStatus';
+import { resolveBackupRunStatusUiKey } from '@/features/backup/logic/backupRunTablePresentation';
+
+export type BackupRunTrafficLight = 'success' | 'pending' | 'failed' | 'neutral';
+
+/** P0 list semantics: green succeeded, yellow pending, red failed. */
+export function resolveBackupRunTrafficLight(status: number | undefined): BackupRunTrafficLight {
+  const key = resolveBackupRunStatusUiKey(status);
+  if (key === 'succeeded') return 'success';
+  if (key === 'failed' || key === 'verificationFailed') return 'failed';
+  if (key === 'queued' || key === 'running' || key === 'awaitingVerification') return 'pending';
+  return 'neutral';
+}
+
+export function backupRunTrafficLightTagColor(
+  light: BackupRunTrafficLight
+): 'success' | 'warning' | 'error' | 'default' {
+  if (light === 'success') return 'success';
+  if (light === 'pending') return 'warning';
+  if (light === 'failed') return 'error';
+  return 'default';
+}
+
+/**
+ * `styles` is a CSS module import, which TypeScript types as an index signature, so the expected
+ * keys cannot be required here.
+ */
+export function backupRunTrafficLightRowClass(
+  status: number | undefined,
+  styles: Readonly<Record<string, string>>
+): string {
+  const light = resolveBackupRunTrafficLight(status);
+  if (light === 'success') return styles.rowSuccess;
+  if (light === 'pending') return styles.rowPending;
+  if (light === 'failed') return styles.rowFailed;
+  return '';
+}
+
+export function isBackupRunPendingStatus(status: number | undefined): boolean {
+  return (
+    status === BackupRunStatus.Queued ||
+    status === BackupRunStatus.Running ||
+    status === BackupRunStatus.AwaitingVerification
+  );
+}

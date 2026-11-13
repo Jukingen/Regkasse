@@ -11,7 +11,15 @@ public sealed class RksvOptions
     /// <summary>Demo | Production</summary>
     public string Mode { get; set; } = "Production";
 
-    /// <summary>Simulation | Real — mirrors intended TSE integration mode.</summary>
+    /// <summary>
+    /// Simulation | Real — RKSV presentation and production-lock overlay
+    /// (<c>IRksvEnvironmentService</c>, DEMO labels, TSE health-bypass gate).
+    /// This is not hardware TSE policy and does not drive
+    /// <c>PaymentService</c> signing. Signing follows
+    /// <see cref="TseOptions.TseMode"/> (<c>Off</c> | <c>Demo</c> | <c>Device</c>)
+    /// via <see cref="TseOptions.RequiresFiscalSignature"/>.
+    /// Vocabulary is intentionally different from <see cref="TseOptions.TseMode"/>.
+    /// </summary>
     public string TseMode { get; set; } = "Real";
 
     /// <summary>Simulation | Real — mirrors intended FinanzOnline integration mode.</summary>

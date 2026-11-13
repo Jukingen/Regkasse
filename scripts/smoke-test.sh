@@ -28,11 +28,14 @@
 #   REQUIRE_MIGRATIONS=1 (default)
 #   REQUIRE_DEP_EXPORT=1 (default) — GET /api/admin/rksv/dep-export for last 1 day
 #   SKIP_FA_UI=1 / SKIP_POS_UI=1 — skip static FA/POS URL checks
+#   SMOKE_TEST_EXPECTED_STAGE  e.g. staging | production | canary | dev
+#     When set: GET /api/health/ready and assert JSON releaseStage matches (case-insensitive).
 #
 # Docs: docs/DEPLOYMENT_SMOKE_TEST.md
 #
 # Usage:
 #   API_BASE=https://api.staging.regkasse.at TENANT_ID=smoke ./scripts/smoke-test.sh
+#   API_BASE=... SMOKE_TEST_EXPECTED_STAGE=staging ./scripts/smoke-test.sh
 #   API_BASE=... TENANT_ID=pilot SMOKE_POS_PAYMENT=1 SMOKE_PRODUCT_ID=... ./scripts/smoke-test.sh
 
 set -euo pipefail
@@ -64,6 +67,8 @@ SMOKE_PRODUCT_ID="${SMOKE_PRODUCT_ID:-}"
 SMOKE_CASH_REGISTER_ID="${SMOKE_CASH_REGISTER_ID:-}"
 SKIP_FA_UI="${SKIP_FA_UI:-0}"
 SKIP_POS_UI="${SKIP_POS_UI:-0}"
+SMOKE_TEST_EXPECTED_STAGE="${SMOKE_TEST_EXPECTED_STAGE:-}"
+SMOKE_TEST_EXPECTED_STAGE="$(echo "${SMOKE_TEST_EXPECTED_STAGE}" | tr '[:upper:]' '[:lower:]' | xargs)"
 
 TMPDIR_SMOKE="${TMPDIR:-/tmp}/regkasse-smoke-$$"
 mkdir -p "${TMPDIR_SMOKE}"
@@ -114,6 +119,9 @@ echo "==================="
 echo "API_BASE=${API_BASE}"
 echo "TENANT_ID=${TENANT_ID}"
 echo "SMOKE_POS_PAYMENT=${SMOKE_POS_PAYMENT}"
+if [[ -n "${SMOKE_TEST_EXPECTED_STAGE}" ]]; then
+  echo "SMOKE_TEST_EXPECTED_STAGE=${SMOKE_TEST_EXPECTED_STAGE}"
+fi
 echo
 
 # --- API health ---
@@ -127,6 +135,29 @@ fi
 
 CODE=$(http_code "${API_BASE}/api/health")
 [[ "${CODE}" == "200" || "${CODE}" == "503" ]] && ok "api.health" || bad "api.health" "HTTP ${CODE}"
+
+# --- Release stage (Demo & QA / promotion verification) ---
+# When SMOKE_TEST_EXPECTED_STAGE is set, re-fetch /api/health/ready and assert releaseStage.
+if [[ -n "${SMOKE_TEST_EXPECTED_STAGE}" ]]; then
+  CODE=$(http_code "${API_BASE}/api/health/ready")
+  ACTUAL_STAGE=$(json_get "${TMPDIR_SMOKE}/body.json" "(d.get('releaseStage') or d.get('ReleaseStage') or '')")
+  ACTUAL_STAGE="$(echo "${ACTUAL_STAGE}" | tr '[:upper:]' '[:lower:]' | xargs)"
+  if [[ "${CODE}" != "200" && "${CODE}" != "503" ]]; then
+    echo "Release stage check failed: expected ${SMOKE_TEST_EXPECTED_STAGE}, got <unreachable HTTP ${CODE}>" >&2
+    bad "api.health.ready.releaseStage" "HTTP ${CODE}"
+  elif [[ -z "${ACTUAL_STAGE}" ]]; then
+    echo "Release stage check failed: expected ${SMOKE_TEST_EXPECTED_STAGE}, got <missing>" >&2
+    bad "api.health.ready.releaseStage" "expected ${SMOKE_TEST_EXPECTED_STAGE}, got <missing>"
+  elif [[ "${ACTUAL_STAGE}" != "${SMOKE_TEST_EXPECTED_STAGE}" ]]; then
+    echo "Release stage check failed: expected ${SMOKE_TEST_EXPECTED_STAGE}, got ${ACTUAL_STAGE}" >&2
+    bad "api.health.ready.releaseStage" "expected ${SMOKE_TEST_EXPECTED_STAGE}, got ${ACTUAL_STAGE}"
+  else
+    ok "api.health.ready.releaseStage"
+  fi
+else
+  echo "SKIP api.health.ready.releaseStage (set SMOKE_TEST_EXPECTED_STAGE=staging|production|canary|dev)"
+  SUMMARY_LINES+=("SKIP:api.health.ready.releaseStage")
+fi
 
 if [[ "${REQUIRE_MIGRATIONS}" == "1" ]]; then
   CODE=$(http_code "${API_BASE}/health/migrations")

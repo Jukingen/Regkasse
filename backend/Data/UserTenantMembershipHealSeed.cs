@@ -38,7 +38,7 @@ public static class UserTenantMembershipHealSeed
         CancellationToken cancellationToken = default)
     {
         var demoTenantIds = DemoTenantIds.All.ToHashSet();
-        var legacyId = LegacyDefaultTenantIds.Primary;
+        var legacyId = SystemTenantIds.Platform;
 
         var userIdsWithDemo = await db.UserTenantMemberships
             .IgnoreQueryFilters()

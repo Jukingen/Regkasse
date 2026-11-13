@@ -1,9 +1,15 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Services.Localization;
+using KasseAPI_Final.Services.Tse;
+using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace KasseAPI_Final.Controllers;
@@ -19,18 +25,57 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     private readonly IRksvSpecialReceiptService _specialReceipts;
     private readonly IPosCriticalActionAuditService _posCriticalAudit;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICashRegisterPermissionService _permissions;
+    private readonly IApiMessageLocalizer _messages;
+    private readonly IActivityEventPublisher _activityEvents;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<RksvSpecialReceiptsController> _logger;
 
     public RksvSpecialReceiptsController(
         IRksvSpecialReceiptService specialReceipts,
         IPosCriticalActionAuditService posCriticalAudit,
         IAuditLogService auditLogService,
+        ICashRegisterPermissionService permissions,
+        IApiMessageLocalizer messages,
+        IActivityEventPublisher activityEvents,
+        ICurrentTenantAccessor tenantAccessor,
         ILogger<RksvSpecialReceiptsController> logger)
     {
         _specialReceipts = specialReceipts;
         _posCriticalAudit = posCriticalAudit;
         _auditLogService = auditLogService;
+        _permissions = permissions;
+        _messages = messages;
+        _activityEvents = activityEvents;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Rejects the request when the actor may not sign a Sonderbeleg onto this register, and returns null otherwise.
+    /// The route's <c>rksv.*.create</c> policy already decided the receipt kind; this adds the per-register rules
+    /// (tenant reachability, and assignment for operational actors). Blocks are audited like any other refusal.
+    /// </summary>
+    private async Task<ActionResult?> RejectUnauthorizedRegisterAsync(
+        Guid cashRegisterId,
+        string receiptKind,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var permission = await _permissions
+            .CanCreateSonderbelegAsync(cashRegisterId, User, cancellationToken)
+            .ConfigureAwait(false);
+        if (permission.IsAllowed)
+            return null;
+
+        await AuditSpecialBlockedAsync(userId, cashRegisterId, receiptKind, permission.Code, cancellationToken);
+
+        if (permission.Decision == CashRegisterPermissionDecision.NotFound)
+            return NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound), code = permission.Code });
+
+        return StatusCode(
+            StatusCodes.Status403Forbidden,
+            new { message = _messages.Get(ApiMessageKeys.RegisterOperationNotPermitted), code = permission.Code });
     }
 
     private Task AuditSpecialSuccessAsync(string userId, Guid cashRegisterId, string receiptKind, Guid paymentId, CancellationToken ct) =>
@@ -52,11 +97,57 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             or RksvGuardErrorCodes.DuplicateSchlussbeleg
             or RksvGuardErrorCodes.RegisterAlreadyDecommissioned;
 
+    /// <summary>
+    /// Maps Fiskaly/TSE failures to a structured body so FA/POS can show <c>code</c>, <c>message</c>, and <c>details</c>.
+    /// <see cref="FiskalyApiException"/> extends <see cref="InvalidOperationException"/> — catch it first.
+    /// </summary>
+    private async Task<ActionResult> MapFiscalFailureAsync(
+        Exception ex,
+        string userId,
+        Guid cashRegisterId,
+        string receiptKind,
+        CancellationToken cancellationToken)
+    {
+        if (ex is FiskalyApiException fiskaly)
+        {
+            var err = FiskalyReceiptErrorMapper.FromException(fiskaly);
+            await AuditSpecialFailedAsync(userId, cashRegisterId, receiptKind, err.Code, cancellationToken);
+            _logger.LogWarning(fiskaly, "{Kind} Fiskaly API error", receiptKind);
+            return BadRequest(new
+            {
+                success = false,
+                message = err.Message,
+                code = err.Code,
+                details = err.Details,
+                error = err
+            });
+        }
+
+        if (ex is TseUnavailableException tse)
+        {
+            var err = FiskalyReceiptErrorMapper.FromTseUnavailable(tse);
+            await AuditSpecialFailedAsync(userId, cashRegisterId, receiptKind, err.Code, cancellationToken);
+            _logger.LogWarning(tse, "{Kind} TSE unavailable", receiptKind);
+            return BadRequest(new
+            {
+                success = false,
+                message = err.Message,
+                code = err.Code,
+                details = err.Details,
+                error = err
+            });
+        }
+
+        throw new InvalidOperationException("Expected FiskalyApiException or TseUnavailableException.", ex);
+    }
+
     /// <summary>Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence) for year and optional month (defaults to current Vienna month).</summary>
     [HttpPost("nullbeleg")]
     [HasPermission(AppPermissions.RksvNullbelegCreate)]
     [ProducesResponseType(typeof(CreateNullbelegResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateNullbelegResponse>> CreateNullbeleg(
         [FromBody] CreateNullbelegRequest request,
@@ -68,6 +159,9 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        if (await RejectUnauthorizedRegisterAsync(request.CashRegisterId, "nullbeleg", userId, cancellationToken) is { } denied)
+            return denied;
 
         try
         {
@@ -82,6 +176,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Nullbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "nullbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -101,6 +199,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     [HasPermission(AppPermissions.RksvStartbelegCreate)]
     [ProducesResponseType(typeof(CreateStartbelegResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateStartbelegResponse>> CreateStartbeleg(
         [FromBody] CreateStartbelegRequest request,
@@ -112,6 +212,9 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        if (await RejectUnauthorizedRegisterAsync(request.CashRegisterId, "startbeleg", userId, cancellationToken) is { } denied)
+            return denied;
 
         try
         {
@@ -126,6 +229,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Startbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "startbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -146,6 +253,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     [HasPermission(AppPermissions.RksvMonatsbelegCreate)]
     [ProducesResponseType(typeof(CreateMonatsbelegResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MonatsbelegWarningResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateMonatsbelegResponse>> CreateMonatsbeleg(
         [FromBody] CreateMonatsbelegRequest request,
@@ -158,6 +267,9 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        if (await RejectUnauthorizedRegisterAsync(request.CashRegisterId, "monatsbeleg", userId, cancellationToken) is { } denied)
+            return denied;
 
         var monthDiff = MonatsbelegPastMonthPolicy.ComputeMonthDiff(request.Year, request.Month);
         var isPastMonth = monthDiff > 0;
@@ -229,6 +341,54 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                     entityId: result.PaymentId).ConfigureAwait(false);
             }
 
+            if (result.Reissued)
+            {
+                await _auditLogService.LogSystemOperationAsync(
+                    "MonatsbelegReissued",
+                    AuditLogEntityTypes.POS_CRITICAL,
+                    userId,
+                    User.GetActorRole() ?? "Unknown",
+                    description:
+                        $"Monatsbeleg for {request.Year}-{request.Month:00} re-issued. Previous signed receipt {result.SupersededPaymentId} was kept; new receipt {result.ReceiptNumber} was signed.",
+                    requestData: new
+                    {
+                        request.CashRegisterId,
+                        request.Year,
+                        request.Month,
+                        Force = true,
+                        result.SupersededPaymentId,
+                    },
+                    responseData: new
+                    {
+                        result.PaymentId,
+                        result.ReceiptNumber,
+                        result.Reissued,
+                    },
+                    entityId: result.PaymentId,
+                    actionType: AuditEventType.MonatsbelegReissued,
+                    tenantId: _tenantAccessor.TenantId).ConfigureAwait(false);
+
+                if (_tenantAccessor.TenantId is Guid tenantId)
+                {
+                    await _activityEvents.TryPublishAsync(
+                        tenantId,
+                        ActivityEventType.MonatsbelegReissued,
+                        new
+                        {
+                            request.CashRegisterId,
+                            request.Year,
+                            request.Month,
+                            Force = true,
+                            result.SupersededPaymentId,
+                            NewPaymentId = result.PaymentId,
+                            result.ReceiptNumber,
+                        },
+                        userId,
+                        $"monatsbeleg-reissued:{result.PaymentId}",
+                        cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             return Ok(result);
         }
         catch (RksvOperationGuardException ex)
@@ -238,6 +398,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Monatsbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "monatsbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {
@@ -257,6 +421,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     [HasPermission(AppPermissions.RksvJahresbelegCreate)]
     [ProducesResponseType(typeof(CreateJahresbelegResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateJahresbelegResponse>> CreateJahresbeleg(
         [FromBody] CreateJahresbelegRequest request,
@@ -268,6 +434,9 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        if (await RejectUnauthorizedRegisterAsync(request.CashRegisterId, "jahresbeleg", userId, cancellationToken) is { } denied)
+            return denied;
 
         try
         {
@@ -304,6 +473,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             _logger.LogWarning(ex, "Jahresbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
         }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "jahresbeleg", cancellationToken);
+        }
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
@@ -322,6 +495,8 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
     [HasPermission(AppPermissions.RksvSchlussbelegCreate)]
     [ProducesResponseType(typeof(CreateSchlussbelegResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateSchlussbelegResponse>> CreateSchlussbeleg(
         [FromBody] CreateSchlussbelegRequest request,
@@ -333,6 +508,9 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        if (await RejectUnauthorizedRegisterAsync(request.CashRegisterId, "schlussbeleg", userId, cancellationToken) is { } denied)
+            return denied;
 
         try
         {
@@ -347,6 +525,10 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
                 return Conflict(new { message = ex.Message, code = ex.ErrorCode });
             _logger.LogWarning(ex, "Schlussbeleg rejected");
             return BadRequest(new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex) when (ex is FiskalyApiException or TseUnavailableException)
+        {
+            return await MapFiscalFailureAsync(ex, userId, request.CashRegisterId, "schlussbeleg", cancellationToken);
         }
         catch (InvalidOperationException ex)
         {

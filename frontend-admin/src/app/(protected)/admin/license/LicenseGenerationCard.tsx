@@ -1,7 +1,7 @@
 'use client';
 
 import { CopyOutlined, KeyOutlined } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -12,6 +12,8 @@ import {
   Form,
   Input,
   Modal,
+  Radio,
+  Select,
   Space,
   Typography,
 } from 'antd';
@@ -29,6 +31,12 @@ import {
   licenseQueryKeys,
   postGenerateLicense,
 } from '@/api/manual/adminLicense';
+import { postApiAdminBillingLicenseSales } from '@/api/generated/admin/admin';
+import { DEFAULT_LICENSE_VAT_RATE, LICENSE_SALE_PLAN_VALUES } from '@/features/billing/constants/licensePlans';
+import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys';
+import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
+import { invalidateTenantLicenseQueries } from '@/features/license/utils/invalidateTenantLicenseQueries';
 import {
   ADMIN_LICENSE_PAGE_INTENT_EXTEND,
   type AdminLicensePagePrefill,
@@ -53,7 +61,11 @@ type Props = {
   prefill?: AdminLicensePagePrefill | null;
 };
 
+type LicenseKind = 'system' | 'tenant';
+
 type FormValues = {
+  kind: LicenseKind;
+  tenantId?: string;
   customerName: string;
   expiryDate: Dayjs;
   requireFingerprint: boolean;
@@ -127,13 +139,32 @@ function LicenseGenerationFormCard({
 
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
+  const canGenerateTenant = useBillingAccess();
   const [form] = Form.useForm<FormValues>();
   const requireFingerprint = Form.useWatch('requireFingerprint', form) ?? false;
+  const kind = Form.useWatch('kind', form) ?? 'system';
   const [issued, setIssued] = useState<GenerateLicenseResponse | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [resultModalOpen, setResultModalOpen] = useState(false);
 
   const tomorrow = useMemo(() => dayjs().add(1, 'day').startOf('day'), []);
+
+  const tenantsQuery = useQuery({
+    queryKey: ['admin', 'tenants', false],
+    queryFn: () => listAdminTenants(false),
+    enabled: kind === 'tenant' && canGenerateTenant,
+  });
+
+  const tenantOptions = useMemo(
+    () =>
+      (tenantsQuery.data ?? [])
+        .filter((row) => row.status === 'active')
+        .map((row) => ({
+          value: row.id,
+          label: `${row.name} (${row.slug})`,
+        })),
+    [tenantsQuery.data]
+  );
 
   useEffect(() => {
     if (!prefill) {
@@ -162,7 +193,15 @@ function LicenseGenerationFormCard({
     });
   }, [form, prefill]);
 
-  const mutation = useMutation({
+  const invalidateAfterIssue = (tenantId?: string | null) => {
+    void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+    void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+    void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
+    void queryClient.invalidateQueries({ queryKey: billingQueryKeys.all });
+    void invalidateTenantLicenseQueries(queryClient, tenantId);
+  };
+
+  const systemMutation = useMutation({
     mutationFn: (body: GenerateLicenseRequest) => postGenerateLicense(body),
     onMutate: () => {
       setRequestError(null);
@@ -179,9 +218,7 @@ function LicenseGenerationFormCard({
       setResultModalOpen(true);
       message.success(t('license.generation.success'));
       form.resetFields(['customerName', 'machineHashHex']);
-      void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
-      void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
-      void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
+      invalidateAfterIssue(null);
     },
     onError: (err: unknown) => {
       const fallback = t('license.generation.failed');
@@ -195,18 +232,77 @@ function LicenseGenerationFormCard({
     },
   });
 
+  const tenantMutation = useMutation({
+    mutationFn: (body: {
+      tenantId: string;
+      customValidUntilUtc: string;
+    }) =>
+      postApiAdminBillingLicenseSales({
+        tenantId: body.tenantId,
+        licensePlan: LICENSE_SALE_PLAN_VALUES.custom,
+        customValidUntilUtc: body.customValidUntilUtc,
+        priceNet: 0.01,
+        vatRate: DEFAULT_LICENSE_VAT_RATE,
+        applyToTenant: false,
+        notes: 'Issued from license generation card (tenant key)',
+      }),
+    onMutate: () => {
+      setRequestError(null);
+    },
+    onSuccess: (sale, variables) => {
+      const licenseKey = sale.licenseKey?.trim();
+      if (!licenseKey) {
+        const msg = t('license.generation.failed');
+        setRequestError(msg);
+        message.error(msg);
+        return;
+      }
+      setIssued({
+        success: true,
+        licenseKey,
+        signedJwt: null,
+        expiryAtUtc: sale.validUntilUtc ?? null,
+      });
+      setResultModalOpen(true);
+      message.success(t('license.generation.success'));
+      form.resetFields(['tenantId']);
+      invalidateAfterIssue(variables.tenantId);
+    },
+    onError: (err: unknown) => {
+      const fallback = t('license.generation.failed');
+      const serverMsg = readLicenseGenerateErrorMessage(err, fallback);
+      setRequestError(serverMsg);
+      message.error(serverMsg);
+    },
+  });
+
+  const isPending = systemMutation.isPending || tenantMutation.isPending;
+
   const onFinish = (values: FormValues) => {
+    const expiryIso = values.expiryDate.format('YYYY-MM-DD');
+
+    if (values.kind === 'tenant') {
+      const tenantId = values.tenantId?.trim();
+      if (!tenantId) {
+        return;
+      }
+      tenantMutation.mutate({
+        tenantId,
+        customValidUntilUtc: values.expiryDate.endOf('day').toISOString(),
+      });
+      return;
+    }
+
     const customerName = values.customerName?.trim() ?? '';
     if (!customerName) {
       return;
     }
 
-    const expiryIso = values.expiryDate.format('YYYY-MM-DD');
     const machineHashHex = values.requireFingerprint
       ? (values.machineHashHex?.trim().toLowerCase() ?? '')
       : null;
 
-    mutation.mutate({
+    systemMutation.mutate({
       customerName,
       expiryDate: expiryIso,
       bindToMachineFingerprint: !!values.requireFingerprint,
@@ -230,19 +326,69 @@ function LicenseGenerationFormCard({
         />
       ) : null}
 
+      <Alert
+        type="info"
+        showIcon
+        title={t('license.generation.systemDoesNotUnlockTenant')}
+        style={{ marginBottom: 16 }}
+      />
+
       <Form<FormValues>
         form={form}
         layout="vertical"
-        initialValues={{ requireFingerprint: false, expiryDate: tomorrow }}
+        initialValues={{ kind: 'system', requireFingerprint: false, expiryDate: tomorrow }}
         onFinish={onFinish}
       >
         <Form.Item
-          name="customerName"
-          label={t('license.generation.customerName')}
-          rules={[{ required: true, message: t('common.validation.fieldRequired') }, { max: 256 }]}
+          name="kind"
+          label={t('license.generation.kindLabel')}
+          extra={
+            kind === 'tenant'
+              ? t('license.generation.kindTenantHint')
+              : t('license.generation.kindSystemHint')
+          }
         >
-          <Input placeholder={t('license.generation.customerNamePlaceholder')} autoComplete="off" />
+          <Radio.Group optionType="button">
+            <Radio.Button value="system">{t('license.generation.kindSystem')}</Radio.Button>
+            <Radio.Button value="tenant" disabled={!canGenerateTenant}>
+              {t('license.generation.kindTenant')}
+            </Radio.Button>
+          </Radio.Group>
         </Form.Item>
+
+        {kind === 'tenant' && !canGenerateTenant ? (
+          <Alert
+            type="warning"
+            showIcon
+            title={t('license.generation.tenantKindNeedsSuperAdmin')}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+
+        {kind === 'tenant' ? (
+          <Form.Item
+            name="tenantId"
+            label={t('license.generation.tenantSelectLabel')}
+            rules={[{ required: true, message: t('license.generation.tenantRequired') }]}
+          >
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder={t('license.generation.tenantSelectPlaceholder')}
+              loading={tenantsQuery.isLoading}
+              options={tenantOptions}
+              disabled={isPending}
+            />
+          </Form.Item>
+        ) : (
+          <Form.Item
+            name="customerName"
+            label={t('license.generation.customerName')}
+            rules={[{ required: true, message: t('common.validation.fieldRequired') }, { max: 256 }]}
+          >
+            <Input placeholder={t('license.generation.customerNamePlaceholder')} autoComplete="off" />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="expiryDate"
@@ -270,11 +416,13 @@ function LicenseGenerationFormCard({
           />
         </Form.Item>
 
-        <Form.Item name="requireFingerprint" valuePropName="checked">
-          <Checkbox>{t('license.generation.requireFingerprint')}</Checkbox>
-        </Form.Item>
+        {kind === 'system' ? (
+          <Form.Item name="requireFingerprint" valuePropName="checked">
+            <Checkbox>{t('license.generation.requireFingerprint')}</Checkbox>
+          </Form.Item>
+        ) : null}
 
-        {requireFingerprint ? (
+        {kind === 'system' && requireFingerprint ? (
           <Form.Item
             name="machineHashHex"
             label={t('license.generation.machineHash')}
@@ -302,7 +450,7 @@ function LicenseGenerationFormCard({
             type="primary"
             htmlType="submit"
             icon={<KeyOutlined />}
-            loading={mutation.isPending}
+            loading={isPending}
           >
             {t('license.generation.submit')}
           </Button>
@@ -330,20 +478,21 @@ function LicenseGenerationFormCard({
                 {t('license.generation.result.copyLicenseKeyOnly')}
               </Button>
             ) : null}
-            <Button
-              type="primary"
-              disabled={!issuedJwt}
-              onClick={async () => {
-                const ok = await copyTextToClipboard(issuedJwt);
-                message[ok ? 'success' : 'error'](
-                  ok
-                    ? t('license.generation.modal.jwtCopied')
-                    : t('license.generation.result.copyFailed')
-                );
-              }}
-            >
-              {t('license.generation.modal.copyJwt')}
-            </Button>
+            {issuedJwt ? (
+              <Button
+                type="primary"
+                onClick={async () => {
+                  const ok = await copyTextToClipboard(issuedJwt);
+                  message[ok ? 'success' : 'error'](
+                    ok
+                      ? t('license.generation.modal.jwtCopied')
+                      : t('license.generation.result.copyFailed')
+                  );
+                }}
+              >
+                {t('license.generation.modal.copyJwt')}
+              </Button>
+            ) : null}
           </Space>
         }
         width={720}
@@ -366,20 +515,24 @@ function LicenseGenerationFormCard({
               value={issued.licenseKey ?? ''}
               style={{ fontFamily: 'ui-monospace, monospace', marginBottom: 12 }}
             />
-            <Typography.Text strong style={{ display: 'block', marginBottom: 4 }}>
-              {t('license.generation.result.signedJwt')}
-            </Typography.Text>
-            <Input.TextArea
-              readOnly
-              value={issuedJwt}
-              autoSize={{ minRows: 4, maxRows: 10 }}
-              style={{ fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' }}
-            />
+            {issuedJwt ? (
+              <>
+                <Typography.Text strong style={{ display: 'block', marginBottom: 4 }}>
+                  {t('license.generation.result.signedJwt')}
+                </Typography.Text>
+                <Input.TextArea
+                  readOnly
+                  value={issuedJwt}
+                  autoSize={{ minRows: 4, maxRows: 10 }}
+                  style={{ fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' }}
+                />
+              </>
+            ) : null}
           </>
         ) : null}
       </Modal>
 
-      {issued && issued.success && issued.licenseKey && issuedJwt ? (
+      {issued && issued.success && issued.licenseKey ? (
         <IssuedLicenseResult
           issued={issued}
           formatLocale={formatLocale}
@@ -433,9 +586,11 @@ function IssuedLicenseResult({
         <Descriptions.Item label={t('license.generation.result.licenseKey')}>
           <CopyableMono value={issued.licenseKey ?? ''} />
         </Descriptions.Item>
-        <Descriptions.Item label={t('license.generation.result.signedJwt')}>
-          <CopyableMono value={jwt} multiline />
-        </Descriptions.Item>
+        {jwt ? (
+          <Descriptions.Item label={t('license.generation.result.signedJwt')}>
+            <CopyableMono value={jwt} multiline />
+          </Descriptions.Item>
+        ) : null}
         <Descriptions.Item label={t('license.generation.result.expiry')}>
           {formattedExpiry}
         </Descriptions.Item>

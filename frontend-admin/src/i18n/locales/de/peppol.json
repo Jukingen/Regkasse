@@ -1,0 +1,36 @@
+{
+  "submissions": {
+    "title": "Peppol-Übermittlungen",
+    "subtitle": "Nur Lesen. Das ist kein Peppol- oder EN-16931-Konformitätsnachweis.",
+    "statusFilter": "Status",
+    "tenantFilter": "Mandant",
+    "allTenants": "Alle Mandanten",
+    "allStatuses": "Alle Status",
+    "colStatus": "Status",
+    "colTenant": "Mandant",
+    "colInvoice": "Rechnung",
+    "colAttempted": "Versuch",
+    "colAcked": "Bestätigt",
+    "colProviderMessageId": "Provider-Nachrichten-ID",
+    "colFailure": "Fehlergrund",
+    "empty": "Keine Übermittlungen",
+    "loadError": "Die Warteschlange konnte nicht geladen werden",
+    "guidanceTitle": "Hinweis für den Betrieb",
+    "status": {
+      "Queued": "Warteschlange",
+      "Sent": "Gesendet",
+      "Ack": "ACK",
+      "Failed": "Fehlgeschlagen"
+    },
+    "failure": {
+      "peppol_reserved": "Peppol ist Reserved. Wenden Sie sich an Ops, um den Canary zu aktivieren.",
+      "peppol_participant_not_configured": "Die Peppol-Teilnehmeridentität fehlt. Tragen Sie legal_entity_id, eidentifier_scheme und eidentifier_value im Peppol-Teilnehmer des Mandanten ein.",
+      "peppol_live_not_allowed": "LIVE-HTTP ist bis zur Freigabe deaktiviert. Das ist ein Konfigurationsfehler.",
+      "peppol_ack_timeout": "Storecove hat innerhalb von 24 Stunden nicht zugestellt. Ein erneuter Versuch ist bis 22-b-5 eine manuelle Ops-Aktion.",
+      "peppol_ack_error": "Storecove hat einen Fehler gemeldet. Prüfen Sie das Provider-Portal.",
+      "storecove_http_400": "HTTP-Fehler von Storecove. Siehe Provider-Logs.",
+      "storecove_http_5xx": "HTTP-Fehler von Storecove. Siehe Provider-Logs.",
+      "unknown": "Unbekannter Fehlercode. Wenden Sie sich an Ops."
+    }
+  }
+}

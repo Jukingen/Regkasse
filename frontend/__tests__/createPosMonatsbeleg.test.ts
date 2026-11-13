@@ -36,9 +36,13 @@ describe('resolvePosMonatsbelegTarget', () => {
     ).toEqual({ year: 2025, month: 12 });
   });
 
-  it('falls back to current Vienna month', () => {
+  it('falls back to previous Vienna month', () => {
     const vienna = getViennaYearMonth();
-    expect(resolvePosMonatsbelegTarget(null)).toEqual(vienna);
-    expect(resolvePosMonatsbelegTarget(undefined)).toEqual(vienna);
+    const previous =
+      vienna.month <= 1
+        ? { year: vienna.year - 1, month: 12 }
+        : { year: vienna.year, month: vienna.month - 1 };
+    expect(resolvePosMonatsbelegTarget(null)).toEqual(previous);
+    expect(resolvePosMonatsbelegTarget(undefined)).toEqual(previous);
   });
 });

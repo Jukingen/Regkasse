@@ -1,11 +1,33 @@
-# Copy ideas into alertmanager.yml and set Slack/PagerDuty secrets via env file.
-# Default file below uses a placeholder webhook — replace before production.
+# Copy to a host-only file and substitute secrets. Do not commit filled URLs or SMTP passwords.
+#
+# Alertmanager does **not** expand ${ENV} itself. Render first:
+#   pwsh ./monitoring/alertmanager/render-alertmanager-config.ps1
+#   # or: envsubst < alertmanager.yml.example > /secure/alertmanager.yml
+#
+# Required env for Slack:
+#   SLACK_WEBHOOK_URL     incoming webhook for #regkasse-alerts
+#   ONCALL_WEBHOOK_URL    incoming webhook for #regkasse-oncall (pager route)
+#
+# Optional email (SMTP):
+#   ALERTMANAGER_SMTP_SMARTHOST   e.g. smtp.example.com:587
+#   ALERTMANAGER_SMTP_FROM        e.g. alerts@regkasse.at
+#   ALERTMANAGER_SMTP_AUTH_USERNAME
+#   ALERTMANAGER_SMTP_AUTH_PASSWORD
+#   ALERTMANAGER_EMAIL_TO         default ops@regkasse.at
+#
+# Optional PagerDuty (oncall receiver):
+#   PAGERDUTY_ROUTING_KEY
 
 global:
   resolve_timeout: 5m
+  smtp_smarthost: '${ALERTMANAGER_SMTP_SMARTHOST}'
+  smtp_from: '${ALERTMANAGER_SMTP_FROM}'
+  smtp_auth_username: '${ALERTMANAGER_SMTP_AUTH_USERNAME}'
+  smtp_auth_password: '${ALERTMANAGER_SMTP_AUTH_PASSWORD}'
+  smtp_require_tls: true
 
 route:
-  receiver: default-slack
+  receiver: team-alerts
   group_by: ['alertname', 'severity']
   group_wait: 30s
   group_interval: 5m
@@ -17,10 +39,10 @@ route:
       continue: true
     - matchers:
         - severity="critical"
-      receiver: default-slack
+      receiver: team-alerts
 
 receivers:
-  - name: default-slack
+  - name: team-alerts
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_URL}'
         channel: '#regkasse-alerts'
@@ -31,15 +53,27 @@ receivers:
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
           {{ end }}
+    email_configs:
+      - to: '${ALERTMANAGER_EMAIL_TO}'
+        send_resolved: true
+        headers:
+          Subject: '[Regkasse] {{ .Status | toUpper }} {{ .CommonLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+          <p><b>{{ .Annotations.summary }}</b><br/>{{ .Annotations.description }}</p>
+          {{ end }}
 
   - name: oncall
-    # Prefer PagerDuty / Opsgenie in real ops. Slack webhook is a safe default.
     slack_configs:
       - api_url: '${ONCALL_WEBHOOK_URL}'
         channel: '#regkasse-oncall'
         send_resolved: true
         title: 'PAGER {{ .CommonLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.summary }} — {{ .Annotations.description }}{{ end }}'
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_ROUTING_KEY}'
+        send_resolved: true
+        description: '{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}'
 
 inhibit_rules:
   - source_matchers: [severity="critical"]

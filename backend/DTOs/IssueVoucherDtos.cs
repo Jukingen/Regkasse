@@ -6,7 +6,7 @@ namespace KasseAPI_Final.DTOs;
 public sealed class IssueVoucherRequest
 {
     [Required]
-    [Range(0.01, 999_999.99)]
+    [Range(typeof(decimal), "0.01", "999999.99", ParseLimitsInInvariantCulture = true)]
     public decimal Amount { get; set; }
 
     [Required]

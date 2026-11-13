@@ -30,7 +30,7 @@ import type { SignaturkarteProgramDevice } from '@/features/signaturkarte-progra
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildAdminBreadcrumbs } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -220,11 +220,10 @@ export default function SignaturkarteProgramPage() {
       <AdminPageHeader
         title={t('signaturkarteProgram.title')}
         subtitle={t('signaturkarteProgram.subtitle')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t('nav.adminTseManagement'), href: '/admin/tse-management' },
+        breadcrumbs={buildAdminBreadcrumbs(t, [
+          { title: t('nav.settings.title'), href: '/settings' },
           { title: t('signaturkarteProgram.title') },
-        ]}
+        ])}
       />
 
       <Alert

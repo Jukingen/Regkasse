@@ -19,6 +19,11 @@ export type DeepLinkIntent =
       phone?: string;
     }
   | { type: 'login' }
+  | {
+      type: 'onlinePaymentCallback';
+      onlinePaymentId?: string;
+      gatewayStatus?: string;
+    }
   | { type: 'unhandled'; path: string | null; scheme: string | null };
 
 function firstQueryParam(params: QueryParams | null | undefined, keys: string[]): string | null {
@@ -82,6 +87,28 @@ export function resolveDeepLink(url: string | null | undefined): DeepLinkIntent 
 
   if (segments[0] === 'login' || (segments[0] === '(auth)' && segments[1] === 'login')) {
     return { type: 'login' };
+  }
+
+  const paymentResultIndex = segments.indexOf('payment');
+  if (
+    (segments[0] === 'online-payment' && segments[1] === 'callback') ||
+    segments[0] === 'online-payment-callback' ||
+    segments.includes('payment-result') ||
+    (paymentResultIndex >= 0 && segments[paymentResultIndex + 1] === 'result') ||
+    (segments[0] === 'payment' && segments.length === 1)
+  ) {
+    return {
+      type: 'onlinePaymentCallback',
+      onlinePaymentId:
+        firstQueryParam(parsed.queryParams, [
+          'onlinePaymentId',
+          'id',
+          'paymentId',
+          'payment_intent',
+        ]) ?? undefined,
+      gatewayStatus:
+        firstQueryParam(parsed.queryParams, ['status', 'state', 'redirect_status']) ?? undefined,
+    };
   }
 
   // Scheme-only / empty path with tenant query → customer home

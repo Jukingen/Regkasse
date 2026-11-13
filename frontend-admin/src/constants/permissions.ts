@@ -49,6 +49,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/admin/approvals': PERMISSIONS.SYSTEM_CRITICAL,
   '/tenant': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
+  '/admin/license-management': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
 
   // Cash register management
@@ -67,6 +68,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/password': ANY_AUTHENTICATED_PERMISSION,
   '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/receipt': PERMISSIONS.SETTINGS_VIEW,
   '/settings/working-hours': PERMISSIONS.SETTINGS_VIEW,
   '/settings/website': [
     PERMISSIONS.DIGITAL_VIEW,
@@ -93,6 +95,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
     PERMISSIONS.SYSTEM_CRITICAL,
   ],
   '/admin/digital/requests': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/online-order-integrations': [PERMISSIONS.DIGITAL_MANAGE, PERMISSIONS.DIGITAL_ORDERS_MANAGE, PERMISSIONS.SYSTEM_CRITICAL],
   '/settings/tax-groups': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tax-history': PERMISSIONS.SETTINGS_VIEW,
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
@@ -115,6 +118,8 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/backup/config': PERMISSIONS.SETTINGS_VIEW,
   '/backup/logs': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
+  '/admin/rksv/config': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/mwst': [PERMISSIONS.SYSTEM_CRITICAL],
 
   // Backup (legacy redirect)
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,

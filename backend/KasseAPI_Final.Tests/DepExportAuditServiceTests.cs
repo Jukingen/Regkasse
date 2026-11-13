@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class DepExportAuditServiceTests
 {
-    private static readonly Guid TenantId = LegacyDefaultTenantIds.Primary;
+    private static readonly Guid TenantId = SystemTenantIds.Platform;
 
     private static AppDbContext CreateDb()
     {
@@ -81,7 +81,7 @@ public sealed class DepExportAuditServiceTests
     public async Task LogAndQuery_RoundTrips()
     {
         await using var db = CreateDb();
-        TenantTestDoubles.EnsureDefaultTenant(db);
+        TenantTestDoubles.EnsurePlatformTenant(db);
         await db.SaveChangesAsync();
 
         var sut = CreateSut(db);

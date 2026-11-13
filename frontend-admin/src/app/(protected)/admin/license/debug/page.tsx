@@ -161,7 +161,7 @@ export default function LicenseDebugPage() {
 
   const breadcrumbs = [
     adminOverviewCrumb(t),
-    { title: t('nav.licenseManagement'), href: '/admin/license' },
+    { title: t('nav.licenseManagement'), href: '/admin/license-management' },
     { title: t('license.debug.title'), href: '/admin/license/debug' },
   ];
 

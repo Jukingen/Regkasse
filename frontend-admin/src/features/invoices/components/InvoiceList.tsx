@@ -127,13 +127,15 @@ import {
   buildInvoiceListFileName,
   buildInvoicePdfFileName,
 } from '../utils/invoiceExportFileName';
+import { ChQrRechnungGapWarningBanner } from './ChQrRechnungGapWarningBanner';
+import { ChQrRechnungOperatorActions } from './ChQrRechnungOperatorActions';
 import { InvoiceActions } from './InvoiceActions';
 
 const { RangePicker } = DatePicker;
 
 type InvoiceTranslateFn = (key: string, options?: Record<string, string | number>) => string;
 
-// Manual mapping because Orval generated NUMBER_0 etc. for enum
+/** Keys are `InvoiceStatus` numeric values. */
 function buildInvoiceStatusMap(
   t: InvoiceTranslateFn
 ): Record<number, { label: string; color: string }> {
@@ -786,7 +788,7 @@ export const InvoiceList: React.FC = () => {
             >
               {text}
             </Button>
-            {record.documentType === DocumentType.NUMBER_1 && (
+            {record.documentType === DocumentType.CreditNote && (
               <Tag color="purple" style={{ fontSize: 10 }}>
                 {t('invoices.creditNoteTagShort')}
               </Tag>
@@ -832,7 +834,7 @@ export const InvoiceList: React.FC = () => {
       sorter: true,
       width: 112,
       render: (status: InvoiceStatus | undefined) => {
-        const code = status ?? InvoiceStatus.NUMBER_0;
+        const code = status ?? InvoiceStatus.Draft;
         const info = invoiceStatusMap[code] || {
           label: t('invoices.status.unknown'),
           color: 'default',
@@ -917,14 +919,14 @@ export const InvoiceList: React.FC = () => {
 
   const statusOptions = (
     [
-      InvoiceStatus.NUMBER_0,
-      InvoiceStatus.NUMBER_1,
-      InvoiceStatus.NUMBER_2,
-      InvoiceStatus.NUMBER_3,
-      InvoiceStatus.NUMBER_4,
-      InvoiceStatus.NUMBER_5,
-      InvoiceStatus.NUMBER_6,
-      InvoiceStatus.NUMBER_7,
+      InvoiceStatus.Draft,
+      InvoiceStatus.Sent,
+      InvoiceStatus.Paid,
+      InvoiceStatus.PartiallyPaid,
+      InvoiceStatus.Unpaid,
+      InvoiceStatus.Overdue,
+      InvoiceStatus.Cancelled,
+      InvoiceStatus.CreditNote,
     ] as const
   ).map((value) => ({
     label: invoiceStatusMap[value]?.label ?? String(value),
@@ -1346,9 +1348,9 @@ export const InvoiceList: React.FC = () => {
             />
           ) : null,
           detailInvoice &&
-            (detailInvoice.status === InvoiceStatus.NUMBER_1 ||
-              detailInvoice.status === InvoiceStatus.NUMBER_2) &&
-            detailInvoice.documentType !== DocumentType.NUMBER_1 && (
+            (detailInvoice.status === InvoiceStatus.Sent ||
+              detailInvoice.status === InvoiceStatus.Paid) &&
+            detailInvoice.documentType !== DocumentType.CreditNote && (
               <Button
                 key="credit-note"
                 icon={<RollbackOutlined />}
@@ -1402,6 +1404,10 @@ export const InvoiceList: React.FC = () => {
 
               return (
                 <Space orientation="vertical" size={0} style={{ width: '100%' }}>
+                  <ChQrRechnungGapWarningBanner />
+                  {detailInvoice.id ? (
+                    <ChQrRechnungOperatorActions invoiceId={detailInvoice.id} />
+                  ) : null}
                   <OperatorSummaryStrip>
                     <Space wrap size={[16, 12]} align="start">
                       <div>
@@ -1415,7 +1421,7 @@ export const InvoiceList: React.FC = () => {
                           <Typography.Text strong>
                             {displayScalar(detailInvoice.invoiceNumber)}
                           </Typography.Text>
-                          {detailInvoice.documentType === DocumentType.NUMBER_1 ? (
+                          {detailInvoice.documentType === DocumentType.CreditNote ? (
                             <Tag color="purple">{t('invoices.detail.creditNoteTag')}</Tag>
                           ) : null}
                         </Space>
@@ -1555,8 +1561,8 @@ export const InvoiceList: React.FC = () => {
                         </>
                       )}
                     </Typography.Paragraph>
-                    {(detailInvoice.status === InvoiceStatus.NUMBER_1 ||
-                      detailInvoice.status === InvoiceStatus.NUMBER_2) && (
+                    {(detailInvoice.status === InvoiceStatus.Sent ||
+                      detailInvoice.status === InvoiceStatus.Paid) && (
                       <Typography.Paragraph
                         type="secondary"
                         style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}
@@ -1745,6 +1751,7 @@ export const InvoiceList: React.FC = () => {
         cancelText={t('invoices.creditNote.modalCancel')}
         okButtonProps={{ danger: true }}
       >
+        <ChQrRechnungGapWarningBanner />
         <Alert
           type="warning"
           title={t('invoices.creditNote.alertMessage')}

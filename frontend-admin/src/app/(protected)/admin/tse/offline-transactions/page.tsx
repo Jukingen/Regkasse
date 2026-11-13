@@ -39,13 +39,18 @@ import type { AdminOfflineTransactionRowDto } from '@/api/generated/model/adminO
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { getTseOfflineQueueStatus } from '@/features/tse-offline-queue/api';
+import {
+  TseActiveTenantTag,
+  TseTenantRequiredAlert,
+} from '@/features/tse-shared/components/TseTenantContextUi';
+import { useTsePageTenant } from '@/features/tse-shared/hooks/useTsePageTenant';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { dateColumnRender } from '@/components/DateColumn';
 import { useI18n } from '@/i18n/I18nProvider';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { formatUtcDateTime } from '@/lib/dateUtils';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildAdminBreadcrumbs } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -78,6 +83,7 @@ export default function AdminOfflineTransactionsPage() {
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
   const allowed = hasPermission(PERMISSIONS.PAYMENT_VIEW);
+  const { isReady } = useTsePageTenant();
   const queryClient = useQueryClient();
 
   const [statusGroup, setStatusGroup] = useState<StatusFilter>('all');
@@ -319,7 +325,11 @@ export default function AdminOfflineTransactionsPage() {
     <Space orientation="vertical" size="large" style={{ width: '100%', paddingBottom: 24 }}>
       <AdminPageHeader
         title="Offline-Transaktionen (TSE)"
-        breadcrumbs={[adminOverviewCrumb(t), { title: 'Offline-Transaktionen (TSE)' }]}
+        breadcrumbs={buildAdminBreadcrumbs(t, [
+          { title: t('nav.rksv.title'), href: '/rksv' },
+          { title: t('nav.offlineTransactionsAdmin') },
+        ])}
+        extra={<TseActiveTenantTag />}
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           Serverseitige Offline-Zahlungsintents (nur Bar/Karte in der Warteschlange). Manueller
@@ -327,7 +337,11 @@ export default function AdminOfflineTransactionsPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      {showQueueAlert && queueStatus ? (
+      {!isReady ? (
+        <TseTenantRequiredAlert emptySelectKey="adminShell.tenant.tseLayout.title" />
+      ) : null}
+
+      {isReady && showQueueAlert && queueStatus ? (
         <Alert
           type={queueStatus.isCritical ? 'error' : 'warning'}
           showIcon

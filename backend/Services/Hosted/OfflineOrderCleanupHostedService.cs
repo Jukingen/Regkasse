@@ -1,9 +1,11 @@
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Services.Offline;
 using KasseAPI_Final.Tenancy;
+using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Hosted;
 
-/// <summary>Deletes expired pending <see cref="Models.OfflineOrder"/> rows and writes audit entries.</summary>
+/// <summary>Marks expired pending <see cref="Models.OfflineOrder"/> rows as expired and writes audit entries.</summary>
 public sealed class OfflineOrderCleanupHostedService : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
@@ -34,15 +36,30 @@ public sealed class OfflineOrderCleanupHostedService : BackgroundService
 
             try
             {
-                await using var scope = _scopeFactory.CreateAsyncScope();
-                var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
-                tenantAccessor.TenantId = null;
+                List<Guid> tenantIds;
+                await using (var listScope = _scopeFactory.CreateAsyncScope())
+                {
+                    var listDb = listScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    tenantIds = await listDb.Tenants.AsNoTracking()
+                        .Where(t => t.IsActive)
+                        .Select(t => t.Id)
+                        .ToListAsync(stoppingToken)
+                        .ConfigureAwait(false);
+                }
 
-                var offlineOrders = scope.ServiceProvider.GetRequiredService<IOfflineOrderService>();
-                var deleted = await offlineOrders.CleanupExpiredOrdersAsync(stoppingToken).ConfigureAwait(false);
+                var marked = 0;
+                foreach (var tenantId in tenantIds)
+                {
+                    stoppingToken.ThrowIfCancellationRequested();
+                    await using var scope = _scopeFactory.CreateAsyncScope();
+                    var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
+                    tenantAccessor.TenantId = tenantId;
+                    var offlineOrders = scope.ServiceProvider.GetRequiredService<IOfflineOrderService>();
+                    marked += await offlineOrders.CleanupExpiredOrdersAsync(stoppingToken).ConfigureAwait(false);
+                }
 
-                if (deleted > 0)
-                    _logger.LogInformation("Offline order cleanup removed {Count} expired row(s).", deleted);
+                if (marked > 0)
+                    _logger.LogInformation("Offline order cleanup marked {Count} row(s) expired.", marked);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {

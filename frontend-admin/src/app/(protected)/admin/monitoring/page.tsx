@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { useI18n } from '@/i18n';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { formatTime } from '@/lib/dateUtils';
 import {
   type ApiMetricSample,
@@ -19,6 +20,7 @@ import {
   subscribeApiMetrics,
 } from '@/lib/monitoring/apiMetricsStore';
 import { MONITORING_THRESHOLDS } from '@/lib/monitoring/thresholds';
+import { MonitoringApiHealthCard } from './MonitoringApiHealthCard';
 
 type HealthPayload = {
   status?: string;
@@ -82,6 +84,7 @@ export default function AdminMonitoringPage() {
     <AdminPageShell>
       <AdminPageHeader
         title={t('monitoring.pageTitle')}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'monitoringLogs', { title: t('monitoring.pageTitle') })}
         subtitle={t('monitoring.pageSubtitle')}
         extra={
           <Space>
@@ -238,6 +241,8 @@ export default function AdminMonitoringPage() {
           locale={{ emptyText: t('monitoring.noSamples') }}
         />
       </Card>
+
+      <MonitoringApiHealthCard />
 
       <Card size="small" title={t('monitoring.externalLinks')} style={{ marginTop: 16 }}>
         <Space wrap>

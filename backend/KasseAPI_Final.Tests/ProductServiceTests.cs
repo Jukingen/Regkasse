@@ -1,7 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
-using KasseAPI_Final.Services.Cache;
+using KasseAPI_Final.Services.Caching;
 using KasseAPI_Final.Services.Metrics;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +18,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_FiltersInactiveAndProjectsCategoryName()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -46,7 +46,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_FiltersByCategoryId()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catA = Guid.NewGuid();
         var catB = Guid.NewGuid();
         db.Categories.AddRange(
@@ -68,7 +68,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsPagedAsync_ReturnsTotalAndPageSlice()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -96,7 +96,7 @@ public sealed class ProductServiceTests
     public async Task GetProductsAsync_UsesCacheUntilInvalidated()
     {
         await using var db = CreateContext();
-        var tenantId = LegacyDefaultTenantIds.Primary;
+        var tenantId = SystemTenantIds.Platform;
         var catId = Guid.NewGuid();
         db.Categories.Add(new Category
         {
@@ -127,7 +127,39 @@ public sealed class ProductServiceTests
         new(db, new MemoryCacheService(
             new MemoryCache(new MemoryCacheOptions()),
             NullLogger<MemoryCacheService>.Instance,
-            new CacheMetricsService()));
+            new CacheMetricsService()),
+            Microsoft.Extensions.Options.Options.Create(new KasseAPI_Final.Configuration.CacheSettings()));
+
+    [Fact]
+    public async Task UpdateProduct_ThenCacheIsInvalidated()
+    {
+        await using var db = CreateContext();
+        var tenantId = SystemTenantIds.Platform;
+        var catId = Guid.NewGuid();
+        db.Categories.Add(new Category
+        {
+            Id = catId,
+            TenantId = tenantId,
+            Name = "Cat",
+            VatRate = 10m,
+            Key = "cat",
+        });
+        var productId = Guid.NewGuid();
+        db.Products.Add(NewProduct(productId, tenantId, catId, "Before", 2m));
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut(db);
+        Assert.Equal("Before", (await sut.GetProductsAsync(tenantId))[0].Name);
+
+        var entity = await db.Products.SingleAsync(p => p.Id == productId);
+        entity.Name = "After";
+        await db.SaveChangesAsync();
+
+        // Stale until invalidation
+        Assert.Equal("Before", (await sut.GetProductsAsync(tenantId))[0].Name);
+        await sut.InvalidateProductsCacheAsync(tenantId, productId);
+        Assert.Equal("After", (await sut.GetProductsAsync(tenantId))[0].Name);
+    }
 
     private static Product NewProduct(
         Guid id,
@@ -163,8 +195,8 @@ public sealed class ProductServiceTests
             .Options;
         var ctx = new AppDbContext(
             options,
-            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
-        TenantTestDoubles.EnsureDefaultTenant(ctx);
+            TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
+        TenantTestDoubles.EnsurePlatformTenant(ctx);
         return ctx;
     }
 }

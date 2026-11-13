@@ -6,7 +6,8 @@ import {
   filterDashboardLayoutByCatalog,
 } from '@/features/dashboard/logic/dashboardWidgetVisibility';
 import type { DashboardWidgetCatalogItem } from '@/features/dashboard/types';
-import { PERMISSIONS } from '@/shared/auth/permissions';
+import { permissionImplied } from '@/shared/auth/permissionImplication';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 
 const catalog: DashboardWidgetCatalogItem[] = [
   {
@@ -76,5 +77,24 @@ describe('dashboardWidgetVisibility', () => {
     const allowed = catalog.filter((c) => c.widgetId !== 'license-expiry');
     const filtered = filterDashboardLayoutByCatalog(layout, allowed);
     expect(filtered.map((w) => w.widgetId)).toEqual(['today-sales', 'backup-status']);
+  });
+
+  it('shows cash_register.view widgets when only cash_register.manage is granted (A1)', () => {
+    const activeRegisters: DashboardWidgetCatalogItem = {
+      widgetId: 'active-cash-registers',
+      title: 'Aktive Kassen',
+      description: '',
+      requiredPermission: AppPermissions.CashRegisterView,
+      defaultOrder: 12,
+      defaultVisible: true,
+      supportsAutoRefresh: true,
+    };
+    const granted = [AppPermissions.CashRegisterManage];
+    const hasPermission = (required: string) => permissionImplied(required, granted);
+
+    expect(canShowDashboardWidget(activeRegisters, hasPermission)).toBe(true);
+    expect(
+      filterDashboardCatalogByPermissions([activeRegisters], hasPermission).map((w) => w.widgetId)
+    ).toEqual(['active-cash-registers']);
   });
 });

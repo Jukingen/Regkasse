@@ -9,7 +9,7 @@ import { RoleMatrixOverview } from '@/features/access/components/RoleMatrixOverv
 import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function AccessMatrixPage() {
@@ -19,11 +19,10 @@ export default function AccessMatrixPage() {
 
   const rolesQuery = useRolesWithPermissions({ enabled: canView });
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
+  const breadcrumbs = buildPlatformAdminBreadcrumbs(t, 'administration', [
     { title: t('access.hub.pageTitle'), href: '/admin/access' },
     { title: t('access.matrix.pageTitle') },
-  ];
+  ]);
 
   if (!canView) {
     return (

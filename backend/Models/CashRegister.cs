@@ -35,6 +35,15 @@ namespace KasseAPI_Final.Models
         /// <summary>Operational shift owner (who opened this register). Not the same as per-user preference in UserSettings.</summary>
         public string? CurrentUserId { get; set; }
 
+        /// <summary>
+        /// Admin-managed cashier assignment (visibility only). Null means the register is selectable by every POS user of the tenant.
+        /// Distinct from <see cref="CurrentUserId"/> (shift ownership) and from <c>UserSettings.CashRegisterId</c> (the user's own preference).
+        /// Never used for payment authorization.
+        /// </summary>
+        [Column("assigned_user_id")]
+        [MaxLength(450)]
+        public string? AssignedUserId { get; set; }
+
         /// <summary>UTC instant when the last RKSV Monatsbeleg (or December Jahresbeleg closing the month) was issued for this register.</summary>
         [Column("last_monatsbeleg_utc", TypeName = "timestamptz")]
         public DateTime? LastMonatsbelegUtc { get; set; }
@@ -73,6 +82,9 @@ namespace KasseAPI_Final.Models
         public virtual Tenant? Tenant { get; set; }
 
         public virtual ApplicationUser? CurrentUser { get; set; }
+
+        [ForeignKey(nameof(AssignedUserId))]
+        public virtual ApplicationUser? AssignedUser { get; set; }
         public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
     }
 

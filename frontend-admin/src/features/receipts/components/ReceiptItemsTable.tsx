@@ -6,7 +6,7 @@ import React, { useMemo } from 'react';
 
 import type { ReceiptItemDto } from '@/features/receipts/types/receipts';
 import { useI18n } from '@/i18n';
-import { formatEUR } from '@/shared/utils/currency';
+import { useCountryFormatting } from '@/features/settings/hooks/useCountryFormatting';
 
 interface ReceiptItemsTableProps {
   items: ReceiptItemDto[];
@@ -17,6 +17,7 @@ interface ReceiptItemsTableProps {
  */
 export default function ReceiptItemsTable({ items }: ReceiptItemsTableProps) {
   const { t } = useI18n();
+  const { formatCurrency } = useCountryFormatting();
 
   const columns: ColumnsType<ReceiptItemDto> = useMemo(
     () => [
@@ -37,7 +38,7 @@ export default function ReceiptItemsTable({ items }: ReceiptItemsTableProps) {
         dataIndex: 'unitPrice',
         key: 'unitPrice',
         align: 'right',
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => formatCurrency(val),
       },
       {
         title: t('receipts.detail.itemsTable.colTaxRate'),
@@ -52,10 +53,10 @@ export default function ReceiptItemsTable({ items }: ReceiptItemsTableProps) {
         dataIndex: 'totalPrice',
         key: 'totalPrice',
         align: 'right',
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => formatCurrency(val),
       },
     ],
-    [t]
+    [t, formatCurrency]
   );
 
   return (

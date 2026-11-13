@@ -14,6 +14,9 @@ namespace KasseAPI_Final.Middleware;
 /// <summary>
 /// Blocks tenant-scoped API traffic when the ambient tenant is soft-deleted, suspended,
 /// in operation mode (maintenance / read-only), or restricted by tenant-license policy.
+/// Tenant license (not the system/deployment key) gates Mandanten-Admin and POS writes.
+/// Super Admin is not unlocked by this middleware via a system key for mandant data — that bypass
+/// lives in <see cref="LicenseLockdownMiddleware"/> / <see cref="LicenseMiddleware"/>.
 /// </summary>
 public sealed class TenantOperationalGateMiddleware
 {
@@ -80,7 +83,7 @@ public sealed class TenantOperationalGateMiddleware
             return;
         }
 
-        if (string.Equals(row.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        if (TenantStatuses.IsRemoved(row.Status))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new

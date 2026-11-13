@@ -43,6 +43,7 @@ describe('validateTenantSlug', () => {
 
   it('rejects reserved slugs', () => {
     expect(validateTenantSlug('admin')).toBe('reserved');
+    expect(validateTenantSlug('system')).toBe('reserved');
   });
 
   it('rejects invalid leading hyphen', () => {

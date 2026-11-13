@@ -20,7 +20,7 @@ public sealed class ImpersonationAuditLogIntegrationTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"ImpersonationAudit_{Guid.NewGuid():N}")
             .Options;
-        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(SystemTenantIds.Platform));
     }
 
     private static AuditLogService CreateAuditService(AppDbContext context, ClaimsPrincipal? user = null)
@@ -36,6 +36,8 @@ public sealed class ImpersonationAuditLogIntegrationTests
 
         var actorResolver = new Mock<IActorDisplayNameResolver>();
         actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        actorResolver.Setup(x => x.ResolveLoginLabelsAsync(It.IsAny<IList<string>>()))
             .ReturnsAsync(new Dictionary<string, string>());
 
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();

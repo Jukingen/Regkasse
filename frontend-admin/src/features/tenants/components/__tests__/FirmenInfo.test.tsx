@@ -24,15 +24,6 @@ vi.mock('@/i18n', () => ({
     },
     formatLocale: 'de-DE',
   }),
-  formatGermanDateTime: (value: string) => {
-    const d = new Date(value);
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mi = String(d.getMinutes()).padStart(2, '0');
-    return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
-  },
 }));
 
 const devTenant = {
@@ -60,9 +51,10 @@ describe('FirmenInfo', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows loading spinner when loading prop is true', () => {
-    render(<FirmenInfo tenant={null} loading />);
-    expect(screen.getByLabelText('Laden')).toBeTruthy();
+  it('shows loading skeleton when loading prop is true', () => {
+    const { container } = render(<FirmenInfo tenant={null} loading />);
+    expect(screen.getByText('Firmen-Info')).toBeTruthy();
+    expect(container.querySelector('.ant-skeleton')).toBeTruthy();
   });
 
   it('shows error alert when error prop is set', () => {

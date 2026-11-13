@@ -9,11 +9,14 @@ import type { RksvBackendEnvironmentStatus } from '@/features/rksv/types/rksvBac
 import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
-/** GET /api/rksv/status — canonical RKSV environment status for POS and Admin. */
+/**
+ * GET /api/rksv/environment — rich RKSV snapshot (Demo/Production, ShowDemoLabel, FON sim, production lock).
+ * Do not use slim GET /api/rksv/status here; it omits lock/host fields used by FA banners.
+ */
 export async function getRksvBackendEnvironment(
   signal?: AbortSignal
 ): Promise<RksvBackendEnvironmentStatus> {
-  const response = await AXIOS_INSTANCE.get<unknown>('/api/rksv/status', { signal });
+  const response = await AXIOS_INSTANCE.get<unknown>('/api/rksv/environment', { signal });
   const normalized = normalizeRksvBackendEnvironment(response.data);
   if (!normalized) {
     throw new Error('RKSV environment response was empty or invalid');

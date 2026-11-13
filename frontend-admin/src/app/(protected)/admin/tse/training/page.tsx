@@ -27,7 +27,7 @@ import type { TseTrainingFailureType } from '@/features/tse-training/types';
 import { getTseDevices } from '@/features/tse-management/api/tseManagement';
 import { useNotify } from '@/hooks/useNotify';
 import { useI18n } from '@/i18n/I18nProvider';
-import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { buildPlatformAdminBreadcrumbs } from '@/shared/adminPlatformBreadcrumbs';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 
@@ -158,7 +158,7 @@ export default function TseTrainingPage() {
     <div className="space-y-4">
       <AdminPageHeader
         title={t('tseTraining.title')}
-        breadcrumbs={[adminOverviewCrumb(t), { title: t('tseTraining.title') }]}
+        breadcrumbs={buildPlatformAdminBreadcrumbs(t, 'securityTse', { title: t('tseTraining.title') })}
       />
 
       <Typography.Paragraph type="secondary">{t('tseTraining.subtitle')}</Typography.Paragraph>
