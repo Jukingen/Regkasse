@@ -37,6 +37,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getEffectiveTenantSlug, isDevelopment } from '@/features/auth/services/devTenant';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { AdminCategory } from '@/features/categories/types';
+import { TenantDataExportButton } from '@/features/data-export/TenantDataExportButton';
 import { DevCatalogPurgeButton } from '@/features/products/components/DevCatalogPurgeButton';
 import { ProductFilterBar } from '@/features/products/components/ProductFilterBar';
 import { ProductCategoryBadge } from '@/features/products/components/ProductCategoryBadge';
@@ -770,6 +771,7 @@ export default function ProductsPage() {
         breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
         actions={
           <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            <TenantDataExportButton type="products" />
             <Button
               icon={<DownloadOutlined />}
               loading={exporting === 'csv'}

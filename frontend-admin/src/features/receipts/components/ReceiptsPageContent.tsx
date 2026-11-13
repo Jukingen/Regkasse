@@ -1,7 +1,7 @@
 'use client';
 
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Alert, Button, Dropdown, Space, Tooltip, Typography } from 'antd';
+import { Alert, Button, Dropdown, Flex, Space, Tooltip, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { TableSkeleton } from '@/components/Skeleton';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { TenantDataExportButton } from '@/features/data-export/TenantDataExportButton';
 import { recordDownloadHistory } from '@/features/download-history/api/downloadHistoryApi';
 import {
   clampFiskalyBatchLimits,
@@ -454,11 +455,14 @@ function ReceiptsPageContent() {
         title={t(ADMIN_NAV_LABEL_KEYS.receipts)}
         breadcrumbs={[adminOverviewCrumb(t), { title: t(ADMIN_NAV_LABEL_KEYS.receipts) }]}
         actions={
-          <Tooltip title={t('receipts.list.refreshTooltip')}>
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
-              {t('receipts.list.refresh')}
-            </Button>
-          </Tooltip>
+          <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            <TenantDataExportButton type="receipts" />
+            <Tooltip title={t('receipts.list.refreshTooltip')}>
+              <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
+                {t('receipts.list.refresh')}
+              </Button>
+            </Tooltip>
+          </Flex>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

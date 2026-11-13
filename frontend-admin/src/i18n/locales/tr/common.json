@@ -22,6 +22,12 @@
     "edit": "Düzenle",
     "reload": "Yeniden yukle"
   },
+  "dataExport": {
+    "button": "Dışa aktar",
+    "csv": "CSV",
+    "xlsx": "Excel",
+    "failed": "Dışa aktarma başarısız."
+  },
   "status": {
     "active": "Aktif",
     "inactive": "Pasif",
