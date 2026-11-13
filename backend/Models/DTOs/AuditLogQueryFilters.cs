@@ -24,6 +24,9 @@ public sealed class AuditLogQueryFilters
     /// </summary>
     public bool ExcludePlatformOperatorActors { get; set; }
 
-    /// <summary>Case-insensitive match on action, description, entity type/name, and IP.</summary>
+    /// <summary>
+    /// Case-insensitive PostgreSQL ILIKE across action, entity type, description,
+    /// and the actor's AspNetUsers email (plus entity name, IP, user id, and display name).
+    /// </summary>
     public string? Search { get; set; }
 }
