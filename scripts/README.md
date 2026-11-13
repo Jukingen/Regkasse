@@ -19,6 +19,7 @@ Windows `.bat` UI strings in this tree are **English**.
 | CI | [`ci/`](ci/) |
 | RKSV / fiscal | [`rksv/`](rksv/) |
 | Test / smoke | [`test/`](test/) |
+| POS load test | [`load-test/`](load-test/) |
 | Ops / deploy | [`ops/`](ops/) |
 | Lib / gates | [`lib/`](lib/) |
 
