@@ -276,5 +276,6 @@ describe('isUnsafeTechnicalErrorDetail', () => {
     expect(isUnsafeTechnicalErrorDetail('x'.repeat(300))).toBe(true);
     expect(isUnsafeTechnicalErrorDetail('NullReferenceException: boom')).toBe(true);
     expect(isUnsafeTechnicalErrorDetail('Ungültiges Passwort')).toBe(false);
+    expect(isUnsafeTechnicalErrorDetail('Request failed with status code 400')).toBe(true);
   });
 });
