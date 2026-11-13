@@ -365,6 +365,7 @@ tools/**/appsettings.json
 
 # Local-only dev scripts (passwords, tokens, machine paths) — keep on disk, never commit
 scripts/local/
+scripts/load-test/*.local.json
 scripts/dev-purge-tenant-catalog.*
 
 # Root HTTP client scratch files (manual API testing; may embed bearer tokens)
