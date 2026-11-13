@@ -30,20 +30,29 @@ test('dev-doctor creates a patient and takes a cash payment', async ({ page }) =
   await page.getByRole('button', { name: 'Patientenakte speichern' }).click();
 
   await openCashRegister(page);
-  const product = page.getByText('Demo Produkt 1', { exact: true }).first();
+  const product = page.getByText('Ordination', { exact: true }).first();
   await expect(product).toBeVisible({ timeout: 20_000 });
   await product.click();
   await payCash(page);
 });
 
 async function payCash(page: Page): Promise<void> {
+  await page.evaluate(() => document.getElementById('error-toast')?.remove());
   const pay = page.getByRole('button', { name: 'Bezahlen' }).first();
   await expect(pay).toBeVisible({ timeout: 20_000 });
   await pay.click();
-  const confirm = page.getByRole('button', { name: 'Bestätigen' });
-  if (await confirm.isVisible().catch(() => false)) {
-    await confirm.click();
+
+  const cash = page.getByRole('button', { name: /^Bar\b/ });
+  await expect(cash).toBeVisible({ timeout: 20_000 });
+  await cash.click();
+  const preset = page.getByRole('button', { name: '€ 100,00' });
+  if (await preset.isVisible().catch(() => false)) {
+    await preset.click();
   }
+
+  const confirm = page.getByRole('button', { name: /^Zahlen / });
+  await expect(confirm).toBeEnabled({ timeout: 20_000 });
+  await confirm.click();
   await expect(page.getByText(/Zahlung erfolgreich|Beleg wird erstellt|Wechselgeld/)).toBeVisible({
     timeout: 30_000,
   });

@@ -42,9 +42,9 @@ test.describe('Critical POS cashier flows', () => {
   test('pays three products in cash and shows the receipt QR code', async ({ page }) => {
     await signIn(page, TABLES);
     await selectTable(page, 1);
-    await addNamedProduct(page, 'Demo Produkt 1');
-    await addNamedProduct(page, 'Demo Produkt 2');
-    await addNamedProduct(page, 'Demo Produkt 3');
+    await addNamedProduct(page, 'Tagesmenü');
+    await addNamedProduct(page, 'Suppe');
+    await addNamedProduct(page, 'Mineralwasser');
 
     await page.getByRole('button', { name: 'Bezahlen' }).first().click();
     const confirm = page.getByRole('button', { name: 'Bestätigen' });
@@ -58,18 +58,18 @@ test.describe('Critical POS cashier flows', () => {
   test('keeps table carts separate when switching tables', async ({ page }) => {
     await signIn(page, TABLES);
     await selectTable(page, 1);
-    await addNamedProduct(page, 'Demo Produkt 1');
+    await addNamedProduct(page, 'Tagesmenü');
     await expect(page.getByText(/Tisch 1 · [1-9]/)).toBeVisible();
 
     await selectTable(page, 2);
     await expect(page.getByText(/Tisch 2 · 0 Artikel/)).toBeVisible();
-    await expect(page.getByTestId('pos-order-panel').getByText('Demo Produkt 1', { exact: true })).toHaveCount(
+    await expect(page.getByTestId('pos-order-panel').getByText('Tagesmenü', { exact: true })).toHaveCount(
       0
     );
 
     await selectTable(page, 1);
     await expect(page.getByText(/Tisch 1 · [1-9]/)).toBeVisible();
-    await expect(page.getByTestId('pos-order-panel').getByText('Demo Produkt 1', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('pos-order-panel').getByText('Tagesmenü', { exact: true })).toBeVisible();
   });
 
   test('disables Bezahlen on an empty cart and enables it after a product is added', async ({
@@ -81,7 +81,7 @@ test.describe('Critical POS cashier flows', () => {
     await expect(pay).toBeVisible();
     await expect(pay).toBeDisabled();
 
-    await addNamedProduct(page, 'Demo Produkt 1');
+    await addNamedProduct(page, 'Tagesmenü');
     await expect(pay).toBeEnabled();
   });
 
@@ -90,8 +90,8 @@ test.describe('Critical POS cashier flows', () => {
     await selectTable(page, 4);
 
     await page.context().setOffline(true);
-    await addNamedProduct(page, 'Demo Produkt 1');
-    await expect(page.getByTestId('pos-order-panel').getByText('Demo Produkt 1', { exact: true })).toBeVisible();
+    await addNamedProduct(page, 'Tagesmenü');
+    await expect(page.getByTestId('pos-order-panel').getByText('Tagesmenü', { exact: true })).toBeVisible();
     await expect(page.getByTestId('offline-queue-indicator')).toBeVisible();
 
     const synced = page.waitForResponse(
@@ -100,6 +100,6 @@ test.describe('Critical POS cashier flows', () => {
     );
     await page.context().setOffline(false);
     await synced;
-    await expect(page.getByTestId('pos-order-panel').getByText('Demo Produkt 1', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('pos-order-panel').getByText('Tagesmenü', { exact: true })).toBeVisible();
   });
 });

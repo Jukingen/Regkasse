@@ -50,6 +50,8 @@ export async function login(page: Page, username: string, password: string): Pro
         if (await skip.isVisible().catch(() => false)) return 'onboarding';
         if (await done.isVisible().catch(() => false)) return 'onboarding-last';
         if (await picker.isVisible().catch(() => false)) return 'picker';
+        if (await page.getByRole('tab', { name: /Kassa/ }).first().isVisible().catch(() => false))
+          return 'shell';
         if (isCashRegisterPath(page.url()) && (await kassa.isVisible().catch(() => false))) return 'shell';
         return 'pending';
       },
@@ -71,7 +73,7 @@ export async function login(page: Page, username: string, password: string): Pro
     await enterShellFromRegisterPicker(page);
   }
 
-  await expect(kassa).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('tab', { name: /Kassa/ }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 /**
@@ -104,12 +106,32 @@ function isCashRegisterPath(url: string): boolean {
   return /\/cash-register(?:\/)?(?:\?|#|$)/.test(url);
 }
 
+/** Expo's dev error toast covers the Kassa tab. Remove it so the tab receives the click. */
+async function hideDevErrorToast(page: Page): Promise<void> {
+  const dismiss = page.getByRole('button', { name: 'Dismiss error' });
+  if (await dismiss.isVisible().catch(() => false)) {
+    await dismiss.click();
+  }
+  await page.evaluate(() => {
+    document.getElementById('error-toast')?.remove();
+  });
+}
+
 /** Profile layouts may open appointments or rooms. The sale screen is still Kassa. */
 export async function openCashRegister(page: Page): Promise<void> {
   if (page.url().includes('cash-register-select')) {
     await enterShellFromRegisterPicker(page);
-  } else if (!isCashRegisterPath(page.url())) {
-    await page.getByText('Kassa', { exact: true }).first().click();
   }
-  await expect(page).toHaveURL(/\/cash-register(?:\/)?(?:\?|#|$)/, { timeout: 20_000 });
+
+  // Appointment and room profiles leave Kassa once, about 700ms after the shell mounts.
+  await page.waitForTimeout(800);
+  await hideDevErrorToast(page);
+
+  const tab = page.getByRole('tab', { name: /Kassa/ }).filter({ visible: true }).first();
+  await expect(async () => {
+    await hideDevErrorToast(page);
+    await tab.click({ timeout: 2_000 });
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  }).toPass({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/cash-register/);
 }
