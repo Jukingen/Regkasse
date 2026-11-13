@@ -1450,6 +1450,7 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IAdminProductListService, AdminProductListService>();
         builder.Services.AddScoped<IProductService, ProductService>();
         builder.Services.AddScoped<IProductExportService, ProductExportService>();
+        builder.Services.AddScoped<ITenantDataExportService, TenantDataExportService>();
         builder.Services.AddScoped<ICustomerExportService, CustomerExportService>();
         builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, RksvSpecialReceiptFinanzOnlineSubmissionTracker>();
         builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();

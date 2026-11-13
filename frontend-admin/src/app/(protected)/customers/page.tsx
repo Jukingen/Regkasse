@@ -12,6 +12,7 @@ import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { DownloadPreviewModal } from '@/components/ui/DownloadPreviewModal';
 import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { TenantDataExportButton } from '@/features/data-export/TenantDataExportButton';
 import { downloadCustomerExport } from '@/features/customers/api/downloadCustomerExport';
 import CustomerForm from '@/features/customers/components/CustomerForm';
 import CustomerList from '@/features/customers/components/CustomerList';
@@ -165,6 +166,7 @@ export default function CustomersPage() {
         breadcrumbs={buildAdminBreadcrumbs(t, [{ title: t(ADMIN_NAV_LABEL_KEYS.customers) }])}
         actions={
           <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+            {canViewCustomers ? <TenantDataExportButton type="customers" /> : null}
             {canViewCustomers ? (
               <>
                 <Button
