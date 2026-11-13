@@ -28,6 +28,7 @@ export const DASHBOARD_WIDGET_IDS = {
   systemMetrics: 'system-metrics',
   preorderStatus: 'preorder-status',
   finanzOnlineOutbox: 'finanzonline-outbox',
+  jahresbelegStatus: 'jahresbeleg-status',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];

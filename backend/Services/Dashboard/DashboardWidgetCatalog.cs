@@ -35,6 +35,7 @@ public static class DashboardWidgetCatalog
     public const string SystemMetrics = "system-metrics";
     public const string PreorderStatus = "preorder-status";
     public const string FinanzOnlineOutbox = "finanzonline-outbox";
+    public const string JahresbelegStatus = "jahresbeleg-status";
 
     private static readonly IReadOnlyList<DashboardWidgetDefinition> All =
     [
@@ -72,6 +73,7 @@ public static class DashboardWidgetCatalog
         new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 25, true, true),
         new(PreorderStatus, "Vorbestellungen", "Ausstehende, bereite und abgeholte Vorbestellungen", AppPermissions.OrderView, 26, true, true),
         new(FinanzOnlineOutbox, "FinanzOnline-Outbox", "Ausstehende und fehlgeschlagene Übermittlungen, letzte erfolgreiche Abgabe", AppPermissions.FinanzOnlineView, 27, true, true),
+        new(JahresbelegStatus, "Jahresbeleg", "Jahresbeleg-Frist und Status je Mandant", AppPermissions.RksvJahresbelegView, 28, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;
