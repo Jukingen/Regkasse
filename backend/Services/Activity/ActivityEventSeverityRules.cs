@@ -9,6 +9,7 @@ internal static class ActivityEventSeverityRules
         {
             ActivityEventType.LicenseExpired => ActivitySeverityNames.Critical,
             ActivityEventType.FinanzOnlineSubmissionFailed => ActivitySeverityNames.Error,
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => ActivitySeverityNames.Error,
             ActivityEventType.BackupFailed => ActivitySeverityNames.Critical,
             ActivityEventType.RestoreDrillFailed => ActivitySeverityNames.Critical,
             ActivityEventType.OfflineQueueGrowing => ActivitySeverityNames.Warning,
@@ -38,6 +39,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.MonatsbelegAutoCreateFailed => ActivitySeverityNames.Error,
             ActivityEventType.MonatsbelegAutoCreateMissed => ActivitySeverityNames.Error,
             ActivityEventType.JahresbelegFonReminder => ActivitySeverityNames.Warning,
+            ActivityEventType.JahresbelegDeadlineReminder => ActivitySeverityNames.Warning,
             ActivityEventType.MonatsbelegManagerContacted => ActivitySeverityNames.Warning,
             ActivityEventType.DepExportDueSoon => ActivitySeverityNames.Warning,
             ActivityEventType.DepExportOverdue => ActivitySeverityNames.Error,

@@ -1318,6 +1318,9 @@ internal static class ApplicationHost
         builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
         builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
         builder.Services.AddScoped<IFinanzOnlineOutboxActionService, FinanzOnlineOutboxActionService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxMonitoringService, FinanzOnlineOutboxMonitoringService>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxOpsAlert, FinanzOnlineOutboxOpsAlert>();
+        builder.Services.AddScoped<IFinanzOnlineOutboxFailureMonitor, FinanzOnlineOutboxFailureMonitor>();
         builder.Services.AddScoped<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<RksvAusfallFinanzOnlineOutboxHandler>();
         builder.Services.AddScoped<IRksvAusfallEpisodeService, RksvAusfallEpisodeService>();
@@ -1527,6 +1530,7 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
         builder.Services.AddSingleton<IFinanzOnlineOutboxWorkerSignal, FinanzOnlineOutboxWorkerSignal>();
         builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
+        builder.Services.AddHostedService<FinanzOnlineOutboxAlertHostedService>();
         builder.Services.AddHostedService<NtpTimeSyncService>();
 
         // ðŸš€ AkÄ±llÄ± Sepet YaÅŸam DÃ¶ngÃ¼sÃ¼ Service'i
@@ -1705,6 +1709,8 @@ internal static class ApplicationHost
         builder.Services.AddHostedService<KasseAPI_Final.Services.DataDeletion.AutoPurgeService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.ShiftAutoCloseHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Reminder.TagesabschlussReminderService>();
+        builder.Services.AddScoped<IJahresbelegReminderService, JahresbelegReminderService>();
+        builder.Services.AddHostedService<JahresbelegReminderHostedService>();
         builder.Services.AddHostedService<MonatsbelegSchedulerHostedService>();
         builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.AutoTagesabschlussHostedService>();
         builder.Services.AddSingleton<TseHealthStateStore>();

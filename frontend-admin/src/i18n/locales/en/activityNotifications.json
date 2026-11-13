@@ -65,6 +65,7 @@
     "OfflineQueueGrowing": "Offline queue growing",
     "OfflineQueueApproachingLimit": "Offline queue approaching limit",
     "FinanzOnlineSubmissionFailed": "FinanzOnline submission failed",
+    "FinanzOnlineOutboxFailureSpike": "FinanzOnline outbox failure spike",
     "BackupFailed": "Backup failed",
     "BackupSucceeded": "Backup succeeded",
     "RestoreDrillFailed": "Restore drill failed",
@@ -104,6 +105,7 @@
     "MonatsbelegAutoCreateFailed": "Monatsbeleg automatic creation failed",
     "MonatsbelegAutoCreateMissed": "Monatsbeleg automatic creation missed",
     "JahresbelegFonReminder": "Jahresbeleg FinanzOnline reminder",
+    "JahresbelegDeadlineReminder": "Jahresbeleg deadline",
     "MonatsbelegManagerContacted": "Monatsbeleg: cashier contacted admin"
   }
 }

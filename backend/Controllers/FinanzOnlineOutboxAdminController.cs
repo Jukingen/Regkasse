@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -53,6 +54,8 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     private readonly IFinanzOnlineRuntimeSettingsService _runtimeSettings;
     private readonly FinanzOnlineRuntimeOptionsAccessor _runtimeOptions;
     private readonly IFinanzOnlineOutboxActionService _actions;
+    private readonly IFinanzOnlineOutboxMonitoringService _monitoring;
+    private readonly ICurrentTenantAccessor _tenant;
 
     public FinanzOnlineOutboxAdminController(
         AppDbContext context,
@@ -66,7 +69,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         IFinanzOnlineOutboxSettingsService workerSettings,
         IFinanzOnlineRuntimeSettingsService runtimeSettings,
         FinanzOnlineRuntimeOptionsAccessor runtimeOptions,
-        IFinanzOnlineOutboxActionService actions)
+        IFinanzOnlineOutboxActionService actions,
+        IFinanzOnlineOutboxMonitoringService monitoring,
+        ICurrentTenantAccessor tenant)
     {
         _context = context;
         _logger = logger;
@@ -80,6 +85,8 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         _runtimeSettings = runtimeSettings;
         _runtimeOptions = runtimeOptions;
         _actions = actions;
+        _monitoring = monitoring;
+        _tenant = tenant;
     }
 
     /// <summary>
@@ -311,6 +318,23 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
     }
 
     /// <summary>
+    /// Pending count, failures in the last 24 hours, and the last protocol success.
+    /// Super Admin sees every mandant. Other callers see the ambient tenant only.
+    /// </summary>
+    [HttpGet("summary")]
+    [HasPermission(AppPermissions.FinanzOnlineView)]
+    public async Task<ActionResult<FinanzOnlineOutboxSummaryDto>> Summary(CancellationToken cancellationToken = default)
+    {
+        var allTenants = User.IsInRole(Roles.SuperAdmin);
+        if (!allTenants && _tenant.TenantId is not Guid)
+            return NotFound(new { message = "Outbox summary not found.", code = "FINANZONLINE_OUTBOX_NOT_FOUND" });
+
+        var tenantId = allTenants ? null : _tenant.TenantId;
+        var summary = await _monitoring.GetSummaryAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return Ok(summary);
+    }
+
+    /// <summary>
     /// Reset matching failed rows to Pending and wake the worker once.
     /// </summary>
     [HttpPost("retry-failed")]
@@ -320,6 +344,23 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var outcome = await _actions.RetryFailedAsync(request, User, cancellationToken).ConfigureAwait(false);
+        if (outcome.StatusCode != StatusCodes.Status200OK)
+            return ToActionResult(outcome);
+        return Ok(new { retriedCount = outcome.RetriedCount });
+    }
+
+    /// <summary>
+    /// Reset every failed outbox row to Pending and wake the worker once. Super Admin only.
+    /// Does not submit SOAP itself.
+    /// </summary>
+    [HttpPost("retry-all-failed")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    public async Task<IActionResult> RetryAllFailed(CancellationToken cancellationToken = default)
+    {
+        if (!User.IsInRole(Roles.SuperAdmin))
+            return Forbid();
+
+        var outcome = await _actions.RetryFailedAsync(request: null, User, cancellationToken).ConfigureAwait(false);
         if (outcome.StatusCode != StatusCodes.Status200OK)
             return ToActionResult(outcome);
         return Ok(new { retriedCount = outcome.RetriedCount });

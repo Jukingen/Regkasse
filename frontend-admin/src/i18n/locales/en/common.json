@@ -74,11 +74,11 @@
     "furtherLabel": "Investigate further"
   },
   "errors": {
-    "http400": "Invalid request.",
+    "http400": "The request could not be processed. Please check your entries.",
     "http401": "Authentication required.",
-    "http403": "Access denied.",
-    "http404": "Not found.",
-    "http409": "Conflict.",
+    "http403": "You do not have permission for this action.",
+    "http404": "The requested entry was not found.",
+    "http409": "This table is open by another cashier. Please close it first.",
     "http422": "Validation failed.",
     "http429": "Too many requests. Try again later.",
     "http500": "Server error. Try again later.",

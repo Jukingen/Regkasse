@@ -88,6 +88,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.OfflineOrdersExpiringSoon => "Offline orders expiring soon",
             ActivityEventType.OfflineSyncStalled => "Offline sync stalled",
             ActivityEventType.FinanzOnlineSubmissionFailed => "FinanzOnline submission failed",
+            ActivityEventType.FinanzOnlineOutboxFailureSpike => "FinanzOnline outbox failures",
             ActivityEventType.BackupFailed => "Backup failed",
             ActivityEventType.BackupSucceeded => "Backup succeeded",
             ActivityEventType.RestoreDrillFailed => "Restore drill failed",
@@ -102,6 +103,7 @@ internal static class ActivityEventPublishBuilder
             ActivityEventType.MonatsbelegAutoCreateFailed => "Monatsbeleg auto-create failed",
             ActivityEventType.MonatsbelegAutoCreateMissed => "Monatsbeleg auto-create missed",
             ActivityEventType.JahresbelegFonReminder => "Jahresbeleg FinanzOnline reminder",
+            ActivityEventType.JahresbelegDeadlineReminder => "Jahresbeleg deadline",
             ActivityEventType.MonatsbelegManagerContacted => "Monatsbeleg manager contacted",
             ActivityEventType.DepExportDueSoon => "DEP export due soon",
             ActivityEventType.DepExportOverdue => "DEP export overdue",
@@ -387,6 +389,8 @@ internal static class ActivityEventPublishBuilder
                 or ActivityEventType.JahresbelegFonReminder
                 or ActivityEventType.MonatsbelegManagerContacted
                 => ("cash_register", TryGetString(metadata, "cashRegisterId")),
+            ActivityEventType.JahresbelegDeadlineReminder
+                => ("tenant", TryGetString(metadata, "tenantId")),
             ActivityEventType.DepExportDueSoon
                 or ActivityEventType.DepExportOverdue
                 => ("dep_export_requirement", TryGetString(metadata, "requirementId")),

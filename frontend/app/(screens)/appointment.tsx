@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppointmentDayCalendar } from '../../components/AppointmentDayCalendar';
+import { BusyButton } from '../../components/BusyButton';
 import { DynamicField } from '../../components/DynamicField';
 import { IfVerticalFeature } from '../../components/IfVerticalFeature';
 import { MobileServiceRoutePanel } from '../../components/MobileServiceRoutePanel';
@@ -296,19 +297,17 @@ export default function AppointmentScreen() {
                 onSelect={(member) => setStaffId(member.id)}
               />
             </View>
-            <Pressable
+            <BusyButton
               accessibilityRole="button"
               accessibilityLabel={t('screens.appointments.save')}
-              disabled={saving}
+              busy={saving}
+              label={saving ? t('screens.appointments.saving') : t('screens.appointments.save')}
               onPress={() => {
                 saveBooking().catch(() => undefined);
               }}
               style={[styles.saveButton, saving && styles.disabled]}
-            >
-              <Text style={styles.saveButtonText}>
-                {saving ? t('screens.appointments.saving') : t('screens.appointments.save')}
-              </Text>
-            </Pressable>
+              textStyle={styles.saveButtonText}
+            />
           </ScrollView>
         )}
       </SafeAreaView>

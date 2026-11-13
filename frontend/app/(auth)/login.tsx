@@ -346,7 +346,7 @@ export default function LoginScreen() {
                 ref={usernameInputRef}
                 style={styles.input}
                 placeholder={t('loginIdentifierPlaceholder')}
-                placeholderTextColor="#999"
+                placeholderTextColor="#595959"
                 value={loginIdentifier}
                 onChangeText={(text) => {
                   setLoginIdentifier(text);
@@ -398,7 +398,7 @@ export default function LoginScreen() {
                   ref={passwordInputRef}
                   style={[styles.input, styles.passwordInput]}
                   placeholder={t('passwordPlaceholder')}
-                  placeholderTextColor="#999"
+                  placeholderTextColor="#595959"
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -408,7 +408,7 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoComplete="password"
+                  autoComplete="current-password"
                   textContentType="password"
                   editable={!isLoading}
                   returnKeyType="go"
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   },
   exampleNote: {
     fontSize: 12,
-    color: '#16A34A',
+    color: '#166534',
     marginTop: 8,
     lineHeight: 16,
   },
@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#999',
+    color: '#595959',
     marginTop: 16,
     letterSpacing: 0.5,
   },

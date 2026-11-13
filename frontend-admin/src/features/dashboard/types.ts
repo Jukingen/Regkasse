@@ -27,6 +27,7 @@ export const DASHBOARD_WIDGET_IDS = {
   paymentTrends: 'payment-trends',
   systemMetrics: 'system-metrics',
   preorderStatus: 'preorder-status',
+  finanzOnlineOutbox: 'finanzonline-outbox',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];

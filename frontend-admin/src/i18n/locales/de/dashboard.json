@@ -114,6 +114,18 @@
     "hint_ok": "Keine offenen Probleme",
     "details": "Details"
   },
+  "finanzOnlineOutbox": {
+    "pending": "Ausstehende Übermittlungen",
+    "failed24h": "Fehlgeschlagen (24 Std.)",
+    "lastSuccess": "Letzte erfolgreiche Übermittlung",
+    "lastSuccessNever": "noch keine",
+    "openQueue": "Warteschlange öffnen",
+    "retryAllFailed": "Alle Fehlgeschlagenen erneut senden",
+    "retryConfirmTitle": "Alle fehlgeschlagenen Übermittlungen erneut senden?",
+    "retryConfirmBody": "Fehlgeschlagene Einträge werden zurück in die Warteschlange gestellt. Es wird keine neue SOAP-Übermittlung direkt ausgelöst.",
+    "retryQueued": "{{count}} Einträge wurden erneut eingereiht.",
+    "retryError": "Erneutes Senden ist fehlgeschlagen."
+  },
   "offlineStatusWidget": {
     "badge_critical": "Kritisch",
     "badge_pending": "Ausstehend",
@@ -503,5 +515,18 @@
     "subtitle": "Kurzwege zu Kassenverwaltung und weiteren Werkzeugen.",
     "recentTitle": "Zuletzt verwendet",
     "recentEmpty": "Noch keine zuletzt geöffneten Seiten."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Mandant",
+    "year": "Jahr",
+    "deadline": "Frist",
+    "status": "Status",
+    "created": "Erstellt",
+    "missing": "Offen",
+    "notDue": "Noch nicht fällig",
+    "empty": "Keine Kasse mit Jahresbeleg-Pflicht.",
+    "loadError": "Jahresbeleg-Status konnte nicht geladen werden.",
+    "warning": "Die Jahresbeleg-Frist ist der 31. Januar. Bitte erstellen.",
+    "open": "Jahresbeleg öffnen"
   }
 }

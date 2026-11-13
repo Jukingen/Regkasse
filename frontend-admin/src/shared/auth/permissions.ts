@@ -154,6 +154,7 @@ export const PERMISSIONS = {
   RECEIPT_REPRINT: 'receipt.reprint',
   /** RKSV Jahresbeleg (annual zero receipt); align with backend AppPermissions.RksvJahresbelegCreate. */
   RKSV_JAHRESBELEG_CREATE: 'rksv.jahresbeleg.create',
+  RKSV_JAHRESBELEG_VIEW: 'rksv.jahresbeleg.view',
   RKSV_NULLBELEG_CREATE: 'rksv.nullbeleg.create',
   RKSV_STARTBELEG_CREATE: 'rksv.startbeleg.create',
   RKSV_MONATSBELEG_CREATE: 'rksv.monatsbeleg.create',

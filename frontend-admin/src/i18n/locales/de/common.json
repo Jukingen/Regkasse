@@ -74,11 +74,11 @@
     "furtherLabel": "Weiter untersuchen"
   },
   "errors": {
-    "http400": "Ungueltige Anfrage.",
+    "http400": "Die Anfrage konnte nicht verarbeitet werden. Bitte prüfen Sie Ihre Eingaben.",
     "http401": "Anmeldung erforderlich.",
-    "http403": "Zugriff verweigert.",
-    "http404": "Nicht gefunden.",
-    "http409": "Konflikt (Datenstand).",
+    "http403": "Sie haben keine Berechtigung für diese Aktion.",
+    "http404": "Der gesuchte Eintrag wurde nicht gefunden.",
+    "http409": "Dieser Tisch ist von einem anderen Kassierer geöffnet. Bitte schließen Sie ihn zuerst.",
     "http422": "Validierung fehlgeschlagen.",
     "http429": "Zu viele Anfragen. Bitte spaeter erneut versuchen.",
     "http500": "Serverfehler. Bitte spaeter erneut versuchen.",

@@ -1,8 +1,29 @@
 import type { AxiosError } from 'axios';
 
 import { isPublicAuthEntryPath } from '@/features/auth/utils/isPublicAuthEntryPath';
+import {
+  DEFAULT_TEXT_LOCALE,
+  getCatalog,
+  normalizeTextLocale,
+} from '@/i18n/config';
+import { getStoredLanguage } from '@/i18n/languageStorage';
 import { showAntdError } from '@/lib/antdAppBridge';
+import { translateApiError } from '@/lib/api/errorTranslator';
 import { shouldSuppressCanceledRequestToast } from '@/lib/httpCancellation';
+
+const FRIENDLY_HTTP_STATUSES = new Set([400, 403, 404, 409]);
+
+function catalogTranslate(key: string): string {
+  const locale = normalizeTextLocale(getStoredLanguage() ?? DEFAULT_TEXT_LOCALE);
+  const catalog = getCatalog(locale) as Record<string, unknown>;
+  const [namespace, ...path] = key.split('.');
+  let current: unknown = catalog[namespace];
+  for (const segment of path) {
+    if (!current || typeof current !== 'object') return key;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return typeof current === 'string' ? current : key;
+}
 
 export function getHttpStatusFromError(error: unknown): number | undefined {
   const e = error as {
@@ -32,6 +53,10 @@ function defaultQueryErrorHandler(error: unknown): void {
   }
   const axiosError = error as AxiosError;
   const status = getHttpStatusFromError(error);
+  if (status != null && FRIENDLY_HTTP_STATUSES.has(status)) {
+    showAntdError(translateApiError(catalogTranslate, error, { skipLog: true }));
+    return;
+  }
   const toastMessage =
     typeof axiosError?.message === 'string' && axiosError.message.trim().length > 0
       ? axiosError.message

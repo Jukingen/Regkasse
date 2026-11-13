@@ -34,6 +34,7 @@ public static class DashboardWidgetCatalog
     public const string PaymentTrends = "payment-trends";
     public const string SystemMetrics = "system-metrics";
     public const string PreorderStatus = "preorder-status";
+    public const string FinanzOnlineOutbox = "finanzonline-outbox";
 
     private static readonly IReadOnlyList<DashboardWidgetDefinition> All =
     [
@@ -70,6 +71,7 @@ public static class DashboardWidgetCatalog
         new(DataRetention, "Datenaufbewahrung", "Lizenz-Lebenszyklus, Grace/Lock und Löschanfragen (RKSV 7 Jahre)", AppPermissions.BackupManage, 24, true, true),
         new(SystemMetrics, "System-Metriken", "API-Leistung, Cache, Uptime und aktive Mandanten", AppPermissions.SystemCritical, 25, true, true),
         new(PreorderStatus, "Vorbestellungen", "Ausstehende, bereite und abgeholte Vorbestellungen", AppPermissions.OrderView, 26, true, true),
+        new(FinanzOnlineOutbox, "FinanzOnline-Outbox", "Ausstehende und fehlgeschlagene Übermittlungen, letzte erfolgreiche Abgabe", AppPermissions.FinanzOnlineView, 27, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;

@@ -114,6 +114,18 @@
     "hint_ok": "Açık sorun yok",
     "details": "Detaylar"
   },
+  "finanzOnlineOutbox": {
+    "pending": "Bekleyen gönderimler",
+    "failed24h": "Başarısız (24 sa)",
+    "lastSuccess": "Son başarılı gönderim",
+    "lastSuccessNever": "henüz yok",
+    "openQueue": "Kuyruğu aç",
+    "retryAllFailed": "Başarısızların tümünü yeniden dene",
+    "retryConfirmTitle": "Başarısız gönderimlerin tümü yeniden denensin mi?",
+    "retryConfirmBody": "Başarısız kayıtlar kuyruğa geri alınır. SOAP gönderimi bu düğmeden doğrudan yapılmaz.",
+    "retryQueued": "{{count}} kayıt yeniden kuyruğa alındı.",
+    "retryError": "Yeniden deneme başarısız oldu."
+  },
   "offlineStatusWidget": {
     "badge_critical": "Kritik",
     "badge_pending": "Bekliyor",
@@ -503,5 +515,18 @@
     "subtitle": "Kasa yönetimi ve diğer araçlara kısayollar.",
     "recentTitle": "Son kullanılanlar",
     "recentEmpty": "Henüz açılmış bir sayfa yok."
+  },
+  "jahresbelegStatus": {
+    "tenant": "Kiracı",
+    "year": "Yıl",
+    "deadline": "Son tarih",
+    "status": "Durum",
+    "created": "Oluşturuldu",
+    "missing": "Eksik",
+    "notDue": "Henüz gerekli değil",
+    "empty": "Jahresbeleg yükümlülüğü olan kasa yok.",
+    "loadError": "Jahresbeleg durumu yüklenemedi.",
+    "warning": "Jahresbeleg son tarihi 31 Ocak. Lütfen oluşturun.",
+    "open": "Jahresbeleg'i aç"
   }
 }
