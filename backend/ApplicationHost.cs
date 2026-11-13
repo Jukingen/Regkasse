@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Reflection;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -1202,6 +1203,11 @@ internal static class ApplicationHost
             c.OperationFilter<KasseAPI_Final.Swagger.SingleJsonContentTypeOperationFilter>();
 
             c.DocInclusionPredicate((_, api) => !KasseAPI_Final.Swagger.LegacySwaggerPathExclusions.ShouldExclude(api.RelativePath));
+
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {

@@ -45,7 +45,7 @@ namespace KasseAPI_Final.Controllers
             _cartTableOps = cartTableOps;
         }
 
-        // GET: api/cart/current - Belirli masadaki aktif sepeti getir
+        /// <summary>Returns the active POS cart for the given table.</summary>
         [HttpGet("current")]
         public async Task<IActionResult> GetCurrentUserCart([FromQuery] int? tableNumber = 1)
         {
@@ -202,7 +202,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/cart - Yeni sepet oluştur
+        /// <summary>Creates a new POS cart for the current cashier and table.</summary>
         [HttpPost]
         public async Task<IActionResult> CreateCart([FromBody] CreateCartRequest request)
         {
@@ -254,7 +254,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/cart/add-item - Sepete ürün ekle (otomatik sepet oluşturma ile)
+        /// <summary>Adds a product line to the current cart, creating the cart when needed.</summary>
         [HttpPost("add-item")]
         public async Task<IActionResult> AddItemToCart([FromBody] AddItemToCartRequest request)
         {

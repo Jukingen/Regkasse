@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Constants;
+using Roles = KasseAPI_Final.Authorization.Roles;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
@@ -236,6 +237,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Returns the stable walk-in guest customer id used by POS.</summary>
         [HttpGet("walk-in")]
         public IActionResult GetWalkInCustomerId()
         {

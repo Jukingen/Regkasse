@@ -65,7 +65,7 @@ namespace KasseAPI_Final.Controllers
             _countryStrategyContext = countryStrategyContext;
         }
 
-        // GET: api/Invoice/list
+        /// <summary>Paged invoice list for the ambient tenant, with optional date and status filters.</summary>
         [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("list")]
         public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetInvoicesList(

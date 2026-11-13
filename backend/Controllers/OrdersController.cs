@@ -29,7 +29,7 @@ namespace KasseAPI_Final.Controllers
             _settingsTenantResolver = settingsTenantResolver;
         }
 
-        // GET: api/orders?page=1&pageSize=50
+        /// <summary>Paged order list for the ambient tenant.</summary>
         [HttpGet]
         public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
@@ -83,7 +83,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/orders
+        /// <summary>Creates an order from the posted lines for the ambient tenant.</summary>
         [HttpPost]
         public async Task<ActionResult<Order>> CreateOrder([FromBody] CreateOrderRequest request)
         {

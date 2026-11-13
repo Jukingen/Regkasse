@@ -80,6 +80,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Lists current stock rows for the ambient tenant.</summary>
         [HasPermission(AppPermissions.InventoryView)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetInventory()
@@ -249,6 +250,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Lists products whose stock is at or below the reorder point.</summary>
         [HasPermission(AppPermissions.InventoryView)]
         [HttpGet("low-stock")]
         public async Task<ActionResult<IEnumerable<object>>> GetLowStockItems()

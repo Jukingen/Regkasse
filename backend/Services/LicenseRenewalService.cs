@@ -161,7 +161,7 @@ public sealed class LicenseRenewalService : ILicenseRenewalService
                 AuditLogActions.LICENSE_RENEWED,
                 AuditLogEntityTypes.SYSTEM_CONFIG,
                 actorUserId,
-                actorRole ?? "SuperAdmin",
+                actorRole ?? KasseAPI_Final.Constants.Roles.SuperAdmin,
                 description: description,
                 requestData: new
                 {

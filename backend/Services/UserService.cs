@@ -135,8 +135,8 @@ namespace KasseAPI_Final.Services
                 // Rol bazlı yetki kontrolü (canonical roller)
                 var roleHasPermission = user.Role switch
                 {
-                    "SuperAdmin" => true,
-                    "Cashier" => permission switch
+                    KasseAPI_Final.Constants.Roles.SuperAdmin => true,
+                    KasseAPI_Final.Constants.Roles.Cashier => permission switch
                     {
                         "payment.create" => true,
                         "payment.cancel" => true,

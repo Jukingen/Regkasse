@@ -52,8 +52,9 @@ public sealed class TenantContextMiddleware
                 return;
             }
 
-            logger.LogDebug(
-                "Development tenant override did not bind; falling through to JWT tenant_id");
+            logger.LogInformation(
+                "Development tenant override did not bind; falling through to JWT tenant_id. Path={Path}",
+                context.Request.Path.Value);
         }
 
         if (context.User?.Identity?.IsAuthenticated == true)
@@ -114,7 +115,9 @@ public sealed class TenantContextMiddleware
 
         if (IsSuperAdminImpersonation(context.User))
         {
-            logger.LogDebug("Super Admin impersonation — skipping tenant host match check");
+            logger.LogInformation(
+                "Super Admin impersonation — skipping tenant host match check. Path={Path}",
+                context.Request.Path.Value);
             return false;
         }
 

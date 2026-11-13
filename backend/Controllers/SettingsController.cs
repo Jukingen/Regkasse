@@ -44,6 +44,7 @@ namespace KasseAPI_Final.Controllers
             _currentTenantAccessor = currentTenantAccessor;
         }
 
+        /// <summary>Returns system settings for the ambient tenant.</summary>
         [HasPermission(AppPermissions.SettingsView)]
         [HttpGet]
         public async Task<ActionResult<SystemSettings>> GetSettings()
@@ -153,6 +154,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Returns session timeout settings for the ambient tenant.</summary>
         [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("session")]
         public async Task<ActionResult<SessionSettingsDto>> GetSessionSettings(CancellationToken cancellationToken)

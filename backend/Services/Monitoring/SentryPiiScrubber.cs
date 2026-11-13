@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Services.Monitoring;
 /// </summary>
 internal static class SentryPiiScrubber
 {
-    internal const double DefaultTracesSampleRate = 0.1;
+    internal const double DefaultTracesSampleRate = SentrySampling.DefaultTracesSampleRate;
 
     private static readonly HashSet<string> DroppedKeys = new(StringComparer.OrdinalIgnoreCase)
     {

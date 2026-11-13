@@ -14,9 +14,14 @@ internal static class SentryHost
         ArgumentNullException.ThrowIfNull(builder);
 
         var dsn = builder.Configuration["Sentry:Dsn"]?.Trim() ?? string.Empty;
-        var sampleRate = builder.Configuration.GetValue("Sentry:TracesSampleRate", SentryPiiScrubber.DefaultTracesSampleRate);
-        if (sampleRate is < 0 or > 1)
-            sampleRate = SentryPiiScrubber.DefaultTracesSampleRate;
+        var tracesSampleRate = SentrySampling.Resolve(
+            Environment.GetEnvironmentVariable(SentrySampling.TracesSampleRateVariable),
+            builder.Configuration["Sentry:TracesSampleRate"],
+            SentrySampling.DefaultTracesSampleRate);
+        var errorSampleRate = SentrySampling.Resolve(
+            Environment.GetEnvironmentVariable(SentrySampling.ErrorSampleRateVariable),
+            builder.Configuration["Sentry:SampleRate"],
+            SentrySampling.DefaultErrorSampleRate);
 
         var environment = builder.Environment.EnvironmentName;
         var release = typeof(SentryHost).Assembly.GetName().Version?.ToString() ?? "0.0.0";
@@ -26,7 +31,8 @@ internal static class SentryHost
             options.Dsn = dsn;
             options.Environment = environment;
             options.Release = release;
-            options.TracesSampleRate = sampleRate;
+            options.TracesSampleRate = tracesSampleRate;
+            options.SampleRate = (float)errorSampleRate;
             options.SendDefaultPii = false;
             options.AttachStacktrace = true;
             options.AdjustStandardEnvironmentNameCasing = false;

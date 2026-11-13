@@ -51,7 +51,7 @@ public sealed class TenantOperationalGateMiddleware
             return;
         }
 
-        var isSuperAdmin = context.User.IsInRole("SuperAdmin");
+        var isSuperAdmin = context.User.IsInRole(KasseAPI_Final.Constants.Roles.SuperAdmin);
         var path = context.Request.Path;
         var method = context.Request.Method;
         var isWriteOperation = IsWriteMethod(method);

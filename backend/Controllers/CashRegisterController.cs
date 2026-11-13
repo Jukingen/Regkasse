@@ -280,6 +280,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Opens a cash register shift so POS payments can be taken.</summary>
         [HasPermission(AppPermissions.ShiftOpen)]
         [HttpPost("{id}/open")]
         public async Task<IActionResult> OpenCashRegister(Guid id, [FromBody] OpenCashRegisterModel model, CancellationToken cancellationToken)
@@ -345,6 +346,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Closes the open shift on a cash register.</summary>
         [HasPermission(AppPermissions.ShiftClose)]
         [HttpPost("{id}/close")]
         public async Task<IActionResult> CloseCashRegister(Guid id, [FromBody] CloseCashRegisterModel model, CancellationToken cancellationToken = default)

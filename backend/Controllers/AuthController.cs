@@ -242,6 +242,7 @@ namespace KasseAPI_Final.Controllers
             return Ok(new { message = _messages.Get(ApiMessageKeys.ForgotPasswordGeneric) });
         }
 
+        /// <summary>Authenticates a cashier or admin by username or email and returns a JWT.</summary>
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -698,6 +699,7 @@ namespace KasseAPI_Final.Controllers
             return $"otpauth://totp/{issuer}:{account}?secret={unformattedKey}&issuer={issuer}&digits=6";
         }
 
+        /// <summary>Ends the current session, revokes its refresh token, and clears auth cookies.</summary>
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
@@ -825,7 +827,7 @@ namespace KasseAPI_Final.Controllers
                         if (now - s_lastGetCurrentUserMissingIdLogUtc >= TimeSpan.FromMinutes(1))
                         {
                             s_lastGetCurrentUserMissingIdLogUtc = now;
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "GetCurrentUser: User ID not found in token claims (no resolvable user id); returning 401. Suppressing similar logs for 60s.");
                         }
                     }
@@ -833,7 +835,7 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 
-                _logger.LogDebug(
+                _logger.LogInformation(
                     "[Auth] GetCurrentUser - resolving UserId: {UserId}",
                     LogIdFormatting.ShortId(userId));
 
@@ -1057,6 +1059,7 @@ namespace KasseAPI_Final.Controllers
                 .ConfigureAwait(false);
         }
 
+        /// <summary>Registers a new user account. Disabled outside the flows that already allow self-registration.</summary>
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {
@@ -1129,6 +1132,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Revokes every session for the current user and rotates the security stamp.</summary>
         [Authorize]
         [HttpPost("logout-all")]
         public async Task<IActionResult> LogoutAll()
@@ -1160,6 +1164,7 @@ namespace KasseAPI_Final.Controllers
             return Ok(new { message = "All sessions invalidated" });
         }
 
+        /// <summary>Revokes a single refresh token presented by the client.</summary>
         [Authorize]
         [HttpPost("revoke")]
         public async Task<IActionResult> Revoke([FromBody] RefreshTokenModel model)

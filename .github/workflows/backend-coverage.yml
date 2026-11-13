@@ -58,17 +58,31 @@ jobs:
         run: >-
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
           --configuration Release
-          --no-build
           --filter "Category!=PostgreSql"
           --verbosity minimal
-          --collect:"XPlat Code Coverage"
-          --results-directory ./TestResults
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat=cobertura
+          /p:CoverletOutput=../TestResults/coverage.cobertura.xml
+          /p:Include="[KasseAPI_Final]*"
+          /p:Exclude="[KasseAPI_Final.Tests]*"
+
+      - name: HTML coverage report
+        if: always()
+        working-directory: backend
+        run: |
+          dotnet tool install --tool-path .tools dotnet-reportgenerator-globaltool --version 5.4.17
+          .tools/reportgenerator \
+            -reports:TestResults/coverage.cobertura.xml \
+            -targetdir:TestResults/html \
+            -reporttypes:Html
 
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/TestResults
+          path: |
+            backend/TestResults/coverage.cobertura.xml
+            backend/TestResults/html
           if-no-files-found: ignore
           retention-days: 7

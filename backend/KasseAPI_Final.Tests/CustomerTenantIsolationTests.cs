@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Constants;
+using Roles = KasseAPI_Final.Authorization.Roles;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
