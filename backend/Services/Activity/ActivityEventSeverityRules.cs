@@ -38,6 +38,7 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.MonatsbelegAutoCreateFailed => ActivitySeverityNames.Error,
             ActivityEventType.MonatsbelegAutoCreateMissed => ActivitySeverityNames.Error,
             ActivityEventType.JahresbelegFonReminder => ActivitySeverityNames.Warning,
+            ActivityEventType.JahresbelegDeadlineReminder => ActivitySeverityNames.Warning,
             ActivityEventType.MonatsbelegManagerContacted => ActivitySeverityNames.Warning,
             ActivityEventType.DepExportDueSoon => ActivitySeverityNames.Warning,
             ActivityEventType.DepExportOverdue => ActivitySeverityNames.Error,

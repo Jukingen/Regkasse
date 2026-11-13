@@ -64,6 +64,7 @@ public class TenantValidationMiddleware
     /// </list>
     /// Exact path <c>/api/tenants/switcher</c> is also exempt for SuperAdmin (membership-wide list;
     /// <c>/api/tenants/current</c> still requires ambient).
+    /// Exact path <c>/api/admin/jahresbeleg-reminder/status</c> is the Jahresbeleg deadline snapshot.
     /// </remarks>
     private static readonly string[] SuperAdminPlatformPathPrefixes =
     [
@@ -87,6 +88,7 @@ public class TenantValidationMiddleware
     private static readonly string[] SuperAdminExactExemptPaths =
     [
         "/api/tenants/switcher",
+        "/api/admin/jahresbeleg-reminder/status",
     ];
 
     public TenantValidationMiddleware(RequestDelegate next, ILogger<TenantValidationMiddleware> logger)
